@@ -1,0 +1,916 @@
+--- Page 1 ---
+Visibly Pushdown Languages
+Rajeev Alur
+University of Pennsylvania
+alur@cis.upenn.eduP. Madhusudan
+University of Illinois, Urbana-Champaign
+madhu@cs.uiuc.edu
+August 22, 2005
+Abstract
+We propose the class of visibly pushdown languages as embeddings of context-free languages
+that is rich enough to model program analysis questions and yet is tractable and robust like theclass of regular languages. In our denition, the input symbol determines when the pushdownautomaton can push or pop, and thus the stack depth at every position. We show that the re-sulting class Vplof languages is closed under union, intersection, complementation, renaming,
+concatenation, and Kleene- , and problems such as inclusion that are undecidable for context-
+free languages are Exptime -complete for visibly pushdown automata. Our framework explains,
+unies, and generalizes many of the decision procedures in the program analysis literature, andallows algorithmic verication of recursive programs with respect to many context-free proper-ties including access control properties via stack inspection and correctness of procedures withrespect to pre and post conditions. We demonstrate that the class Vplis robust by giving three
+alternative characterizations: a logical characterization using the monadic second order (MSO)theory over words augmented with a binary matching predicate, a correspondence to regular treelanguages, and a restricted class of context-free grammars. We also consider visibly pushdownlanguages of innite words and show that the closure properties, MSO-characterization and thecharacterization in terms of regular trees carry over. The main dierence with respect to thecase of nite words turns out to be determinizability: nondeterministic B¨ uchi visibly pushdown
+automata are strictly more expressive than deterministic Muller visibly pushdown automata.
+1 Introduction
+Pushdown automata naturally model the control ﬂow of sequential computation in typical pro-
+gramming languages with nested, and potentially recursive, invocations of program modules suchas procedures and method calls. Consequently, a variety of program analysis, compiler optimization,and model checking questions can be formulated as decision problems for pushdown automata. Forinstance, in contemporary software model checking tools, to verify whether a program P(written
+in C, for instance) satises a regular correctness requirement ’(written in linear temporal logic,
+for instance), the verier rst abstracts the program into a pushdown model P
+awith nite-state
+control, compiles the negation of the specication into a nite-state automaton A:’that accepts
+all computations that violate ’and algorithmically checks that the intersection of the languages
+ofPaandA:’is empty. The problem of checking regular requirements of pushdown models has
+A preliminary version of this paper appears in Proc. 36th ACM Symposium on Theory of Computing (STOC’04),
+pp. 202-211, 2004. This research was supported in part by ARO URI award DAAD19-01-1-0473 and NSF award
+CCR-0306382.
+1
+
+--- Page 2 ---
+been extensively studied in recent years leading to ecient implementations and applications to
+program analysis [RHS95, BEM97, BR00, ABE+05, HJM+02, EKS03, CW02].
+While many analysis problems such as identifying dead code and accesses to uninitialized vari-
+ables can be captured as regular requirements, many others require inspection of the stack ormatching of calls and returns, and are context-free. Even though the general problem of check-ing context-free properties of pushdown automata is undecidable, algorithmic solutions have beenproposed for checking many dierent kinds of non-regular properties. For example, access controlrequirements such as \a module Ashould be invoked only if the module Bbelongs to the call-stack,"
+and bounds on stack size such as \if the number of interrupt-handlers in the call-stack currentlyis less than 5, then a property pholds" require inspection of the stack, and decision procedures
+for certain classes of stack properties already exist [JMT99, CW02, EKS03, CMM
++04]. A separate
+class of non-regular, but decidable, properties includes the recently proposed temporal logic Caret
+that allows matching of calls and returns and can express the classical correctness requirementsof program modules with pre and post conditions, such as \if pholds when a module is invoked,
+the module must return, and qholds upon return" [AEM04]. This suggests that the answer to
+the question \which class of properties are algorithmically checkable against pushdown models?"should be more general than \regular." In this paper, we propose visibly pushdown languages
+as an answer with desirable closure properties, tractable decision problems, multiple equivalentcharacterizations, and adequate for formulating program analysis questions.
+The key feature of checkable requirements, such as stack inspection and matching calls and
+returns, is that the stacks in the model and the property are correlated: while the stacks arenot identical, the two synchronize on when to push and when to pop, and are always of thesame depth. We formalize this intuition by dening visibly pushdown automata (Vpa). Such an
+automaton operates over words over an alphabet that is partitioned into three disjoint sets ofcalls, returns, and local symbols. While reading a callsymbol, the automaton must push one
+symbol, while reading a return symbol, it must pop one symbol (if the stack is non-empty), and
+while reading an localsymbol, it can only update its control state. A language over a partitioned
+alphabet is a visibly pushdown language if there is such an automaton that accepts it. While
+modeling programs as context-free languages, we have to choose a nite alphabet of observations(for instance, an observation may denote that a particular variable is read), and a mapping fromstates (or transitions) of the program to observations. To model programs as visibly pushdownlanguages, this observation must include whether the current transition is a call to a module or areturn from a module. A correctness requirement is another pushdown automaton over the alphabetwith the same partitioning, and hence refers to the calls and returns of the model, and updates itsstack in a synchronized manner. It is easy to see that all regular requirements, stack inspectionproperties, and correctness with respect to pre and post conditions (in fact, all of Caret denable
+properties) are visibly pushdown languages.
+After introducing the class Vplof visibly pushdown languages, we show that it has many
+of the desirable properties that regular languages have. Vplis closed under union, intersection,
+renaming, and complementation. Given a nondeterministic Vpa, one can construct an equivalent
+deterministic one, and thus Vplis a subset of deterministic context-free languages. Problems
+such as universality, inclusion, and equivalence are Exptime -complete for Vpas. We show three
+alternate characterizations of Vpl. First, every word over the partitioned alphabet can be viewed
+as the inx traversal of a corresponding labeled binary tree, where the subword between a call anda matching return is encoded in the left sub-tree of the call, and the sux following the return isencoded in the right sub-tree of the call. With this correspondence, we show that the class Vpl
+coincides with the regular tree languages. Second, we augment the classical MSO|the monadic
+2
+
+--- Page 3 ---
+second order theory over natural numbers with successor and unary predicates (which gives an
+alternative logical characterization of regular languages), with a binary matching predicate(x;y)
+that holds if yis a matching return for the call x. We show that the resulting theory MSO is
+expressively equivalent to Vpl. Finally, we identify restrictions on the productions of context-free
+grammars to get a grammar-based characterization of Vpl.
+Analysis of liveness requirements such as \every write operation must be followed by a read
+operation" is formulated using automata over innite words, and the theory of !-regular languages
+is well developed with many of the counterparts of the results for regular languages (c.f. [Tho90,VW94]). Consequently, we also dene Vpas augmented with acceptance conditions such as B¨uchi
+andMuller , that accept visibly pushdown !-languages. We establish that the resulting class !-Vpl
+is closed under union, intersection, renaming, and complementation. Decision problems for !-Vpas
+have the same complexity as the corresponding problems for Vpas. As in the nite case, the class
+!-Vplcan be characterized by regular languages of innite trees with exactly one innite path, as
+well as by MSO
+. The signicant dierence in the innite case is that nondeterministic automata
+are strictly more expressive than the deterministic ones: the language \the stack is repeatedlybounded" (that is, for some n, the stack depth is at most nin innitely many positions) can be
+easily characterized using a nondeterministic B¨ uchi!-Vpa, and we prove that no deterministic
+Muller!-Vpaaccepts this language. However, we show that nondeterministic B¨ uchi!-Vpacan
+be complemented and hence problems such as checking for inclusion are still decidable.
+Related work.
+The idea of making calls and returns in a recursive program visible to the specication language
+for writing properties appears implicitly in [JMT99] which proposes a logic over stack contentsto specify security constraints, and in [EKS03] which augments linear temporal logic with regularvaluations over stack contents, and explicitly in our recent work on the temporal logic Caret
+that allows modalities for matching calls and returns [AEM04]. There is an extensive literature onpushdown automata, context-free languages, deterministic pushdown automata, and context-free!-languages (c.f. [ABB97]). The most related work is McNaughton’s parenthesis languages with a
+decidable equivalence problem [McN67]. A parenthesis language is produced by a context-free gram-mar where each application of a production introduces a pair of parentheses, delimiting the scopeof production. These parentheses can be viewed as visible calls and returns. Knuth showed thatparentheses languages are closed under union, intersection, and dierence (but not under comple-mentation, primarily because parenthesis languages can consist of only well parenthesized words),and it is decidable to check whether a context-free language is a parenthesis language [Knu67].These proofs are grammar-based and complex, and connection to pushdown automata was notstudied. Furthermore, parenthesis languages are a strict subclass of visibly pushdown languages,even when restricted to languages of well-bracketed words, and the class of parenthesis languages isnot closed under Kleene- . Recently, balanced grammars are dened as a generalization of paren-
+thesis languages by allowing several kinds of parentheses and regular languages in the right handsides of productions [BB02]. It turns out that this class of languages is also a strict subclass of Vpl.
+In the program analysis context, the notion of having unmatched returns (as in Vpl) is useful as
+calls to procedures may not return.
+It has been observed that propositional dynamic logic can be augmented with some restricted
+class of context-free languages, and simple-minded pushdown automata, which may be viewed as
+a restricted class of Vpas, have been proposed to explain the phenomenon [HKT00].
+Finally, there is a logical characterization of context free languages using quantications over
+3
+
+--- Page 4 ---
+matchings [LST94]. Also, properties expressing boundedness of stack, and repeatedly boundedness,
+have received a lot of attention recently [CDT02, BSW03].
+2 Visibly pushdown languages
+2.1 Denition via pushdown automata
+Apushdown alphabet is a tuple e=hc;r;‘ithat comprises three disjoint nite alphabets| c
+is a nite set of calls,ris a nite set of returns and  ‘is a nite set of local actions . For any
+suche, let  =  c[r[‘.
+We dene pushdown automata over e. Intuitively, the pushdown automaton is restricted such
+that it pushes onto the stack only when it reads a call, it pops the stack only at returns, and doesnot use the stack when it reads local actions. The input hence controls the kind of operationspermissible on the stack|however, there is no restriction on the symbols that can be pushed orpopped. We call such an automaton a visibly pushdown automaton , dened as follows:
+Denition 1 (Visibly pushdown automaton) A (nondeterministic) visibly pushdown automa-
+ton on nite words over h
+c;r;‘iis a tupleM=(Q;Q in;Γ;;Q F)whereQis a nite set of
+states,QinQis a set of initial states, Γis a nite stack alphabet that contains a special bottom-
+of-stack symbol ?,(QcQ(Γn f?g))[(QrΓQ)[(Q‘Q), andQFQ
+is a set of nal states.
+A transition ( q;a;q0;γ), wherea2candγ6=?, is a push-transition where on reading a,
+γis pushed onto the stack and the control changes from state qtoq0. Similarly, ( q;a;γ;q0)i sa
+pop-transition where γis read from the top of the stack and popped (if the top of stack is ?, then
+it is read but not popped), and the control state changes from qtoq0. Note that on local actions,
+there is no stack operation.
+A stack is a nonempty nite sequence over Γ ending in the bottom-of-stack symbol ?; let us
+denote the set of all stacks as St=( Γ n f?g ):f?g. For a word w=a1:::a kin , a run ofM
+onwis a sequence =(q0;0);:::(qk;k), where each qi2Q,i2St,q02Qin,0=?and for
+every 1 ikthe following holds:
+[Push] Ifaiis a call, then for some γ2Γ, (qi;ai;qi+1;γ)2andi+1=γ:i.
+[Pop] Ifaiis a return, then for some γ2Γ, (qi;ai;γ;q i+1)2and eitherγ6=?andi=γ:i+1,
+orγ=?andi=i+1=?.
+[Local] Ifaiis a local action, then ( qi;ai;qi+1)2andi+1=i.
+A run=(q0;0);:::(qk;k) is accepting if the last state is a nal state, that is, if qk2QF.
+A wordw2is accepted by a VpaMif there is an accepting run of Monw. The language of
+M,L(M), is the set of words accepted by M.
+Vpas cannot even read the top of the stack on local actions; however this is not a restriction as
+for any Vpawith stack alphabet Γ that can read the top of the stack, one can build a Vpa(with
+a stack alphabet Γ0=( Γ Γ)[ f?g ) that keeps track of the top of the stack in its control state.
+Note that acceptance of Vpas is dened by nal-state and not by emptiness of stack as the latter
+is too restrictive. Also, -transitions are not allowed, but the expressiveness will not increase if we
+allow-transitions that do not push or pop.
+4
+
+--- Page 5 ---
+Denition 2 (Visibly pushdown languages) A language of nite words Lis a visibly
+pushdown language ( Vpl) with respect to e(ae-Vpl) if there is a VpaMoveresuch that
+L(M)=L.
+Note that, by denition, a visibly pushdown language over e is a context-free language over .
+IfLis a regular language over , then Lis a Vplirrespective of the partitioning of  into calls,
+returns, and local symbols. If c=fagand r=fbg, then the language fanbnjn0gis a Vpl,
+but the language fbnanjn0gis not a Vplwith respect to this partitioning. The set of words
+with equal number of aandbsymbols is a context-free language, but is not a Vplnot matter what
+partitioning we choose.
+While visibly pushdown languages are a strict subclass of context-free languages, for every
+context-free language, we can associate a visibly pushdown language over a dierent alphabet inthe following way.
+Proposition 1 (Embedding context-free languages as Vpls)IfLis a context-free language
+over an alphabet , then there exists a VplL
+0over the pushdown alphabet hfcg;frg;f‘gi
+such thatL=h(L0), wherehis a renaming function that maps each symbol (a;s), fors2fc;r;‘g,
+toa.
+Proof: LetPbe a pushdown automaton over  and let us assume, without loss of generality,
+that on reading a symbol, Ppushes or pops at most one stack symbol, and acceptance is dened
+using nal states. Let  c=fcg,r=frgand  ‘=f‘g. Now consider the visibly
+pushdown automaton over hc;r;‘iobtained by transforming Psuch that every transition on
+athat pushes onto the stack is transformed to a transition on ( a;c), transitions on athat pop the
+stack are changed to transitions on ( a;r) and the remaining a-transitions are changed to transitions
+over (a;‘). Then a word w=a1a2:::a kis accepted by Pi there is some augmentation w0ofw,
+w0=(a1;b1)(a2;b2):::(ak;bk), where each bi2fc;r;‘g, such that w0is accepted by M.T h u sM
+accepts the words in L(P) annotated with information on how Phandles the stack. It follows that
+L(P)=f(L(M)).
+We now brieﬂy sketch how to model formal verication problems using Vpl. Suppose we are
+given a boolean program P(that is, a program where all the variables have nite types) with
+procedures (or methods) that can call one another. We choose a suitable pushdown alphabet(
+c;r;‘), and associate a symbol with every transition of Pwith the restriction that calls are
+mapped to  c, returns are mapped to  r, and all other statements are mapped to  ‘. Then,P
+can be viewed as a generator for a visibly pushdown language L(P). The specication is given as
+another VplSover the same alphabet, and the program is correct i L(P)S. Requirements
+that can be veried in this manner include all regular properties, and non-regular properties suchas: partial correctness (if pholds when a procedure is invoked, then, if the procedure returns, q
+holds upon return), total correctness (if pholds when a procedure is invoked, then the procedure
+must return and qmust hold at the return state), local properties (the abstract computation within
+a procedure obtained by skipping over subcomputations corresponding to calls to other proceduressatises a regular property, for instance, every request is followed by a response), access control (aprocedureP
+ican be invoked only if another procedure Pjis in the current stack), and interrupt
+stack limits (whenever the number of interrupts in the call-stack is bounded by a given constant, apropertypholds). In fact, all properties from [JMT99, EKS03, AEM04] are Vpls.
+5
+
+--- Page 6 ---
+2.2 Closure properties
+Let us dene rst a renaming-operation. A renaming of et oe0is a function f:!0, such that
+f(c)0
+c,f(r)0
+randf(‘)0
+‘. A renaming fis extended to words over  in the natural
+way:f(a1:::a k)=f(a1):::f(ak).
+Recall that context-free languages are closed under union, renaming, concatenation and Kleene-
+, but not under intersection. Visibly pushdown automata are however closed under all these
+operations:
+Theorem 1 (Closure) LetL1andL2be visibly pushdown languages with respect to e. Then,
+L1[L2,L1\L2,L1:L2andL
+1are visibly pushdown languages with respect to e. Also, iffis a
+renaming of etoe0, thenf(L1)is a visibly pushdown language with respect to e0.
+Proof: GivenL1andL2accepted by VpasM1andM2, closure under union follows by taking the
+union of the states and transitions of M1andM2(assuming they are disjoint) and taking the new
+set of initial states (nal states) to be the union of the initial states (nal states) of M1andM2.
+L1\L2can be accepted by a VpaMthat has as its set of states the product of the states of
+M1andM2, and as its stack alphabet the product of the stack alphabets of M1andM2. When
+reading a call, if M1pushesγ1andM2pushesγ2, thenMpushes (γ1;γ2). The set of initial (nal)
+states is the product of the initial (nal) states of M1andM2. Note that we crucially use the fact
+thatM1andM2, being Vpas, synchronize on the push and pop operations on the stack.
+GivenLaccepted by VpaMand a renaming f,f(L) can be accepted by simply transforming
+each transition of Monato a transition on f(a).
+GivenL1andL2, we can design a Vpathat accepts L1L2by nondeterministically guessing a
+split of the input word wintow1andw2. The Vpasimulatesw1onM1andw2onM2using dierent
+stack-alphabets; when simulating M2, the stack-alphabet for M1is treated as bottom-of-stack.
+A slightly more involved construction can be done to accept L. LetM=(Q;Q in;Γ;QF)b e
+aVpathat accepts L. We build the automaton Mas follows. MsimulatesMstep by step,
+but whenMchanges its state to a nal state, Mcan nondeterministically update its state to an
+initial state, and thus, restart M. Upon this switch, Mmust treat the stack as if it is empty, and
+this requires tagging its state so that in a tagged state the top can be assumed to be ?ignoring
+the actual content of the stack. More precisely, the state-space of MisQ]Q0, its stack alphabet
+is Γ]Γ0, and its initial states are Qin. Its transitions are as follows
+(Local) For each local transition ( q;a;p)2,Mcontains the transitions ( q;a;p) and (q0;a;p0),
+and ifp2QF, then the transitions ( q;a;r0) and (q0;a;r0) for eachr2Qin.
+(Push) For each push transition ( q;a;p;γ )2,Mcontains the transitions ( q;a;p;γ ) and (q0;a;p;γ0),
+and ifp2QF, then the transitions ( q;a;r0;γ) and (q0;a;r0;γ), for eachr2Qin.
+(Pop) For each pop transition ( q;a;γ;p )2,Mcontains the transitions ( q;a;γ;p ) and (q;a;γ0;p0),
+and ifp2QF, then the transitions ( q;a;γ;r0) and (q;a;γ0;r0), for each r2Qin. For each
+pop transition ( q;a;?;p)2,Mcontains the transitions ( q0;a;γ;p0) for eachγ2Γ[Γ0,
+and ifp2QF, also the transitions ( q0;a;γ;r0) for eachγ2Γ[Γ0andr2Qin.
+Note that from a tagged state, upon a push, Mpushes a tagged symbol on the stack so that at
+any point, the relevant portion of the stack is from the top down to the rst tagged symbol. Thisallows restoring the tagging of the state while popping a tagged symbol. The set of nal states forM
+isQF]Q0
+F. It is easy to check that L(M)=L.
+6
+
+--- Page 7 ---
+Note that the restriction that fmaps calls to calls, returns to returns, and local actions to local
+actions, is important for closure of Vpls under renaming. Vpls are not closed under unrestricted
+renaming functions since such renaming allows embedding arbitrary context-free languages (seeProposition 1).
+Vpas can also be determinized .A Vpa(Q;Q
+in;Γ;;Q F) is said to be deterministic if jQinj=1
+and for every q2Q:
+for everya2‘, there is at most one transition of the kind ( q;a;q0)2,
+for everya2c, there is at most one transition of the form ( q;a;q0;γ)2, and
+for everya2r;γ2Γ, there is at most one transition of the form ( q;a;γ;q0)2.
+Theorem 2 (Determinization) For any VpaMovere, there is a deterministic VpaM0over
+esuch thatL(M0)=L(M). Moreover, if Mhasnstates, we can construct M0withO(2n2)states
+and with stack alphabet of size O(2n2jcj).
+Proof: LetLbe accepted by a VpaM=(Q;Q in;Γ;;Q F). We construct an equivalent deter-
+ministic Vpaas follows.
+The main idea behind the proof is to do a subset construction but postpone handling the
+push-transitions that Mdoes; instead, we store the call actions and simulate the push-transitions
+corresponding to them later, namely at the time of the corresponding pop-transition. The con-struction will have a component Sthat is a set of \summary" edges that keeps track of what
+state transitions are possible from a push-transition to the corresponding pop-transition. Using thesummary information, the set of reachable states is updated.
+Letw=w
+1a1w2a2w3, where in w1every call is matched by a return, but there may be un-
+matched returns; w2andw3are words in which all calls and returns are matched; and a1anda2
+are calls (that don’t have matching returns in w). Then after reading w, the Vpawe construct
+will have as its stack ( S2;R2;a2)(S1;R1;a1)?and its control state will be ( S;R). HereS2contains
+all the pairs ( q;q0) such that the VpaMcan get on w2fromqwith stack ?toq0with stack ?.
+SimilarlyS1is the summary for w1andSis the summary for w3. The setR1is the set of states
+reachable by Mfrom any initial state on w1,R2is the set of states reachable from any initial state
+onw1a1w2andRis the set of states reached by the Mafterw. We maintain such a property of
+the stack and control-state as an invariant.
+If now a call a3occurs, we push ( S;R;a 3), updateRusing all possible transitions on a3to get
+R0, and go to state ( S0;R0) whereS0=f(q;q)jq2Qgis the initialization of the summary. On
+local actions we update the R-component. If a return a0
+2occurs, we pop ( S2;R2;a2), and update
+S2andR2using the current summary Salong with a push-transition on a2and a corresponding
+pop-transition on a0
+2.
+LetLbe accepted by a VpaM=(Q;Q in;Γ;;Q F). We construct an equivalent deterministic
+VpaM0=(Q0;Q0
+in;Γ0;0;Q0
+F) as follows.
+LetQ0=2QQ2Q.I fIdQdenotes the set f(q;q)jq2Qg, thenQ0
+in=f(IdQ;Q in)g. The
+stack alphabet Γ0is the set of elements ( S;R;a ), where (S;R)2Q0anda2c. The transition
+relation0is given by:
+(Local) For everya2‘,( (S;R);a;(S0;R0))20whereS0=f(q;q0)j9q00:(q;q00)2S;(q00;a;q0)2
+g,R0=fq0j9q2R:(q;a;q0)2g.
+(Call) For everya2c,( (S;R);a;(IdQ;R0);(S;R;a ))20whereR0=fq0j9q2R;γ2Γ:
+(q;a;q0;γ)2g.
+7
+
+--- Page 8 ---
+(Return)
+For everya2r,( (S;R);a;(S0;R0;a0);(S00;R00))20if (S00;R00) satises the following:
+LetUpdate =f(q;q0)j9q1;q22Q;γ2Γ:(q;a0;q1;γ)2;(q1;q2)2S;(q2;a;γ;q0)2g.
+Then,S00=f(q;q0)j9q3:(q;q3)2S0;(q3;q0)2Update gand
+R00=fq0j9q2R0;(q;q0)2Update g.
+For every a2r,( (S;R);a;?;(S0;R0))20ifS0=f(q;q0)j9q00:(q;q00)2
+S;(q00;a;?;q0)2g,R0=fq0j9q2R:(q;a;; ?;q0)2g.
+The set of nal states is Q0
+F=f(S;R)jR\QF6=;g.
+Intuitively, the R-component keeps track of the current set of reachable states. When a call-
+action occurs, Ris propagated on all push-transitions and will be used to determine acceptance
+provided there is no matching return. If there is a matching return, then the summary of thiscall-return segment will be computed in the S-component and the R-component in the state before
+the call occurred will be updated with this summary.
+Since deterministic Vpas can be complemented by complementing the set of nal states, we have:
+Corollary 1 The class of visibly pushdown languages is closed under complementation. That is,
+ifLis ae-Vpl, then Lis also a e-Vpl.
+2.3 Decision problems
+Turning now to decidability of decision problems for Vpas, observe that since a Vpais a PDA,
+emptiness is decidable in time O(n3) wherenis the number of states in the Vpa. The universality
+problem for Vpas is to check whether a given VpaMaccepts all strings in . The inclusion
+problem is to nd whether, given two VpasM1andM2,L(M1)L(M2). Though both are
+undecidable for PDAs, they are decidable for Vpas:
+Theorem 3 The universality problem and the inclusion problem are Exptime -complete.
+Proof: Decidability and membership in Exptime for inclusion hold because, given VpasM1and
+M2, we can take the complement of M2, take its intersection with M1and check for emptiness.
+Universality reduces to checking inclusion of the language of the xed 1-state VpaM1accepting
+with the given VpaM. We now show that universality is Exptime -hard (hardness of inclusion
+follows by the above reduction).
+The reduction is from the membership problem for alternating linear-space Turing machines
+(TM) and is similar to the proof in [BEM97] where it is shown that checking pushdown systemsagainst linear temporal logic specications is Exptime -hard.
+Given an input word for such a xed TM, a run of the TM on the word can be seen as a
+binary tree of congurations, where the branching is induced by the universal transitions. Eachconguration can be coded using O(n) bits, where nis the length of the input word. Consider an
+inx traversal of this tree, where every conguration of the tree occurs twice: when it is reachedfrom above for the rst time, we write out the conguration and when we reach it again from itsleft child we write out the conguration in reverse. This encoding has the property that for anyparent-child pair, there is a place along the encoding where the conguration at the parent andchild appear consecutively. We then design, given an input word to the TM, a Vpathat accepts a
+wordwiwis either a wrong encoding (i.e. does not correspond to a run of the TM on the input
+word) orwencodes a run that is not accepting. The Vpachecks if the word satises the property
+8
+
+--- Page 9 ---
+Closure under
+Union Intersection Complement Concat. Kleene- 
+Regular Yes Yes Yes Yes Yes
+CFL Yes No No Yes Yes
+DCFL No No Yes No No
+Vpl Yes Yes Yes Yes Yes
+Figure 1: Closure Properties
+Decision problems for automata
+Emptiness Universality/Equivalence Inclusion
+NFA Nlogspace Pspace Pspace
+PDA Ptime Undecidable Undecidable
+DPDA Ptime Decidable Undecidable
+VPA Ptime Exptime Exptime
+Figure 2: Summary of decision problems
+that a conguration at a node is reversed when it is visited again using the stack. The Vpacan
+also guess nondeterministically a parent-child pair and check whether they correspond to a wrongevolution of the TM, using the nite-state control. Thus the Vpaaccepts 
+i the Turing machine
+does not accept the input.
+The following table summarizes and compares closure properties and decision problems for
+CFLs, deterministic CFLs (DCFLs), Vpls and regular languages. In the context of reducing
+program analysis questions to inclusion problems for Vpl, note that the complexity is polynomial
+in the model and exponential only in the specication.
+3 A logical characterization
+Given a word wover a pushdown alphabet, recall that there is a natural notion of associating each
+call inwwith its matching return, if it exists. We can now dene a logic over words over e that
+has in its signature this matching relation .
+Fixe. A word wover  can be treated as a structure over the universe U=f1;:::;jwjgthat
+denotes the set of positions and a set of unary predicates Qa, for eacha2, whereQa(i) is true i
+w[i]=a. Also, we have a binary relation overUthat corresponds to the matching relation of calls
+and returns: (i;j) is true i w[i] is a call and w[j] is its matching return. Let us x a countable
+innite set of rst-order variables x;y;::: and a countable innite set of monadic second-order (set)
+variablesX;Y;::: .
+Denition 3 (Monadic second order logic with matching relation) Themonadic second-
+order logic (MSO ) over eis dened as:
+’:=Qa(x)jx2Xjxyj(x;y)j:’j’_’j9x:’j9X:’
+wherea2,xis a rst-order variable and Xis a set variable.
+9
+
+--- Page 10 ---
+The models are words over . The semantics is the natural semantics on the structure for
+words dened above. The rst-order variables are interpreted over the positions of w, and the
+second-order variables range over subsets of positions. A sentence is a formula which has no freevariables.
+For example, if e=hfag;fbg;fdgi, then the formula
+8x:(Q
+a(x))9y:9z:(Qb(y)^Qd(z)^xz^zy^(x;y)))
+says \every call must have a corresponding return with an intervening daction".
+The set of all words that satisfy a sentence ’is denotedL(’) and we say ’denes this language.
+Theorem 4 A language Lovereis a Vpli there is an MSO sentence’overethat denes
+L.
+Proof: The proof follows a similar style as in proving that MSO (without ) over words denes
+the same class as that of regular words (see [Tho90]).
+First we show that for any sentence ’,L(’)i sa Vpl. Let us assume that in all formulas, each
+variable is quantied at most once. Consider any formula (x1;:::;x m;X1;:::;X n) (i.e. with free
+variablesZ=fx1;:::;x m;X1;:::;X ng). Then consider the alphabetfZwhere Z
+s=f(a;V)ja2
+s;V:Z!f0;1gis a valuation function g, wheres2fc;r;‘g. Then a word w0over Zencodes
+a wordwalong with a valuation for the variables (provided singleton variables get assigned to
+exactly one position). Let L( ) denote the set of words w0over Zsuch that the underlying word
+wsatises under the valuation dened by w0. Then we show, by structural induction, that L( )
+is a Vpl.
+The property that rst-order variables are assigned exactly once can be checked using the nite
+control of a Vpa. The atomic formulas x2X,Qa(x) andxyare easy to handle.
+To handle the atomic formula (x;y), we build a Vpathat pushes the input calls onto the stack,
+and pops the top of the stack whenever it sees a return. The Vpaaccepts the string if it reads a
+return (a;v) wherevassignsyto 1 and the popped symbol is of the kind ( a0;v0) wherev0assigns
+xto 1.
+Disjunction and negation can be dealt with using the fact that Vpls are closed under union
+and complement. Also, existential quantication corresponds to restricting the valuation functionsto exclude a variable and can be done by renaming the alphabet. Thus we obtain a Vpaovere
+that accepts precisely the language L(’).
+For the converse, consider a VpaM=(Q;q
+in;Γ;;Q F) whereQ=fq1;:::q ngand Γ =
+fγ1;:::;γ kg. The corresponding MSO formula will express that there is an accepting run of
+Mon the word and will be of the form:
+9Xq1:::9Xqn9Cγ1:::9Cγk9Rγ1:::9Rγk
+’(Xq1;:::X qn;Cγ1;:::C γk;Rγ1;:::;R γk)
+whereXqstands for the positions where the run is in state q, andCγandRγstand for the positions
+whereγis pushed and popped from the stack, respectively. We can write conditions in ’that ensure
+that the variables Xq,CγandRγindeed dene a run; the only interesting detail here is to ensure
+that when a stack symbol γis pushed (i.e. when Cγholds), at the corresponding return Rγmust
+hold. We can state this using the -relation by demanding that for every xandy,i f(x;y) holds,
+then there is a γsuch thatx2Cγandy2Rγ. Also,’demands that if y2Rγand there is no x
+such that(x;y) holds, then γ=?.
+10
+
+--- Page 11 ---
+4 Relation to regular tree languages
+In this section we describe a mapping from words over e to a particular class of trees, called stack-
+trees such that visibly pushdown languages correspond to regular sets of stack-trees. For technical
+convenience, we do not represent the empty-word as a tree.
+It is well known that context-free grammars and regular tree languages are related: the deriva-
+tion trees of a CFG form a regular tree language and for any regular tree language, the yield
+language of the trees is a CFL [CDG+02]. However, the tree language for a CFL is determined by
+the grammar and not the language itself; in this section we associate regular tree languages withVpls.
+A -labeled binary tree is a structure T=(V;), whereVf0;1g
+is a nite prex-closed
+language, and :V! is a labeling function. The set Vrepresents the nodes of the tree and the
+edge-relation is implicit: the edges are the pairs of the form ( x;x:i), wherex;x:i 2V,i2f0;1g;
+is the root of the tree. Let Tdenote the set of all -labeled trees.
+Fixe; we now dene a map :!T.(w) for anyw2is dened inductively as follows:
+Ifw=,() is the empty tree|i.e. with an empty set of vertices.
+Ifw=cw0, wherecis a call, then there are two cases:
+If the rst position in w(labeledc) has a matching return, let w=cw1rw2, where the
+matching return is the position after w1. Then(w) has its root labeled c, the subtree rooted
+at its 0-child is isomorphic to (w1), and the subtree rooted at its 1-child is isomorphic to
+(rw2).
+If the rst letter in wdoes not have a matching return, then (w) has its root labeled c, has
+no right-child, and the subtree rooted at its 0-child is isomorphic to (w0).
+Ifw=aw0, whereais a local action or a return, (w) has its root labeled a, has no 0-child,
+and the subtree rooted at its 1-child is isomorphic to (w0).
+The trees that correspond to non-empty words in +are called stack-trees and the set of stack-
+trees is denoted by STree =(+). IfT=(w), then the labels on an inx traversal of Trecovers
+w. Henceis a 1-1 correspondence between words in +andSTree . In a stack tree, however,
+a call and its matching return are encoded next to each other (if w[i] is a call and w[j] is the
+corresponding return, then the node encoding w[j] is the 1-child of the node encoding w[i]).
+The tree encoding can be easily understood from the exmaple of Figure 3 which shows the tree
+corresponding to the word a1a2a3a4a5a6a7a8, wherea1;a3;a52‘,a2;a42c, anda6;a7;a82r.
+Let us now dene regular tree languages using automata over trees. A tree-automaton on -
+labeled trees is a tuple A=(Q;Q in;) whereQis a nite set of states, QinPis the set of initial
+states and  = h01;0;1;;iis a set of four transition relations| Dencodes transitions for
+nodesuwhereDis the set of children that uhas:
+01PPP
+Fori=0;1,  iPP
+;P
+LetT=(V;) be a -labeled tree. A run of AoverTis aQ-labeled tree T=(V;) where
+()2Qinand for every node v2V:
+Ifvhas both children, then ( (v);(v);(v:0);(v:1))201
+11
+
+--- Page 12 ---
+a2
+a3
+a4
+a5 a6a7
+a8cc‘
+‘
+‘ rr
+ra1
+Figure 3: From words over pushdown alphabet to stack-trees
+Ifvhas one child, say the i-child, then ( (v);(v);(v:i))2i
+Ifvis a leaf, then ( (v);(v))2;
+Tree automata are usually dened using a set of nal states; this has been absorbed into the
+;component of the transition relation. A tree Tis accepted by a tree automaton Ai there is
+a run of AoverT; the set of trees accepted by Ais the language of A, denoted L(A). A set of
+-labeled trees Lis regular if there is some tree automaton such that L=L(A). The set of trees
+STree can be shown to be regular. We can show the following:
+Theorem 5 LetLbe a set of stack trees. Then −1(L)is a VpliLis regular.
+Proof: LetL=−1(L) be accepted by a VpaM=(Q;Q in;Γ;;Q F). Then we build a tree
+automaton A=(P;P in;) of size polynomial in jMjaccepting L, whereP=(QQ)[(QQ
+(Γn f?g )) andPin=f(qin;qf)jqin2Qin;qf2QFg. The tree automaton simulates the Vpaon
+the word corresponding to the tree. A state of the form ( q;q0) means that the current state of the
+Vpathat is being simulated is qandq0is the (guessed) state where the run of the Vpawill be when
+it meets the next unmatched return or when the word ends (i.e. q0is the guessed state of the Vpa
+when it has nished reading the leaf on the 1-branch from the current node). The state ( q;q0;γ)
+stands for the current state of Vpabeingqand the commitment to end in q0but additionally that
+the next node to be read must be a return and the top of the stack is γ.
+We start with any state ( qin;qf), whereqin2Qin,qf2QF, which means that we want to end in
+a nal state when we nish the word. The main idea of the construction is in the call|when readinga call in a state ( q;q
+0) that is going to return (i.e. the node has both children), if ( q;a;q 1;γ)i sa
+transition in the Vpa, the tree automaton can split into two copies ( q1;q2) and (q2;q0;γ) to the 0-
+child and 1-child respectively, for any q22Q. Here the tree automaton is guessing that the portion
+of the word within the call will start at q1and end at q2and that at the corresponding return, the
+Vpawill take the state from q2toq0. The state ( q2;q0;γ) will see the return, simulate a transition
+fromq2that popsγand continue. Note that the tree automaton is in general nondeterministic,
+even if the Vpais deterministic.
+The transition relation  is dened as follows:
+12
+
+--- Page 13 ---
+Calls: For each push-transition ( q;a;q 1;γ)2, whereais a call, we have, for every q02Q, the
+transitions:
+Calls that immediately return: ((q;q0);a;(q1;q0;γ))21
+Calls that return: For everyq22Q,( (q;q0);a;(q1;q2);(q2;q0;γ))201
+Calls that do not return: ((q;q0);a;(q1;q0))20
+Returns that have matching calls: For each pop-transition ( q;a;γ;q 1)2, whereais a return
+andγ6=?, we have, for every q02Q, the transitions (( q;q0;γ);a;(q1;q0))21
+Local actions or returns without matching calls: Ifa2‘and (q;a;q 1)2, or,a2rand
+(q;a;?;q1)2, then we have, for every q02Q, the transitions (( q;q0);a;(q1;q0))21.
+;contains the pairs (( q;q0);a) wherea2 and, either ( q;a;q0)2or (q;a;q0;γ)2or
+(q;a;?;q0)2. Also,  ;contains the pairs (( q;q0;γ);a) whereais a return and ( q;a;γ;q0)2.
+Intuitively the set of nal states (i.e.  ;) checks whether the commitment to end in the state
+q0is indeed met. Since the initial state is of the form ( qin;qf) and the component qfstays in the
+second-component along the right-most path of the tree, we ensure that the entire run ends in qf,
+i.e. in a nal state. It is easy to show that Aaccepts exactly L.
+For the converse, let A=(P;P in;) accept L. Intuitively, we construct a VpaMaccepting
+−1(L) of size polynomial in jAjas follows. The Vpaon a wordw, simulates a run of Aon(w).
+At every call a2c,Mguesses whether the call will have a matching return or not. If it will, then
+theVpapicks a transition ( q;a;q 0;q1)201and pushes q1onto the stack and continues simulating
+q0. Just before the matching return is seen, we are at a leaf and Mwill check if the current state
+and the label of the leaf is in  ;. When the matching return is seen, the current state is reset to
+the popped state q1andMcontinues to simulate Aon the right-branch from the call. The other
+cases are analogous. To make sure the guesses made on the structure of the tree is indeed correctis a bit more involved.
+Formally,M=(Q;Q
+in;Γ;;Q F), whereQ=( (P[faccg)(P[f;?g))[fng,Qin=f(p;?)j
+p2Pingand Γ = ((P[ fg)(P[f ;?g))[ f?g .
+A state (p;p0) stands for the fact that the current state of the tree automaton being simulated
+ispandp0is the top of the stack. If p=acc, then this means that a leaf of the tree has just
+been read and that we expect to see a return. At the right-most leaf where the word ends, theVpawill be in the state nif it has successfully checked that there is an accepting run of the tree
+automaton.
+The stack at any point is of the form ( p
+n;p0
+n)(pn−1;p0
+n−1):::(p1;p0
+1)?wherep0
+1=?and every
+p0
+i+1=pi, i.e. we keep track of the stack content as a chain where each element of the stack also
+records what symbol is below it. Using this structure, the Vpacan keep track of the top-most
+symbol of the stack in its nite control. The symbol is a special symbol pushed when the Vpa
+reads a call and guesses that it is not going to have a matching return.
+The transition relation is dened as follows:
+Local actions: For everya2‘,(p;a;p 1)21,p02P[f ;?g, we have (( p;p0);a;(p1;p0))2.
+For everya2‘,(p;a)2;, we have (( p;);a;n)2,( (p;?);a;n)2and for every
+p02P,( (p;p0);a;(acc;p0))2.
+Calls: For everya2c,
+For every (p;a;p 0;p1)201andp02P[f;?g, we have (( p;p0);a;(p0;p1);(p1;p0))2.
+13
+
+--- Page 14 ---
+For every (p;a;p 0)20,b2f ;?g,w eh a v e( ( p;b);a;(p0;);(;b))2.
+For every (p;a;p 1)21andp02P[f ;?g, we have (( p;p0);a;(acc;p1);(p1;p0))2.
+For every (p;a)2;andb2f ;?g,w eh a v e( ( p;b);a;n;(;b))2.
+Returns: For everya2r,
+For (p;a;p 1)21, we have (( acc;p);a;(p;p0);(p1;p0))2and ((p;?);a;?;(p1;?))2.
+For (p;a)2;,w eh a v e( ( acc;p);a;(p;p0);(acc;p0))2and ((p;?);a;?;n)2.
+The setQF=fng.
+Summary Automata
+It is worth noting that we can get an equivalent characterization of visibly pushdown automata
+using nite-state word automata that can jump. Let us call such automata summary automata .
+A (nondeterministic) summary automaton has nitely many control states, no stack, and reads aword over a pushdown alphabet. While reading a local or a return symbol, a summary automatonworks just like a standard automaton, but while reading a call, it can send a copy to the nextsymbol as well as to the matching return (if such a return exists). For example, consider the worda
+1a2:::a8(see Figure 3 for the types of symbols). While reading a1, the automaton updates its
+state and moves to a2. At this point, it sends a copy to symbol a3as well as a copy to symbol a7
+(the states in these two copies are chosen according to the transition relation, that is, for a state q
+and a calla, the transition relation contains pairs of states). This is similar to a tree automaton
+processing the stack-tree corresponding to the word as it also sends a copy to the left child (the nextsymbol) and the right child (the matching return) at a call symbol. The dierence is that at a leafsuch asa
+6the control of a summary automaton will simply move to the next symbol a7, and this
+allows propagation of state across subtrees. The summary automaton needs to be nondeterministicwhen it jumps in order to relate what happens before the matching return to what happens afterthe matching return. This is analogous to the fact that deterministic tree automata do not captureall regular tree languages. However, note that if the property as a word language is regular, then asummary automaton does not need to jump, and can be deterministic, a tree automaton operatingon the tree view still may need to be nondeterministic. We leave it as an exercise to dene theseautomata formally and prove that they capture precisely the class Vpl.
+5 Grammar-based characterization
+It is well known that context-free languages can be described either by pushdown automata or by
+context-free grammars. In this section, we identify a class of context-free grammars that corre-sponds to visibly pushdown languages.
+A context-free grammar over an alphabet  is a tuple G=(V;S;P ), whereVis a nite set
+of variables, S2Vis a start variable, and Pis a nite set of productions of the form X!
+such thatX2Vand2(V[)
+. The semantics of the grammar Gis dened by the derivation
+relation )over (V[): for every production X!inPand for all words ;02(V[),
+X0)0holds. The language L(G) of the grammar Gconsists of all words w2such that
+S)w, that is, a word wover  is in the language of the grammar Gi it can be derived from
+the start variable Sin one or more steps.
+14
+
+--- Page 15 ---
+Denition 4 (Visibly pushdown grammar) A context-free grammar G=(V;S;P )overis a
+visibly pushdown grammar with respect to the partitioning e=(  c;r;‘)if the setVof variables
+is partitioned into two disjoint sets V0andV1, such that all the productions in Pare of one the
+following forms
+X!";
+X!aYsuch that if X2V0thena2‘andY2V0;
+X!aYbZ such thata2candb2randY2V0and ifX2V0thenZ2V0.
+The variables in V0derive only well-matched words where there is a one-to-one correspondence
+between calls and returns. The variables in V1derive words that can contain unmatched calls
+as well as unmatched returns. In the rule X!aY,i fais a call or a return, then either it is
+unmatched or its matching return or call is not remembered, and the variable Xmust be in V1.I n
+the ruleX!aYbZ , the symbols aandbare the matching calls and returns, with a well-matched
+word, generated by Y2V0, sandwitched in between, and if Xis required to be well-matched then
+that requirement propagates to Z.
+Recall that a Dyck language consists of well-paranthesized strings of ktypes of parantheses (c.f.
+[HU79]). It is known that every context-free language is a homomorphism of the intersection ofa Dyck language with a regular language (in contrast, Proposition 1 asserts that every CFL is ahomomorphism of a Vpl). The Dyck language can be generated by a visibly pushdown grammar
+as follows. The pushdown alphabet is given by: 
+c=f[1;[2;:::[kg,r=f]1;]2;:::]kg,‘is empty
+set. There is a single (start) variable S, and the productions are
+S!"j[1S]1Sj[2S]2Sj  j [kS]kS
+Observe that the rule X!aYis right-linear, and is as in regular grammars. The rule X!
+aYbZ requiresaandbto be matching call and return symbols, and can be encoded by a visibly
+pushdown automaton that, while reading a, pushes the obligation that the matching return should
+beb, withZto be subsequently expanded. This intuition can be made precise:
+Theorem 6 (Visibly pushdown grammars) For a pushdown alphabet e, a language is a Vpl
+i it has a visibly pushdown grammar.
+Proof: Fix a pushdown alphabet e. LetG=(V;S;P ) be a visibly pushdown grammar. We
+build a VpaMGthat accepts L(G) as follows. The set of states of MGisV. The unique initial
+state isS. The stack alphabet is Vralong with the bottom of stack ?and a dummy symbol
+$. The transitions of MGfrom a state Xon a symbol aare as follows:
+Locala2‘:contains (X;a;Y ) for each variable Ysuch thatX!aYis a production of G.
+Pusha2c:contains (X;a;Y; $) for each variable Ysuch thatX!aYis a production of G;
+and (X;a;Y; (b;Z)) for each production X!aYbZ ofG.
+Popa2r:contains (X;a;?;Y) and (X;a;$;Y) for each variable Ysuch thatX!aYis a
+production of G; and ifXis a nullable symbol (that is, X!"is a production of G) and is
+inV0, then for each variable Y,contains (X;a;(a;Y);Y).
+15
+
+--- Page 16 ---
+The rst clause says that the automaton can update state from XtoYwhile consuming a local
+actionaaccording to the rule X!aY. The second clause says that while reading a call, to simulate
+the ruleX!aY(this can happen only when X2V1), the automaton pushes the dummy symbol
+$, and updates the state to Y. To simulate the rule X!aYbZ , the automaton changes the state
+toYwhile remembering the continuation of the rule by pushing the pair ( b;Z) onto the stack.
+The third clause handles returns. The return can be consumed using a rule X!aYwhenXis
+inV1. If the current state is nullable and in V0, then the top of the stack contains the required
+continuation, and the symbol being read should be consistent with it. If neither of these conditionshold, then no transition is enabled, and the automaton will reject. The accepting condition for M
+A
+is that the state should be nullable, and the top of the stack should be either $ or ?(which means
+that there is no requirement concerning matching return). Since acceptance for visibly pushdownautomata is dened solely based upon nal states, we need to modify the construction so that thestate ofM
+Aincludes a bit that shows whether or not the current top of the stack equals $ or ?.
+In the other direction, consider a VpaM=(Q;Q in;Γ;;Q F). We will construct a visibly
+pushdown grammar GMthat generates L(M). For each state q2Q, the setV1has two variables
+XqandYq; and for every pair of states q;pand stack symbol γ, the setV0has a variable Zq;γ;p.
+Intuitively, the variable Xqsays that the state is qand the stack is empty; the variable Yqsays
+that the state is qand the stack is non-empty, but its contents are not relevant (this happens due
+to unmatched calls); and the variable Zq;γ;psays that the current state is q, the top of the stack is
+γ, and the state just before the next unmatched return (i.e., the state just before popping o the
+current top) is required to be p. The start variables are Xqfor eachq2Qin(to ensure that the
+start variable is unique, we can add a new variable Sand productions S!for every production
+X!, for each such start variable X). The productions are as follows:
+1. For each state q,i fq2QF,PcontainsXq!"andYq!".
+2. For each state qand each stack symbol γ,PcontainsZq;γ;q!".
+3. For each local action aand statesq;p,i fcontains the transition ( q;a;p),PcontainsXq!
+aXpandYq!aYp.
+4. For each local action a, statesq;p;q0, and stack symbol γ,i fcontains the transition ( q;a;p),
+PcontainsZq;γ;q0!aZp;γ;q0.
+5. For each call a, returnb, stack symbol γ, and states q;q0;p;p0,i fcontains the transitions
+(q;a;γ;p ) and (q0;b;γ;p0),PcontainsXq!aZp;γ;q0bXp0andYq!aZp;γ;q0bYp0.
+6. For each call a, returnb, stack symbols γ;γ0, and states q;q0;p;p0;r,i fcontains the transi-
+tions (q;a;γ;p ) and (q0;b;γ;p0),PcontainsZq;γ0;r!aZp;γ;q0bZp0;γ0;r.
+7. For each call a, statesq;p, and stack symbol γ,i fcontains the transition ( q;a;γ;p ),P
+containsXq!aYpandYq!aYp.
+8. For each return aand statesq;p,i fcontains the transition ( q;a;?;p),PcontainsXq!aXp.
+In any derivation starting from a start variable, the string contains only one trailing XorYvariable,
+which can be nullied by the rst clause, provided the current state is accepting. The second clauseallows nullifying a variable Z
+q;γ;q0when the current state qis same as the target state q0, forcing
+the next symbol to be a return. Clauses 3 and 4 correspond to consuming local symbols consistentwith the intended interpretation of the variables. Clauses 5 and 6 capture summarization. In state
+16
+
+--- Page 17 ---
+q, while reading a call a, if the automaton can push γwhile updating its state to p, then we guess
+the matching return band the state q0just before reading this matching return. The well-matched
+word sandwitched between is generated by the variable Zp;γ;q0, and takes the automaton from pto
+q0withγon top. The variable following the matching return bis consistent with some transition
+that updates state from q0top0while reading band popping o γ. The clause 7 corresponds to the
+guess that the call being read has no matching return, and hence, it suces to remember the statealong with the fact that the stack is nonempty. The nal clause allows processing of unmatchedreturns when the stack is empty.
+6 Visibly pushdown !-languages
+We now consider extensions of the results in the previous sections to innite words over e. An
+!-Vpais a tupleM=(Q;Q in;Γ;;F) whereQ,Qin, Γ andare as in a Vpa. For any innite word
+2!, a run is an !-sequence=(q0;0)(q1;1):::that is dened using the natural extension
+of the denition of runs on nite words. To determine whether a run is accepting, we consider
+the set inf()Qwhich is the set of all states that occur in innitely often.
+The acceptance condition Fis an innitary winning condition that can be of two kinds:
+B¨uchi acceptance condition: F=FQis a set of states; a run is accepting if Fis met
+innitely often along the run, i.e. inf()\F6=;.
+Muller acceptance condition: F=fF1;:::;F kg, where each FiQ; a runis accepting if
+the set of states it meets innitely often is an element of F, i.e.inf()2F
+An innite word is accepted by Mif there is some accepting run of Mon. The language
+ofM,L!(M), is the set of all !-words that it accepts. A language of innite words L!is said
+to be an!-Vplif there is some !-VpaMsuch thatL=L!(M).
+The class of !-regular languages is well studied and is dened using automata (without stack) on
+innite words; the denition of !-Vpaextends this denition to visibly pushdown automata and the
+languages accepted by !-Vpas is a subclass of !-CFLs [CG77]. It is known that nondeterministic
+B¨uchi automata and Muller automata (without stack) can simulate each other|these constructions
+can be easily extended to show that nondeterministic B¨ uchi and Muller !-Vpas are equivalent.
+Hence we take the denition of an !-Vplas that of being accepted by a nondeterministic B¨ uchi
+!-Vpa. The notion of renaming can be extended to innite words and we can show:
+Theorem 7 (Closure) LetL1andL2be!-Vpls with respect to e. Then,L1[L2andL1\L2
+are also!-Vpls with respect to e.I ffis a renaming of etoe0, thenf(L1)is a visibly pushdown
+language with respect to e0. Further, if L3is a Vplovere, thenL3:L1and(L3)!are!-Vpls over
+e.
+Proof: The closure constructions for nondeterministic B¨ uchi!-Vpaare similar to the ones
+in Theorem 1. For the case of intersection, we need to make sure that the nal states of bothautomata are visited innitely often, and this can be done by adding a bit to the state as is donefor intersection of B¨ uchi automata. The construction for L
+!is similar to the construction for L
+in Theorem 1. In this construction, for every transition leading to a state p2QF, the state is
+nondeterministically reset to some initial state. To ensure membership in L!, we need to require
+that this reset happens innitely often, and this can be captured by a B¨ uchi condition after adding
+a bit to the state.
+17
+
+--- Page 18 ---
+However,!-Vpas cannot be determinized. For automata (without stack) on !-words it is well
+known that for any nondeterministic B¨ uchi automaton, there is a deterministic Muller automaton
+that accepts the same language [Saf88, Tho90]. However, this is not true for visibly pushdownautomata over innite words. In fact, consider the language L
+repbddconsisting of all words in
+fc;rg!, (wherecis a call and ris a return), that is repeatedly bounded|i.e. 2Lrepbddif there
+is somen2Nsuch that the stack-depth on reading innitely often is less than or equal to n
+[CDT02]. We can then show that this language is not determinizable.
+Theorem 8 (Deterministic vs. Nondet. !-Vpas)!-Vpas are not determinizable. In partic-
+ular, the language Lrepbddis an!-Vplbut cannot be accepted by any deterministic Muller !-Vpa.
+Proof: We can easily design a nondeterministic B¨ uchi!-Vpathat accepts Lrepbdd. The!-Vpa
+nondeterministically chooses a position in the word and checks whether the stack-depth at thatposition is the least stack-depth that occurs innitely often. The !-Vpaguesses this point by
+pushing a special symbol onto the stack and signals a B¨ uchi acceptance state whenever the stack
+reaches that depth.
+Now to show that no deterministic !-Vpacan accept L
+repbdd, assume the contrary and let
+M=(Q;fqing;Γ;;F) be a deterministic Muller automaton that accepts Lrepbdd. LetG1=(Q;!)
+be the summary-graph of Mwhereq!q0i there exists a word wthat is well-matched (every call
+has a matching return and vice versa) such that from qand the empty stack, Mreachesq0(and
+empty stack) on w(note thatMhence also goes on wfrom (q;)t o(q0;) for any stack ). Note
+that ifqis a state reachable by Mon any arbitrary word, then there must be an edge from qinG1
+(we can append an innite word w!wherewis a well-matched word; then Mmust have a run on
+it as it is repeatedly bounded and hence there will be a summary edge from qonw). Also, since
+concatenation of well-matched words is well-matched, G1is transitive-closed.
+Consider the strongly connected components (SCC) of G1. A sink SCC of G1is a strongly
+connected component S0such that every edge ( q;q0)2G1,i fq2S0thenq0is also inS0.
+Now letG2=(Q;)) which is a super-graph of G1with additional call-edges :(q;q0)i sa
+call-edge if there is a transition from qtoq0inMon a callc2c. We now want to show:
+(*)there is a sink SCC SofG1and a state q2Sreachable from qininG2such that there is a
+cycle involving qinG2that includes a call-edge.
+If (*) is true, then we can show a contradiction. Consider a word that from qinreachesqusing the
+summary edges and call-edges in G2and then loops forever in S. This word is repeatedly bounded
+and hence must be accepting and hence QS, the union of all states reachable using summary edges
+inSmust be in the Muller set F. Now consider another word that takes Mfromqintoqbut
+now follows the cycle that involves q. Along the cycle, some are words corresponding to summary
+edges and some are calls; note that there will be no returns that match these calls. If Q0is the set
+of states visited from going to qtoqalong the cycle, then we can show that Q0QS(after the
+cycle, if we feed enough returns to match the calls then we get a summary edge from q; however
+summary edges from qgo only to Sand hence the states seen must be a subset of QS). Now,
+consider the innite word that rst goes from qintoq, and then alternately takes the cycle in G2
+to reachqand takes the set of all possible summary edges in Sto reachqagain. This word is not
+repeatedly bounded (as it has unmatched calls during the cycle in G2) but the set of states seen
+innitely often is QSand is hence accepted, a contradiction.
+Now let us show (*). Note that from any state, one can take summary edges in G1to reach a
+sink SCC of G1. Let us take summary edges from qinto reach a state q1in a sink SCC S1ofG1
+18
+
+--- Page 19 ---
+and take the call edge from q1to reachq0
+1.I fq0
+12S1, we are done as we have a cycle from q1to
+q1using a call-edge. Otherwise take summary edges in G1fromq0
+1to reach a state q2in a sink
+SCCS2.I fS2=S1, we are again done, else take a call-edge from q2and repeat till some sink SCC
+repeats.
+Though!-Vpas cannot be determinized, they can be complemented.
+Theorem 9 (Complementability) The class of !-Vpls over eis closed under complement.
+Proof: LetM=(Q;Q in;Γ;;F)b ea!-Vpaovere. We can assume that there are transitions
+from every state on every letter, and that there is a run of Mon every word. Consider a word
+2!. Thencan be factored into words where we treat a segment of letters starting at a
+call and ending at the matching return as a block. This factorization can be, say, of the form=a
+0a1w0a2w1w2a3:::where each wiis a nite word that is a properly matched word ( wistarts
+with a call, ends with the matching return). The letters aican be calls, returns or local actions
+but if some aiis a call, then aj(j>i) cannot be a return. Consider the following word which can
+be seen as a pseudo-run of Mon:0=a0a1S0a2S1S2a3:::where each Siis the set of all triples
+(q;q0;f) whereq;q02Q,f2f0;1gsuch that there is some run ofMonwistarting at the state
+qand ending at the state q0andmeets a state in Fif=1 .
+LetSdenote the set of all sets SwhereScontains triples of the form ( q;q0;f) whereq;q02Q
+andf2f0;1g; the summary edges used above hence are in S. ThenPR=(  r[‘[S)![
+(r[‘[S):(c[‘[S)!denotes the set of all possible pseudo-runs. We can now construct
+a nondeterministic B¨ uchi automaton (with no stack) that accepts all accepting pseudo-runs ;a
+pseudo-run is accepting if there is a run of Mthat runs over the -segments of the word in the
+usual way, and on letters S2S, updates the state using a summary edge in Sand either meets F
+innitely often or uses summary edges of the form ( q;q0;1) innitely often. Note that a word is
+accepted by Mi the pseudo-run corresponding to is accepting. Let the language of accepting
+pseudo runs be LR. Now we construct a deterministic Muller automaton ARthat accepts the
+complement ofLR([Tho90]).
+We now construct a nondeterministic Muller !-Vpathat, on reading , generates the pseudo-
+run ofonline and checks whether it is in LR. The factorization of into segments is done
+nondeterministically and the summary edges are computed online using the stack (as in the proofof determinization of Vpas on nite words). The resulting automaton can be converted to a B¨ uchi
+automaton and accepts the complement of L
+!(M).
+We can also characterize the class !-Vplusing MSO which is now interpreted over innite
+words, using the fact that !-Vpls are closed under union, complement and renaming:
+Theorem 10 (MSO -characterization) A language Lof innite strings over eis an!-Vpl
+i there is an MSO sentence’overethat denes L.
+Proof: The proof of Theorem 4 can be easily adopted to the innite case. For translation from
+MSO formulas to !-Vpawe use the same encoding; the requirement that the rst-order variables
+are assigned exactly once can be enforced using a B¨ uchi acceptance condition, and disjunction,
+negation, and existential quantication are handled using corresponding constructions for !-Vpas.
+The translation from !-Vpato MSO uses the same encoding for capturing the runs of the au-
+tomaton by a formula, only the conjunct corresponding to the acceptance requirement for the runneeds to be modied.
+19
+
+--- Page 20 ---
+The emptiness problem is decidable in polynomial time [BS92] and we can show that the
+universality and inclusion problems are Exptime -complete.
+The connection to regular tree languages also extends to the innite-word setting. Given a
+word2!, we can associate with it a unique tree, (), where matching calls and returns occur
+together with the segment in between them encoded as a nite tree on the 0-child of the call. Thisclass of innite trees has the property that the right-most path (the path going down from theroot obtained by taking the 1-child whenever it exists and taking the 0-child otherwise) is the onlyinnite path in the tree. We can dene the class of regular stack-trees using B¨ uchi tree automata
+on trees[Tho90].
+1We can then show:
+Theorem 11 (Relation to regular stack-trees) LetLbe a set of innite stack trees over e.
+Then−1(L)is an!-VplovereiLis regular.
+Proof: Let us consider translation from a B¨ uchi VpaM=(Q;Q in;Γ;;Q F)t oaB ¨ uchi tree
+automaton A. The construction of Theorem 5 requires some modications: we need to account for
+the fact one path is innite, and thus, has no \end" state; and we need to keep track of whether ornot the runs corresponding to call subtrees encounter a B¨ uchi state. More precisely, the set of states
+for the tree automaton is P=Q[(Q(Γnf?g)f0;1g)[(QQf0;1g)[(QQ(Γnf?g)).
+A stateqmeans that the current node is on the (unique) innite path in the tree, and the Vpa
+state isq. A state ( q;q
+0;b) means that the current state of the Vpaisq,q0is the guessed state
+where the run of the Vpawill be when it meets the next unmatched return, and if the bit bis set
+to 1, then this run is required to visit a B¨ uchi state in QF. A state ( q;q0;γ) records the current
+stateq, the top symbol γ, and expects the current node to be a return leaf that can lead to the
+stateq0. Finally, a state ( q;γ;b) means that the current node is on the innite path, it must be a
+return,qis the current state of the Vpa,γis the current top symbol, and brecords whether the
+corresponding left subtree was required to encounter a B¨ uchi state. The initial states are Qin, and
+the B¨uchi set for the innite path in the tree is QF[(QΓf1g).
+In stateqwhile reading a call symbol a, for each push-transition ( q;a;q 1;γ)o fM, the  01
+relation for the tree automaton (the case corresponding to \Calls that return") contains, for every
+q02Qandb2f0;1g,(q;a;(q1;q0;b);(q0;γ;b)). Thus, the tree automaton guesses the state q0at the
+end of the run corresponding to the left subtree as well as whether this run visits a state in QF.I fb
+is set to 1, then in the left child, it is treated as an obligation to visit a B¨ uchi state, and in the right
+child it is treated as an accepting state for the accepting condition on the innite path in the tree.In a state ( q;γ;b), while reading a,amust be a return, and the state is updated to q
+0according
+to some pop-transition ( q;a;γ;q0)o fM. In state ( q;q0;b), while reading a call symbol a, for each
+push-transition ( q;a;q 1;γ)o fM, the  01relation for the tree automaton (the case corresponding
+to \Calls that return") contains, for every q22Q,( (q;q0;b);a;(q1;q2;b0);(q2;q0;γ)). Ifb= 0 then
+b0is 0, and if b= 1 then either b0is 1 orq0is inQF. The remaining details are analogous to the
+nite case.
+The construction from tree automata to Vpadoes not require any noteworthy modications.
+1Usually regular classes of trees are dened using Muller conditions as they are more powerful than B¨ uchi condi-
+tions; however, since we deal with trees that have only one innite path, the two denitions coincide.
+20
+
+--- Page 21 ---
+7 Conclusions
+The class of visibly pushdown languages proposed in this paper explains, unies, and extends
+the known classes of properties that can be algorithmically checked against pushdown models ofrecursive programs. While it requires the model to render its calls and returns visible, this seemsnatural for formulating program analysis questions. We have shown the class to be robust with
+many of the desirable properties as those of regular languages. Based on our results, we believethat this is indeed a basic class that can be useful in contexts other than software verication. Forinstance, an XML document can be viewed as a word over a pushdown alphabet where the openingand closing tags are matching calls and returns, and attributes are local actions, and a Vpacan be
+used to describe the set of XML documents satisfying a query.
+There has already been some research that builds on this paper. Games on pushdown structures
+where the winning condition is an !-Vplhave been studied and shown to be decidable [LMS04]. A
+characterization of Vpls using syntactic congruences on words has also been developed, and used
+for minimizing Vpas [AKMV05]. The decidability result for contextual equivalence for third order
+Idealized Algol also uses the results of this paper [MW05]. Finally, visibly pushdown versions ofbranching-time logics and xpoint calculi are also under investigation [ACM05].
+Acknowledgments
+We thank Kousha Etessami and Mihalis Yannakakis for fruitful discussions.
+References
+[ABB97] J. Autebert, J. Berstel, and L. Boasson. Context-free languages and pushdown au-
+tomata. In Handbook of Formal Languages , volume 1, pages 111{174. Springer, 1997.
+[ABE+05] R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, and M. Yannakakis. Anal-
+ysis of recursive state machines. ACM Transactions on Programming Languages and
+Systems , 27(4):786{818, 2005.
+[ACM05] R. Alur, S. Chaudhuri, and P. Madhusudan. A xpoint calculus for local and global
+program ﬂows. 2005.
+[AEM04] R. Alur, K. Etessami, and P. Madhusudan. A temporal logic of nested calls and
+returns. In TACAS’04: Tenth International Conference on Tools and Algorithms for
+the Construction and Analysis of Software , LNCS 2988, pages 467{481. Springer, 2004.
+[AKMV05] R. Alur, V. Kumar, P. Madhusudan, and M. Viswanathan. Congruences for visibly
+pushdown languages. In Automata, Languages and Programming: P roceedings of the
+32nd ICALP . Springer, 2005.
+[BB02] J. Berstel and L. Boasson. Balanced grammars and their languages. In Formal and
+Natural Computing: Essays Dedicated to Grzegorz Rozenberg , LNCS 2300, pages 3{25.
+Springer, 2002.
+[BEM97] A. Boujjani, J. Esparza, and O. Maler. Reachability analysis of pushdown automata:
+Applications to model checking. In CONCUR’97: Concurrency Theory, Eighth Inter-
+national Conference , LNCS 1243, pages 135{150. Springer, 1997.
+21
+
+--- Page 22 ---
+[BR00] T. Ball and S. Rajamani. Bebop: A symbolic model checker for boolean programs.
+InSPIN 2000 Workshop on Model Checking of Software , LNCS 1885, pages 113{130.
+Springer, 2000.
+[BS92] O. Burkart and B. Steen. Model checking for context-free processes. In CON-
+CUR’92: Concurrency Theory, Third International Conference , LNCS 630, pages 123{
+137. Springer, 1992.
+[BSW03] A. Bouquet, O. Serre, and I. Walukiewicz. Pushdown games with unboundedness
+and regular conditions. In FSTTCS 2003: Foundations of Software Technology and
+Theoretical Computer Science, 23rd International Conference , LNCS 2914, pages 88{
+99. Springer, 2003.
+[CDG+02] H. Comon, M. Dauchet, R. Gilleron, D. Lugiez, S. Tison, and M. Tom-
+masi. Tree automata techniques and applications. Draft, Available athttp://www.grappa.univ-lille3.fr/tata/ , 2002.
+[CDT02] T. Cachat, J. Duparc, and W. Thomas. Solving pushdown games with a 
+3winning
+condition. In Procee dings of the 11th Annual Conference of the European Association
+for Computer Science Logic, CSL 2002 , LNCS 2471, pages 322{336. Springer, 2002.
+[CG77] R.S. Cohen and A.Y. Gold. Theory of omega-languages. i. characterizations of omega-
+context-free languages. Journal of Computer and System Sciences , 15(2):169{184, 1977.
+[CMM+04] K. Chatterjee, D. Ma, R. Majumdar, T. Zhao, T.A. Henzinger, and J. Palsberg. Stack
+size analysis for interrupt driven programs. Information and Computation , 194(2):144{
+174, 2004.
+[CW02] H. Chen and D. Wagner. Mops: an infrastructure for examining security properties
+of software. In Procee dings of ACM Conference on Computer and Communications
+Security , pages 235{244, 2002.
+[EKS03] J. Esparza, A. Kucera, and S. S. S chwoon. Mo del-checking LTL with regular valuations
+for pushdown systems. Information and Computation , 186(2):355{376, 2003.
+[HJM+02] T.A. Henzinger, R. Jhala, R. Majumdar, G.C. Necula, G. Sutre, and W. Weimer.
+Temporal-safety proofs for systems code. In CAV 02: Proc. of 14th Conf. on Computer
+Aided Verication , LNCS 2404, pages 526{538. Springer, 2002.
+[HKT00] D. Harel, D. Kozen, and J. Tiuryn. Dynamic Logic . MIT Press, 2000.
+[HU79] J.E. Hopcroft and J.D. Ullman. Introduction to Automata Theory, Languages, and
+Computation . Addison-Wesley, 1979.
+[JMT99] T. Jensen, D. Le Metayer, and T. Thorn. Verication of control ﬂow based security
+properties. In Procee dings of the IEEE Symposium on Security and Privacy , pages
+89{103, 1999.
+[Knu67] D.E. Knuth. A characterization of parenthesis languages. Information and Control ,
+11(3):269{289, 1967.
+22
+
+--- Page 23 ---
+[LMS04] C. L¨ oding, P. Madhusudan, and O. Serre. Visibly pushdown games. In FSTTCS
+2004: Foundations of Software Technology and Theoretical Computer Science, 24thInternational Conference , LNCS 3328, pages 408{420. Springer, 2004.
+[LST94] A. Lautemann, T. S chwentick, and D. Th erien. Logics for context-free languages. In
+Procee dings of Computer Science Logic, 8th International Workshop, CSL 94 , LNCS
+933, pages 205{216. Springer, 1994.
+[McN67] R. McNaughton. Parenthesis grammars. Journal of the ACM , 14(3):490{500, 1967.
+[MW05] A.S. Murawski and I. Walukiewicz. Third-order Idealized Algol with iteration is decid-
+able. In FOSSACS 2005: Foundations of Software Science and Computational Struc-
+tures, 8th International Conference , LNCS 3441, pages 202{218. Springer, 2005.
+[RHS95] T. Reps, S. Horwitz, and S. Sagiv. Precise interprocedural dataﬂow analysis via graph
+reachability. In Procee dings of the ACM Symposium on Principles of Programming
+Languages , pages 49{61, 1995.
+[Saf88] S. Safra. On the complexity of !-automata. In Procee dings of the 29th IEEE Symposium
+on Foundations of Computer Science , pages 319{327, 1988.
+[Tho90] W. Thomas. Automata on innite objects. In J. van Leeuwen, editor, Handbook of
+Theoretical Computer Science , volume B, pages 133{191. Elsevier Science Publishers,
+1990.
+[VW94] M.Y. Vardi and P. Wolper. Reasoning about innite computations. Information and
+Computation , 115(1):1{37, 1994.
+23

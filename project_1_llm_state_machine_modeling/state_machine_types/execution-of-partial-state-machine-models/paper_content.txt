@@ -1,0 +1,2970 @@
+--- Page 1 ---
+1
+Execution of Partial State Machine Models
+Mojtaba Bagherzadeh, Naﬁseh Kahani, Karim Jahed, Juergen Dingel
+Abstract —The iterative and incremental nature of software development using models typically makes a model of a system
+incomplete (i.e., partial) until a more advanced and complete stage of development is reached. Existing model execution approaches
+(interpretation of models or code generation) do not support the execution of partial models. Supporting the execution of partial models
+at early stages of software development allows early detection of defects, which can be ﬁxed more easily and at lower cost.
+This paper proposes a conceptual framework for the execution of partial models, which consists of three steps: static analysis ,
+automatic reﬁnement , and input-driven execution . First, a static analysis that respects the execution semantics of models is applied to
+detect problematic elements of models that cause problems for the execution. Second, using model transformation techniques, the
+models are reﬁned automatically, mainly by adding decision points where missing information can be supplied. Third, reﬁned models
+are executed, and when the execution reaches the decision points, it uses inputs obtained either interactively or by a script that
+captures how to deal with partial elements.
+We created an execution engine called PMExec for the execution of partial models of UML-RT (i.e., a modeling language for the
+development of soft real-time systems) that embodies our proposed framework. We evaluated PMExec based on several use-cases
+that show that the static analysis, reﬁnement, and application of user input can be carried out with reasonable performance, and that
+the overhead of approach, which is mostly due to the reﬁnement and the increase in model complexity it causes, is manageable. We
+also discuss the properties of the reﬁnement formally, and show how the reﬁnement preserves the original behaviors of the model.
+Index Terms —MDD, Model-level Debugging, Partial Models, Incomplete Models, Model Execution
+F
+1 I NTRODUCTION
+MOdel Driven Engineering (MDE) is a software de-
+velopment methodology that advocates the use of
+model for the description and development of systems [1].
+These models can capture relevant concepts on a level of
+abstraction higher than source code, and thus can facilitate
+communication, automation, and reuse. In general, the level
+and form of the use of models varies greatly, from the use of
+models only for documentation and communication to the
+use of models for code generation and as the main software
+development artifacts rather than source code [2], [3], [4],
+[5]. While modeling is used in a range of industries such
+as telecom, automotive, aerospace, business, and military,
+its use for the development of Real-time Embedded (RTE)
+systems appears to be one of the most prevalent [6], [7], [8].
+Over the last two decades, an impressive number of
+MDE tools and techniques for RTE systems have been intro-
+duced such as IBM RSARTE [9], ANSYS SCADE Suite [10],
+YAKINDU Statecharts [11], and AUTOFocus [12]. These
+tools provide a range of capabilities to simplify the de-
+velopment of RTE systems using models. E.g., the models
+can be executed, debugged, analyzed, visualized, and trans-
+formed. Our work concerns the execution of models, which
+is typically supported either by interpreting the models or
+by translating them into an existing programming language,
+often by code generation (translational execution) [13], [14].
+The ability to execute models in some ways is an im-
+portant capability of MDE tools because it enables many
+Mojtaba Bagherzadeh and Naﬁseh Kahani are with the school of EECS,
+University of Ottawa.
+Karim Jahed and Juergen Dingel are with the School of Computing, Queen’s
+University, Canada.
+E-mail: m.bagherzadeh@uottawa.ca, nkahani@uottawa.ca, ja-
+hed@cs.queensu.ca, dingel@cs.queensu.caimportant quality assurance activities such as testing and
+debugging. However, while existing MDE tools offer good
+support for the execution of complete models, none of them
+make much effort to extend that support to models that
+are incomplete. For instance, a state machine model may be
+incomplete because the behaviour of a component or a com-
+posite state has not yet been speciﬁed, or the speciﬁcation
+of a transition is missing or incomplete (due to, e.g., missing
+triggers or guards, or incomplete action code). Although
+these models might contain many executable parts and
+there might be great value in the ability to execute them,
+existing tools typically do not allow this. One reason is that
+code generation or build operations might fail. But, even
+if these steps succeed, the tools do not allow a ‘best effort’
+treatment of partial models in which execution proceeds as
+far as possible and when it cannot proceed any further due
+missing information, then this missing information can be
+supplied manually or automatically to allow the execution
+to continue. Our work aims to enable this kind of best effort
+treatment.
+Generally, the beneﬁts of partial model execution can be
+classiﬁed as follows:
+1)Facilitate design decisions. In very early stages of de-
+velopment, the ability to execute a partial model may
+help perform design space exploration, evaluate design
+alternatives and explore tradeoffs in a more efﬁcient,
+focused fashion and without having to ﬂesh out details
+that are irrelevant to the design decision, but required
+to achieve executability. The goal is to allow the model
+to be useful as early as possible and with a minimum
+of procedural or notational accidental complexity [15].
+2)Facilitate validation and improvement of models. A ba-
+sic tenet in software engineering is that developmentarXiv:2103.17194v1  [cs.SE]  31 Mar 2021
+
+--- Page 2 ---
+2
+should facilitate the early detection of bugs, because the
+cost of ﬁxing a bug tends to increase with the amount
+of time that it goes unnoticed [16], [17], [18]. Agile
+development activities such as continuous testing are
+motivated by this observation. In the context of MDE,
+this means that developers should be able to carry out
+validation and debugging activities as early as possible
+and not only after additional effort has been invested to
+make the model complete. The ability to execute partial
+models is necessary to achieve this vision and a key
+prerequisite for making MDE more agile [15].
+But, partial model execution can also help with the
+validation of large, complete models. In large MDE
+projects, the system can have hundreds of compo-
+nents [19], [20], much reducing the feasibility and prac-
+ticality of system-wide validation activities, especially
+when execution requires code generation (e.g., as re-
+ported in [21] the code generation of large systems
+can take hours to complete). In these settings, unit
+testing of individual components is required. Each such
+component cis a partial model that typically is not
+executable in isolation. To achieve executability, the
+current state-of-the-art demands that cbe completed by
+a harness that mocks or stubs out the parts of the system
+thatcrelies on. The creation of a suitable harness and
+connecting it to ccan involve a signiﬁcant amount
+of accidental complexity. Our approach facilitates unit
+testing, because the developer can focus on supplying
+appropriate information to cif and when cneeds it.
+3)Facilitate collaborative, heterogeneous development . MDE
+is often collaborative and different model parts can
+be owned by different, possibly geographically dis-
+tributed, teams [22]. As a result, components may be
+out-of-date, incorrect, or unavailable which may affect
+the executability of any other components using them.
+Partial model execution can help protect the developers
+of a part of the system from these issues by allowing
+them to, e.g., perform validation without having to wait
+for a new version or attempt to make their part work
+with an old, out-dated version.
+But, MDE can also be part of a larger, heterogeneous
+development process in which, e.g., the code generated
+from a model is integrated with other code that has
+been developed by a different team using a different
+process or tool, or been purchased from a vendor [22],
+[23]. Partial model execution can help here, too, because
+the model can be validated without having to obtain
+this additional code and integrate it with the model.
+According to surveys, the integration of MDE into
+industrial development processes can be challenging,
+especially when distributed development and interop-
+erability with existing code or tools is required [3],
+[22], [23], [24]. Partial model execution can increase the
+ﬂexibility of MDE and thus may help mitigate these
+problems and improve industrial adoption of MDE.
+Despite the importance and beneﬁts of the execution
+of partial models, no work has addressed the execution
+of partial models, to the best of our knowledge. Existing
+work in this context deals with partial models at design
+time, which allows for speciﬁcation, analysis, veriﬁcation,and transformation of partial models (e.g., [25], [26], [27],
+[28]). As mentioned, a possible approach to executing partial
+models is the simulation of missing components by tech-
+niques such as mocking or stubbing [29]. These solutions
+are mainly designed for unit testing, and have several
+deﬁciencies when used for the debugging of models: (1)
+They are not fully automated, and developers still need to
+do extra work to, e.g., create stubs for the missing compo-
+nents. (2) Often, they are applicable only at the component-
+level to simulate a component fully, while for debugging
+purposes, developers may need to simulate only parts of
+a component. (3) More importantly, while in the code-base
+development context, there are several mocking frameworks
+(e.g., Mockito, EasyMock, JMock, Opmock, etc.) that can be
+used to simulate components of a system [30], there is a
+lack of facilities, guidelines, and frameworks in the context
+of MDE to help to create mockers [31].
+This work advances the state of the art in model-level
+execution and utilizing partial models by providing support
+for the execution of partial models. We propose a conceptual
+framework for the execution of partial models, which con-
+sists of three steps: static analysis ,automatic reﬁnement , and
+input-driven execution . First, a static analysis that respects
+the execution semantics of models is applied. It detects
+problematic elements that prevent the execution from pro-
+gressing or reaching certain states. Second, to make the
+partial models executable, model-to-model (M2M) transfor-
+mations [32] are used to reﬁne the models automatically by
+adding decision points where the elements are missing. The
+reﬁned models preserve the original behavior of the user-
+deﬁned models and its execution does not not get stuck
+and can reach all deﬁned states in a ﬁnite number of exe-
+cution steps, assuming proper inputs are provided. Third,
+during the execution, these decision points allow users to
+interactively (1) inspect and modify the system using de-
+bugging services, and (2) select one of the possible options
+to continue the execution. The interactive execution requires
+manual intervention, which can be repetitive, tedious, and
+time-consuming. To mitigate this problem, our approach
+includes a scripting language that captures user input as
+execution rules that can be applied automatically during
+execution, without stopping the execution and interacting
+with users. Also, the approach allows user input to be saved
+to the script of the execution rules or the design model, to
+avoid any unnecessary duplication by minimizing the effort
+required for writing the script and completion of the design
+model.
+We extended our previous work on model-level debug-
+ging [13], [33] in the context of UML-RT (i.e., a language for
+modeling of soft real-time systems) [34], and created an exe-
+cution engine of partial UML-RT models ( PMExec [35]) that
+embodies the proposed framework. To maximize the impact
+of our work, our implementation is publicly available, and
+only uses open source tools, including the Papyrus-RT MDE
+tool, for modelling and code generation, and the Epsilon [36]
+tools for model transformation. We evaluated PMExec based
+on several use-cases that show that the static analysis,
+reﬁnement, and handling of user input were performed with
+reasonable quality, and the overhead of approach, which
+is caused by the increase of complexity of models by the
+reﬁnement, is manageable.
+
+--- Page 3 ---
+3
+Structure of T rafﬁcLight
+StopLight
+Driver
+(SLD)UserConsole
+(UC)StopLightP: Protocol
+red()
+green()
+yellow()
+on()
+off()
+typedControlP: Protocol
+off()
+on()
+typed
+UCPortController
+(CTR)UCPort SLDPortSLDPortbase 
+port
+conjugate 
+port
+Figure 1: The structure of TrafﬁcLight
+The rest of this paper is organized as follows. In Sec-
+tion 2, we describe our formalization and a running exam-
+ple. Section 3 presents a conceptual framework for execution
+of partial models, and Section 4 discusses the application
+of the framework into UML-RT. We present our evaluation
+approach and results in Section 6 and discuss the limitations
+and issues of our solution in Section 5. We review related
+work in Section 7, and then conclude the paper with a
+discussion, summary, and directions for future research.
+2 P RELIMINARIES
+In this section, we deﬁne, exemplify, and discuss the for-
+malization that we will use to specify and justify our re-
+ﬁnement approach. To be able to illustrate our approach,
+we use the UML proﬁle for Real-time systems (UML-RT).
+UML-RT [34], [37] is a language speciﬁcally designed for
+Real-Time Embedded (RTE) systems, with soft real-time
+constraints. Over the past two decades, it has been used
+successfully in industry to develop several large-scale in-
+dustrial projects (e.g., [20]), and has a long, successful track
+record of application and tool support, via, e.g., IBM RSA-
+RTE [9], RTist [38], Eclipse eTrice [39] , and Papyrus-RT [40].
+Our formalization is simpliﬁed, and focused on aspects that
+matter most to the execution of partial models. Interested
+readers can refer to [34], [37] for more in-depth information
+regarding UML-RT.
+2.1 A Running Example
+We use the control system of a simple trafﬁc light ( Traf-
+ﬁcLight ) as a running example throughout the paper. The
+structure of the system is shown in Figure 1, which consists
+of three components: UserConsole (UC) , Controller (CTR) ,
+and StopLightDriver (SLD) . The UC component collects
+user input, which it passes on to the CTR component, the
+component controlling the light. Using the corresponding
+messages, the CTR component sends the control actions to
+theSLD component, which transfers the messages through
+a hardware port to the trafﬁc light.
+Let us assume that we have a partial model of TrafﬁcLight
+in which the behaviour of the component UCis missing, the
+behaviour of capsule SLD is complete, and the behaviour of
+capsule CTR is incomplete as shown in Figure 2 (e.g., no out-
+going transition is deﬁned from yellow ). Let us discuss two
+exemplary situations where the execution of partial models
+can be helpful for early evaluation of design decisions and
+unit testing.
+CTRSM
+11
+12
+off ( )11
+on ( )11
+red ( )21
+green ( )22
+yellow ( )231311
+on[]/ 1
+[]/22322timeout[]/ 22[]/2121
+timeout[]/ 23[]/0
+1
+trigger[ guard]/
+action	code Initial state
+Basic state Entry state
+ Composite state TransitionNotationsFigure 2: Partial Bahaviour of component CTR (CTRHSM)
+Scenario-1: (Early evaluation of design decisions) We
+want to execute the model as is and test the current design
+of the component CTR . Existing MDE tools do not support
+the execution of the example out-of-the-box, due to two
+issues: (1) An appropriate stub for capsule UCneeds to be
+created, which is a time-consuming task, (2) even if the stub
+is provided, the execution of CTR stops at state yellow , due
+to the missing speciﬁcation, i.e., no outgoing transition is
+deﬁned from state yellow . Currently, the only way to resolve
+the second issue is to postpone the evaluation until the
+missing speciﬁcations are provided.
+Scenario-2: (Unit testing) We want to perform unit
+testing of the component CTR. To do that, all relevant
+components except CTR should be replaced by appropriate
+stubs. Note that even though the design of SLD is complete,
+it is not reasonable to use it for unit testing since it requires
+interaction with hardware which can be time-consuming
+and complicates the testing process.
+In this work, we will present a systematic solution for
+automatically creating an executable version of a partial
+model that allows testing and debugging. For example,
+using our solution both of the above scenarios can be
+addressed without a need for the creation of stubs and
+completion of models.
+2.2 Modelling of a Real-time Embedded (RTE) System
+Using UML-RT
+Deﬁnition 1. (Read function (Projection)) Lettpbe a tuple
+of attributesha1;:::;aniwherea1:::anrefer to attributes
+names. We use tp:aito read the value of attribute ai. E.g.,
+to read the value of attribute name of tupleperson =
+hname;familyiwe can use person:name .
+Deﬁnition 2. (Interface) Let us deﬁne an interface as a set
+of pairs (m;d), wherem2 Mu(i.e., a universal set of
+messages) is a message, and d2finput;outputgspeciﬁes
+whether a message is consumed (i.e., it is an input message)
+or produced (i.e., it is an output message). A message can
+have a payload, which is a set of values conveyed by the
+message.
+
+--- Page 4 ---
+4
+Table 1: Helper functions
+Function Description
+inp(c) returns possible input messages of component c. E.g., inp(UC)= fon;offg.
+int(s) returns incoming transitions to state s. E.g., int(en1)=ft12g.
+outt(s) returns outgoing transitions from state s. E.g., outt(en1)=ft21g.
+handled(s) returns triggers of outgoing transitions of sand parents(s). E.g., handled(s11)=fong.
+root(sm) returns root of the HSM sm.
+child(s) returns states inside state s. E.g., child(root(CTRSM))= fs11;s21;s22;s23;en 1;in11;c11g.
+parent(s) returns the ﬁrst-level container state of state s. E.g., parent(s21)=fc11g.
+parents(s) returns all container states of state s. E.g., parents(s21)=fc11;root(CTRSM) g.
+deadlock(s) returnstrue if statesand its parents do not handle any message (i.e., handled(s)= ;). E.g., deadlock(s23)=
+trueand deadlock(s11)= false .
+uh(s;h) ifparent (s)6=6;ands2 S b, updates the last visited state of parent (s)tos(i.e., entry of parent (s)inh) and
+returns the updated h.
+head(q) reads, removes, and returns the ﬁrst element in queue q.
+next s(sc;H) (1) returns the last visited state inside state scfrom history H, (2) if (1) is unsuccessful (i.e., the composite
+state is active for the ﬁrst time), returns the default state (initial state) inside sc, and (3) if (1) and (2) are
+unsuccessful, returns ;.
+next t(s;) checks state sand its ancestors in bottom-up order, and returns the ﬁrst (i.e., most deeply nested) outgoing
+transition, which can be triggered by message . It returns ;if no transition can be triggered. E.g., next t(s21;
+on)=;;next t(s21;timeout)=t22.
+ups(s;t) returnssand a subset of its parents in bottom-up order from state sto the state that toriginated from. E.g.,
+ups(s21;t13)=fs21;c11g.
+eval(E;g) evaluates guard gbased on the values in map Eand returns the result.
+exec(E;a1:::a n)executes a sequence of actions a1:::a nbased on the values in map Eand returns the updated E.
+(sis a state,smis an HSM, tis a transition, qis a queue, Eis mapping from variables to their values, scis a composite state,
+a1:::a nis a sequence of actions. )
+Deﬁnition 3. (Component) Let us deﬁne a component as
+a tuplehP;V; i, whereP  Pu(i.e., a universal set of
+ports) is a set of ports, Vis a set of variables, and refers
+to the speciﬁcation of the component’s behavior. A port is
+deﬁned as a pair (t;conjugated ), wheretdenotes the type
+of the port where the type of a port is an interface, and
+conjugated2ftrue, false gspeciﬁes whether or not the port
+is conjugated. The direction of messages of conjugated ports
+is reversed. We will use conjugation to ensure that connected
+ports are compatible by requiring that (1) they have the
+same type, and (2) one of them is conjugated while the other
+one is not. Non conjugated ports are also called base ports.
+Deﬁnition 4. (Structure of an RTE system) Let us deﬁne the
+structure of an RTE system as a tuple hC;I;con;ini, where
+Cis a set of components, Iis a set of interfaces, con is a
+connectivity relationship PuPu, andinis an acyclic
+containment relation CC . Whenever two ports p1;p2
+are connected by con (i.e., (p1;p2)2con) then both have
+the same type (i.e., p1:t=p2:t) and exactly one of them
+must be conjugated. This condition ensures that connected
+ports are ‘compatible’.
+Often, MDE tools provide timing services that can be
+used to deﬁne timed behaviors. To support time in our
+formalization, we assume that an RTE system contains a
+timing interface f(startTimer, input) ,(timeout, output) gand a
+component called RTS with a port of type timing . Any
+component using timing services requires a connection with
+theRTS component.
+Let us exemplify the above deﬁnition in the context ofthe running example (see Fig. 1). The CTR is connected
+toUC and SLD using two ports UCPort (base port) and
+SLDPort (conjugate port), which are typed by interfaces
+ControlP and StopLightP , respectively. ControlP has two mes-
+sages ( on() and off()) and StopLightP has ﬁve messages ( red(),
+green(), yellow(), on() , and off()).
+Deﬁnition 5. (Action language) Action languages support
+primitive operations such as accessing/updating variables,
+arithmetic/logical expressions, control ﬂow constructs, and
+sending messages. MDE tools provide action languages
+either by adapting a subset of well-known programming
+languages or by offering a speciﬁc, dedicated action lan-
+guage. E.g., Papyrus-RT uses a subset of C++ as the action
+language, UML assumes the use of the UML Alfaction
+language [41], and YAKINDU [11] provides its own action
+language. In this work, we assume the existence of an action
+language with the standard capabilities, but not deﬁne a
+particular syntax for it.
+Deﬁnition 6. (Hierarchical State Machine (HSM)) We spec-
+ify the behavior of a component cusing a hierarchical
+state machine ( HSM ) that is deﬁned as a tuple hS;T;ini.
+S=Sb[Sc[Spis a set of states,Tis a set of transitions,
+andin Sc(S[T )denotes an acyclic containment
+relation. States can be basic ( Sb), composite (Sc), or pseudo-
+states (Sp). Basic states are primitive states that the execution
+stays in until an outgoing transition is triggered. Composite
+states encapsulate a sub-state machine. Pseudo-states are
+transient control-ﬂow states. There are six kinds of pseudo-
+states, called initial ,choice -point ,history ,junction -point ,
+
+--- Page 5 ---
+5
+entry -point , andexit-point , (i.e.,Sp=Sin[Sch[Sh[Sj[
+Sen[Sex). Composite and basic states can have entry and
+exit actions that are coded using an action language.
+Deﬁnition 7. (Transition) Letinp(c)refer to the messages
+that can be received by component c. A transition tis
+a 5-tuple (src;guard;trig;act;des ), wheresrc;des2S
+refer to non-empty source and destination of the transition
+respectively, guard is a logical expression coded using the
+action language, triginp(c)is a set of messages that
+trigger the transition, and actis the transition’s action coded
+using the action language.
+Figure 2 shows an example of HSM , and the correspond-
+ing graphical notations.
+Deﬁnition 8. (Helper functions) Table 1 lists the helper func-
+tions (along with samples in the context of the running
+example, if possible) that will be used in the rest of the
+paper. Note that we treat the root of an HSM as a composite
+state, which can be accessed using the root(HSM) function.
+Deﬁnition 9. (Well-formedness constraints of HSM s)Follow-
+ing [9], [37], [40], we deﬁne the well-formedness constraints
+ofHSM s as follows:
+Only transitions that start from a choice-point can have
+a guard, and no transition that starts from a pseudo-
+state can have a trigger. This constraint is deﬁned to
+simplify the formalization, and our implementation
+addresses this case.
+There are no AND-states (orthogonal regions), and
+UML concepts fork,join,shallow history , and ﬁnal states
+are also not used.
+Transitions cannot cross state boundaries, i.e., 8t2
+T:parent(t.src)=parent(t.des) . Entry-point and exit-point
+states can be used to create transitions with different
+parents.
+States do not have idle ( do) actions.
+There is no notation for history. Instead, any transition
+to a composite state is assumed to end in an implicit
+history state inside the composite state.
+Triggers of transitions starting from the same basic or
+composite state must be disjoint, i.e., 8t1;t22 T :
+t1:src=t2:src^t1:src62Sp=)t1:trig\t2:trig =;.
+None of the pseudo-states except choice-points can
+have more than one outgoing transition.
+Composite states and the root of the HSM cannot have
+more than one initial state.
+Note that except the ﬁrst constraint, these constraints
+are also enforced by existing UML-RT tools and none of
+them has been deﬁned speciﬁcally for this study. Still, our
+approach can be extended to support AND-states and other
+concepts not offered in UML-RT.
+Deﬁnition 10. (Conﬁguration) A conﬁguration of compo-
+nentcis deﬁned as a tuple h;E;Hiwhere2S refers to
+the current state of the conﬁguration, Erefers to a mapping
+from the component variables to values, and His a partial
+mapping from composite states to their last visited sub-
+states.
+Deﬁnition 11. (Execution of HSMs) We use Labeled Transi-
+tion Systems (LTS) to deﬁne the execution semantics of anHSM of a component c. An LTS is a tuple h;A;0;Q;!i,
+where is a set of conﬁgurations, Ais the set of actions
+(i.e., entry, exit, and transition actions deﬁned in HSM ),
+Qis a ﬁrst-in, ﬁrst-out (FIFO) queue that stores received
+messages,!is a transition relation (to avoid confusion with
+the syntax of HSM , we use the term ‘execution step’ instead
+of ‘transition’ in the rest of the paper), and 02is the
+initial conﬁguration.
+Deﬁnition 12. (Execution Step) An execution step is de-
+ﬁned as a tupleh;a 1:::an;0ithat moves the execution
+from conﬁguration =h;E;Hi(source conﬁguration) to
+conﬁguration 0=h0;E0;H0i(target conﬁguration), while
+executing a possibly empty sequence of actions a1:::an
+withai2A for all 1inthat may result in updating
+HandE, and producing outputs. We use the following
+notation to show an execution step.
+h;E;HiE0 exec (E;a1an)!h 0;E0;H0i
+Deﬁnition 13. (Stuck Conﬁguration) A stuck conﬁguration is
+a conﬁguration that no execution step can start from, i.e.,
+the execution cannot progress anymore when it reaches a
+stuck conﬁguration. We use notation s9to show that
+conﬁguration sis a stuck conﬁguration.
+Deﬁnition 14. (Initial Conﬁguration) The initial conﬁguration
+of anHSM is is deﬁned as 0=hinitial;E0;;i, where
+initial refers to the initial state inside the root of the HSM
+(i.e.,initial =Sin\child (root(HSM ))) andE0refers to
+default values of the variables. The execution of the HSM
+starts from its initial conﬁguration and if the initial state of
+theHSM is not deﬁned, the execution cannot start (missing
+initial state).
+Deﬁnition 15. (Execution Rules of an HSM) Let us assume
+that=h;E;Hirefers to the current conﬁguration. The
+rules in Figure 3 deﬁne the operational semantics [43] of
+HSM s. The presentation of the rules makes use of deﬁnitions
+from Table 1. The rules are adapted from the execution
+semantics of UML-RT, presented in [37], [42].
+Rule-1, 2: These rules are applicable to conﬁgurations whose
+current state is one of the pseudo-states, except for history
+and choice-point. According to Rule-1, an execution step is
+taken if there is an outgoing transition from the current state
+that executes the related actions and moves the execution to
+a new conﬁguration. Conversely (Rule-2), if there is no out-
+going transition, the execution stops there, and the current
+conﬁguration is considered stuck (issue ’broken chain‘ in
+Sec. 4.1).
+Rule-3, 4, 5: These rules are applicable to conﬁgurations
+whose current state is a basic state. If the current state is a
+deadlock state (Rule-3), the execution stops there, and the
+current conﬁguration is considered stuck (issue deadlock
+state). Otherwise, if a message exists in the queue, one
+of the following rules is applied based on the result of
+the function nextt(;head (Q))(Ref. Table 1), a transition
+can be triggered, which results in an execution step that
+executes the related actions and moves the execution to a
+new conﬁguration as shown in the bottom of the rule (Rule-
+4). Conversely (Rule-5), if a transition cannot be triggered
+(i.e., the incoming message is an unexpected message), an
+
+--- Page 6 ---
+6
+2Spn(Sh[Sch); t=outt()
+h;E;HiE0 exec (E;act(t);entry (t:des ))!h t:des;E0;uh(t:des;H)i(1)2Spn(Sh[Sch);outt() =;
+h;E;Hi9(2)
+2Sb;deadlock ()
+h;E;Hi9(3)Q6=;;2Sb;:deadlock ();t=nextt(;head (Q))
+h;E;HiE0 exec (E;exit (t:src );exit (ups(:;t ));act(t);entry (t:des ))!h t:des;E0;uh(t:des;H)i(4)
+Q6=;;2Sb;:deadlock ();nextt(;head (Q)) =;
+h;E;Hi9(5)
+2Sc;s=nexts(;H)
+h;E;HiE0 exec (E;entry (s))!h s;E0;uh(s;H)i(6)2Sc;nexts(;H) =;
+h;E;Hi9(7)
+2Sch;t=outt()^eval(E;t:guard )
+h;E;HiE0 exec (E;act(t);entry (t:des ))!h t:des;E;uh(t:des;H)i(8)2Sch;69t2outt()jeval(E;t:guard )
+h;E;Hi9(9)
+Figure 3: Execution rules of an HSM adapted from [37], [42]
+execution step cannot be taken. We consider the conﬁgura-
+tion to be stuck. However, it is also possible to conﬁgure the
+RTS to throw away the unexpected messages. As a result,
+the execution can recover and continue. We argue that in the
+domain of RTE systems, in which most of the applications
+are safety-critical, it is not safe to throw away any message.
+Rule-6, 7: These rules are applicable to conﬁgurations whose
+current state is a composite state (implicit history state). If
+functionnexts(;H)(Ref. Table 1) returns a state, then an
+execution step is taken that applies the entry code of the
+related composite state and moves the execution to a new
+conﬁguration, as shown in the bottom of the rule (Rule-6).
+Conversely, if the selection is unsuccessful, the execution
+cannot move, and the conﬁguration is a stuck conﬁguration
+(Rule-7). This can happen due to two reasons: (1) the current
+state has no child (issue childless composite state), (2) the
+current state has no initial state (issue missing initial state).
+Rule-8, 9: These rules are applicable to conﬁgurations whose
+current state is a choice-point. Guards of the outgoing
+transitions from the current state are evaluated, and the ﬁrst
+transition whose guard evaluates to true is selected. This
+results in an execution step that executes the related action
+code and moves the execution to a new conﬁguration, as
+shown in the bottom of the rule (Rule-8). Conversely, if
+none of the outgoing transitions’ guards holds (issue non-
+exhaustive guards), the execution cannot move, and the
+conﬁguration is a stuck conﬁguration.
+Note that Rules 2, 3, 5, 7, and 9 (all of which are related to
+stuck conﬁgurations) can be merged into one rule. However,
+we use the different rules for the sake of clarity.
+Deﬁnition 16. (Execution of an RTE system) The execution
+of an RTE system can be deﬁned as a collection of its com-
+ponents’ HSM executions, which interact with each other
+by passing messages. We do not describe the details of
+the composition here, and we assume that the RTE system
+execution is managed by a controller. The controller is
+responsible for scheduling and message-passing between
+components, and guarantees that an incoming message will
+be fully processed before the processing of the next message
+starts (run-to-completion semantics).3 A C ONCEPTUAL FRAMEWORK
+Figure 4 shows a conceptual framework for executing par-
+tial models, which consists of three parts ( Static Analysis ,
+Automatic Reﬁnement and Input-driven Execution ). In the fol-
+lowing, we discuss the setting and the three parts.
+3.1 Setting
+As discussed in Section 1, a partial model can be executed
+for different purposes. In all cases, the completeness level of
+a model is often decided by different stakeholders, based
+on different constraints and goals. We do not have an
+automatic check to determine when a model is complete.
+Instead, we allow users to specify the completeness level of
+each component based on their need. Supported levels are
+clevels =fcomplete, partial, absent/ignored g.
+Complete components are assumed to be complete, and are
+not required to be analyzed and reﬁned. By default, each
+component is assumed to be complete, unless its complete-
+ness level is explicitly set to something else.
+Partial components are assumed to be incomplete. Thus,
+their current speciﬁcation (structure and behavior) is ana-
+lyzed and reﬁned.
+Absent/ignored components are assumed to have no behavior
+speciﬁcation. However, their existence may be necessary for
+the execution of other ( partial and complete ) components, due
+to the dependency between them. Thus, the absent/ignored
+components are analyzed based on their structure (inputs
+and outputs) and possible dependencies of other compo-
+nents on them. Then they are given behaviour sufﬁcient for
+simulation.
+The setting allows the execution of the models for dif-
+ferent purposes. E.g., in the context of the running example
+which is discussed in Subsection 2.1, we can set the com-
+pleteness level of CTR topartial , that of SLD tocomplete ,
+and that of UCtoabsent/ignored to execute the system for
+Scenario-1 (evaluation of design decision). For scenario-2
+(unit testing), the level of CTR should be set to partial and
+the levels of the other components to absent/ignored .
+
+--- Page 7 ---
+7
+Static Analysis Input-driven Execution
+Batch
+Execution
+RulesInteractive
+Deﬁne
+Automatic Reﬁnement
+User-deﬁned
+Model
+SettingModel 
+Transformation
+Problematic
+ ElementsCode 
+generation
+Interpretation
+Reﬁned ModelExecuted ModelBuild & executeCode
+< or >
+Figure 4: A Conceptual Framework for Executing Partial Models
+3.2 Static Analysis
+Assuming that the execution semantics of the language
+is deﬁned, we perform static analysis with respect to the
+execution semantics to detect the problematic elements that
+can cause a problem for the execution. Depending on the
+semantics of the language different types of problems may
+be detected. In the context of state machines, the prob-
+lems associated with executing partial models fall into two
+groups: lack of progress and lack of reachability . The former is
+related to situations in which the execution cannot progress
+anymore from a certain point. The latter concerns the execu-
+tion being unable to reach certain, speciﬁc states. The static
+analysis is performed on the user-deﬁned model and iden-
+tiﬁes problematic elements including: (1) missing elements,
+(2) existing elements with problematic speciﬁcations, and (3)
+missing and unhandled inputs.
+3.3 Automatic Reﬁnement
+During the reﬁnement phase, depending on the results of
+the static analysis and the setting, the user-deﬁned model is
+reﬁned automatically using model-to-model transformation
+techniques. The goal of the reﬁnement is to ﬁx the prob-
+lematic elements or modify them in such a way that users
+can provide more information about them during execution.
+Depending on the modelling language, certain language
+constructs can be used to enable models to interact with
+users during the execution. E.g., for HSM s, we use choice-
+points with certain actions and guards.
+The reﬁnement should meet the following constraints:
+(1) Reﬁned models must preserve the original behavior of
+the user-deﬁned models. (2) The execution of the reﬁned
+model must not get stuck, assuming proper inputs are pro-
+vided. (3) The execution of the reﬁned model must be able to
+reach all deﬁned states in a ﬁnite number of execution steps,
+assuming proper inputs are provided. (4) The execution of
+the reﬁned model must allow users to select one of the
+possible options to ﬁx the problematic element. The options
+must be exhaustive and include all possible situations which
+can be applied at design time without limiting the users to
+only a subset of them.
+3.4 Input-driven Execution
+The reﬁned model can be executed via interpretation or code
+generation. During execution, the executed model providesan interface for reading user input either in interactive or
+batch mode. It is also crucial to provide debugging facilities.
+Thus, users can investigate the execution before providing
+inputs.
+4 A PPLICATION OF THE FRAMEWORK TO PARTIAL
+UML-RT M ODELS
+Generally, the discussed framework to allow execution of
+partial models can be applied in the context of different
+modeling languages. However, since the execution of mod-
+els is a language-dependent concept, there is no way to
+provide a generic implementation of the framework using
+existing techniques and tools. In the rest of this section, we
+discuss the application of the framework for executing par-
+tial UML-RT models and demonstrate a tool that embodies
+the framework.
+4.1 Static Analysis
+In the following, we discuss the details of the static
+analysis of UML-RT models, with respect to the execution
+semantics of UML-RT as discussed in Def. 11. We categorize
+the problems based their effect on lack of progress or
+reachability. Note that a lack of progress entails a lack of
+reachability.
+4.1.1 Lack of progress
+Based on the execution rules of HSM s (see Def. 15), the
+execution of an HSM can be stopped due to several issues,
+which can be divided into two groups, as follows.
+Missing/problematic elements: The execution of an
+HSM cannot start, or moves to a stuck conﬁguration, due
+to the following issues.
+P1: missing initial state (see Def. 14),
+P2: childless composite states (see Rule- 7of Fig. 3),
+P3: broken chain (see Rule- 2of Fig. 3),
+P4: deadlock state (see Rule- 3of Fig. 3) ,
+P5: unexpected messages (see Rule- 5of Fig. 3),
+P6: non-exhaustive guards of choice-points (seeRule- 9
+of Fig. 3).
+
+--- Page 8 ---
+8
+Algorithm 1: Reﬁnement of a Partial UML-RT
+Model
+Input : A UML-RT model sysand a setting conf
+Output: A reﬁned model
+1Add a debugging interface dbg intand a debugging
+agent dbg agent into sys
+2Add ports types with timing and dbg intinto
+dbg agent forallc2sys.C do // sys.C(components
+of sys)
+3 switch c.conf do // c.conf (setting of c)
+4 case partial do
+5 Add portpof type dbg intinto
+component c
+6 Add a connection using port pwith
+dbg agent
+7 c: reﬁneHSM (c:; c )
+8 case absent/ignored do
+9 Add portpof type dbg intinto
+component c
+10 Add a connection using port pwith
+dbg agent
+11 Delete all elements from HSM of c(c:)
+12 c: reﬁneHSM (c:; c )
+13 otherwise do
+// No refinement
+14dbg agent: reﬁneHSM (dbg agent:; c)
+Except for P6, the elements with these issues can be de-
+scribed by queries on the structure of the HSM , as follows.
+P1 fsc2(root(HSM )[Sc) :Sin\child (sc) =;g
+P2 fsc2(root(HSM )[Sc) :child (sc) =;g
+P3 fs2Spn(Sh[Sch) :outt(s) =;g
+P4 fs2Sb:handled (s) =;g
+P5 fs2Sb:inp(c)nhandled (s)6=;g
+As for P6, we assume that all choice-points have this
+problem, (i.e., P6 fs2Schg). This is an overestimation,
+and covers all possible situations of P6. Checking the ex-
+haustiveness of guards of a choice-point during design time
+is a difﬁcult problem, and requires expensive computation.
+Thus, ﬁxing this problem at design-time can increase the
+reﬁnement time signiﬁcantly, and even make it unsolvable.
+Also, the applicability of the existing techniques on partial
+models is not supported by default, and requires extra work
+and research.
+Missing inputs: A prerequisite for taking an execution
+step from basic states is the reception of a new message
+(see Rule-4 of Fig. 3) that can enable an outgoing transition
+from the current state. The execution can be stuck, if the
+required messages for triggering possible transitions are not
+produced by the connected components. This can happen
+for two reasons: (1) the connected component lacks a behav-
+ior speciﬁcation, i.e., components are set as absent/ignored
+(P7), (2) the behavior of a connected component is partial
+(P8). Detecting P7is trivial and can be determined from
+the interface speciﬁcation of components. Let Ibe a set of
+possible input messages of all partial and complete compo-nents, and let Obe a set of possible output messages of
+absent/ignored components, then P7 I\O.
+Detecting P8at design time suffers from a similar prob-
+lem as P6. Thus, we overestimate again and assume that
+allpartial components have this problem, (i.e., P8 all
+partial components). As we will discuss later, we provide
+debugging commands for sending messages to the other
+components from partial components, during the execution.
+That way, users can ﬁx this problem by manually injecting
+the related messages during the execution.
+4.1.2 Lack of Reachability
+Anything causing the lack of progress problem also causes
+a lack of reachability. There is no way for the execution
+to reach any state after being stopped. In addition, the
+following missing or problematic elements can cause a lack
+of reachability.
+P9: isolated states are states that do not have incoming
+transitions (with the exception of initial and history
+states). There is no way for the execution to reach these
+states.
+P10: not-takeable transitions originate from a basic or
+composite state and have no trigger.
+P11: as discussed, one of the main beneﬁts of the
+execution of partial models is enabling early eval-
+uation of different design decisions, the support of
+which requires all states to be reachable during the
+execution in a ﬁnite number of steps. Otherwise, some
+design decisions cannot be evaluated due to the lack
+of reachability issue. For example, in the context of the
+running example (see Fig. 2), assume that transition t22
+is missing, and a user needs to evaluate the effect of
+action of t23. The evaluation is not possible without
+steering the execution to state s22. Thus, we deﬁne
+another condition that concerns steering the execution
+from conﬁgurations whose current state is a basic state
+to any conﬁguration whose current state is any basic
+state.
+Except for P11, the elements with these issues can be queried
+from the structure of a component cwith an HSM as follows.
+P9 fs2Sn (Sin[Sh) :intrans (s) =;g
+P10 ft2T:src(t)2Sb[Sc^trig(t) =;g
+As for P11, this capability needs to be addressed in all
+basic stats, i.e., P11 Sb.
+Note that sets P1P11are not disjoint and an element
+may have several issues. For instance, in the context of the
+running example (see Fig. 2), s23is a deadlock state and has
+a reachability problem, i.e., s232P4\P11.
+4.2 Reﬁnement of Partial UML-RT Models
+In the following, we discuss the details of the reﬁnement,
+applied to ﬁx the problematic elements ( P1-P11 ) extracted
+during the analysis phases.
+Main Loop of the Reﬁnement. Algorithm 1 shows the
+main loop of the reﬁnement of a UML-RT model. It takes
+a UML-RT model and a setting as inputs. A setting is
+a set of tupleshc2 C;clevel2clevelsi, wherecis a
+component and clevel speciﬁes the level of completeness of
+
+--- Page 9 ---
+9
+Algorithm 2: Reﬁnement of HSM (reﬁneHSM)
+Input : An HSMsmand a component c
+Output: A reﬁned HSM
+// The following loop refines states in order of their nesting level, with the least deeply nested state (root(HSM))
+refined first.
+1forallsc2root(sm)[(sm:S2Sc)do
+2decp add state(sc;Sch)// Add decision point
+3 ifsc2P2then // Fix childless composite state (P2)
+4stateph add state(sc;Sb)
+5 ifsc2P1then // Fix missing initial state (P2)
+6 add state(sc;Sin)
+7 forallsp2(child (sc)\P3ndecp)do
+8 add trans (sp;decp)// Fix broken chain (P3)
+9 forallsch2child (sc)ndecpdo// Fix non-exhaustive guards for choice-points (P6)
+10t1 add trans (sch;decp)
+11t1:guard :Wguard (outtrans (sch)
+12 forallsb2child (sc)\P11do// Fix unexpected messages (P5), deadlock states (P4), and step 1 of fix for P11
+13 ifsb2(P4[P5)then
+14 t2 add trans (sb;decp)
+15 t2:trig inp(c)nhandled (sb)
+16 foralls2(child (sc)n(Sin[decp)do // Fix isolated states (P9) and step 2 of fix for P11
+17t3 add trans (decP;s)
+18 forallt2P10do// Fix not-takeable transition (P10)
+19t:src =decp
+20 forallscc2child (sc)\Scdo// Step 3 of fix for P11
+21exp exp[add state(scc;Sex)
+22enp enp[add state(scc;Sen)
+23tochild add trans (decp;enp\child (scc))
+24fromchild add trans (exp\child (scc);decp)
+25 ifparent (sc)6=;then // Last step of fix for P11
+26toparent add trans (decp;exp\child (scc))
+27fromparent add trans (enp\child (scc);decp)
+the component. The algorithm ﬁrst adds a new component
+to the model, called dbg agent with an empty HSM , creates
+a debugging interface, and adds debugging and timing
+ports into dbg agent .dbg agent is responsible for receiving
+from external applications and transferring dbg messages
+topartial and absent/ignored components. After setting up
+dbg agent , the algorithm tries to apply certain reﬁnements
+based on the setting of the components, as follows.
+1) For partial components, it adds a debugging port into
+the components and creates a connection between them
+and dbg agent . This allows them to receive the dbgmes-
+sage during the execution, which is essential for ﬁxing
+elements in P7-P8 . Then it calls the reﬁneHSM function,
+which applies the behavioral reﬁnement to ﬁx the issues
+(line# 4-7).
+2) The behavior of absent/ignored components are re-
+moved, which results in an empty HSM . Then, their
+empty HSM is reﬁned, which results in an HSM that can
+receive and send all possible input and output messages
+of the component (line# 8-12).
+3) Finally, the HSM ofdbg agent is also reﬁned as a absen-
+t/ignored component that results in an HSM capable of
+processing debugging commands (line# 14).Behavioral Reﬁnement. Algorithm 2 presents function re-
+ﬁneHSM , which reﬁnes the HSM of a component with
+respect to elements in P1-P11 except for elements in P7-P8 .
+Before discussing the details, let us deﬁne addstate (sc2
+Sc;ty2 S)! S as a function that adds a state of type
+tyinside thescandaddtrans (src;trg2 S)! T as a
+function that adds a transition from state srcto statetrg.
+The algorithm iterates over all composite states, and the root
+of the HSM , and reﬁnes them in 9steps, as follows.
+1) It creates a choice-point state called decp.decpis used
+as a decision point during the execution (line# 2). When
+a speciﬁcation is missing, we reﬁne the HSM so that the
+execution is directed to decp.
+2) Fix elements in P2which have no child, by adding a
+new basic state inside the related state (line# 3-4). Note
+that the added basic state has issues P4, P5, and P9, and
+requires the corresponding ﬁxes.
+3) Fix elements in P1which miss initial states, by adding a
+new initial state inside the related state (line# 5-6). Note
+that the added initial state has issue P3, and requires the
+corresponding ﬁxes.
+4) The elements in P3(Broken chain) are ﬁxed by adding a
+transition from the problematic states to decp(line# 7-8).
+
+--- Page 10 ---
+10
+Reﬁned CTRSM
+11 12
+off ( )11
+on ( )11
+P5-P1 1
+22red ( )21
+P5-P1 1
+23green ( )22
+P4-P5-P1 1
+yellow ( )23(P10)1311[]/01
+dec_p1from_child (P1 1)
+dec_p2P11
+P1121
+to_parent
+(P11) 1from_parent
+to_child (P1 1)P11on[]/ 1
+/2timeout[]/ 22[]/21
+timeout[]/ 23ex_p1
+en_p1
+Figure 5: Reﬁned version of CTRSM in Fig. 2 (added elements are coloured blue, and modiﬁed elements are coloured red)
+This ensures that the execution will move to decpinstead
+of stopping at the problematic states, and thus users can
+steer the execution to other states from decp.
+5) Fix elements in P6(Non-exhaustive guards) by adding
+a transition from each choice-point to decpso that its
+guard is set to the negation of the disjunction of the out-
+going transitions’ guards (line# 9-11). This ensures that
+the execution moves to the decpif none of the guards of
+the outgoing transition holds, instead of stopping there.
+Arguably, this solution is much cheaper than the design
+time analysis to detect and ﬁx this issue.
+6) During this step, a new transition is added from each
+basic state to decpand its trigger is set to all un-handled
+messages in the state (line# 13-15). This not only ﬁxes the
+elements in P4(deadlock state) by adding a transition
+from them to decp, but also (1) allows all un-handled
+messages to be handled as the new transition’s trigger
+(P5), and (2) allows the steering of the execution from
+any basic state to decpwhich is the ﬁrst step of the ﬁx
+for elements in P11.
+7) A transition is added from decpto all basic states and
+isolated states (line#16-17). This ﬁxes issue P9(isolated
+states), and also allows the steering of the execution to
+any basic state from decpwhich is the second part of the
+ﬁx for P11.
+8) To ﬁx not-takeable transitions (P9), their source is
+changed to decp(line# 18-19). This allows them to be
+taken whenever the execution reaches decp. Since each
+state has a transition to decpwhich is added in step 6
+with a trigger set to all un-handled messages, the not-
+takable transitions can be activated by any of the un-
+handled messages. Note that the dbgmessage, which isadded using Algorithm 1 is assumed to be an un-handled
+message.
+9) At the end, an exit-point (line# 21) and an entry-point
+(line# 22) states are added to each composite state to
+allow the execution to be steered from their sub-states
+to states in their parent state and vice-versa, which is
+the last part of the ﬁx for elements in P10. Two tran-
+sitions toparent and from parent allow the execution to
+be steered from their sub-states to states in their parent
+state, and transitions tosubstates and from upper allow
+the execution to be steered from states in their parent
+state to their sub-states (line# 20-27).
+Note that the reﬁnement algorithms do not contain
+details for the actions which are added to HSM s. E.g., (1)
+added actions to the HSM ofdbg agent for processing and
+injecting the message dbg, (2) guards of outgoing transitions
+from decision points which are set in a way that allows
+users to select one of them, (3) actions of incoming tran-
+sitions to decision points that call a function to read user
+input. Interested readers can refer to the source code of the
+reﬁnement [44].
+4.2.1 Reﬁnement Result on the Running Example
+Figure 5 shows the result of running Algorithm 2 on the
+partial CTRSM with partial completeness level in which
+transitions and states are annotated with corresponding
+issues P1-P11 . Let us review some examples of how the
+execution can be performed despite missing speciﬁcations:
+(1) No transition from yellow toredwas possible in the
+original model. This is ﬁxed by adding transitions from
+yellow and red to decpand vice-versa. Thus, any of the
+input messages or dbg messages can move the execution
+to state decpfrom state yellow where users can select one
+
+--- Page 11 ---
+11
+of the outgoing transitions (e.g., the transition from decp
+to state red). (2) The transition t13is not-takeable in the
+original model and its action cannot be executed. In the
+reﬁned model an offordbgmessage can move the execution
+todecpin which the transition t13is one of the possible
+transitions and can be selected and its action be executed.
+4.3 Execution of Reﬁned Partial UML-RT Models
+In this section, we discuss our method for the execution of
+incomplete UML-RT models. The discussion will emphasize
+key concepts over low-level implementation detail. The
+deﬁnitions below identify two such concepts.
+Deﬁnition 17. (Execution Context) Intuitively, an execution
+context captures the most relevant runtime information of
+an execution stopped at some decision point. Formally,
+an execution context is a tuple h;decp;m;Oi, where
+decprefers to the decision point at which the execution
+is stopped, denotes the conﬁguration (see Def. 10) right
+before the execution reached decp,mdenotes the last
+processed message by the HSM (the trigger of the most
+recently taken transition starting from :), andOis a list
+of possible options available to continue the execution (i.e.,
+the transitions originating from decp).
+Deﬁnition 18. (Execution Rule) We deﬁne an execution
+rule as a tuplehh;bi, wherehrefers to the header and
+brefers to the body of the rule. A header is a tuple
+hname;where;when i, where name refers to the name of the
+execution rule, where refers either to the qualiﬁed name of a
+state ( component.state ), name of a component, *, or *.state as
+shown in Listing 1 (Line #7), and when refers to a boolean
+condition. A body is a sequence of statements as deﬁned
+in Listing 1. The semantics and use of execution rules is
+discussed in Section 4.3.3.
+4.3.1 Execution Flow of a Reﬁned Partial Models
+As discussed, the partial models are reﬁned by adding
+decision points where elements are missing or are partial
+that allow users to execute the partial models and provide
+information about the missing or partial element during
+the execution. This requires a mechanism that (1) enables
+executed models to obtain user input either in interactive or
+batch mode, (2) provides debugging features to investigate
+and modify the execution of the model.
+Figure 6 shows the execution ﬂow of a reﬁned HSM in
+which a debugging probe is hooked into the execution of an
+HSM by adding relevant actions in the initial transition of
+theHSM . When an HSM starts executing, two threads main
+and probe are started but only one of them is active at each
+time of the execution. Thread main executes the models as
+speciﬁed until it reaches a decision point where it sends
+the relevant execution context to the probe and waits for the
+user input. Thread probe starts a debugging session (batch
+or interactive) that allows users to investigate the execution
+and provide input. At the end of the session, the user input
+is returned to thread main to continue the execution. The
+interaction between the threads is simply a function call
+from thread main to the probe that is implemented using an
+action in the transitions ending at the decision points. In the
+following subsections, we review two execution modes of
+partial models.1grammar ExecRules;
+2script: execRule+;
+3execRule: ’rule’ rID=ID ’where’ ’(’ where ’)’
+4 when?
+5 ’{’ body=scriptStatement *’}’;
+6when: ’when’ ’(’guard’)’;
+7where: component.state |component |*|*.state;
+8statement: scriptStatement |interactiveStatement
+;
+9scriptStatement: simpleStatement |
+complexStatement;
+10 interactiveStatement: dbgCmd |umlrtCmd ;
+11 umlrtCmd: sendMsgCmd |replyMsgCmd |receipt;
+12 dbgCmd: viewCmd |selectCmd |simpleStatement |
+visited |controlCmd |saveCmd;
+Listing 1: High-level Grammar of the Interactive/Batch
+Execution Commands
+Execution of a Reﬁned HSM
+Decision 
+PointDebugging 
+ProbeMain 
+Execution
+Execution Context 
+User DecisionDebugging 
+Session
+Data 
+FlowInactive
+ThreadActive 
+Thread
+Figure 6: Execution ﬂow of a reﬁned Partial HSM
+4.3.2 Interactive execution
+With the interactive execution, users are allowed to issue de-
+bugging commands listed in interactiveStatement of Listing 1,
+e.g., view and modify variables. Most of debugging services
+are ported from MDebugger [33]. The new debugging com-
+mands to facilitate the execution of incomplete models are
+as follows:
+1)viewCmd lists the possible options to continue the exe-
+cution.
+2)selectCmd allows users to select one of the possible
+options. Note that selectCmd is the last statement that is
+applied when the execution has been stopped, and any
+command after that in the body of the rule is ignored
+(similar to the return statement in many programming
+languages). Also, selectCmd can accept more than one
+option during the batch execution, and in that case the
+execution switches to interactive mode to capture the
+user input.
+3)simpleStatement allows users to deﬁne new variables
+which can be accessed during the debugging session,
+
+--- Page 12 ---
+12
+and to access all attributes (i.e., HSM ’s variables and
+newly deﬁned variables during the debugging session)
+and modify them using arithmetic expressions.
+4)saveCmd allows users to save their decision during the
+interactive session. We discuss this command in detail
+in Section 4.3.3.
+5)umlrtCmd consists of send,reply , and receipt commands.
+Commands send and reply allow users to send/reply (in-
+ject) messages to other components. Command receipt
+accepts a message as an input and returns true if the
+message is the most recently received message by the
+component, and false otherwise.
+4.3.3 Batch execution
+Interactive execution stops and delays the execution which
+is not suitable in some situations, especially for the de-
+bugging of time-sensitive systems, to repeat a debugging
+scenario, or to test and explore a design decision. For these
+situations, a batch execution mode is supported that allows
+users to provide inputs using a script that consists of exe-
+cution rules (see Def. 18). An execution rule prescribes how
+the execution of a reﬁned partial model is to be continued
+when the current execution context matches the where of the
+rule and the when of the rule evaluates to true.
+Depending on the current execution context and deﬁned
+rules, multiple rules may be applicable at each time, but only
+one rule can be applied at each time. The rule selection for
+a decision point of an execution context with component c
+and the current execution state sis performed by following
+the steps below:
+1) Guards of rules whose where (i.e., component and state
+name) is equal to candsare evaluated based on
+the order of their appearance in the script ﬁle of the
+rule. The ﬁrst rule whose guard holds is selected and
+applied.
+2) If (1) is unsuccessful, guards of rules whose state name
+is exactly equal to sand component name is equal to
+or empty are evaluated based on the order of their
+appearance in the rules’ script ﬁle. The ﬁrst rule whose
+guard holds is selected and applied.
+3) If (2) is unsuccessful, guards of rules whose component
+name is exactly equal to cand state name is equal to
+or empty are evaluated based on the order of their
+appearance in the rules’ script ﬁle. The ﬁrst rule whose
+guard holds is selected and applied.
+4) If (3) is unsuccessful, guards of rules whose state and
+component name is are evaluated based on the order
+of their appearance in the script ﬁle of the rule. The ﬁrst
+rule whose guard holds is selected and applied.
+5) If none of the above holds, the execution stops and the
+user is asked to provide input to continue the execution.
+4.4 Automation
+In general, the partial models that we consider exhibit one
+of two kinds of partialness: un-intentional and intentional.
+The former is related to situations (e.g., early debugging)
+in which the model is still under development, and not
+yet complete, due to the iterative and incremental nature
+of the software development process. The latter relates to
+situations (e.g., unit testing and partial analysis) in whichusers intentionally execute a complete model as a partial
+model often by writing scripts for execution rules to mock
+the ignored or unavailable part of the model. This can,
+e.g., increase the efﬁciency of testing or help deal with the
+unavailability of external components that the model relies
+on.
+With un-intentional partialness, the user has to provide
+input (in the form of interactive decisions at runtime or
+execution rules) to steer the execution of the reﬁned partial
+model. It is possible that this input resolves the partialness
+in a generally satisfactory way and that the user then also
+wants to use it for the next incremental development step
+and apply it to the design model. However, as we discuss
+later, our approach is careful to avoid duplicate effort from
+the user by allowing the input to be used directly to update
+the design model, instead of requiring the user to provide it
+again when completing the design model. While this double
+effort may incur negligible costs for the debugging of only
+a small part of a partial model, its cost can be signiﬁcant
+for the debugging of a large part of a partial model, due to
+the large number of inputs that may need to be provided.
+Note that in the case of intentional partialness, the model
+is already complete, and writing the scripts for execution
+rules is only for simulation and mocking of the existing
+components.
+To minimize the overhead of writing execution rules,
+and to reduce the need for double efforts, we provide three
+automation features, including (1) generation of default
+execution rules, (2) saving of users’ interactive decisions as
+execution rules, and (3) application of execution rules into
+the design model. As shown in Figure 7, the features are
+complementary and allow users to automatically create exe-
+cution scripts and update the design model by application of
+the execution rules. In the following, we discuss the details
+of each feature.
+4.4.1 Generation of Default Execution Rules
+As discussed, at each decision point that has been added
+during the reﬁnement (see Section 4.4), users are given
+a set of all possible options, one of which needs to be
+selected to continue the execution of the model. Considering
+and selecting one of the options can be time-consuming,
+speciﬁcally for the execution of large partial models. To
+minimize the efforts for making decisions, we generate
+default execution rules for the decision points that ﬁlter out
+options that are less likely to be selected by users. When
+the ﬁltering results in a single option, the generated rule
+executes the model without user intervention, otherwise one
+of the remaining options needs to be selected by the user
+either interactively or by editing the generated rule. Note
+that the default execution rules are generated as a script
+and can be viewed, modiﬁed, or even ignored by users
+depending on the execution scenarios.
+Algorithm 3 presents the method for the generation
+of default execution rules. The algorithm accepts as input
+the reﬁned model and the partial elements which have
+been detected by the static analysis ( P1-P11 as discussed
+in Section 4.1) and then it generates a set of execution rules.
+For each decision point decp, the algorithm iterates over
+all transitions that end at decp(line# 4-5) and creates at
+least one rule for each transition (line# 4-12). The where part
+
+--- Page 13 ---
+13
+Model
+ reﬁnement
+User-deﬁned
+modelGeneration of default
+  execution rules
+Code generation/
+ Interpretation 
+Reﬁned modelApplication of execution rules into design model
+InputExecution
+RulesSave 
+users' decisions 
+as execution rules
+Execution
+records
+Execution 
+contextExecuted Model
+Interactive input
+User
+Figure 7: Automated generation of executions rules and completion of the design (user-deﬁned) model
+of each rule is set to the state the transition originated from,
+and the when part is set to a guard indicating the arrival of
+a messagemtriggering the transition (if any). Note that no
+rule is created for message dbg(i.e., the debugging message).
+Thus, when the default rules are used, the execution can still
+be steered to any speciﬁc state by injecting the debugging
+message. Finally, the algorithm calls the function genRule-
+Body (line# 13), which generates a body for the rule.
+Let us assume that when applied to a transition t0that
+may have been reﬁned by Algorithm 2, the function org(t0)
+returns the original transition tbefore the reﬁnement. Func-
+tion genRuleBody applies the following three heuristics to
+ﬁlter out options less likely to be of interest to the user and
+generates the body of the rule.
+1) If the rule handles a choice-point (i.e., the where part
+of the rule is a choice-point such as ch1) with non-
+exhaustive guards, then the algorithm omits the tran-
+sitions into states that are reachable via the transitions
+leavingch1(line# 20-23) in the original model. The
+rationale is that the user has already decided when
+those states are to be reached from ch1by specifying
+the guards of the outgoing transitions from ch1in the
+original model.
+2) If the rule handles an unexpected message (i.e., the
+guard in the when part of the rule indicates the arrival
+of an unexpected message) (line# 24-29), the algorithm
+performs one of the following actions. (a) It selects
+not-takeable transitions that end at an isolated state,
+if any (line #25); (b) otherwise, it selects not-takeable
+transitions, if any (line #26-27); (c) otherwise, it selects
+transitions that end at an isolated state (line #28-29);
+and (d) otherwise, it selects all possible transitions (line
+#33-34).
+Note that selecting a transition for an unexpected mes-
+sage has the same effect as adding the unexpected
+message as the trigger to the transition. The rationale
+for this heuristic is that the trigger of not-takeable
+transitions is missing, and setting the trigger for them
+is likely more helpful to make the model executable
+than the appending of a new message to the trigger
+of transitions that are already deﬁned in the original
+model. Similarly, since an isolated state does not have
+any incoming transition, there is more of a need to1rule r1where state off when receipt (timeout) {
+2 select state off using t13
+3 }
+4rule r2where state off when receipt (off) {
+5 select state off using t13
+6 }
+7rule r3where state yellow receipt (timeout) {
+8 select state red|green |yellow |off
+9 }
+10 rule r4where state yellow receipt (off) {
+11 select state red|green |yellow |off
+12 }
+13 rule r5where state red receipt (off) {
+14 select state red|green |yellow |off
+15 }
+16 rule r6where state green receipt (off) {
+17 select state red|green |yellow |off
+18 }
+Listing 2: Default execution rules that are generated for the
+reﬁned CTRSM (see Fig. 5)
+ﬁx it compared to states that already have incoming
+transitions.
+3) If the rule handles a broken chain, the algorithm tries
+items c) and d), in the same way as the previous
+heuristic (line# 30-31).
+We note that the generated rules may require further
+manual modiﬁcation, due to the fact that a rule contains
+more than one option for selection, or the user ﬁnds one
+of the heuristics unsuitable for their needs. However, the
+generated rules should provide a useful initial version even
+in these cases.
+For illustration, Listing 2 shows the default execution
+rules that are generated for the reﬁned CTRSM (see Fig. 5).
+Rules r1-r2 are examples for the second heuristic, and
+rules r3-6 ﬁlter out not-takable transitions t13by explicitly
+selecting transition tr1. Note that rules r1-r2 ﬁlter out all
+options except one, and therefore users may not need to
+change them or provide inputs at runtime interactively.
+However, rules r3-r6 still select more than one option, and
+therefore the user still needs to update them or provide
+interactive input at runtime.
+
+--- Page 14 ---
+14
+Algorithm 3: Generation of execution rules with a
+default body
+Input : Reﬁned HSM sm0, problematic elements
+(P1-P11)
+Output: Set of execution rules
+1LetRbe an empty set
+2LetDbe a set that contains all of decpofsm0which
+have been added during reﬁnement
+3LetPebe exit-point/entry-point states that are
+added during the reﬁnement
+4foralldecp2Ddo
+5 forallt2ft:t:des =decpgdo
+6 ift:src62Pethen
+7 M t:trigndbg
+8 ifM=;then
+9 Add message dummy inM
+10 forallm2Mdo
+11 Create a new rule r
+12 r:h:where t:src
+13 ifm6=dummy then
+14 r:h:when m
+15 r:body genRuleBody (r;decp)
+16 AddrintoR
+17returnR
+18Function genRuleBody (Rule r, Decision point dec p)
+19O ft:t:src =decpg
+20 ifr:h:where2P6then
+21Ttmp ft:org(t):src=r:whereg
+22Stmp fs:s=t:des^t2Ttmpg
+23O Onft:t:src =decp^t:des2Stmpg
+24 else ifr:h:when2P5then
+25Otmp O\ft:org(t)2P10^org(t):des2
+P4g
+26 ifOtmp=;then
+27 Otmp O\ft:org(t)2P10g
+28 ifTtmp=;then
+29 Otmp O\ft:org(t):src2P4g
+30 else ifr:h:where2P3then
+31Otmp O\ft:org(t):src2P4g
+32O Otmp
+33 ifO=;then
+34O ft:t:src =decpg
+35 Generate body of raccording to O
+4.4.2 Save user decisions (inputs) as execution rules
+As discussed, via interactive execution, users need to pro-
+vide input to steer the execution at decision points. De-
+pending on the goals of the execution, users may need to
+repeat the execution, and therefore providing the same input
+can be time-consuming and tedious. To deal with this issue,
+a feature is provided that allows users to save interactive
+decisions in the form of execution rules. Thus, the execution
+can be repeated based on the saved rules without having to
+provide the input again. The implementation of the feature
+is heavily dependent on appropriate support for recording
+and viewing the execution of a partial model together with
+the user decision (input) provided during the execution. Inthe following, we discuss a high-level overview of how this
+feature is realized. A central notion is that of an execution
+record.
+Deﬁnition 19. (Execution Records) Let us assume that the
+execution of a partial model is saved as a set of records
+hc;d;oi, wherecdenotes the execution context at the time of
+the decision, drefers to a sequence of debugging commands
+that have been issued by the user while the execution was
+stopped (i.e., from when the decision point was ﬁrst reached
+and until the execution is resumed with a select command),
+and orefers to the runtime decision (input) that is taken by
+the user (i.e., the argument of the select command).
+Function saveDecesionsAsRules in Algorithm 4 presents
+how the interactive decisions are saved as execution rules.
+It accepts a set of execution records and returns a set of
+execution rules. The function ﬁrst checks that the decisions
+are consistent (i.e., unique decisions are taken for the same
+execution contexts) and then resolves inconsistencies by
+consulting with users, as will be discussed below. Then,
+it ﬁnds the rule that matches the execution context, and if
+no rule is matched, it creates an execution rule based on
+the execution context. Finally, it generates the body for the
+execution rule by using the issued debugging commands
+that modify the execution state (e.g., changing a variable
+value). Note that the interactive debugging commands (i.e.,
+’dbgCommands’ and ’umlrtCmd’ in Listing 1) are a subset
+of the statements used for writing the body of an execution
+rule and there is no mismatch that complicates the use of
+sequences of debugging commands as rule bodies.
+Resolving the inconsistency. Users are allowed to view
+their previous decisions and save one or more decisions as
+rules. When a user wants to save more than one decision,
+it is possible that some of the decisions are not consistent
+with each other, such that different decisions are taken at
+the same decision point for the same execution context.
+Thus, saving these decisions can cause non-determinism
+and should be avoided. To resolve inconsistencies between
+decisions, we ask users to select one of them.
+4.4.3 Application of execution rules into design model
+To mitigate the issue of double effort , we allow users to apply
+the execution rules into the design model automatically. To
+do that, we use the information in the execution rules about
+how to resolve partialness at runtime to ﬁx the partialness
+in the design model. This feature is useful when users are
+satisﬁed that the way to deal with partialness at runtime
+expressed in the rules is correct and ﬁnal, and they want to
+ﬁx and remove partialness in the design model.
+Application of execution rule into the design model is
+addressed by function saveRuleToModel in Algorithm 4. It
+accepts the original state machine ( sm) and an execution
+rule (r) as input and ﬁxes the relevant partialness in sm
+according to the deﬁnition of r, when there is only one
+possible solution to ﬁx the partialness that is addressed
+byrandr:where explicitly refers to a state, i.e., r:where
+does not contain or does not refer to a component. The
+function ﬁrst extracts the selected states and transitions
+based on the select statements from the rule’s body, e.g.,
+the selected states of rule r1andr3in Listing 3 arefoffgand
+
+--- Page 15 ---
+15
+Algorithm 4: Saving user decisions as execution rules and application of execution rules into design model
+1Function saveDecesionsAsRules (A sequence of execution record L)
+2 Check and resolve the inconsistencies of the decisions in D
+3 LetRbe an empty set
+4 foralll2Ldo// l is an execution record (ref. Def. 19)
+5r fr2R:r:h:where =l:c::^r:h:when =receipt (l:c:m )g// l.c.p refers to a problematic element
+where the execution is recorded.
+6 ifr=;then
+7 create a rule r
+8 r:h:where =l:c::
+9 r:h:when =receipt (l:c:m )
+10 AddrintoR
+11 Set body of rbased on the recorded debugging commands ( l:d)
+12 returnR
+13Function saveRuleToModel (HSM sm, execution rule r)
+14 LetP1P11refer to the problematic elements of sm
+15 LetselTrans andselStates be the selected states and transitions by the rule extracted from the r:body
+16 ifselStates has one member^r:h:where refers to a state in smthen
+17 Letdesbe a state equal to the only member of selStates insmandsrcbe a state equal to r:h:where insm
+18 LetselTran be the ﬁrst member of selTrans //selTrans has maximum one member since selStates has one
+member and for a state, more than one transition can not be selected
+19 ifselTran62P10then
+20 t addtrans (src;des )
+21 else
+22 t selTran
+23t:act (r:body withoutselect statement) + t:act
+24 Sett:trig based on the receipt statements from r:h:when
+25 Sett:guard based on the r:h:when by excluding the receipt statements
+26 ifr:h:where2P6then
+27 t:guard t:guard^:W
+t02outtrans (t:src )guard (t0)
+fred;green;yellow;offgand the selected transitions are ft13g
+andfgrespectively. It then takes the following steps.
+1) It checks if the rule selects only one state. This check is
+necessary, because the application of a rule that selects
+more than one state can make the resulting model non-
+deterministic. E.g., rule r6in Listing 3 selects more than
+one state ( red, green, yellow, off ), and therefore saving
+this rule into the design model would require adding
+four transitions from state green into the mentioned
+states with the same trigger ( off) and would cause non-
+determinism. The function also checks if the where part
+of the rule explicitly refers to a state because otherwise,
+it is not clear which element in the design model should
+be ﬁxed (line# 16).
+2) It creates a transition ( t) whose source is set to the
+where part of the rule and whose destination is set to
+the state that is selected by the rule if the rule does
+not address a not-takeable transition ( P10partialness).
+There is no need to add a new transition to ﬁx a
+not-takeable transition (line# 17-22). Note that if the
+source and destination states of tare not contained
+in the same composite state, function addtrans adds
+required transitions and related entry-point and exit-
+point states to assure the transition does not cross the
+boundary of its parent state (see Def. 9).
+3) It then sets the action of tbased on the body of the rule.
+Note that since a not-takeable transition may alreadyhave actions. Therefore the action is appended to the
+body of the rule. The trigger of tis set based on
+thereceipt statements in the when part of rules, and
+its guard is set based on the when part of the rule,
+excluding the receipt statements (line# 23-25).
+4) Finally, if the rule handles the non-exhaustive guard of
+a choice point ch1, the guard of tis conjoined with the
+negation of the disjunction of the guards of all transi-
+tions leaving ch1, as calculated during the reﬁnement
+(line# 26-27).
+Note that when a rule is applied, it ﬁxes the relevant
+partialness and there is no need to manually modify the
+model after its application, because the model is updated in
+a way that follows the semantics of the rules precisely, and
+respects all HSM well-formedness constraints (see Def. 9).
+Also, the algorithm only presents the application of an
+execution rule into the design model. Saving an interactive
+decision into the design model can be performed by saving
+it as an execution rule, which is then can be applied to the
+design model as discussed.
+4.5 Tool Support (PMExec)
+We have developed PMExec1that embodies our approach
+and supports execution of partial UML-RT models. We used
+1https://moji1@bitbucket.org/moji1/partialmodels.git
+
+--- Page 16 ---
+16
+1
+2
+Figure 8: User interface of PMExec
+the Epsilon Object Language (EOL) [36] to implement the
+transformation rules required for reﬁning the models into
+executable models. EOL supports a set of instructions to
+create, query, and modify models. The part for the execution
+of the reﬁned models (debugging probe) is implemented
+using C++, ANTLR [45], and the Boost C++ Library [46].
+4.5.1 PMExec Features
+In the following, we discuss the features of PMExec2from
+the user point of view. When it is possible, the use of features
+is explained using the running example.
+Setup and run The PMExec is integrated into Papyrus-RT
+as an Eclipse plug-in and can be downloaded and installed
+from the PMExec repository. After installation, it can be used
+to run partial UML-RT models simply by deﬁning a run con-
+ﬁguration (i.e., an Eclipse run conﬁguration) inside Papyrus-
+RT. The static analysis, transformation, code generation and
+build run automatically in the background without distract-
+ing the user. Upon successful execution, PMExec loads a UI
+as shown in Figure 8 as soon as the execution requires user
+input to continue the execution. The UI is split in two parts,
+aHSM view (1of Figure 8) and a DBG console ( 2of
+Figure 8). In the HSM view the user can see the HSM of the
+2A demonstration video can be found at https://youtu.be/
+BRKsselcMnccapsule where the current execution state is highlighted. In
+theDBG console the user can interactively issue commands
+to investigate and ﬁx the execution problems. Some of the
+most important commands are discussed in the following in
+the context of the running example.
+View/select options List the possible options to ﬁx/con-
+tinue the execution. E.g., the output of view options for the
+CTR when its execution is stuck in state yellow is shown
+in part 2of Figure 8. Using the console, the execution
+can now be steered to any of the deﬁned states inside
+the HSM. The command select allows users to select one
+of the possible options, e.g., ‘ select state red ’ steers the
+execution to state red.
+Simple expressions Similar to scripting languages (e.g.,
+Python’s interactive console), PMExec allows the user to
+issue simple expressions (e.g., arithmetic expressions) and
+statements (to, e.g., deﬁne a new variable, or change/view
+variable values). This allows the user to investigate and
+modify the execution before deciding how to advance the
+execution. E.g., ‘ x=5+1 ’ creates a new variable xand sets its
+value to 6. Deﬁned variables can help the user record certain
+properties of the execution and deﬁne complex debugging
+and testing scenarios. Once deﬁned, they can be used till the
+end of the execution.
+Communication commands To allow the user to ﬁx
+
+--- Page 17 ---
+17
+1rule r1 where state yellow when receipt(timeout)
+{
+2 select state red}
+3rule r2 where component *{
+4 reply random
+5 select state random }
+Listing 3: An example script of the execution rules in the
+context of the TrafﬁcLight
+issues concerning the missing inputs ( P7), three commu-
+nication commands are provided: inject ,send, and reply .
+The command inject sends a signal to a capsule to start
+a debugging session, the command send sends messages
+on behalf of the capsule being debugged to the connected
+capsules, and the command reply sends an incoming mes-
+sage back on the same channel it has been received. E.g.,
+in the context of running example, no behavior is deﬁned
+for the component UC. Thus, the execution of the CTR
+will get stuck in state offand the overall execution of the
+system will be deadlocked. The user can ﬁx the problem by
+using the following communication command (1) ‘ inject
+UC’ to start a debugging session with capsule UC. Note that
+the reﬁnement ﬁxes the behavior of capsules even with no
+deﬁned behavior. (2) ‘ send message on ’ to send message on
+to the CTR where it will trigger a transition to turn on the
+redlight.
+Batch execution PMExec supports a batch execution
+mode which allows users to provide inputs using a script of
+execution rules. The Listing 3 is an example of an execution
+script in the context of the running example.
+1) The rule r1steers the execution to state redwhen a
+message timeout is received while in state yellow .
+2) The rule r2replies to any received message using a
+random message and then moves the execution to a
+random state. The rules with header ‘*’ are only selected
+when no other rule matches in the current execution
+context. Note that having only one rule similar to r2is
+enough for the random execution of any partial model
+using PMExec .
+Save command To save users’ decisions which are
+provided interactively as execution rules, users can view
+the history of the execution using ‘ view exec ’. The output
+shows all previous decisions (inputs), each of which is given
+a unique id. Then, the user can use save command (‘ save
+input id ’) to save the input with the related id as an
+execution rule. Also, to save an execution rule into the
+design model, users can use ‘ save rule id ’ that saves the
+rule with the related id into the design model. Note that in
+both cases ( save input/rule ), more than one input/rule can be
+processed by providing more than one id.
+5 V ALIDATION
+This section explains the validation of our approach which
+consists of three parts: online survey ,formal validation and
+empirical evaluation . The goal of the online survey was to
+collect the opinions of MDE researchers and practitioners
+w.r.t. whether or not (1) the execution of partial models is
+a necessary and useful technology in the context of MDE,
+and (2) our approach is helpful to address the execution of
+14 (35.9%)
+9 (23.1%)7 (17.9%)9 (23.1%)
+More than 10 Year 6 to 10 years
+2 years or less 3 to 5 yearParticipants'  Experience with MDE
+12 (30.8%)
+5 (12.8%)18 (46.2%)4 (10.3%)
+Graduate student University professor
+Industry Practitioner Postdoc researcherParticipants' Occupation Figure 9: Survey participants’ occupation and experience
+with MDE
+partial models. The formal validation is concerned with the
+properties of the reﬁnement approach and shows formally
+how the applied reﬁnement does not change the behaviour
+of the original speciﬁcation of the models but ﬁxes the
+problems of lack of reachability and progress. The empirical
+evaluation is concerned with the applicability of the approach
+in practice. It applies our approach to several partial UML-
+RT models in different scenarios and evaluates the perfor-
+mance and overhead. In the following, we discuss each part
+in detail.
+5.1 Online survey
+5.1.1 Survey Design
+The survey3consists of two steps: First, we ask participants
+who are MDE researchers or practitioners to view a short
+demonstration video (5 minutes) of PMExec to familiarize
+them with the execution of partial models. Note that
+the video does not demonstrate the automation features
+as discussed in Sec. 4.4, since the features were inspired
+by the suggestions of the participants. Second, we ask
+them to answer 15 questions classiﬁed into three groups:
+demographic ( 4questions), general questions regarding the
+execution of partial models ( 5questions), and speciﬁc ques-
+tions concerning our proposed approach ( 6questions). 7
+questions are 5-level Likert scale questions [47] ( Strongly
+disagree ,Disagree ,Neutral ,Agree ,Strongly agree ), 6 questions
+are multiple choice questions, one question is asking for the
+email address of the participant ( email question), and one
+question is an open-ended question. All of the questions
+except the open-ended and email question are mandatory.
+However, participants are allowed to provide other answers
+rather than the choices or scales presented to them. Note
+that, providing an email address is optional to allow par-
+ticipants to be anonymous in case they want to provide
+negative feedback.
+5.1.2 Participants
+We approached MDE practitioners and researchers in per-
+son at the MODELS (2019) conference, as well as by email
+and social media and asked them to participate in the
+survey. Our efforts resulted in 39participants whose de-
+mographic data is shown in Figure 9. More than 81% of
+3https://tinyurl.com/yxv8embf
+
+--- Page 18 ---
+18
+20
+12
+6
+618
+23
+31
+6
+271
+4
+1
+4
+619 81
+2The execution of incomplete (partial) models is a necessary feature that MDD tools should support
+The fact that existing MDD tools do not allow execution of partial models has a negative impact on 
+when and how MDD developers debug and test models
+The demonstrated solution is a promising first step toward supporting the execution of partial 
+models
+In general, the manual completion of models will be easier than the execution of models using the 
+demonstrated solution
+The proposed process for the execution of partial models is easy to understand and use, assuming 
+that its implementation and tool support has a sufficient degree of maturity
+0% 25% 50% 75% 100%
+Strongly agree Agree Neutral Disagree Strongly disagree Others
+Figure 10: Participants’ opinion concerning the execution of partial models and our proposed solution
+94.87%
+89.74%
+71.79%
+71.79%
+64.10%
+51.28%
+46.15%
+23.08%
+23.08%Early debugging of system
+Interactive debugging
+Mocking and unit testing
+Agile software development
+Exploration of different design decisions
+Improving user experience of MDD tools
+Teaching a modeling language to new users
+Collaborative development
+Learning a new modeling langauge
+0 10 20 30 40
+Figure 11: Participants’ opinion about which activities the
+execution of partial models can facilitate
+participants have more than two years of experience with
+MDE, 46% of them work in the industry, 13% of them are
+university professors, 10% are postdoctoral research fellows,
+and 31% of them are graduate students. Notably, all of the
+participants except one are currently dealing with MDE
+tools in their work, and around 36% of participants have
+more than 10 years of experience and can arguably be said
+to be internationally known experts in the ﬁeld. Finally, only
+13 (33%) of participants provided their email addresses, and
+26 (67%) of them participated anonymously.
+5.1.3 Results
+The relevance of the execution of partial models. We have
+asked four questions from the participant to understand
+whether they think the execution of partial models is es-
+sential and how it can help developers. As shown in Fig. 10,
+except for one of the participants, all of them either strongly
+agree (51.3%) or agree (46.2%) that the execution of partial
+models is a necessary feature that needs to be supported
+by MDE tools. Also, as shown in Fig. 11, participants
+think that the execution of partial models can be helpful
+for several software development activities, mainly early
+and interactive debugging, unit testing and agile software
+developments. Also, more than 51% of participants think
+that the execution of partial models can improve the user
+experience of MDE tools. Overall, since the vast majority of
+the participants perceive the execution of partial models as a
+relevant technology, we can safely conclude that addressing
+of the execution of the partial models is a relevant problem
+and worth addressing.The usefulness of our approach As shown in Figure 10,
+all of the participants except two of them perceive our
+approach as a ﬁrst promising step toward addressing the
+execution of partial models. Also, 84.4% of the participants
+either strongly agree (15.4%) or agree that the current ap-
+proach can be useful for MDD users, assuming that the
+approach has good tool support.
+86.4% of the participants prefer to use both interactive
+and scripting methods for providing input, depending on
+the execution scenarios. 69.2% of participants are of the
+opinion that the execution of models by providing input
+through scripts is easier than through a manual completion
+of models. However, 15.4% of participants have the opposite
+view.
+In addition, we received valuable and constructive re-
+sponses to the open-ended question as discussed in the
+following.
+1) As quoted in the following, one of the participants
+pointed out correctly that our approach only is applicable to
+modeling languages with step-based execution semantics.
+“This can likely work well with behavioral models such as state-
+charts or business process models, but I wonder about whether the
+value proposition also covers non-behavioural models such as goal
+models, where ”execution” is not a sequence of events but a set of
+values or initial decisions”
+2) As discussed, the video does not demonstrate the
+automation features as mentioned in Sec. 4.4, since the
+following suggestion inspired the features.
+“The script option sounds like it does not much improve on
+manual ﬁxing/completion of models. I suspect that it may prove
+more useful if: (a) the script is automatically generated (as a user
+option) during an interactive session and then applied (as a user
+option) on subsequent runs. (b) used as a means of automatically
+modifying the incomplete model — again, as a user option.”
+3) As quoted in the following, one of the participants
+suggested an interesting extension to the work by aug-
+menting the semantics of modeling language to support the
+execution in the presence of holes that are speciﬁed with
+certain notations. We agree with the participant. However,
+we left addressing this extension to future work.
+“The partiality of the model in the demo seems to pertain only
+to violated statically checkable constraints such as whether a state
+is exitable/reachable. This would certainly help modellers. Another
+type of partiality is the presence of ”holes”, i.e. properties not being
+ﬁlled in (cf. Scala’s ”???”), not resolved, etc. I think it’s a good
+idea in general to augment semantics of a modelling language that
+they stay deﬁned (but possibly deﬁned in terms of a fault mode)
+in the presence of missing model parts. This is akin to interpret
+
+--- Page 19 ---
+19
+every .-operator as ?.-operator (Kotlin, TS, etc.) and propagate
+nulls/undeﬁned in a as meaningful as possible manner.”
+4) Not surprisingly, as quoted in the following, two of
+the participants have constructive feedback concerning the
+tooling issues. However, in this work, our main focus is the
+creation of a prototype as proof of concept, and improving
+of tooling is left to future work.
+“I found your presentation of the context to be rather technical.
+For example, at 2 minutes in the video you showed the output for
+the empty UserConsole. There you presented one option how I
+could continue. I think you might have a technical reason to call
+the states Init State 3 and New State 2 but to me as a user
+it is unclear what these numbers mean (any why a state that
+is not even created yet(?) would have a lower number than the
+initial state you already generated). But I really liked, that you
+highlighted the current state in the visual representation of the
+diagram.”
+Overall, based on the participants’ opinions, we can con-
+clude that while our proposed approach is a step in the right
+direction, it is not the ﬁnal solution (i.e., it has limitations).
+Still, further research and development are required in this
+context, some of which will be discussed in Section 6.
+5.2 Formal Validation
+We use<HSMto refer to the result of applying Algorithm 2
+on an HSM and call it the ReﬁnedHSM of the HSM . In
+the following, ﬁrst, we deﬁne the simulation relationship
+between LTSs , and then discuss the properties of <HSM.
+5.2.1 Behavioural Preservation
+Deﬁnition 20. (Simulation Relation) Let L1 =
+h1;A1;10;Q1;!1iandL2=h2;A2;20;Q2;!2i
+refer to LTSs of two HSM, HSM 1andHSM 2respectively
+(LTSs are discussed in detail in Def. 11). We write L1L2
+and sayL2simulatesL1if there is a binary relation R2
+12with the following two properties.
+Start property: 106=;=)(10;20)2R. Note that, in
+the execution of HSMs only one initial state is allowed.
+Step property: Let(1;21,222)2R.
+For all0
+121andai;whenever1a1an! 10
+1
+there exist0
+222such that2a1an! 20
+2^(0
+1;0
+2)2R.
+The step property implies that when (1;2)2R,
+any execution step started from 1can be matched by an
+execution step started from 2such that they both execute
+the same actions and reach conﬁgurations that again are in
+relationR.
+Simulation implies trace containment, i.e., every se-
+quence of actions that is possible by the simulated LTS , is
+also possible by the simulating LTS [48] (i.e., the simulating
+LTS preserves the speciﬁcation of the simulated LTS ).
+Deﬁnition 21. Let LTSsLo=ho;Ao; o0;Qo;!oiand
+Lr=hr;Ar; r0;Qr;!rirepresent the execution se-
+mantics of HSM and<HSMrespectively,<Erefers to a map-
+ping from newly introduced variables during the reﬁnement
+to their values, and R2oris a binary relation deﬁned
+as follows.
+R=f(o2o;r2r)jo:=r:^o:E=r:En<E
+^o:H=r:HgProposition 1.Assuming that LoandLrreceive the same
+sequence of messages ( Qr=Qo) and users do not issue
+any debugging commands during the execution of <HSM,
+the relationR(as deﬁned above) is a simulation relation,
+i.e., execution of an <HSMsimulates the execution of HSM
+(LoLr).
+Lemma 5.1.For message and basic state s, if function
+nextt(s;))(see Table 1) returns transition tin the context
+ofHSM , then it returns the same transition ( t) in the context
+of<HSM.
+Proof. (Lemma 5.1) According to Algorithm 2, the reﬁne-
+ment applies the following changes to the basic states: (I)
+Add a transition from a basic state to decp. The trigger
+of this transition is set to in(c)nhandled (sb)in order to
+not affect the existing transitions. This ensures that if a
+transition of HSM can be triggered by message , it still
+can be triggered by the same message in <HSMandnextt
+in both cases returns the same transition. (II) The source of
+not-takeable transitions is changed to decp.nexttnever
+returns a not-takeable transition, thus this change does
+not affect function nextt. (III) A transition is added from
+decpto isolated states. Function nexttnever returns an
+incoming transition to a state as the result. Thus, this change
+does not affect nextteither. Based on (I), (II), and (III) the
+proof of this lemma is complete.
+Lemma 5.2.For basic state s, if function dead(s))(see Ta-
+ble 1) returns false in the context of HSM , then it also returns
+false for statesin the context of<HSM.
+Proof. (Lemma 5.2) No state or takeable transition is re-
+moved by the reﬁnement. Thus if state sor one of its an-
+cestors ( parents(s) ) has a takeable transition ( t) that prevents
+sfrom being dead, the same transition also exists in <HSM.
+This completes the proof of this lemma.
+Proof. (Proposition 1) To prove that Ris a simulation rela-
+tionship, ﬁrst, we need to show that the start property holds
+which includes the following two cases.
+The initial state of HSM is missing. This case is trivial,
+since without initial state, the execution of HSM cannot
+start (see Def. 11) and o0=;. Thus, the start property
+holds for this case.
+HSM contains the initial state (i.e., o06=;). In this
+case we need show that (o0;r0)2 R wherer0
+is the initial conﬁguration of <HSM. (I) According to
+(lines # 5-6 of Algorithm 2), when the original HSM
+contains the initial state in0, the reﬁnement keeps the
+same initial state in the reﬁned HSM (i.e., the initial
+states of<HSMand HSM are equal to in0). According to
+execution semantics of HSM (see Def. 11), the execution
+ofHSM starts from the initial conﬁguration where its
+current state is set to the initial state of the HSM . Thus,
+there is an initial conﬁguration of r02r, in which
+the current state is equal to in0i.e., (o0:=r0:).
+(II)o0:H=r0:Hbecause the history is set to empty
+for the initial conﬁguration (see Def. 11). (III) Similarly,
+o0:E=r0:En<E, because the initial values of vari-
+ables are set to default values and the reﬁnement does
+not remove any existing variable. Based on (I), (II), and
+(III) we can conclude that ( o0;r0)2R and conclude
+
+--- Page 20 ---
+20
+that the start property of simulation holds for this case
+as well.
+Second, we have to show that the step property holds for
+any (o2o;r2r)2R which includes two main cases
+according to the execution semantics of HSM (see Def. 11).
+ois a stuck conﬁguration, i.e., no execution step can
+originate from it. Thus, the step property holds for this
+case.
+ois a not a stuck conﬁguration. Based on the execution
+rules (see Def. 11), this case includes 4 sub-cases: (1)
+the current state ( 0:) is a pseudo-state of kind initial,
+entry-point, exit-point, or junction-point (Rule-1), (2)
+the current state is a basic state (Rule-4), (3) the current
+state is a history state (Rule-6), and (4) the current
+state is a choice-point (Rule-8). Proof of all sub-cases
+is similar and here we only prove sub-case (2).
+Let us assume that o:2 Sb, (o2o;r2r)
+2 R and an execution step sto= (o!o0
+o)is
+taken. First, we have to show that an execution step
+str= (r!r0
+r)can be started from rthat executes
+the same actions as sto. To prove the existence of str,
+we have to show that the following condition holds (see
+Rule-4, Def. 11).
+Qr6=;^r:2Sb^:dead(r:)^
+9t2Tjt=nextt(r:;head (Qr))
+(I) Deﬁnition ofRand assumption o:2Sbimply that
+r:2Sb. (II)Qo6=;because the execution step stois
+not possible with an empty queue (see Rule-4, Def. 11).
+Also,Qo=Qrbased on the assumption of the propo-
+sition. Thus,Qr6=;:(III):dead(o:)holds, because
+without that execution step stois not possible. Thus,
+based on Lemma 5.2 :dead(r:)holds. (IV) First,
+9t2Tjt=nextt(o:;head (Qo))holds, otherwise
+the execution step stois not possible. Second, Qr=Qo
+implies that head (Qr) =head (Qo). Third,o:=r:.
+Based on the statements above and Lemma 5.1, we
+can conclude that the last part of the above formula
+(9t2Tjt=nextt(r:;head (Qr))) holds. Based on
+I, II, III, and IV we conclude that execution step str
+exists.
+Next, we have to show that strandstoexecute the
+same sequence of actions. According to Rule-4 (see
+Def. 11), deﬁnition of relation R, and Lemma 5.1,
+bothstrandstoexecute the same actions, i.e,
+exit(t:src);exit (ups(s;t));act(t); entry (t:des )),
+wheres=o:=r:,=head (Qo) =head (Qr)
+andt=nextt(s;).
+Finally, we have to show that (0
+o;0
+r)2R. (I) We have
+already shown that nexttreturns the same result for
+both current states o:andr:. Thus0
+o:=0
+r:
+witht:des as active state where tis the result of nextt
+(Rule-4). (II) Similarly, 0
+o:H=0
+r:Hwhich are set to
+uh(t:des;H ).Hrefers to history of oandrwhich
+are equal (Def. 21).
+(III) Variables are only changed by the execution of
+actions. Since the same sequence of actions is executed
+byst0andstr, ando:E=r:E n<E, we have
+0
+o:E=0
+r:En<E. Based on (I), (II), and (III) we can
+conclude that ( 0
+o2o;0
+r2r)2R . Thus, the proof
+for sub-case (2) is complete.The other sub-cases can be proven similarly, and we con-
+clude that the relation R2 oris a simulation relation
+and by that execution of <HSMsimulates the execution of
+HSM .
+While<HSMpreserves the behavior of the original
+HSM , it also never gets stuck and provides useful features
+to steer the execution to relevant states and debug the
+execution of the HSM , assuming the required inputs
+are provided. In the rest of this section, we discuss the
+important properties of <HSM.
+5.2.2 Reachability of the execution
+Proposition 2.(Reachability of States) Assume Lr=hr;Ar;
+r0;Qr;!riis the execution semantics of <HSM . Let
+be the current conﬁguration of Lr, where:2 Sb. By
+injecting adbg message, the execution can be steered by a
+ﬁnite number of execution steps to any conﬁguration 0in
+which the current state is any state except initial, choice-
+points, and composite (implicit history) states, assuming
+that proper inputs are provided.
+Proof. (Reachability of States) Let be the current state of
+conﬁguration , and0be the current state of conﬁguration
+0to which we want to steer the execution. Proving that 0
+is reachable by taking a ﬁnite number of execution steps,
+includes three cases. (I) Both states and0have the same
+parent, i.e., parent () =parent (0). In this case, based on
+the execution semantics of HSMs , injecting a dbgmessage
+starts an execution step that moves the execution to decp
+with the same parent (line# 12-14 of Algorithm 2). decphas
+outgoing transitions to all states that have same parent as
+0(added by line# 16 of Algorithm 2). Thus the execution
+can be steered to 0by providing the required input. (II)
+parent ()2parents (0)^parent ()6=parent (0). In
+this case, after the execution reaches the ﬁrst decp, it then
+can be moved using a series of tochild andfromparent
+transitions (line# 20-26 of Algorithm 2) until reaching 0
+whose current state is 0. (III)parent (0)2parents ()^
+parent ()6=parent (0). In this case, after the execution
+reaches the ﬁrst decp, it can then be moved using a series
+oftoparent andfromchild transitions (lines# 20-26 of
+Algorithm 2) until reaching 0whose current state is 0.
+Based on (I), (II), and (III), the proof of Proposition 2 is
+complete.
+Proposition 3.(Reachability of Transitions) Let be the
+current conﬁguration of Lr, where:2Sb. By injecting
+dbg and related messages, a sequence of execution steps
+can be taken to execute the action of any transition, except
+for initial transitions and transitions starting from choice-
+points.
+Proof. (Reachability of transitions) Based on the execution
+semantics of HSM s a prerequisite for the execution of the
+action of transition tis to move the execution to a con-
+ﬁgurationwhose current state is (1) the source state of
+transitiont, or (2) a basic state inside the composite state
+which is the source of transition t(when a transition t
+start from a composite state). According to Proposition 2,
+
+--- Page 21 ---
+21
+this can be done by injecting a dbgmessage and providing
+proper inputs. Thus, we have to show that after reaching
+the source state of the transition taccording to (1) or (2),
+an execution step can be taken to execute the action of the
+transition which includes ﬁve cases based on the source
+state of transition t: (1) pseudo-state except for choice-points
+and initial states, (2) basic state, (3) composite state, (4)
+choice-points, (5) initial state.
+(I) The proof for Case-1 is trivial. According to the Rule-1
+(see Def. 11), the execution step is taken from these states if
+there is an outgoing transition originating from them. Thus,
+an execution step can be taken that executes the action of
+transitiont.
+(II) The poof of case-2 and case-3 is similar to Case-1
+assuming proper input messages are provided (trigger of
+transitiont). As we discussed in Sec. 4.3.1, we provide a
+message injection feature that simpliﬁes this.
+(III) Case-4 is not part of the proposition, because it is not
+possible to ensure that the transition tis executed due to its
+guard expression. Any buggy guard statement can prevent
+the execution of the transitions originating from a choice-
+point.
+(IV) Case-5 is not part of the proposition. There is no way
+for the execution to re-visit the transition starting from the
+initial state, except by restarting the execution. Based on (I)
+and (II), proof of Lemma 3 is complete.
+5.2.3 Progress of the execution
+Proposition 4.(Progress of the Execution) The execution of
+<HSMnever reaches a stuck conﬁguration assuming proper
+inputs are provided.
+Proof. (Sketch) As we discussed in Sec. 4.4, the execution
+gets stuck due to two groups of issues: (1) Missing/prob-
+lematic speciﬁcation. (2) Missing input messages. All of the
+elements in group (1) are ﬁxed by the reﬁnement. Also, dbg
+and other relevant messages can be injected by users which
+prevents a component from getting stuck because of missing
+inputs. Here, we do not present a detailed proof, but it can
+be performed similar to the previous proofs.
+5.3 Empirical Evaluation
+This section details experiments we conducted to assess the
+performance and overhead of our approach. In the follow-
+ing, we describe use-cases, evaluation metrics, experiments,
+and results.
+5.3.1 Use-cases
+To perform experiments, several use-cases are used. As
+shown in Table 2, models have different complexities that
+range from simple models containing 11states to models
+with 350states. Simple models include the Car Door Central
+Lock system and the Digital Watch. The Car Door Central
+Lock system is a control system for locking and unlocking
+car doors. The Digital Watch is an implementation of classi-
+cal digital watch, which is described in [49].
+The Parcel Router [50], [51] is an automatic system
+where tagged parcels are routed through successive chutesand switchers to a corresponding bin. The system is time-
+sensitive and jams can appear due to variations in the time
+required by a parcel to transit through the different chutes. It
+checks for potential parcel jams, and prevents parcels from
+being transferred from one chute to another until the next
+chute is empty. The simpliﬁed version ignores jams.
+The Rover system model [52], [53] allows an autonomous
+robot to move in different directions. It is equipped with
+three wheels, driven by two engines. It can move forward,
+move backward, and rotate. Additionally, it is equipped
+with several sensors, such as temperature and humidity sen-
+sors, to collect data from the environment, and an ultrasonic
+detection sensor, to detect and avoid obstacles.
+The FailOver system [54], [55] is an implementation of
+the fail-over mechanism. It involves a set of servers pro-
+cessing client requests. To meet high availability, the system
+supports two replication modes, passive and active [56].
+In passive replication, one server component works as the
+master, handling all the client requests while backup servers
+are mainly idle, except for handshake operations. Whenever
+a malfunction occurs, resulting in a failure of the master
+server, a backup server is ranked up as the new master. In
+active replication, client requests are load-balanced between
+several servers.
+The Debuggable FailOver system is a debuggable ver-
+sion of the FailOver system, which is generated using
+MDebugger [13]. The complexity of this model is high, and
+allows us to check that the reﬁnement and analysis time do
+not skyrocket when the model size grows exponentially.
+5.3.2 Evaluation Metrics
+We formulated the following metrics to assess the practical-
+ity of our approach.
+Metric 1 (Performance of Analysis and Reﬁnement).
+We use model analysis and transformation to ﬁx partial
+models for the execution. The analysis and reﬁnement
+are the core of our approach, and their performance is a
+crucial metric for the practicality of our approach. Thus,
+this metric measures the time required for the analysis and
+transformation of models.
+Metric 2 (Overhead of reﬁnement). As discussed, the re-
+ﬁnement adds certain elements to ﬁx the execution of partial
+models. These new elements increase the complexity of the
+models in terms of the number of components, states, and
+transitions. This metric ﬁrst measures how the complexity
+of reﬁned models changes in comparison with the original
+ones. The reﬁned model is created temporarily before ex-
+ecution, and is only used for code generation. Thus, this
+metric also measures the code generation time for original
+and reﬁned models, in order to determine the side effects of
+the increased model size.
+Metric 3 (Performance of the debugging probe). When
+executing the partial models, the execution of HSM is
+passed to the debugging probe, to read and apply user
+input. In the interactive model, there is always a delay
+imposed by users in the loop, and the performance is not an
+important factor. However, in the batch mode, it is essential
+that the debugging probe efﬁciently selects and applies the
+execution rules. This metric measures the time required to
+load, select, and parse rules.
+
+--- Page 22 ---
+22
+Table 2: Model Complexity of Use-cases, Worst Case Transformation and Analysis Time
+ModelOrig. Model Complexity Analysis Time (ms) Transformation Time (ms)
+C S T Median Max. Min. Median Max Min
+Car Door Central Lock 5 11 15 418 925 250 2024 3704 782
+Digital Watch 9 47 57 717 1535 322 5219 11126 2225
+Parcel Router 8 14 25 418 1674 220 2877 5305 1279
+Rover 6 16 21 604 925 313 3062 5001 1254
+FailOver 7 31 43 739 2247 257 4523 10416 1685
+Debuggable FailOver 8350 620 1694 8454 347 13376 35500 1887
+C: Component, S: State, T: Transition, Orig. : Original
+5.3.3 Experiments
+In the following, we discuss the experiments used to
+calculate the metrics.
+Measuring the performance of static analysis and model
+transformation (EXP-1). To effectively measure the perfor-
+mance of analysis and transformation, ﬁrst we used Ep-
+silon [36] to create nine versions of each model (partial
+versions), listed in Table 2 by removing 10%-90% of their
+elements, randomly. This results in 60 models (including the
+original ones). In the rest of this section, we refer to these
+versions by merely mentioning the model name appended
+with the percentage of removed elements (e.g., Rover%10
+refers to a version of the model of the Rover system that
+has 10% of its elements removed randomly). Also, we use
+the percentage without a model name to refer to all models
+with the same level of missing elements (e.g., 10% refers
+to model versions of all use-cases that have 10% of their
+elements missing).
+Second, we ran the model analysis and reﬁnements 20
+times against the original and their partial versions, with a
+conﬁguration in which all components are assumed to be
+partial. The rationale for the conﬁguration is to measure
+the performance in the worst-case scenario. As discussed,
+the reﬁnement and analysis of a partial components is much
+more expensive than the complete and absent/ignored compo-
+nents. No reﬁnement is applied on complete components,
+and the behaviour of an absent/ignored component is replaced
+with a simple generic state machine. We recorded the time
+required for analysis and reﬁnement, which is a reﬂection of
+their performance in the worst-case scenario. We also saved
+the partial and reﬁned versions of the model that are used
+inEXP-2 .
+Measuring the overhead of the reﬁnement (EXP-2) First,
+we measure the complexity of the models, and their reﬁned
+version resulting from EXP-1 in terms of the number of
+components, states, and transitions. Second, we generated
+code from them 20 times, and recorded the execution time of
+the code generation. This experiment reveals how the model
+complexity is increased when applying reﬁnement, and
+what the effects of this increase are on the code generation.
+Measuring the performance of execution rule selection
+and application (EXP-2) To measure the loading/selection
+time of the execution rules, we generated 10,000 rules with
+100 Lines of Code (LOC) in the context of the ABM system
+which is a controller of an Automatic Banking Machine
+(ABM) designed using UML-RT. We performed a test thatloads the rules in four scenarios, in which 10, 100, 1000,
+10,000 rules are used accordingly. We recorded the loading
+time in each scenario. Then, using a test program, we called
+the rule selection method for the random context based on
+theABM system 1000 times, and measured the rule selection
+times.
+To measure the time required to apply execution rules,
+we randomly generated four execution rule bodies, contain-
+ing 1, 10, 100, 1000 lines in the context of the ABM system.
+We ran a test to measure the time required to parse the rule
+bodies, 20 times. We did not measure the execution time of
+the rules’ body, since their execution time is dependent on
+their content, which is controlled by users. The debugging
+probe executes the body of the rules as they are.
+5.3.4 Setting and Reproducibility of Experiments
+We used a computer equipped with a 2.7 GHz Intel Core i5
+and 8GB of memory, for all experiments, which is typical
+development PC. The experiments are automated using
+bash scripts. The scripts and models are publicly available
+at [44] and can be used to repeat our experiments. Note
+that we intentionally used a standard computer comparable
+to those used by developers, rather than more powerful
+hardware, because the debugging of partial models typically
+needs to be carried out daily.
+5.4 Results
+Metric 1 (Performance of analysis and reﬁnement). Based
+on the result of EXP-1 , the Analysis Time and Transformation
+Time columns of Table 2 show the median, maximum and
+minimum time required to analyze and transform the ten
+versions of each use-case. For the largest model (Debug-
+gable failover), the medians of analysis and transforma-
+tion are less than two and 14 seconds, respectively. It is
+therefore safe to conclude that the performance of analysis
+and reﬁnement is reasonable even when the conﬁguration
+of all components is set to partial which is the worst-case
+conﬁguration. Typically, the execution of partial models is
+focused on executing speciﬁc components, and the rest of
+the components are assumed to be complete orabsent/ignored
+which is less expensive to analyze and reﬁne.
+Figure 12 shows number of elements in P1-P11 except
+P10 for the different versions (Orig. and 10%-90%) of the
+Debuggable FailOver system. The number of elements in
+P5,P6,P7,P8,P11 decreases as the number of removed
+elements increases, i.e., the number of elements in these
+
+--- Page 23 ---
+23
+050100150200
+Org. 10% 20% 30% 40% 50% 60% 70% 80% 90%P7 P8 P5 & P11 P6
+01020304050
+Org. 10% 20% 30% 40% 50% 60% 70% 80% 90%P1 P2 P3 P4 P9
+Figure 12: Number of elements ( yaxis) in sets P1-P11 for versions (Orig. and 10%-90%) of Debuggable FailOver system
+050100150200250300350400450500550600
+Org.10%20%30%40%60%50%70%80%90%
+Model Versions% of Added Transtions
+050100150200250300350400450500550600
+Org.10%20%30%40%60%50%70%80%90%
+Model Versions% of Added States
+Figure 13: Increased complexity of reﬁned models (original and partial versions)
+sets are highest for original models. This is because of
+the overestimation for extracting these sets which is based
+on the numbers of elements in the HSM. For example,
+P11 includes all basic states of the HSM . Thus removing
+more elements (states and transitions) in the HSM causes
+a decrease in the number of elements in P11. However,
+the number of elements for P1,P2,P3,P4,P9reaches its
+maximum between versions 30%- 60%, because in these
+cases the removed elements cause a maximal amount of
+issues for the remaining elements of the HSM . This number
+then decreases in the subsequent versions when more and
+more of these remaining elements are also removed. Note
+that the number of elements in P10 is not included in the
+ﬁgure, because we only remove states and transitions from
+the original model. Thus, the number of elements in P10
+does not change between versions.
+Metric 2 (Overhead of the reﬁnement). Based on the results
+ofEXP-2 , Fig. 13 shows the percentage of added elements
+(states and transitions) to the original models and their par-
+tial versions, during the reﬁnement (i.e., the number of the
+added element divided by the number of elements before
+reﬁnement multiplied by 100). Not surprisingly, the number
+of added elements increases as the number of removed
+elements from models increases. Removing more elements
+introduces more problems for the execution, which in turn
+requires more elements to be added to ﬁx these problems.The percentage of added states is between 20% (the median
+of the percentage of added states for original versions of
+models) and 216% (the median of the percentage of added
+states for model versions with 90% removed elements). The
+percentage of added transitions is between 67% (median of
+the percentage of added transitions for the original model
+versions) and 300% (median of the percentage of added
+transitions for model versions with 90% removed elements).
+Note that the percentage of added transitions for the ver-
+sions with 90% removed elements is almost ﬁxed (300%)
+because almost all are removed and the reﬁnement always
+adds almost the exact same elements to reﬁne them simi-
+lar to absent/ignored components. The percentage of added
+transitions is higher than the percentage of added states,
+since many of the execution problems are ﬁxed by adding
+transitions. Also, the number of components increases only
+by one (i.e., the dbg agent component). We argue that these
+overheads are reasonable compared to the capabilities pro-
+vided by the reﬁned models, for the following reasons:
+In most of the cases, the reﬁnement adds elements
+when there is a missing/problematic element and there
+is no other way to ﬁx them using existing tools and
+techniques. Our approach simply automates the ﬁx for
+problematic elements. Otherwise, users have to ﬁx them
+manually, which is time-consuming and tedious.
+The reﬁned models are temporary models, which are
+
+--- Page 24 ---
+24
+Table 3: Required time for loading and selection of
+execution rules
+# of
+RulesLOC of
+RulesLoading time
+(ms)Selection
+time (ms)
+10 100 3 0.006
+100 100 13 0.006
+1000 100 96 0.006
+10,000 100 950 0.010
+only used for code generation. Thus, the overhead of
+added elements has no side effect except for the code
+generation. The result of the second part of EXP-2
+shows that the code generation of the reﬁned model
+is only 8% slower than the code generation for original
+models, which is calculated based on the median of the
+time for code generation from reﬁned models, divided
+by the time for code generation from the original mod-
+els.
+As discussed, the experiments are performed using the
+worst-case conﬁguration, and their results reﬂect the
+maximum costs of our approach. Otherwise, using real-
+istic conﬁgurations, which focus on the execution of cer-
+tain components, can even decrease the complexity of
+the reﬁned models with respect to the original models.
+E.g., the reﬁnement of the Debuggable Failover system
+by setting the completion level of the Client component
+topartial and the level of the other components to
+absent/ignored results in a reﬁned model with 138 states
+and 326 transitions, which is almost 50% smaller than
+the original model!
+Metric 3 (Performance of the debugging probe). Based on
+the result of EXP-3 , Table 3 shows the time required for
+loading and selecting rules by the debugging probe. The
+selection time is the median time of rule selection for 1,000
+times. The loading of rules occurs only once the execution of
+the system starts. During the loading, the script of execution
+rules is loaded and parsed. The parsing in this phase only
+parses the rules’ header, and saves their body as text. As
+shown in Table 3, the debugging probe can load 10,000
+rules in less than a second, which is acceptable, because it
+happens only once.
+As discussed in Sec. 4.3.1, in batch mode execution, the
+debugging probe must select an applicable rule from the
+deﬁned rules whenever the execution reaches the decision
+points. As shown in Table 3, the rule selection time is
+negligible (less than a millisecond), and it is, therefore, safe
+to conclude that rule selection performance is acceptable.
+When an execution rule is selected, the debugging
+probe parses the rule’s body and executes it. Thanks to
+ANTLR [45], the parsing time of the rule’s body has rea-
+sonable performance. Rule bodies with 1-1000 LOC can be
+executed in less than a second (the median execution time
+for a rule body with 1000 LOC is 550 milliseconds).
+According to the results mentioned above (i.e., accept-
+able performance of analysis, reﬁnement, and debugging
+probe and reasonable overhead of the reﬁnement), we con-
+clude that our approach is a practical approach for the
+execution and debugging of partial models.6 D ISCUSSION
+In the following we discuss issues with the input-driven
+execution of partial models, alternative solutions for the
+reﬁnements of partial models, and threats to the validity
+of this work.
+6.1 Issues with the input-driven execution
+Since the execution rules are deﬁned using a scripting
+language, it may contain bugs similar to any other scripting
+language. Generally, there is no solution to this problem,
+and to mitigate this issue partially, our reﬁnement method
+guarantees behavioral preservation (see Sec. 5.2). Therefore,
+it cannot introduce new bugs into the completed part of
+the models. Also, to help users when the script is buggy,
+the execution engine switches back to interactive mode and
+allows users to provide a correct input. Finally, providing
+proper tooling such as a high-quality editor for writing and
+validating scripts can mitigate the challenge of correct script
+authoring.
+6.2 Alternative reﬁnement solutions
+Note that the proposed reﬁnement (see Sec. 4.4) approach
+is devised experimentally by experimenting with and eval-
+uating possibly many different solutions. In Section 5, we
+discussed the correctness of our reﬁnement approach con-
+cerning the relevant constraints (see Sec. 3). We also showed
+that our approach has reasonable performance and over-
+head for the reﬁnement of partial models. However, at this
+stage, we do not claim that our reﬁnement approach is the
+optimal solution, and alternative and even better reﬁnement
+approaches can be proposed, especially if certain trade-offs
+or assumptions are made. For example, the reﬁnement can
+only focus on ﬁxing speciﬁc problems rather than address-
+ing all of them depending on the users’ needs, e.g., reﬁning
+only elements that participate in the lack of progress can be
+simpler and faster than our current approach. Nevertheless,
+the proposed reﬁnement is comprehensive and can be used
+as a reference method to devise more specialized methods
+targeting more speciﬁc problems.
+6.3 Threats to the Validity
+Internal threats. (1) To evaluate this work, we use generated
+models rather than using real partial models. Thus, the re-
+sults of our evaluation may not be generalized to real partial
+models. To mitigate this issue, we tried to generate models
+with a wide range of partialness over several case studies to
+make sure they are representative of typical partial models.
+Also, we used a worst-case conﬁguration for the evaluation.
+(2) The implementation of our approach is not trivial, and
+therefore our implementation may have bugs. To mitigate
+this problem, we rely on well-known tools and frameworks,
+such as EMF and Epsilon. We also have performed a thor-
+ough test and validation of our implementation. (3) The on-
+line survey participants viewed only a short demonstration
+video to familiarise themselves with the execution of partial
+models and our proposed approach. We partially mitigate
+this issue by carefully designing the video and targeting the
+MDE experts as participants, most of them already aware of
+the problems surrounding the execution of partial models.
+
+--- Page 25 ---
+25
+(4) Our study may be designed in a way that, inadvertently,
+steers participants towards speciﬁc answers. To mitigate this
+issue, the participants are allowed to provide other answers
+rather than what is presented to them. Also, providing an
+email address is not mandatory to enable participants to be
+anonymous in case they want to provide negative feedback.
+External threats. We targeted MDE experts as our survey
+participants to make sure they can provide us relevant and
+high-quality feedback. However, this may also be a threat
+to the survey’s results since some of the participants may
+be biased about how, e.g., the problem of executing partial
+models should be dealt with.
+7 R ELATED WORK
+A large amount of related work exists, and only the most
+relevant can be discussed here. Existing work can be divided
+into three categories: (1) work on model-level debugging
+and execution, (2) work on partial models, which tries to
+address speciﬁcation, analysis, and transformation of partial
+models, and (3) work on partial programs that deals with
+the parsing, analysis, and completion of partial programs in
+the context of different programming languages.
+Model-level execution and debugging. Existing techniques
+of model execution are based on either interpretation or
+translation. Interested readers can refer to [14] which pro-
+vides a comprehensive survey of existing work in the con-
+text of the model execution.
+Model-level debugging techniques can be classiﬁed into
+interactive debugging and debugging by tracing. Interactive
+debugging allows users to directly investigate and modify
+the execution of models during the execution, by providing
+features such as setting breakpoints and stepping over the
+execution. Interactive model-level debugging is supported
+by several MDD tools, e.g., Matlab StateFlow [57], AF3 [12],
+xtUML [58] and YAKINDU [11]. We also presented a new
+approach for supporting interactive model-level debugging
+in [13], [33] by using model transformation techniques.
+In debugging by tracing, the model or the generated
+code is instrumented to generate useful execution traces.
+Then, the traces are collected and used for ofﬂine analysis
+and debugging. Hojaji et al. [59] surveys the existing work in
+the context of model execution tracing. Examples of existing
+work and MDD tools supporting trace analyses via code
+instrumentation include [60], [61], [62], [63], [64], [65]. For
+instance, Iyengar et al. [63], [64], [66] propose an optimized
+model-based debugging technique for RTE systems with
+limited memory. They use a monitor on the target platform
+to collect the generated traces and a debugger (executed on
+a host with sufﬁcient memory) to analyze the traces ofﬂine,
+and to display results on the model elements. Das et al. [67]
+propose a conﬁgurable tracing tool based on LTTng. They
+rely on code instrumentation to produce tracepoints useful
+for LTTng.
+To the best of our knowledge, none of the existing work
+in the context of model execution and debugging supports
+the execution and debugging of partial models.
+7.1 Partial models
+In the context of MDD, the partial models are mainly used to
+deal with uncertainties of type ‘known unknown’. Existingresearch proposes mechanisms to deﬁne partial models us-
+ing relaxed meta-models [68], model annotation [69], UML
+proﬁles [70], and graphical notations [71]. They leverage the
+partial models for analysis [69], [72], requirement manage-
+ment and analysis [73], testing [68], [74], and bi-directional
+transformation [75]. Also, some research addresses the re-
+ﬁnement [76], [77], transformation [78] and completion [79]
+of partial models. E.g., the wok [69], [80] presents a rich
+formalism for partial models, which marks model elements
+with four special annotations ( may,set,variable , and open)
+with well deﬁned semantics. They show how the partial
+models can be concretized into possible design candidates.
+Sen et al. [68] present a semi-automated tool that supports
+the speciﬁcation and completion of partial models, which
+are used for the testing of model transformations. They
+show that the testing of model transformations using partial
+models is as effective as using human-made models.
+To the best of our knowledge, no work in the context
+of partial models addresses the execution and debugging
+of partial models. Our work does not require speciﬁcation
+of partial elements explicitly by users, since it detects all of
+them automatically by static analysis. Automatic detection
+of partial elements allows users to execute the models with
+minimum effort. Note that the partiality that our approach
+detects only concerns the execution, and may not be suit-
+able for managing uncertainties in requirements or design
+models.
+7.2 Partial programs
+An extensive body of work exists for dealing with and
+leveraging partial programs. The most important of them
+can be classiﬁed as follows.
+(1) Parsing of partial programs Typically existing compilers
+can handle only complete programs. As a partial program
+is a subset of a complete program, many of its variables’
+types and library calls are unknown. Thus, parsing partial
+programs requires extra effort, mainly for the inference
+of missing types, and resolving unknown function calls.
+E.g., Zhong et al. [81] propose an approach that resolves
+unknown types and function calls for partial Java programs
+by analyzing the existing complete program versions. Melo
+et al. [82] present a technique to support the compilation of
+incomplete C code.
+Koppler [83] presents a systematic approach to imple-
+ment fuzzy parsers, which extract high-level structures out
+of incomplete or syntactically incorrect programs. Moo-
+nen [84] proposes a solution in the form of island grammars
+that partitions code into islands (recognizable constructs of
+interest) and water (remaining parts). Dagenais et al. [85]
+propose a framework that uses heuristics to recover the
+declared type of expressions and resolve ambiguities in
+partial Java programs. Note that since the models are saved
+in the form of an abstract syntax tree (AST), the need for this
+type of research is unnecessary in the context of MDD.
+(2) Partial program analysis/veriﬁcation to deal with poor
+scalability and missing components E.g., modular model
+checking, introduced in [86], veriﬁes properties of system
+modules, under some assumptions about the environment.
+Colby et al. [87] present an approach for automatically
+closing an open concurrent reactive system (i.e., a system
+
+--- Page 26 ---
+26
+with missing components) by generating an environment
+that can provide any input at any time to the system.
+This result is a self-executable system, which can exhibit
+all the possible reactive behaviors of the original system
+and therefore can be used for the state space exploration
+that is required for veriﬁcation and analysis purposes. Our
+reﬁnement of absent/ignored components is similar to this
+work.
+(3) Program synthesis techniques based on partial pro-
+grams (synthesis by sketching). Instead of synthesizing
+a program from scratch, work in this category uses a
+partial program (i.e., a program with holes) along with a
+speciﬁcation, test harness, or reference implementation, and
+tries to ﬁll the holes using synthesis techniques. E.g., Solar-
+Lezama et al. [88] introduce the concept of programming
+with sketches and presents Stream Bit as a new programming
+approach based on sketching. Existing sketching techniques
+(e.g., [89]) translate the partial program into a proposi-
+tional satisﬁability problem, and leverage counter-example-
+guided inductive synthesis to generate a program using
+existing SAT solvers. Hua et al. [90] introduce EdSketch that
+performs execution-driven sketching for synthesizing Java
+programs using a backtracking depth-ﬁrst search.
+8 C ONCLUSION AND FUTURE WORK
+In this paper, we have proposed a conceptual framework
+for the execution and debugging of partial models, which
+consists of static analysis ,automatic reﬁnement , and input-driven
+execution . Using static analysis, we extract the problematic
+elements that prevent execution. The problematic elements
+are automatically ﬁxed by adding decision points and re-
+lated speciﬁcations into the partial models. Finally, the re-
+ﬁned models are executed with the help of user input, either
+interactively or via a script. We have created a debugger for
+the debugging of partial UML-RT models ( PMExec ) based
+on the proposed framework. We have applied PMExec to
+the debugging of several use-cases, and have evaluated its
+performance for analysis, reﬁnement, and handling of users
+input. Despite being a prototype, the performance of PMExec
+is acceptable, which shows that our approach is a viable
+approach for the debugging of partial models.
+We have made the implementation of PMExec publicly
+available. The modeling community can extend it and use
+it for more research on, e.g., (1) the exhaustive execution of
+partial models for testing or run-time veriﬁcation, (2) the
+synthesis of models by sketching, (3) using the proposed
+framework to support partial execution and debugging of
+partial models expressed in other modeling languages, and
+(4) automatic completion of missing speciﬁcations, rather
+than taking inputs from users.
+ACKNOWLEDGMENT
+This work has been supported by Zeligsoft Ltd, Malina
+Software Corp., Cmind Inc., and the Natural Sciences and
+Engineering Research Council of Canada (NSERC).
+REFERENCES
+[1] D. C. Schmidt, “Model-driven engineering,” COMPUTER-IEEE
+COMPUTER SOCIETY- , vol. 39, no. 2, p. 25, 2006.[2] J. Whittle, J. Hutchinson, and M. Rounceﬁeld, “The state of prac-
+tice in model-driven engineering,” IEEE software , vol. 31, no. 3, pp.
+79–85, 2013.
+[3] P . Mohagheghi and V . Dehlen, “Where is the proof?-a review of
+experiences from applying mde in industry,” in European Con-
+ference on Model Driven Architecture-Foundations and Applications .
+Springer, 2008, pp. 432–443.
+[4] P . Mohagheghi, W. Gilani, A. Stefanescu, and M. A. Fernandez,
+“An empirical study of the state of the practice and acceptance
+of model-driven engineering in four industrial cases,” Empirical
+Software Engineering , vol. 18, no. 1, pp. 89–116, 2013.
+[5] M. Torchiano, F. Tomassetti, F. Ricca, A. Tiso, and G. Reggio,
+“Relevance, beneﬁts, and problems of software modelling and
+model driven techniques—a survey in the italian industry,” Journal
+of Systems and Software , vol. 86, no. 8, pp. 2110–2126, 2013.
+[6] G. Liebel, N. Marko, M. Tichy, A. Leitner, and J. Hansson, “Assess-
+ing the state-of-practice of model-based engineering in the embed-
+ded systems domain,” in Model-Driven Engineering Languages and
+Systems , J. Dingel, W. Schulte, I. Ramos, S. Abrah ˜ao, and E. Insfran,
+Eds. Cham: Springer International Publishing, 2014, pp. 166–182.
+[7] P . Baker, S. Loh, and F. Weil, “Model-driven engineering in a
+large industrial context — motorola case study,” in Model Driven
+Engineering Languages and Systems , L. Briand and C. Williams, Eds.
+Berlin, Heidelberg: Springer Berlin Heidelberg, 2005, pp. 476–491.
+[8] H. Burden, R. Heldal, and J. Whittle, “Comparing and contrasting
+model-driven engineering at three large companies,” in Proceed-
+ings of the 8th ACM/IEEE International Symposium on Empirical
+Software Engineering and Measurement . ACM, 2014, p. 14.
+[9] IBM, “IBM RSARTE,” 2016, retrieved July 19, 2016. [Online].
+Available: https://www.ibm.com/developerworks/downloads/
+r/architect/index.html
+[10] Esterel Technologies, “SCADE Suite,” http://www.esterel-
+technologies.com/products/scade-suite/, 2016, retrieved July 19,
+2016.
+[11] ITEMIS AG, “Yakindu StateChart Tools,” https://www.itemis.
+com/en/yakindu/statechart-tools, 2016, retrieved July 19, 2016.
+[12] FORTISS GMBH, “AF3,” http://af3.fortiss.org/, 2016, retrieved
+July 19, 2016.
+[13] M. Bagherzadeh, N. Hili, and J. Dingel, “Model-level, platform-
+independent debugging in the context of the model-driven devel-
+opment of real-time systems,” in 11th Joint Meeting on Foundations
+of Software Engineering , 2017, pp. 419–430.
+[14] F. Ciccozzi, I. Malavolta, and B. Selic, “Execution of UML
+models: a systematic review of research and practice,”
+Software & Systems Modeling , Apr 2018. [Online]. Available:
+https://doi.org/10.1007/s10270-018-0675-4
+[15] B. Selic, “What will it take? a view on adoption of model-based
+methods in practice,” Software & Systems Modeling , vol. 11, pp.
+513–526, 2012.
+[16] R. van Megen and D. B. Meyerhoff, “Costs and beneﬁts
+of early defect detection: experiences from developing client
+server and host applications,” Software Quality Journal , vol. 4,
+no. 4, pp. 247–256, Dec 1995. [Online]. Available: https:
+//doi.org/10.1007/BF00402646
+[17] B. Boehm and V . R. Basili, “Software defect reduction top 10 list,”
+Foundations of empirical software engineering: the legacy of Victor R.
+Basili , vol. 426, no. 37, 2005.
+[18] B. W. Boehm and P . N. Papaccio, “Understanding and controlling
+software costs,” IEEE Transactions on Software Engineering , vol. 14,
+no. 10, pp. 1462–1477, 1988.
+[19] W. Heijstek and M. R. Chaudron, “Empirical investigations of
+model size, complexity and effort in a large scale, distributed
+model driven development process,” in 2009 35th Euromicro Con-
+ference on Software Engineering and Advanced Applications . IEEE,
+2009, pp. 113–120.
+[20] L. Dohmen and L. Somers, “Experiences and lessons learned
+using UML-RT to develop embedded printer software,” in Product
+Focused Software Process Improvement , M. Oivo and S. Komi-Sirvi ¨o,
+Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2002, pp.
+475–484.
+[21] B. Ogunyomi, L. M. Rose, and D. S. Kolovos, “Incremental ex-
+ecution of model-to-text transformations using property access
+traces,” Software & Systems Modeling , Mar 2018.
+[22] G. Liebel, N. Marko, M. Tichy, A. Leitner, and J. Hansson, “Model-
+based engineering in the embedded systems domain: an industrial
+survey on the state-of-practice,” Software and Systems Modeling ,
+vol. 17, pp. 91–113, 2018.
+
+--- Page 27 ---
+27
+[23] J. Hutchinson, J. Whittle, M. Rounceﬁeld, and S. Kristoffersen,
+“Empirical assessment of mde in industry,” in Proceedings of the
+33rd international conference on software engineering . ACM, 2011,
+pp. 471–480.
+[24] J. Whittle, J. Hutchinson, M. Rounceﬁeld, H. Burden, and R. Hel-
+dal, “Industrial adoption of model-driven engineering: Are the
+tools really the problem?” in Model-Driven Engineering Languages
+and Systems , A. Moreira, B. Sch ¨atz, J. Gray, A. Vallecillo, and
+P . Clarke, Eds. Berlin, Heidelberg: Springer Berlin Heidelberg,
+2013, pp. 1–17.
+[25] R. Salay, M. Chechik, M. Famelis, and J. Gorzny, “A methodology
+for verifying reﬁnements of partial models.” Journal of Object
+Technology , vol. 14, no. 3, p. 31, 2015.
+[26] M. Famelis, R. Salay, and M. Chechik, “Partial models: Towards
+modeling and reasoning with uncertainty,” in Proceedings of the
+34th International Conference on Software Engineering , ser. ICSE ’12.
+Piscataway, NJ, USA: IEEE Press, 2012, pp. 573–583.
+[27] R. Salay, M. Famelis, and M. Chechik, “Language independent
+reﬁnement using partial modeling,” in International Conference on
+Fundamental Approaches to Software Engineering . Springer, 2012,
+pp. 224–239.
+[28] M. Famelis, R. Salay, A. Di Sandro, and M. Chechik, “Transfor-
+mation of models containing uncertainty,” in Model-Driven En-
+gineering Languages and Systems , A. Moreira, B. Sch ¨atz, J. Gray,
+A. Vallecillo, and P . Clarke, Eds. Berlin, Heidelberg: Springer
+Berlin Heidelberg, 2013, pp. 673–689.
+[29] H. Samimi, R. Hicks, A. Fogel, and T. Millstein, “Declarative
+mocking,” in Proceedings of the 2013 International Symposium
+on Software Testing and Analysis , ser. ISSTA 2013. New
+York, NY, USA: ACM, 2013, pp. 246–256. [Online]. Available:
+http://doi.acm.org/10.1145/2483760.2483790
+[30] D. Spadini, M. Aniche, M. Bruntink, and A. Bacchelli, “To
+mock or not to mock?: An empirical study on mocking
+practices,” in Proceedings of the 14th International Conference
+on Mining Software Repositories , ser. MSR ’17. Piscataway,
+NJ, USA: IEEE Press, 2017, pp. 402–412. [Online]. Available:
+https://doi.org/10.1109/MSR.2017.61
+[31] J. Svenningsson, H. Svensson, N. Smallbone, T. Arts, U. Norell,
+and J. Hughes, “An expressive semantics of mocking,” in Funda-
+mental Approaches to Software Engineering , S. Gnesi and A. Rensink,
+Eds. Berlin, Heidelberg: Springer Berlin Heidelberg, 2014, pp.
+385–399.
+[32] N. Kahani, M. Bagherzadeh, J. R. Cordy, J. Dingel, and
+D. Varr ´o, “Survey and classiﬁcation of model transformation
+tools,” Software & Systems Modeling , Mar 2018. [Online]. Available:
+https://doi.org/10.1007/s10270-018-0665-6
+[33] M. Bagherzadeh, N. Hili, D. Seekatz, and J. Dingel, “Mdebugger:
+A model-level debugger for uml-rt,” in Proceedings of the
+40th International Conference on Software Engineering: Companion
+Proceeedings , ser. ICSE ’18. New York, NY, USA: ACM, 2018, pp.
+97–100. [Online]. Available: http://doi.acm.org/10.1145/3183440.
+3183473
+[34] B. Selic, G. Gullekson, and P . T. Ward, Real-time object-oriented
+modeling . John Wiley & Sons New York, 1994, vol. 2.
+[35] M. Bagherzadeh, K. Jahed, N. Kahani, and J. Dingel, “PMExec: an
+execution engine of partial UML-RT models,” in 34th IEEE/ACM
+International Conference on Automated Software Engineering: Compan-
+ion Proceeding , ser. ASE 2019.
+[36] D. S. Kolovos, R. F. Paige, and F. A. Polack, “The epsilon transfor-
+mation language,” in International Conference on Theory and Practice
+of Model Transformations . Springer, 2008, pp. 46–60.
+[37] E. Posse and J. Dingel, “An Executable Formal Semantics for
+UML-RT,” Software & Systems Modeling , vol. 15, no. 1, pp. 179–217,
+Feb. 2016. [Online]. Available: http://dx.doi.org/10.1007/s10270-
+014-0399-z
+[38] HCL, “HCL RealTime Software Tooling (RTist),” https://www.
+hcltech.com/products-and-platforms/rtist, 2019, retrieved March
+19, 2019.
+[39] Eclipse Foundation, “Eclipse eTrice - Real-Time Modeling Tools,”
+https://www.eclipse.org/etrice/, 2019, retrieved: 2019-02-10.
+[40] ——, “Eclipse Papyrus for Real Time (Papyrus-RT),” https://
+www.eclipse.org/papyrus-rt, 2019, retrieved March 19, 2019.
+[41] Object Management Group, “About the Action Language for
+foundational UML Speciﬁcation Version 1.1,” https://www.omg.
+org/spec/ALF/About-ALF/, 2018, retrieved August 5, 2016.
+[42] M. von der Beeck, “A formal semantics of UML-RT,” in In-ternational Conference on Model Driven Engineering Languages and
+Systems . Springer, 2006, pp. 768–782.
+[43] G. D. Plotkin, “A structural approach to operational semantics,”
+1981.
+[44] M. Bagherzadeh, “Partail Model Debugger (PMDebugger),” https:
+//bitbucket.org/moji1/partialmodels.git, 2019, retrieved March
+19, 2019.
+[45] T. Parr, The deﬁnitive ANTLR 4 reference . Pragmatic Bookshelf,
+2013.
+[46] D. A. Beman Dawes, “Boost C++ Library,” https://www.boost.
+org/, 2019, retrieved March 19, 2019.
+[47] G. Albaum, “The likert scale revisited,” Market Research Society.
+Journal. , vol. 39, no. 2, pp. 1–21, 1997.
+[48] N. A. Lynch, Distributed Algorithms . San Francisco, CA, USA:
+Morgan Kaufmann Publishers Inc., 1996.
+[49] D. Harel, “Statecharts: A visual formalism for complex systems,”
+Science of computer programming , vol. 8, no. 3, pp. 231–274, 1987.
+[50] W. Swartout and R. Balzer, “On the Inevitable Intertwining of
+Speciﬁcation and Implementation,” Communications of the ACM ,
+vol. 25, no. 7, pp. 438–440, 1982.
+[51] J. Magee and J. Kramer, State Models and Java Programs . Wiley,
+1999.
+[52] R. Ahmadi, N. Hili, L. Jweda, N. Das, S. Ganesan, and J. Dingel,
+“Run-time monitoring of a rover: Mde research with open source
+software and low-cost hardware.” in EduSymp/OSS4MDE@ MoD-
+ELS, 2016, pp. 37–44.
+[53] M. Bagherzadeh, “Model-level debugging in the context of the
+model-driven development,” Ph.D. dissertation, 2019.
+[54] J. Balasubramanian, S. Tambe, C. Lu, A. Gokhale, C. Gill, and
+D. C. Schmidt, “Adaptive Failover for Real-Time Middleware with
+Passive Replication,” in 15th IEEE Symposium on Real-Time and
+Embedded Technology and Applications . IEEE, 2009, pp. 118–127.
+[55] N. Kahani, N. Hili, J. R. Cordy, and J. Dingel, “Evaluation of
+UML-RT and Papyrus-RT for modelling self-adaptive systems,” in
+Proceedings of the 9th International Workshop on Modelling in Software
+Engineering . IEEE Press, 2017, pp. 12–18.
+[56] R. Guerraoui and A. Schiper, “Software-Based Replication for
+Fault Tolerance,” Computer , vol. 30, no. 4, pp. 68–74, 1997.
+[57] The MathWorks, Inc., “Stateﬂow - MATLAB & Simulink,” http://
+www.mathworks.com/products/stateﬂow/, 2016, retrieved July
+19, 2016.
+[58] xtUML.org, “xtUML - eXecutable Translatable UML with Bridge-
+Point,” https://xtuml.org, 2016, retrieved July 19, 2016.
+[59] F. Hojaji, T. Mayerhofer, B. Zamani, A. Hamou-Lhadj, and
+E. Bousse, “Model execution tracing: a systematic mapping study,”
+Software & Systems Modeling , Feb 2019.
+[60] W. Haberl, M. Herrmannsdoerfer, J. Birke, and U. Baumgarten,
+“Model-Level Debugging of Embedded Real-Time Systems,” in
+10th International Conference on Computer and Information Technology
+(CIT’10) . IEEE, 2010, pp. 1887–1894.
+[61] H. Thane, D. Sundmark, J. Huselius, and A. Pettersson, “Re-
+play Debugging of Real-Time Systems Using Time Machines,”
+inProceedings of the International Parallel and Distributed Processing
+Symposium (IPDPS’03) . IEEE, 2003, pp. 1–8.
+[62] N. Hili, M. Bagherzadeh, K. Jahed, and J. Dingel, “A model-
+based architecture for interactive run-time monitoring,” Software
+and Systems Modeling , pp. 1–23, 2020.
+[63] P . Iyenghar, C. Westerkamp, J. Wuebbelmann, and
+E. Pulvermueller, “A Model Based Approach for Debugging
+Embedded Systems in Real-Time,” in Proceedings of the Tenth ACM
+International Conference on Embedded Software , ser. EMSOFT ’10.
+New York, NY, USA: ACM, 2010, pp. 69–78. [Online]. Available:
+http://doi.acm.org/10.1145/1879021.1879031
+[64] P . Iyenghar, E. Pulvermueller, C. Westerkamp, M. Uelschen, and
+J. Wuebbelmann, “Model-Based Debugging of Embedded Soft-
+ware Systems,” Gesellschaft Informatik (GI)-Softwaretechnik (SWT) ,
+2011.
+[65] E. Gery, D. Harel, and E. Palachi, “Rhapsody: A Complete Life-
+Cycle Model-Based Development System,” in International Confer-
+ence on Integrated Formal Methods . Springer, 2002, pp. 1–10.
+[66] P . Graf and K. D. Muller-Glaser, “Dynamic Mapping of Runtime
+Information Models for Debugging Embedded Software,” in Sev-
+enteenth IEEE International Workshop on Rapid System Prototyping,
+2006 . IEEE, 2006, pp. 3–9.
+[67] N. Das, S. Ganesan, L. Jweda, M. Bagherzadeh, N. Hili, and
+J. Dingel, “Supporting the Model-Driven Development of Real-
+time Embedded Systems with Run-Time Monitoring and Anima-
+
+--- Page 28 ---
+28
+tion via Highly Customizable Code Generation,” in Proceedings
+of the ACM/IEEE 19th International Conference on Model Driven
+Engineering Languages and Systems . ACM, 2016, pp. 36–43.
+[68] S. Sen, J.-M. Mottu, M. Tisi, and J. Cabot, “Using models of partial
+knowledge to test model transformations,” in International Confer-
+ence on Theory and Practice of Model Transformations . Springer, 2012,
+pp. 24–39.
+[69] M. Famelis, R. Salay, and M. Chechik, “Partial models: Towards
+modeling and reasoning with uncertainty,” in 2012 34th Interna-
+tional Conference on Software Engineering (ICSE) . IEEE, 2012, pp.
+573–583.
+[70] M. Zhang, S. Ali, T. Yue, and P . Nguyen, “Uncertainty modeling
+framework for the integration level v. 1,” Simula Research Labora-
+tory, 2016.
+[71] M. Famelis and S. Santosa, “Mav-vis: a notation for model uncer-
+tainty,” in 2013 5th International Workshop on Modeling in Software
+Engineering (MiSE) . IEEE, 2013, pp. 7–12.
+[72] O. Semer ´ath and D. Varr ´o, “Graph constraint evaluation over
+partial models by constraint rewriting,” in International Conference
+on Theory and Practice of Model Transformations . Springer, 2017, pp.
+138–154.
+[73] R. Salay, M. Chechik, J. Horkoff, and A. Di Sandro, “Managing
+requirements uncertainty with partial models,” Requirements Engi-
+neering , vol. 18, no. 2, pp. 107–128, 2013.
+[74] M. Zhang, S. Ali, T. Yue, R. Norgren, and O. Okariz, “Uncertainty-
+wise cyber-physical system test modeling,” Software & Systems
+Modeling , pp. 1–40, 2017.
+[75] R. Eramo, A. Pierantonio, and G. Rosa, “Managing uncertainty
+in bidirectional model transformations,” in Proceedings of the 2015
+ACM SIGPLAN International Conference on Software Language Engi-
+neering . ACM, 2015, pp. 49–58.
+[76] R. Salay, M. Famelis, and M. Chechik, “Language independent
+reﬁnement using partial modeling,” in International Conference on
+Fundamental Approaches to Software Engineering . Springer, 2012,
+pp. 224–239.
+[77] R. Salay, M. Chechik, M. Famelis, and J. Gorzny, “A methodology
+for verifying reﬁnements of partial models.” Journal of Object
+Technology , vol. 14, no. 3, pp. 3–1, 2015.
+[78] M. Famelis, R. Salay, A. Di Sandro, and M. Chechik, “Transforma-
+tion of models containing uncertainty,” in International Conference
+on Model Driven Engineering Languages and Systems . Springer, 2013,
+pp. 673–689.
+[79] S. Sen, B. Baudry, and D. Precup, “Partial model completion in
+model driven engineering using constraint logic programming,”
+in17th International Conference on Applications of Declarative Pro-
+gramming and Knowledge Management (INAP 2007) and 21st Work-
+shop on (Constraint) , 2007, p. 59.
+[80] M. Famelis and M. Chechik, “Managing design-time uncertainty,”
+Software & Systems Modeling , Mar 2017.
+[81] H. Zhong and X. Wang, “Boosting complete-code tool for partial
+program,” in Proceedings of the 32Nd IEEE/ACM International Con-
+ference on Automated Software Engineering , ser. ASE 2017, 2017, pp.
+671–681.
+[82] L. T. Melo, R. G. Ribeiro, M. R. de Ara ´ujo, and F. M. Q. Pereira,
+“Inference of static semantics for incomplete C programs,” Pro-
+ceedings of the ACM on Programming Languages , vol. 2, no. POPL,
+p. 29, 2017.
+[83] R. Koppler, “A systematic approach to fuzzy parsing,” Software:
+Practice and Experience , vol. 27, no. 6, pp. 637–649, 1997.
+[84] L. Moonen, “Generating robust parsers using island grammars,”
+inProceedings Eighth Working Conference on Reverse Engineering .
+IEEE, 2001, pp. 13–22.
+[85] B. Dagenais and L. Hendren, “Enabling static analysis for partial
+Java programs,” in ACM Sigplan Notices , vol. 43, no. 10. ACM,
+2008, pp. 313–328.
+[86] O. Grumberg and D. E. Long, “Model checking and modular
+veriﬁcation,” ACM Trans. Program. Lang. Syst. , vol. 16, no. 3, pp.
+843–871, May 1994.
+[87] C. Colby, P . Godefroid, and L. J. Jagadeesan, “Automatically
+closing open reactive programs,” SIGPLAN Not. , vol. 33,
+no. 5, pp. 345–357, May 1998. [Online]. Available: http:
+//doi.acm.org/10.1145/277652.277754
+[88] A. Solar-Lezama, R. Rabbah, R. Bod ´ık, and K. Ebcio ˘glu, “Program-
+ming by sketching for bit-streaming programs,” in ACM SIGPLAN
+Notices , vol. 40, no. 6. ACM, 2005, pp. 281–294.[89] A. Solar-Lezama, “Program sketching,” International Journal on
+Software Tools for Technology Transfer , vol. 15, no. 5, pp. 475–495,
+Oct 2013.
+[90] J. Hua and S. Khurshid, “Edsketch: execution-driven sketching for
+Java,” in Proceedings of the 24th ACM SIGSOFT International SPIN
+Symposium on Model Checking of Software . ACM, 2017, pp. 162–171.

@@ -1,0 +1,686 @@
+--- Page 1 ---
+Slugs : Extensible GR(1) Synthesis
+R udiger Ehlers1and Vasumathi Raman2
+1University of Bremen and DFKI GmbH, Germany
+2United Technologies Research Center, United States of America
+Abstract. Applying reactive synthesis in practice often requires modi-
+cations of the synthesis algorithm in order to obtain useful implemen-
+tations. We present slugs , a generalized reactivity(1) synthesis tool that
+has a powerful plugin architecture for modifying any aspect of the synthe-
+sis process to t the application. Slugs comes pre-equipped with a vari-
+ety of plugins that improve the quality of the synthesized solutions along
+criteria such as quick response, cost-optimality, and error-resilience. We
+demonstrate the utility and scalability of the tool on an example from
+robotics.
+1 Introduction
+Reactive synthesis automates the task of developing correct-by-construction nite-
+state machines: rather than writing an implementation and a specication for
+verifying the system, the engineer need only devise the specication, and the
+implementation is computed automatically. Of the many synthesis approaches
+available to the practitioner, generalized reactivity(1) synthesis [1], which is com-
+monly abbreviated as GR(1) synthesis , has found widespread use for applications
+in robotics and control. Reasons for this success include its comparatively low,
+singly-exponential time complexity, and its amenability to symbolic computation
+using binary decision diagrams (BDDs).
+The basic idea behind reactive synthesis is to capture allof the require-
+ments of the desired implementation in the specication, and to then accept any
+implementation that satises the requirements. On a theoretical level, this is
+a compelling premise: if the obtained implementation is not good enough, the
+engineer can simply add additional requirements until it is. However, on a prac-
+tical level, this approach is problematic: in many cases, system properties such
+as \quick response" or \few states" cannot be captured precisely in the speci-
+cation without resorting to synthesis with a cost or payo function. Introducing
+costs leads to a higher computational complexity, loss of ability to eciently use
+BDDs as a computational data structure, and unfavourable theoretical proper-
+ties, such as suboptimality of nite memory solutions. Having several optimiza-
+tion criteria in the specication can also create undecidable synthesis problems.
+Finally, some optimization criteria cannot be expressed quantitatively. Examples
+include minimizing the time spent waiting for environment fairness conditions
+(i.e. environment actions that can be assumed to be performed innitely often)
+
+--- Page 2 ---
+to hold, and cooperation with the environment on preserving the environment
+assumptions.
+All these arguments advocate for a dierent approach to practical reactive
+synthesis: rather than encoding every qualitative requirement for the synthesized
+controller into the specication, why not adapt the synthesis algorithm itself to
+compute implementations that have the properties needed for practical applica-
+tions? The simplicity of generalized reactivity(1) synthesis makes it particularly
+suitable as a starting point for demonstrating this approach to synthesis. Modi-
+cations of the standard GR(1) algorithm for synthesizing eager and cost-optimal
+implementations [2] or cooperative implementations [3] that still support sym-
+bolic computation have already been proposed in the past, along with semantic
+modications for robotics applications [4] and techniques for debugging support
+[5].
+The presented tool slugs oers a framework for GR(1) synthesis and its
+modications. It has a small simple core implementation of the GR(1) synthe-
+sis algorithm that can be extended by user-written plugins. The architecture
+ofslugs allows one to use multiple plugins at the same time, where each plu-
+gin only modies a part of the synthesis process. A focus of the tool lies on
+conciseness and readability of the code, to make it easier for algorithms to be
+adapted for specic application domains. For example the realizability check on
+a specication, which amounts to evaluating the main xpoint formula from [1],
+takes only 23 lines of code, and yet is very readable. The slugs synthesis tool
+comes with a specication debugger, using which the cause for realizability and
+unrealizability of a specication can be determined in an interactive fashion. The
+tool is written in C++ and is available under the permissive MIT open source
+license.
+This paper is structured as follows: in the next section, we describe the
+particular view of GR(1) synthesis that slugs takes. Section 3 then provides
+an overview of slugs 's architecture and the available plugins. Finally, Section 4
+demonstrates slugs 's performance on an example specication.
+2 GR(1) Synthesis
+Synthesis of reactive systems has been identied to have a high computational
+complexity for many specication logics. For generalized reactivity(1) specica-
+tions, the synthesis problem has a complexity that is only exponential in the
+number of atomic propositions in the specication (or polynomial in the size of
+the the state space of the game structure built in the synthesis process). Given
+sets of input positions IandO, specications in this fragment of linear temporal
+logic (LTL) are of the form
+('a
+i^'a
+s^'a
+l)!('g
+i^'g
+s^'g
+l);
+where'a
+i,'a
+s, and'a
+lare called the assumptions , and'g
+i,'g
+s, and'g
+lare called
+theguarantees of the specication. The assumptions are used to state what we
+know about the behavior of the environment in which the synthesized system
+
+--- Page 3 ---
+is intended to operate, whereas the guarantees contain the properties that the
+synthesized system needs to satisfy if the environment behaves as expected. In
+GR(1) specications, all assumptions and guarantees must have a certain shape.
+The initialization assumptions 'a
+iand'g
+imust be free of temporal operators
+and state valid variable valuations for IandOwhen the synthesized controller
+starts to operate. The safety properties 'a
+sand'g
+sstate how the proposition
+valuations forIandOcan evolve during a step of the synthesized controller's
+execution. The liveness properties 'a
+land'g
+lstate which transitions of ( I[O )'s
+valuations are supposed to happen innitely often.
+Synthesis from generalized reactivity(1) specications is often reduced to
+solving a xpoint equation on a game structure that is built from the specica-
+tion. The transitions in the game structure are given by the safety assumptions
+and guarantees, and the liveness properties are translated to environment and
+system goals , which the system and environment player try to satisfy innitely
+often in a play of the game, respectively. In contrast to [1], we use a modied
+xpoint equation with only a single occurrence of the enforceable predecessor
+operator EnfPre to compute from which positions the system player can win the
+game:
+W=Z:n^
+j=1Y:m_
+i=1X:EnfPre (('g
+l;j^Z0)_Y0_(:'a
+l;i^X0))
+Here,is the greatest xpoint operator whereasis the least xpoint operator ,
+while the number of liveness assumptions and guarantees are mandn, respec-
+tively. The EnfPre operator takes as input a set of transitions (the corresponding
+operator in [1] takes a set of states ), and computes the set of positions of the
+game from which the system player can ensure that, after the next valuations
+toIandOhave been selected by the environment and system players, respec-
+tively, the resulting transition is in the set of given transitions. The specication
+formula only explicitly mentions the liveness assumptions and guarantees of the
+specication, as the safety constraints are encoded in the game structure, and
+the initialization constraints only need to be considered after computing the set
+of winning positions in the game, W. If for every rst environment player move,
+the system player can ensure that the resulting position satises 'a
+i!'g
+iand
+is inW, then there exists an implementation for the specication, and it can
+be extracted from the sequence of transitions given to EnfPre during the evalua-
+tion of the least xpoint, after all the greatest xpoint operators have been fully
+evaluated.
+The modied xpoint formula makes it easier to alter the synthesis algo-
+rithm, as it channels the possible actions of the implementation to be synthesized
+through a single invocation of the EnfPre operator. Restricting or extending this
+set of actions thus amounts to simply adding or removing transitions from the
+operand of EnfPre . Also, the modied xpoint formula makes the aims of the
+system player more explicit: in every step of the system's execution, the system
+should either reach a system goal (which need to be reached innitely often for
+the liveness guarantees to hold), get closer to the system goal, or wait for some
+
+--- Page 4 ---
+environment goal to be reached: this last option is only available until the cur-
+rent environment goal has been reached. Except in very simple specications, it
+is commonly not under the control of the system which of these cases holds. The
+system must, however, ensure that at least one of them holds at every point in
+time. The conjunctions and disjunctions over iandjmake sure that all liveness
+assumptions and guarantees are considered in order.
+The presented tool slugs does not build the game structure explicitly, but
+rather uses binary decision diagrams (BDDs) as symbolic data structures. As
+the synthesis games have all valuations of I[O as positions, position sets and
+transitions relations can be represented eciently as BDDs with jIj+jOjmany or
+twice as many variables (one for each `end' of a transition). All BDD operations
+are performed by the CUDD library [6].
+3 Modifying GR(1) Synthesis
+Reactive synthesis has many applications, but most of them require the adapta-
+tion of the synthesis approach in order to yield useful implementations and to
+scale to problems of relevant size at the same time.
+As one example, when performing automated high-level planning in robotics,
+liveness assumptions are often used to model that doors in some workspace must
+be open innitely often. For a robot that needs to perform a certain task, this
+allows the robot to wait for a door to open, for example if it has to pass through
+the door in order to perform its task. Yet, high-level robot controllers are often
+observed to wait needlessly for doors to open when alternative paths exist; this
+is considered to decrease the quality of the controller, even if the specication is
+satised. While lifting the specication to a weighted one could solve the prob-
+lem, solving (synthesis) games symbolically with costs is substantially harder
+and leads to unfavourable theoretical properties (e.g. optimal strategies require
+innitely many states for mean-payo games with liveness objectives). As an
+alternative, slugs contains a simple modication to the GR(1) xpoint formula
+that penalizes such \waiting": the implementation in slugs takes just 7 lines of
+C++ code.
+As another example, in high-level robotics applications [7], the position of
+a robot in a workspace is commonly under the control of the robot. Safety
+guarantees constrain the motion of the robot such that it can only move to
+adjacent regions of a workspace. However, the robot does not have control over
+where in the workspace it is deployed. A synthesized controller should thus be
+able to deal with any initial robot position. This makes the initial position
+an input to the controller that is used exactly once, namely when the controller
+starts. Integrating this additional input into the specication would lead to many
+more variables in the BDDs during synthesis, which decreases performance. As
+an alternative, we can conrm that all possible initial locations for the robot are
+winning by testing for membership in W. This change in the synthesis process
+needs a single line of code.
+
+--- Page 5 ---
+The slugs tool oers many plugins that implement other such modica-
+tions to the synthesis process. It was designed exactly with such modications
+in mind and is optimized towards being easily extensible. In particular, all core
+parts of the synthesis process have been kept short and easily readable, to enable
+modifying them with the least eort possible. Slugs uses C++ features such as
+operator overloading to make all BDD operations concise and easily readable.
+Furthermore, the input language of slugs is very simple to parse. This facili-
+tates modications of the synthesis process that are based on preprocessing the
+specication. An additional script to translate from a richer input language to
+slugs ' simpler language is also provided for convenience.
+The slugs distribution can be obtained from https://github.com/Veri-
+fiableRobotics/slugs and comes equipped with a few plugins that implement
+techniques that can be found in the literature on GR(1) synthesis:
+{The two plugins mentioned above (producing implementations that wait less
+for the environment and system initialization robotics semantics).
+{A plugin to compute implementations that cooperate with the environment
+to satisfy the environment assumptions [3].
+{A plugin to compute a counterstrategy from an unrealizable specication.
+{Plugins to compute symbolic and explicit implementations, the former being
+represented as BDDs.
+{A plugin to compute estimators for incomplete information synthesis [8].
+{A plugin that lets slugs execute a controller in an interactive way, such that
+it can be used as a tool for simulating the controller called from other tools.
+{Various plugins to compute specication reports , which help with debugging
+formal specications as in [5].
+{A plugin that allows output variables to be divided into two classes, \fast"
+and \slow", and ensures that each transition in the solution is safe even if
+the faster actions complete rst [9].
+{A plugin that computes implementations with recovery transitions , which
+allow the system to continue operating after safety assumption failures that
+can be compensated, similarly to the approach in [10].
+{A plugin that computes the permissive implementations from [11].
+{A plugin implementing the two-dimensional cost notion from [2].
+{A plugin that computes a weakening of the assumptions in case of a realizable
+specication such that the specication stays realizable under the weakening.
+In addition, the slugs distribution comes with several Python scripts that aug-
+ment its functionality:
+{A script to modify a specication such that it encodes the error-resilient
+synthesis problem for the original specication [12].
+{A debugger to simulate implementations for realizable specications and to
+simulate a falsifying environment for unrealizable specications.
+{A compiler that converts specications with integer variables and constraints
+to purely boolean specications.
+{A specication report generator similar to the one described in [5].
+
+--- Page 6 ---
+Fig. 1. A robot workspace and two paths to reach the respective next goal. The naive
+one is dotted, whereas the optimized one is not.
+The slugs tool also allows to combine multiple plugins, provided that they have
+been marked as being compatible.
+4 Slugs in Action
+We now describe a concrete application made possible by a slugs plugin.
+Consider the synthesis problem for a high level robot controller in which
+the robot operates on the workspace depicted in Figure 1. The workspace is
+partitioned into regions, which all have dierent sizes. The position of the robot
+is under its control, but it can only move to adjacent cells in each step. There
+are four goals for the robot that each have to be visited innitely often. For
+two of the goal regions, we have additional input bits. Those regions do not
+have to be reached if their respective input bit is false . The standard GR(1)
+synthesis algorithm does not use the relative sizes of the regions, and therefore
+the strategy that we synthesize in this setting is not optimal with respect to the
+physical grounding of the scenario. The gure shows one relatively complex path
+for getting from one gray region to another one that is part of the synthesized
+strategy.
+To ensure that the physically more ecient strategy is obtained, the synthe-
+sis algorithm must be modied to incorporate worst-case costs on transitions
+between rooms. For this example, we use the dierence between region centers
+as cost measure. Slugs comes with a plugin that implements GR(1) synthesis
+with a cost function, similar to the modications described in [2]. The alterna-
+tive path is shown in Figure 1 as well. Note that the notion of optimality here is
+somewhat specic to the application domain, as we always optimize the cost for
+
+--- Page 7 ---
+reaching the next goal of the robot, rather than using an optimization criterion
+such as mean-payo.
+To solve the realizability problem of the scenario, slugs needs 0.03 seconds
+on a i5 1.6GHz computer. Extracting an explicit-state implementation takes 0.1
+seconds in addition (1015 states), and synthesizing the optimal strategy takes
+another 14.9 seconds (resulting in 3315 states).
+Acknowledgements
+This work was supported by NSF ExCAPE and the Institutional Strategy of the
+University of Bremen, funded by the German Excellence Initiative.
+References
+1. Bloem, R., Jobstmann, B., Piterman, N., Pnueli, A., Sa'ar, Y.: Synthesis of reac-
+tive(1) designs. J. Comput. Syst. Sci. 78(3) (2012) 911{938
+2. Jing, G., Ehlers, R., Kress-Gazit, H.: Shortcut through an evil door: Optimality
+of correct-by-construction controllers in adversarial environments. In: IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS). (2013) 4796{
+4802
+3. Ehlers, R., K onighofer, R., Bloem, R.: Synthesizing cooperative reactive mission
+plans. In: 2015 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS). (2015) 3478{3485
+4. Raman, V., Piterman, N., Finucane, C., Kress-Gazit, H.: Timing semantics for ab-
+straction and execution of synthesized high-level robot control. IEEE Transactions
+on Robotics 31(3) (2015) 591{604
+5. Ehlers, R., Raman, V.: Low-eort specication debugging and analysis. In: 3rd
+Workshop on Synthesis (SYNT). (2014) 117{133
+6. Somenzi, F.: CUDD: CU Decision Diagram package release 3.0.0 (2015)
+7. Kress-Gazit, H., Fainekos, G.E., Pappas, G.J.: Temporal-logic-based reactive mis-
+sion and motion planning. IEEE Trans. Robotics 25(6) (2009) 1370{1381
+8. Ehlers, R., Topcu, U.: Estimator-based reactive synthesis under incomplete infor-
+mation. In: 18th International Conference on Hybrid Systems: Computation and
+Control (HSCC). (2015) 249{258
+9. Raman, V., Finucane, C., Kress-Gazit, H.: Temporal logic robot mission planning
+for slow and fast actions. In: IEEE/RSJ International Conference on Intelligent
+Robots and Systems (IROS). (2012) 251{256
+10. Wong, K.W., Ehlers, R., Kress-Gazit, H.: Correct high-level robot behavior in
+environments with unexpected events. In: Robotics: Science and Systems (RSS).
+(2014)
+11. Wen, M., Ehlers, R., Topcu, U.: Correct-by-synthesis reinforcement learning with
+temporal logic constraints. In: IEEE/RSJ International Conference on Intelligent
+Robots and Systems (IROS). (2015) 4983{4990
+12. Ehlers, R., Topcu, U.: Resilience to intermittent assumption violations in reactive
+synthesis. In: 17th International Conference on Hybrid Systems: Computation and
+Control (HSCC). (2014) 203{212
+
+--- Page 8 ---
+A Installing Slugs
+The reactive synthesis tool slugs can be obtained by checking out a copy using
+the version control system git. On systems with a gitinstallation that is usable
+from the command line interface, this can be done with the following command:
+git clone https://github.com/VerifiableRobotics/slugs
+While slugs uses the CUDD binary decision diagram library by Fabio Somenzi,
+it is already included in the cloned folder. The slugs main executable can then
+be compiled with the following commands:
+cd slugs/src
+make
+The resulting executable will be put into the srcdirectory. As a prerequisite,
+the following items must be installed:
+{a moderately modern default compiler (clang or gcc),
+{The C++ library boost
+The library must be installed in a way such that it can be used by the compiler
+without setting additional paths. This is typically the case on Linux and MacOS
+machines.
+In order to use the Python scripts that come with slugs , Python 2.x with
+x6 must be installed. The interactive specication debugger furthermore
+requires that the python-libcurses Python library is installed.
+B Writing Slugs Specication
+The synthesis tool slugs computes implementations from their specications. A
+specication is given as a text le in one of two formats:
+{The very basic slugsin format, or
+{The more simple to use structuredslugs format.
+The latter format is a strict extension of the former. In both cases, the input
+les are text les.
+B.1 The basic input format
+Aslugsin le consists of multiple sections, which are started by section headers .
+These are:
+{[INPUT] : The lines after this section header denote the atomic input propo-
+sitions.
+{[OUTPUT] : The lines after this section header denote the atomic output
+propositions.
+
+--- Page 9 ---
+{[ENV TRANS] : After this section header, the environment safety assumptions
+are given.
+{[SYS TRANS] : After this section header, the system safety guarantees are
+given.
+{[ENV INIT] : After this section header, the environment initialization as-
+sumptions are given.
+{[SYS INIT] : After this section header, the system initialization guarantees
+are given.
+{[ENV LIVENESS] : After this section header, the environment liveness as-
+sumptions are given.
+{[SYS LIVENESS] : After this section header, the system liveness guarantees
+are given.
+Any line in a slugsin le starting with a \#" symbol is a comment line
+and is ignored by the tool. Empty lines are also ignored. Before the rst section
+header in an input le, there may only be empty or comment lines.
+All non-comment and non-empty lines in the assumption and guarantee sec-
+tions denote constraints . These are always given on individual lines. Con-
+straints are given as Boolean formulas in Polish prex notation, i.e., in which all
+non-unary operators are assumed to be binary, and the operators are written be-
+fore the operands. There is also always a space between operators and operands.
+There is no next operator. If a constraint refers to the value of a variable at
+the end of a transition, this is denoted by adding a 'to the variable name. The
+boolean operators available for specifying constraints are !(not), |(or), &(and),
+and^(exclusive or). Let us consider the following specication as an example:
+[INPUT]
+a
+b
+[OUTPUT]
+x
+y
+[ENV_INIT]
+& ! a ! b
+[SYS_INIT]
+& ! x ! y
+[ENV_TRANS]
+| a' ! | x y
+[SYS_TRANS]
+| ! x' ! y'
+[SYS_LIVENESS]
+
+--- Page 10 ---
+& a y
+In this specication, there are two input propositions, namely aand b, and
+there are two output propositions, called xand y. Initially, all of these have a
+value of false , as specied by the initialization assumption and the initialization
+guarantee. For example, the initialization assumption & ! a ! b represents the
+boolean formula :a^:b. The only environment transition constraint states
+that (a!:(x_y)) must always hold. So the environment may only set ato
+true during a transition if xandyare not both false in the last output signal
+valuation. Other than that, the next values for aandbmay be arbitrary. The
+safety guarantees state that every output signal valuation chosen by the system
+after the system has started must not be ( x0;y0) = (true;true ).
+There is one liveness guarantee for the system and no liveness assumption.
+The guarantee states that innitely often, aandyneed to be true in the same
+step of the system's execution. Since the system cannot control a, it needs to drive
+the environment into setting atotrue . The environment assumptions allow this:
+since by them, aneeds to be true in the next computation cycle after ( x;y) have
+been set to ( false;true ), the system can just choose ( false;true ) as output for
+two cycles in a row to make progress towards satisfying the liveness guarantees.
+As this behavior does not contradict the safety guarantees, slugs can compute
+a controller.
+There are no designated operators for implication ( !) and equivalence ( $)
+in the simple slugsin input language. However they can be simulated by the
+two-operator sequences \ | !" and \ ! ^".
+B.2 The structured slugs input format
+The basic structure of a structured slugs specication le is the same as for a
+non-structured one. There are two extensions:
+{The possibility to use inx notation in the constraints.
+{Support for non-negative integer variables of bounded domains, including
+comparisons and additions of them.
+The latter of these extensions allows to write expressions in a more human-
+readable form. E.g., instead of writing | a' ! | x y as in the example from
+the previous subsection, the user can simply write a' | !(x | y) . Implications,
+biimplication, and braces are supported, so (! a' -> !(x | y)) is also a valid
+formula. It is allowed to mix constraints in inx form and in Polish prex form,
+provided that they are all on their own lines. Operator precedence is as expected,
+i.e., unary operations bind strongest, then and and then or.
+The support for integer variables allows to specify scenarios in which the
+progress of some quantity is described. In order to specify an integer variable,
+in the [INPUT] or[OUTPUT] block, the variable is declared in the form variable-
+Name :minimumValue ...maximumValue .
+For example, when synthesizing a vehicle controller that obtains the current
+speed from some sensor, we can declare the input as follows:
+
+--- Page 11 ---
+[INPUT]
+speed:0...127
+This declaration adds 7 binary variables to the instance, which are enough to
+encode all 128 possible speed values. The only allowed arithmetic operation on
+integer variables is addition, and in order to obtain boolean constraints from
+expressions, the values of integer variables have to be compared against other
+values. For example, to constrain the system to not let the speed exceed 120
+units, we could add the following constraint to the specication:
+[SYS_TRANS]
+speed' <= 120
+In order to make this specication realizable, we need to give the system control
+over the speed. We do so by giving it an acceleration output :
+[OUTPUT]
+acc:0...5
+The acceleration should always be an element of f2;1;0;1;2g. Because the
+structuredslugs format does not allow non-negative numbers, we have to store
+the acceleration +2 instead. We can now describe the eect of acceleration by
+an environment safety assumption:
+[ENV_TRANS]
+speed'+2 = speed+acc
+Normally, one would want to write speed' = speed+acc-2 as the constraint,
+but as subtraction is not supported, the subtraction has to be shifted to the
+other side of the equation.
+In the integer operations in structuredslugs specication les, there is no
+overow semantics in the computations. Thus, by accelerating indenitely, the
+system can force the environment to violate this constraint. Thus, we have to
+bound the speed from below and above:
+[ENV_TRANS]
+speed'+2 = speed+acc | speed'=127 & speed+acc>=129
+| speed'=0 & speed+acc<=2
+Note that the constraint needs to be written on a single line as line endings
+terminate constraints in slugs andstructuredslugs les. If we want to add a
+noise of1 per computation cycle to the speed update, we can do so by using
+the following requirements instead:
+[ENV_TRANS]
+speed'+2 <= speed+acc+1 | speed'=127 & speed+acc>=129
+| speed'=0 & speed+acc<=2
+speed'+2+1 >= speed+acc | speed'=127 & speed+acc>=129
+| speed'=0 & speed+acc<=2
+
+--- Page 12 ---
+C Using Slugs
+After a specication is written, slugs can be applied to it. From the slugs main
+directory, this can be done with the command
+src/slugs <Options> [InputFileName.slugs]
+By default, slugs only checks if the specication is realizable, i.e., if there exists
+an implementation. To obtain an implementation, a couple of output plugins are
+available:
+X--explicitStrategy : lets slugs extract an explicit-state strategy. The out-
+put is compatible with the one produced by the GR(1) synthesis tool included
+in the jtlv formal methods framework distribution.
+X--jsonOutput : this option can be given in addition to the previous one. It
+reformats the explicit-state output such that it can easily be read with a
+json parser.
+X--symbolicStrategy : lets slugs extract a BDD-based symbolic strategy.
+There is one positional strategy per system goal in the output le.
+X--simpleSymbolicStrategy : lets slugs extract a BDD-based symbolic strat-
+egy in which the positional strategies for the system goals have been merged
+into one strategy with a larger state space.
+In case a structuredslugs le is the starting point, it rst has to be translated
+to a standard slugsin le before it can be used. This can be done with the
+following command:
+tools/StructuredSlugsParser/compiler.py [InputFile.
+structuredslugs] > [OutputFile.slugsin]
+In case there there is a syntax error in the structuredslugs le, a parser error
+will be printed.
+C.1 Debugging a specication
+Getting specications right is dicult. Oftentimes, it makes sense to write a
+specication step-by-step and then check after each step if whether it is realizable
+or not is as expected. Whenever this is not the case, this indicates an unexpected
+implication of the specication or a bug in it. slugs comes with some scripts to
+help with debugging a specication.
+The interactive debugger allows to examine the behavior of a controller for
+a realizable specication, and the behavior of an environment that falsies an
+unrealizable specication. The debugger is based on the curses library for text-
+based user interfaces. The debugger can be started with the following command:
+tools/cursesSimulator.py [inputFile.slugsin]
+
+--- Page 13 ---
+Figure 2 shows the interface of the debugger. It always shows the input and
+output values in the last 5 computation cycles. They can be changed by inputting
+values into some cells of the table. The up/down cursor keys allow the user to
+change the currently selected input/output variable, whereas the left/right key
+allow to change the computation cycles.
+Variable values that have been enforced by the user are underlined. A color
+coding shows which variable values are enforced by safety assumptions/guaran-
+tees or by the winning strategy. Pressing the hbutton toggles the help screens.
+The help screens explain the color codes and and meaning of the ags that
+indicate which user-forced values are illegal. Along the input and output values,
+the debugger also shows the number of the current environment and system
+player goals. The text-based interface allows to run the debugger overnight on a
+computation server in combination with the Linux screen utility. This is useful
+for specications whose realizability computation requires a lot of computation
+time.
+Fig. 2. The user interface of the interactive strategy debugger for a problem with the
+input signals fin1; : : : ; in4gand the output signals flevel1; : : : ; level5;choice g.
+In addition to the specication debugger, there is also a Python script that
+computes a specication report from a specication. This functionality can be
+used as follows:
+tools/createSpecificationReport.py [inputFile] > [outputFile.html]
+
+--- Page 14 ---
+The input le can either be in slugsin form or in structuredslugs form. Some
+of the analysis steps take a long time, but the report can be already be viewed
+with a web browser before all steps have been performed. The specication report
+generation process is an implementation of the concepts from [5].
+C.2 Other plugins
+The slugs tool comes with a variety of other plugins that alter the functionality
+of the tool. Most of them can be combined with any of the strategy extraction
+options given above. A complete list of parameters and their meaning can be
+optioned by running slugs --help . Some frequently used plugins are:
+X--sysInitRoboticsSemantics : this lets slugs treat the initialization con-
+straints in a way such that a specication is only called realizable if all
+initial valuations that satisfy the initialization assumptions and guarantees
+are winning for the system. This semantics is useful to tackle high-level robot
+specications in which the initial position of the robot in a workspace is not
+under its control.
+X--biasForAction : extracts controllers that rely on the liveness assumptions
+being satised as little as possible.
+X--counterStrategy : for unrealizable specications, this plugin computes a
+counter-strategy for the environment to force the violation of the specica-
+tion. This plugin is currently not available in combination with a symbolic
+output strategy.
+X--simpleRecovery : adds transitions to the system implementation that al-
+low it to recover from sparse environment safety assumption faults in case
+this can done greedily.
+X--cooperativeGR1Strategy : computes a controller that is cooperative with
+its environment, as explained in [3].
+In addition, there is also a Python script that implements error-resilient synthe-
+sis, as dened in [12]. It can be used by executing
+tools/kResilientRealizabilityChecker.py [inputFile.slugsin]
+The output will be the error resilience levels that are realizable for the particular
+specication. Running the script with the parameter --writeOptimalCaseSpe-
+cifications will furthermore let the script create specication les that imple-
+ment the maximal possible error-resilience levels. The new specication les will
+be named by the inputFile (resilienceLevel ).slugsin scheme.
+D Developing Plugins for Slugs
+The main advantage of slugs over other stand-alone reactive synthesis tools
+is that its plugin architecture makes it easy to alter the synthesis process. All
+plugins can be found in the srcdirectory of the slugs distribution and have a
+name of the form extension ....hpp . So essentially, they are C++ header les.
+
+--- Page 15 ---
+The reason for the plugins being in header les is that slugs uses the C++
+template mechanism in order to encapsulate the plugins in a way that makes
+them easy to read and pluggable in many ways at the same time. A basic plugin
+starts with the following source code:
+#ifndef __X_YOUR_EXTENSION_HPP__
+#define __X_YOUR_EXTENSION_HPP__
+template<class T> class XYourExtension : public T {
+protected:
+// Constructor
+XYourExtension<T>(std::list<std::string> &filenames)
+: T(filenames) {}
+public:
+static GR1Context* makeInstance(std::list<std::string>
+&filenames) {
+return new XYourExtension<T>(filenames);
+}
+};
+#endif
+In the code, the YourExtension string must be replaced by the actual name of
+the plugin. A plugin inherits the functions from some basetype T, which must
+inherit from the class GR1Context declared in gr1context.hpp . However, it may
+also inherit from a version of the class that has already been decorated by an-
+other plugin. The ways in which plugins are combinable is stated in main.cpp ,
+including the inheritance chains used in each case. In order to ensure that a mem-
+ber eld or function of the base class can be used, by the language semantics of
+C++, it must be declared. For example, in order to import the element initEnv
+from GR1Context (which contains the set of all positions in the synthesis game
+that satisfy the initialization assumptions), one would add the line
+using T::initEnv;
+below the protected: line of the new extension template class. A plugin mainly
+works by overriding functions from the GR1Context base class. It can also add
+new functions that can then be used in other plugins that depend on this one.
+There are four main functions in the GR1Context that can be overriden:
+{void init(std::list<std::string> &filenames) : This function is called
+immediately after constructing the GR1Context . It allocates the BDD vari-
+ables, reads the specication le and parses it into BDDs.
+{void execute() : This function orchestrates the main functionality of the
+tool. Plugins that alter slugs ' behavior in a way such that it does not
+actually perform synthesis any more overwrite this function.
+
+--- Page 16 ---
+{void checkRealizability() : If the execute function is not overwritten,
+this function is called to determine if the specication is realizable. It (nor-
+mally) rst computes the set of winning positions in the synthesis game and
+then analyses it together with the initialization constraints to determine
+realizability.
+{void computeWinningPositions() : This function computes the set of win-
+ning positions in the synthesis game built from the specication. The result
+is stored in the GR1Context eld winningPositions . At the same time,
+the transitions leading closer to system goals, which are used for strategy
+extraction, are stored in the GR1Context eld strategyDumpingData .
+The slugs tool uses a couple of other custom classes in addition. The BF
+class represents a binary decision diagram (BDD). The term BFstands for
+boolean function . Most of the plugins do not perform operations that are spe-
+cic to BDDs, so other data structures for representing boolean functions could
+also be used. In addition to the BFclass, there are also the BFVarVector and
+BFVarCube classes, which represent variable lists and variable sets, respectively.
+The BFManager represents the general manager class for boolean functions. Cur-
+rently, the class holds a reference to a CUDD manager object.
+If during the development of a plugin, a BDD is to be printed at runtime,
+this can be performed by the BFnewDumpDot function. It gets four parameters:
+{A reference to the variable info container,
+{The BF/BDD to be printed,
+{A variable group order, and
+{A le name (with a .dot ) ending.
+The variable info container is used by the BFnewDumpDot function to obtain the
+names of the variables in the BDD. The variable group order can either be NULL
+or be a space-separated string of variable groups. The GR1Context container
+implements a BDD/BF variable manager, which in turn implements a variable
+info container, so when using BFnewDumpDot from a function in a plugin, the
+rst parameter is typically *this .
+The variable manager maintains a list of BF/BDD variables and the types
+of the variables. The types are all dened in variableTypes.hpp . The header
+le furthermore denes run-time strings for all variable types and a hierarchy
+between them. The hierarchy allows to split a variable type into several sub-
+types in some plugins while considering only more coarse-grained variable type
+sets in other plugins. An important feature of the slugs variable manager is
+that it comes with the two classes SlugsVarVector and SlugsVarCube . They
+inherit from BFVarVector and BFVarCube respectively, but add the possibility
+to compute them automatically from the data in the variable manager when
+instantiating them as elds in a descendent of GR1Context . As an example, the
+declaration of the GR1Context class contains the following eld denition:
+SlugsVarVector varVectorPre{PreInput, PreOutput, this};
+
+--- Page 17 ---
+It declares the variable varVectorPre , which consists of all variables of the type
+PreInput and PreOutput , and for the SlugsVariableManager implemented by
+the object (hence the this ). A list of all variable types can be found in the header
+levariableTypes.hpp . Whenever a new variable is added, all SlugsVarVector
+and SlugsVarCube objects need to be updated. This is done by calling the
+computeVariableInformation function of the SlugsVariableManager . This is
+done after a specication has been read. When new BF/BDD variables are allo-
+cated in plugins, the function must be called manually afterwards.
+After a new plugin has been implemented, it needs to be connected to the
+main program. This is done in three steps:
+{An#include directive for the new extension needs to be added to main.cpp
+{A command line parameter and its explanation needs to be added to the
+commandLineArguments list.
+{All desireed parameter combinations with the new plugin need to be added
+tooptionCombinations list in main.cpp . The command line arguments
+leading to the plugin combination must be given in lexicographically ordered
+form.
+Afterwards, the plugin can be used in the specied parameter combinations.
+The feasible combinations of the plugins that are already included in the slugs
+distribution are managed by the plugin combination enumerator.py script. It
+contains a list of plugins, requirements on their combinations, and lls the said
+lists in the main.cpp le with the allowed combinations.

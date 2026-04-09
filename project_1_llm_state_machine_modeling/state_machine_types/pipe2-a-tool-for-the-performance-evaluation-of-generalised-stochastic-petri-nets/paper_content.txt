@@ -1,0 +1,488 @@
+--- Page 1 ---
+PIPE2: ATool for the PerformanceEvaluation of
+Generalised StochasticPetriNets
+Nicholas J.Dingle William J.Knottenbelt Tamas Suto
+Department of Computing, Imperial College London,
+180 Queen's Gate,London SW7 2BZ, UnitedKingdom
+{njd200,wjk,suto }@doc.ic.ac.uk
+ABSTRACT
+This paper presents an overview of Platform-Independent
+Petri Net Editor 2 ( PIPE2 ), an open-source tool that sup-
+ports the design and analysis of Generalised Stochastic Pet ri
+Net (GSPN) models. PIPE2 ’s extensible design enables de-
+velopers to add functionality via pluggable analysis modul es.
+It also acts as a front-end for a parallel and distributed per -
+formance evaluation environment. With PIPE2 , users are
+able to design and evaluate performance queries expressed
+in the Performance Tree formalism.
+Keywords
+PIPE2 , Performance Trees, GSPNs, Stochastic Modelling,
+Parallel and Distributed Computing
+1. INTRODUCTION
+Platform-Independent Petri Net Editor 2 ( PIPE2 ) [1] is
+a Java-based tool for the construction and analysis of Gen-
+eralised Stochastic Petri Net (GSPN) [2] models. PIPE2
+began life in 2002/3 as a postgraduate team programming
+project in the Department of Computing at Imperial College
+London and has been steadily improved through a number
+of successive successive versions, implemented by student s
+at Imperial College London and with input from industry
+(particularly Intelligent Automation, Inc.) In addition, a
+branched version with signiﬁcant improvements to diﬀerent
+aspects of functionality (e.g. the addition of inhibitor ar cs
+and ﬁxed-capacity places, and an experimental framework)
+has also been implemented at the Universitat de les Illes
+Balears [3,4]. It is planned to merge this functionality int o
+the main branch in due course.
+Besides standard Petri net model creation, manipulation
+and animation facilities, PIPE2 provides a mechanism for
+the run-time integration of new functionality via pluggabl e
+analysis modules. This is a feature that sets PIPE2 apart
+from many other Petri net tools, whose analysis functional-
+ity is usually ﬁxed and cannot be augmented by the user.
+This consequently provides a springboard for experimenta-
+tion with new analysis techniques without the need to reim-
+plement basic functionality.
+The focus of the present paper is on the recent develop-
+ment eﬀort undertaken at Imperial College London related
+to the Performance Query Editor module, which allows users
+to create and evaluate performance queries using the Perfor -
+mance Tree (PT) formalism [5–7]. This module links with
+an evaluation environment comprising an Analysis Server, aset of parallel and distributed analysis tools, and a hardwa re
+cluster that enables large-scale computations.
+In terms of impact, PIPE2 has been used in a number
+of studies into research topics as varied as the modelling of
+mobile communication [8] and biological systems [9], and
+the visualisation of Business Process Execution Language
+(BPEL) speciﬁcations as Petri nets [10]. In addition, a num-
+ber of other researchers have either implemented their own
+modules for use with PIPE2 (e.g. to translate Petri nets into
+the simulation language SIMAN [11]), or have used PIPE2
+as the basis for the implementation of their own domain-
+speciﬁc versions (e.g. UIB [4] and Exhost-PIPE [12]). Fi-
+nally, PIPE2 has been used as a teaching aid at a num-
+ber of universities, including the Universit´ e de Gen` eve, Swe-
+den’s Royal Technical Institute (KTH), the University of Le -
+icester, Friedrich-Alexander-Universit¨ at Erlangen-N¨ urnberg
+and Universit¨ at Duisberg-Essen.
+The remainder of this paper is organised as follows: Sec-
+tion 2 presents PIPE2 ’s model design and analysis func-
+tionality. Section 3 presents background material on perfo r-
+mance query speciﬁcation with Performance Trees (PTs),
+before Section 4 describes the architecture of the parallel
+and distributed PT query evaluation environment. Section 5
+describes the process of using PIPE2 to evaluate a PT per-
+formance query, and Section 6 demonstrates a case study
+analysis of a query on a model of a hospital’s Accident and
+Emergency department. Section 7 concludes and discusses
+future work.
+2. SYSTEM MODELLING WITHPIPE2
+Figure 1 shows PIPE2 ’s graphical user interface for the
+creation and editing of GSPN models. Models are drawn on
+a canvas using components from a drawing toolbar including
+places, transitions, arcs and tokens. Nets of arbitrary com -
+plexity can be drawn and annotated with additional user
+information. Besides basic model design functionality, th e
+designer interface provides features such as zoom, export,
+tabbed editing and animation. The animation mode is par-
+ticularly useful for aiding users in the intuitive veriﬁcat ion
+of the behaviour of their models. PIPE2 uses the Petri
+Net Markup Language (PNML) [13] as its ﬁle format, which
+permits interoperability with other Petri net tools includ ing
+P3 [14], WoPeD [15] and Woﬂan [16]
+Central to the architecture of PIPE2 is its support for
+modules, which allow its functionality to be extended at run -
+time with user-implemented code. PIPE2 comes equipped
+with a number of specialised analysis modules that perform
+structural and performance-related analyses on GSPN mod-
+
+--- Page 2 ---
+Figure 1: PIPE2 ’s GSPN design interface.
+els. A panel to the left of the canvas enables users access
+to these modules. Users are encouraged, however, to im-
+plement their own modules to tailor the tool’s functionalit y
+to their requirements. The modules discussed below are all
+included in the current PIPE2 release.
+StructuralAnalysisModules
+Model Classiﬁcation Module : Classiﬁes GSPN models based
+on their structure into the following categories: state ma-
+chine, marked graph, free choice net, extended free choice
+net, simple net and extended simple net.
+Model Comparison Module : Compares two GSPN mod-
+els based on attributes determined by users as comparison
+criteria.
+State Space Module : Determine properties of GSPN mod-
+els such as liveness, boundedness and existence of deadlock s.
+Incidence & Marking Module : Determines and displays
+the forward and backward incidence matrices and the initial
+marking.
+Reachability Graph Module : Provides a visual representa-
+tion of a GSPN model’s underlying reachability graph.
+PerformanceAnalysisModules
+Simulation Module : Studies the performance of models by
+investigating the average number of tokens per place and
+mean transition throughputs, using Monte Carlo simulation .
+Steady-State Analysis Module : Calculates state and count
+measures from the steady-state distribution via an interfa ce
+to the DNAmaca [17] steady state analyser.
+Passage Time Analysis Module : Calculates probability
+density and cumulative distribution functions for the timetaken for a model to complete a user-deﬁned passage via an
+interface to the SMARTA [18] passage time analyser.
+GSPN Analysis Module : Calculates analytically the dis-
+tribution of tokens on places, and the mean throughput of
+timed transitions.
+Additionally, recent work on specifying customer-centric
+performance queries using the concept of “tagged tokens”
+[19] is currently being integrated in PIPE2 , in the form of
+modules for the steady-state and passage time analysis of
+GSPNs with tagged tokens.
+3. PERFORMANCETREES
+Performance Trees are a formalism for the graphical spec-
+iﬁcation of performance queries. A Performance Tree query
+is represented as a tree structure that consists of nodes and
+connecting arcs. Nodes can be of two kinds: operation nodes
+represent performance-related functions, such as the calc u-
+lation of passage time densities, while value nodes are in-
+stances of basic types such as sets of states, actions, and
+numerical/boolean constants. Complex queries can be con-
+structed by connecting nodes together. Figure 2 shows an
+example Performance Tree query that asks: “Is it true that
+the passage between the set of states ‘start’ and the set of
+states ‘target’ takes less than 5 time units with a probabili ty
+of at least 0.98?”
+Table 1 shows the currently available Performance Tree
+operation and value nodes. Performance Trees also support
+macros, which allow custom performance concepts to be de-
+ﬁned by users using existing nodes.
+
+--- Page 3 ---
+Textual Graphical Description
+?
+ The result of a performance query.
+Mult Concurrent evaluation of multiple independent queries.
+PTD Passage time density, calculated from a given set of start an d target states.
+Dist Passage time distribution obtained from a passage time dens ity.
+Perctl Percentile of a passage time density or distribution.
+Conv∗Convolution of two passage time densities.
+ProbInInterval Probability with which a passage takes place in a certain amo unt of time.
+ProbInStates∗Transient probability of a system being in a given set of stat es at a given
+point in time.
+Moment Raw moment of a passage time density or distribution.
+FR Mean occurrence of an action (mean ﬁring rate of a transition ).
+SS:P Probability mass function yielding the steady-state proba bility of each possi-
+ble value taken on by a StateFunc when evaluated over a given s et of states.
+SS:S∗Set of states that have a certain steady-state probability.
+StatesAtTime∗Set of states that the system can occupy at a given time.
+InInterval Boolean operator that determines whether a numerical value is within an
+interval.
+Macro∗User-deﬁned performance concept composed of other operato rs.
+⊆ Boolean operator that determines whether a set is included i n or corresponds
+to another set.
+∨/∧ Boolean disjunction or conjunction of two logical expressi ons.
+¬ Boolean negation of a logical expression.
+⊲ ⊳ Arithmetic comparison of two numerical values.
+⊕ Arithmetic operation on two numerical values.
+Num A real number.
+Range A range of real numbers, deﬁned by a lower and an upper bound.
+Bool A Boolean value.
+Actions A system action.
+States A set of system states.
+StateFunc A real-valued function on a set of states.
+Table 1: Performance Tree nodes (∗denotes feature currently under development in PIPE2)
+
+--- Page 4 ---
+Figure 2: An example Performance Tree, shown in
+PIPE2 ’s Performance Query Editor.
+4. PARALLEL AND DISTRIBUTED PER-
+FORMANCEANALYSIS WITHPIPE2
+Figure 3: Performance Analysis Environment Ar-
+chitecture.Figure 3 shows the integrated performance analysis envi-
+ronment that provides users with the ability to design sys-
+tem models and to specify and evaluate performance queries.
+The environment consists of four components: the Analysis
+Client ( PIPE2 ), the Analysis Server, a set of Analysis Tools
+and the Analysis Cluster.
+Users interact directly with the client side implemented
+inPIPE2 , which allows them to create GSPN models and
+corresponding Performance Tree queries. The PIPE2 client
+communicates with the Analysis Server, which in turn in-
+teracts with a range of analysis tools hosted on a computing
+cluster to calculate the answer to the user’s query.
+AnalysisClient
+PIPE2 has the role of the client within the analysis envi-
+ronment, and is its only user-facing component. It is the
+gateway to the functionality provided by the analysis en-
+vironment’s other components, and allows users to create
+system models and Performance Tree queries. When the
+user initiates query evaluation, it communicates model and
+query data to the Analysis Server for further processing.
+As soon as the Analysis Server returns evaluation results,
+PIPE2 receives these and presents them visually to users.
+AnalysisServer
+The Analysis Server is responsible for handling evaluation
+requests issued by PIPE2 , and the coordination of the subse-
+quent performance query evaluation process. It is deployed
+on the Analysis Cluster’s primary host, and is continuously
+available to accept incoming analysis requests. The Analy-
+sis Server decomposes performance queries into subtrees an d
+sends these to specialised Analysis Tools for evaluation.
+AnalysisTools
+The evaluation of quantitative measures deﬁned in Perfor-
+mance Tree queries is ultimately carried out by a set of Anal-
+ysis Tools that are invoked by the Analysis Server. Tools
+that form part of the analysis environment are:
+DNAmaca [17] – a Markov chain steady-state analyser
+that can solve models with up to O(108) states. It performs
+functional and steady-state analyses, and computes perfor -
+mance statistics, such as the mean, variance and standard
+deviation of expressions computed on system states. In ad-
+dition, it also calculates mean rates of occurrence of actio ns.
+The raw distribution from which these performance statis-
+tics are calculated can also be obtained. DNAmaca is used
+for the evaluation of the SS:P and FR Performance Tree
+operators.
+SMARTA [18] – a distributed MPI-based semi-Markov re-
+sponse time analyser that performs iterative numerical ana l-
+yses of passage times in very large semi-Markov models (in-
+cluding GSPNs), using hypergraph partitioning and numer-
+ical Laplace transform inversion. SMARTA is suitable for
+the analysis of the PTD and Dist operators on GSPN models
+where start and target states are vanishing.
+HYDRA [18] – a distributed Markovian passage time anal-
+yser that uses hypergraph partitioning and uniformisation
+techniques. HYDRA is suitable for the evaluation of the
+PTD and Dist Performance Tree operators, and also fea-
+tures transient analysis capabilities that are useful for t he
+evaluation of the ProbInStates and StatesAtTime operators .
+MOMA [20] – an nthorder passage-time raw moment cal-
+culator for GSPN models that uses a Laplace transform-
+
+--- Page 5 ---
+based method. MOMA is used for the evaluation of the
+Moment operator when applied to a passage time density.
+CONE [20] – a performance analyser that, together with
+SMARTA , evaluates the convolution of two passage time
+densities using a Laplace transform-based approach. CONE
+is used for the evaluation of the Conv operator.
+PERC [20] – a performance analyser that calculates per-
+centiles of passage time distributions and densities. It wo rks
+in conjunction with SMARTA and is used for the evaluation
+of the Perctl operator.
+PROBI [20] – a performance analyser that calculates the
+probability with which a value sampled from a passage time
+density lies within a certain interval. PROBI is used for the
+evaluation of the ProbInInterval operator.
+AnalysisCluster
+Camelot , the computational cluster forming the backbone
+of the analysis environment, consists of 16 dual-processor
+dual-core nodes, each of which is a Sun Fire x4100 with two
+64-bit Opteron 275 processors and 8GB of RAM. Nodes are
+connected with both Gigabit Ethernet and Inﬁniband inter-
+faces. The Inﬁniband fabric runs at 2.5Gbit/s, and is man-
+aged by a Silverstorm 9024 switch. Job submission is han-
+dled by Sun GridEngine (SGE), a Grid management mid-
+dleware that conﬁgures and exposes Camelot as a computa-
+tional Grid resource. Clients submit sequential and parall el
+(MPI) jobs to SGE via the Distributed Resource Manage-
+ment Application API (DRMAA).
+5. PERFORMANCEQUERYEVALUATION
+Users interact with PIPE2 to design system models and
+performance queries. The tool also enables them to initiate
+the automatic evaluation of performance queries through
+a single button click, and provides them with an evalua-
+tion progress tracking and visual result feedback mechanis m.
+When a user requests a query’s evaluation, PIPE2 estab-
+lishes a connection with the Analysis Server in the back-
+ground, which in turn delegates the processing of individua l
+queries to dedicated analysis threads.
+Analysis threads process serialised versions of system mod -
+els and performance queries and construct an internal rep-
+resentation of the data. They decompose queries into a set
+of subtrees, and subsequently create helper threads for eac h
+subtree. Once a helper thread has been created, it sub-
+mits its subtree for evaluation in the form of an analysis
+job to SGE. Analysis jobs consist of analysis tool invoca-
+tion requests, based on the types of subtree nodes. Threads
+communicate with SGE via a DRMAA interface. SGE has
+built-in scheduling algorithms that are used to distribute
+jobs onto available processors on the analysis cluster.
+In the case where the evaluation of a subtree is condi-
+tional on results to be obtained from the evaluation of other
+subtrees, the job is suspended until all required inputs are
+available. Note that parallelism takes place on two levels
+during evaluation. Firstly, certain tools are able to carry
+out the evaluation of individual computation-intensive Pe r-
+formance Tree nodes in a parallelised manner. Secondly, if
+nodes within the query tree are independent of each other,
+they can be evaluated concurrently.
+To avoid redundant work, the Analysis Server incorpo-
+rates a disk-based caching mechanism that stores perfor-
+mance query evaluation results. In order to diﬀerentiate be -
+tween multiple queries on the same model, MD5 hashes of
+Figure 4: The result of evaluating the Performance
+Tree in Figure 2 using PIPE2 .
+the model description and the performance query speciﬁca-
+tion are calculated for each query. These are used to create a
+two-level structure in which the computed performance mea-
+sures can be stored. Before any computation takes place, a
+cache look-up for the hash of the given model is performed.
+If a match is found, the hash of the current query is com-
+pared to all hashes of queries in the cache that have been
+evaluated on that particular model. A match indicates that
+the query results can be retrieved from the cache. No match
+means that the query needs to be evaluated.
+Users can conﬁgure the analysis with regards to the num-
+ber of processors that are to be used during evaluation and
+also whether or not caching should be enabled. Users can
+also specify the time ranges of interest for measures such as
+passage time densities, or request that these are automati-
+cally computed to show the main region of probability mass.
+For more details of these mechanisms, see [7,20].
+As soon as each subtree evaluation completes, the Anal-
+ysis Server forwards its result to PIPE2 to be displayed to
+the user. This enables the user to inspect partial results
+before overall evaluation completes.
+6. CASE STUDY
+Figure 1 shows a GSPN model of a hospital’s Accident
+and Emergency (A&E) department after it has been input
+intoPIPE2 . The model describes a system with the follow-
+ing behaviour. An initial number of healthy individuals (on
+P11) fall ill at a certain rate and either go to the hospital
+themselves (via T14), in which case they are categorised as
+walk-in patients, or place an emergency call to request an
+ambulance (via T15). Once they have reached A&E, walk-in
+patients wait until they can be seen by a nurse for initial as-
+sessment, while ambulance patients are loaded onto a trolle y
+on which they wait until a nurse becomes available. Nurses
+assess ambulance patients with priority. After initial ass ess-
+ment, patients (now on P5) proceed to either be seen by a
+doctor (via T19), be taken for emergency surgery (via T18),
+or be sent for laboratory tests (via T20). Once a patient is
+discharged (via T9orT12), they are assumed to be healthy
+again.
+The model is parameterised with P,N,DandA, which
+denote the number of patients (on P11), nurses (on P3), doc-
+tors (on P8) and ambulances (on P15), respectively. Here,
+
+--- Page 6 ---
+we set P= 5,N= 2,D= 2 and A= 1. We wish to know
+whether or not the hospital is capable of processing all pa-
+tients within 5 hours with 98% certainty, and therefore use
+a Performance Tree query of the form shown in Figure 2.
+We deﬁne our start states as those where all ﬁve patients
+are on place P11and our target states as those where all ﬁve
+patients are on place P19.
+Figure 4 shows PIPE2 ’s evaluator window when this query
+has successfully completed analysis (shown by traﬃc light
+indicators against all nodes that require computation). Th e
+overall result (“false”) can be found by clicking on the top-
+most (“?”) node. The user can also click on other nodes to
+view sub-results – for example, clicking on the PTD node
+will display the full probability density function of the co m-
+puted passage time.
+7. CONCLUSIONSAND FUTUREWORK
+In this paper we have presented an overview of PIPE2 , a
+GSPN-based modelling and performance analysis tool. We
+have described its functionality, including its model desi gn
+facilities, and have introduced the distributed analysis e n-
+vironment that provides extensive performance evaluation
+features. We have described the components of this analysis
+environment, and have demonstrated how PIPE2 has been
+extended to support the graphical creation of Performance
+Tree queries, and how these queries are evaluated on a paral-
+lel and distributed analysis cluster. Future development w ill
+include the integration of a PEPA -based stochastic process
+algebra model speciﬁcation module and natural language-
+based performance query speciﬁcation. We will also be de-
+veloping methods for the optimisation and eﬃcient schedul-
+ing of computations in order to achieve improved analysis
+cluster response times.
+8. REFERENCES
+[1] PIPE2: Platform-Independent Petri net
+Editor – http://pipe2.sourceforge.net .
+[2] M. Ajmone Marsan, G. Conte, and G. Balbo, “A class
+of generalized stochastic Petri nets for the
+performance evaluation of multiprocessor systems,”
+ACM Transactions on Computer Systems , vol. 2,
+no. 2, pp. 93–122, May 1984.
+[3] P. Bonet, C. Llad´ o, R. Puigjaner, and
+W. Knottenbelt, “PIPE v2.5: A Petri net tool for
+performance modelling,” in Proc. 23rdLatin
+American Conference on Informatics (CLEI’07) , San
+Jose, Costa Rica, October 2007.
+[4] M. Meli` a, C. Llad´ o, R. Puigjaner, and C. Smith, “An
+experimental framework for PIPE2,” in Proc. 5th
+International Conference on the Quantitative
+Evaluation of Systems (QEST’08) , St. Malo, France,
+2008, pp. 239–240.
+[5] T. Suto, J. T. Bradley, and W. J. Knottenbelt,
+“Performance trees: A new approach to quantitative
+performance speciﬁcation,” in Proc. 14thIntl. Symp.
+on Modeling, Analysis and Simulation of Computer
+and Telecommunication Systems (MASCOTS’06) ,
+Monterey, CA, September 2006, pp. 303–313.
+[6] ——, “Performance trees: Expressiveness and
+quantitative semantics,” in Proc. 4thIntl. Conf. on
+the Quantitative Evaluation of Systems (QEST’07) ,
+Edinburgh, UK, September 2007, pp. 41–50.[7] D. K. Brien, N. J. Dingle, W. J. Knottenbelt,
+H. Kulatunga, and T. Suto, “Performance trees:
+Implementation and distributed evaluation,” in Proc.
+7thIntl. Workshop on Parallel and Distributed
+Methods in Veriﬁcation (PDMC’08) , Budapest,
+Hungary, March 2008, Work in Progress Report.
+[8] J. Guillen-Scholten, F. Arbab, F. de Boer, and
+M. Bonsangue, “Modeling the exogenous coordination
+of mobile channel-based systems with Petri nets,”
+Electronic Notes in Theoretical Computer Science , vol.
+154, no. 1, pp. 121–138, 2006, Proc. 4th International
+Workshop on the Foundations of Coordination
+Languages and Software Architectures
+(FOCLASA’05).
+[9] F. Bernardini, M. Gheorghe, F. Romero-Campero,
+and N. Walkinshaw, “A hybrid approach to modelling
+biological systems,” in Proc. 8th Workshop on
+Membrane Computing , vol. LNCS 4860. Springer,
+2007, pp. 138–159.
+[10] R. Chitrakar, “BPEL (Business Process Execution
+Language) – Speciﬁcation, modelling and analysis,”
+Master’s thesis, Univeristy of Illinois at Chicago, 2006.
+[11] A. Pe˜ narroya, F. Casado, and J. Rosell, “A
+performance analysis tool of discrete-event systems,”
+Institute of Industrial and Control Engineering,
+Technical University of Catalonia, Tech. Rep.
+IOC-DT-P-2007-1, 2007.
+[12] O. Bonnet-Torr´ es, P. Domenech, C. Lesire, and
+C. Tessier, “Exhost-PIPE: PIPE extended for two
+classes of monitoring Petri nets,” in Proc. 27th
+International Conference on Application and Theory
+of Petri Nets (ICATPN’06) , vol. LNCS 4024.
+Springer, 2006, pp. 391–400.
+[13] The Petri Net Markup Language –
+http://www2.informatik.hu-berlin.de/top/pnml/ .
+[14] D. Gaˇ sevi´ c, V. Devedˇ zi´ c, and N. Veselinovi´ c, “P3 –
+Petri net educational software tool for hardware
+teaching,” in Proc. 10th Workshop Algorithms and
+Tools for Petri Nets , Eichst¨ att, Germany, 2003, pp.
+111–120.
+[15] WoPeD: Workﬂow Petri Net
+Designer – http://www.woped.org/ .
+[16] H. Verbeek and W. van der Aalst, “Woﬂan 2.0: A
+Petri-net-based workﬂow diagnosis tool,” in Proc. 21st
+International Conference on Application and Theory
+of Petri Nets (ICATPN’00) , vol. LNCS 1825.
+Springer, 2000, pp. 475–484.
+[17] W. J. Knottenbelt, “Generalised Markovian analysis
+of timed transitions systems,” M.Sc. Thesis,
+University of Cape Town, South Africa, July 1996.
+[18] N. Dingle, “Parallel computation of response time
+densities and quantiles in large Markov and
+semi-Markov models,” Ph.D. dissertation, Imperial
+College London, United Kingdom, 2004.
+[19] N. Dingle and W. Knottenbelt, “Automated
+customer-centric performance analysis of Generalised
+Stochastic Petri nets using tagged tokens,” in Proc.
+Practical Application of Stochastic Models (PASM’08) ,
+Majorca, Spain, September 2008.
+[20] D. K. Brien, “Performance trees: Implementation and
+distributed evaluation,” M.Sc. Thesis, Imperial
+College London, United Kingdom, June 2008.

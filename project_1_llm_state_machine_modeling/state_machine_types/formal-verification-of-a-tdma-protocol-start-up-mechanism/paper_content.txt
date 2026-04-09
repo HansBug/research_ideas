@@ -1,0 +1,529 @@
+--- Page 1 ---
+Formal Verification of a TDMA Protocol Start-Up Mechanism1
+                                                          
+1 This work was sponsored by Volvo Research Foundation, NUTEK (Swedish Board for Technical Development), ASTEC (Advanced Softwar e TECh-
+nology) and TFR (Swedish Technical Research Council)Henrik Lönn
+Department of Computer Engineering
+Chalmers University of Technology
+412 96 Gothenburg, Sweden
+hlonn@ce.chalmers.sePaul Pettersson
+Department of Computer Systems
+Uppsala University
+Box 325, 751 05 Uppsala, Sweden
+paupet@docs.uu.se
+Abstract
+This paper presents a formal verification of the start-up
+algorithm of the DACAPO protocol. The protocol usesTDMA (Time Division Multiple Access) bus arbitration. Itwas verified that an ensemble of four communicating sta-tions becomes synchronized and operational within abounded time from an arbitrary initial state. The system
+model included a clock drift corresponding to ±10
+-3. The
+protocol was modeled using a network of timed automata,
+and verification was performed using the symbolic modelchecker UPPAAL.
+1. Introduction
+Distributed real-time systems are increasingly used in
+embedded applications, many of them safety-critical sys-tems, such as cars, aircraft and industrial robots. The com-puter architecture of such systems must meet several strin-gent requirements in terms of cost, reliability, testability,etc., and has therefore recently been the object of muchresearch.
+One crucial component of the distributed architecture is
+the communication system. This is the backbone of thesystem and has a large effect on its quality both in terms ofperformance and reliability.
+Assuming a broadcast bus as the communication media,
+TDMA-based protocols have several advantages [5]. Theyare particularly suitable for safety-critical architecturesbecause they facilitate clock synchronization without anymessage overhead [2] and support timely fault detection. InTDMA protocols, each node has a time slot where it hasexclusive access to the bus. Collisions are thus avoidedwithout the frame overhead incurred when using conten-tion-based protocols or the token recovery algorithmsneeded in token-based protocols.A characteristic of TDMA protocols is that clocks must
+be synchronized to guarantee collision-free broadcasts 
+two nodes may otherwise use the same time slot for trans-
+mission. On the other hand, messages must be broadcast todo clock synchronization.
+Since we consider a multi-master system in which all
+nodes are equals, it is not possible to allow nodes to waitfor initialization messages from a single master. We alsobelieve that the use of a unique “jam” signal for synchroni-
+zation [6] would make it difficult to detect and isolate anode that erroneously attempts to perform resynchroniza-tion.
+The start-up algorithms of the TTP [4] and DACAPO
+[9] TDMA protocols have informal descriptions in theirrespective references. The latter paper also presents simu-lations that give an idea of the worst case duration of thestart-up phase.
+In several applications, the reliability of the real-time
+system must be better than 10
+-8 failures per hour [11]. This
+failure probability is so low that validating it by means ofsimulation is exceedingly time-consuming and yet providesonly a probabilistic measure of correctness. The start-upalgorithm of communication should therefore be verifiedusing formal methods.
+This paper presents a rigorous description of a TDMA
+start-up algorithm using timed automata. The algorithm isthen verified for a system consisting of four computers,using symbolic model checking of a network of timedautomata representing the computer ensemble and the bus.It is verified that all stations were synchronized within acertain deadline. The UPPAAL [7] tool was used for thispurpose.
+The paper starts with a brief presentation of the
+DACAPO protocol and an informal description of howsynchronization is performed. Section 3 presents the notionof timed automata and a formal model of the protocol.Section 4 gives details on the verification of the protocol,and conclusions are presented in section 5.
+
+--- Page 2 ---
+2. Protocol Description
+This section briefly describes the protocol and the real-
+time architecture for which it is designed. In particular, thestart-up algorithm is described.
+2.1 General
+DACAPO, Dependable Architecture for Control of Ap-
+plications with Periodic Operation [10], is a conceptualcomputer architecture for safety-critical distributed real-time systems. The concept covers the complete computerarchitecture, but we will focus here on the communicationprotocol.
+The DACAPO protocol is intended for physically small
+distributed systems. The bus length is limited to tens ofmeters to avoid problems with large propagation delays,and the number of stations is less than about 40 for reli-ability reasons. Although the DACAPO concept prescribesa duplex bus to meet reliability requirements, this paperconsiders only operation on a single bus.
+The DACAPO protocol is controlled by time only.
+Time is divided into equally sized time slots, called TDMA
+slots, that are long enough for one message. An operational
+node broadcasts one message in its own TDMA slot. To
+minimize hardware complexity and allow simple errordetection, time slot i belongs to node i, i. e. the first timeslot belongs to node 0, the next to node 1, etc. up to thehighest node id. When all nodes have broadcast a message,a so called communication cycle  is completed. The com-
+munication cycle is repeated continuously during system
+operation, see Figure 1. The node sending order is the samein each communication cycle, but the data contents of anode’s message usually change.
+Each node thus needs a clock that indicates the duration
+of each TDMA slot and controls the transmission and re-ception of bits. We call this the Bit Clock , since it is syn-
+chronous with the bit stream broadcast on the bus. The Bit
+Clock will require relatively frequent adjustment owing toclock drift between nodes.
+Bits are NRZ encoded (non return to zero), i. e. each bit
+is transmitted as either a high or low signal. NRZ encodingreduces both bandwidth requirements and noise emissionas compared with encoding techniques with guaranteedtransitions (such as Manchester encoding). There is nocontinuous clock adjustment during the reception of a mes-
+sage. Since the messages exchanged in a control applica-tion are short – a requirement to limit control delays andallow a sufficiently high sampling frequency of the controlloops – adjustments during frame reception can beavoided.
+A Node ID Counter  in each node is used to keep track
+of the owner of each TDMA slot. The Node ID Counter is
+incremented each time the bit clock completes one TDMAslot interval.
+A minimum requirement of the clock in a TDMA sys-
+tem is shown in Figure 2. The non-shaded communication
+cycle count  is not used for the initialization of communica-
+tion and is not considered further.
+2.2 Bit Synchronization
+With TDMA communication, the arrival time of a mes-
+sage can be used as a clock reading. Since communicationis pre-scheduled, the local time of the sending node is im-plicitly known [2]. DACAPO uses the Daisy-Chain syn-chronization method [8]. With Daisy-Chain synchroniza-tion, the local clock is adjusted on each message arrival.Since nodes broadcast consecutively according to theTDMA schedule, they take turns in synchronizing the sys-tem in a Daisy-Chain manner. To avoid partitioning of thesystem into unsynchronized cliques, only nodes that aresynchronized with at least half of the ensemble may trans-mit messages. Correct synchronization is decided on thebasis of successful reception of a message.
+To achieve fault tolerance, a reception window is used.
+Only messages whose start of frame field, SOF, arrives
+within a narrow interval are accepted (Figure 3). The size
+of the reception window equals the length of the SOF field.
+CC: 0 1 ... CC max01
+Message
+from node: 0 1 ... max 0 1Communication Cycle, CCt
+t
+Figure 1. The Cyclic operation of DACAPOMinimum clock requirement for TDMA communication
+Node Id Count
+Counts TDMA
+slots
+(0.. nodemax)Bit Clock Count
+Counts bits
+(0..frametime)Communication
+Cycle Count
+Counts CC:s
+(0.. CC max)
+Figure 2. Time representation in each station
+Data frame
+sentMessage
+arrivalMessage
+arrivalBroadcast busNodes
+Expected arrival
+Deviation=Clock Readin gActual arrival
+timeReception window
+tDisturbances outsidereception window are
+discarded
+Figure 3. Exchange of clock readings.
+
+--- Page 3 ---
+2.3 TDMA Time Slot Synchronization
+Synchronizing the TDMA time slots is equivalent to
+synchronizing the Node ID Count part of the local clocks.To do this, messages with the sender’s Node ID Countmust be broadcast, which is a problem if bus synchroniza-tion has not yet been established. A carefully designedprocedure for initial synchronization of the TDMA timeslots is thus necessary.
+We use a state vector to describe the components of the
+internal state of the node that are relevant for the bus syn-chronization:
+{Bitclock count, Node ID count, Frame Error count, Mode}
+The first two items correspond to the local opinion on
+system time. The Error Count is increased each time an
+erroneous frame or an empty time slot is detected. It is
+decreased every time a message is received correctly.Mode is one of three protocol modes local to each node:
+Normal, Resynchronization or Recover.
+Node operation in the different internal Modes is as
+follows:
+1. Normal Mode:
+A. Broadcast frames according to the TDMA schedule.
+B. Assign the Node Id Count of each correctly re-
+ceived frame to the Node Id Count of the node.
+C. Increment Node Id Count by one in case of empty
+TDMA slot or erroneous frame reception
+D. Enter Resynchronization mode if messages from
+less than half of the nodes ( n/2 out of n) have
+been received correctly.
+2. Resynchronization Mode:
+A. Be Silent.
+B. Assign the Node Id Count of each correctly re-
+ceived frame to the Node Id Count of the node.
+C. Increment Node Id Count by one in case of empty
+TDMA slot or erroneous frame reception
+D. Enter Normal Mode as soon as messages from half
+of the nodes ( ≥n/2 out of n) have been received
+correctly.
+E. When bus has been completely silent for one Com-
+munication Cycle: Enter Recovery Mode
+3. Recovery Mode:
+A. Wait for the node’s own TDMA slot and broadcast
+one frame if the node is part of the recovery set . If
+the broadcast would occur in the first slot in Recov-
+ery Mode, it is postponed until the next TDMA slotbelonging to the node.
+B. Assign the Node Id Count of each correctly re-
+ceived frame to the Node Id Count of the node.
+C. Increment Node Id Count by one in case of empty
+TDMA slot or erroneous frame receptionD. Enter Normal Mode when messages from half of
+the nodes ( ≥ n/2 out of n) have been received cor-
+rectly.
+E. When one frame has been sent: Enter Resynchroni-
+zation Mode. If a collision was detected: reset thelocal Node Id Count.
+In all modes, Node ID Count is set to the ID of the
+sending node on successful reception of a message. This isreasonable, since it was possible to transmit the messagewithout collisions, and the sending node is thus likely tohave the correct time.
+The condition in 3A that a node may not broadcast in
+the first TDMA slot of recovery mode prevents a situationin which a fast node breaks bus silence before all nodeshave seen a full Communication Cycle without bus activ-ity. This would prevent the transition from Resynchroniza-tion Mode to Recovery Mode in these nodes. Only the firstnode would broadcast a message, and no node would re-ceive enough messages to enter normal mode.
+The broadcast in 3A may result in an infinite series of
+collisions for certain system sizes if all nodes broadcast inrecover mode. To avoid this, only members of the recovery
+set, a subset of all nodes,  may send a message. The nodes
+that will be members of the recovery set are selected be-
+fore run-time.
+In 3E, the Node Id Count is reset if a collision occurred
+to avoid a collision between the same stations if the start-up fails and a second transmission in recovery mode isnecessary. Together with the recovery set limitation, thismakes possible the completion of the start-up procedurewithout repeated collisions.
+3. Formal Description of the Protocol
+Our formal description of the protocol is written in the
+model of timed automata [1]. As the UPPAAL verificationtool will be used to verify the protocol, we use the ex-tended model of timed automata with data variablesadopted in the tool.
+The following gives a brief explanation of the model.
+We refer the reader to [7] for a thorough explanation of themodel.
+3.1 The Model
+A timed automaton  is a (non-deterministic) finite state
+automaton composed of edges and vertexes and extended
+with real-valued clocks and integer variables. Clocks pro-ceed at the same rate and measure the time since they werereset. Integer variables are finite domain variables withrate zero.
+
+--- Page 4 ---
+In a timed automaton, the unconditional transition of a
+finite state automaton is extended to a triple consisting of aguard, a synchronization label and an assignment. Theguard is a conjunction of simple constraints on the form: v
+~ n where v is a variable, n is a natural number (or zero),
+and ~ is one of <,≤ , =,≥ , >. An edge is said to be enabled
+if its guard is satisfied by the current clock values. An as-
+signment is in the form: x := n or i := i + k  where x is a
+clock, i is an integer variable and k is an integer constant.
+A transition's synchronization label  is either omitted or in
+the form a! or a? where a is the name of a channel and a!
+is the complement to a?.
+A network of timed automata is a collection of timed
+automata connected with synchronization channels. The
+state of the network is described by a continuous part rep-
+resenting the clock values and a discrete part representing
+the location of the automata and the values of the integervariables. The continuous part of the state changes asmodel time progresses. The discrete part may change if atransition is enabled and does not have a synchronizationlabel. Alternatively, a hand-shaking synchronization be-tween a pair of automata may take place if their transitionsare enabled simultaneously and they have complementarysynchronization labels.
+Various ways of enforcing discrete transitions in the
+network are provided. Automata locations may be labeledwith invariants  (in e. g. Figure 6, the name of the location
+is marked with a simple clock constraint enclosed within
+parentheses) that require discrete transitions to be takenwithin a certain time bound. Locations may also be labeledas committed  (marked with the prefix c: in the location
+name), requiring a discrete transition involving the
+automaton to be taken immediately [3]. Finally, channelsmay be declared as urgent, requiring processes to synchro-
+nize as soon as possible, i. e. when the relevant transitions
+are enabled [7].
+3.2 Assumptions
+Our model is based on the following assumptions re-
+garding the bus communication:
+• Clock precision among the station clocks is +/- 10-3
+The DACAPO protocol is intended for systems with
+low precision oscillators, and the model must there-fore contain a certain clock drift.
+• A message is always received correctly if it arrives
+within the reception window and no collision oc-curs.We have assumed a clock drift that is sufficientlylow to prevent a sender and receiver from driftingapart during message reception.• There is no propagation delay on the bus
+In a TDMA system that is scheduled before run-time, the propagation delay for each message can becalculated before runtime. Since the sender isknown, compensation can be made for the propaga-tion delay before the local clock is adjusted.
+• Broadcast messages are never corrupted unless two
+or more messages collideWe do not assume any transient or permanentcommunication faults. Disturbances on the bus, forexample, may have caused the initial loss of syn-chronization, but we assume that there are no fur-ther faults during the execution of our model.
+3.3 The system model
+Start of transmission:
+FTOBUS! (Sending station → bus)
+Transmission completed:
+FFROMBUS! (Sendin g station→ bus)
+tReception started:
+SOF! (Bus → receiving stations)1 TDMA slot
+(#frameperiod)1 frame
+(#framelength)
+Figure 4. Successful transmission and reception.
+During system operation, messages are sent and re-
+ceived over a broadcast bus. The main components of thesystem model are a bus automaton and several stationautomata. The stations represent computer nodes in thedistributed system.
+When a message is broadcast, the sender synchronizes
+with the bus automaton (see Figure 6) over the channelFTOBUS (see Figure 4). This puts the bus automaton in astate in which it permits synchronization with any receiverthrough the SOF channel to model the reception of the startof frame field.
+If collisions occur, the transmitters following the first
+one synchronize with the bus over the JAMTOBUS chan-nel (See Figure 5).
+The JAM channel is used to model reception of cor-
+rupted messages, either as the result of a collision or be-cause the start of frame was missed.
+Start of transmission:
+FTOBUS! (Sending station → bus)
+Transmission with collision com pleted:
+JAMFROMBUS!
+Sending stations → bus
+tReception started:
+SOF! (Bus → receiving stations)Collision:
+JAMTOBUS! (Second sending station → bus)
+Reception of corrupted frame started:
+JAM! (Bus → receiving stations)
+Figure 5. Message transmission with collision
+
+--- Page 5 ---
+The presence of a message on the communications bus
+is indicated by the variable busid. It takes the value #noid
+if the bus is idle or if a collision has occurred, or #0, #1, ...
+#nodemax  depending on which node sent the message. A
+receiver must see a valid busid at the end of a message
+reception; otherwise, the message is considered corrupted.
+The bus automaton is depicted in Figure 6. The Appen-
+dix (Table 2) gives a key to variables and constants used.
+bus
+collision2asend
+(busclock<1)idlebusy
+collision2bcollision4 collision3JAMTOBUS?
+JAMFROMBUS?
+busclock:=0JAM!JAMTOBUS ?, busid:=99
+FFROMBUS?
+busid:=99busclock:=0SOF!
+busclock>0FTOBUS?
+busclock:=0JAM!
+JAMTOBUS?
+busid:=99
+FFROMBUS?busid:=99busclock:=0
+JAMFROMBUS ?
+busclock:=0JAMFROMBUS ?JAM!
+JAMFROMBUS?JAMTOBUS?JAM!
+Figure 6 Timed Automaton describing the bus
+3.4 The station automaton
+The station automaton models the protocol behavior in
+each computer node. Figure 9 contains the completeautomaton annotated with labels on the important transi-tions described in Section 2.3. Figure 9 contains the com-plete automaton.
+The automaton is divided in three areas, belonging to
+Normal, reSynchronization and Recover mode, respec-tively. Location names in these modes are identical whereapplicable, but end with N, S, and R to distinguish betweenthem. Clock variables, integer variables, and constantsused in the automaton are listed in Table 2. In the descrip-tion below, identifiers are indicated according to state,
+variable, and #constant depending on type.
+To model clock drift, each guard containing a clock
+variable is transformed to an interval corresponding to thesize of clock drift. This is done automatically by the tool.Because the model checker investigates all possible sce-narios, a transition may be taken both early (fast clock) andlate (slow clock) in the interval.
+Before the protocol begins to execute, 
+bitclock and id-
+count are initialized to random values. Bitclock is initial-
+ized by allowing the automaton to take its first transition atany time in the interval [0.. #frameper ]. 
+idcount is initial-
+ized by an external initialization automaton.
+A station waits for any bus activity in location Open. It
+waits for #winsize  time units in Normal mode and for the
+duration of the entire TDMA slot in the two other modes.When a synchronization with the bus is done, the 
+bitclock
+is reset to agree with the arrival time of the bus activity,and the counter 
+silence is reset.
+If a SOF synchronization is done, the station enters Re-
+ceiving for #framesize  time units. If no collision hasoccurred after this time, the busid equals the id of the
+sending node and idcount is assigned this value. If a JAM
+synchronization occurs or an initiated message receptionfails, 
+idcount is temporarily left unchanged.
+If it is not possible to receive a message, bitclock is re-
+set and idcount is incremented at the end of the TDMA
+slot. The error counter errcount is also incremented and, if
+no bus activity has occurred, silence is incremented.
+When the various counters have been incremented at the
+end of a TDMA slot, the station may change mode. Modechanges to Normal mode are made when 
+errcount falls to
+#errmax. In Resynchronization mode, a mode change to
+Recover mode is done when silence reaches
+#silencetime . Unless it was possible to reach normal
+mode, the station goes back to reSynchronization modeafter the transmission of one frame.
+At the end of the TDMA slot, a decision on message
+transmission is made as well. In Normal mode, a stationenters send if 
+idcount indicates that it owns the next
+TDMA slot. In Recover mode, send is entered only if
+silence is zero as well. This guarantees that a message is
+not sent in the first TDMA slot in Recover mode, since
+silence is not reset until after the first slot.
+4. Verification
+A system consisting of four stations connected to a
+communication bus was modeled to verify the correctnessof the start-up protocol. Each station was modeled as aninstance of the station automaton (i.e. gci_0, gci_1, etc ).
+Station 3 was not permitted to broadcast in recover mode
+(it was not part of the recovery set), since this would causerepeated collisions. The bus automaton was used to modelthe communication bus. In addition, a test automaton wasincluded to support verification.
+The protocol was validated and verified using the
+UPPAAL tool-box [7]. The model checker in UPPAALallows for verifications of invariant and bounded-livenessproperties of networks of timed automata. An invariant
+property is in the form “p is always true” and may be used
+to verify that certain unexpected situations never occur,e.g. “automaton A will never reach location bad”. A
+bounded-liveness  property of the form “p is guaranteed to
+hold within time t” may be used to verify that an expected
+situation occurs within a specified time bound. This prop-erty can be verified by including the state of a testautomaton in the invariant expression. For example, ifautomaton test transits from state initial to expired at
+time t, the bounded-liveness property would be “automatontest in location expired implies that automaton A is in
+location ready”.
+
+--- Page 6 ---
+4.1 Correctness Properties
+The main correctness property of the start-up protocol
+requires all stations to enter normal mode within a boundedtime (#deadline time units). To conveniently express this
+property, an auxiliary integer variable 
+n was used. n is
+incremented when a station enters normal mode (i.e. onedges 2D and 3D in Figure 9) and decremented when itexits (i.e. on edge 1D). A test automaton that transits from
+start to normal at time #deadline  was also included, see
+Figure 7.
+Formula 1 requires all stations to be in normal mode
+when test has left start, i. e. at time #deadline :
+Inv ( ( not test. start) → ( n==4 ) ) (1)
+We must also verify that the protocol operates correctly
+in Normal mode. To do this, the test automaton has a state
+error that is entered unless there is a bus transmission
+once every TDMA slot, and the broadcast order is 0, 1, 2,3, 0, 1, 2, 3, etc. Formula 2 expresses the correctness prop-erty that test never reaches error.
+Inv (not test. error) (2)
+Both these formulas were verified to hold. Moreover,
+the tool verified that the system never reached a deadlock,a check that is necessary to make Formula 2 meaningful.Otherwise, it could have been the deadlock, rather thancorrect operation of the protocol, that prevented the testautomaton from reaching test. error.
+The verification consumed a great amount of time and
+memory. Table 1 summarizes the resource requirements ona SUN UltraSparc II 250MHz. With 5 stations, 2 Gb ofmemory was not sufficient, even when no clock drift wasincluded.
+Memory usage Execution Time
+3 stations, no clock drift 5 Mb 50s
+3 stations, clock drift 10 Mb 190s
+4 stations, no clock drift 83 Mb 640 min
+4 stations, clock drift 541 Mb 8900 min
+Table 1. Resource usage for verification
+4.2 Duration of Start-Up
+The lowest upper bound on #deadline  was established
+by iterating the verification with increasing #deadline
+until (1) and (2) were satisfied. The worst case scenario
+(the largest #deadline  where (1) did not hold) occurred
+when there was a collision between two nodes during thefirst transmission attempt, see Figure 8. After the collision,the duration of the TDMA slot was longer than nominal fornodes 2 and 3. This is because, in the worst case, a bitclock synchronization may occur at the end of the nominalTDMA slot when a corrupted message is present. Timewas thus set back an entire TDMA slot, and the node ids ofthese stations were not incremented at the normal time.
+The total delay until all nodes were in Normal Mode
+was found to correspond to about 21 TDMA slots.
+5. Conclusions
+We have described the start-up algorithm of a TDMA
+protocol for distributed systems with a broadcast bus. Thestart-up algorithm was verified for a system with four sta-tions using symbolic model checking of a network of timedautomata. Maximum duration of the start-up phase corre-sponded to 21 TDMA time slots and occurred if there wasa collision on the first transmission attempt.test
+start
+(realtime<=#deadline)normal
+(realtime<=#frameper+#halfwin)waiting
+(realtime<=#frameper+#halfwin)errorreceived
+(realtime<=#halfwin)realtime==#deadlinerealtime:=0realtime==#frameper+#halfwin
+SOF?
+expected:=busid
+realtime:=0realtime==#frameper+#halfwin
+SOF?
+realtime:=0SOF?realtime:=0
+busid!=expectedrealtime==#halfwin
+busid==expectedexpected:=busid+1
+Figure 7. Test automaton used to ex-
+press correctness properties.
+0120 0000 1111 2222 3333 0000 2222 3333 0000 1111
+Silence, Collision Broadcast Silence Broadcast
+5 TDMA slots 1-2 0 5 TDMA slots 2 - 0 1 Node Id count, of  station 0, 1 2 and 3 (At beginning of slot) Activity
+t
+(A fictive global timewith time slot lengthsmarked)
+Figure 8. Worst case scenario.
+
+--- Page 7 ---
+The verification presented in this paper applies to four
+stations. Since any real system will contain more stations,this work will have to be extended. However, even the fourstation system is large compared with other examples veri-fied using symbolic model checking with real-time sup-port. Consequently, an extension to five or more nodes willbe very challenging.
+As regards the protocol functionality, the DACAPO
+protocol uses ordinary messages in the start-up phase anddistributes data during this period. Although it may takeseveral TDMA slots before all nodes have reached NormalMode, this therefore does not mean that the communica-tion service is unavailable for the duration of that period.
+This can be compared to the Time Triggered Protocol
+(TTP), where a Blackout monitoring mode is entered whensynchronization is lost [4]. In Blackout monitoring mode,special frames containing current time and system statusare sent, but user data is not distributed. Also, if a nodeloses synchronization while the rest of the ensemble con-tinues normal operation, it must wait for a reintegration
+frame to be broadcast. These are only sent periodically, as
+defined by the applications programmer.
+Including system time in each frame as in DACAPO
+does cause some overhead, but single-node recovery canbe done very rapidly and re-integration frames can beavoided altogether.
+References
+[1] Alur, R. and D. Dill: Automata for Modelling Real-Time
+Systems. In: Proc.of International Colloquium on Automata,Languages and Programming ‘90, lecture Notes in Com-puter Science, vol 443, Springer-Verlag, 1990
+[2] Babaglou, Ö. and R. Drummond: “(Almost) no cost clock
+synchronization”, 
+Proc. 17th IEEE International Sympo-
+sium on Fault-Tolerant Computing , FTCS-17, Pittsburgh,
+PA, USA, 1987.[3] Bengtsson, J., W. O. D. Griffioen, K. J. Kristoffersen, K. G.
+Larsen, F. Larsson, P. Pettersson and W. Yi.: “Verificationof an Audio Protocol with Bus Collision Using UPPAAL”In: Proc. 8
+th Int. Conference on Computer-Aided Verifica-
+tion. New Brunswick, New Jersey, USA, 1996. LNCS
+1102, pages 244-256, R. Alur and T. A. Henzinger (Eds.).
+[4] Kopetz, H. and G. Grünsteidl: “TTP–A Protocol for Fault-
+Tolerant Real-Time Systems”, IEEE Computer , January
+1994, pp. 14-23.
+[5] Kopetz, H.: “Should Responsive Systems be Event-
+Triggered or Time Triggered?”, IEICE Trans. on Informa-
+tion and systems,  Vol. E76-D No. 11, Nov 1993, pp. 1325-
+32.
+[6] Koopman, P. J. and B. P. Upender: “ Time Division Multi-
+ple Access Without a Bus Master“, United TechnologiesResearch Center Technical Report RR-9500470, 1995.
+[7] Larsen, K. G., P. Pettersson and , Y. Wang: “UPPAAL in a
+nutshell”. To appear: International Journal on Software
+Tools for Technology Transfer , Springer Verlag, September
+1997.
+[8] Lönn, H. and R. Snedsböl: “Synchronization in Safety-
+Critical Distributed Control Systems”, Proc., IEEE Inter-
+national Conference on Architectures and Algorithms for
+Parallel Processing 1995, Brisbane, Australia, 1995.
+[9] Lönn, H. and R. Snedsböl: “Efficient synchronization,
+atomic broadcast and membership agreement in a TDMAprotocol”. Proc. ISCA International Conference.on Parallel
+and Distributed Computing Systems , Dijon, France, 1996.
+[10] Rostamzadeh, B., H. Lönn, R. Snedsböl and J. Torin:
+“DACAPO: “A Distributed Computer Architecture forSafety-Critical Control Applications” Proc. IEEE Interna-
+tional Symposium on Intelligent Vehicles , Detroit, MI,
+USA, 1995.
+[11] Torin, J: Dependability in Complex Automotive Systems.
+Requirement Directions and Drivers. In: Proc. Workshop on
+Safety and Reliability Engineering of Future Prometheus
+System, Nürtingen, Germany, 1992.
+
+--- Page 8 ---
+6. Appendix
+gci_i
+sendN
+(bitclock_i<=#frameper)receivingN
+(bitclock_i<=#frametime)
+openN
+(bitclock_i<=#winsize)
+c:updateRclosedN
+(bitclock_i<=#frameper-#halfwin)
+sendingR
+(bitclock_i<=#frametime+#halfwin)sendR
+(bitclock_i<=0)c:chooseRopenR
+(bitclock_i<=#frameper)openS(bitclock_i<=#frameper)c:chooseSstart
+(bitclock_i<=#frameper)
+receivingS
+(bitclock_i<=#frametime)
+receivingR
+(bitclock_i<=#frametime)sentN
+(bitclock_i<=#frametime+#halfwin)
+sentR
+(bitclock_i<=#frameper-#halfwin)receivedR
+(bitclock_i<=#frameper-#halfwin)receivedS
+(bitclock_i<=#frameper-#halfwin)c:recfailedN
+jamS
+(bitclock_i<=#frametime)
+jamR
+(bitclock_i<=#frametime)c:updateSbitclock_i==#frameper-#halfwinidcount_i==#iSOF?, silence_i:=0bitclock_i:=0
+errcount_i==#nodemaxerrcount_i<#nodemaxidcount_i!=#i+1errcount_i:=errcount_i+1errcount_i<=#errmax, n:=n+1errcount_i<=#errmax, n:=n+1
+FTOBUS!busid:=#ibitclock_i==#frameperidcount_i==#i-1silence_i==0bitclock_i:=0bitclock_i==#framepersilence_i>=#silenttimebitclock_i==#frameper-#halfwinidcount_i!=#i, bitclock_i:=0
+bitclock_i<=#frameper
+bitclock_i:=0errcount_i:=#nodemaxbitclock_i==#frametime, busid!=#noid, idcount_i:=busid+1, errcount_i:=0
+bitclock_i==#frametimebusid!=#noid, idcount_i:=busid+1errcount_i:=errcount_i-1
+bitclock_i==#frametimebusid!=#noid, idcount_i:=busid+1errcount_i:=errcount_i-1SOF?, bitclock_i:=0, silence_i:=0SOF?, bitclock_i:=0silence_i:=0
+JAMTOBUS!bitclock_i==#frameper, FTOBUS!idcount_i:=#i, busid:=#i, bitclock_i:=0
+bitclock_i==#frametime+#halfwinFFROMBUS!idcount_i:=idcount_i+1
+bitclock_i==#frametime+#halfwin
+FFROMBUS!idcount_i:=#i+1
+bitclock_i==#frameper-#halfwin, bitclock_i:=0errcount_i>#errmax
+bitclock_i==#jamtime
+JAMFROMBUS!idcount_i:=#0bitclock_i==#frametime, busid==#noidbitclock_i==#frametimebusid==#noid, silence_i:=-1
+errcount_i>#errmaxbitclock_i==#frameper-#halfwinbitclock_i:=0bitclock_i==#frameper, JAMTOBUS!bitclock_i:=0
+bitclock_i==#jamtime
+JAMFROMBUS!
+idcount_i:=#0bitclock_i==#winsizeerrcount_i:=errcount_i+1
+JAM?, bitclock_i:=0errcount_i:=errcount_i+1errcount_i<=#errmaxidcount_i==#nodemaxidcount_i:=0errcount_i<=#errmaxidcount_i<#nodemaxidcount_i:=idcount_i+1
+errcount_i>#errmax, n:=n-1, errcount_i:=#errmaxbitclock_i==#frametimebusid==#noiderrcount_i:=errcount_i+1
+JAM?bitclock_i:=0 bitclock_i==#frametime
+silence_i:=-1
+JAM?bitclock_i:=0bitclock_i==#frametime
+bitclock_i==#frameperidcount_i==#i-1silence_i>0
+bitclock_i:=0silence_i:=0idcount_i:=idcount_i+1bitclock_i==#framepersilence_i<#silenttimebitclock_i:=0idcount_i:=idcount_i+1
+silence_i:=silence_i+1idcount_i!=#i+1errcount_i<#nodemaxerrcount_i:=errcount_i+1
+idcount_i==#i+1errcount_i==#nodemax
+bitclock_i==#frameper-#halfwin, idcount_i==#i, idcount_i:=#i-1
+bitclock_i==#frameper-#halfwin, idcount_i!=#i, bitclock_i:=0
+idcount_i==#i+1bitclock_i==#frameperidcount_i!=#i-1bitclock_i:=0silence_i:=0idcount_i:=idcount_i+11D1C1B
+1A
+2D
+2C2B
+2E
+3A3C3D
+3E
+Note: Calculations involving idcount_i are made modulo #nodeant.
+Figure 9. Timed Automaton describing the station.
+Clocks
+bitclock_i The local clock source for station #i
+Busclock The bus clock source. Used to enforce immediate delivery of messages
+Channels
+SOF Start Of Frame indication. Used to synchronise bit clock and start message reception
+JAM Bus activity indication. Used to synchronise bit clock.
+FTOBUS Indicates that a frame is broadcast to the bus
+FFROMBUS Indicates that a frame is removed from the bus
+JAMTOBUS Indicates that a frame is broadcast to the bus while it is busy (Resulting in a corrupted frame)
+JAMFROMBUS Indicates that a corrupted frame is removed from the bus
+Integer variables
+idcount_i node id of the owner of the current TDMA time slot
+silence_i number of TDMA time slots without bus activity
+errcount_i number of empty or erroneous messages. Increased on TDMA slots with empty or erroneous messages
+busid node id in the message on the bus
+n Number of stations in normal mode. Used for invariant expressions during verification.
+Constants
+#frameper Time between start of a TDMA slot, 224
+#frametime Length of a message frame, 218
+#jamtime Maximum duration of a tranmission of a corrupted message, 219
+#nodeant Number of nodes in the system, 4
+#nodemax The largest node id used (#nodeant-1) 3
+#winsize The size of the reception window, 2
+#halfwin The midpoint of the reception window (#winsize/2), 1
+#noid Bus id used to indicate an idle bus, 99
+#errmax Maximum number of errors tolerated in Normal mode (  (#nodeant-1)/2  ), 1
+#silenttime Number of silent TDMA slots before entering Recover Mode -1 (#nodeant-1), 3
+#i Local node id, in the interval [0..#nodemax].
+Table 2. Clock variables, integer variables and constants used in the automata.

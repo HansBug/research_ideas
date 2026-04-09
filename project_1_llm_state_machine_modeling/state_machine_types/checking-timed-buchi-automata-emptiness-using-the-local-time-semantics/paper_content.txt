@@ -1,0 +1,1424 @@
+--- Page 1 ---
+Checking Timed Büchi Automata Emptiness Using
+the Local-Time Semantics
+Frédéric Herbreteau /envel⌢pe
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR 5800, F-33400, Talence, France
+B. Srivathsan /envel⌢pe
+Chennai Mathematical Institute, India
+CNRS IRL 2000, ReLaX, Chennai, India
+Igor Walukiewicz /envel⌢pe
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR 5800, F-33400, Talence, France
+Abstract
+We study the Büchi non-emptiness problem for networks of timed automata. Standard solutions
+consider the network as a monolithic timed automaton obtained as a synchronized product and build
+its zone graph on-the-fly under the classical global-time semantics. In the global-time semantics, all
+processes are assumed to have a common global timeline.
+Bengtsson et al. in 1998 have proposed a local-time semantics where each process in the network
+moves independently according to a local timeline, and processes synchronize their timelines when
+they do a common action. It has been shown that the local-time semantics is equivalent to the
+global-time semantics for finite runs, and hence can be used for checking reachability. The local-time
+semantics allows computation of a local zone graph which has good independence properties and is
+amenable to partial-order methods. Hence local zone graphs are able to better tackle the state-space
+explosion due to concurrency.
+In this work, we extend the results to the Büchi setting. We propose a local zone graph
+computation that can be coupled with a partial-order method, to solve the Büchi non-emptiness
+problem in timed networks. In the process, we develop a theory of regions for the local-time
+semantics.
+2012 ACM Subject Classification Theory of computation →Verification by model checking
+Keywords and phrases Timed Büchi automata, local-time semantics, zones, abstraction, partial-order
+reduction
+Digital Object Identifier 10.4230/LIPIcs.CONCUR.2022.12
+Funding Frédéric Herbreteau : ANR project Ticktak (ANR-18-CE40-0015)
+Igor Walukiewicz : ANR project Ticktac (ANR-18-CE40-0015)
+1 Introduction
+Timed automata [ 2] are a popular model for real-time systems. Typically, systems are
+modeled as a network of timed automata that communicate with each other via synchronizing
+actions. We are interested in verifying Büchi properties of such models: does there exist
+a run of the network that executes transitions from a given set infinitely often? This is
+called the Büchi non-emptiness problem. Model checking LTL specifications can be reduced
+to the Büchi non-emptiness problem. Moreover, verifying Büchi properties can be useful
+in trouble-shooting the model under consideration, for example, a typo in the benchmark
+CSMA/CD protocol model was discovered through a Büchi property verification [ 18]. Recent
+works go even further and consider synthesis questions for Büchi timed automata [3, 8].
+Existing algorithms for the Büchi non-emptiness problem view the network as a single
+timed automaton obtained by a synchronized product, and build the so-called zone graph of
+this product automaton on-the-fly [ 29,28,25,23,18]. The main challenge lies in guaranteeing
+©Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz;
+licensed under Creative Commons License CC-BY 4.0
+33rd International Conference on Concurrency Theory (CONCUR 2022).
+Editors: Bartek Klin, Sławomir Lasota, and Anca Muscholl; Article No.12; pp.12:1–12:24
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+12:2 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+the termination of the zone graph computation. This is achieved through a finite abstraction
+of the zone graph that preserves the Büchi property. The aim of course is to get as
+small a graph as possible. This has been the central subject of study in timed automata
+verification [ 11,7,4,21,20]. As a matter of fact, new abstraction methods are usually first
+studied in the context of reachability verification and then lifted to the Büchi setting. In
+this paper, we continue this trend by extending a recent work on abstractions based on the
+local-time semantics [15], to the Büchi non-emptiness problem.
+The local-time semantics for timed automata networks was proposed by Bengtsson et
+al.[5] with the aim of applying partial-order reduction methods that can exploit the network
+representation of the model to build a smaller zone graph. In the local-time semantics, each
+process in the network moves independently according to its local timeline which contrasts
+with the standard semantics where time elapses synchronously in all the processes. When
+processes perform a shared action, they synchronize their local timelines. This semantics gives
+good independence properties: for instance, if aandbare actions performed by processes
+PaandPb, an execution (a,2)(b,1)meansahappens when the local time of Pais2andb
+happens when local time of Pbis1. There is no “happens-before” between (a,2)and(b,1).
+The local-time semantics leads to a local-zone graph computation in which performing ab
+orbafrom a local-zone leads to the same local-zone. This diamond property is essential
+for applying partial-order reduction methods. In [ 15] we have proposed abstractions for the
+local zone graph that can be coupled with partial-order methods to solve the reachability
+problem. Extending these methods to the Büchi non-emptiness problem, poses certain
+technical questions and requires some adaptations of the setting. We settle these issues here.
+1.1 Contributions
+The first question is whether the local-time semantics is sound for Büchi runs: does existence
+of an infinite Büchi run in the local-time semantics ensure existence of an infinite Büchi run in
+the usual global-time semantics? Surprisingly, we answer in the affirmative without any extra
+assumption. This said, let us remark that this is not true if one allows invariants in states.
+The solution is significantly different from the soundness argument used for reachability
+where the last valuation of a local run needs to be synchronized.
+The next question is whether the local-zone graph is sound for Büchi runs: does an infinite
+Büchi run in the local-zone graph ensure existence of an infinite Büchi run in the local-time
+semantics. For every finite prefix, we can get a finite run in the local-time semantics. But the
+question of whether these prefixes can be glued together to form an infinite run is non-trivial.
+The same question arises in the global-time semantics as well, and there the solution makes a
+crucial use of Alur-Dill regions [ 2]. For the local-time semantics, there is no known notion of
+a region equivalence. We have shown [ 15] that in general, there can be no finite time-abstract
+bisimulation for the local-time semantics and proposed to restrict attention to a class of
+networks called bounded spread networks. Every network can be converted to a bounded
+spread network at the cost of reducing concurrency. In this work, we develop a finite region
+equivalence over the local-time semantics for bounded spread networks.
+Finally, we prove that the combination of the abstraction from [ 15] and partial-order
+reduction can be suitably applied on the local-zone graph to solve the Büchi non-emptiness
+problem. For the argument to work we need to assume that the network is deterministic.
+This is usually not a strong assumption, as a network can be made deterministic by renaming
+actions. The proof of correctness appropriately combines the guarantees known over finite
+runs and the region machinery developed above.
+
+--- Page 3 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:3
+We remark that we do not propose here a concrete POR method. Instead, we consider
+a POR method as an oracle that assigns a subset of edges to be explored from each node
+of the local-zone graph. Our work can be seen as a theoretical development that allows to
+plug in any POR method which is correct for the Büchi problem on untimed networks, to
+timed networks. Most recent works in the POR literature consider a very special case where
+every process is acyclic and has at most one outgoing action in every state [ 1,33,9,22]. As
+a further work we would like to have equally efficient methods for more general settings as
+considered in works on stubborn/ample/persistent sets [30, 27, 13, 32].
+1.2 Related Work
+The early abstraction methods studied for timed automata depended on the maximum
+constant appearing in the automaton [ 11,7]. These abstractions were extended to Büchi
+runs by Tripakis et al.[29,28]. Later, superior abstractions were proposed based on the
+maximum constant Loccurring in lower bound guards (x > c,x≥c)and the maximum
+constantUoccurring in upper bound guards (x<c,x≤c)[4]. Li [25] showed that these
+LUabstractions can be used to solve Büchi non-emptiness problem.
+An abstraction method comes with an operator athat can be applied on zones Z. For
+reachability, it is enough to check a(Z)⊆a(Z′)(called a subsumption) to discard further
+exploration from Zand continue from Z′. On the other hand, for Büchi non-emptiness, we
+need to check for equality a(Z) =a(Z′). Subsumptions are instrumental in reducing the
+size of the graph obtained. For the Büchi problem, a restricted usage of subsumption is
+possible [ 23,18]. However, the gains due to this restricted subsumption are less pronounced in
+the Büchi setting as compared to the gains achieved for reachability. There is even a concrete
+argument to support this statement: deciding Büchi non-emptiness starting from a zone
+graph with subsumption is PSpace-hard [18]. The moral is that graphs computed for the
+Büchi problem are in general expected to be much larger than the reachability counterparts.
+In this situation it is even more interesting to use POR to reduce their size.
+POR techniques have been applied for the reachability problem, but over the zone graph
+computed using the standard global-time semantics. There is much less independence in the
+global-time zone graph and the POR method needs to be restricted accordingly. Therefore
+some approaches limit the POR methods to parts where independent actions occur in zero
+time [26,24,6], and other approaches discover which actions remain independent either
+statically [10] or dynamically [17].
+1.3 Outline of the Paper
+In the next section we introduce networks of timed automata and their local-time semantics.
+Standard global-time semantics is a special case of the local-time semantics. We define the
+Büchi non-emptiness problem over the global-time semantics. In Section 3 we show that
+for the Büchi non-emptiness problem it is sound to use the local-time semantics instead of
+the global one. We also recall local-zones, local-zone graphs and their properties from [ 15].
+In Section 4, we develop a theory of regions for the local-time semantics. We employ the
+concept of a bounded spread network from [ 15], and show that for such networks the number
+of regions is finite if we have a bound on the constants used in the guards of the transitions.
+Finally, in Section 5 we recall the abstraction operation aD
+≼LUfrom [15], introduce an abstract
+notion of a POR method based on a source function, and show how to obtain a finite
+abstract local-zone graph where we can use a POR method while retaining soundness and
+completeness for Büchi runs. Missing proofs are presented in appendices.
+CONCUR 2022
+
+--- Page 4 ---
+12:4 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+2 Preliminaries
+We write R,R≥0andNfor the set of reals, non-negative reals and natural numbers,
+respectively. We will write 2Sfor the power set of a set S. LetXbe a set of real valued
+variables. A constraint over Xis described by the grammar: ϕ:=x#c|ϕ∧ϕ, wherex∈X,
+c∈Nand#∈{<,≤,=,>,≥}. Let Φ(X)denote the set of all constraints over X.
+Anetwork of timed automata Nis a tuple⟨A1,A2,...,Ak⟩ofktimed automata, each
+Aiis called a processor acomponent of the network. Let Proc ={1,...,k}denote the set
+of process identifiers. Process Aiis given by (Qi,qinit
+i,Σi,Xi,∆i)consisting of a finite set
+Qiof states, an initial state qinit
+i∈Qi, a finite alphabet of actions Σi, a finite set of clocks
+Xi, and a finite set of transitions ∆i⊆Qi×Σi×Φ(Xi)×2Xi×Qi.
+Transitions in Aiare of the form (p,a,g,R,q )wherepandqare the source and target
+of the transition, a∈Σiis the action, g∈Φ(Xi)is aguardover local clocks Xi, and
+R⊆Xiis the set of local clocks of Xithat are resetalong the transition. We assume that
+Qi∩Qj=∅andXi∩Xj=∅for all distinct pairs i,j∈{1,...,k}. We define Σ :=/uniontexti=k
+i=1Σi,
+X:=/uniontexti=k
+i=1XiandQ:=/producttexti=k
+i=1Qi. Fora∈Σ, we write dom(a) :={i∈{1,...,k}|a∈Σi}.
+Forq= (q1,...,qk)inQ, we writeq(i)forqi.
+We say thatNisdeterministic if for every component Aiand for every action a, there
+is at most one local transition (p,a,g,R,q )from every local state p∈Qi. We will assume
+deterministic networks in Section 5.
+Therearetwowaystodescribethesemanticsofanetwork: oneinwhichallthecomponents
+share a common timeline (global-time semantics), and another where each of them work
+with a local timeline (local-time semantics). We define the local-time semantics and view
+global-time semantics as a special case.
+2.1 Local-Time Semantics
+Fix a networkN=⟨A1,...,Ak⟩for the rest of the section. We assume that each Aihas a
+special clock ticalled the reference clock of processAi. Intuitively, it represents the local
+time of process Ai. LetT={t1,...,tk}denote the set of all reference clocks. A valuation
+v:X∪T→Ris a function that maps each variable in X∪Tto a real number under the
+condition that v(ti)≥v(xi)for allxi∈Xi. The value v(xi)represents the local time at
+processAiwhenxiwas last reset. This explains why we require v(ti)≥v(xi). The value
+of clockxiis then obtained as v(ti)−v(xi). This semantics that keeps reset time points
+instead of clock ages has previously been introduced in [ 12] in the global-time setting. In the
+rest of the document, we use the notation v(x−y)forv(x)−v(y). The semantics relies on
+two operations.
+The first one is a local-time elapse . Given a valuation v, a delayδi∈Rand a process
+i, the valuation v+iδidescribes a local delay ofδiunits at process i. It is given by
+(v+iδi)(ti) =v(ti) +δiand(v+iδi)(x) =v(x)for all other variables x. Notice that
+((v+iδi) +jδj)is the same as ((v+jδj) +iδi): the order in which we sum the local delays
+does not matter. We extend this notion to a tuple ∆ := (δ1,...,δk)∈Rk
+≥0of delays, one for
+each process: v+ ∆is the valuation v+1δ1+2δ2···+kδk.
+The next operation is clock reset . In the local-time interpretation, resetting a clock
+xi∈Xiamounts to updating its value to the local-time of igiven byti. Given valuation v,
+and a set of clocks R⊆X, we writev[R]to be the valuation obtained as (v[R])(x) =v(ti)
+whenx∈R∩Xifor somei∈{1,...,k}andv[R](x) =v(x)otherwise. Valuation vis said
+to satisfy a constraint x#cforx∈Xiifv(ti−x)#c. We write v|= (x#c)in this case. A
+valuation satisfies a conjunction of constraints ϕ1∧ϕ2ifv|=ϕ1andv|=ϕ2.
+
+--- Page 5 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:5
+Aconfiguration of a network is a pair (q,v)whereq∈Qandvis a valuation. Recall
+that we have defined Qto be the product of the local states Qi. A valuation vis said to be
+initialifv(x) =v(y)for allx,y∈X∪T: all timelines are synchronized and the constraint
+x= 0holds for every clock. A configuration (q,v)is initial ifq= (qinit
+1,...,qinit
+k)andvis
+an initial valuation.
+There are two kinds of transitions between configurations: local delays and action
+transitions. From a configuration (q,v)there is a local delay transition (q,v)∆−→(q,v+ ∆)
+for each ∆∈Rk
+≥0. For eachb∈Σ, ab-transition is a tuple {(qi,b,gi,Ri,q′
+i)}i∈dom(b)of local
+transitions one from each process in its domain. From (q,v), we have an action transition
+(q,v)b− →(q′,v′)if there exists a b-transition{(qi,b,gi,Ri,q′
+i)}i∈dom(b)such that:
+source states match: q(i) =qifor alli∈dom(b),
+valuation satisfies guard: v|=gifor alli∈dom(b),
+all processes in dom(b)are synchronized: v(ti) =v(tj)for alli,j∈dom(b),
+resets are performed: v′=v[/uniontext
+i∈dom(b)Ri],
+target states are reached: q′(i) =q′
+iifi∈dom(b)andq′(i) =q(i)otherwise.
+The important point is that when a common action is performed, the local times of all the
+processes in its domain are the same.
+We will write (q,v)∆,b−−→ (q′,v′)for(q,v)∆−→b− →(q′,v′), a local delay ∆transition followed
+byanaction b. Observethat ∆isdeterminedby vandv′becauseδp=v′(tp)−v(tp)wheretpis
+the reference clock of process p. Arunis an infinite sequence (q0,v0)∆0,b0−−−→ (q1,v1)∆1,b1−−−→···
+of transitions starting from an initial configuration (q0,v0). A finite run is defined similarly:
+(q0,v0)∆0,b0−−−→ (q1,v1)∆1,b1−−−→··· (qn,vn)∆n−−→(q′
+n,v′
+n). Observe that finite runs have a final
+delay. We write (q,v)σ99K(q′,v′)to say that there is a finite run on a sequence of actions σ.
+2.2 The Büchi Non-Emptiness Problem
+Global-time semantics is a local-time semantics restricted to synchronized valuations . A
+valuationvis said to be synchronized ifv(tp) =v(tq)for all processes p,q. This implies that in
+every delay (δ1,...,δk)that is part of the global-time semantics, we have δ1=δ2=···=δk.
+The global-time semantics obtained this way is the usual semantics that is used in tools and
+studies that involve networks of timed automata. To make a distinction, we refer to runs in
+the local-time semantics as local runs and runs in the global-time semantics as global runs.
+Clearly, a global run is also a local run.
+▶Definition 1 (Büchi non-emptiness problem) .Given a network Nand a set of actions
+F⊆Σ, decide ifNhas a global run with infinitely many occurrences of actions from F.
+In the case of finite runs, the correspondence between local and global semantics is
+well-known. Indeed there is a local run to a configuration (q,v)with a synchronized valuation
+vif and only if there exists a global run to (q,v)that follows the same transitions, although
+in a different order. This is captured by the notion of independent actions and traces.
+▶Definition 2 (Independence) .Two actions a,b∈Σare said to be independent if dom(a)∩
+dom(b) =∅. Two sequences of actions u,w∈Σ∗aretrace equivalent ,u∼w, if one of them
+can be obtained from the other by permuting adjacent independent actions.
+▶Lemma 3 ([16]).Letv,v′be synchronized valuations, and let (q,v)u99K(q′,v′)be a local
+run. Then there exists a global run (q,v)w99K(q′,v′)such thatu∼w.
+CONCUR 2022
+
+--- Page 6 ---
+12:6 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+▶Remark 4. Putting Büchi conditions on transitions makes them trace invariant which is
+important if we want to do partial-order methods: if uhas infinitely many actions from F,
+then so does every w∼u, which may not be true with Büchi conditions on states.
+Moreover, the local-time semantics enjoys a very nice property: any two independent
+actions commute as stated by the following lemma.
+▶Lemma 5 (Diamond property) .[16] Leta,b∈Σwith dom(a)∩dom(b) =∅. If(q,v)ab99K
+(q′,v′)then (q,v)ba99K(q′,v′).
+Observe that this commutation property does not hold in the global-time semantics since
+delays are synchronous in all processes. Our motivation for using local time over global
+time comes from the fact that local time allows to reorder the actions in a run, hence using
+partial-order reduction techniques becomes possible.
+3 Büchi Runs in the Local-Time Semantics
+In this section, we show that using the local-time semantics is sound for the Büchi emptiness
+problem. Hence the local-time semantics looks appealing as it enables to use partial-order
+reduction techniques. However, verification algorithms cannot work directly from the state-
+space of the network as it is uncountable. We will then introduce the local zone graph as a
+symbolic representation of the state-space of timed networks in the local time semantics.
+3.1 The Local-Time Semantics is Sound
+When state-reachability is considered the soundness of the local-time semantics follows
+from Lemma 3. However, it is based on the notion of independence, Definition 2, that is
+not adequate for infinite runs. The point is that for infinite runs we may need an infinite
+number of permutations to get wfromu. The more general definition refers to partial orders
+defined by runs. These partial orders are often called traces. The other obstacle in repeating
+Lemma 3 is that the lemma refers to runs ending in synchronized valuations, while for infinite
+runs we do not have final valuations. For these two reasons the soundness argument is more
+involved than that of reachability.
+Westartwithanintuitionandanillustratingexample. Togetaglobalrunfromalocalrun,
+the natural idea would be to re-order the events based on the time-stamps. For example, if
+we have a finite sequence (a,2)(b,1)(c,3)(a,2.5)(b,1.5)where the number represents the local
+time when the action occurred, then we get a reordered sequence (b,1)(b,1.5)(a,2)(a,2.5)(c,3).
+It can then be argued that this sequence has a global run where each clock can be delayed
+up to the next action to be read. For the case of infinite runs, consider the following example
+that consists of two processes AandB.
+q (x<1),a A: r (y= 1),b,{y} B:
+Consider an infinite local run:
+(a,1
+2) (b,1) (a,1
+2+1
+22) (b,2)···(a,1
+2+···+1
+2i) (b,i)···
+Notice that all the aactions happen before global time 1, andbactions start from 1. Therefore,
+a re-ordering of the events based on the time-stamps gives an infinite sequence of a’s “followed
+by” an infinite sequence of b’s. This does not correspond to a global run. However, if awas
+accepting, we have a global run (a,1
+2)(a,1
+2+1
+22)···that is accepting. Similarly, if bwas
+
+--- Page 7 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:7
+accepting, we have a global run (b,1)(b,2)···. In each of these runs, the other process plays
+no role except for elapsing time. Observe that the absence of state invariants is crucial here
+as the infinite sequence of b’s would not be feasible in the global time semantics if state qof
+processAhad invariant (x<1).
+In general, when we have a local run, we can reorder it based on timestamps to get a
+sequence which may have a block of infinite events (say between 0and1), followed by another
+block of events (say between 1and2), and so on. However, the processes that participate
+infinitely often in some block do not participate in the future blocks. This means there can
+be only finitely many such blocks. Moreover, if the original run is Büchi accepting, then
+there is some block (along with some events in blocks before it) that gives a global run which
+is Büchi accepting. We formalize this intuition below.
+For an infinite sequence w∈Σωwe define a trace ofwas a labelled partial order
+Tσ=⟨N,λσ,⊴σ⟩whereλσ(i) =wi, and⊴σthe smallest transitive relation such that i⊴σj
+ifdom(wi)∩dom(wj)̸=∅andi≤j. Observe that ⊴σis reflexive.
+▶Definition 6. Two infinite runs u,w∈Σωaretrace equivalent ,u∼w, if the traces Tu
+andTware isomorphic
+We extend this notion to runs. Consider a local run
+σ= (q0,v0)∆0−−→(q0,v′
+0)b0−→(q1,v1)∆1−−→(q1,v′
+1)b1−→(q2,v2)∆2−−→···
+Atrace ofσis a labelled partial order Tσ=⟨N,λσ,⊴σ⟩whereλσ(i) = (qi,v′
+i,bi), and as
+before⊴σthe smallest transitive relation such that i⊴σjifdom(bi)∩dom(bj)̸=∅andi≤j.
+Observe that we take valuation v′
+iin the label as it ensures that biis enabled in (qi,v′
+i).
+To connect local and global time semantics we will rearrange actions depending on their
+local time. We use θσ(i)for the local time of execution of action biin the trace σ; it is
+given byθσ(i) =v′
+i(tp)wherep∈dom(bi). Recall that by definition of an action transition,
+v′
+i(p) =v′
+i(q)for allp,q,∈dom(bi).
+▶Lemma 7. Ifi⊴σjthenθσ(i)≤θσ(j).
+Atrace prefix T′of a traceTσis a restriction of Tσto some ⊴σ-downward closed subset
+ofN. Alinearization of a traceTσis a bijection f:N→Nsuch that if f(i)⊴σf(j)then
+i≤j. This means that the order of elements in a linearization should respect the order in Tσ.
+Observe that the sequence given by fshould use all elements of Tσ, becausefis bijective.
+The next lemma says that every linearization yields a local run.
+▶Lemma 8. For everyT′a prefix ofTσ, every linearization fofT′gives a local run.
+The next result states the desired soundness property of the local-time semantics with
+respect to the global semantics. As every global run is a local run, one direction of the
+proposition is easy. The other side consists in finding a prefix of Tσfrom which we can build
+a global run as explained in the example above.
+▶Proposition 9. Consider a network of timed automata N. There is a Büchi local run of
+Niff there is a Büchi global run of N.
+3.2 Local-Zone Graphs
+Thanks to Proposition 9, we know that we can safely use the local-time semantics to detect
+Büchi runs. However, we cannot solve the Büchi non-emptiness problem by an exploration
+of the state-space of timed automata as it is uncountable. Algorithms for timed automata
+CONCUR 2022
+
+--- Page 8 ---
+12:8 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+work with sets of configurations sharing the same discrete state. We copy this approach to
+our setting. To start off, we lift operations on individual valuations to sets of valuations. For
+a set of local valuations W, define:
+local-elapse( W) :={v+ ∆|v∈W,∆∈Rk
+≥0},
+W[R] :={v[R]|v∈W}, for a set of clocks R⊆X.
+W∩g:={v|v⊨g}for a guard g.
+Next, the transition relation on configurations can be lifted to sets. We write (q,W)b= =⇒
+(q′,W′)when there exists a b-transition{(qi,b,gi,Ri,q′
+i)}i∈dom(b)such that:
+source states match: q(i) =qifor alli∈dom(b),
+target states are reached: q′(i) =q′
+ifor alli∈dom(b)andq′(i) =q(i)otherwise,
+W′=local-elapse (W2)whereW2=W1[/uniontext
+p∈dom(b)Rp]withW1=W∩(/logicalandtext
+p∈dom(b)gp∧/logicalandtext{tp=tq|p,q∈dom(b)}), andW′is not empty.
+We will callb= =⇒a symbolic transition. We write (q,W)b1...bn= = = =⇒(qn,Wn)if there is a sequence
+of symbolic transitions (q,W)b1= =⇒(q1,W1)···bn= =⇒(qn,Wn).
+Local-zones are special sets of valuations that occur naturally while computing the
+reachable configurations. A local-zone is a set of valuations described by a conjunction of
+constraints of the form x−y#cwherex,y∈X∪T,c∈Zand#∈{<,≤}. Local-zones
+can be efficiently represented using Difference Bound Matrices (DBMs). It can be shown
+that for a local-zone Z, the sets local-elapse (Z),Z[R]andZ∩g(intersection with guard)
+are local-zones [ 5,16]. This leads to the definition of a local-zone graph that captures the
+reachable configurations of a network.
+▶Definition 10 (Local-zone graph LZG(N)).The local-zone graph LZG(N)of a networkN
+is a transition system whose nodes are of the form (q,Z)whereqis a state of the network,
+andZis a local-zone. The initial node is (q0,Z0)withZ0=local-elapse (V0)whereV0is the
+set of initial valuations (given by the local-zone ∧x,y∈X∪Tx−y= 0) andq0= (qinit
+1,...,qinit
+k).
+The transitions are given by the symbolic transition relation (q,Z)b= =⇒(q′,Z′).
+The next lemma relates transitions over valuations and zones. Proof follows from the
+definition of symbolic transitions. If Z= local-elapse( Z)thenZistime-elapsed .
+▶Lemma 11. For every network of timed automata and every action b:
+pre-property: If(q,v)b99K (q′,v′)andv∈Zfor some time-elapsed local-zone Zthen
+(q,Z)b= =⇒(q′,Z′)andv′∈Z′for some local-zone Z′.
+post-property: If(q,Z)b= =⇒(q′,Z′)andv′∈Z′for local-zones Z,Z′, then (q,v)b99K(q′,v′)
+for somev∈Z.
+The initial zone is time-elapsed. By definition of the symbolic transition, every zone
+reachable by = =⇒transitions is also time-elapsed. Using this observation along with the pre-
+and post-properties of Lemma 11, we get the following theorem.
+▶Theorem 12 ([16,5]).For a given network N, there is a run of Nreaching a state qiff
+there is a path in LZG(N)from the initial node to a node (q,Z).
+This shows soundness and completeness of the local-zone graph with respect to state
+reachability. In particular, soundness follows from the post-property and completeness follows
+from the pre-property. Interestingly, these two properties are not sufficient to show soundness
+for infinite runs. In other words, does an infinite run in the local-zone graph imply existence
+of an infinite run in the local-time semantics? From the post-property, each prefix of the
+infinite run in the local-zone graph leads to corresponding finite local-time run in the network.
+However the problem of forming an infinite run from these prefixes is non-trivial.
+
+--- Page 9 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:9
+In the global-time settings, the proof of soundness crucially relies on Alur&Dill’s finite
+region bisimulation. However, there is no finite abstraction that is sound, complete and
+that preserves all runs on the local zone graph [ 15]. This last property is crucial to apply
+partial-order reduction techniques. In the next section, we consider a subclass of timed
+networks for which we can define a finite region abstraction in the local-time settings.
+4 A Region Equivalence for Bounded Spread Valuations
+In this section we recall the notion of bounded spread networks of timed automata [ 15]. We
+then define a region equivalence ≡D
+Mfor such networks.
+4.1 Bounded Spread Networks
+We consider networks of timed automata where every feasible sequence of actions can be
+done with bounded desynchronisation between the processes.
+▶Definition 13. LetD∈N. A valuation vis said to have spread Dif|v(tp−tq)|≤D
+for all processes p,q. A run (q0,v0)∆0,b0−−−→ (q1,v1)∆1,b1−−−→··· has spreadDifviandvi+ ∆i
+have spread Dfor alli≥0. A networkNhas spread Dif for every run (q0,v0)∆0,b0−−−→
+(q1,v1)∆1,b1−−−→··· , there exists a D-spread run (q0,v0)∆′
+0,b0−−−→ (q1,v1)∆′
+1,b1−−−→··· over the
+same sequence of actions, but with possibly different delays.
+It has been shown that every network can be converted into a Dspread network for any
+arbitraryD≥1, by adding extra synchronizations [ 15]. Moreover, for D-spread networks it
+is possible to get a finite abstraction of the local zone graph, by making use of simulations.
+4.2 A Finite Region Bisimulation
+Atime-abstract simulation relation on the local semantics is a reflexive and transitive
+relation between configurations having the same control state. Two conditions need to
+be satisfied when (q,v)≼(q,v′): (1) for every local delay ∆there exists ∆′such that
+(q,v+ ∆)≼(q,v′+ ∆′), and (2) for every transition (q,v)b− →(q1,v1)there exists a transition
+(q,v′)b− →(q1,v′
+1)such that (q1,v1)≼(q1,v′
+1). When ∆ = ∆′, we simply call ≼a simulation
+relation. For technical convenience, we will use (time-abstract) simulation relations that do
+not rely on the control state and depend only on the valuations. Hence we will write it as
+v≼v′, a relation over valuations and use its straightforward extension to configurations:
+(q,v)≼(q,v′)ifv≼v′. The relation ≼is a (time-abstract) bisimulation relation if both ≼
+and≼−1are (time-abstract) simulation relations.
+The region equivalence of Alur and Dill [ 2] is a fundamental concept in the global-time
+semantics that leads to a finite region automaton recognizing the untimed behaviour of
+the system. This has been cornerstone of several decidability results for timed automata.
+In the global-time semantics two valuations are made region equivalent with respect to a
+constantMif for every clock, the values given by the two valuations lie in one of the intervals
+[0],(0,1),[1],..., [M],(M,∞)and the ordering of fractional parts of clocks less than Mis
+the same in both valuations. In the local-time setting, there is an additional challenge. While
+in the global-time semantics, when a clock goes beyond M, its actual value is irrelevant, it is
+not the case in the local-time semantics. Indeed, if the difference tp−tq>Mwe cannot
+forget the actual value, since tqcan elapse some local time and bring the difference tp−tq
+to something lesser than M. This is a fundamental difference between the two semantics,
+CONCUR 2022
+
+--- Page 10 ---
+12:10 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+and this is the basic reason that leads to the result of [ 15] that there is no finite simulation
+for the local-time semantics. This is why we need to restrict to D-spread valuations v
+where|v(tp−tq)|≤D. We show that with this restriction there is an adequate notion of a
+region equivalence. We proceed in two steps: first we define when two local valuations are
+“close-enough”, next we factor in the maximum constant Mand bounded spread Dto get a
+finite time abstract bisimulation. Some of these results appear in [14].
+Forx∈R, we write⌊x⌋for the greatest integer that is lesser than or equal to x.
+We will write{x}forx−⌊x⌋, the fractional part of xstarting from⌊x⌋. For example,
+⌊4.2⌋= 4,{4.2}= 0.2and⌊−4.2⌋=−5,{−4.2}= 0.8. Notice that 0≤{x}<1for allx∈R.
+▶Definition 14. For local valuations vandv′, we define v≈⋆v′if for all pairs of clocks
+x,y∈X∪T(including reference clocks), we have ⌊v(x−y)⌋=⌊v′(x−y)⌋.
+Notice that the above definition does not explicitly make use of {v(x−y)}. Some
+relation between fractional values gets derived through the definition. For example, suppose
+v(x−y) = 1, thenv(y−x)is−1. This will ensure v′(x−y) = 1andv′(y−x) =−1. But if
+v(x−y) = 1.5, thenv(y−x) =−1.5, and in particular ⌊v(y−x)⌋=⌊v′(y−x)⌋=−2. This
+will say that 1< v′(x−y)<2and−2< v′(y−x)<−1. We will precisely derive some
+useful properties later. Before that, we modify the definition to account for the maximum
+constant.
+▶Definition 15 ((M,D )-equivalence) .LetM:X→N∪{−∞}be abounds function mapping
+each process clock to a non-negative constant or −∞when the value of the clock is irrelevant.
+LetD∈Ndenote a spread. For a local valuation v, let Bounded (v) =/uniontext
+p∈Proc{tp}∪{x∈
+Xp|v(tp−x)≤M(x)}. Notice that Bounded (v)contains all the clocks that have a value
+below bound Minvas well as all reference clocks.
+TwoD-spread local valuations v,v′are(M,D )-equivalent , denoted as v≡D
+Mv′, if
+Bounded(v) = Bounded( v′)
+vB≈⋆v′BwherevBandv′Bdenote the valuations vandv′restricted to clocks in
+B= Bounded( v).
+For aD-spread valuation v, we write [v]D
+Mto denote the equivalence class of vunder≡D
+Mand
+refer to it as the (M,D )-regionofv.
+Intuitively, the above definition says that v≡D
+Mv′if the bounded part of vandv′are
+close enough. This is in the same spirit as in the global-time semantics. Now the goal is to
+show that≡D
+Mis a time-abstract bisimulation. The most difficult part is to prove that for all
+local delays ∆, there exist local delays ∆′such thatv+ ∆≡D
+Mv′+ ∆′. This is shown in the
+next lemma. We denote byδ− −→pa delay ofδtime units in process Ap.
+▶Lemma 16. Letv≈⋆v′. For every local delay vδ− −→pu, there exists a δ′such that
+v′δ′
+− −→pu′whereu≈⋆u′.
+The next task is to show that if Mis appropriately chosen, the ≡D
+Mequivalence also
+preserves actions. We say that a network Nconforms to bounds function Mif every
+constraintx∼cinNsatisfiesc≤M(x).
+▶Lemma 17. Letv,v′beD-spread valuations such that v≡D
+Mv′. LetNbe a network that
+conforms to M. For every action transition (q,v)b− −→(q1,v1)we have (q,v′)b− −→(q1,v′
+1)
+such thatv1≡D
+Mv′
+1.
+
+--- Page 11 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:11
+▶Corollary 18. LetNbe a network that conforms to Mand letv≡D
+Mv′beD-spread
+valuations. For every (q,v)∆− −→b− −→(q1,v1)such thatv+ ∆isD-spread, there exists a ∆′
+such thatv′+ ∆′isD-spread and (q,v′)∆′
+− −→b− −→(q1,v′
+1)withv1≡D
+Mv′
+1.
+The corollary shows that ≡D
+Mis a time-abstract bisimulation on the local semantics
+restricted to D-spread configurations. This also motivates the following definition of a region
+graph obtained as a quotient of the ≡D
+Mequivalence. Recall that the initial valuations are
+given by{v|v(x) =v(y)for all clocks x,y}. Hence by definition of ≡D
+Mequivalence all of
+them fall in one equivalence class.
+▶Definition 19 ((M,D )-region graph) .LetNbe a network. A node of an (M,D )-region
+graph ofNis of the form (q,[v]D
+M)whereqis a state ofNandvis aD-spread valuation.
+There is a transition (q,[v]D
+M)b− −→(q1,[v1]D
+M)if(q,v)∆− −→b− −→(q1,v1)for some local delay ∆
+such thatv+ ∆isD-spread. The initial node is (q0,[v0]D
+M)wherev0is any initial valuation
+andq0is the tuple of initial states.
+▶Theorem 20. LetNbe a network that conforms to bounds function M. Then:
+For everyD-spread local run (q0,v0)∆0,b0−−−−→ (q1,v1)···, there exists a run (q0,[v0]D
+M)b− −→
+(q1,[v1]D
+M)···in the (M,D )-region graph.
+For every run (q0,[v0]D
+M)b0− −→(q1,[v1]D
+M)···in the (M,D )-region graph, there exists a
+D-spread local run (q0,v′
+0)∆0,b0−−−−→ (q1,v′
+1)···such thatv′
+i∈[vi]D
+Mfor alli≥0.
+The(M,D )-region graph is finite.
+5 Abstraction and Partial-Order Reduction for Büchi Runs
+The goal of this section is to make use of the local zone graph (Definition 10) for solving the
+Büchi non-emptines problem. We will start by showing that the local zone graph LZG(N)
+is sound and complete for infinite runs of bounded spread networks (Proposition 21). This
+is only the beginning because: (i) the local zone graph is still potentially infinite, and (ii)
+the statement does not talk about partial-order reduction. In the next step we introduce a
+quasi-abstraction aD
+≼LU, and a partial-order approach. Then, we show that their combination
+maintains correctness for Büchi runs.
+▶Proposition 21. LetNbe aD-spread network. There is an infinite D-spread local run
+(q0,v0)∆0,b0−−−−→ (q1,v1)∆1,b1−−−−→··· inNiff there is an infinite path (q0,Z0)b0=⇒(q1,Z1)b1=⇒···
+inLZG(N).
+Proof.Left-to-right direction follows from the pre-property of local zone graph, Lemma 11.
+We focus on the right-to-left direction.
+LetSibe the set of all D-spread valuations ui∈Zisuch that there is a D-spread run as
+below leading to ui:
+(q0,u0)∆′
+0− −→b0− −→(q1,u1)∆′
+1− −→b1− −→···∆′
+i−1−−−→bi−1−−−→ (qi,ui)
+withu0an initial local valuation. The set Sineed not contain all D-spread valuations of
+Zi. Consider some D-spread valuation vofZi. Due to the post-property, it has some run
+leading to it, not necessarily D-spread. As the network is D-spread, there is a corresponding
+D-spread run over the same sequence of actions. However this run may not end up in the
+same valuation v.
+CONCUR 2022
+
+--- Page 12 ---
+12:12 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+Let us come back to the D-spread run given above. Due to the pre-property of local
+zones, we have uk∈Zkfor all 0≤k≤i. AsNisD-spread,Siis indeed non-empty, for all
+i≥0. In fact, each ukin the above run belongs to Skas the prefix with actions b0···bk−1is
+aD-spread run leading to (qk,uk). Therefore, for every ui+1∈Si+1, there exists a ui∈Si
+such that (qi,ui)∆− −→bi− −→(qi+1,ui+1)for some local delay ∆′
+i.
+Construct a graph with nodes (i,qi,[ui]D
+M)for eachui∈Si. Add an edge (i,qi,[ui]D
+M)→
+(i+ 1,qi+1,[ui+1]D
+M)if(qi,ui)∆− −→bi− −→(qi+1,ui+1). Due to the discussion in the previous
+paragraph, every node has a predecessor. Moreover, by Theorem 20, there are finitely many
+(M,D )-regions, so this graph is finitely branching. Hence there is an infinite path in this
+graph. This path corresponds to an infinite path in the (M,D )-region graph. Thanks to
+Theorem 20, this can be instantiated into an infinite D-spread local run ◀
+5.1 Abstractions and Partial-Order Methods
+We recall some notions from [ 15]. A quasi-abstraction ais a function that maps each zone
+Zto a set of valuations a(Z)such that a(a(Z)) = a(Z). A finite quasi-abstraction function
+aD
+≼LUhas been studied in the context of reachability [ 15]. It is based on a preorder relation
+between local valuations.
+▶Definition 22 (The≼⋆
+LU-preorder) .LetL:X→{−∞}∪ NandU:X→{−∞}∪ Nbe
+two functions. For two valuations vandv′, we sayv≼⋆
+LUv′if:
+v(tp−tq) =v′(tp−tq)for all processes p,q
+for all processes pand allx∈Xp,
+v(tp−x)≤U(x)impliesv′(tp−x)≤v(tp−x),
+v(tp−x)≤L(x)impliesv′(tp−x)≥v(tp−x),
+v(tp−x)>L(x)impliesv′(tp−x)>L(x)
+Notice that if vis aD-spread valuation and if v≼⋆
+LUv′, valuation v′is alsoD-spread.
+Here is a known result about ≼⋆
+LU. We say that a network Nconforms to bound functions L
+andUif for every process clock xwe haveL(x)≥cfor every lower bound guard x≥c,x>c
+occurring inN, andU(x)≥cfor every upper bound guard x≤c,x<cinN.
+▶Lemma 23 ([15]).LetNbe aD-spread network that conforms to given LUbounds. The
+≼⋆
+LUpre-order is a simulation on the local semantics of N: ifv≼⋆
+LUv′and(q,v)∆,b−−→ (q1,v1)
+then (q,v′)∆,b−−→ (q1,v′
+1)andv1≼⋆
+LUv′
+1.
+The≼⋆
+LUrelation is now lifted to zones, but restricted to D-spread valuations.
+▶Definition 24 (aD
+≼LU-quasi-abstraction) .For a zone Z, we define spreadD(Z) ={v∈Z|
+vhas spreadD}. We define aD
+≼LU(Z) ={v|∃v′∈spreadD(Z)such thatv≼⋆
+LUv′}.
+The aD
+≼LUoperator can be used to give a finite abstraction of the local zone graph LZG(N),
+by truncating exploration of ZifaD
+≼LU(Z)⊆aD
+≼LU(Z′)and continuing the exploration from
+Z′. The operation aD
+≼LU(Z)⊆aD
+≼LU(Z′)is known as subsumption in the literature [ 23,18].
+For Büchi non-emptiness, subsumptions cannot be used directly since we need to find
+cycles [23,18]. We will define an abstraction of the local zone graph that makes use of
+equality with respect to aD
+≼LU. Notice that the equality aD
+≼LU(Z) =aD
+≼LU(Z′)can be checked
+efficiently in time O((|X|+|T|)2)[15]. We will first present our view of partial-order methods
+and then combine this with the aD
+≼LUoperator in our new abstraction of the local zone graph.
+
+--- Page 13 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:13
+We describe a generic approach to partial-order methods on local zone graphs. Then our
+main result will say that once we have a method that works on LZG(N), we can use the
+same method on a finite abstraction of LZG(N)obtained using aD
+≼LU.
+We formalize what it means to have a partial-order method on LZG(N)using a notion
+of a source function. Let enabled (q,Z)denote the set of actions b∈Σthat are enabled from
+the node (q,Z), i.e. such that there exists an edge (q,Z)b=⇒(q′,Z′)for some (q′,Z′).
+▶Definition 25. Asource function for a timed network Nis a function src:Q×P(Σ)→
+P(Σ). An action bis source enabled in (q,Z)ifb∈src(q,enabled (q,Z)). A source path is
+a path taking only source enabled actions. A source function is trace faithful if for every
+node (q,Z)ofLZG(N), and an infinite path ufrom (q,Z)inLZG(N)there is a source path
+w∼ufrom (q,Z)inLZG(N).
+Obeserve that this definition of a source function allows to store some information in the
+state (like which process moved just before, etc.). Indeed such information is important for
+certain partial-order reduction approaches.
+5.2 Local Zone Graph with Abstraction and Partial-Order
+We are now in a position to define a local zone graph for the Büchi non-emptiness problem.
+This zone graph will use aD
+≼LUfor finiteness and an arbitrary source function for partial-order
+reduction.
+▶Definition 26 (eLZGD,src
+LU(N)).LetNbe aD-spread network conforming to a given
+LU-bounds. Let src:Q×P(Σ)→P (Σ)be a trace faithful source function. The graph
+eLZGD,src
+LU(N)is a subset of nodes and edges of LZG(N)together with some new edges called
+equality edges. Each node is labeled either coveredoruncovered . The graph must satisfy the
+following conditions:
+The initial node of LZG(N)belongs to the graph.
+For every uncovered node (q,Z)ofeLZGD,src
+LU(N)and for every b∈src(q,enabled (Z))
+the transition (q,Z)b=⇒(q′,Z′)present in LZG(N)should be in eLZGD,src
+LU(N).
+For every covered node (q,Z′)there exists an uncovered node (q,Z)with aD
+≼LU(Z) =
+aD
+≼LU(Z′); moreover there is an explicit equality edge (q,Z)→e(q,Z′)ineLZGD,src
+LU(N).
+Every node of the graph is reachable from the initial node by a path of =⇒edges.
+We writeb;to mean a, possibly empty, sequence of equality edges followed byb=⇒edge.
+Similarlyσ;stands for a sequence ofσ=⇒edges possibly with equality edges in between.
+LetMbe defined as M(x) =max(L(x),U(x))for every process clock x. The next lemma
+gives a useful property of the aD
+≼LUabstraction which entails that the above local zone graph
+is a finite object.
+▶Lemma 27. For every zone Z, the abstraction aD
+≼LU(Z)is a union of (M,D )-regions. The
+graph eLZGD,src
+LU(N)is finite for D-spread networks N.
+Our goal is to show soundness and completeness of eLZGD,src
+LU(N)for Büchi non-emptiness.
+We have already seen in Proposition 21 that LZG(N)is sound and complete. Therefore we
+will now relate paths in LZG(N)with paths in eLZGD,src
+LU(N).
+CONCUR 2022
+
+--- Page 14 ---
+12:14 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+5.2.1 Soundness
+For soundness, we want to show that every infinite path in eLZGD,src
+LU(N)corresponds to
+an infinite path in LZG(N). The main difficulty in the argument comes from equality
+edges. Consider two reachable nodes (q1,Z1)and(q1,Z′
+1)such that aD
+≼LU(Z1) =aD
+≼LU(Z′
+1).
+Let us say there is an equality edge (q1,Z1)→e(q1,Z′
+1). Hence, eLZGD,src
+LU(N)does not
+contain paths from (q1,Z1). We must thus show that for every path from (q1,Z1)inLZG(N)
+there is a similar path from (q1,Z′
+1). One may guess that as ≼⋆
+LUis a simulation, for every
+(q1,Z1)b=⇒(q2,Z2), we have (q1,Z′
+1)b=⇒(q2,Z′
+2)with aD
+≼LU(Z′
+1) =aD
+≼LU(Z′
+2). But this is not
+true. Notice that the aD
+≼LUoperator restricts to D-spread valuations. So it can say nothing
+about the other valuations of Z1andZ′
+1and these non D-spread valuations may lead to
+D-spread valuations in Z2andZ′
+2. We have no control on such valuations just by using the
+fact that ≼⋆
+LUis a simulation. Nevertheless, we are able to show soundness of eLZGD
+LU(N),
+albeit with a more involved reasoning that additionally uses the fact that Nis aD-spread
+system and the network Nis deterministic.
+▶Lemma 28. LetNbe a deterministic D-spread network conforming to LU-bounds. Let
+(q1,Z1)be a node reachable from (q0,Z0), namely (q0,Z0)σ1= =⇒(q1,Z1)for someσ1∈Σ∗.
+Let(q1,Z′
+1)be a reachable node of LZG(N)that satisfies aD
+≼LU(Z1) =aD
+≼LU(Z′
+1).
+For every finite or infinite sequence of transitions σ2: if(q1,Z1)σ2= =⇒inLZG(N), then
+(q1,Z′
+1)σ2= =⇒inLZG(N). Moreover, if σ2is finite then enabled (q2,Z2) =enabled (q2,Z′
+2),
+where (q1,Z1)σ2= =⇒(q2,Z2)and(q1,Z′
+1)σ2= =⇒(q2,Z′
+2).
+Proof.Supposeσ2isfinite. Considerthesequence (q0,Z0)σ1= =⇒(q1,Z1)σ2= =⇒(q2,Z2). Bypost-
+property, there exists a local run (q0,v0)σ199K(q1,v1)σ299K(q2,v2)withv0∈Z0,v1∈Z1and
+v2∈Z2. AsNisD-spread, we can assume this run to be D-spread. Thus, v1∈spreadD(Z1).
+AsaD
+≼LU(Z1) = aD
+≼LU(Z′
+1), there exists v′
+1∈spreadD(Z′
+1)such thatv1≼⋆
+LUv′
+1. Hence
+there exists a run (q1,v′
+1)σ299K(q2,v′
+2). By pre-property, there exists a sequence of symbolic
+transitions (q1,Z′
+1)σ2= =⇒(q2,Z′
+2).
+Ifσ2is infinite, then the above argument says that for every finite prefix σ3ofσ2there is a
+sequence (q2,Z′
+2)σ3= =⇒. SinceNis deterministic, the local zone graph LZG(N)is deterministic.
+Hence we get the presence of the infinite path σ2from (q2,Z′
+2), that is, (q2,Z′
+2)σ2= =⇒.
+For the last statement consider (q1,Z1)σ2= =⇒(q2,Z2)and(q1,Z′
+1)σ2= =⇒(q2,Z′
+2). Saybis
+enabled from (q2,Z2). Using the first statement of the lemma σ2bis possible from (q1,Z′
+1),
+thusbis possible from (q2,Z′
+2), as the transition system is deterministic. The case of bfrom
+(q2,Z′
+2)is the same by exchanging the roles of Z2andZ′
+2. ◀
+▶Lemma 29. LetNbe a deterministic D-spread network that conforms to a bounds
+LU-bounds.
+Let(q0,Z0)σp;(q,Z)σc;(q,Z)be a path in eLZGD,src
+LU(N)which could potentially contain
+equality edges. Then, there exists an infinite D-spread local run over the sequence σp(σc)ω.
+5.2.2 Completeness
+We now move on to showing that the graph that is computed is complete for Büchi non-
+emptiness. Recall that covered nodes and successors via actions that are outside the srcare
+not explored in eLZGD,src
+LU. We will now make use of Lemma 28 to show that source paths in
+LZG(N)are preserved in eLZGD,src
+LU(N). Later, for the final result, we will use the fact that
+srcis trace faithful.
+
+--- Page 15 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:15
+▶Lemma 30. LetNbe aD-spread network that conforms to a bounds function LU. Let
+(q0,Z0)b0=⇒(q1,Z1)b1=⇒be an infinite source path in LZG(N). Then there is an infinite path
+(q0,Z0)b0;(q1,Z1)b1;···ineLZGD,src
+LU(N).
+▶Theorem 31. LetNbe a deterministic D-spread network that conforms to LU-bounds and
+letFbe a set of accepting actions. Then, there is an infinite global run visiting Finfinitely
+often, iff there is a reachable cycle in eLZGD
+LU(N)containing an edge over an action in F.
+Proof.By Proposition 9, there is an infinite global run visiting Finfinitely often iff there
+is an infinite local run visiting Finfinitely often. Since NisD-spread, there is an infinite
+D-spread run with the same sequence of actions. Therefore it remains to prove that there is
+aD-spread local run visiting Finfinitely often iff there is a reachable cycle in eLZGD
+LU(N)
+with an action in F.
+Suppose there is such a local run. Proposition 21 says that there is an infinite Büchi path
+inLZG(N)from (q0,Z0). Since the source function is assumed to be trace faithful, there
+is a source path that visits Finfinitely often. Lemma 30, gives us a Büchi source path in
+eLZGD,src
+LU(N). The eLZGD,src
+LU(N)graph is finite (Lemma 27). Hence the infinite path leads
+to a cycle. As the infinite path contains Finfinitely often, the cycle contains an action in F.
+For the other direction, suppose there is a reachable cycle containing FineLZGD,src
+LU(N).
+Lemma 29 gives a D-spread local run with the same sequence of actions and control states.
+Hence, this local run visits Finfinitely often. ◀
+6 Conclusions
+We have developed a setting allowing to use partial-order methods for solving the Büchi
+non-emptiness problem for timed systems. Partial-order methods exploit commutation of
+independent actions. This is why we use local-time semantics for networks of timed automata.
+For a given network Nwe define a finite local-zone graph eLZGD,src
+LU(N)such that there is a
+Büchi run inNif there is a Büchi path in eLZGD,src
+LU(N). Moreover, if we have a partial order
+method that works on the, potentially infinite, local-zone graph LZG(N), this method can be
+used for exploring eLZGD,src
+LU(N). We find this a satisfying formulation since in eLZGD,src
+LU(N)
+independent actions do not necessarily commute, due to equality edges.
+We did not present here a concrete partial-order method that can be used in our setting.
+In principle, any ample/persistent/stubborn set method can be used to calculate what we
+call here source sets. These methods become quite complicated when dealing with infinitary
+conditions, and these complications limit the efficiency of partial-order reductions. As a first
+step, it would be reasonable to assume some structural properties, like may-termination [ 31],
+but we do not have a satisfying solution at this point.
+We did not address the question of Zeno runs. Often one is not just interested in existence
+of a Büchi run but also wants it to be non-Zeno, that is, a run where time diverges. While
+there is no consensus on what kind of infinite runs can be considered realistic, it is rather clear
+that Zeno runs are not realistic. It is always possible to convert a network to a strongly non-
+Zeno network [ 29] and encode the non-Zeno requirement in a Büchi condition. Sometimes
+this construction can produce a blow-up than can be alleviated with more complicated
+approach [ 19]. It remains to be seen if this construction can be adapted to the local-time
+semantics.
+CONCUR 2022
+
+--- Page 16 ---
+12:16 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+References
+1Parosh Aziz Abdulla, Stavros Aronis, Bengt Jonsson, and Konstantinos Sagonas. Source sets:
+A foundation for optimal dynamic partial order reduction. J. ACM, 64(4):25:1–25:49, 2017.
+doi:10.1145/3073408 .
+2Rajeev Alur and David L. Dill. A theory of timed automata. Theor. Comput. Sci. , 126(2):183–
+235, 1994. doi:10.1016/0304-3975(94)90010-8 .
+3Étienne André, Jaime Arias, Laure Petrucci, and Jaco van de Pol. Iterative bounded synthesis
+for efficient cycle detection in parametric timed automata. In Jan Friso Groote and Kim Guld-
+strand Larsen, editors, Tools and Algorithms for the Construction and Analysis of Systems -
+27th International Conference, TACAS 2021, Held as Part of the European Joint Conferences
+on Theory and Practice of Software, ETAPS 2021, Luxembourg City, Luxembourg, March 27 -
+April 1, 2021, Proceedings, Part I , volume 12651 of Lecture Notes in Computer Science , pages
+311–329. Springer, 2021. doi:10.1007/978-3-030-72016-2_17 .
+4Gerd Behrmann, Patricia Bouyer, Kim Guldstrand Larsen, and Radek Pelánek. Lower and
+upper bounds in zone-based abstractions of timed automata. Int. J. Softw. Tools Technol.
+Transf., 8(3):204–215, 2006.
+5Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang Yi. Partial order reductions for
+timed systems. In CONCUR , volume 1466 of Lecture Notes in Computer Science , pages
+485–500, 1998.
+6Frederik Meyer Bønneland, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marco Muñiz, and
+Jirí Srba. Stubborn set reduction for two-player reachability games. Log. Methods Comput.
+Sci., 17(1), 2021. URL: https://lmcs.episciences.org/7278 .
+7Patricia Bouyer. Forward analysis of updatable timed automata. Formal Methods Syst. Des. ,
+24(3):281–320, 2004.
+8Damien Busatto-Gaston, Benjamin Monmege, Pierre-Alain Reynier, and Ocan Sankur. Robust
+controller synthesis in timed büchi automata: A symbolic approach. In Isil Dillig and Serdar
+Tasiran, editors, Computer Aided Verification - 31st International Conference, CAV 2019, New
+York City, NY, USA, July 15-18, 2019, Proceedings, Part I , volume 11561 of Lecture Notes in
+Computer Science , pages 572–590. Springer, 2019. doi:10.1007/978-3-030-25540-4_33 .
+9Krishnendu Chatterjee, Andreas Pavlogiannis, and Viktor Toman. Value-centric dynamic
+partial order reduction. Proc. ACM Program. Lang. , 3(OOPSLA):124:1–124:29, 2019. doi:
+10.1145/3360550 .
+10Dennis Dams, Rob Gerth, Bart Knaack, and Ruurd Kuiper. Partial-order reduction techniques
+for real-time model checking. Formal Aspects Comput. , 10(5-6):469–482, 1998. doi:10.1007/
+s001650050028 .
+11Conrado Daws and Stavros Tripakis. Model checking of real-time reachability properties using
+abstractions. In TACAS, volume 1384 of Lecture Notes in Computer Science , pages 313–329.
+Springer, 1998.
+12Laurent Fribourg. A closed-form evaluation for extended timed automata. Technical report,
+CNRS and École Normale Supérieure de Cachan, 1998.
+13Patrice Godefroid and Pierre Wolper. A partial approach to model checking. Inf. Comput. ,
+110(2):305–326, 1994. doi:10.1006/inco.1994.1035 .
+14R. Govind. Partial-order reduction for timed systems . PhD thesis, Université de Bordeaux,
+France and Chennai Mathematical Institute, India (cotutelle), 2021.
+15R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Abstractions for the
+Local-time Semantics of Timed Automata: a Foundation for Partial-order Methods. To appear
+at 37th Annual ACM/IEEE Symposium on Logic in Computer Science, LICS 2022. URL:
+https://hal.archives-ouvertes.fr/hal-03644039 .
+16R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Revisiting local time
+semantics for networks of timed automata. In CONCUR , volume 140 of LIPIcs, pages
+16:1–16:15. Schloss Dagstuhl - Leibniz-Zentrum für Informatik, 2019.
+
+--- Page 17 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:17
+17Henri Hansen, Shang-Wei Lin, Yang Liu, Truong Khanh Nguyen, and Jun Sun. Diamonds are
+a girl’s best friend: Partial order reduction for timed automata with abstractions. In CAV,
+volume 8559 of Lecture Notes in Computer Science , pages 391–406. Springer, 2014.
+18Frédéric Herbreteau, B. Srivathsan, Thanh-Tung Tran, and Igor Walukiewicz. Why liveness
+for timed automata is hard, and what we can do about it. ACM Trans. Comput. Log. ,
+21(3):17:1–17:28, 2020.
+19Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Efficient emptiness check for timed
+büchi automata. Formal Methods Syst. Des. , 40(2):122–146, 2012.
+20Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Lazy abstractions for timed
+automata. In CAV, volume 8044 of Lecture Notes in Computer Science , pages 990–1005.
+Springer, 2013.
+21Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstractions for timed
+automata. Inf. Comput. , 251:67–90, 2016. doi:10.1016/j.ic.2016.07.004 .
+22Michalis Kokologiannakis, Iason Marmanis, Vladimir Gladstein, and Viktor Vafeiadis. Truly
+stateless, optimal dynamic partial order reduction. Proc. ACM Program. Lang. , 6(POPL),
+January 2022. doi:10.1145/3498711 .
+23Alfons Laarman, Mads Chr. Olesen, Andreas Engelbredt Dalsgaard, Kim Guldstrand Larsen,
+and Jaco van de Pol. Multi-core emptiness checking of timed büchi automata using inclusion
+abstraction. In CAV, volume 8044 of Lecture Notes in Computer Science , pages 968–983.
+Springer, 2013.
+24Kim G. Larsen, Marius Mikucionis, Marco Muñiz, and Jirí Srba. Urgent partial order reduction
+for extended timed automata. In Dang Van Hung and Oleg Sokolsky, editors, Automated
+Technology for Verification and Analysis - 18th International Symposium, ATVA 2020, Hanoi,
+Vietnam, October 19-23, 2020, Proceedings , volume 12302 of Lecture Notes in Computer
+Science, pages 179–195. Springer, 2020. doi:10.1007/978-3-030-59152-6_10 .
+25Guangyuan Li. Checking timed büchi automata emptiness using lu-abstractions. In FORMATS ,
+volume 5813 of Lecture Notes in Computer Science , pages 228–242. Springer, 2009.
+26Jesper B. Møller, Jakob Lichtenberg, Henrik Reif Andersen, and Henrik Hulgaard. Fully
+symbolic model checking of timed systems using difference decision diagrams. Electron. Notes
+Theor. Comput. Sci. , 23(2):88–107, 1999. doi:10.1016/S1571-0661(04)80671-6 .
+27Doron A. Peled. All from one, one for all: on model checking using representatives. In
+Costas Courcoubetis, editor, Computer Aided Verification, 5th International Conference, CAV
+’93, Elounda, Greece, June 28 - July 1, 1993, Proceedings , volume 697 of Lecture Notes in
+Computer Science , pages 409–423. Springer, 1993. doi:10.1007/3-540-56922-7_34 .
+28Stavros Tripakis. Checking timed büchi automata emptiness on simulation graphs. ACM
+Trans. Comput. Log. , 10(3):15:1–15:19, 2009.
+29Stavros Tripakis, Sergio Yovine, and Ahmed Bouajjani. Checking timed Büchi automata
+emptiness efficiently. Form. Methods Syst. Des. , 26(3):267–292, 2005.
+30Antti Valmari. Stubborn sets for reduced state space generation. In Grzegorz Rozenberg,
+editor,Advances in Petri Nets 1990 [10th International Conference on Applications and
+Theory of Petri Nets, Bonn, Germany, June 1989, Proceedings] , volume 483 of Lecture Notes
+in Computer Science , pages 491–515. Springer, 1989. doi:10.1007/3-540-53863-1_36 .
+31Antti Valmari. Stop it, and be stubborn! ACM Trans. Embed. Comput. Syst. , 16(2):46:1–46:26,
+2017. doi:10.1145/3012279 .
+32Antti Valmari and Henri Hansen. Stubborn set intuition explained. Trans. Petri Nets Other
+Model. Concurr. , 12:140–165, 2017. doi:10.1007/978-3-662-55862-1_7 .
+33Naling Zhang, Markus Kusano, and Chao Wang. Dynamic partial order reduction for relaxed
+memory models. In David Grove and Stephen M. Blackburn, editors, Proceedings of the 36th
+ACM SIGPLAN Conference on Programming Language Design and Implementation, Portland,
+OR, USA, June 15-17, 2015 , pages 250–259. ACM, 2015. doi:10.1145/2737924.2737956 .
+CONCUR 2022
+
+--- Page 18 ---
+12:18 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+A Appendix for Section 3
+▶Lemma 8. For everyT′a prefix ofTσ, every linearization fofT′gives a local run.
+Proof.We will suppose that T′is infinite. For finite T′the argument is essentially the same.
+Consider a linearization of a prefix of Tσgiven by a 1-1 function f:N→N. This means
+that rng(f)is⊴σ-downwards closed: if j∈rng(f)andi⊴σjtheni∈rng(f). We construct
+a local run:
+(¯qf(0),¯vf(0))∆f(0),bf(0)−−−−−−−→ (¯qf(1),¯vf(1))∆f(1),bf(1)−−−−−−−→···
+In order to state the invariant we define a function flast(i,p)giving the last action before
+iwith an action of process p:flast(i,p) =f(l)wherelthe largest number strictly smaller
+thaniwithbf(l)an action of p; we keep flast(i,p)undefined if there is no such l. Recall that
+a stateq= (q1,...,qk)is a tuple of states of component processes. We use qpfor thep-th
+component of q. The invariants are:
+for every process p,¯qp
+f(i)=qp
+flast(i,p)+1or¯qp
+f(i)=qp
+0ifflast(i,p)undefined.
+for every process p,¯vf(i)(tp) =θ(f(i))ifp∈dom(bf(i)); otherwise ¯vf(i)(tp) =θ(flast(i,p))
+or¯vf(i)(tp) =v0(tp)ifflast(i,p)is not defined.
+for everyx̸=tpa clock of process p: if flast(i,p)is defined then ¯vf(i)(x) =v(x)
+wherev(x) =vflast(i,p)[R]andRare resets of bflast(i,p); ifflast(i,p)not defined then
+¯vf(i)(x) =v0(x).
+We set ¯qf(0)=qf(0)and ¯vf(0)(tp) =θ(f(0))forp∈dom(bf(0))and ¯vf(0)(tp) =v0(tp)
+otherwise. Finally, we set ¯vf(0)=v0(x)for all other clocks. This satisfies the invariant as
+bf(0)is⊴-minimal action.
+Suppose that we have constructed a run up to (¯qf(i),¯vf(i)). The invariants guarantee
+that for every process p∈dom(bf(i))we have:
+¯qp
+f(i)=qp
+f(i),
+¯vf(i)(tp) =vf(i)(tp)and¯vf(i)(x) =vf(i)(x)for every clock xofp.
+Sincebf(i)is enabled from (qf(i),vf(i))this shows that it is also enabled from (¯qf(i),¯vf(i)).
+Consider (¯qf(i),¯vf(i))bf(i)−−−→ (qb,vb). We need to show that qb=¯qf(i+1)and that there is ∆
+givingvb+ ∆ = ¯v(f(i+ 1)).
+We start with qb. Take a process p∈dom(bf(i))then flast(i+ 1,p) =f(i)and we get
+qp
+b=qp
+flast(i+1,p)+1. Forp̸∈dom(bf(i)), we haveqp
+b=¯qp
+f(i)=qp
+flast(i,p)+1=qp
+flast(i+1,p)+1.
+The last equality is because flast(i,p) =flast(i+ 1,p)whenp̸∈dom(bf(i)).
+Now we look at reference clocks tp. Ifp∈dom(bf(i))\dom(bf(i+1))then we have
+vb(tp) =θ(f(i)) =θ(flast(i,p))as required. If p̸∈dom(bf(i))∪dom(bf(i+1))thenvb(tp) =
+θ(flast(i,p)) =θ(flast(i+ 1,p)). Ifp∈dom(bf(i+1))thenvb(tp) =θ(flast(i+ 1,p))≤
+θ(f(i+ 1))so we takeδp=θ(f(i+ 1))−vb(tp)to reestablish the invariant.
+Finally, to check the third invariant take a clock x̸=tpof a process p. Recall that
+vb=vf(i)[Rb]whereRbare resets of action bf(i). Ifp∈dom(bf(i))thenvin the invariant
+isvf(i)[R]because flast(i+ 1,p) =f(i). This is as required. If p̸∈dom(bf(i))then
+flast(i+ 1,p) =flast(i,p)andvb(x) = ¯vf(i), so we are done in this case too.
+Hence, we have prolonged the run to (¯qf(i+1),¯vf(i+1))and all invariants are satisfied. By
+induction we obtain the desired local run corresponding to a linearization f. ◀
+▶Proposition 9. Consider a network of timed automata N. There is a Büchi local run of
+Niff there is a Büchi global run of N.
+
+--- Page 19 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:19
+Proof.Since a global run is also a local run, one direction is easy.
+For the other direction, let us take a local run with infinitely many occurrences of actions
+fromF, and construct a global run. Recall that θ(i)is the time of the execution of action bi,
+namelyv′
+i(tp)forp∈dom(bi). Consider an order i⋖jwhenθ(i)<θ(j)orθ(i) =θ(j)and
+i<j.
+This order is a linear order ⊴σand moreover if i⋖jthen it is not the case that j⊴i
+(Lemma 7). Yet the linear order ⋖may not have type ωmeaning that it can be a transfinite
+sequence. We find a prefix TofTσsuch that ⋖is a linearization of Tof typeωandThas
+infinitely many occurrences of actions from F.
+Before doing this let us see how this gives us a desired global run. The ⋖-linearization of
+some prefix TofTσgives us a local run (Lemma 8):
+σ= (q0,v0)∆0−−→(q0,v′
+0)b0−→(q1,v1)∆′
+1−−→···
+withθ(0)≤θ(1)≤···. We define ¯v′
+i(tp) =θ(i)for all process pand¯v′
+i(x) =vi(x)for all
+other clocks x. Clearly all ¯v′
+iare synchronized valuations. We claim that
+σ= (q0,¯v0)δ0−→(q0,¯v′
+0)b0−→(q1,¯v1)δ1−→(q1,¯v′
+1)b1−→···
+is a global run (where δi=θ(i)−θ(i−1), and ¯vi+1is determined by ¯v′
+iand resets of
+bi). For this we verify that every transition (qi,¯v′
+i)bi−→(qi+1,¯vi+1)δi+1−−−→ (qi+1,¯v′
+i+1)exists.
+We know (qi,v′
+i)bi−→(qi+1,vi+1). We also have by assumption that ¯vi(tp) =θ(i) =v′
+i(tp)
+for allp∈dom(bi), as well as ¯v′
+i(x) =v′
+i(x)for all clocks xthat are not reference clocks.
+Hence (qi,¯v′
+i)bi−→(qi+1,vb)exists. We have vb(x) =vi+1(x)for all clocks that are non-
+reference clocks. Additionally vb(tp) =v′
+i(tp) =θ(i)for every process p. Hence, if we take
+δi+1=θ(i+ 1)−θ(i)we get ¯v′
+i+1=vb+δi+1as required. Repeating this reasoning we
+construct a desired run.
+We come back to the problem of finding a desired linearization. If ⋖gives a linearization
+ofTσof typeωthen we are done. Otherwise, consider the set I={i:ihas finitely many ⋖
+−smaller elements}. We have that ⋖is an order of type ωonI. Moreover Iis a⊴σ-downward
+closed as it is impossible to have j⊴σiandi⋖jat the same time. If Icontains infinitely
+many occurrences of actions from FthenIdefines a prefix we are looking for. Otherwise
+N\Iis infinite and there are infinitely many actions from FinN\I. Consider the set of
+processesPωsuch that there is an action b∈N\Iwithpin its domain. For every p∈P
+find the ⋖-smallestjp∈N\Isuch thatp∈dom(bjp). We claim that there are finitely
+manyi∈Iwithi⊴σjp. Indeedi⊴σjpimpliesi≤jin the standard order on natural
+numbers. Let I0contain all such ifor allp∈P. We claim that for i∈I\I0we havei̸⊴σj
+for everyj∈N\I. HenceI0∪(N\I)is a prefix of Tσ. Moreover, it contains infinitely
+many occurrences of actions from FsinceIcontains only finitely many of those and Nhas
+infinitely many. If ⋖-linearization of I0∪(N\I)has typeωthen we are done. If not then
+we repeat the argument. Observe that this time we have fewer processes such that there are
+infinitely many actions involving the process (none of the processes involved in actions from
+I\I0are there). Thus the argument must terminate giving us the desired prefix. ◀
+B Appendix for Section 4
+▶Lemma 32. For allx∈R\Z, we have{−x}= 1−{x}.
+CONCUR 2022
+
+--- Page 20 ---
+12:20 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+Proof.We havex=⌊x⌋+{x}and−x=⌊−x⌋+{−x}. Therefore−(⌊x⌋+{x}) =
+⌊−x⌋+{−x}. Secondly,⌊−x⌋=−⌊x⌋−1for allx∈R\Z. Plugging this into the previous
+equation gives the required conclusion. ◀
+▶Lemma 33. Forx,y,z∈Rsuch thatz−x∈R\Z, we have{z−x}≤{z−y}iff
+⌊x−y⌋=⌊x−z⌋+⌊z−y⌋+ 1.
+Proof.
+x−y=x−z+z−y
+=⌊x−z⌋+⌊z−y⌋+{x−z}+{z−y}
+=⌊x−z⌋+⌊z−y⌋+ 1−{z−x}+{z−y}
+This gives the statement of the lemma. ◀
+▶Lemma 34. Letx,y,z∈R, such that{x−z}>0and{y−z}>0. Then,{x−z}≤{y−z}
+iff{z−x}≥{z−y}.
+Proof.Follows by using{x−z}= 1−{z−x}and{y−z}= 1−{z−y}(Lemma 32). ◀
+▶Lemma 35. Letv≈⋆v′. Then, for variables x,y,z∈X∪Xt, we have{v(z−x)}≤
+{v(z−y)}iff{v′(z−x)}≤{v′(z−y)}.
+Proof.Follows from Lemma 33 and Definition 14. ◀
+▶Lemma 16. Letv≈⋆v′. For every local delay vδ− −→pu, there exists a δ′such that
+v′δ′
+− −→pu′whereu≈⋆u′.
+Proof.We assume that 0<δ< 1. Ifδ≥1then we can decompose it into its integral part
+and fractional part and repeat the reasoning.
+We divide the variable differences into three sets:
+C+={tp−z|z∈X\{tp}}
+C−={z−tp|z∈X\{tp}}
+C0={x−y|x,y∈X\{tp}}
+A local delay of δincreases the value of differences in C+, decreases the ones in C−and
+leaves theC0differences unaltered. Consider an element ϕ∈C+. Based on the relation
+betweenδand1−{v(ϕ)}, its value either stays in the same integer interval, or moves to the
+next integer point, or to the next integer interval. A symmetric change happens in C−. We
+now make this idea more precise.
+u(tp−z) =v(tp−z) +δ
+=⌊v(tp−z)⌋+{v(tp−z)}+δ
+=⌊v(tp−z)⌋+ 1−{v(z−tp)}+δwhenv(tp−z)̸= 0
+u(z−tp) =v(z−tp)−δ
+=⌊v(z−tp)⌋+{v(z−tp)}−δ
+From the above calculations, we observe some properties:
+
+--- Page 21 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:21
+When{v(tp−z)}̸= 0:
+⌊u(tp−z)⌋=⌊v(tp−z)⌋+ 1iffδ≥{v(z−tp)} (1)
+⌊u(z−tp)⌋=⌊v(z−tp)⌋−1iffδ>{v(z−tp)} (2)
+When{v(tp−z)}= 0, asδ<1we have:
+⌊u(tp−z)⌋=⌊v(tp−z)⌋ (3)
+⌊u(z−tp)⌋=⌊v(z−tp)⌋−1 (4)
+Note that the difference in the inequalities ( ≥in(1)and>in(2)) is expected, since for
+anyx∈Rwe have⌊−x⌋=−⌊x⌋if{x}= 0, and⌊−x⌋=−⌊x⌋−1otherwise. Among the
+ordering of fractional parts of differences in C−forv, consider (z1−tp),(z2−tp)that are
+consecutive in this ordering such that {v(z1−tp)}≤δ<{v(z2−tp)}. Replace{v(z1−tp)}
+with 0if no suchz1exists, and replace {v(z2−tp)}with 1if no suchz2exists.
+We now propose a δ′as required. From Lemmas 34 and 35, we know that the fractional
+parts of differences in C−are ordered in the same way in vandv′. We take any δ′with
+{v′(z1−tp)}≤δ′<{v′(z2−tp)}, such that in addition δ′={v′(z1−tp)}ifδ={v(z1−tp)}.
+Letu′=v′+δ′. Since we started with v≈⋆v′, from (1) to (4) we get u≈⋆u′. ◀
+The following lemma shows that ≡D
+Mequivalence is preserved by choosing appropriate
+local delays.
+▶Lemma 36. Letv,v′beD-spread valuations such that v≡D
+Mv′. For every local delay ∆
+such thatv+ ∆isD-spread, there exists a local delay ∆′such thatv′+ ∆′isD-spread and
+v+ ∆≡D
+Mv′+ ∆′.
+Proof.Let∆ ={δp}p∈Proc. We can break the local delay ∆into a sequence of local delays
+δp1−−→δp2−−→··· happening one process at a time. Therefore it is sufficient to prove the lemma
+for a local delay of one process, say δpat processp.
+Consider the given valuations v,v′which satisfy v≡D
+Mv′. By definition, we have
+Bounded (v) =Bounded (v′)andvB≈⋆v′B, whereB=Bounded (v). From Lemma 16, for
+every local delay δp, there exists a delay δ′
+psuch that (v+pδp)B≈⋆(v′+pδ′
+p)B. Clocks
+outsideBare unbounded both in v+pδpandv′+pδ′
+p. Finally, we are interested only in
+delaysδpsuch thatv+pδpisD-spread. Since all the reference clocks are present in B, we
+have⌊(v+pδp)(tr−ts)⌋=⌊(v′+pδ′
+p)(tr−ts)⌋. This shows that v′+pδ′
+pisD-spread. All
+these observations lead to v+pδp≡D
+Mv′+pδ′
+p. ◀
+▶Lemma 17. Letv,v′beD-spread valuations such that v≡D
+Mv′. LetNbe a network that
+conforms to M. For every action transition (q,v)b− −→(q1,v1)we have (q,v′)b− −→(q1,v′
+1)
+such thatv1≡D
+Mv′
+1.
+Proof.As(q,v)b− −→(q1,v1), we havev(tp−tq) = 0for allp,q∈dom(b). Sincev≡D
+Mv′, we
+also havev′(tp−tq) = 0forp,q∈dom(b). Secondly, vsatisfies the guard gpresent in the b-
+transition. AsNconforms to M, every constraint in gis of the form x<c,x≤corx>c,x≥
+cwith 0≤c≤M(x). Hence, by definition of v≡D
+Mv′, valuationv′satisfiesgtoo. This shows
+thatbis enabled at (q,v′). Finally, resetting Rfromvsets differences tp−xwithx∈Xp∩R
+to0. It does not change the values of differences between reference clocks. Hence both
+[R]vand[R]v′areD-spread. Moreover, Bounded ([R](v)) = Bounded (v)∪R, which equals
+Bounded (v′)∪Rand hence Bounded ([R]v′). We need to show that [R](v)B1≈⋆[R](v′)B1
+whereB1=Bounded ([R]v). So, we need to show that ⌊[R](v)(x−y)⌋=⌊[R](v′)(x−y)⌋.
+CONCUR 2022
+
+--- Page 22 ---
+12:22 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+This is direct when both x,y∈R, or when both x,y /∈R. Supposex∈R,y /∈R. We have
+[R]v(x−y) =v(tp−y)whenx∈Xp. Sincetpandyare already in Bounded (v), we have
+⌊v(tp−y)⌋=⌊v′(tp−y)⌋and hence⌊[R](v)(x−y)⌋=⌊[R](v′)(x−y)⌋. Symmetric reasoning
+works when x /∈R,y∈R. ◀
+▶Theorem 20. LetNbe a network that conforms to bounds function M. Then:
+For everyD-spread local run (q0,v0)∆0,b0−−−−→ (q1,v1)···, there exists a run (q0,[v0]D
+M)b− −→
+(q1,[v1]D
+M)···in the (M,D )-region graph.
+For every run (q0,[v0]D
+M)b0− −→(q1,[v1]D
+M)···in the (M,D )-region graph, there exists a
+D-spread local run (q0,v′
+0)∆0,b0−−−−→ (q1,v′
+1)···such thatv′
+i∈[vi]D
+Mfor alli≥0.
+The(M,D )-region graph is finite.
+Proof.
+Follows from definition of region graph.
+Given a transition (qi,[vi]D
+M)bi= =⇒(qi+1,[vi+1]D
+M), foreveryvaluationui∈[vi]D
+M), there is a
+transition (qi,ui)∆i,bi−−−→ (qi+1,ui+1)withui+1∈[vi+1]D
+M. This holds due to Corollary 18
+and is sufficient to extract a run starting from some arbitrary initial configuration.
+We claim that an (M,D )region is specified by the following information:
+a subsetB⊆/uniontext
+p∈ProcXpof bounded clocks,
+for every process clock x∈Xpthat is bounded, whether tp−x=core−1<tp−x<e
+forc∈{0,...M (x)}ande∈{1,...,M (x)},
+for every pair of reference clocks tp,tq, whethertp−tq=core−1<tp−tq<efor
+c∈{−D,...,D}ande∈{−D+ 1,...,D}
+for a pair of bounded process clocks x,y∈B, whetherx−y=core−1<x−y<e
+forc∈{−M(x)−D,...,M (y) +D}ande∈{−M(x)−D+ 1,...M (y) +D}.
+The claim gives a finite bound on the number of regions. It remains to prove the claim.
+Consider an (M,D )-region [v]D
+M. We have Bounded (v) =Bounded (v′)for every valuation
+v′∈[v]D
+M. Hence the set Bin the first item above is given by Bounded (v). The next
+three items follow from vB≈⋆v′Band noticing the bounds on the differences: we
+have 0≤v(tp−x)≤M(x)forx∈B∩Xpby definition of bounded clocks; we have
+−D≤v(tp−tq)≤Dsincevhas spread D; finally for x,y∈B, we havev(x−y)≤
+v(x−tp) +v(tp−tq) +v(tq−y)assumingx∈Xp,y∈Xq. Now, we use the inequalities:
+−M(x)≤v(x−tp)≤0,−D≤v(tp−tq)≤Dand0≤v(tq−y)≤M(y)to get
+−M(x)−D≤v(x−y)≤M(y) +D. ◀
+C Appendix for Section 5
+▶Lemma 37. LetNbe a deterministic D-spread network conforming to LU-bounds. For
+every path of the form (q0,Z0)σ1;(q1,Z′
+1)→e(q1,Z1)σ2= =⇒(q2,Z2)ineLZGD,src
+LU(N)there
+exists a path (q1,Z′
+1)σ2= =⇒(q2,Z′
+2)inLZG(N).
+Proof.Since (q1,Z1)is a node of eLZGD,src
+LU(N), it is reachable from (q0,Z0), and so is
+(q1,Z′
+1). Since aD
+≼LU(Z1) = aD
+≼LU(Z′
+1), Lemma 28 gives us a path (q1,Z′
+1)σ2= =⇒(q2,Z′
+2)in
+LZG(N). ◀
+▶Lemma 29. LetNbe a deterministic D-spread network that conforms to a bounds
+LU-bounds.
+Let(q0,Z0)σp;(q,Z)σc;(q,Z)be a path in eLZGD,src
+LU(N)which could potentially contain
+equality edges. Then, there exists an infinite D-spread local run over the sequence σp(σc)ω.
+
+--- Page 23 ---
+F. Herbreteau, B. Srivathsan, and I. Walukiewicz 12:23
+Proof.LetMbe defined as M(x) =max(L(x),U(x))for every process clock x. Letk∈Nbe
+larger than the number of (M,D )-regions. Consider the finite path in eLZGD
+LU(N)obtained
+by the sequence σp(σc)k. By repeated use of Lemma 37, there is a path σp(σc)kinLZG(N).
+By post-property of LZG(N), there is a local run (q0,v0)σp999K (q,v1)σc99K (q,v2)σc99K
+···σc99K (q,vk+1). AsNisD-spread, this run can be assumed to be D-spread. Due to
+Theorem 20, there is a path σp(σc)kin the (M,D )-region graph: (q0,[v0]D
+M)σp−→(q,[v1]D
+M)σc−→
+···σc−→(q,[vk+1]D
+M). Askis larger than the number of regions, there exist i,jsuch that
+[vi]D
+M= [vj]D
+M. This gives a path σpσi−1
+cσj−i
+cσk+1−j
+cin the region graph where the part σj−i
+c
+is a cycle, which can be iterated infinitely often. Hence there is a path σp(σc)ωin the region
+graph. By Theorem 20, there is an infinite local run over the sequence σp(σc)ω, whose
+intermediate valuations are all D-spread. ◀
+▶Lemma 30. LetNbe aD-spread network that conforms to a bounds function LU. Let
+(q0,Z0)b0=⇒(q1,Z1)b1=⇒be an infinite source path in LZG(N). Then there is an infinite path
+(q0,Z0)b0;(q1,Z1)b1;···ineLZGD,src
+LU(N).
+Proof.Letwi=bibi+1.... By induction on iwe construct a path in eLZGD,src
+LU(N)
+(q0,Z0)b0;(q1,Z′
+1)···bi;(qi,Z′
+i)
+such that in LZG(N)there is a path
+(qi,Z′
+i)bi+1= = =⇒(qi+1,Zi
+i+1)bi+2= = =⇒(qi+2,Zi
+i+2)...andenabled(qj,Zi
+j) = enabled( qj,Zj).
+The second item implies that the later path is a source path in LZG(N).
+If(qi,Z′
+i)is not covered in eLZGD,src
+LUthen the induction step is direct.
+If(qi,Z′
+i)is covered in eLZGD,src
+LUthen there exists (qi,Z′
+i)→e(qi,Z′′
+i)with (qi,Z′′
+i)
+uncovered and aD
+≼LU(Z′
+i) =aD
+≼LU(Z′′
+i). As (qi,Z′′
+i)is reachable from (q0,Z0)inLZG(N)by
+the definition of eLZGD,src
+LU, we can use Lemma 28. The lemma gives us a path (qi,Z′′
+i)bi+1= = =⇒
+(qi+1,Zi+1
+i+1)bi+2= = =⇒(qi+2,Zi+1
+i+2)...such that enabled (qj,Zi
+j) =enabled (qj,Zi+1
+j). Thus we
+also have enabled (qj,Zj) =enabled (qj,Zi+1
+j). We can prolong the finite prefix (q0,Z0)b0;
+(q1,Z′
+1)...bi;(qi,Z′
+i)by(qi,Z′
+i)→e(qi,Z′′
+i)bi+1= = =⇒(qi+1,Z′
+i+1). ◀
+The local zone graph eLZGD,src
+LU(N)is finite. We will prove that for every zone Z, the
+abstraction aD
+≼LU(Z)is a union of (M,D )-regions. To prove this statement, we will need
+to reason about canonical representations of zones. Zones are typically represented using
+Difference-Bound-Matrices (DBMs) or distance graphs [ 21]. We will use the distance graph
+representation for our analysis. A constraint x−y⋖cof the zone is represented as an edge
+y⋖c−−→x. An arithmetic over weights of (⋖,c)can be suitably defined (see [ 21], [15]) for more
+details. A canonical graph is one where the shortest path from ytoxis given by the direct
+edgey→x. We will write Zyxto denote the weight of the y→xedge in the canonical
+distance graph representing Z.
+For convenience of presentation, we define two sets of clocks for a given local valuation v:
+L-bounded(v) :=T∪/uniondisplay
+p∈Proc{x∈Xp|v(tp−x)≤Lx}
+U-bounded(v) :=T∪/uniondisplay
+p∈Proc{x∈Xp|v(tp−x)≤Ux}
+CONCUR 2022
+
+--- Page 24 ---
+12:24 Checking Timed Büchi Automata Emptiness Using the Local-Time Semantics
+Notice that the reference clocks Tare present in both L-bounded (v)andU-bounded (v).
+Define⟨v⟩⋆:={v′|v≼⋆
+LUv′}. We will now recall the distance graph representation of
+⟨v⟩⋆and an important property of the intersection ⟨v⟩⋆∩Zfor some arbitrary zone Z′.
+▶Definition 38 (Distance graph Hv[15]).Letx,y∈X∪Xtbe two clocks, possibly reference
+clocks. Assume that y̸=xandy∈Xq∪{tq}for some process q. The weight of the edge
+x→yin the distance graph Hvis given by:
+
+
+(≤,v(y−x)) ifx∈U-bounded(v),
+y∈L-bounded(v)
+(≤,v(tq−x)) + (<,−Ly)ifx∈U-bounded(v),
+y /∈L-bounded(v),Ly̸=−∞
+(≤,v(tq−x)) ifx∈U-bounded(v),
+y /∈L-bounded(v),Ly=−∞
+(<,∞) otherwise
+▶Proposition 39. [15] The intersection ⟨v⟩⋆∩Zis empty iff there are two variables x,y∈
+X∪Ts.t.x∈U-bounded (v),Ly̸=−∞whenyis a process clock, and Hv
+xy+Zyx<(≤,0).
+The above proposition gives a simple characterization for when the upward closure of a
+valuationvwrt to the ≼⋆
+LUsimulation does not intersect zone Z. Using this, we can show
+that when two valuations belong to the same (M,D )-region, then one of them satisfies this
+characterization iff the other does so. Here, we will make use of the fact that our atomic
+constraints involve integer constants, and hence all zones that appear in the local zone graph
+computation will only involve integer constants.
+▶Lemma 40. LetL,UandMbe bound functions such that for every process clock x, we
+haveM(x)≥L(x)andM(x)≥U(x). For every zone Z, the set a⋆
+≼LU(spreadD(Z))is a
+finite union of (M,D )-regions.
+Proof.We first remark that every valuation in a⋆
+≼LU(spreadD(Z))isD-spread. Let vbe a
+D-spread valuation. We have v∈a⋆
+≼LU(spreadD(Z))iff⟨v⟩⋆∩Zis non-empty. Let v≡D
+Mv′.
+We will show that ⟨v⟩⋆∩Zis empty iff⟨v′⟩⋆∩Zis empty. This will prove the lemma. Let
+HvandHv′be the canonical distance graphs representing ⟨v⟩⋆and⟨v′⟩⋆respectively.
+From Proposition 39, ⟨v⟩⋆∩Zis empty iff there exist two variables x,ysuch that
+x∈U-bounded(v), andLy̸=−∞whenyis a process clock, such that Hv
+xy+Zyx<(≤,0).
+Asx∈U-bounded (v), we also have x∈Bounded (v), asM(x) =max(L(x),U(x)). Since
+v≡D
+Mv′, we have x∈U-bounded (v)iffx∈U-bounded (v′). Wheny∈Bounded (v),
+we have⌊Hv
+xy⌋=⌊Hv′
+xy⌋. SinceZyxis of the form (⋖,c)withcan integer, we have
+Hv
+xy+Zyx<(≤,0)iffHv′
+xy+Zyx<(≤,0). Wheny /∈Bounded (v), then in particular, yis
+a process clock, y /∈L-bounded (v)and we have Hv
+xy= (≤,v(tq−x)) + (<,−Ly)whereq
+is the process containing y. But,tqbelongs to both Bounded (v)andBounded (v′). Hence
+⌊v(tq−x)⌋=⌊v′(tq−x)⌋and the lemma follows for this case using the previous argument. ◀

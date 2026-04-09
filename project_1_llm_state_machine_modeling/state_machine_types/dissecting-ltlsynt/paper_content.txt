@@ -1,0 +1,1878 @@
+--- Page 1 ---
+Dissecting ltlsynt
+Florian Renkin1*, Philipp Schlehuber-Caissier1, Alexandre
+Duret-Lutz1and Adrien Pommellet1
+1EPITA Research Laboratory, EPITA, 14–16 rue V oltaire,
+94270 Kremlin-Bic ˆetre, France.
+*Corresponding author(s). E-mail(s): renkin@lrde.epita.fr;
+Contributing authors: philipp@lrde.epita.fr; adl@lrde.epita.fr;
+adrien@lrde.epita.fr;
+Abstract
+ltlsynt is a tool for synthesizing a reactive circuit satisfying a specifica-
+tion expressed as an LTL formula. ltlsynt generally follows a textbook
+approach: the LTL specification is translated into a parity game whose win-
+ning strategy can be seen as a Mealy machine modeling a valid controller.
+This article details each step of this approach, and presents various refine-
+ments integrated over the years. Some of these refinements are unique to
+ltlsynt : for instance, ltlsynt supports multiple ways to encode a Mealy
+machine as an AIG circuit, features multiple simplification algorithms for the
+intermediate Mealy machine, and bypasses the usual game-theoretic approach
+for some subclasses of LTL formulas in favor of more direct constructions.
+Data Availability Statement: Instructions to reproduce the benchmarks pre-
+sented in this article are available from https://www.lrde.epita.fr/ ∼frenkin/
+fmsd22/artifact
+Keywords: reactive synthesis, Mealy machines, parity automata, parity games, LTL
+formulas
+1 Introduction
+Program synthesis is a well-established formal method: given a logical specification
+of a system, it allows one to automatically generate a provably correct implemen-
+tation. It can be applied to reactive controllers (Fig. 1), that is, circuits that read
+an input stream of Boolean valuations (here, over Boolean variables aandb) and
+1
+
+--- Page 2 ---
+2 Dissecting ltlsynt
+a
+bx
+y
+Fig. 1 : A reactive controller, seen
+as a black box that reads some
+input signals (here a,b) to pro-
+duce some output signals (here x,
+y).latch
+xa
+Fig. 2 : An And-Inverter Graph where the latch
+is used to remember if ahas been false. Output
+xis true as long as aremains true, and becomes
+continuously false on the first occurrence of ¯ a.
+¯a¯x0¯x1
+a¯x
+0 ¯x0x0ax
+0⊤1Fin(0)∨Inf(1)
+Fig. 3 : A deterministic max
+odd parity automaton for
+a↔F(x). An infinite run
+is accepting if the maximal
+color it visits infinitely often
+is odd.37 1
+5 62
+08
+a¯a¯x
+0
+⊤ ¯x1
+x
+0⊤ ⊤1 ¯x0⊤Fin(0)∨Inf(1)
+Fig. 4 : The two-player parity game interpretation of
+the automaton of Fig. 3. Player 0 plays from round
+nodes and selects input signals; player 1 plays from
+square nodes and selects output signals. The game is
+winning for player 1 if, regardless of the choices made
+by player 0, player 1 can force the infinite play to sat-
+isfy the parity max odd acceptance condition. This is
+the case here if player 1 always selects the thick tran-
+sitions.
+simultaneously produce a matching output stream of valuations (here, over xandy).
+Theltlsynt tool that we shall discuss solves this problem when the specification
+is given as a Linear-time Temporal Logic formula constraining the input and output
+signals over time. If this specification is realizable, that is, if it is possible to build a
+controller for it, then the output is expected as an And-Inverter Graph (AIG), that is,
+a circuit built from and gates ,negations , and latches that delay their input
+by one tick, and output 0 initially.
+For instance, assuming a single input signal aand a single output signal x, the
+specification formula a↔F(x), which states that ashould hold initially if and only
+ifxholds eventually, could be satisfied by constructing a controller such that the
+Boolean output value xis continuously equal to the first value of the Boolean input
+a. However, many other controllers could satisfy this formula. For instance, in Fig. 2,
+signal xholds until the first ¯ ais received, and remains false after that occurrence.
+Among possible choices, we are interested in producing a small controller in terms
+of AIG size (number of gates and latches).
+
+--- Page 3 ---
+Dissecting ltlsynt 3
+a/x¯a/¯x⊤/⊤⊤/¯x
+Fig. 5 : The winning strategy of Fig. 4,
+seen as an incompletely specified Mealy
+machine.¯a/¯xa/x ⊤/¯x
+Fig. 6 : A reduced Mealy machine, for
+the winning strategy of Fig. 4. Note how
+the states of this machine are used to
+remember if ¯ ahas been seen at some
+point. This machine can be encoded into
+the AIG of Fig. 2.
+To obtain the AIG controller, we use an automata-theoretic approach whose main
+steps are the following:
+•Convert the specification LTL formula into a deterministic parity automa-
+ton (Fig. 3).
+•Knowing that output signals are controllable while input signals are not, con-
+vert this parity automaton into a parity game, where player 0 (the environment)
+chooses the input signals, and player 1 (the controller) chooses the output signals.
+In addition to being deterministic, this game has to be input complete, i.e., the envi-
+ronment must always be able to select any valuation of the input signals (Fig. 4).
+The specification is realizable if player 1 has a strategy to respond to any input
+stream while satisfying the parity acceptance condition.
+•A winning strategy for player 1 can be seen as a Mealy machine (Fig. 5). We
+use incompletely specified generalized Mealy machines to capture some of the
+freedom provided by the strategy as far as output selection is concerned.
+•The above Mealy machine is then reduced (Fig. 6), taking advantage of that
+freedom if possible.
+•Finally the Mealy machine is encoded in the AIGER format, to represent the
+controller as an AIG (Fig. 2).
+The above steps are a mere outline of the procedure implemented in our tool,
+called ltlsynt , and distributed along with the Spot library (Duret-Lutz et al, 2022),
+where most of the operations are implemented. Figure 7 gives a more detailed picture
+by including two optimizations: a decomposition of the specification into multiple
+sub-specifications (we refer the reader to Finkbeiner et al (2021) for more details
+about this technique), and a shortcut to the “standard” construction for some LTL
+formulas.
+The rest of this article is organized as follows. We define LTL, automata, parity
+games, and Mealy machines in Section 2. The rest of the sections delve into specific
+steps of this pipeline: Section 3 explains how we convert LTL formulas into determin-
+istic parity automata, Section 4 discusses different options for reducing incompletely
+specified Mealy machines, Section 5 discusses several ways to encode our Mealy
+
+--- Page 4 ---
+4 Dissecting ltlsynt
+LTL formula ϕ,
+controllable propositions O
+decompose ϕ
+does ϕimatch
+G(b1)∧(ψ↔GFb2)?
+yes no
+translate ϕi
+to game
+solve gameFig. 4
+Y/N
+output
+extract
+IGMMtranslate ϕi
+to IGMM
+simplify IGMMFig. 5
+encode as AIGFig. 6
+AIGER fileFig. 2The user supplies the specification of a reac-
+tive system using an LTL formula tying some
+uncontrollable input signals to some control-
+lable output signals.
+Optionally decompose ϕ=V
+iϕias a conjunc-
+tion of subspecifications ϕiwith independent
+outputs. (Finkbeiner et al, 2021)
+For this subclass of formulas, we can bypass the
+game-theoretical framework. (Section 6)
+ϕiis converted to a parity game where player 0
+plays the input signals, and player 1 plays the
+output signals. (Section 3)
+The game is solved using a variant of Zielonka’s
+algorithm (van Dijk, 2018). A controller is real-
+izable if player 1 has a winning strategy for the
+initial state.
+When ltlsynt is called with option
+--realizability , the process can stop here
+by combining the results of all ϕis.
+Otherwise, an Incompletely specified General-
+ized Mealy Machine (IGMM) is created from
+the winning strategy, or from ϕi.
+Simplifying the IGMM helps to reduce the size
+of the controller. (Section 4)
+Encoding as an And-Inverter Graph can be done
+in a number of ways. Combining the different
+“sub-controllers” for the ϕis is done in this step.
+(Section 5)
+Fig. 7 : General outline of the process used by ltlsynt to solve a reactive synthesis
+problem.
+machines into an AIG. Section 6 shows how to bypass the “standard” construction
+for some subclass of LTL formulas. Finally we evaluate some of these choices in
+Section 7.
+
+--- Page 5 ---
+Dissecting ltlsynt 5
+2 Concepts
+2.1 Valuations and Cubes
+LetN={0,1,2,...}be the set of natural numbers, and let B={⊤,⊥}denote the set
+of Boolean values. Given a set Xof propositions (i.e., Boolean variables), a valuation
+is a function from XtoB. LetBXbe the set of all possible valuations on X, and
+let 2BXbe its set of subsets. Any element of 2BXcan be expressed as a Boolean
+formula over X, so we shall often represent valuations or set of valuations as Boolean
+formulas over X. The negation of proposition pis denoted ¯ p. We overload ⊤(resp.
+⊥) to denote the Boolean formula that is always true (resp. false), or equivalently the
+setBX(resp. / 0), and assume that Xis clear from the context.
+Acube is a (possibly empty) conjunction of propositions or their negations (i.e.,
+literals). As an example, given three propositions X={a,b,c}, the cube a∧¯b, usually
+written a¯b, stands for the set of valuations in which ais true and bis false, i.e.,
+{a¯bc,a¯b¯c}. LetKXstand for the set of all cubes over X.KXcontains the cube ⊤(the
+empty conjunction), that stands for the set of all possible valuations over X. Note that
+any set of valuations can be represented as a disjunction of disjoint cubes.
+2.2 Linear-Time Temporal Logic
+Given an alphabet Σ, we use Σωto denote the set of infinite words over Σ. For a word
+π=π0π1π2...∈Σωwe note πiits letter at position i∈N. We use πi..to denote the
+suffix of πstarting at position i, in other words πiπi+1πi+2...=πi...
+A set of words L⊆Σωis called a language. We note L∁=Σω∖Lits complement.
+In the sequel, we work with an alphabet that contains valuations over a set of input
+and output propositions (representing the input and output signals of our controller).
+LetIandObe two disjoint sets of input and output propositions. A trace is an infinite
+word π∈(BI∪ ·O)ωover valuations of I∪ ·O. We use symbol ∪ ·to indicate that this is
+a disjoint union.
+A classical formalism to express specifications on traces is LTL:
+Definition 1 (LTL) A Linear-time Temporal Logic formula is built from the following
+grammar:
+ϕ::=⊤ | ⊥ | p| ¬ϕ|ϕ⊙ϕ|Fϕ|Gϕ|Xϕ|ϕUϕ|ϕRϕ
+where p∈I∪ ·Ois any proposition, and ⊙ ∈ {∧ ,∨,→,↔,⊕}represents any binary Boolean
+operator ( ⊕is exclusive or).
+Parentheses are used for grouping, but we omit them from the above grammar
+and the upcoming ones for simplicity.
+Definition 2 (Semantics of LTL) For a trace π∈(BI∪ ·O)ωand an LTL formula ϕ, we say that
+πsatisfies ϕ, denoted π⊨ϕ, and define this relation inductively as follows:
+π⊨⊤ ⇔ ⊤
+
+--- Page 6 ---
+6 Dissecting ltlsynt
+π⊨⊥ ⇔ ⊥
+π⊨ρ⇔π0(ρ) =⊤
+π⊨¬ϕ⇔ ¬(π⊨ϕ)
+π⊨ϕ⊙ψ⇔(π⊨ϕ)⊙(π⊨ψ)
+π⊨Xϕ⇔π1..⊨ϕ
+π⊨Fϕ⇔ ∃i∈N,πi..⊨ϕ
+π⊨Gϕ⇔ ∀i∈N,πi..⊨ϕ
+π⊨ϕUψ⇔ ∃i∈N,πi..⊨ψand∀j∈{0,..., i−1},πj..⊨ϕ
+π⊨ϕRψ⇔(
+∀i∈N,πi..⊨ψor
+∃i∈N,πi..⊨ϕand∀j≤i,πj..⊨ψ
+In the above, ρ∈I∪ ·Ois a proposition, ϕandψare LTL formulas, and ⊙ ∈ {∧ ,∨,→,↔,⊕}
+is any binary Boolean operator.
+The language of a formula ϕis the set of traces that satisfy it: L(ϕ) ={π∈(BI∪ ·O)ω|
+π⊨ϕ}. Two formulas ϕandψare said to be equivalent if they have the same language, and
+we write ϕ≡ψ.
+We now define some useful subclasses of LTL formulas.
+Definition 3 (Some subclasses of LTL) Consider the following grammar rules, where p∈
+I∪ ·Ois any proposition, ⊖ ∈ {∧ ,∨,↔,⊕}is any commutative Boolean operator, ⊙ ∈
+{∧,∨,→,↔,⊕}is any binary Boolean operator, and ϕis any LTL formula.
+ϕN::=⊤ | ⊥ | p| ¬p|ϕN⊖ϕN|FϕN|GϕN|XϕN|ϕNUϕN|ϕNRϕN
+ϕX::=⊤ | ⊥ | p| ¬ϕX|ϕX⊙ϕX|XϕX
+ϕG::=ϕX| ¬ϕS|ϕG∧ϕG|ϕG∨ϕG|ϕS→ϕG|XϕG|FϕG|ϕGUϕG
+ϕS::=ϕX| ¬ϕG|ϕS∧ϕS|ϕS∨ϕS|ϕG→ϕS|XϕS|GϕS|ϕSRϕS
+ϕO::=ϕG|ϕS| ¬ϕO|ϕO⊙ϕO|XϕO|ϕOUϕG|ϕORϕS
+ϕP::=ϕO| ¬ϕR|ϕP⊙ϕP|XϕP|FϕP|ϕPUϕP|ϕPRϕS
+ϕR::=ϕO| ¬ϕP|ϕR⊙ϕR|XϕR|GϕR|ϕRUϕG|ϕRRϕR
+ϕµ::=⊥ | ⊤ | ¬ ϕν|ϕµ∧ϕµ|ϕµ∨ϕµ|Xϕµ|Fϕ|Gϕµ|ϕUϕµ| ⊤Uϕ|ϕµRϕµ
+ϕν::=⊥ | ⊤ | ¬ ϕµ|ϕν∧ϕν|ϕν∨ϕν|Xϕν|Fϕν|Gϕ|ϕνUϕν|ϕRϕν| ⊥Rϕ
+ϕξ::=⊥ | ⊤ | ¬ ϕξ|ϕξ⊙ϕξ|Fϕν|Gϕµ|Fϕξ|Gϕξ|Xϕξ|ϕUϕξ|ϕRϕξ
+Formulas produced by rule ϕNare said to be in negative normal form (NNF): i.e., negation is
+only applied to atomic propositions, and implication is not used.
+Formulas produced by rule ϕXareLTL(X) formulas , i.e., LTL formulas where the only
+temporal operator used is X.
+Formulas produced by rules ϕG,ϕS,ϕO,ϕP,ϕRare called respectively syntactic guarantee for-
+mulas ,syntactic safety formulas ,syntactic obligation formulas ,syntactic persistence formulas
+andsyntactic recurrence formulas (ˇCern ´a and Pel ´anek, 2003).
+Formulas produced by rules ϕµ,ϕν, and ϕξare called respectively pure eventuality formulas ,
+pure universality formulas , and suspendable formulas (Babiak et al, 2013).
+
+--- Page 7 ---
+Dissecting ltlsynt 7
+Theorem 2.1 (Folklore) Any LTL formula can be transformed into an equivalent NNF formula
+by pushing negations inward, applying rules such as ¬(ϕ1Uϕ2)≡(¬ϕ1)R(¬ϕ2),¬(ϕ1↔
+ϕ2)≡(¬ϕ1)⊕(¬ϕ2),ϕ1→ϕ2≡(¬ϕ1)∨ϕ2, etc.
+Theorem 2.2 (Etessami and Holzmann (2000); Babiak et al (2013)) Any pure eventuality ϕ
+satisfies ϕ≡Fϕ. Any pure universality ϕsatisfies ϕ≡Gϕ. Any suspendable formula ϕsatisfies
+ϕ≡Gϕ≡Fϕ≡Xϕ.
+The sets of syntactic guarantee, syntactic safety, syntactic obligation formulas,
+syntactic recurrence formulas and syntactic persistence formulas are related to the
+temporal hierarchy of Manna and Pnueli (1990) in a way that has been discussed by
+ˇCern ´a and Pel ´anek (2003). However, we first need to define automata before we can
+state those important results.
+2.3 Emerson-Lei Automata
+It is a well-known result that Muller automata can recognize the set of all traces
+satisfying a given LTL formula and thus, may prove extremely useful in the syn-
+thesis process. Emerson-Lei Automata were defined (Emerson and Lei, 1987) and
+named (Safra and Vardi, 1989) in the 80s; they provide a way to describe a Muller
+acceptance condition using a positive Boolean formula over sets of states that must
+be visited finitely or infinitely often. Below we define the transition-based version of
+those automata, as used in the Hanoi Omega-Automata Format (Babiak et al, 2015).
+Instead of working directly with sets of transitions, we label transitions by multiple
+colored marks, as can be seen in Figure 3.
+LetM={0,..., n−1}be a finite set of ncontiguous integers called the set of
+marks orcolors , from now on also written M={0,1,...}in our examples. We
+define the set C(M)ofacceptance formulas according to the following grammar,
+where mstands for any mark in M:
+α::=⊤ | ⊥ | Inf(m)|Fin(m)|α∧α|α∨α
+Acceptance formulas are interpreted over subsets of M. For N⊆Mwe define the
+satisfaction relation N|=αinductively according to the following semantics:
+N|=⊤, N|=Inf(m)iffm∈N, N|=α1∧α2iffN|=α1andN|=α2,
+N̸|=⊥, N|=Fin(m)iffm/∈N, N|=α1∨α2iffN|=α1orN|=α2.
+An Emerson-Lei automaton is an ω-automaton labeled by marks whose accep-
+tance condition is expressed as a positive Boolean formula on sets of marks that occur
+infinitely or finitely often in a run. More formally:
+Definition 4 (Transition-based Emerson-Lei Automata) A transition-based Emerson-Lei
+automaton (TELA) is a tuple A= (Q,M,Σ,δ,q0,α)where:
+•Qis a finite set of states.
+
+--- Page 8 ---
+8 Dissecting ltlsynt
+Table 1 : Example of acceptance formulas for traditional acceptance conditions.
+B¨uchi Inf(0)
+generalized B ¨uchi Inf(0)∧Inf(1)∧Inf(2)∧...
+co-B ¨uchi Fin(0)
+Rabin 
+Fin(0)∧Inf(1)
+∨ 
+Fin(2)∧Inf(3)
+∨...
+Streett 
+Inf(0)∨Fin(1)
+∧ 
+Inf(2)∨Fin(3)
+∧...
+parity min even Inf(0)∨(Fin(1)∧(Inf(2)∨(Fin(3)∧...)))
+parity min odd Fin(0)∧(Inf(1)∨(Fin(2)∧(Inf(3)∨...)))
+parity max even (((Inf(0)∧Fin(1))∨Inf(2))∧Fin(3))∨...
+parity max odd (((Fin(0)∨Inf(1))∧Fin(2))∨Inf(3))∧...
+•Mis a finite set of marks.
+•Σis a finite input alphabet.
+•δ⊆Q×Σ×2M×Qis a finite set of transitions.
+•q0∈Qis an initial state.
+•α∈C(M)is an acceptance formula.
+Given a transition d= (q1,ℓ,A,q2)∈δ, we write d=q1ℓ,A− →q2;q2is said to be a
+successor ofq1, and q1, the origin ofd. IfA=/ 0, the transition is said to be uncolored,
+and has no direct impact on the acceptance. A run r ofAis an infinite sequence of
+transitions r= (siℓi,Ai− − → s′
+i)i≥0inδωsuch that s0=q0and∀i≥0,s′
+i=si+1. Since
+δis finite, for any run r, there exists a position jr≥0 such that for each i≥jr, the
+transition siℓi,Ai− − → s′
+ioccurs infinitely often in r. Let Rep(r) =S
+i≥jrAibe the set of
+colors repeated infinitely often in r.
+A run risaccepting ifRep(r)|=α, and we then say that Aaccepts the word
+(ℓi)i≥0∈Σω. We may then write r|=α. The language L(A)is the set of words
+accepted by A. Two TELA are equivalent if they have the same language. By exten-
+sion, the language of a state q∈Qis the language of the automaton using qas initial
+state.
+Finally, a TELA is deterministic if each state has at most one outgoing edge for
+any given letter, in other words, ∀(q,v)∈Q×Σ,|{(s,ℓ,A,d)∈δ|s=q∧ℓ=v}| ≤ 1,
+and it is complete if each state has at least one outgoing edge for any given letter, in
+other words, ∀(q,v)∈Q×Σ,|{(s,ℓ,A,d)∈δ|s=q∧ℓ=v}| ≥ 1.
+The grammar of acceptance formulas can represent many traditional acceptance
+conditions, as illustrated in Table 1. For parity acceptance, interpreting the colors
+as numbers amounts to checking whether the minimum or maximum color seen
+infinitely often is odd or even.
+Some subclasses of TELA are of specific interest to us. A DELA is a deterministic
+TELA. If it has parity acceptance, we call it deterministic parity automaton (DPA).
+ltlsynt works with max odd parity, but the techniques described can be adjusted
+to other types of parity acceptance. A NBA is a TELA with B ¨uchi acceptance, and a
+DBA is the deterministic version.
+The following theorem captures some well-established results linking LTL to
+TELA.
+
+--- Page 9 ---
+Dissecting ltlsynt 9
+Theorem 2.3 For any LTL formula there exists an equivalent NBA and an equivalent DPA.
+There exist some LTL formulas that cannot be represented by an equivalent DBA.
+The following definition and theorem connect the syntactic obligation formula of
+Section 2.2 to the class of weak TELA:
+Definition 5 Aweak automaton is a TELA in which all transitions that belong to the same
+strongly connected component have the same color. Without loss of expressivity, one can
+always recolor weak automata to use a B ¨uchi acceptance condition Inf(0).
+Theorem 2.4 (ˇCern ´a and Pel ´anek (2003); Dax et al (2007)) Any syntactic obligation formula
+can be converted into an equivalent deterministic weak automaton of minimal size.
+Similarly, the classes of syntactic recurrence and syntactic persistence formula
+can be connected to specific types of deterministic automata.
+Theorem 2.5 (ˇCern ´a and Pel ´anek (2003)) For any syntactic recurrence formula there exists
+an equivalent deterministic B ¨uchi automaton and dually for any syntactic persistence formula
+there exists an equivalent deterministic co-B ¨uchi automaton.
+2.4 Operations on Deterministic TELA
+We now define operations over deterministic TELA that realize Boolean operations
+over their language. Let us first extend our definition of acceptance formulas via some
+syntactic sugar.
+Definition 6 (Syntactic sugar for acceptance formulas) Let αbe an acceptance formula, then
+¬αis the acceptance formula defined inductively by
+¬⊤=⊥ ¬ Inf(m) =Fin(m) ¬(α1∧α2) = (¬α1)∨(¬α2)
+¬⊥=⊤ ¬ Fin(m) =Inf(m) ¬(α1∨α2) = (¬α1)∧(¬α2)
+For two acceptance formulas αandβ, let us define three additional operations:
+α→β=¬α∨β
+α↔β= (α∧β)∨(¬α∧¬β)
+α⊕β= (α∧¬β)∨(¬α∧β)
+Theorem 2.6 (Complement of a deterministic TELA) LetA= (Q,M,Σ,δ,q0,α)be a deter-
+ministic complete TELA. We define Complement (A)as the automaton (Q,M,Σ,δ,q0,¬α),
+and we obviously have L(Complement (A)) =L(A)∁.
+Theorem 2.7 (Generalized product) LetA1= (Q1,M1,Σ,δ1,i1,α1)andA2=
+(Q2,M2,Σ,δ2,i2,α2)be two deterministic TELA over the same alphabet using two disjoint
+sets of colors M 1and M 2.
+For any ⊙ ∈ {∧ ,∨,→,↔,⊕}letProduct ⊙(A1,A2)be the TELA (Q,M,Σ,δ,i,α)where:
+
+--- Page 10 ---
+10 Dissecting ltlsynt
+•Q=Q1×Q2,
+•δ={((s1,s2),ℓ1,m1∪m2,(d1,d2))|(s1,ℓ1,m1,d1)∈δ1,(s2,ℓ2,m2,d2)∈δ2, ℓ1=
+ℓ2},
+•i= (i1,i2),
+•α=α1⊙α2
+Then, it follows that:
+L(Product ∧(A1,A2)) =L(A1)∩L(A2)
+L(Product ∨(A1,A2)) =L(A1)∪L(A2)
+L(Product →(A1,A2)) =L(A1)∁∪L(A2)
+L(Product ↔(A1,A2)) = (L(A1)∩L(A2))∪(L(A1)∁∩L(A2))∁
+L(Product ⊕(A1,A2)) = (L(A1)∖L(A2))∪(L(A2)∖L(A1))
+The above product can be adapted to the case where the set of colors M1and
+M2used by each automaton are not disjoint, by first renumbering the colors of one
+automaton to make sure they are unique. In the end, the number of colors used by the
+above product is |M1|+|M2|.
+In the context of reactive synthesis, we will consider an alphabet Σ=BI∪ ·O. The
+edges of a TELA are labeled by input and output propositions.
+2.5 Parity Games
+We view parity games as specialized versions of TELA where each state is owned by
+one of two players.
+Definition 7 (Parity Game) A parity game is a TELA of the form G= (Q0∪ ·Q1,M,Σ,δ,q0,α)
+such that:
+•Q0andQ1are two disjoint sets of states respectively controlled by player
+0 (“the environment”) and player 1 (“the controller”).
+•αis a parity max odd condition.
+A run of Gis called a play; it is said to be winning for player 1 if it is an accepting
+run, otherwise, if the run is non-accepting, it is winning for player 0.
+As shown in Figure 3, states in Q0will be denoted , and states in Q1,. Intu-
+itively, player 0 and player 1 take turns and pick a successor in accordance to the
+current state and the transitions defined in δ. Player 1 tries to ensure that the resulting
+run is accepting, while player 0 is actively preventing this outcome.
+Amemoryless strategy for a player X(with X∈{0,1}) is a function σX:QX→δ
+such that σX(q)is always an outgoing transition of q∈QX.
+A play p= (siℓi,Ai− − → s′
+i)i≥0is said to be consistent with σXif∀si∈QX,(siℓi,Ai− − →
+s′
+i) =σX(si), that is, the transition leaving any state in QXin that run is determined
+byσX. Finally, σXis said to be a winning strategy for player Xif any play that is
+starting in q0and consistent with σXis winning for player X.
+
+--- Page 11 ---
+Dissecting ltlsynt 11
+Parity games are known to be positionally determined , this means that one of the
+two players has a memoryless winning strategy. B ¨uchi games are positionally deter-
+mined too, however as seen in Theorem 2.3, DBA are less expressive than DPA;
+we therefore focus on DPA. Several algorithms exist for finding winning strategies
+in parity games (Zielonka, 1998; Jurdzi ´nski, 2000; van Dijk, 2018), and those that
+are defined with state-based acceptance can easily be adapted to transition-based
+acceptance. Our implementation is based on Zielonka’s algorithm with improvements
+taken from van Dijk (2018).
+2.6 Mealy Machines
+Reactive controllers produce for an input stream of Boolean valuations a matching
+output stream. We model this behavior thanks to a common finite state model known
+asMealy machines , as shown in Figure 5. In particular, we will use Mealy machines
+to represent the winning strategies we obtain while solving parity games. However, a
+given specification may yield multiple compatible output valuations for a given input:
+our model must therefore account for this peculiarity of reactive synthesis.
+Definition 8 AnIncompletely specified Generalized Mealy Machine (IGMM) is a tuple M=
+(I,O,Q,qinit,δ,λ), where Iis a set of input propositions ,Oa set of output propositions ,Q
+a finite set of states ,qinitaninitial state ,δ: 
+Q,BI
+→Qa partial transition function , and
+λ: 
+Q,BI
+→2BO∖{/ 0}anoutput function such that λ(q,i) =⊤when δ(q,i)is undefined. If
+δis a total function, we then say that Misinput-complete .
+It is worth noting that the transition function is input-deterministic but not com-
+plete with regards to Qasδ(q,i)could be undefined. (When δ(q,i)is undefined, the
+Mealy machine will be free to do anything, hence the convention that λ(q,i) =⊤.)
+Furthermore, the output function may return a set of valuations for a given input val-
+uation and state. This is not an unexpected definition from a reactive synthesis point
+of view, as discussed earlier.
+Definition 9 (Semantics of IGMMs) Let M= (I,O,Q,qinit,δ,λ)be an IGMM. For all u∈BI
+andq∈Q, ifδ(q,u)is defined, we write that qu/v− − →δ(q,u)for all v∈λ(q,u). Given two
+infinite sequences of valuations ι=i0·i1·i2··· ∈ (BI)ωando=o0·o1·o2··· ∈ (BO)ω, we
+note(ι,o)(Mqif and only if:
+•either there is an infinite sequence of states (qj)j≥0∈Qωsuch that q=q0and
+q0i0/o0− − − → q1i1/o1− − − → q2i2/o2− − − → ··· ;
+•or there is a finite sequence of states (qj)0≤j≤k∈Qk+1such that q=q0,δ(qk,ik)
+is undefined, and q0i0/o0− − − → q1i1/o1− − − → ··· qk.
+We then say that starting from state q,M produces output ogiven the input ι.
+Note that if δ(qk,ik)is undefined, the machine is allowed to produce an arbi-
+trary output from then on. Furthermore, given an input word ι, there is always at
+
+--- Page 12 ---
+12 Dissecting ltlsynt
+least one output word osuch that (ι,o)(Mqbut there might be more. Eventually,
+when that machine is encoded into a circuit, we will have to settle on a single output
+word per input word, but in the meantime, this additional flexibility can be used for
+simplification.
+Definition 10 (Realizability of an LTL formula by an IGMM) Let IandObe two disjoint
+sets of input and output propositions. Given two sequences ι=i0·i1·i2··· ∈ (BI)ωando=
+o0·o1·o2··· ∈(BO)ω, we denote by ι∧othe sequence (i0∧o0)·(i1∧o1)·(i2∧o2)··· ∈BO∪ ·I.
+Letϕbe an LTL formula built upon I∪ ·O. We say that an IGMM M= (I,O,Q,qinit,δ,λ)
+realizes the specification ϕif for any pair of sequences ι∈(BI)ωando∈(BO)ω, we have
+(ι,o)(Mqinit=⇒ι∧o⊨ϕ
+We say that a specification ϕisrealizable if there exists an IGMM that realizes it.
+In other words, the machine M realizes the specification ϕif, regardless of the
+provided input ι, any output sequence othatMmay produce will (together with ι)
+satisfy ϕ.
+Definition 11 (Variation and specialization) Let M= (I,O,Q,qinit,δ,λ)and M′= 
+I,O,Q′,q′
+init,δ′,λ′
+be two IGMMs. Given two states q∈Q,q′∈Q′, we say that q′is avari-
+ation ofqif∀ι∈(BI)ω,
+o(ι,o)(M′
+q′	
+∩
+o(ι,o)(Mq	
+̸=/ 0; and q′is aspecialization
+ofqif∀ι∈(BI)ω,
+o(ι,o)(M′
+q′	
+⊆
+o(ι,o)(Mq	
+. We say that M′is a variation (resp.
+specialization) of Mifq′
+initis a variation (resp. specialization) of qinit.
+Intuitively, all the input-output pairs accepted by a specialization q′inM′are also
+accepted by qinM. Therefore, if Mqrealizes a specification ϕ, then its specialization
+M′
+q′also realizes ϕ. Figure 6 shows a specialization of Figure 5. This specialization
+relation can obviously be used to compute smaller machines that still comply with a
+given specification.
+Finally, in order for two states to be a variation of one another, for all possible
+inputs they must be able to agree on a common output behavior. This property can be
+used to reduce the number of states in a given machine; however, additional care has
+to be taken as we will show in Section 4.
+2.7 The LTL Reactive Synthesis Problem
+The LTL Reactive Synthesis problem can be formulated as follow: given an LTL
+formula ϕover a set of variable O∪ ·Ipartionned as input and output, does there exist
+an IGMM Mthat realizes ϕ?
+This is the problem posed by SYNTCOMP (Jacobs et al, 2017, 2019), the annual
+Reactive synthesis competition, which distinguishes two subproblems:
+•in the realizability track, the goal is simply to decide the above question without
+providing M;
+•in the synthesis track, the goal is to construct a reactive controller that realizes the
+specification, or to state that the specification is not realizable.
+
+--- Page 13 ---
+Dissecting ltlsynt 13
+translate
+to NBAsplit I/Odeterminize
+to DPA
+translate
+to NBAdeterminize
+to DPAsplit I/O
+parity
+gametranslate
+to DELAparitize
+(CAR,IAR, ...)
+translate
+to DELAparitize
+via ACDFig.3
+Fig.4--algo=sd
+--algo=ds
+--algo=lar --algo=acdLTL
+input
+Fig. 8 : Zoom on the block “ translate ϕito game ” from Fig. 7. The --algo option of
+ltlsynt will select one of several ways to construct a parity game.
+In the latter track, the controller has to be constructed as an AIG circuit expressed in
+the AIGER format (Biere, 2007). Section 5 will be devoted to the transformation of
+IGMM into AIG circuits.
+3 Translating LTL Formulas into Games
+3.1 Different Approaches
+Figure 8 shows four approaches for transforming an LTL formula into a parity game.
+Inltlsynt , these approaches can be selected using the --algo option.
+Thedsbranch corresponds to the straightforward approach described in the intro-
+duction. The formula is first converted into a non-deterministic B ¨uchi automaton
+using Spot’s standard translation (Duret-Lutz, 2014). Then it is determinized into
+a parity automaton with a variant of Safra’s determinization (Redziejowski, 2012).
+The result, which may look like Fig. 3 is then converted into a game as in Fig. 4 by
+splitting transitions of the formi1i2o1o2 intoi1i2 o1o2. By ensur-
+ing that at most one intermediate state is created per input valuation, determinism is
+preserved (as discussed in Section 3.3). The game is also made input-complete, to
+ensure that the environment can freely chose among all input valuations.
+Thesdapproach is similar, except that the split is performed before the deter-
+minization. This slightly counter-intuitive order is motivated by the fact that at a given
+time, the determinization then has to deal only with valuations in 2Oor valuations in
+2I, while in the previous approach, it had to cope with 2O∪Ivaluations.
+The other two approaches are attempts to reduce the costs of obtaining a DPA.
+This is done by first converting the formula into a deterministic TELA ( DELA ), i.e.,
+using arbitrary acceptance condition, and then converting this automaton into a DPA.
+The conversion to deterministic TELA is described in the next section. The two
+approaches differ in how the paritization (i.e., the conversion of the TELA to a parity
+automaton) is done.
+The lar approach uses a paritization procedure based on latest appearance
+records with many improvements described in previous work (Renkin et al, 2020).
+
+--- Page 14 ---
+14 Dissecting ltlsynt
+Algorithm 1 Translation of an LTL formula into a deterministic EL-automaton.
+1:Input: An LTL formula ϕin NNF, and an optional binary operator op.
+2:Output: A deterministic EL-automaton.
+3:function ToDELA (ϕ,op=⊥)
+4: ifϕmatches XX...X|{z}
+icopies of Xαthen
+5: Aα←ToDELA (α)
+6: createAϕfromAαby prepending istates in the obvious way
+7: returnAϕ
+8: ifϕmatches f1⊙···⊙ fnfor⊙ ∈ {∧ ,∨,↔,⊕}\{ op}andn≥2then
+9: Partition {f1,...,fn}asS∪ ·O∪ ·Rwith
+
+S:suspendable formulas
+O:obligation formulas
+R: anything else
+10: A←Product ⊙(ToDELA (J
+f∈Rf,⊙),BuildMinWDBA (J
+f∈Of))
+11: fors∈Sdo
+12: A←ProductSusp⊙(A,ToDELA (s,⊙))
+13: returnA
+14: ifϕis a syntactic obligation then
+15: return BuildMinWDBA (ϕ)
+16: ifϕmatches G(V
+iFαi)where αiare syntactic guarantees then
+17: return GFGuaranteeToDBA (ϕ)
+18: ifϕmatches F(W
+iGαi)where αiare syntactic safeties then
+19: return Complement (GFGuaranteeToDBA (¬ϕ))
+20: return Determinize (ToNBA (ϕ))
+The newest acd approach replaces the above paritization by one based on the
+Alternating Cycle Decomposition (ACD) (Casares et al, 2021, 2022). It is guaranteed
+to produce automata that are at most as big as lar.
+3.2 From LTL to Deterministic TELA
+There exist a number of tools, such as delag (M¨uller and Sickert, 2017) or
+ltl3tela (Major et al, 2019) for transforming LTL formulas into deterministic
+TELA (DELA). Spot’s own built-in procedure for this purpose, used by ltlsynt , is
+inspired from delag .
+Algorithm 1 shows a slightly simplified view of how Spot translates ϕinto a
+deterministic TELA. Formula ϕis assumed to be in a negative normal form (i.e., ¬
+have been pushed down in front of the atomic propositions, and implications have
+been rewritten away, as in Theorem 2.1) where equivalence ( ↔) and xor ( ⊕) can still
+be used.
+It builds upon the following procedures:
+
+--- Page 15 ---
+Dissecting ltlsynt 15
+Product ⊙builds a product of two deterministic automata using a standard syn-
+chronous product, and combines their acceptance conditions using ⊙ ∈ {∧ ,∨,↔
+,⊕}(see Theorem 2.7).
+ProductSusp⊙also builds a product, but assumes the second argument is a suspend-
+able property. As a consequence, the actual product needs only to be performed
+in the accepting SCCs of the first automaton. This construction is similar to con-
+structions discussed by M ¨uller and Sickert (2017) and Babiak et al (2013), and is
+justified by Theorem 2.2.
+BuildMinWDBA transforms any obligation formula into a minimal weak determin-
+istic B ¨uchi automaton using a procedure described by Dax et al (2007).
+GFGuaranteeToDBA is an algorithm inspired from a similar one by Esparza et al
+(2018) and discussed in more details later. It can convert any formula of the form
+G(V
+iFαi), where αis are syntactic guarantee formulas, into a deterministic B ¨uchi
+automaton.
+Complement dualizes the acceptance condition of any deterministic TELA to com-
+plement it (see Theorem 2.6).
+ToNBA converts an LTL formula into a non-deterministic B ¨uchi automaton. (Duret-
+Lutz, 2014)
+Determinize determinizes a non-deterministic automaton into a parity automa-
+ton, using a Safra-based algorithm. Spot implements Redziejowski’s algo-
+rithm (2012).
+Let us explain this algorithm by starting on line 20, which is the only necessary
+line. It is well known that (1) any LTL formula can be converted into a non-
+deterministic B ¨uchi automaton with an exponential blowup, (2) not all LTL formulas
+may be represented as deterministic B ¨uchi automaton. As a consequence, applica-
+tions that require deterministic automata usually rely on more complex acceptance
+conditions. For instance there exists procedures for transforming non-deterministic
+B¨uchi automata (NBA) into deterministic Rabin automata or into deterministic
+parity automata (DPA), and those also have exponential blowups. Line 20 uses
+such a determinization to obtain a DPA from an LTL translation, at the cost of
+a doubly-exponential construction in the worst case (Kupferman and Rosenberg,
+2010).
+The other lines are therefore here to help reduce the cost of this construction,
+by providing specialized constructions for certain subclasses of formulas, and by
+decomposing the formula into smaller parts that are cheaper to translate and later
+recompose.
+The idea behind the decomposition is that if a formula ϕhas the shape f1⊙···⊙
+fn, for some Boolean operator ⊙ ∈ {∨ ,∧,↔,⊕}, then the deterministic TELA Aϕ
+can be obtained by making a synchronous product of the deterministic TELA Afi
+obtained for each fi, using operator ⊙to combine the acceptance conditions. In this
+process, the translation of the smaller fimight use more specialized algorithms. If
+more specialized algorithms are not available, empirical experiences tell us that it is
+usually best to translate ϕwithout decomposing it, because the complexity of the
+translation is mostly proportional to the size of the produced automata anyway.
+
+--- Page 16 ---
+16 Dissecting ltlsynt
+It is important to be able to decompose on ↔and⊕and not just ∧and∨. The
+reason is that ↔in particular often occurs in synthesis specifications, and translating
+f↔gasProduct ⊙(Af,Ag)involves only one product, while the equivalent formula
+(f∧g)∨(¬f∧¬g)would require three products. The same reduction in number of
+products is achieved for ⊕, but would not be obtained for →. Hence we are happy
+to assume implications have been removed when the input formula was rewritten in
+negative normal form.
+This idea of decomposing the LTL formula to call specialized constructions is
+similar to that used in the tool delag (M¨uller and Sickert, 2017). In delag , a for-
+mula is split into syntactic safety, syntactic guarantee, another class called fairness ,
+and anything else. We generalize this slightly by using using syntactic obligations
+(a super-class of syntactic safety and syntactic guarantee), suspendable formulas (a
+super-class of delag ’sfairness class), and anything else. The partition into these
+three classes is done on lines 8–9.
+Several operations occur on line 10. Then, all formulas of set R, which do not
+belong to a subclass for which we have a dedicated construction, are translated recur-
+sively with ToDELA (J
+f∈Rf,⊙). The reason for the recursion, as opposed to calling
+Determinize (ToNBA (J
+f∈Rf))directly, is that if Rcontains a single formula whose
+top-level operator is a Boolean operator different from ⊙, it might be decomposed
+again.
+Similarly, all formulas of set O, are translated into a minimal weak determin-
+istic B ¨uchi automaton following a technique of Dax et al (2007); essentially, for
+a syntactic obligation formula α, the following steps, which are embodied in the
+BuildMinWDBA function, produce a minimal WDBA (Theorem 2.4):
+1. translate αinto an NBA Nα,
+2. ignoring accepting states, use the powerset construction on Nαto obtain the
+deterministic structure Dα,
+3. any SCC of Dαthat intersects an accepting SCC of Nαin the synchronous product
+ofNα⊗Dαshould be marked as accepting
+4. now Dαis a weak deterministic automaton for α, and it can be minimized using
+L¨oding’s algorithm (2001).
+The automata resulting from the translations ofJ
+f∈RfandJ
+f∈Ofare then
+composed by taking their product (we are still on line 10). (For simplicity we assume
+here that if OorRis empty, its translation gives a simple universal automaton. But the
+implementation of course skips the product in this case.) Spot’s implementation of
+Product ⊙has an extra trick, used here: when one of the operand is a weak automaton,
+it does not need to contribute colors to the resulting product.
+Lines 11–12 integrate the suspendable formulas to the result one after the other,
+by translating them recursively, and then using the ProductSusp⊙method.
+When the ToDELA function is called, the input formula has generally been sim-
+plified using folklore rewritings such a changing (Xf1)⊙(Xf2)intoX(f1⊙f2). For
+this reason, lines 4–7 strip any leading Xs in order to apply the construction to the
+rest of the formula.
+
+--- Page 17 ---
+Dissecting ltlsynt 17
+0 1
+2 3a
+¯a a
+¯a¯aa
+0⊤
+(a)0 1
+2 3a
+¯a a
+¯a¯aa0⊤
+(b)0 1
+2a
+¯a ¯aa
+a0
+¯a0
+(c)1
+2¯aaa0
+¯a0
+(d)
+Fig. 9 : (a) a DBA for F(a↔Xa); (b,c,d) three DBAs for GF(a↔Xa).
+Finally, lines 14–19 detect subclasses of formulas for which a specialized con-
+struction exists. If ϕis a syntactic obligation, the aforementioned BuildMinWDBA
+function is used.
+If formula ϕhas the form G(V
+iFαi), and αiis a syntactic guarantee formula, then
+the following algorithm from Esparza et al (2018) can be used:
+1. TranslateV
+iFαiinto a DBA Awith a single accepting state that is terminal. The
+simple structure ofV
+iFαimakes this possible. (Fig. 9(a) gives an example.)
+2. Build Aϕfrom Aby redirecting the loop of the accepting states to the initial state.
+(Fig. 9(b).)
+Our implementation of GFGuaranteeToDBA improves upon the above by redi-
+recting not the outgoing transition of the accepting states, but its incoming transitions
+(Fig. 9(c)): for each transition going to the terminal state, pretend that this letter is
+read from the initial state to pick the new destination. If such a transition is neces-
+sarily preceded by some forced sequence of valuations, any suffix of this sequence
+of valuations can actually be replayed from the initial state, allowing tighter loops.
+Finally, note that state 0 and 1 of Fig. 9(c) have the same successors, so they can be
+merged to obtain the automaton Fig. 9(d).
+3.3 Splitting Automata
+Once a parity automaton has been obtained (as in Fig. 3), we split its transitions to
+separate input signals from output signals, and obtain a parity game (as in Fig. 4). In
+this game player 1 (“the controller”) selects the output valuations and can effectively
+react to the input valuations selected by player 0 (“the environment”).
+On the --algo=sd path of Fig. 8, we apply this split operation to non-
+deterministic B ¨uchi automata. Therefore, below, we define it for any acceptance
+condition, and partition the states of the resulting automaton as Q0∪ ·Q1, with
+Q0/1being the set of states belonging to player 0/1, allowing this automaton to be
+interpreted as a game if desired.
+Definition 12 (Splitting an Emerson-Lei Automata) Let A= (Q,M,BI∪ ·O,δ,q0,α)be a
+TELA. The split ofAis the TELA As= (Q0∪ ·Q1,M,BI∪BO,δ0∪δ1,q0,α), where:
+•Q0=Q,
+•Q1=Q×BI,
+
+--- Page 18 ---
+18 Dissecting ltlsynt
+01
+2a¯x
+0
+ax1(a) 0 31
+2a¯x
+0
+x1(b)
+Fig. 10 : (a) Original automaton with I={a}andO={x}. (b) Split automaton
+interpreted as a game with Q0as round states, and Q1as diamonds states.
+•δ0=n
+sℓi,/ 0− − →(s,ℓi)ℓi∈BI,ℓo∈BO,sℓ,A− →d∈δ,ℓ=ℓi∧ℓoo
+,
+•δ1=n
+(s,ℓi)ℓo,A− − → dℓi∈BI,ℓo∈BO,sℓ,A− →d∈δ,ℓ=ℓi∧ℓoo
+.
+Figure 10 shows a small example demonstrating how edges with identical inputs
+are fused into a single edge for the environment player. This ensures that states in Q0
+are always deterministic, while states in Q1are only deterministic if the input TELA
+is deterministic.
+In a similar manner to transitions, we can split runs: if r∈(BI∪ ·O)ω,r= (ri)i≥0,
+and we consider ∀i≥0,ri=rI
+irO
+iwhere rI
+i∈BIandrO
+i∈BOare again the respective
+projections of ri. Then the split of ris the run rs=rI
+0rO
+0rI
+1rO
+1...in(BI·BO)ω. Obvi-
+ously,Aaccepts a run rif and only if Asaccepts rs: splitting a TELA preserves the
+underlying specification as a game.
+Two Implementation Details
+The definition of TELA and game used here are deliberately simplified concepts to
+ease the notations. In particular, our implementation of TELA labels transitions with
+subsets of valuations (i.e., arbitrary Boolean formulas over I∪ ·O) instead of only one
+valuation at a time, in order to reduce the number of transitions stored and iterated
+upon. The splitting procedure detailed above is easily adapted to this setting: using
+subsets of valuations as ℓiin(s,ℓi)will also help reduce the size of Q1.
+Furthermore, if the acceptance condition is parity max odd , the transitions intro-
+duced in δ0can be colored using the minimal color used in the outgoing transitions of
+their destination states (with no acceptance mark being considered smaller than any
+color). For instance if the automaton of Fig 10(b) has parity max odd acceptance, the
+transition between states 0 and 3 can be colored with 0, the minimum color seen in
+the outgoing transitions of 3.
+4 Simplifying Winning Strategies using Generalized
+Mealy Machines
+Once a winning strategy for player 1 has been found for a game, we extract it as an
+Incompletely specified Generalized Mealy Machine. This is done in a simple way:
+first every outgoing edge of a state in Q1that is not part of the strategy is removed, as
+well as all colors. Then the reachable part of the remaining automaton can be seen as
+a collection of pairs of transitions of the formi1i2 o1o2which we fuse back
+
+--- Page 19 ---
+Dissecting ltlsynt 19
+intoi1i2/o1o2 to obtain a Mealy machine. For instance the Mealy machine in
+Fig. 5 is obtained from the game together with the strategy highlighted by the thick
+transitions in Fig. 4 using this approach.
+These Mealy machines will then be encoded into And-Inverter Graphs as we
+discuss in Section 5, but first they can be simplified.
+If a Mealy machine has nstates, the AIG will use ⌈logn⌉latches to remember its
+current state; and reducing this number will usually reduce the size of the AIG (but
+that is not always true). For instance the Mealy machine in Fig. 5 requires two latches
+(two bits are needed to distinguish the three states), while the one of Fig. 6 requires
+only one latch (as shown in Fig. 2).
+As shown in Fig. 4, a strategy determines for each state which transition to
+choose. As transitions are labeled by arbitrary sets of valuations (over the out-
+put propositions), the strategy implicitly defines a set of valid output valuations to
+respond to the last input valuation. The controller is free to pick any one of these
+valuations and is guaranteed to respect the initial specification.
+This brings us back to the notion of specialization of Mealy machines, introduced
+in Section 2.6. Please recall that intuitively, a Mealy machine M1is a specialization
+of a Mealy machine M2if for any input sequence, any associated output produced
+byM1can also be produced by M2.
+Our goal is to derive a specialization of a given Mealy machine having fewer
+states. In the following subsections, we give an overview of two ways to perform such
+a reduction: in the first one, called minimization , we seek to obtain the specialization
+having the fewest states possible. In the second one, called reduction , we seek to
+reduce the number of states of the machine, without necessarily achieving the optimal
+result. The later reduction is motivated by the high computational complexity of the
+minimization: the problem is known to be NP-complete (Pfleeger, 1973).
+These two simplifications are further detailed in a previous work (Renkin et al,
+2022), so we only provide intuitions here.
+4.1 SAT-Based Minimization of IGMM
+Here we discuss a minimization procedure based on the approach presented by
+Abel and Reineke (2015). Besides improving their algorithm on several points,
+we generalize this approach to our strictly more expressive Mealy machine model
+IGMM.
+If the Mealy machine was completely specified, we would minimize it by comput-
+ing a quotient of equivalent states. However, the freedom we get from the incomplete
+specification allows some of the states to belong to several classes of that equiva-
+lence relation, depending on how we decide to specialize those states. To capture this
+notion of group of compatible states, we define variation classes, and require three
+additional properties: variation classes have to cover the entire automaton, they have
+to behave similarly with respect to their successor classes and their possible output.
+Definition 13 (Variation class) Given an IGMM M= (I,O,Q,qinit,δ,λ), avariation class
+C⊆Qis a set of states, such that all elements are pair-wise variations (See Def. 11). That is
+
+--- Page 20 ---
+20 Dissecting ltlsynt
+01
+23
+5 446
+a/¯z
+¯a/¯x¯y¯za/¯z¯a/z
+a/⊤¯a/za/¯z¯a/⊤
+¯a/⊤a/⊤
+¯a/⊤ a/za/⊤
+¯a/⊤
+(a) Original IGMM M01
+2¯a/¯x¯y¯za/z
+¯a/za/¯za/¯z
+¯a/z
+a/⊤
+(b) Minimal specialization of M
+Fig. 11 : Minimization example
+∀q,q′∈C,q′is a variation of q. In the remainder of this section, we will call a variation class
+simply class as there is no ambiguity.
+Note that variation classes should not be mistaken for equivalence classes, since
+being a variation is not an equivalence relation.
+Definition 14 (Cover condition) We say that a set of classes Scovers the machine Mif every
+state of Mappears in at least one class.
+Definition 15 (Closure condition) We say a set of classes Sis closed if for all Cj∈Sand for
+all input i∈BIthere exists a class Ck∈Ssuch that for every state qofCjwe have either
+δ(q,i)∈Ckorδ(q,i)is undefined.
+Definition 16 (Nonemptiness condition) We say that a class Chas a nonempty output ifT
+q∈Cλ(q,i)is not empty for all input i∈BI.
+A set of classes that satisfies the three previously described conditions gives rise
+to a specialization of the original machine. Therefore, finding the minimal number of
+classes able to satisfy the conditions amounts to finding the minimal specialization.
+For instance in Figure 11a, colors are used to represent three variation classes that
+satisfy the three additional constraints. (States 4 and 6 belong to the three classes.)
+The minimal corresponding IGMM is the one of Figure 11b.
+In order to find such a decomposition, we fix the number of classes nand encode
+the conditions given above as a SAT problem. Once we have found the smallest nfor
+which a satisfying assignment has been found by a SAT solver, we can extract the
+minimal IGMM from it.
+A basic iterative algorithm would be to ask if the conditions can be satisfied with
+one class, and if not, increase the number of classes by one. This naive approach
+can be improved as shown in Algorithm 2 by first computing a lower bound on the
+number of classes necessary : for each pair of states qandq′, we test if they are
+variations of one another. If not, these two states cannot be in the same class. We
+
+--- Page 21 ---
+Dissecting ltlsynt 21
+Algorithm 2 SAT-based minimization
+1:bool[][] mat ←isNotVariationOf( M) ▷Computing the variation matrix
+2:setP←extractPartialSol(mat) ▷Looking for a partial solution P
+3:clauses ←empty list
+4:forn←|P|to|Q|−1do ▷Using the lower bound inferred from P
+5: addCoverCondition(clauses, M,P, mat, n)
+6: addClosureCondition(clauses, M,P, mat, n)
+7: (sat, solution) ←satSolver(clauses) ▷Solving cover & closure cond.
+8: while satdo
+9: ifverifyNonEmpty( M, solution) then
+10: return buildMachine( M, solution)
+11: addNonemptinessCondition(clauses, M, solution)
+12: (sat, solution) ←satSolver(clauses)
+return copyMachine( M) ▷If no solution has been found, return M
+therefore compute a set of states such that no two states in the set are variations of
+one another. The size of this set gives us a lower bound on the number of classes
+necessary.
+4.2 Bisimulation-based Reductions
+Our second approach relies on an adaptation of a procedure called bisimula-
+tion (Babiak et al, 2013) used to reduce the size of an ω-automaton. Again, describing
+the method in detail is beyond the scope of this paper because this work has been pre-
+viously published (Renkin et al, 2022); however, we would like to share some insights
+about how this transformation works. This procedure uses as an intermediate step an
+association between a state of the automaton and a Boolean formula called signature .
+This signature is computed iteratively in such a way that two states with the same
+signature recognize the same language. We will now present two algorithms based
+on an adaptation of this signature-based approach that seeks to reduce an IGMM.
+4.2.1 Bisimulation Reduction
+Definition 17 (Bisimilarity) Two states qandq′arebisimilar ifqis a specialization of q′and
+q′is a specialization of q.
+For instance states 4 and 6 in Figure 11a are bisimilar. We can therefore replace
+the edge that goes from 3 to 6 by an edge that goes from 3 to 4, thereby obtaining a
+machine with 6 states.
+Generally, the bisimulation reduction of an automaton is the quotient of that
+automaton with respect to the above bisimilarity relation. However, this reduction
+does not take any advantage of the flexibility provided by an IGMM.
+
+--- Page 22 ---
+22 Dissecting ltlsynt
+{4,6}
+{3}
+{2}{0}{1}{5}
+leaves
+Fig. 12 : Specialization graph
+of the IGMM of Fig. 11aq r (q)
+0→ 0
+1→ 1
+2→ 2
+3→ 1
+4→ 1
+5→ 5
+6→ 1
+Fig. 13 : Chosen repre-
+sentative mapping.01
+25
+a/¯z
+¯a/¯x¯y¯za/¯z¯a/z
+a/⊤¯a/z¯a/⊤a/z
+Fig. 14 : IGMM obtained by
+reducing that of Fig. 11a
+4.2.2 Bisimulation Reduction with Output Assignment
+In order to merge more states, we introduce an additional preprocessing step called
+“output assignment.” Consider that we have two states qandq′such that for every
+input sequence, any output that can be associated to a run starting at qcan also be
+produced when starting at q′. Ifqandq′are not bisimilar, it means that a run starting
+atq′can produce a larger set of output sequences than a run starting in qfor the
+same input sequence. By restricting what can be produced from q′to match what is
+produced from q, we have effectively made them bisimilar and they can therefore be
+merged using the approach described above. Note that as we restrict the outputs from
+q′, the resulting machine is a specialization of the original one.
+To achieve this, we introduce a specialization relation based on the signature.
+This relation shown in Figure 12 gives us a relation of specialization between states.
+In this example, state 0 is a specialization of states 3, 4 and 6. The main idea is to
+associate to each state a state that specializes it. It gives us a representative function
+given in Figure 13. Once this representative function is found we restrict the output
+of each state to match the output given by the representative function (i.e., λ(q,i) =
+λ(r(q),i)). The resulting specialization of the original IGMM can then be reduced
+by bisimulation (Fig. 14). Note that this procedure produces a machine with as many
+states as leaves in the specialization tree.
+5 Encoding Generalized Mealy Machines as
+And-Inverter Graphs
+The final step in our pipeline is to encode the obtained Mealy machine as an And-
+Inverter Graph (AIG). And-Inverter Graphs are a special type of directed acyclic
+graph which is widely used in logic synthesis (Mishchenko et al, 2006; Brayton and
+Mishchenko, 2010) either as the final circuit or as an intermediate representation
+before further optimizations. The most common format to represent such circuits is
+called AIGER (Biere, 2007), which is also the output format used in the synthesis-
+tracks of SYNTCOMP (Jacobs et al, 2017, 2019).
+
+--- Page 23 ---
+Dissecting ltlsynt 23
+As previously mentioned, AIGs correspond to circuits built from and gates with
+exactly two inputs ,negations which can appear on edges and negate the signal
+if present, and latches that delay their input by one tick, and output 0 initially.
+The input corresponds to an Incompletely specified Generalized Mealy Machine
+which we want to encode as AIG. Note that the actual behavior of the AIG only
+needs to correspond to a specialization of the input machine. Recall that the output
+function for IGMMs is defined as λ:(Q,BI)→2BO∖{/ 0}. This means that for a
+given state and input valuation BIthere possibly exist multiple output valuations in
+BOcompatible with the specification. Such non-determinism can however not be
+expressed by a logical circuit, and we therefore need to choose one of the possible
+valuations, causing the encoded machine to be a specialization of the input machine.
+We use a function called ChooseOneValuation to resolve these choices when we do
+not have further constraints. This function takes an output label L∈2BO∖{/ 0}and
+returns a valuation o∈BOsuch that o∈L. (Our implementation attempts to select
+some othat maximizes the number of do-not-care variables and then maximize the
+number of variables that are set to ⊥.)
+5.1 Encoding Using Boolean Functions
+To encode the machine M= (I,O,Q,qinit,δ,λ)as AIG, we assume, without loss of
+generality, that each state is associated to a unique number in {0,...|Q|−1}where
+the initial state qinitcorresponds to 0.
+We use a set of N=⌈log2(|Q|)⌉latches to remember the current state of the
+machine. For a latch ℓ∈ {ℓ0,ℓ1,...,ℓ N−1}, we write vℓits current Boolean value.
+Our first step is to convert the IGMM into a set of Boolean functions that repre-
+sents the behavior of the controller. That is, each output signal o∈Ois associated to
+a Boolean function fothat can be computed using the current value of the latches and
+the current value of each input signal. Similarly, for each ℓ, there exists a function
+fℓthat computes its next value based on the current values of all latches and input
+signals.
+As an example, Figure 15 shows a possible encoding for the IGMM of Figure 5.
+(We do not use Fig. 6 because the Boolean encoding would be too simple to illustrate
+the upcoming variants of AIG encoding.)
+Algorithm 3 shows how these functions are computed from the input IGMM.
+Initially, all output and latch functions are initialised to the false formula (lines 3–
+4). Then for each state q, lines 6–11 compute a Boolean formula fqrepresenting
+its encoding using latches. Here, the function BinaryEnc (q)returns the array of
+⌈log2(|Q|)⌉Boolean values corresponding to the binary encoding of q. Then the loop
+on line 12 considers the edges leaving qfor each input valuation u: if the output
+of that edge is not completely specified, an output valuation v∈BOis chosen with
+ChooseOneValuation on line 16. (For instance, in Figure 15 this function chooses
+to output ¯ xfor any input read from state 2.) For each latch ℓthat should be true in
+the encoding of the destination state, lines 17–19 add the clause fq∧utofℓ. And
+similarly, for each output signal othat is true in v, lines 20–22 add that clause to the
+formula fo.
+
+--- Page 24 ---
+24 Dissecting ltlsynt
+01
+2a/x¯a/¯x⊤/⊤⊤/¯x
+fx=vℓ1∧vℓ0∧a (1)
+fℓ0= (vℓ1∧vℓ0∧¯a)∨(vℓ1∧vℓ0) (2)
+fℓ1= (vℓ1∧vℓ0∧a)∨(vℓ1∧vℓ0) (3)
+vℓ1vℓ0vℓ1vℓ0vℓ1vℓ0
+Fig. 15 : Possible Boolean encoding of the IGMM of Figure 5. Two latches ℓ0andℓ1
+are used to keep track of the current state of the machine. Function fxspecifies that
+xshould be emitted only if we are in state 0 (encoded with vℓ1∧vℓ0) and if ais read.
+It implies that ¯ xwill be output in other cases (therefore this encoding has made the
+choice to output ¯ xfrom state 2). Functions fℓ0andfℓ1give similar conditions for the
+values of the latches.
+Algorithm 3 ToSymbolicMealy
+1:Input: IGMM M= (I,O,Q,qinit).
+2:Output: Boolean functions for all outputs and latches.
+3:∀j∈{0,..., N−1}:fℓj← ⊥
+4:∀o∈O:fo← ⊥
+5:forq∈Qdo
+6: fq=⊤
+7: forj∈ {0,..., N−1}do ▷Encode qas a conjunction of latches
+8: ifBinaryEnc (q)[j]then
+9: fq←fq∧vℓj
+10: else
+11: fq←fq∧¯vℓj
+12: foru∈BIdo ▷Update all functions for each input
+13: ifδ(q,u)isundefined then
+14: continue
+15: q′=δ(q,u)
+16: v=ChooseOneValuation (λ(q,u))
+17: forj∈ {0,..., N−1}do
+18: ifBinaryEnc (q′)[j]then
+19: fℓj←fℓj∨(fq∧u)
+20: foro∈Odo
+21: ifv(o) =⊤then
+22: fo←fo∨(fq∧u)
+return
+foo∈O	
+,
+fℓℓ∈ {ℓ0,...ℓ N−1}	
+
+--- Page 25 ---
+Dissecting ltlsynt 25
+vℓ1vℓ1vℓ1
+vℓ0vℓ0vℓ0
+a a
+⊤ ⊥fxfℓ1 fℓ0
+n1 n2 n3
+n4 n5
+Fig. 16 : BDD representation of fx,fℓ0, and fℓ1from Figure 15. A BDD is like a
+decision tree with sharing of identical subtrees. Each round node is labeled by a
+Boolean variable that is questioned, plain edges should be followed when the variable
+is true, and dashed edges when it is false. Variables always appear in the same order
+along a branch.
+In our implementation, these Boolean functions are represented using Binary
+Decision Diagrams (BDD) (Bryant, 1986). Continuing the example of Figure 15,
+Figure 16 shows how fℓ0,fℓ1andfxare stored. These Boolean functions then have
+to be encoded into an AIG. The next two sections propose two different encodings.
+5.2 If-Then-Else Encoding
+Our first AIG encoding is inspired from the BDD representation of our functions.
+Assuming an order over the variables has been fixed, the BDD representation of a
+function can be seen as an If-The-Else normal form where each node v
+n1n2can be
+read as “if vthen n1elsen2”.
+This can be naturally encoded as (v∧n1)∨(¯v∧n2), or, since we should be
+only using NOT and AND gates, v∧n1∧¯v∧n2. That expression can of course be
+simplified when n1andn2are⊤or⊥.
+Continuing our running example, Figure 17 shows the AIG encoding for each
+node of Figure 16, and Figure 18 shows the circuit assembled from those parts.
+This encoding uses at most three gates per node in the BDD representation of
+all Boolean functions. It is also sensitive to the ordering of variables in the BDD
+representation.
+
+--- Page 26 ---
+26 Dissecting ltlsynt
+fx= (vℓ1∧⊥)∨(vℓ1∧n1) =vℓ1∧n1 G1 fx vℓ1n1
+n1= (vℓ0∧⊥)∨(vℓ0∧n4) =vℓ0∧n4 G2 n1vℓ0n4
+n4= (a∧⊤)∨(¯a∧⊥) =a a n4
+fℓ0= (vℓ1∧⊥)∨(vℓ1∧n3) =vℓ1∧n3 G3 fℓ0vℓ1n3
+n3= (vℓ0∧⊤)∨(vℓ0∧n5) =vℓ0∧vℓ0∧n5 G4G5
+n3n5
+vℓ0
+n5= (a∧⊥)∨(¯a∧⊤) =¯a a n5
+fℓ1= (vℓ1∧n2)∨(vℓ1∧n1)
+=(vℓ1∧n2)∧(vℓ1∧n1)G6G7
+G8fℓ1n2vℓ1
+n1
+n2= (vℓ0∧⊥)∨(vℓ0∧⊤) =vℓ0vℓ0 n2
+Fig. 17 : Step-by-step encoding of functions fx,fℓ0, and fℓ1as And-Inverter Graphs,
+based on the If-Then-Else normal form of these functions, naturally visible in
+Figure 16.
+G1 xG2 aℓ0ℓ1 G6G7
+G8
+G3 G4G5
+Fig. 18 : Full circuit assembled from the bits in Figure 17.
+5.3 Irredundant-Sum-Of-Products Encoding
+An alternative way to encode Boolean functions using AND and NOT gates, is to first
+rewrite these Boolean functions into disjunctive normal form (also known as sum-
+of-products). In particular there exist BDD-based algorithms to compute so called
+irredundant sum-of-products (ISOP ) where each product is a prime implicant that
+cannot be removed without changing the function (Minato, 1992).
+Figures 19–20 show this encoding of our running example.
+However, note that (regardless of the encoding used) the encoder can easily detect
+that a gate computing a combination of signals already exists, and reuse it. This is the
+case of gate H2in Figure 19.
+Without the above optimization, this encoding would use as many gates as sym-
+bols∨or∧in the ISOP of the encoded function. Each product of the ISOP can be
+also encoded in multiple ways (Figure 21), and the same is true for the encoding of
+their sum.
+
+--- Page 27 ---
+Dissecting ltlsynt 27
+fx=vℓ1∧vℓ0∧a H1
+H2fxvℓ0vℓ1
+a
+fℓ0= (vℓ1∧¯a)∨(vℓ1∧vℓ0)
+=(vℓ1∧¯a)∧(vℓ1∧vℓ0)H3H4
+H5fℓ0vℓ1
+avℓ0
+fℓ1= (vℓ0∧a)∨(vℓ1∧vℓ0)
+=(vℓ0∧a)∧(vℓ1∧vℓ0)H6H7
+H2fℓ1vℓ0
+avℓ1
+Fig. 19 : Encoding of functions fx,fℓ0,fℓ1as And-Inverter Graphs based on Irredun-
+dant Sums-of-Products.
+H1ℓ1 H6H7
+H2ℓ0 H3H5H4
+ax
+Fig. 20 : Full circuit assembled from the bits of Figure 19.
+x
+f
+gedcba
+(a)xa
+b
+c
+d
+e
+f
+g
+(b)
+Fig. 21 : The product a∧b∧c∧d∧e∧f∧grequires 6 gates that can be arranged as
+a binary tree of any shape.
+In SYNTCOMP, only the number of gates and latches is taken into consideration
+to measure the quality of the generated circuit. Another measure that could be used is
+the delay between the input and output: i.e., the number of gates on the longest path
+through the circuit. Balancing the binary tree of gates encoding n-ary conjunctions
+and disjunctions helps reducing this delay and improving the sharing of gates in the
+circuit (as will be discussed below).
+
+--- Page 28 ---
+28 Dissecting ltlsynt
+5.4 Other Improvements to the Encoding
+Dual Encoding
+An idea to reduce the number of gates needed is to check whether it is easier to
+encode the function itself or its negation. So instead of encoding fx=a∨b∨cwe
+can encode f¯x=¯a∧¯b∧¯cand negate the output. This can, depending on the function,
+lead to substantial gains.
+Choosing the Specialization and Using Flexibility
+The IGMM used within ltlsynt is strictly more expressive than traditional Mealy
+machines, as they associate to a state and input valuation a set of outputs (the elements
+of which all satisfy the specification). However, the actual circuit cannot represent
+sets of outputs, but needs to respond to a concrete input valuation with a concrete
+output valuation. In Algorithm 3, the function ChooseOneValuation picks one of the
+compatible output valuations, which is then used to construct a circuit.
+We use the following heuristic to choose a cube (over the output variables) such
+that
+•All valuations compatible with the cube are compatible with the original condition.
+•It minimizes the cost function α.nhigh +β.nlow+γ.ndc with nhigh being the
+number of outputs set to ⊤,nlow being the number of outputs set to ⊥andndc
+being the number of outputs that do not appear in the cube. α,β,γare fixed non-
+negative integer values corresponding to costs.
+For instance, assume we have δ(q,ℓ) =xyz∨x¯zfor some qandℓwith O=
+{x,y,z}. The compatible cubes are xyzand x¯zwith the respective costs 3 αand
+α+γ+β.
+We typically use costs such that β<γ<α. The reasoning behind this is simple:
+we prefer an output that is set to ⊥as in such a case there is no need to encode the
+current transition hopefully leading to fewer gates. The opposite case with the output
+being set to ⊤is, usually, the least favorable as here the transition must be encoded.
+In between we have variables which do not appear (also referred to as do-not-care or
+justdcvariables) in the cube, which can therefore be set to ⊤or⊥.
+Finally, we can use this information about the do-not-care in the following way:
+for each output owe build two Boolean functions, one denoted fowhich corresponds
+to the cases where o must be set to ⊤. The second one, denoted fo,dc, corresponds to
+cases where o can be set to ⊤. We can then proceed to encode foandfo∨fo,dcand
+use whichever results in fewer gates.
+Increase Gate Sharing
+So far we have seen heuristics which try to minimize the number of gates needed
+to represent a given Boolean function. Another important aspect is to increase the
+number of gates which are shared between different Boolean functions. Indeed, the
+symbolic representation of the Mealy machine to be encoded has one function per
+
+--- Page 29 ---
+Dissecting ltlsynt 29
+latch and output. Increasing the number of gates shared between these outputs might
+therefore yield significant overall reductions.
+In the case of the ITE construction, this idea comes down to reordering the vari-
+ables within the BDD. In order for this to be effective, the BDD variables would have
+to be reordered with respect to the Boolean functions to be encoded (and only those).
+Unfortunately we are currently not able to do this, due to the architecture of Spot.
+However, we can use this idea and apply it to the ISOP construction. To this
+end we split the tree generated for each product (a cube) and arrange it into two
+subtrees: one connecting latches, and one connecting input variables. The intuition
+is that such a decoupling should increase the chance of reusing the gate to encode
+another function: particular valuations of the latches, or valuations of input variables
+are likely to be reused elsewhere in the circuit
+Other Implementation Details
+As shown in Figure 7 (and discussed later in Section 7.3) we seek to decompose the
+given formula if possible (Finkbeiner et al, 2021). In the case where decomposition
+is successful, multiple IGMMs have to be encoded jointly into a single AIG.
+For the decomposition to be successful, the set of output variables of the different
+IGMMs built have to form a partition of all controllable propositions. The output of
+each IGMM can therefore be computed separately without any dependency between
+the different machines.
+We can therefore take the following approach: each Mealy machine is associated
+to its own set of latches of appropriate size. Then Algorithm 3 is run for each of the
+machines and the resulting Boolean functions are encoded indifferently.
+In this setting, splitting the cubes into sub-cubes over latches and inputs dur-
+ing the ISOP construction can be advantageous as it improves the gate-sharing of
+expressions over the input variables, which are common to all machines.
+In the above we have discussed the different options used to translate a Boolean
+function into an AIG (ITE, ISOP, dual encoding, splitting propositions). Unfortu-
+nately we have not discovered any good heuristic allowing us to choose among these
+options. We therefore implemented a mechanism which lets us easily test multiple
+configurations and retain the smallest solution.
+When using ltlsynt , the encoding is controlled via the --aiger
+option. The argument is a comma-separated list with elements of the form
+ite|isop|both[+ud][+dc][+sub0|sub1|sub2] . The first and only mandatory
+part determines whether to use the ITE or ISOP construction method. The option
+both will first use ITE, then ISOP and retain the smaller for each Boolean function
+to encode.
+The other options are
++ud : enables the use of the dual encoding
++dc : enables the use of do-not-care variables
++sub X: Controls whether there is a distinction between the variables
+X=0: No distinction
+X=1: Split cube into sub-cubes over inputs and latches
+
+--- Page 30 ---
+30 Dissecting ltlsynt
+X=2: Search for common variables1
+The effects of these options are discussed in Section 7.1.2
+6 Bypassing the Game Theoretical Framework
+We are now going to discuss a synthesis method applicable to a subset of LTL for-
+mulas. Section 7.2 will show that this subset concerns 15% of the specifications used
+in SYNTCOMP’19. The method consists of two parts.
+The first part is a syntactical analysis of the formula. If the specification is found
+to belong to a specific subclass of LTL, this analysis can indicate whether the spec-
+ification is realizable or not, otherwise ltlsynt will have to go through the usual
+construction.
+The second part consists in a direct construction of a Mealy machine for the
+specification, based on some automata-theoretic operations.
+The subset of LTL formulas supported by this approach is G(b1)∧(φ1↔φ2)|{z}
+ψ
+where b1is asynthetizable Boolean formula (i.e., there is no input valuation usuch
+thatu∧b1is false), and additionally one of the following cases applies:
+•φ1is an LTL formula with only inputs that can be translated into a determinis-
+tic B ¨uchi automaton, φ2isGF(b2)where b2and¬b2are synthetizable Boolean
+formulas.
+•φ1is an LTL formula with only inputs that can be translated into a deterministic
+co-B ¨uchi automaton, φ2isFG(b2)where b2and¬b2are synthetizable Boolean
+formulas.
+As indicated in Theorem 2.5, we know that for any syntactic recurrence formula,
+there exists a deterministic B ¨uchi automaton. The LTL translation algorithm of Spot,
+called ToNBA , usually tries to build deterministic automata, but it does not guarantee
+that any recurrence formula will be translated into a DBA. Algorithm 4 therefore
+uses the syntactic check as a first filter, and then try its luck with ToNBA to maybe
+obtain a DBA. The dual is performed on persistence formulas to obtain deterministic
+co-B ¨uchi automata.
+A way to read a formula like φ1↔GF(b2)isIfφ1is verified, then b 2must be true
+infinitely often, otherwise b 2must be verified finitely often .
+Our construction therefore creates an automaton Aforφ1(line 8) and then adds
+b2to each 0-colored edge of this automaton (second case of the fhelper function)
+and¬b2to an uncolored edge (third case). At the same time, b1is added to all edges
+to satisfy the G(b1)part of the original formula. The colors are completely removed
+from the final automaton and its acceptance is set to ⊤to match that of a Mealy
+machine. (Our implementation then interprets the automaton built by Algorithm 4 as
+an IGMM.)
+Formulas of the shape φ1↔FG(¬b2)are dealt with in a dual manner.
+1This option was not detailed as it was not found to be better than X=1.
+
+--- Page 31 ---
+Dissecting ltlsynt 31
+Algorithm 4 Creation of a valid strategy for a subset of LTL formula
+1:ifφdoes not have the shape G(b1)∧(φ1↔GF(b2))| {z }
+shape 1where φ1is a syntactic
+recurrence with only inputs, or the shape G(b1)∧(φ2↔FG(¬b2))| {z }
+shape 2where φ2is a
+syntactic persistence with only inputs then
+2: return unsupported
+3:ifb1is not synthetizable then
+4: return unrealizable
+5:ifb2and¬b2are not both synthetizable then
+6: return unsupported
+7:ifφhas shape 1 then
+8:A←ToNBA (φ1)
+9: ifAis not deterministic then
+10: return unsupported
+11:else if φhas shape 2 then
+12:A¬φ2←ToNBA (¬φ2)
+13: ifA¬φ2is not deterministic then
+14: return unsupported
+15:A←Complement (A¬φ2) ▷A det. co-B ¨uchi automaton for φ2
+16:let(Q,M,Σ,δ,q0,α) =A
+17:δ′← {(s,f(s,ℓ,M,d),/ 0,d)|(s,ℓ,M,d)∈δ}
+where f(s,ℓ,M,d) =
+
+ℓ∧b1 ifSccOf (s) =SccOf (d)
+ℓ∧b1∧b2 ifSccOf (s)̸=SccOf (d)andm={0}
+ℓ∧b1∧¬b2ifSccOf (s)̸=SccOf (d)andm=/ 0
+18:return (Q,/ 0,Σ,δ′,q0,⊤)
+Example 1 Consider the formula (GF(i1)∧GF(i2))↔GF(o). As it is a recurrence formula,
+(GF(i1)∧GF(i2))can be associated with the deterministic B ¨uchi automaton of Fig. 22a. When
+we associate owith the colored edges and ¯ owith the others, we then obtain the automaton of
+Fig. 22b which is a valid strategy for the specification.
+An additional optimization, present in Algorithm 4 is the use of strongly con-
+nected components (SCCs). A transition between two different SCCs cannot be seen
+infinitely often, so it does not need to enforce either b2or¬b2. This “don’t care” can
+potential later improve the IGMM reduction, as discussed in Section 4.
+Remark 1 In order to maximize the number of formulas detected by this algorithm, the
+following rewriting rules can be applied:
+•If a formula is of the form G(b1)∧G(b2)∧...∧G(bn)∧ψ, rewrite it as G(b1∧
+b2∧...∧bn)∧ψ,
+
+--- Page 32 ---
+32 Dissecting ltlsynt
+0 1i2
+0
+i1¯i2i1i2
+0
+¯i1¯i2Inf(0)
+(a) B ¨uchi automaton associated to
+GF(i1)∧GF(i2)1 0i2o
+i1¯i2¯oi1i2o
+¯i1¯o¯i2¯o
+(b) Strategy obtained from the automaton of
+Fig. 22a for (GF(i1)∧GF(i2))↔GF(o)
+Fig. 22 : Building a direct strategy for (GF(i1)∧GF(i2))↔GF(o)
+•If a formula is of the form G(b), rewrite it as G(b)∧(⊤ ↔ GF(⊤)),
+•Otherwise, rewrite ψasG(⊤)∧ψ.
+We can remark that the last rule does not satisfy that b2and its negation are both synthetiz-
+able. However, ¬b2has to be realizable in order to avoid removing an edge when working on a
+non-accepting edge. In this case, the B ¨uchi automaton associated to ⊤has only one (accepting)
+edge, so this problem does not occur and the procedure is valid. The same idea can be applied
+for the second rule.
+Appendix A justifies the restrictions on b1andb2, and why φ1must have only
+inputs.
+7 Some Benchmarks
+In this section we evaluate the impact of different options on both the runtime as well
+as the quality of the result. All results presented can be recreated from the artifact
+available at https://www.lrde.epita.fr/ ∼frenkin/fmsd22/artifact.
+These benchmarks use the development version of ltlsynt that was eventually
+released with version 2.11 of Spot (Duret-Lutz et al, 2022). The LTL specifications
+we used as input come from the 2019 edition of SYNTCOMP.
+7.1 Effect of --algo on Parity Game Size
+This part focuses on the impact of the choice of the algorithm used to compute the
+parity game. We compare the four different algorithms ds,sd,larandacddescribed
+in Fig. 8. We study the time spent by ltlsynt to execute all steps, from the formula
+to the game.
+The measurements are performed twice, then the minimal time is kept with a
+timeout of 120 seconds.
+To avoid a bias induced by numerous small benchmark instances, we only con-
+sider formulas for which game construction takes more than one second for at least
+one of the algorithms.
+
+--- Page 33 ---
+Dissecting ltlsynt 33
+101103105107
+101103105107
+with dswith sd
+(a) Comparison of the size of the parity games
+obtained with the dsandsdconfigurations10−210−1100101102
+10−210−1100101102
+with ds(s)with sd(s)
+(b) Minimal total time used by ltlsynt with
+dsandsdto produce a game
+Fig. 23 : Comparison of approaches dsandsdto build a parity game. The dots on the
+red lines correspond to errors while those on the green lines to timeouts.
+The machine used for the measurements features 16GB of RAM and an Intel
+Core i7-3770 processor.
+We first compare dsandsdin Fig. 23. For both algorithms, there are numerous
+timeouts, but while it concerns 273 cases for ds, we have only 263 such cases for sd.
+Furthermore, while dsleads to an error2for 19 cases, it happens for 22 cases with
+sd. However, for one case that raises an error with sd, there was a timeout for ds.
+A comparison of the number of states shows us that dsproduces a larger game
+than sdin 51 cases. Conversely, for 43 cases sdproduces a larger game. Therefore,
+the results of the two algorithms are comparable.
+Let us now compare processing speed. We say that an algorithm X is faster than
+an algorithm Y if Y takes at least 10% longer to complete the task. Moreover, we
+only consider cases for which both algorithms terminate successfully.
+Based on these definitions, dsis faster for 12 cases while sdis faster for 67 cases.
+Fig. 23b is clearly favorable to sd. This matches the intuition given in Section 3.1
+that the determinization is more efficient if split is performed beforehand.
+We can conclude that parity games produced by both approaches have similar
+size on average, but there is a runtime advantage in favor of sd.
+Now, let us compare sdwith larin Fig. 24. The first thing we notice is that we
+have 263 timeouts and 22 errors with sd, whereas with lar 238 timeouts and 13
+errors occur. In particular, we have 9 cases where there is a timeout with larbut an
+error with sdand conversely 3 cases where sdhas a timeout while largives an error.
+Let us study the number of states. We see that while there are 55 cases where a
+smaller machine is produced with lar, there are 53 cases where sdperforms better.
+2An error in this context is either insufficient memory or the acceptance condition needing more than 32 colors, the
+default number of colors in Spot.
+
+--- Page 34 ---
+34 Dissecting ltlsynt
+101103105107
+101103105107
+with sdwith lar
+(a) Comparison of the size of the parity games
+obtained with the sdandlarconfigurations10−210−1100101102
+10−210−1100101102
+with sd(s)with lar(s)
+(b) Minimal total time used by ltlsynt with
+sdandlarto produce a game
+Fig. 24 : Comparison of approaches sdandlarto build a parity game.
+Comparing their respective runtimes is hard. Even if there exist a set of cases for
+which the two algorithms give close enough results, there are also some sets of cases
+for which each of the algorithms performs really faster.
+In conclusion, these two algorithms are difficult to compare, both in terms of size
+of the resulting machine and of run time. However, laris able to solve 34 more cases
+than sd.
+The last comparison concerns lar andacd; it is shown in Fig. 25. While we
+have 238 timeouts and 13 errors with lar, we have 250 timeouts and 8 errors with
+acd. We have 4 cases where acdexceeds the maximum duration but larmakes an
+error while the opposite never happens. If we look at the number of states, there are
+83 cases where acdproduces a smaller machine while there are 5 cases where lar
+gives a better result. acd andlar only differ in the paritization procedure and the
+ACD-transform cannot give a bigger parity automaton than the paritization procedure
+oflar. The set of cases favorable to lar comes from the splitting performed on
+these parity automata which depends on the coloring of the automata (this suggests
+that our splitting procedure could probably be improved to better support the type of
+coloration produced by the ACD-transform, or conversely that the ACD-transform
+could be fine-tuned to this case).
+While larwas faster in 35 cases, acdwas faster in 11 cases. However, in general,
+when acd is faster, it is close to lar, while we can find many cases where lar is
+significantly faster than acd.
+We can conclude that these algorithms give close enough results but laris faster,
+even if it produces bigger machines.
+Even though each algorithm has its advantages, we will keep laras the default
+algorithm.
+
+--- Page 35 ---
+Dissecting ltlsynt 35
+101103105107
+101103105107
+with acdwith lar
+(a) Comparison of the size of the parity games
+obtained with the acdandlarconfigurations10−210−1100101102
+10−210−1100101102
+with acd(s)with lar(s)
+(b) Minimal total time used by ltlsynt with
+acdandlarto produce a game
+Fig. 25 : Comparing between acdandlarthe run time of the computation of a parity
+game. The dots on the red lines correspond to errors while those on the green lines
+correspond to timeouts.
+7.1.1 Comparison of Reduction Methods
+We merely remind the reader of the conclusions of a comparison previously pub-
+lished (Renkin et al, 2022), restricting the cases studied to those of SYNTCOMP’19.
+We benchmark our methods against M EMIN, a state-of-the-art minimization tool for
+incompletely specified Mealy machines relying on a reduction to SAT (Abel and
+Reineke, 2015). Fig. 26a shows that our methods are faster than M EMIN; in par-
+ticular, bisimulation with output assignment is faster than our SAT-based method.
+Furthermore, we can see thanks to Fig. 26 that bisimulation with output assignment
+was able to give a solution close to the optimum for many cases of the SYNTCOMP
+sample. This is the reason why this reduction is the default option in ltlsynt .
+Fig. 26 displays a comparison of our three reductions with M EMIN. We clearly
+see in Fig. 26a that our reductions are faster than this tool. Fig. 26b proves that even
+if they are mere heuristics, bisimulaton andbisimulation with output assignment both
+remain fairly close to an optimal solution.
+7.1.2 Comparison of AIG-Encodings
+As presented in Section 5, ltlsynt provides several options in order to determine
+how the AIG is derived from a strategy. We will focus here on the time it takes to
+generate the AIG as well as the resulting number of gates in said circuit. The number
+of latches always being the same, these two metrics are the only ones of interest with
+respect to SYNTCOMP.
+
+--- Page 36 ---
+36 Dissecting ltlsynt
+10−410−2100102
+time MeMin [s]10−410−2100102time method [s]bisim. 2/547
+bisim. w/ o.a. 8/541
+SAT 98/451
+(a) Total runtime for instances derived from
+SYNTCOMP.100101102103104
+size SAT machine100101size ratiobisim.
+bisim. w/ o.a.
+(b) Size ratios for instances derived from
+SYNTCOMP.
+Fig. 26 : Details for SYNTCOMP’19 instances
+To perform these benchmarks, we pre-generated 780 non-trivial strategies3from
+the set of SYNTCOMP’19 benchmarks by using ltlsynt . To obtain said strategies,
+we used approaches larandds. We did not seek to decompose the formulas, nor did
+we try to bypass the game-theoretical framework.
+Results are presented in Table 2. Remember that +udstands for the dual encoding
+option (encode the negation of a function as well as the function itself and retain the
+smaller solution), +dcimplies the use of do-not-cares (i.e. tries to leverage the flexi-
+bility in some outputs), and +sub1 indicates that we treat variables which correspond
+to latches separately from those corresponding to input variables.
+•ITE construction is on average 3 to 4 times faster than the ISOP.
+•ISOP construction usually generates smaller circuits than ITE.
+•In some cases, ITE produces significantly smaller circuits than ISOP.
+•For ITE, the options +dcand+udhave a minor positive effect on circuit size
+while having a minor negative impact on encoding time.
+•For ISOP, the positive effect of +dcand+udis significantly higher, but so is the
+negative effect on encoding time.
+Table 3 compares the performances of various encodings. We can see that trying
+ITE then ISOP is often a good strategy.
+7.2 Interest of Bypassing the Game Construction
+The measurements are again performed twice: the minimal result is kept, and the
+maximal time allowed is 120s. A bisimulation with output assignment is performed
+for both methods.
+3Strategies which cannot be encoded without gates.
+
+--- Page 37 ---
+Dissecting ltlsynt 37
+tot. time mean gmean median
+ite 248 28529 102.4 66.0
+ite+ud 281 28527 97.1 65.5
+isop+sub0 821 8535 81.0 60.0
+isop+dc+ud+sub1 1056 7510 66.8 47.0
+ite2isop 1247 6159 65.7 47.0
+Table 2 : Results for different encoding options presenting the cumulative time taken
+to encode all strategies (tot. time, in seconds) as well as the mean, geometric mean,
+and median of the number gates in the resulting AIG. iteandisop give the baseline for
+each construction. ite+dc+udandisop+dc+ud+sub1 are the options resulting
+in the smallest circuits for each construction method. ite2isop corresponds to ite+
+ud,isop+dc+ud+sub1. It uses the better circuit that can be obtained from the two.
+<(1) <(2) <(3) <(4) <(5)
+(1)ite 33 210 75 3
+(2)ite+ud 232 249 90 0
+(3)isop+sub0 506 429 74 45
+(4)isop+dc+ud+sub1 648 590 587 0
+(5)ite2isop 651 590 620 90
+Table 3 : The integer in the ith row and jth column corresponds to the number of
+instances for which the i-th configuration features strictly less gates than the j-th
+configuration. As one can see, the combination of method (1) and (3) performs the
+best overall, but due to the intricate relation between the options and the resulting
+circuit, in 45 cases the base configuration isop+sub0 still performs better.
+First, note that this procedure can be applied to 144 cases out of the 945 SYNT-
+COMP cases. Focusing on this subset, we show a comparison of the number of states
+of the strategies obtained with larand with the bypass in Figure 27a.
+We can notice that for 103 cases, the strategy yielded by the bypass has at most
+10 states, while there are only 10 cases where the strategy has more than 100 states
+(with a maximum of 1024).
+As the bypass never results in a bigger strategy than lar, we now focus on the set
+of of 51 cases where the bypass outperforms lar. This set of strategies only contains
+machines with at most 16 states for the bypass method.
+A relevant set of cases is composed of files named detectorX where Xis an
+integer and the matching formula is of the form GF(o)↔V
+i∈[1,X]GF(ik). On these
+formula, the bypass yields a strategy with Xstates, where each state describes which
+input variables have been seen. On the other hand, laralways returns a strategy that
+is twice as big.
+Even if it is not our default configuration, we can also compare acd and the
+bypass. There is not a single case where the bypass results in a worst strategy whereas
+acdgives a bigger result in 47 cases.
+We can also consider Figure 27b that compares the impact on runtime of testing
+whether the bypass can be used or not. We can see that it seldom increases the runtime
+
+--- Page 38 ---
+38 Dissecting ltlsynt
+100101102103
+100101102103
+without bypasswith bypass
+(a) Number of states with and without bypass
+on the set of cases that can be bypassed10−210−1100101102
+10−210−1100101102
+without bypass (s)with bypass (s)
+(b) Minimal total time spent by ltlsynt
+with algorithm lar and the bypass to com-
+pute a strategy. Blue dots are cases that can
+be bypassed, and gray dots, cases where the
+bypass computation was not able to finish
+Fig. 27 : Comparing the computation of the strategy between larand the bypass. The
+dots on the red lines correspond to errors, and those on the green lines, to timeouts.
+even if we don’t apply the construction. It is not surprising as such a decision relies
+on a simple syntactical analysis.
+Let us now focus on the set of cases where such a construction is possible. If
+we exclude the set of cases that are trivially fast with or without the bypass, there
+remain a fair amount of cases just below the diagonal. Furthermore, two cases can be
+constructed with the bypass but not with lar.
+We can conclude that this construction always yields a result that may be better
+but is never worse than acdorlarwhile barely increasing the runtime.
+7.3 Impact of Decomposition
+We now focus on the set of 122 formula that can be decomposed. Even though there
+are between 2 and 64 sub-specifications, there only remain between 2 and 10 sub-
+specifications in 89% of the cases.
+As we can see in Fig. 28, we found 16 cases that ltlsynt could only solve using
+decomposition. However, the use of this option also leads to the appearance of 5 cases
+which can no longer be solved.
+If we consider only the set of cases for which the two configurations have ended,
+we see that there are only 3 cases where we obtain bigger circuits with decomposition
+than without. Conversely, the decomposition yields 15 smaller circuits.
+This option results in considerable processing speed improvements. Even if 6
+cases end up being slower, these are all solved in less than 0.06s anyway. On the other
+hand, the computation is significantly faster in 43 cases. The most egregious case is
+
+--- Page 39 ---
+Dissecting ltlsynt 39
+100101102103
+100101102103
+without decompositionwith decomposition
+(a) Number of AND gates + 1 with and with-
+out decomposition10−1100101102
+10−1100101102
+without decomposition (s)with decomposition (s)
+(b) Minimal time spent by ltlsynt to get an
+AIG circuit with and without decomposition
+Fig. 28 : Comparing the computation of the AIG circuit with and without the decom-
+position on the set of formulas that can be decomposed. The dots on the red lines
+correspond to errors, and those on the green lines, to timeouts.
+narylatch10 : the activation of the decomposition reduces the processing time from
+64.72s to 0.03s.
+We can conclude that, while decomposing a formula may in rare cases prevent us
+from solving a case in its allotted time, this optimization nonetheless yields, when it
+is applicable, significant processing speed and size improvements.
+8 Conclusion
+We have presented the architecture of ltlsynt , a tool for synthesizing AIG circuits
+from LTL formulas. While our approach follows a straightforward automata-theoretic
+construction, we have described several unique improvements to it.
+In particular, we have shown that we can bypass the standard construction for
+some specific classes of formulas. We have discussed and evaluated various ways to
+encode Mealy machines as AIG circuits. We have detailed how Spot translates LTL
+formulas to DELA, largely generalizing the approach of the delag tool.
+Finally, we have provided numerous benchmarks to compare our various options
+and approaches as well as justify our default choices.
+References
+Abel A, Reineke J (2015) MeMin: SAT-based exact minimization of incompletely
+specified Mealy machines. In: Proceedings for the 34th International Conference
+on Computer-Aided Design (ICCAD’15). IEEE Press, pp 94–101, https://doi.org/
+10.1109/ICCAD.2015.7372555
+
+--- Page 40 ---
+40 Dissecting ltlsynt
+Babiak T, Badie T, Duret-Lutz A, et al (2013) Compositional approach to suspension
+and other improvements to LTL translation. In: Proceedings of the 20th Inter-
+national SPIN Symposium on Model Checking of Software (SPIN’13), Lecture
+Notes in Computer Science, vol 7976. Springer, pp 81–98, https://doi.org/10.1007/
+978-3-642-39176-7 6
+Babiak T, Blahoudek F, Duret-Lutz A, et al (2015) The Hanoi Omega-Automata
+Format. In: Proceedings of the 27th Conference on Computer Aided Verification
+(CA V’15), Lecture Notes in Computer Science, vol 8172. Springer, pp 442–445,
+https://doi.org/10.1007/978-3-319-21690-4 31, see also http://adl.github.io/hoaf/.
+Biere A (2007) The aiger and-inverter graph (aig) format version 20070427
+Brayton R, Mishchenko A (2010) Abc: An academic industrial-strength verifica-
+tion tool. In: Proceedings of the 22nd Conference on Computer Aided Verification
+(CA V’10). Springer, pp 24–40, https://doi.org/10.1007/978-3-642-14295-6 5
+Bryant RE (1986) Graph-based algorithms for boolean function manipulation. IEEE
+Transactions on Computers 35(8):677–691
+Casares A, Colcombet T, Fijalkow N (2021) Optimal transformations of games
+and automata using Muller conditions. In: Bansal N, Merelli E, Worrell J (eds)
+Proceedings of the 48th International Colloquium on Automata, Languages,
+and Programming (ICALP’21), Leibniz International Proceedings in Informatics
+(LIPIcs), vol 198. Schloss Dagstuhl – Leibniz-Zentrum f ¨ur Informatik, Dagstuhl,
+Germany, pp 123:1–123:14, https://doi.org/10.4230/LIPIcs.ICALP.2021.123
+Casares A, Duret-Lutz A, Meyer KJ, et al (2022) Practical applications of the Alter-
+nating Cycle Decomposition. In: Proceedings of the 28th International Conference
+on Tools and Algorithms for the Construction and Analysis of Systems, pp 99–117,
+https://doi.org/10.1007/978-3-030-99527-0 6
+ˇCern ´a I, Pel ´anek R (2003) Relating hierarchy of temporal properties to model check-
+ing. In: Rovan B, V ojt ´aˇa P (eds) Proceedings of the 28th International Symposium
+on Mathematical Foundations of Computer Science (MFCS’03), Lecture Notes
+in Computer Science, vol 2747. Springer-Verlag, Bratislava, Slovak Republic, pp
+318–327
+Dax C, Eisinger J, Klaedtke F (2007) Mechanizing the powerset construction for
+restricted classes of ω-automata. In: Namjoshi KS, Yoneda T, Higashino T, et al
+(eds) Proceedings of the 5th International Symposium on Automated Technology
+for Verification and Analysis (ATV A’07), Lecture Notes in Computer Science, vol
+4762. Springer, https://doi.org/10.1007/978-3-540-75596-8 17
+van Dijk T (2018) Oink: An implementation and evaluation of modern parity game
+solvers. In: Proceedings of the 24th International Conference on Tools and Algo-
+rithms for the Construction and Analysis of Systems (TACAS’18), Springer, pp
+
+--- Page 41 ---
+Dissecting ltlsynt 41
+291–308, https://doi.org/10.1007/978-3-319-89960-2 16
+Duret-Lutz A (2014) LTL translation improvements in Spot 1.0. International Jour-
+nal on Critical Computer-Based Systems 5(1/2):31–54. https://doi.org/10.1504/
+IJCCBS.2014.059594
+Duret-Lutz A, Renault E, Colange M, et al (2022) From Spot 2.0 to Spot 2.10: What’s
+new? In: Proceedings of the 34th International Conference on Computer Aided
+Verification (CA V’22), Lecture Notes in Computer Science, vol 13372. Springer,
+pp 174–187, https://doi.org/10.1007/978-3-031-13188-2 9
+Emerson EA, Lei CL (1987) Modalities for model checking: Branching time logic
+strikes back. Science of Computer Programming 8(3):275–306. https://doi.org/10.
+1016/0167-6423(87)90036-0
+Esparza J, K ˇret´ınsk´y J, Sickert S (2018) One theorem to rule them all: A unified trans-
+lation of LTL into ω-automata. In: Dawar A, Gr ¨adel E (eds) Proceedings of the
+33rd Annual ACM/IEEE Symposium on Logic in Computer Science (LICS’18).
+ACM, pp 384–393, https://doi.org/10.1145/3209108.3209161
+Etessami K, Holzmann GJ (2000) Optimizing B ¨uchi automata. In: Palamidessi C
+(ed) Proceedings of the 11th International Conference on Concurrency Theory
+(Concur’00), Lecture Notes in Computer Science, vol 1877. Springer-Verlag,
+Pennsylvania, USA, pp 153–167
+Finkbeiner B, Geier G, Passing N (2021) Specification decomposition for reac-
+tive synthesis. In: Proceedings for the 13th NASA Formal Methods Symposium
+(NFM’21), Lecture Notes in Computer Science, vol 12673. Springer, pp 113–130,
+https://doi.org/https://doi.org/10.1007/978-3-030-76384-8 8
+Jacobs S, Bloem R, Brenguier R, et al (2017) The first reactive synthesis competition
+(syntcomp 2014). International journal on software tools for technology transfer
+19(3):367–390
+Jacobs S, Bloem R, Colange M, et al (2019) The 5th reactive synthesis competition
+(SYNTCOMP 2018): Benchmarks, participants & results. CoRR abs/1904.07736
+Jurdzi ´nski M (2000) Small progress measures for solving parity games. In: Proceed-
+ings of the 17th Symposium on Theoretical Aspects of Computer Science (STACS
+2000), Lecture Notes in Computer Science, vol 1770. Springer-Verlag, pp 290–301
+Kupferman O, Rosenberg A (2010) The blowup in translating LTL to determinis-
+tic automata. In: Revised Selected and Invited Papers for the 6th International
+Workshop, on Model Checking and Artificial Intelligence (MoChArt’10), Lecture
+Notes in Computer Science, vol 6572. Springer, pp 85–94, https://doi.org/10.1007/
+978-3-642-20674-0 6, URL https://doi.org/10.1007/978-3-642-20674-0 6
+
+--- Page 42 ---
+42 Dissecting ltlsynt
+L¨oding C (2001) Efficient minimization of deterministic weak ω-automata. Informa-
+tion Processing Letters 79(3):105–109. https://doi.org/10.1016/S0020-0190(00)
+00183-6
+Major J, Blahoudek F, Strejcek J, et al (2019) ltl3tela : LTL to small deter-
+ministic or nondeterministic Emerson-Lei automata. In: Proceedings of the 17th
+International Symposium on Automated Technology for Verification and Analysis
+(ATV A’19), Lecture Notes in Computer Science, vol 11781. Springer, pp 357–365,
+https://doi.org/10.1007/978-3-030-31784-3 21
+Manna Z, Pnueli A (1990) A hierarchy of temporal properties. In: Proceedings of the
+sixth annual ACM Symposium on Principles of distributed computing (PODC’90).
+ACM, New York, NY , USA, pp 377–410
+Minato S (1992) Fast generation of irredundant sum-of-products forms from binary
+decision diagrams. In: Proceedings of the third Synthesis and Simulation and
+Meeting International Interchange workshop (SASIMI’92), Kobe, Japan, pp 64–73
+Mishchenko A, Chatterjee S, Brayton R (2006) Dag-aware aig rewriting a fresh
+look at combinational logic synthesis. In: Proceedings of the 43rd Annual Design
+Automation Conference. Association for Computing Machinery, New York, NY ,
+USA, DAC ’06, p 532–535, https://doi.org/10.1145/1146909.1147048, URL https:
+//doi.org/10.1145/1146909.1147048
+M¨uller D, Sickert S (2017) LTL to deterministic Emerson-Lei automata. In: Bouyer
+P, Orlandini A, Pietro PS (eds) Proceedings of the Eighth International Symposium
+on Games, Automata, Logics and Formal Verification (GandALF’17), pp 180–194,
+https://doi.org/10.4204/EPTCS.256.13
+Pfleeger CP (1973) State reduction in incompletely specified finite-state machines.
+IEEE Transactions on Computers C-22(12):1099–1102. https://doi.org/10.1016/j.
+compeleceng.2006.06.001
+Redziejowski R (2012) An improved construction of deterministic omega-automaton
+using derivatives. Fundamenta Informaticae 119(3-4):393–406. https://doi.org/10.
+3233/FI-2012-744
+Renkin F, Duret-Lutz A, Pommellet A (2020) Practical “paritizing” of Emerson-
+Lei automata. In: Proceedings of the 18th International Symposium on Auto-
+mated Technology for Verification and Analysis (ATV A’20), Lecture Notes in
+Computer Science, vol 12302. Springer, pp 127–143, https://doi.org/10.1007/
+978-3-030-59152-6 7
+Renkin F, Schlehuber-Caissier P, Duret-Lutz A, et al (2022) Effective reductions of
+Mealy machines. In: Proceedings of the 42nd International Conference on For-
+mal Techniques for Distributed Objects, Components, and Systems (FORTE’22),
+Lecture Notes in Computer Science, vol 13273. Springer, pp 170–187
+
+--- Page 43 ---
+Dissecting ltlsynt 43
+0 1
+¯i∨¯o0io¯i∨¯o
+0ioInf(0)
+(a) B ¨uchi automaton associated with
+GF((i∧¯o)∨¯i)0 1
+¯ioio¯o¯io io¯o
+(b) Strategy yielded by the automaton
+of Figure 29a for the formula G((i∧
+¯o)∨¯i)↔GF(o)
+Fig. 29 : Building a wrong direct strategy for the formula G((i∧¯o)∨¯i)↔GF(o)
+Safra S, Vardi MY (1989) On ω-automata and temporal logic. In: Proceedings of the
+twenty-first annual ACM Symposium on Theory of Computing (STOC’89). ACM,
+pp 127–137, https://doi.org/10.1145/73007.73019
+Zielonka W (1998) Infinite games on finitely coloured graphs with applications to
+automata on infinite trees. Theoretical Computer Science 200(1):135–183. https:
+//doi.org/10.1016/S0304-3975(98)00009-7
+A Explanation of Restrictions of the Direct Construction
+In this appendix, we explain why some restrictions have to be applied to the sub-
+formulas. Note that these restrictions sometimes allow us to create a direct strategy,
+but as our procedure is based on syntactical analysis, we may not be able to find all
+such cases.
+A.1 Why We Don’t Have an Output in φ1
+Consider the formula G((i∧¯o)∨¯i)↔GF(¯o). A possible corresponding B ¨uchi
+automaton is shown in Figure 29. Our procedure would assign ¯ oto the edge that goes
+from 1 to 0 and result in an automaton where the states have no outgoing edge labeled
+byi. Thus, it is not an actual strategy.
+A.2 Why b2and¬b2Must Be Realizable
+We now explain why b2and its negation have to be realizable. Let us consider an
+example where b2is unrealizable (without loss of generality thanks to symmetry):
+the formula GF(i)↔GF(¯i∧o)where ois an output proposition.
+The translation of GF(i)results in a B ¨uchi automaton with two states shown in
+Figure 30a. The procedure will assign ¯i∧oto the edges colored with 0and the
+condition associated to these edges is now ⊥; these edges are therefore removed. We
+end up with a “strategy” described in Figure 30b featuring two states labeled with
+¯i∧¯o; it is not input-complete, thus it is not an actual strategy.
+
+--- Page 44 ---
+44 Dissecting ltlsynt
+0 1
+¯ii
+0¯i i
+0Inf(0)
+(a) B ¨uchi automaton associated with
+GF(i)0 1
+¯i∧¯oi∧¯i∧¯o¯i∧¯o i∧¯i∧¯o
+(b) Strategy yielded by the automa-
+ton of Figure 30a for the formula
+(GF(i))↔GF(¯i∧o)
+Fig. 30 : Building a wrong direct strategy for the formula (GF(i)∧GF(¯i))↔GF(¯i∧o)

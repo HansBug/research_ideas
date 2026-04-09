@@ -1,0 +1,929 @@
+--- Page 1 ---
+On Communicating Finite-State Machines 
+DANIEL BRAND AND PITRO ZAFIROPULO 
+IBM Zurich Research Laboratory, Rdschlikon, Switzerland 
+Abstract A model of commumcations protocols based on finite-state machines is investigated. The 
+problem addressed is how to ensure certain generally desirable properties, which make protocols "well- 
+formed," that is, specify a response to those and only those events that can actually occur. It is determined 
+to what extent the problem is solvable, and one approach to solving it ts described. 
+Categories and SubJect Descriptors' C 2 2 [Computer-Conununication Networks]: Network Protocols-- 
+protocol verification; F 1 1 [Computation by Abstract Devices] Models of Computation--automata; G.2.2 
+[Discrete Mathematics] Graph Theory--graph algoruhms; trees 
+General Terms: Reliability, Verification 
+Additional Key Words and Phrases Communications 
+1. Introduction 
+The trend toward distributed computing and computer networks is increasing the 
+complexity of communication protocols. Formal methods of specification and anal- 
+ysis are being gradually introduced to handle the complexity. We will briefly review 
+the most common protocol representations and relate our representation to them. 
+There are several excellent surveys [6, 11, 18, 23] on the subject of protocol speci- 
+fication and verification. 
+The most general model describes protocols as parallel programs [7, 14, 15, 22]. In 
+this framework one can specify all protocols and most of their properties. The cost 
+of this generality is the undecidability of most properties. Therefore, existing methods 
+of analysis use human assistance or take advantage of the fact that many protocol 
+features do not use all the generality available. The latter allows a protocol to be 
+analyzed as if it were described in a less general formalism. 
+A Petri net [12, 17, 19, 24] is a less general model. In this formalism, protocols are 
+more easily analyzable, and some properties undecidable for programs are decidable 
+for Petri nets (e.g., boundedness [16]). The reduction in expressive power by com- 
+parison with programming languages is evident in some protocols that require a very 
+large Petri-net description. 
+The least powerful model is that of a single finite-state machine describing the 
+system including all the component processes and interconnecting channels [1, 3, 10, 
+13]. In this model only certain protocols can be described. (For example, a protocol 
+allowing an arbitrary number of messages in transit cannot be described.) But 
+describable protocols are relatively easy to analyze in the sense that all properties are 
+decidable by exhaustive analysis. 
+Authors' present addresses D. Brand, IBM Thomas J. Watson Research Center, P.O. Box 218, Yorktown 
+Heights, NY 10598, P. Zafiropulo, IBM Zurich Research Laboratory, 8803 Rilschlikon, Switzerland. 
+Permission to copy without fee all or part of this material is granted provided that the copies are not made 
+or distributed for direct commercial advantage, the ACM copynght notice and the title of the publication 
+and tts date appear, and notice is given that copying is by permission of the Association for Computing 
+Machinery To copy otherwise, or to republish, requires a fee and/or speofic permission. 
+© 1983 ACM 0004-5411/83/0100-0323 $00.75 
+Journal of the As:,oclatlon for Computing Machinery, VoL 30, No 2, Aprd 1983, pp 323-342 
+
+
+--- Page 2 ---
+324 D. BRAND AND P. ZAFIROPULO 
+In order to improve the expressive power of finite-state machines and Petri nets, 
+as well as to reduce the size of their descriptions, a number of extensions have been 
+proposed [4, 17, 21, 27]. These extensions usually employ some programming 
+language capability, which in turn makes analysis harder. 
+Our model [25, 29] uses explicit t'mite-state machines to represent processes and 
+implicit queues to represent channels (the details are given in Section 2). The 
+processes communicate by sending messages to one another via the channels. The 
+queues modeling the channels have unbounded capacity to represent protocols 
+allowing an arbitrary number of messages in transit. In a physical implementation 
+all channels must be bounded, but the bound may be too large to be of practical use. 
+Moreover, since protocols are supposed to operate over different channels with 
+different capacities, a channel of unbounded capacity is the proper abstraction. 
+This model is in a certain sense as powerful as programming languages, for the 
+unbounded channels can in principle be used as memory devices (see [9]). However, 
+this is not the intention; in modeling a given physical communication system, each 
+process is supposed to be represented by only one finite-state machine, and the 
+channels are to be used for communication only. With such a restriction the model 
+is less powerful in modeling processes than Petri nets (e.g., an unbounded counter 
+cannot be represented). But it is more powerful in modeling channels (e.g., the FIFO 
+property is built in). 
+The suitability of the model for representing and analyzing communication pro- 
+tocols has been demonstrated [20, 21, 26] on existing protocol designs. It is particularly 
+appropriate in situations where the propagation delay is not negligible (so that several 
+messages can be in transit at one time) and in situations where it is natural to describe 
+the protocol parties and the communication medium as separate entities. 
+Our protocol model is described in Section 2. Section 3 defines when a protocol is 
+well formed, and Section 4 presents an approach to ensuring this property. Section 
+4 first characterizes all well-formed protocols if the processes are restricted to being 
+trees, rather than general transition graphs. This characterization is then used in a 
+(partial) solution for general protocols. 
+The approach has been developed for a protocol synthesizer described previously 
+[8, 29] and is based on syntactical properties derived from notions of physical 
+causality and completeness [28]. Because this paper is not directly concerned with 
+the practical aspects of such a protocol synthesizer, we will describe only the essential 
+properties of the model and the approach. 
+2. Model of Protocols 
+Our model of protocols employs a simple and commonly used representation of the 
+communicating processes [1, 3], namely, each process is a finite-state machine. Each 
+pair of communicating processes is connected by a full-duplex, error-free, FIFO 
+channel. (A nonideal channel is represented using an additional finite-state machine 
+corrupting messages passing through it; see [29].) 
+Our notation for expressing transmissions and receptions is illustrated in Figure 1. 
+A minus sign identifies the transmission of a message, a plus sign its reception. When 
+a process is in a state from which there is an arc labeled -m, then it can traverse the 
+arc and enter a new state. (For example, process USER when in state READY can 
+traverse the arc labeled -REQ and enter state WAIT.) By traversing such an arc the 
+message m is transmitted to the destination process via the connecting channel. (The 
+destination process of a message will not be indicated explicitly by its transmission; 
+
+
+--- Page 3 ---
+Communicating Finite-State Machines 325 
+this information will either be in an accompanying text or can be inferred by 
+observing which process contains receptions of the message.) 
+There are no assumptions on the time that a process spends in a state before 
+sending a message, and there are no assumptions on the time that a message spends 
+in a channel before it is delivered to its destination. If and when a message m arrives 
+at a process that is hi a state s, then the process will enter a new state by traversing 
+arc labeled +m. (If there is no arc +m attached to state s, then the protocol is 
+incorrect; see Section 3.) 
+The example of Figure 1 is a siinple protocol between two processes, USER and 
+SERVER. Initially, both are in their initial states--READY and IDLE. USER can 
+send a request (message REQ) to SERVER. After receiving REQ, SERVER enters 
+state SERVICE; when it is finished with the service, it goes back to state IDLE while 
+sending the message DONE to USER. Between sending REQ and receiving DONE, 
+USER stays in state WAIT. 
+While idle, SERVER can detect a fault in itself. If so, it informs USER about it by 
+sending the message ALARM. When USER receives an ALARM, it registers it and 
+directs SERVER back to its IDLE state by the message ACK. 
+Now we define the model formally. 
+Definition 2.1. A protocol is a quadruple 
+((S~)~1, (o,}~1, M N, ( ,,),,,.~, succ), (1) 
+where N is a positive integer (representing the number of processes), 
+(&) 7-1 are N disjoint finite sets (S, represents the set of states of process i), 
+each o, is an element of S~ (representing the initial state of process i), 
+(M,j) N~,~.~ are N 2 disjoint finite sets with M,, empty for all i (M,~ represents the 
+messages that can be sent from process i to process j), 
+succ is a partial function mapping for each i and j, 
+S, x My---> 5', and S, x Mj,---> S,. 
+(suce(s, x) is the state entered after a process transmits or receives message x in state 
+s. It is a transmission ifx is from M v, a reception ifx is from Mj,.) 
+For example, in Figure 1, 
+N~-2, 
+$1 = (READY, WAIT, REGISTER), 
+$2 -- (IDLE, FAULT, SERVICE), 
+ol = READY, 
+o2 -- IDLE, 
+M12 -- (REQ, ACK), 
+M21 = (ALARM, DONE), 
+succ(READY, REQ) -- WAIT, 
+succ(WAIT, DONE) -- READY, 
+and so on according to Figure 1. The function succ is defmed only for eight argument 
+pairs, for there are eight arcs in Figure 1. An example of an undefined succ value is 
+succ(READY, DONE) or succ(SERVICE, ALARM). 
+
+
+--- Page 4 ---
+326 D. BRAND AND P. ZAFIROPULO 
+PROCESS 1 PROCESS 2 
+(USER) (SERVER) 
++~- RM 
+FIGURE 1 
+The requirement that all the sets M v be disjoint is merely a notaUonal convenience 
+and does not represent a restriction m practice. If two processes can send the same 
+message, then one of the messages can be renamed to achieve distinctness. 
+There are extensions [8, 21, 25, 29] of the model, which are made for the handling 
+of practical protocols. For example, a state can be marked as transient [25] so that it 
+cannot receive messages, or the channels may not be FIFO and allow overtaking of 
+messages. Such extensions have little impact on the results of this paper and will not 
+be discussed. 
+Notation 
+(i) We use subscripts to identify processes. Thus, s, always refers to a state in 
+process i, that is, to a member of S,. Similarly, xv refers to a member of M,j, that is, 
+a message that can be sent from process i to processj. If it is not necessary to indicate 
+where a state s or a message x belongs, then indices are not used. Unsubscripted 
+capital letters Q, R, S, T are used for sets of states, each from a different process. X, 
+Y, Z are used for sequences of messages. 
+(ii) An N-tuple S always consists of N states (S1 ..... SN ), one from each process. 
+If a functionfis defined for states, then we extend it to N-tuples componentwise: 
+f((sa ..... sN)) = (f(Sx), ...,f(sN)). 
+If a relation p is defined between states, then we extend it componentwise to N-tuples: 
+S p S' iff s, p s~ for alli. 
+(iii) We use juxtaposition to express concatenation of message sequences. For 
+example, if x and y are messages and X and Y are message sequences, then x, xy, x Y, 
+XY are examples of message sequences. The first one, x, is of length 1; the second, 
+xy, is of length 2. We use the symbol E to denote the empty sequence. If a relation 
+p is defined between messages, then we extend it componentwise to sequences of 
+equal length: 
+EpE' and xYpx'Y' iff xpx' and Yp Y'. 
+(iv) We extend the function succ to a sequence X of messages in the natural way: 
+succ(s, ~) = s and suet(s, x Y) = succ(succ(s, x), Y). 
+(v) For readability purposes we use a plus sign to identify a reception and a 
+minus sign to identify a transmission. For example, we may write suet(s,, +xs,) or 
+suet(&, -Yv); here the plus and minus signs provide no new information because the 
+
+
+--- Page 5 ---
+Communicating Finite-State Machines 327 
+indices indicate what is a reception and what is a transmission. If we write suee(s, +x), 
+then the plus sign does provide some information, namely, that there exist i andj so 
+that s is in S, and x is in Mj, (rather than My). For a message sequence X, if we write 
+succ(s, +X) = s', then X contains receptions only. 
+Properties of a protocol are defined in terms of its execution. An execution is a 
+sequence of global states [25], where each global state gives the state of all the 
+processes and contents of the channels. An execution must start from the initial 
+global state, where each process i is in its initial state o~ and all the channels are 
+empty. The execution can then proceed; at each step either 
+(i) a message is sent (process i sends a message x,k, i.e., it is appended to the right 
+of the channel c,k), or 
+(ii) a me,;sage is received (process k receives a message x,k, i.e., it is removed from 
+the left of the channel c,k). 
+Formally we define 
+Definition 2.2. A global state (for a protocol of the form (1)) is a pair (S, C), 
+where S is an N-tuple of states sl,..., sN (st represents the current state of process i) 
+and C is an N2-tuple (cn ..... ClN, C21 ........ CNN), where each cv is a sequence of 
+messages from M v. (The message sequence c v represents the contents of the channel 
+from process l toj. Note that every c, is empty, for M, is empty.) 
+Definition 2.3. We define a binary relation ~- on global states (meaning that one 
+global state can produce the other in one step of execution): (S, C) t- iS', C') iff 
+there exist i, k, and x,k satisfying one of the two following conditions. 
+(i) All the elements of iS, C) and iS', C') are equal except 
+s" = succ(s, -xi~) and c'k ~--- Cik~Cik. 
+(ii) All the elements of (S, C) and (S', C') are equal except 
+X s~ -- succ(sk, +x,k) and c,k = ,~c,k. 
+Definition 2.4. Let I-* be the reflexive and transitive closure of I-. Then we 
+say that a global state iS, C) is reachable iff (S o , C O ) I-* iS, C), where 
+(S °, C O ) = ((o~) ~=1, (E) ~j = 1 ). ((S °, C O ) is the inittal global state with all channels 
+empty and each process i in its initial state o,.) 
+The definition of I--- does not restrict us to events (receptions and transmissions) 
+happening one at a time rather than in parallel. If some events happen simultaneously 
+in two or more different processes, then we can represent them as happening one 
+after the other in any order. The definition of t-- implies only a delay between two 
+transitions in the same process and a delay between the transmission of a message 
+and its reception. 
+3. The Problem 
+We do not try to prove that a protocol performs its intended function as do, for 
+example, [4, 7, 22]. Instead, we consider certain properties of interest to all protocols 
+independent of their intended functions. This has two advantages: specification of 
+the intended function is unnecessary (usually a difficult and error prone task), and 
+the problem is computationally more tractable. At the same time we can detect a 
+large number of common design errors such as missing or unexecutable receptions 
+[20, 25, 29]. Avoiding errors of this kind is the main subject of this paper. Additionally, 
+
+
+--- Page 6 ---
+328 D. BRAND AND P. ZAFIROPULO 
+PROCESS 1 PROCESS 2 
+(USER) (SERVER) 
++ALARM 
+FIGURE 2 ~ RM 
++REQ 
+some interesting properties (e.g., deadlock) can also be discovered from so called 
+stable N-tuples--reachable global states with all channels empty. 
+A protocol has a reception missing if a message x can arrive at a process when it 
+is in a state s, but the protocol does not specify what state should be entered upon 
+receiving x in state s. For example, in Figure 1 consider the execution where USER 
+sends REQ and SERVER sends ALARM before either message arrives at its 
+destination. Message ALARM arrives when USER is in state WAIT, and the protocol 
+does not specify what should happen in that situation. Similarly, there is a missing 
+reception of message REQ in state FAULT. 
+Now consider Figure 2, which is obtained from Figure 1 by adding the two 
+receptions discussed above. It has all executable receptions specified. (An example of 
+an unexecutable reception would be obtained, e.g., by adding a reception +DONE 
+to state READY.) We say that a protocol with all executable receptions specified 
+and only executable receptions specified is well formed. 
+While the protocol of Figure 2 is well formed, it contains the possibility of a 
+deadlock. In the execution considered above, the two processes first send the messages 
+REQ and ALARM. They are both received, and then the two processes remain in 
+states WAIT and FAULT forever, because no other message can arrive. We say that 
+a protocol can be deadlocked if it is possible to reach a global state where all channels 
+are empty and there is no transmission from any state. It has been shown [2, 21, 25] 
+that N-tuples of states reachable with all channels empty (in this paper called stable 
+N-tuples) are also useful for detecting losses of synchronization. Therefore, it is 
+important to identify such stable N-tuples. 
+Definition 3.1. In a protocol of the form (1): 
+(i) A reception is a pair (s, x ) for a state s and a message x. A reception (s, x ) is 
+specified iff succ(s, +x) is defined. 
+(ii) A reception (s, x) is executable iff there exists a reachable global state (S, C ), 
+where for some i and k, s --- sk and cik is of the form x Y for some sequence IT. 
+(iii) A protocol is well formed provided each reception is specified iffit is executable. 
+(iv) We say that an N-tuple S of states is stable iff (S, (a)~j=l) is reachable. 
+Experience [20, 21, 26] shows that it is important for a protocol to be well formed 
+independently of its function, and also that the knowledge of stable N-tuples allows 
+the detection of significant errors. There have been two strategies for assisting a 
+protocol designer in these aspects. Protocol validation [25, 28] assumes a given 
+
+
+--- Page 7 ---
+Communicating Finite-State Machines 329 
+protocol and informs the designer of any missing or unexceutable receptions, 
+deadlocks, etc. Protocol synthesis [8, 29] assumes input given interactively by the 
+designer and constructs mechanically a protocol guaranteed to be well formed. From 
+a theoretical point of view, both approaches have to solve the same problem: 
+Given a protocol, identify all executable receptions and all stable N-tuples. (2) 
+In the case of validation, the given protocol is the one constructed by a human 
+designer; in the case of synthesis, it is the partially constructed protocol at a certain 
+stage during the protocol's construction. Of course, finding a solution to (2) will not 
+solve all problems with protocols. For example, Bochmann and Merlin [5] synthesize 
+a whole process when given all the other processes. For them a solution to (2) would 
+not determine the transmissions in the synthesized process. 
+We cannot expect a general solution for (2). Brand and Zafiropulo [9] present a 
+proof that it is undecidable whether a given reception in a given protocol is 
+executable. This implies undecidability of other questions of interest: Is a given 
+protocol well-formed? Is a given N-tuple stable? Is deadlock possible? Therefore, we 
+can expect a solution only for some classes of protocols; we can get an idea what 
+classes might or might not be solvable by considering the proof of undecidability. It 
+reduces the halting problem to problem (2) using the channels to represent the tape 
+of a Turing machine. This can be done because in our model the channels have 
+infinite capacity. Therefore, we can expect that solvability will depend on restricting 
+what messages can be in transit at any one time. 
+Definition 3.2. We say that the channel from process i to j is bounded by a 
+constant h iff for every reachable global state (S, C), c~j is a sequence of length at 
+most h. If no such constant h exists, then we say that the channel is unbounded. 
+All the channels in the protocols of Figures 1 and 2 are bounded by one. 
+A simple example of an unbounded channel is given by any protocol where 
+succ(s, -x) = s (i.e., a state s has a loop transmitting x). Such a protocol can transmit 
+x any number of times before the first x is received by the other party. 
+Boundedness of channels is again, in general, undecidable, but many practical 
+protocols do have all their channels bounded. Protocols with unbounded channels 
+usually use them in a simple manner, which makes them worth considering. For a 
+given protocol the bound on its channels can be estimated with a method described 
+in [9]. 
+The problem (2) is solvable for the class of protocols with all channels bounded. 
+As we show below, the problem is also solvable for the class of protocols with 
+N = 2 processes and only one channel unbounded. In contrast, the problem is 
+unsolvable for N > 2 when any one channel is unbounded. More generally, the 
+problem is unsolvable for the class of protocols with an unbounded channel, say, 
+from process i to j, if there exists another way of passing information from i toj. For 
+example, if we have three processes, then we can use the third process just as a 
+relaying station between processes i and j bypassing the unbounded channel. The 
+same situation would exist for N -- 2 if we extended our model by allowing more 
+than one channel from process i to j. 
+For those protocols where a complete solution to problem (2) is not available, one 
+can provide approximate solutions. For example, [25] uses a channel bound h as a 
+parameter of validation. A validated protocol is guaranteed to have all those 
+receptions specified that are executable using global states with channels shorter 
+than h. 
+
+
+--- Page 8 ---
+330 
+FIGURE 3 D. BRAND AND P. ZAFIROPULO 
+4. A Solution 
+Most existing approaches [15, 23, 25] to problem (2) are based on a search of 
+reachable global states. We present an alternative approach; instead of considering 
+an execution of all the processes as a whole, we consider N executions of the N 
+processes separately. While the worst-case asymptotic behavior of both approaches 
+is exponential, ours has a slightly smaller exponent, which indicates a potential for 
+reducing the combinatorial explosion. However, worst-case asymptotic behavior is 
+not necessarily a relevant measure here, because in both approaches a protocol can 
+be analyzed successfully only if its behavior is far from the worst case, as is true for 
+protocols designed in practice. Therefore, some experimentation will be necessary 
+before the practical effectiveness of our approach can be determined. 
+There are reasons to expect the existence of a solution that does not search all 
+reachable global states. Figure 3 contains a portion of a protocol where we wish to 
+decide whether state s can receive message x. The reader can see that the answer is 
+in the affirmative, provided state t can receive x, because an execution which delivers 
+x before transmitting y implies another possible execution that differs only in that it 
+is slower in delivering x than in transmitting y. Note that the answer to this question 
+was independent of the rest of the protocol; we only needed the information that 
+s = succ(t, -y) and succ(t, +x) is defined. Using this motivation, we aim for rules 
+characterizing all the executable receptions with minimum information about the rest 
+of the protocol. 
+The method proposed here builds N trees, one for each process, representing all 
+the possible executions of each process. The N trees constitute a protocol according 
+to Definition 2.1, but because of its restricted form we will call it a tree protocol. 
+Figure 4 shows a tree protocol corresponding to the general protocol of Figure 2. 
+Traversing a tree is like traversing the corresponding graph, but with two differences. 
+First, one state s of a process in Figure 2 is represented in Figure 4 by several separate 
+states s.0, s.1, s.2, ... ; each corresponds to a different way of reaching state s from the 
+initial state. (For example, in Figure 4 states READY.0, READY. 1, READY.2 all 
+represent the same state READY of Figure 2.) Second, messages are renamed so that 
+no message is transmitted from two different states in the tree. (For example, 
+-REQ.0, -REQ.1, and -REQ.2 represent three different transmissions of the same 
+message REQ.) It should be stressed that the messages REQ.0 and REQ. 1 (as an 
+example) are completely different from the point of view of the tree protocol. They 
+merely share their reasons for being in the tree protocol. 
+It should be clear that given a general protocol as in Figure 2, we can construct 
+tree protocols (like Figure 4) by tracing all possible executions. In general, there is an 
+infinite number of such tree protocols, depending on how long we trace the execu- 
+tions. Conversely, given a tree protocol, we can construct the corresponding general 
+protocol by merging equivalent states and messages. This is the basis of our approach; 
+we grow the N trees and interpret any findings about the trees (executable receptions, 
+stable N-tuples) in terms of the general protocol. 
+
+
+--- Page 9 ---
+IN 
+cl~w 
+rl 
+~J 
+Ov 
+am Q ~ 
+o 
+O 
+ill 
+~ L~J R 
+
+
+--- Page 10 ---
+332 D. BRAND AND P. ZAFIROPULO 
+Thus we reduce the general problem (2) into two subproblems: first, how to solve 
+problem (2) for tree protocols; and second, when to terminate growing of the trees 
+without missing any receptions or stable N-tuples in the corresponding general 
+protocol. The first problem is solved in Section 4.1. The second problem is, in general, 
+unsolvable, and a limited solution is presented in Section 4.2. But first we define a 
+tree protocol. 
+Definition 4.1. We call a protocol of the form (1) a tree protocol iff the following 
+two conditions are satisfied: 
+(i) For every state s, there is a unique sequence X of messages so that 
+s~ = succ(o~, x). 
+(ii) For every message x there is a unique state t so that succ(t, -x) is defined. 
+Condition (i) is the usual definition of a tree. The unique sequence X is called the 
+branch leading from the root o, to state s,. Condition (ii) is independent of any 
+treelike qualities; we introduce it because it will be convenient to have a unique state 
+from which a message can be transmitted. If succ(t, -x) is defined, then we call t the 
+departure state of the transmission of x and succ(t, -x) the entry state of the 
+transmission. 
+Condition (ii) does not constitute a restriction on the protocols that the approach 
+can handle. It merely implies that in constructing a tree protocol from a general 
+protocol, every new transmission must be renamed. 
+Notation. In a tree protocol: 
+(i) s <_ s' iff there exists a (possibly empty) sequence X so that succ(s, X) = s'. We 
+call X the path from s to s'. If X is not empty, then s < s'. For example, in 
+Figure 4 READY.0 _< WAIT.l, but neither REGISTER.0 _ WAIT.1 nor 
+WAIT.1 _< REGISTER.0. In particular, note that s _< s' only ifs and s' are in 
+the same process. 
+(ii) s ~, s' iffs _< s' or s' <_ s (i.e., s and s' are on the same branch). 
+(iii) max(s, s') -- s' if s --< s', 
+max(s, s') = s if s' _< s, 
+max(s, s') is undefined if it is not the case that s ~ s'. 
+4.1 ARC SPECIFICATION FOR TREE PROTOCOLS. This section shows how to con- 
+struct well-formed tree protocols, independent of any general protocol that might 
+correspond to the tree protocol. It gives necessary and sufficient conditions for a 
+reception to be executable. These conditions are expressed in terms of three functions: 
+From, To, and L. All three take two arguments--a process identifier i and a state s. 
+Fromt(s) is the last message received from process i on the branch to state s. If 
+no such message exists, then Fromt(s) = *, where • is a special symbol used for 
+this purpose. For example, in Figure 4, From2(REGISTER.2) = ALARM.l, 
+From~(WAIT.0) = .. In general, Fromt(s,) = * for any st. 
+To,(s) is the last message transmitted to process i by the branch to state s. For 
+example, To,(READY.I) = REQ.0, Tol(SERVICE.0) = .. In general, To,(s,) = * 
+for any st. 
+Lt(s) is the last state in process i that must have been reached before state s can be 
+reached. (L is precisely defined in Definition 4.3.) For illustration, consider the 
+protocol of Figure 5. Process 2 sends message 1 to process 1 followed by message 2 
+to process 3. Upon receiving message 2, process 3 sends message 3 to process 1. 
+Process 1 follows two different paths, depending on whether message 1 or 3 arrives 
+
+
+--- Page 11 ---
+Communicating Finite-State Machines 
+PROCESS 1 PROCESS 2 PROCESS 3 333 
+FIGURE 5 -1 
+-2 +2 
+3 
+first. In determining the value of L2(sl) we take the position that we can observe the 
+state of process 1 only and try to say as much as possible about the state of process 
+2. Since +1 has been received, process 2 cannot be in state o2; it must be in state t2 
+or further. But we know even more. Since message 3 cannot be sent without message 
+2 being sent first, we know that process 2 must have entered state s2. In fact, in this 
+example Lz(Sl) -- s2 and La(Sl) =- sa. 
+Using the same reasoning, L2(tl) = s~. Thus, when process 1 reaches state tx, it 
+knows that process 2 must have already sent message 1. This ability of a process to 
+find out that a message has been sent to it before receiving the message is not present 
+for protocols with N = 2 processes only. Therefore, for two processes the solution 
+[29] is different from the general solution presented here. 
+When a process i reaches a state s,, then of course it knows that process i is in state 
+s,; therefore always L,(s,) = s,. Thus the function L assigns an N-tuple to every state 
+in the protocol: L(s) = (Ll(s) ..... LN(s)). 
+Using the function L, we express three conditions, which we wiU later prove to 
+be necessary and sufficient in order that a state rk can receive a message x,k (see 
+Figure 6): 
+(i) Process k can receive x,k only after it has received all messages previously sent 
+to it by process i. This first condition is expressed by 
+From,(rk) = Tok(t,). (3) 
+(ii) If rk is to receive x,k, then the knowledge possessed by processes i and k about 
+any third processj must be consistent in the following sense. When process k is 
+in state rk, then processj must have reached state Lj(rk). After process i transmits 
+x,k entering state t,', then process j must have reached state Lj(t',). These two 
+states of processj must lie on the same branch, or, using the notation introduced 
+before Section 4.1, 
+L,(t;) -~ L,(rk) for all j # k. (4) 
+(iii) In order that rk can receive x,k, condition (4) must also be satisfied forj - k, in 
+which case it can be simplified to Lk(t,) -~ rk. But this is not sufficient, because 
+it allows rk < Lk(t,). If that were the case, then process k must have passed state 
+rk by the time x~ has been transmitted, and therefore rk could not receive x,k. 
+Therefore, we require 
+Lk(t,) <- rk. (5) 
+Using these three conditions, we now define a constructible reception and a 
+constructible protocol. Later we will prove that "constructible" is equivalent to 
+
+
+--- Page 12 ---
+334 
+PROCESS I D. BRAND AND P. ZAFIROPULO 
+PROCESS k PROCESS I 
+I I ' 
+, 
+I I 
+f t 
+, 
+" 9 I 
+,, I 
+f 
+1 
+I 
+I 
+FIGURE 6 
+"executable." The function L is defined in Definition 4.3 together with a constructible 
+tree protocol because they are interdependent--constructible protocols are charac- 
+terized in terms of the function L, and the function L exists only for constructible 
+tree protocols. 
+Definition 4.2. Assume a tree protocol of the form (1) in Definition 2.1 and a 
+function 
+L: S1 0 ... tO SN---> $1 x ... x SN. 
+A reception irk, x,k) is constructible iff conditions (3)-(5) are satisfied, where t, and 
+t', are the departure and entry states of --X,k, respectively. 
+The next definition states that a tree protocol is constructible iff it is obtainable in 
+any number of steps: 
+(i) starting from the roots, 
+(ii) by adding a new transmission -x to any state t,, or 
+(iii) by adding any constructible reception. 
+Definition 4.3. A tree protocol P of the form (l) is constructible, and 
+L: $1 U ... tO SN ~ S1 x .., X aN 
+is a function associated with P iff P and L are obtainable by the following inductive 
+definition. 
+(i) P is constructible if S, = (o,} for all i and M,~ is empty for all i,j. The following 
+function L is associated with P:L(o,) = (ol ..... ON) for all i. 
+(ii) Let P be a constructible tree protocol of the form (1), i # k two fixed process 
+indices, t, a state in S,, and x and s new symbols. Let P' be the tree protocol 
+obtained from P by replacing S, with S~ tJ (s) and M,k with M~k U (x) and 
+extending succ to succ(t,, -x) = s. Then P' is a constructible tree protocol. 
+If L is associated with P, then the following extension L' is associated with P': 
+L~(s) = s, Lj(s) = L(t,), for all j # i. 
+(iii) Let P be a constructible tree protocol of the form (1), L a function associated 
+with P, (rk, x,k) an unspecified constructible reception (with respect to L), and 
+s a new symbol. Let P' be the tree protocol obtained from P by replacing Sk 
+
+
+--- Page 13 ---
+Communicating Finite-State Machines 335 
+with Sh O (s} and extending succ to succ(rh, +x,h) = s. Then P' is a constructible 
+tree protocol. 
+If L is associated with P, then the following extension L' is associated with P': 
+L'k(s) = s, L~(s) = max(Lj(rk), Lj(t;)), for all j # k, 
+where t~ is the entry state of-x,~. (Note that L~(s) is well det'med because (4) 
+is satisfied.) 
+Condition (i) of Definition 4.3 is the basis of the inductive definition. It defines the 
+initial protocol, where each process has only one state (the root o,) and there are no 
+messages. The associated function L has the same value for all the roots o,, namely, 
+the N-tuple of roots. 
+Condition (ii) says that to any state t, of a constructible tree protocol P we can 
+append the transmission -x of a new message x and again obtain a constructible tree 
+protocol. In order that the result of the addition is a tree again, we have to create a 
+new state s for the entry state of -x. The function L' will have the same value on s 
+as on t,, because by sending a message x we have learned nothing new about the 
+other processes. For process i itself we know that after sending x it is in state s. 
+Therefore L,(s) = s. 
+Condition (iii) describes the expansion of a constructible tree protocol by the 
+addition of a reception (rk, +x,k ~. As in (ii), we have to create a new state s as the 
+entry state of +x,k. In order that the new reception is executable, +xik can be attached 
+only where the conditions (3)-(5) are satisfied. The extension of L to s expresses that 
+after a reception new information about the other processes can be gained. When 
+process k receives x~h, then the transmitting process i must have reached state t~'. And 
+for that to happen, any process j must have reached Lj(t;). However, it is possible 
+that r~ has more information about a process j than t; has; therefore we take the 
+maximum of the two. 
+Definition 4.3 allows many ways of obtaining the same constructible tree protocol. 
+It is conceivable that different ways might lead to different associated functions. The 
+next Lemma 4.1 states that this is not so, and therefore from now on L will always 
+be the function associated with a constructible tree protocol. Proofs for the following 
+lemma and theorem are outlined in Appendix A and carried out in [9]. 
+LV.MMA 4.1. If L and L' are two functions associated with a constructible tree 
+protocol, then L = L'. 
+THEOm~M 4.1. A tree protocol is constructible ff each of its specified receptions is 
+executable. 
+COROLLARY 4.1. A tree protocol is well formed iff it is constructible and all 
+constructible receptions are specified. 
+Theorem 4.1 says that (3)-(5) are necessary and sufficient conditions for receptions 
+to be executable. Corollary 4.1 implies that well-formed tree protocols can be 
+constructed by applying Definition 4.3, where step (iii) is used to specify all the 
+receptions allowed by conditions (3)-(5). 
+Such a construction can be made more efficiently than suggested by Det'mition 
+4.3. In the rest of this section we outline an algorithm for finding all the receptions 
+that must be specified as a result of a transmission. This is followed by an algorithm 
+for finding all the stable N-tuples. The correctness of the algorithms is established 
+in [91 . 
+Assume a well-formed tree protocol that has been expanded by adding the 
+transmission succ(tl, -x) = t~ (see Figure 7). We will identify all the new receptions 
+
+
+--- Page 14 ---
+336 
+PROCESS 1 D. BRAND AND P. ZAFIROPULO 
+PROCESS 2 
+l i t 
+\\ 
+t t x k 
+Z_ ........ A L ........ 
+FIGURE 7 
+that must be specified in order that the resulting tree protocol is again well formed. 
+Part of the construction is also the calculation of the function L for newly introduced 
+states. The algorithm is described for the case of the new message x being sent from 
+process 1 to process 2; the general case is obtained by renumbering the processes. 
+The first step of the algorithm, called propagation along negative arcs, copies the 
+positive subtree of 6 below t~. That is, for every s1 -- succ(6, + }1) for some sequence 
+Y, a new state s~ = succ(t~, + Y) is generated: 
+Lx(s'~) = s'~ and L,(s' 0 = Lj(Sl) for all j # 1. 
+The second step finds all the executable receptions of x in process 2 by testing 
+conditions (3)-(5). (This can be done relatively efficiently by taking advantage of the 
+tree structure.) 
+The last step is called propagation along positive arcs. It is done for every state of 
+process 2 bottom up; that is, it is applied to a state r2 only after it is applied to the 
+whole subtree of r2. If there are z, q, q' so that succ(r2, +z) = q, succ(r2, +x) = q', 
+and succ(q, +x) = u, then we create a new state u' ~= succ(q', +z) and copy the 
+subtree of u below u'. (Note that the subtree of u contains only receptions, for the 
+subtree was created in previous iterations of this step, which generates only recep- 
+tions.) The copying is done as in the propagation along negative arcs: a new state 
+s~ -- succ(u', + W) is created for every s2 -- succ(u, + W): 
+L~(s'2) = s[ and Lj(s'2) = Lj(s2) for all j # 2. 
+At the same time as all the new receptions are being added we can also identify all 
+the new stable N-tuples. Assume a list of all the stable N-tuples in the original 
+protocol before the addition of -x. We will expand the list by all the new stable 
+N-tuples in the new protocol. 
+During the second step (finding all the receptions of x) identify all the stable 
+N-tuples (Sl, q, s3 ..... sN), where Sl = succ(6, +Y) for some sequence Y and 
+succ(q, +x) -- u. Add (S'l, u, s3 ..... SN) to the list of stable N-tuples, where 
+sl = succ(tl, + Y). 
+During the third step (propagation along positive arcs) identify all the stable 
+N-tuples <sl, s2, s~, ..., SN), where sl = succ(t~, +Y) for some sequence Y and 
+s2 = succ(u, +W) for some sequence W. Add <s~, s~, s3, ..., sN) to the list of stable 
+N-tuples, where s~ = succ(u', +W). 
+
+
+--- Page 15 ---
+Communicating Finite-State Machines 337 
+4.2 7I'EgMI~ATION. In this section we assume a solution to problem (2) for tree 
+protocols and therefore are dealing with well-formed tree protocols only. In contrast 
+to the previous section we assume the existence of a general protocol, for which 
+problem (2) is supposed to be solved. As explained at the beginning of Section 4, the 
+solution is obtained by expanding a tree protocol looking for missing receptions and 
+stable N-tuples. The purpose of this section is to determine when to stop this 
+expansion. Appendix B outlines proofs of validity, namely, that stopping the expan- 
+sion of the trees will not cause any receptions or stable N-tuples in the general 
+protocol to be missed. This appendix also outlines proofs of termination, namely, for 
+what classes of general protocols the method guarantees that the tree expansion be 
+stopped (and hence for what classes it solves problem (2)). 
+More specifically, this section assumes a given well-formed tree protocol and a 
+given equivalence relation - on states and messages of that tree protocol. This 
+equivalence relation represents all the information we need about the general 
+protocol: Two states of the tree protocol are equivalent if they respect the same state 
+of the general protocol, and similarly for equivalent messages. Therefore, we assume 
+that ~ relates states from the same process St and messages from the same set M,j. 
+Moreover, ~ is a congruence relation with respect to succ: 
+If s ~ s' and x ~ x', then succ(s, x) ~ succ(s', x') whenever both sides are defined. 
+In Figure 4, naming is used to indicate the equivalence; two states or messages are 
+equivalent if they have the same name except for the number following the period. 
+For example, READY.0, READY. 1, READY.2 are equivalent (and no other states 
+belong to this equivalence class). 
+This section gives a partial solution to the problem of deciding whether further 
+expansion of the tree protocol can uncover new properties of the general graph--a 
+new reception or stable N-tuple. It operates by marking states; we call such a marked 
+state, as well as all states in its subtree, dead. The criteria for marking a state 
+guarantee that the subtree of a dead state cannot contribute any new information to 
+the given general graph. Thus the expansion of the tree protocol terminates when 
+new transmissions can be appended below dead states only. 
+For example, suppose that in Figure 4 our criteria allow states READY.I, 
+READY.2, IDLE. 1, and IDLE.2 to be marked dead (as is actually the case). Then 
+we do not need to generate the transmissions REQ.I, REQ.2, ALARM.l, and 
+ALARM.2. Thus the tree construction can stop after building three levels only, and 
+state WAIT.2 as well as all the other states on the fourth level are not needed. 
+There are two criteria under which a state can be marked dead, yielding two types 
+of dead states--types 0 and 1. The criterion for type 0 is analogous to the termination 
+mechanism of the perturbation method [25]. That method generates reachable global 
+states; a newly generated global state can be ignored if it is equal to a previously 
+generated global state. Our criterion for marking a state s dead of type 0 considers 
+only that global state containing s which is reached in the least number of steps. 
+These steps do not have to be carried out, because this minimum global state is given 
+by (L(s), C), where C --- Channels(L(s)) (see Definition 4.4). The state s can be 
+marked dead if this minimal global state is equivalent to the minimal global state for 
+some previous state s'. 
+Definition 4.4. For an N-tuple S in a tree protocol we define Channels(S), 
+provided there exists a reachable global state (S, C). In that case Channels(S) -- C. 
+Note that it is a proper definition; given S, there is at most one C so that the global 
+state (S, C) is reachable. For if s, and sj are in S, then the channel from i toj consists 
+
+
+--- Page 16 ---
+338 D. BRAND AND P. ZAFIROPULO 
+of all the messages on the branch to s, that have been sent to process j but not 
+received on the branch to s~. Thus, calculating Channels(S) is a purely syntactic 
+process, which does not involve searching for a reachable global state (S, C). The 
+condition under which Channels(S) are defined can also be stated without reference 
+to execution (Appendix A). For the method, it is necessary to determine Channels 
+only for Notuples of the form L(s), and Lemma B7 guarantees that Channels(L(s)) 
+are always defined. 
+Definition 4.5. We say that a state s' is aprecursor of a state s, provided 
+(i) s" < s, 
+(ii) L(s') ~ L(s), and 
+(iii) Channels(L(s')) ~ Channels(L(s)). 
+As an example we show why in Figure 4 READY.0 is a precursor of READY. 1: 
+L(READY.0) = (READY.0, IDLE.0), 
+Channels(L(READY.0)) ffi (E, ~, e, E), 
+L(READY. 1) = (READY. I, IDLE. 1 ), 
+Channels(L(READY.1)) -- (~, e, E, ¢). 
+Hence all three conditions for being a precursor are satisfied. 
+Having a precursor is the condition for a state s to be marked dead of type 0. The 
+criterion for a state s to be marked dead of type 1 is motivated by the following 
+natural expectation: If all receptions of a message can be ignored (because they are 
+below dead states), then the transmission can be ignored, too. This condition is not 
+valid for protocols with more than two processes, but a stronger condition expressed 
+in Definition 4.6 is valid. 
+According to this stronger condition~ the subtree of a state t, can be ignored if tl 
+"can send" to dead states only, that is, if any message sent from t, can be received at 
+dead states only. The relation "can send" is obtained from Definition 4.2 of a 
+constructible reception by substituting the condition (6) for (4). Condition (6) is 
+implied by (4) and differs from (4) only forj -- i, ((6) refers to t, rather than t~). It 
+does not require that the knowledge of state rk be consistent with the transmission of 
+any specific message. Thus it allows the possibility that rk will be consistent with any 
+message sent form t,. This could be a message only later introduced into the protocol. 
+Definiaon 4.6. A state t, can send to a state rk provided the three conditions (3), 
+(5), and 
+L,(t,) ~ L,(rk) for all j # k. (6) 
+Definition 4.7. A tree protocol is well marked iff it is a well-formed tree protocol 
+with two distinguished subsets of all the states--states marked dead of type 0 and 
+states marked dead of type 1--satisfying the three conditions below. If s >_ s' for 
+some s' marked dead of type n, then we will call s dead of type n. 
+(i) If s and t are two marked states, then it is not the case that s ~. t. 
+(ii) If s is marked dead of type 0, then s has a precursor. 
+(iii) If t is marked dead of type 1 And t can send to r, then r must be dead of type 0. 
+Please note the difference between a state s' marked dead and a state s dead just 
+by virtue of being in the subtree of s'. Note that condition (i) guarantees that there 
+is just one type associated with every dead state. 
+For example, ha the protocol in Figure 4 we can mark states READY.I and 
+IDLE.2 as dead of type 0 because they have precursors READY.0 and IDLE.0, 
+
+
+--- Page 17 ---
+Communicating Finite-State Machines 339 
+respectively. This also makes states WAIT.2, REGISTER.I, SERVICE.2, and 
+FAULT.2 dead of type 0. State IDLE.1 can send to state REA_DY.I and WAIT.2 
+only, both of which are dead of type 0, so IDLE.1 can be marked dead of type 1. 
+Similarly, READY.2 can be marked dead of type 1. If all this marking is done, then 
+the states READY.l, WAIT.2, REGISTER.l, IDLE.2, SERVICE.2, FAULT.2 are 
+dead of type 0, and the states READY.2, WAIT.3, REGISTER.2, IDLE.I, SER- 
+VICE.I, FAULT.3 are dead of type 1. But only states READY.I and IDLE.2 are 
+marked dead of type 0, and only states READY.2 and IDLE.1 are marked dead of 
+type 1. 
+Appendix B shows that this approach guarantees tree-growth termination for 
+protocols with all channels bounded, even if we restrict ourselves to type-0 dead 
+states. If we allow dead states of type 1, then we can terminate the growth of some 
+protocols with unbounded channels; in particular, we prove that termination is 
+guaranteed for protocols with only two processes and one channel unbounded. 
+For an implementation the following consideration must be taken into account. A 
+state dead of type 0 can remain dead even when new transmissions are introduced 
+into the protocol. This is not necessarily the case for a state t dead of type 1. A new 
+transmission may cause new states to be created to which t can send. If one of such 
+new states is not dead of type 0, then t must be "revived." Therefore states dead of 
+type 1 should be used only in a fmal check on a completed protocol. 
+5. Conclusions 
+The purpose of this paper was to investigate a model of communications protocols 
+from the point of view of certain properties (executable receptions and stable N- 
+tuples). As we documented in the introduction, this model and the properties 
+considered provide useful information for protocol designers--first, the class of errors 
+prevented often have a crippling effect in an implementation; and second, experience 
+has shown that designers are prone to making errors of this class. 
+After showing that the properties of interest are undecidable in general, we 
+concentrated on one approach to establishing those properties for some classes of 
+protocols. This approach has its goal in considering the execution of each process 
+separately, as compared with considering executions of the global system of all the 
+processes. 
+The whole problem was divided into two subproblems--first, growing of trees in 
+the search for all executable receptions and stable N-tuples, and second, determining 
+when the tree growth can be stopped. We feel that the first problem was solved 
+successfully. We found necessary and sufficient conditions characterizing all execut- 
+able receptions. In contrast, terminating the tree growth is much more difficult. First 
+of all, it is undecidable when we can stop growing the trees. Therefore, we have to 
+expect only partial solutions. We described a procedure that is guaranteed to 
+terminate the tree growth if all channel capacities are finite (without any restriction 
+on the number of processes). Termination of tree growth is also guaranteed if there 
+are only two processes and one channel in unbounded. This is as far as we can relax 
+the need for bounding the channels and keep the problem solvable. 
+The limitations of the approach lie in the termination. Since a complete solution 
+cannot be expected, the user must be able to specify a parameter limiting the search 
+for a solution. Such a limiting parameter should be natural to the user, easy to guess 
+for common protocols, and easy to incorporate into a termination procedure. This 
+area requires more research. 
+
+
+--- Page 18 ---
+340 D. BRAND AND P. ZAFIROPULO 
+Appendix A. Proof Outlines for Section 4.1 
+(For details of these proofs see [9, App. B].) 
+Lemma 4.1 is proved by induction on the construction of the protocol essentially 
+following Definition 4.3. However, one tree protocol may be constructed following 
+Definition 4.3 in many different ways. Therefore we order all the states of a 
+constructible tree protocol by a relation << and its transitive closure <<+. Intuitively, 
+"t <<+ s" means that the state t must be constructed before s can be constructed, or 
+in other words, in any execution t must be reached before s can be reached. The 
+ordering <<+ is well founded; thus Lemma 4.1 can be proved by induction on <<+. 
+Theorem 4.1 has to be proved in two directions. 
+(1) First we assume a tree protocol with all specified receptions executable and 
+prove that P is constructible. Imagine generating all the reachable global states of P: 
+start with the initial global state with empty channels, and proceed by sending and 
+receiving messages in all possible combinations according to Definition 2.3. In 
+parallel we can construct the protocol P: obtaining a new global state by a transmis- 
+sion (or reception) corresponds to adding a transmission (or reception) arc to the 
+protocol. Note that it is necessary to prove that any such added reception arc is 
+constructible. This process will result in constructing the whole protocol, because 
+every reception in P is executable and thus will be exercised during generation of all 
+the reachable global states. 
+(2) We assume a constructible tree protocol P and show that any specified 
+reception +x must be executable. Let s -- succ(t, +x); to show that x is executable, 
+it is enough to show that there is reachable global state containing s. The global state 
+(L(s), Channels(L(s)) contains s and is reachable because it satisfies the following 
+necessary and sufficient condition for reachability: 
+(S, Channels(S)) is reachable iff for all i,j, L,(s:) <_ s,. 
+Appendix B. Proof Outlines for Section 4.2 
+(For details of these proofs see [9, App. D].) 
+We have to prove (1) validity and (2) termination. 
+(1) For validity assume that P is a tree protocol obtained by tracing all possible 
+executions of a general protocol. This determines the equivalence relation -. Assume 
+that P has been expanded very far, even far beyond the point where our criteria 
+would allow the expansion to be stopped. Let P" be the subprotocol of P obtained 
+if the expansion had been stopped as soon as our criteria allowed that. We have to 
+prove two properties. 
+(a) By restricting ourselves to P" we will not miss any receptions. That means that 
+whenever succ(r, +y) is defined in P, then in P" there exist r" - randy" - y so 
+that succ(r", +y ") is defined. 
+(b) By restricting ourselves to P" we will not miss any stable N-tuples. That is, 
+whenever P has a stable N-tuple S, then P" has a stable N-tuple S" ~ S. 
+The proof is based on a number of lemmas, which are generally proved by 
+induction on the tree structure. Some examples follow. 
+COROLLARY D. 1. Every state dead of type 0 has a precursor (not just states marked 
+dead of type 0). 
+
+
+--- Page 19 ---
+Communicating Finite-State Machines 341 
+LEMMA D.2. If a state s has a precursor s' and Q is a reachable global state with 
+Q >_ L(s), then there exists an equivalent reachable global state Q' ~_ L(s'). Moreover, 
+the paths from L(s') to Q' are equivalent to the paths from L(s) to Q. 
+COROLLARY D.2. Every state outside P" either has a precursor or is dead of 
+type 1. 
+LEMMA D.11. If a state t dead of type 1 can send to a state r, then r has a precursor. 
+Part (a) is proved by induction on the tree structure. The induction step has to 
+show that there are r' ~ r and y' ~ y with succ(r', +y') defined and with r' being 
+closer to the root than r. Let t be the state from which the messagey is being sent. Let 
+us restrict ourselves to the interesting situation when t is outside P". 
+If t happens to have a precursor, then we can apply Lemma D.2 to the global state 
+reached just before y is received at r; Lemma D.2 gives us an equivalent global state 
+closer to the roots. If t does not have a precursor, then by Corollary D.2 t is dead of 
+type 1. By Lemma D.11, r has a precursor. Therefore we can apply Lemma D.2 
+again. 
+The proof of (b) uses Corollary D.2 and Lemma D. 11 to show that at least one 
+state of S must have a precursor. Then Lemma D.2 can be applied to S to get an 
+equivalent stable N-tuple closet to the roots. 
+(2) For termination assume a general protocol expanded into an infinite tree 
+protocol. We have to show that our criteria for termination allow us to ignore all but 
+a finite portion of that infinite tree protocol. For that it is enough to show that every 
+infinite branch will have a state with a precursor. Consider (L(s), Channels(L(s))) for 
+every state s along an infinite branch. If all channels are bounded, then there are 
+only a finite number of nonequivalent global states (L(s), _Channels(L(s))). And 
+therefore one of the states along the infinite branch will have to have a precursor. 
+The assumption i~h~at all channels are bounded can be relaxed in the case of two 
+processes only; in this case it is enough when just one channels is bounded, because 
+every infinite branch in the protocol sending over the finite channel will have a state 
+with a precursor (i.e., a state dead of type 0), and every infinite branch of the other 
+protocol must have a state that can send to states dead of type 0 only (i.e., a state 
+dead of type 1). 
+ACKNOWLEDGMENTS. We are grateful to D.D. Cowan, R. Hauser, H. Rudin, M. 
+Sherman, and C.H. West for valuable discussions and careful reading of the manu- 
+script. 
+REFERENCES 
+1 BARTLETT, K A., SCANTLEBURY, R A, AND WILKINSON, P T A note on refiable full-duplex trans- 
+mission over haft-duplex links Commun, ACM 12, 5 (May 1969), 260-261. 
+2. BOCHMANN, G V Commumcatlon protocols and error recovery procedures, ACM Oper. Syst Rev. 
+9, 3 (July 1975), pp 45-50 
+3. BOCHMANN G V Finite state description of communicauons protocols. Proc. Computer Network 
+Protocols Symp., Liege, Belgium, Feb. 1978, pp F3-I-F3-11 
+4. BOCHMANN, G.V, AND GESCEI, J. A unified method for specification and ver~¢ation of protocols. 
+Proc IFIP 77, AFIPS Press, Arhngton, Va, 1977, pp 229-234 
+5 BOCHMANN, G.V, AND MERLIN, P. On the construction of communication protocols. Proc. Int. 
+Conf on Computer Commumcatlons, Oct 1980, pp 371-378 
+6. BOCHMANN, G.V., AND SUNSHINE, C. Use of formal methods in communication protocol design. 
+IEEE Trans. Commun COM-28, 4 (Apr. 1980), 624-631 
+
+
+--- Page 20 ---
+342 D. BRAND AND P. ZAFIROPULO 
+7. BRAND, D., AND JOYNER, W.H, JR. Verification of protocols using symbolic execution. Comput. 
+Networks 2, 4/5 (Sept./Oct. 1978), 351-360. 
+8. BRAND, D., AND ZAFIROPULO, P. Synthesis of protocols for an unlimited number of processes. In 
+Proc. of Trends and Applicatwns 1980: Computer Network Protocols, National Bureau of Standards, 
+Gaithersburg, Md., May 1980, pp. 29--40. 
+9. BRAND, D., AND ZAFIROPULO, P. On communicatmg fimte-state machines. Tech Pep. RZ 1053, 
+IBM Zurich Research Lab., Riischlikon, Switzerland, Jan. 1981. 
+10. CCITT. Recommendation X 21 (revised), AP VI, No. 55-E, Geneve, Switzerland, 1976. 
+11 DANTHINE, A, ED Proc Computer Network Protocols Symp, Liege, Belgium, 1978; see also special 
+issue on computer network protocols, Comput Networks 2, 4/5 (Sept/Oct. 1978) 
+12 DEVY, i., AND DIAZ, M Multilevel specification and validation of the control in communication 
+systems. Conf. on Distributed Comput. Syst, Oct 1979, pp. 43-50 
+13. GOUDA, M.G, AND MANNING, E.G On the modehng, analysts and design of protocols--A special 
+class of software structures Proc. 2nd Int Conf on Software Engineenng, San Francisco, Calif, Oct. 
+1976, pp. 256-262 
+14 HAILPERN, B., AND OWICKI, S. Venfymg network protocols using temporal logic. In Proc Trends 
+and Applicatwns 198ff Computer Network Protocols, National Bureau of Standards, Galthersburg, 
+Md., May 1980, pp 18-28. 
+15. HAJEK, J Automatically verified data transfer protocols Proc Int Conf on Computer Communi- 
+cations, Kyoto, Japan, Sept 1978, pp. 749-756 
+16. KARP, R M, AND MILLER, R E Parallel program schemata: A mathemaucal model for parallel 
+computation Conf Rec 8th Ann. IEEE Symp on Sw:tchmg and Automata Theory (Oct 1967), IEEE, 
+New York, pp 55-61. 
+17. MERLIN, P.M. A methodology for the design and implementation of communication protocols 
+IEEE Trans Commun. COM-24, 6 (June 1976), 614-621. 
+18. MERLIN, P.M. Specification and vahdatton of protocols. IEEE Trans Commun. COM-27, 11 (Nov 
+1979), 1671-1680 
+19. PETERSON, J L Petrl nets Comput. Surv. 9, 3 (Sept. 1977), 223-251 
+20 RODIN, H, WEST, C H., A~D ZArlROPULO, P Automated protocol validation. One chain of devel- 
+opment Proc Computer Network Protocols Conf., Liege, Belgium, Feb 1978, pp F4-l-F4-6 
+21. SCaIILTZ, G D., ROSE, D B., WEST, C H, AND GRAY, J.P. Executable descnpuon and validation of 
+SNA. IEEE Trans. Commun COM-28, 4 (Apr. 1980), 661-667. 
+22 STENNING, N V. A data transfer protocol Comput Networks 1, 2 (Sept 1976), 99-110 
+23. SUNSHINE, C.A Commumcat:on Protocol Modehng. Artech House, Dedham, Mass, 1981 
+24 SYMONS, F J.W Representation, analysts and verification of commumcatton protocols. Rep. No 
+7380, Telecom Australia Research Labs, November 1980, 
+25. WEST, C H. General techmque for communications protocol vahdanon IBM J. Res. Devel. 22, 4 
+(July 1978), 393--404. 
+26. WEST, C H, AND ZAEmOPULO, P Automated vahdation of a communications protocol. The CCITT 
+X 21 recommendation IBM J Res Devel 22, 1 (Jan. 1978), 60-71 
+27, YOELI, M., AND BARZILAI, Z. Behavioral description of commumcatlon switching systems using 
+extended Petn nets. Digital Processes 3 (1977), 307-320. 
+28 ZAFIROPULO, P. Protocol vahdation by duologue-matrix analysts IEEE Trans Commun COM-26, 
+8 (Aug 1978), 1187-1194 
+29 ZAFIROPULO, P, WEST, C H, RUDIN, H, COWAN, D.D, AND BRAND, D. Towards analyzing and 
+synthesizing protocols IEEE Trans Commun COM-28, 4 (ApT 1980), 651-661 
+RECEIVED JANUARY 1981; REVISED APRIL 1981, ACCEPTED NOVEMBER 1981 
+Journal of the Association for Computing Machmery, Vol 30, No 2, Apnl 1983 
+

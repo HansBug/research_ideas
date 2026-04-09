@@ -1,0 +1,489 @@
+--- Page 1 ---
+This is page /1Prin ter/: Opaque thisMona/: Monadic Second/-OrderLogic in PracticeJesp er G/. Henriksen
+/Jak ob Jensen
+/Mic hael J/ørgensen
+/Nils Klarlund
+yRob ert P aige
+zTheis Rauhe
+/Anders Sandholm
+/ABSTRA CT
+/1The purp ose of this article is to in tro duce Monadic Second/-order Logic as a practical means of sp ecifying regularit y /. The logic is ahighly succinct alternativ e to the use of regular expressions/. W e ha v e built ato ol MONA /, whic h acts as a decision pro cedure and as a translator to /nite/-state automata/. The to ol is based on new algorithms for minimizing /nite/-state automata that use binary decision diagrams /(BDDs/) to represen ttransition functions in compressed form/. A b ypro duct of this w ork is analgorithm that matc hes the time but impro v es the space of Sieling andW egener/'s algorithm to reduce OBDDs in linear time/.The p oten tial applicatio ns are n umerous/. W e discuss text pro cessing/, Bo ole/-an circuits/, and distributed systems/. Our main example is an automaticpro of of prop erties for the /Dining Philosophers with Encyclop edia / ex/-ample b y Kurshan and MacMillan/. W e establish these prop erties for theparameterized case without the use of induction/.Our results sho w that/, con trary to common b eliefs/, high computationalcomplexit y ma y b e a desired feature of a sp eci/cation formalism/./BRICS/, Cen tre of the Danish National Researc h F oundation for Basic Researc h inComputer Science/, Departmen t of Computer Science/, Univ ersit y of Aarh us/.yThe corresp ond ing author is Nils Klarlund/, who is with BRICS/, Departmen t ofComputer Science/, Univ ersit y of Aarh us/, Ny Munk egade/, DK/-/8/0/0/0 Aarh us C/. E/-mail/:klarlund/@daimi /.aau /.d k/.zDepartmen t of Computer Science/, CIMS/, New Y ork Univ ersit y /, /2/5/1 Mercer St/. NewY ork/, New Y ork/, USA/; researc h partially supp orted b y ONR gran t N/0/0/0/1/4/-/9/3/-/1/-/0/9 /2/4/,AF OSR gran t AF OSR/-/9/1/-/0/3/0/8/, and NSF gran t MIP/-/9/3/0/0/2/1/0/./1This article is a hea vily revised v ersion of /[JJK/9/4/]/.
+
+--- Page 2 ---
+/2 Henriksen et al/./1 In tro ductionIn computer science/, r e gularity amoun ts to the concept that a class ofstructures is recognized b y a /nite/-state device/. Often phenomena are socomplicated that their regularit y either/ ma y b e o v erlo ok ed/, as in the case of parameterized v eri/cation of dis/-tributed /nite/-state systems with a regular comm unication top ology/;or/ ma y not b e exploited/, as in the case when a searc h pattern in a texteditor is kno wn to b e regular/, but in practice inexpressible as a regularexpression/.In this pap er w e argue that the Monadic Se c ond/-Or der L o gic or M/2L canhelp in practice to iden tify and to use regularit y /. In M/2L/, one can directlymen tion p ositions and subsets of p ositions in the string/. This feature dis/-tinguishes the logic from regular expressions or automata/. T ogether withquan ti/cation and Bo olean connectiv es/, an extraordinary succinct formal/-ism arises/.Although it has b een kno wn for thirt y/-/v e y ears that M/2L de/nes regularlanguages /(see /[Tho/9/0 /]/)/, the translator from form ulas to automata that w edescrib e in this article app ears to b e one of the /rst implem en tations/.The reason suc h pro jects ha v e not b een pursued ma y b e the staggeringtheoretical lo w er/-b ound/: an y decision pro cedure is b ound to sometimes re/-quire as m uc h time as a stac k of exp onen tials that has heigh t prop ortionalto the length of the form ula/.It is often b eliev ed that the lo w er the computational complexit y of aformalism is/, the more useful it ma y b e in practice/. W e w an t to coun tersuc h b eliefs in this article / at least for logics on /nite strings/./1/./1 Why use lo gic/?Some simple /nite/-state languages easily describ ed in English call for con/-v oluted regular expressions/. F or example/, the language L/2 a /2 b
+of all stringso v er / /= f a/; b/; c g con taining at least t w o o ccurrences of a and at least t w oo ccurrences of b seems to require a v oluminous expression/, suc h as/
+/a /
+/a /
+/b /
+/b /
+//[ /
+/a /
+/b /
+/a /
+/b /
+//[ /
+/a /
+/b /
+/b /
+/a /
+//[ /
+/b /
+/b /
+/a /
+/a /
+//[ /
+/b /
+/a /
+/b /
+/a /
+//[ /
+/b /
+/a /
+/a /
+/b /
+//:If w e added /\ to the op erators for forming regular expressions/, then the lan/-guage L/2 a /2 b
+could b e expressed more concisely as /(/
+/a /
+/a /
+//) /\ /(/
+/b /
+/b /
+//) /.
+
+--- Page 3 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /3Ev en with this extended set of op erators/, it is often more con v enien t to ex/-press regular languages in terms of p ositions and corresp onding letters/. F orexample/, to express the set La after b
+of strings in whic h ev ery b is follo w edb y an a /, w e w ould lik e a formal language allo wing us to write somethinglik e/for ev ery p osition p /, if there is a b in p then for some p ositionq after p /, there is an a in q /./The extended regular languages do not seem to allo w an expression thatv ery closely re/ects this description / although up on some re/ection asmall regular expression can b e found/. But in M/2L w e can express La after bb y a form ula/8 p /:
+/0b
+/0/( p /) /) /9 q /: p /< q /^
+/0a
+/0/( q /)/(Here the predicate
+/0b
+/0/( p /) means /there is a b in p osition p //./) In general/, w eb eliev e that man y errors can b e a v oided if logic is used when the descriptionin English do es not lend itself to a direct translation in to regular expressionsor automata/. Ho w ev er/, the logic can easily b e com bined with other metho dsof sp ecifying regularit y since almost an y suc h formalism can b e translatedwith only a linear blo w/-up in to M/2L/.Often regularit y is iden ti/ed b y means of pr oje ctions /. F or example/, ifLtr ans
+is regular on a cross/-pro duct alphab et / / / /(e/.g/. describing a pa/-rameterized transition relation/, see Section /5/) and Lstar t
+is a regular lan/-guage on / describing a set of start strings/, then the set of strings that canb e reac hed b y a transition from a start string is //2
+/( Ltr ans
+/\ /
+/? /1/1
+/( Lstar t
+/)/) /,where //1
+and //2
+are the pro jections from /(/ / //)
+/to the /rst and sec/-ond comp onen t/. Suc h language/-theoretic op erations can b e v ery elegan tlyexpressed in M/2L/./1/./2 Our r esultsIn this article/, w e discuss applications of M/2L to text pro cessesing and thedescription of parameterized Bo olean circuits/. Our principal applicationis a new pro of tec hnique for establishing prop erties ab out parameterized/,distributed /nite/-state systems with regular comm unicatio n top ology /. W eillustrate our metho d b y sho wing safet y and liv eness prop erties for a non/-trivial v ersion of the Dining Philosophers/' problem as prop osed in /[KM/8/9/]b y Kurshan and MacMillan/.W e presen t MONA /, whic h is our to ol that translates form ulas in M/2Lto /nite/-state mac hines/. W e sho w ho w BDDs can b e used to o v ercomean otherwise inheren t problem of exp onen tial explosion/. Our minim izatio nalgorithm w orks v ery fast in practice thanks to a simple generalization ofthe unary apply op eration of BDDs/.
+
+--- Page 4 ---
+/4 Henriksen et al/./1/./3 Comp arisons to other workP arameterized circuits are describ ed using BDDs in /[GF/9/3 /]/. This metho drelies on form ulating inductiv e steps as /nite/-state devices and do es notpro vide a single sp eci/cation language/. The w ork in /[RS/9/3 /] is closer inspirit to our metho d in that languages of /nite strings are used althoughnot as part of a logical framew ork/. In /[BSV/9/3/]/, another approac h is giv enbased on iterating abstractions/. The parameterized Dining Philosopher/'sproblem is solv ed in /[KM/8/9 /] b y a /nite/-state induction principle/.A to ol for M/2L on /nite/, binary trees has b een dev elop ed at the Uni/-v ersit y of Kiel /[Ste/9/3/]/. Apparen tly /, this to ol has only b een used for v erysimple examples/.In /[CR/9/4 /]/, a programming language for /nite domains based on a /xedp oin t logic is describ ed and used for v eri/cation of non/-parameterized /nitesystems/./1/./4 ContentsIn Section /2/, w e explain the syn tax and seman tics of M/2L on strings/. W erecall the corresp ondence to automata theory in Section /3/. W e giv e sev eralapplications of M/2L and the to ol in Section /4/: text patterns/, parameterizedcircuits/, and equiv alence testing/. Our main example of parameterized v eri//-cation is discussed in Section /5/. W e giv e an o v erview of our implemen tatio nin Section /6/./2 The Monadic Second/-order Logic on StringsLet / b e an alphab et and let w b e a string o v er / /. The seman tics of thelogic determines whether a closed M/2L form ula / holds on w /. The languageL /( / /) denoted b y / is the set of strings that mak e / hold/. Assume no w thatw has length n and consists of letters a/0
+a/1
+/:/:/:an /? /1
+/. The p ositions in w arethen /0/,/./././, n /? /1 /. W e can no w describ e the three syn tactic categories of M/2Lon strings/.A p osition term t is either/ the constan t /0 /(whic h denotes the p osition /0 /)/;/ the constan t /$ /(whic h denotes the last p osition/, i/.e/. n /? /1 /)/;/ a p osition v ariable p /(whic h denotes a p osition i /)/;/ of the form t / i /(whic h denotes the p osition j /+ i mo d n /, where j isthe in terpretation of t /)/; or/ of the form t /	 i /(whic h denotes the p osition j /? i mo d n /, where j isthe in terpretation of t /)/;
+
+--- Page 5 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /5/(P osition terms are only in terpreted for non/-empt y strings/)/.A p osition set term T is either/ the constan t /; /(whic h denotes the empt y set/)/;/ the constan t all /(whic h denotes the set f /0 /; /:/:/:/; n /? /1 g /)/;/ a p osition set v ariable P /(whic h denotes a subset of p ositions/)/;/ of the form T/1
+/[ T/2
+/, T/1
+/\ T/2
+/, or /{ T/1
+/(whic h are in terpreted in thenatural w a y/)/;/ of the form T /+ i /(whic h denotes the set of p ositions in T shifted righ tb y an amoun t of i /)/; or/ of the form T /? i /(whic h denotes the set of p ositions in T shifted leftb y an amoun t of i /)/;A formula / is either of the form/
+/0a
+/0/( t /) /(whic h holds if letter ai
+in w /= a/0
+a/1
+/ / / is a /, where i is thein terpretation of t /)/;/ t/1
+/= t/2
+/, t/1
+/< t/2
+or t/1
+/ t/2
+/(whic h are in terpreted in the natural w a y/)/;/ T/1
+/= T/2
+/, T/1
+/ T/2
+/, or t /2 T /(whic h are in terpreted in the natural w a y/)/;/ /: //1
+/, //1
+/^ //2
+/, //1
+/_ //2
+/, //1
+/) //2
+/, or //1
+/, //2
+/(where //1
+and //2
+areform ulas/, and whic h are in terpreted in the natural w a y/)/;/ /9 p /: / /(whic h is true/, if there is a p osition i suc h that / holds wheni is substituted for p /)/;/ /8 p /: / /(whic h is true/, if for all p ositions i /, / holds when i is substitutedfor p /)/;/ /9 P /: / /(whic h is true/, if there is a subset of p ositions I suc h that /holds when I is substituted for P /)/; or/ /8 P /: / /(whic h is true/, if for all subsets of p ositions I /, / holds when Iis substituted for P /)/;/3 F rom M/2L to AutomataIn this section/, w e recall the metho d for translating a form ula in M/2L to anequiv alen t /nite/-state automaton /(see /[Tho/9/0 /] for more details/)/. Note thatan y form ula / can b e in terpreted/, giv en a string w and a value assignmentI that /xes v alues of the free v ariables/. If / then holds/, w e write w /; I j /= //:The k ey idea is that a v alue assignmen t and the string ma y b e describ ed
+
+--- Page 6 ---
+/6 Henriksen et al/.together as a w ord o v er an extended alphab et consisting of / and extrabinary trac ks/, one for eac h v ariable/. By structural induction/, w e then de/nefor eac h form ula an automaton that exactly recognizes the w ords in theextended alphab et corresp onding to pairs consisting of a string and anassignmen t that satisfy the form ula/.ExampleAssume that the free v ariables are P /= f P/1
+/; P/2
+g and that / /= f a/; b g /.Let us consider the string w /= abaa and v alue assignmen tI /= /[ P/1
+/7/! f /0 /; /2 g /; P/2
+/7/! /; /] /:The set I /( P/1
+/) /= f /0 /; /2 g can b e represen ted b y the bit pattern /1/0/1/0 /, sincethe n um b ered sequence/1 /0 /1 /0/0 /1 /2 /3de/nes that /0 is in the set /(the bit in p osition /0 is /1/)/, /1 is not in the set/(the bit in p osition /1 is /0/)/, etc/. Similarly /, the bit pattern /0/0/0/0 describ esI /( P/2
+/) /= /; /.If these patterns are laid do wn as extra /trac ks/ along w /, w e obtain anextende d wor d / /, whic h ma y b e depicted as/:a b a a/1 /0 /1 /0/0 /0 /0 /0T ec hnically /, w e de/ne / /= //0
+/ / / //3
+as the w ord /( a/; /1 /; /0/)/( b/; /0 /; /0/)/( a/; /1 /; /0/)/( a/; /0 /; /0/) o v er the alphab et / / B / B of extende d letters /, where B /= f /0 /; /1 gis the set of truth v alues/.This corresp ondence can b e generalized to an y w and an y v alue assign/-men t for a set of v ariables P /(whic h can all b e assumed to b e second/-order/)/.By structural induction on form ulas/, w e construct automata A
+//; Po v eralphab et / / B
+k/where P /= f P/1
+/; / / / /; Pk
+g is an y set of v ariables con tainingthe free v ariables in / /satisfying the fundamental c orr esp ondenc e /:w /; I j /= / i/ /( w /; I /) /2 L /( A
+//; P/)Th us A
+//; Paccepts exactly the pairs /( w /; I /) that mak e / true/.ExampleLet / b e the form ula Pi
+/= Pj
+/+ /1 /. Th us when / holds/, Pi
+is represen tedb y the same bit pattern as that of Pj
+but shifted righ t b y one p osition/.This can b e expressed b y the automaton A
+//; P/:
+
+--- Page 7 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /7
+= 0  and      = 0αiαj= 1  and      = 1αiαj
+= 0  and      = 1αiαj
+= 1  and      = 0αiαjIn this dra wing/, /
+irefers to the i th extra trac k/. Th us/, the automaton c hec ksthat the i th trac k holds the same bit as the j th trac k the instan t b efore/./4 Applications/4/./1 T ext p atternsThe language L/2 a /2 b
+of strings con taining at least t w o o ccurrences of a andt w o o ccurrences of b can b e describ ed in M/2L b y the form ula/( /9 p/1
+/; p/2
+/:
+/0a
+/0/( p/1
+/) /^
+/0a
+/0/( p/2
+/) /^ p/1
+/6/= p/2
+/) /^/( /9 p/1
+/; p/2
+/:
+/0b
+/0/( p/1
+/) /^
+/0b
+/0/( p/2
+/) /^ p/1
+/6/= p/2
+/)Our translator yields the minim al automaton/, whic h con tains nine states/,in a fraction of a second/.The language La after b
+giv en b y the form ula/8 p /:
+/0b
+/0/( p /) /) /9 q /: p /< q /^
+/0a
+/0/( q /)is translated to the minim al automaton/, whic h has t w o states/, in /./3 seconds/.A far more complicated language to express is L/< /1apart
+consisting ofev ery string o v er f a/; b g suc h that for an y pre/x the n um b er of a /'s and b /'sare at most one apart/. When using regular expressions or M/2L/, one needs tostruggle a bit/, but in M/2L there is a strategy for describing the functioningof the /nite/-state mac hine that comes to mind/.W e observ e that a p osition p ma y b e used to designate a pre/x/; forexample/, /0 denotes the pre/x consisting of the /rst letter and /$ /(the lastp osition/) denotes the whole input string/. W e ma y no w recognize a stringin L/< /1apart
+b y iden tifying three sets of p ositions/: the set P/0
+corresp ondingto pre/xes with an equal n um b er of a /'s and b /'s/, the set P/+/1
+corresp ondingto pre/xes where the n um b er of a /'s is one greater than the n um b er of b /'s/,
+
+--- Page 8 ---
+/8 Henriksen et al/.///0
+//1
+/n /? /2
+/n /? /1
+//2FIGURE /1/. A parameterized circuit/.and the set P/? /1
+corresp onding to pre/xes where the n um b er of a /'s is oneless than the n um b er of b /'s/:/9 P/0
+/; P/+/1
+/; P/? /1
+/: P/0
+/[ P/+/1
+/[ P/? /1
+/= all/^ /0 /= /2 P/0/^ /0 /2 P/+/1
+/,
+/0a
+/0/(/0/)/^ /0 /2 P/? /1
+/,
+/0b
+/0/(/0/)/^ /8 p /: /( p /> /0 /)p /2 P/0
+/, /(
+/0a
+/0/( p /) /^ p /	 /1 /2 P/? /1
+/)/_ /(
+/0b
+/0/( p /) /^ p /	 /1 /2 P/+/1
+/)/^ p /2 P/+/1
+/,
+/0a
+/0/( p /) /^ p /	 /1 /2 P/0/^ p /2 P/? /1
+/,
+/0b
+/0/( p /) /^ p /	 /1 /2 P/0
+/)The resulting four/-state automaton is calculated in a fraction of a second/./4/./2 Par ameterize d cir cuitsAssume that w e are giv en a dra wing as in Figure /1 denoting a parameterizedBo olean function/.Ho w do w e describ e the language Lex
+/ B
+/of input bit patterns thatmak e the output true/? F rom the dra wing/, no immedia te description as aregular expression or /nite/-state automaton is apparen t/. In M/2L/, ho w ev er/,it is easy to mo del the outputs of the n or/-gates as a second/-order v ariableQ /, whic h allo ws the language to b e describ ed from a direct in terpretationof the dra wing/. Note that the or/-gate at p osition p /> /0 is true if eitherthere is a /1 at p /? /1 or p /, or in other w ords/: p /2 Q /,
+/0/1
+/0/( p /	 /1/) /_
+/0/1
+/0/( p /) /.Since the output is /1 if and only if all or/-gates are /1 /, i/.e/. if Q /= all /, thelanguage Lex
+is giv en b y the form ula/9 Q /: /( /8 p /: /( p /= /0 /) p /2 Q /,
+/0/1
+/0/( p /)/) /^/( p /> /0 /) /( p /2 Q /,
+/0/1
+/0/( p /	 /1/) /_
+/0/1
+/0/( p /)/)/) /^ Q /= all /)
+
+--- Page 9 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /9The resulting automaton has three states and accepts the language /(/1 /[/1/0/)
+//, whic h is the regular expression that one w ould obtain b y reasoningab out the circuit/. F or more adv anced applications to hardw are v eri/cation/,see /[BK/9/5/]/./4/./3 Equivalenc e testingA closed form ula / is a tautolo gy if L /( / /) /= L /(/
+//) /, i/.e/. if all strings o v er /satisfy / /. The equiv alence of form ulas / and / then amoun ts to whether/ /, / is a tautology /.Example/. That a set P con tains exactly the ev en p ositions in a non/-empt yinput string ma y b e expressed in M/2L b y the follo wing t w o rather di/eren tapproac hes/: either b y the form ula even/1 /( P /) //0 /2 P /^ /8 p /: /(/( p /2 P /^ p /< /$ /) p / /1 /= /2 P /)/^ /( p /= /2 P /^ p /< /$ /) p / /1 /2 P /)/) /;or as a form ula even/2 /( P /) /P /[ /( P /+ /1/) /= all /^ P /\ /( P /+ /1/) /= /; /^ P /6/= /;T o sho w the equiv alence of the t w o form ulas/, w e c hec k the truth v alueof the bi/-implicatio n/:/8 P /: ev en /1/( P /) /, ev en /2/( P /)The translation of this form ula do es indeed pro duce an automaton accept/-ing /
+//, and th us v eri/es our claim/./5 Dining Philosophers with Encyclop ediaA distributed system is p ar ameterize d when the n um b er n of pro cesses isnot /xed a priori/. F or suc h systems the state space is un b ounded/, andth us traditional /nite/-state v eri/cation metho ds cannot b e used/. Instead/,one often /xes n to b e/, sa y t w o or three/. This yields a /nite state spaceamenable to state exploration metho ds/. Ho w ev er/, the v alidit y of a prop ert yfor n /= /2/, /3 do es not necessarily imply that the prop ert y holds for all n /.A cen tral problem in v eri/cation is automaticall y to v alidate parame/-terized systems/. One w a y to attac k the problem is to form ulate inductionprinciples suc h that the base case and the inductiv e steps can b e form u/-lated as /nite/-state problems/. Kurshan and MacMillan /[KM/8/9/] used suc ha metho d to v erify safet y and liv eness prop erties of a non/-trivial v ersion ofthe Dining Philosophers example/.In this system/, symmetry is brok en b y an encyclop edia that circulatesamong the philosophers/. Th us eac h philosopher is in one of three states/:
+
+--- Page 10 ---
+/1/0 Henriksen et al/.
+Selection hungry read eat
+State'EAT
+THINK READ EATState THINK READFIGURE /2/. Dining Philosophers with Encyclop edi aEA T/, THINK/, or READ/. The global state can b e describ ed as a stringState of length n o v er the alphab et /State
+/= f EA T /; THINK /; READ g /, seeFigure /2/.The system mak es a transition according to external ev en ts that consti/-tute a sele ction /. Eac h pro cess is presen ted with an ev en t in the alphab et/Selection
+/= f eat /; think /; read /; h ungry g /. Th us the selection can b e view ed asa string Sele ction o v er /Selection
+/, see Figure /2/. As sho wn/, all pro cesses mak ea sync hronous transition to a new global State
+/0on a selection according toa transition relation trans /( State /; State
+/0/; Sele ction /) /, whic h is sho wn in Fig/-ure /3
+/2together with an auxiliary predicateblo c king/( Sele ction /) used in its de/nition/. Th us the new state of eac h pro/-cess is dep enden t on its old state and on the selection ev en ts presen ted toitself and its neigh b ors/. The transition relation is so complicated that it ishard to grasp the functioning of the system/.F ortunately /, the parameterized transition relation can b e translated in tobasic M/2L on strings/. F or example/, w e enco de State using t w o second/-orderv ariables P and Q with the con v en tion thatEA Tp
+/( State /) / p /2 P /^ p /2 QREADp
+/( State /) / p /= /2 P /^ p /2 QTHINKp
+/( State /) / p /= /2 P /^ p /= /2 QSimilarly /, State
+/0and Sele ction can also eac h b e enco ded using t w o second/-order v ariables/. Th us/, the predicate trans /( State /; State
+/0/; Sele ction /) b ecomesa form ula with six free second/-order v ariables/.F or this distributed system there are t w o imp ortan t prop erties to v erify/:/ Safety Pr op erty /: The encyclop edia is neither lost nor replicated/. Th usthere is alw a ys exactly one pro cess in state READ/./ Liveness Pr op erty /: If no pro cess remains in state EA T forev er/, thenthe encyclop edia is passed around o v er and o v er/.In /[KM/8/9/] b oth prop erties are pro v ed in terms of a complicated induc/-tion h yp othesis/. This h yp othesis is itself a distributed system/, where eac h/2W e use /'/#/' in the b eginning of a line to indicate that this line is a commen t/.
+
+--- Page 11 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /1/1pro cess has four states/. /(The Liv eness Prop ert y in /[KM/8/9 /] is tec hnicallydi/eren t since it is mo deled in terms of selections/./)Our strategy is fundamen tally di/eren t/. W e cannot directly v erify liv e/-ness prop erties/. But w e can easily v erify prop erties ab out the transitionrelation in the parameterized case and without induction as follo ws/.Let / b e an M/2L form ula ab out the global state/. F or example/, w e migh tconsider the prop ert y that if a philosopher eats/, then his neigh b ors do not/:/m utex
+/( State /) / /8 p /: EA Tp
+/( State /) /) /: EA Tp /	 /1
+/( State /) /^ /: EA Tp / /1
+/( State /)A prop ert y giv en as a form ula / can b e v eri/ed using the invarianc eprinciple /:/8 State /; State
+/0/; Sele ction /:/ /( State /) /^ trans /( State /; State
+/0/; Sele ction /) /) / /( State
+/0/) /;whic h is also a form ula in M/2L/. In this w a y /, w e ha v e v eri/ed for the param/-eterized case that b oth /m utex
+and the Safet y Prop ert y that exactly onephilosopher reads/, i/.e/. /9 /! p /: READp
+/( State /) /, are in v arian t/. MONA v eri/essuc h a form ula in appro ximately /3 seconds on a Sparc /2/0/.Note that this metho d do es not rely on a state space exploration /(whic his imp ossible since the state space is un b ounded/)/. Instead/, it is based on theIn v ariance Principle/: to sho w that a prop ert y holds for all reac hable states/,it is su/cien t to sho w that it holds for the initial state and is preserv edunder an y transition/./5/./1 Establishing the liveness pr op ertyThe Liv eness Prop ert y can b e expressed in T emp oral Logic as/ /( READp /	 /1
+/) / READp
+/) /; /(/1/./1/)that is/, it alw a ys holds that if philosopher p /	 /1 reads/, then ev en tuallyphilosopher p reads/. W e m ust pro v e this prop ert y under the assumptionthat no philosopher eats forev er/:/ /( EA Tp
+/) / /: EA Tp
+/) /: /(/1/./2/)So assume that READp /	 /1
+holds/. W e m ust pro v e that / READp
+holds/. Thereare t w o cases as follo ws/./ Case EA Tp
+holds/. By asssumption /(/1/./2/)/, there is an instan t whenEA Tp
+/^ /: / EA Tp
+holds/. Th us ifREADp /	 /1
+/^ EA Tp
+/^ /: / EA Tp
+/) / READp
+/(/1/./3/)is a v alid prop ert y of the transition system/, / EA Tp
+holds/. In fact/, w ev eri/ed using MONA that /(/1/./3/) indeed holds/.
+
+--- Page 12 ---
+/1/2 Henriksen et al/.blo c king /( Sele ction /) /eatp / /1
+/( Sele ction /) /_ h ungryp /	 /1
+/( Sele ction /)/_ eatp /	 /1
+/( Sele ction /)trans /( State /; State
+/0/; Sele ction /) //8 p /:/# THINK /! THINK /:/( THINKp
+/( State /) /^ THINKp
+/( State
+/0/) /)thinkp
+/( Sele ction /) /^ /: /( readp /	 /1
+/( Sele ction /)/)/_h ungryp
+/( Sele ction /) /^ blo c king /( Sele ction /)/)/^/# THINK /! EA T /:/( THINKp
+/( State /) /^ EA Tp
+/( State
+/0/) /)h ungryp
+/( Sele ction /) /^ /: /( blo c king /( Sele ction /)/)/)/^/# THINK /! READ /:/( THINKp
+/( State /) /^ READp
+/( State
+/0/) /)thinkp
+/( Sele ction /) /^ readp /	 /1
+/( Sele ction /)/)/^/# EA T /! THINK /:/( EA Tp
+/( State /) /^ THINKp
+/( State
+/0/) /)thinkp
+/( Sele ction /) /^ /: /( readp /	 /1
+/( Sele ction /)/)/)/^/# EA T /! EA T /:/( EA Tp
+/( State /) /^ EA Tp
+/( State
+/0/) /)eatp
+/( Sele ction /)/)/^/# EA T /! READ /:/( EA Tp
+/( State /) /^ READp
+/( State
+/0/) /)thinkp
+/( Sele ction /) /^ readp /	 /1
+/( Sele ction /)/)/^/# READ /! THINK /:/( READp
+/( State /) /^ READp
+/( State
+/0/) /)readp
+/( Sele ction /) /^ thinkp / /1
+/( Sele ction /)/)/^/# READ /! EA T /:/( READp
+/( State /) /^ EA Tp
+/( State
+/0/) /)false /)/^/# READ /! READ /:/( READp
+/( State /) /^ READp
+/( State
+/0/) /)readp
+/( Sele ction /) /^ /: /( thinkp / /1
+/( Sele ction /)/)/)FIGURE /3/. The transition relation
+
+--- Page 13 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /1/3/ Case /: EA Tp
+holds/. If EA Tp
+b ecomes true/, then use the previous case/.Otherwise/, /: EA Tp
+con tin ues to hold/. No w/, b y the assumption /(/1/./2/)at some p oin t /: EA Tp / /1
+will hold/. W e then use the prop ert yREADp /	 /1
+/^ /: EA Tp
+/^ /: / EA Tp / /1
+/) / READp
+/_ / EA Tp
+/; /(/1/./4/)whic h w e ha v e also v eri/ed using MONA /, to sho w that ev en tuallyREADp
+holds /(or ev en tually EA Tp
+holds/, whic h con tradicts the as/-sumption that /: EA Tp
+con tin ues to hold/)/./6 Implemen tation/.MONA is our implem en tation of the decision pro cedure/, whic h translatesform ulas of M/2L to /nite/-state automata as outlined in Section /3/. Our to olis implemen ted in Standard ML of New Jersey /. A previous v ersion of MONAw as written in C with explicit garbage collection and based on represen tingtransition functions in a conjunctiv e normal form/. Our presen t to ol runsup to /5/0 times faster due to impro v ed algorithms/./6/./1 R epr esentation of automataSince the size of the extended alphab et gro ws exp onen tially with the n um/-b er of v ariables/, a straigh tforw ard implemen tation based on explicitly rep/-resen ting the alphab et w ould only w ork for v ery simple examples/. Instead/,w e represen t the transition relation using Binary Decision Diagrams /(B/-DDs/) /[Bry/9/2 /, Bry/8/6/]/. In this w a y /, the alphab et is nev er explicitly represen t/-ed/. F or the external alphab et of ASCI I/-c haracters/, w e c ho ose an enco dingbased on sev en extra trac ks holding the binary represen tation/. Th us/, c har/-acter classes suc h as /[a/-zA/-Z/] b ecome represen ted as v ery simple BDDs/.A deterministic automaton A is represen ted as follo ws/. The state space isQ /= f /0 /; /1 /; /: /: /: /; n /? /1 g /, where n is size of the state space/; B
+kis the extendedalphab et/; i/0
+/2 Q is the initial state/; / /: Q / B
+k/! Q is the transitionfunction/; and F / Q is the set of accepting states/. W e use a bit v ectorof size n to represen t F and an arra y con taining n p oin ters to ro ots ofm ulti/-terminal BDDs represen ting / /. A leaf of a BDD holds the in tegerdesignating the next state/. An in ternal no de v is called a de cision no de andcon tains an index denoted v /:index /, where /0 / v /:index /< k /, and high andlo w successors v /:hi and v /:l o /. If b is a sequence of k bits/, i/.e/. b /2 B
+k/, then/ /( q /; b /) is found b y lo oking up the q th en try in the arra y and follo wing thedecision no des according to b un til a leaf is reac hed /(no de v is follo w ed b yselecting the high successor if the v /:index th comp onen t of b is /1 and thelo w successor if it is /0 /)/.F or example/, the follo wing /nite automaton accepting all strings o v er B
+/2with at least t w o o ccurrences of the letter / /1/1 /
+
+--- Page 14 ---
+/1/4 Henriksen et al/.
+lohi
+lo
+hilohi
+lo
+hifalse false true
+index=
+0index=
+index= index=0
+1 1
+val= val= val=
+0 1 20 1 2
+Transition function:Initial state: 0
+Accepting states:FIGURE /4/. BDD automaton represen tation
+ 01200,01,10 00,01,10 00,01,10,11
+11 11could b e represen ted as in Figure /4/.The use of BDDs mak es the represen tation v ery succinct in comparisonto our earlier attempt to handle automata with large alphab ets /[JJK/9/4/]/. Inmost cases/, w e a v oid the exp onen tial blo w/-up asso ciated with an explicitrepresen tation of the alphab et/. W e shall see that all op erations on automataneeded can b e p erformed b y means of simple BDD op erations/.Another p ossibilit y w ould ha v e b een to use a t w o/-dimensional arra y ofordinary BDDs/. But that w ould complicate the op erations on automata/,b ecause man y more BDD op erations w ould b e needed/./6/./2 R ewriting formulasThe /rst step in the translation consists of rewriting form ulas so as toeliminate nested terms/. Then all terms are v ariables and all form ulas areamong a small n um b er of basic form ulas/.
+
+--- Page 15 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /1/5/6/./3 T r anslating formulasThe translation is inductiv e/. All automata corresp onding to basic form ulasha v e a small n um b er of states /(less than /v e/!/)/.The comp osite form ulas are translated b y use of op erations on automata/.F or /: / /, //1
+/^ //2
+and /9 P /: / /, whic h are the ones left after rewriting/, w e needthe op erations of complemen t/, pro duct/, pro jection/, and determinization/.Complemen tComplemen tatio n is done b y simply negating the bit v ector represen tingthe set of /nal states/.Pro ductThe pro duct automaton A of t w o automata A/1
+and A/2
+is/( Q/1
+/ Q/2
+/; B
+k/; /( i/1
+/; i/2
+/) /; / /; F/1
+/ F/2
+/) /;where / /(/( q/1
+/; q/2
+/) /; b /) /= /( //1
+/( q/1
+/; b /) /; //2
+/( q/2
+/; b /)/) /. W e are careful/, ho w ev er/, to con/-sider only those states of A that are reac hable from /( i/1
+/; i/2
+/) /.When considering a new state /( q/1
+/; q/2
+/) /, w e need to construct the BDDrepresen ting the corresp onding part of the transition function / /. W e use thebinary apply op eration on the BDDs corresp onding to q/1
+and q/2
+/. F or eac hpair of states /( q
+/0/; q
+/0/0/) encoun tered in a pair of lea v es/, w e asso ciate a uniquein teger in the range f /0 /; /1 /; /: /: /: N /? /1 g /, where N is the n um b er of di/eren tpairs considered so far/. In this w a y /, the new BDDs created conform withthe standard represen tation/.Pro jection and determini zatio nPro jection is the con v ersion of an automaton o v er B
+k /+/1to a nondeter/-ministic automaton o v er B
+knecessary for translating a form ula of the form/9 P /: / /. On an y letter b /2 B
+k/, there are t w o transitions p ossible in thenondeterministic automaton corresp onding to whether the P /-trac k is /0 or/1 /. Therefore this automaton is not hard to construct using the pro jection/(restriction/) op eration of BDDs/.Determinization is done according to the subset construction/. The use ofthe apply op eration is similar to that of the pro duct construction exceptthat lea v es hold subsets of states/./6/./4 MinimizingMinimization seems essen tial in order to obtain an e/ectiv e decision pro/-cedure/. F or example/, if a tautology o ccurs during calculations/, then it is
+
+--- Page 16 ---
+/1/6 Henriksen et al/.ob viously a go o d idea to represen t it using a one/-state automaton insteadof an automaton with e/.g/. /1/0/,/0/0/0 states/.The di/cult y in obtaining an e/cien t minim izatio n algorithm stems fromthe requiremen t to k eep our shared BDDs in reduced form/. Recall that areduced BDD has no duplicate terminals or non terminals/. Suc h a BDDis just a sp ecialized form of directed acyclic graph that has b een com/-pressed b y com bining structurally isomorphic no des /(see Aho/, Hop croft/,and Ullman /[AHU/7/4 /] or Section /3/./4 of Cai and P aige /[CP/9/4 /]/)/. In addition/,a reduced BDD has no redundan t tests /[Bry/9/2/]/. Suc h a BDD is obtained b yrep eatedly pruning ev ery in ternal v ertex v that has b oth outedges leadingto the same v ertex w /, and redirecting all of v /'s incoming edges to w /.Supp ose that the shared BDD had all duplicate terminals and non ter/-minals eliminated/, but did not ha v e an y of its redundan t tests eliminated/.Then it w ould b e easy to treat the deterministic /nite automaton com/-bined with its BDD mac hinery as a single automaton whose states w erethe union of the BDD no des and the original automaton states/, and whosealphab et w ere zero and one/. If this deriv ed automaton had n states/, then itcould b e minim i zed in O /( n log n /) steps using Hop croft/'s algorithm /[Hop/7/1 /]/.Unfortunately /, suc h an automaton w ould b e to o big/.F or our purp oses/, the space sa vings due to redundan t test remo v al isof crucial imp ortance/. But the imp ortan t /`skip/' states that arise from re/-dundan t test remo v al complicates minim izatio n/. Our algorithm com binestec hniques based on /[AHU/7/4 /] with new metho ds adapted for use withthe shared BDD represen tation of the transition function/. F or a /niteautomaton with n states and a transition function represen ted b y m B/-DD no des/, the algorithm presen ted here ac hiev es w orst/-case running timeO /(max /( n/; m /) n /) /.T erminologyA p artition P of a /nite set U is a set of disjoin t nonempt y subsets of Usuc h that the union of these sets is all of U /. The elemen ts of P are calledits blo cks /. A r e/nement Q of P is a partition of U suc h that an y blo c kof Q is a subset of a blo c k of P /. If q /2 U /, then /[ q /]P
+denotes the blo c kof partition P con taining the elemen t q /, and when no confusion arises/, w edrop the subscript/.Let A /= /( Q /, B
+k/, i/0
+/, / /, F /) denote a deterministic /nite automaton/, andlet P b e a partition of Q /, and Q a re/nemen t of P /. A blo c k B of Qr esp e cts the partition P if for all q /; q
+/0/2 B and for all b /2 B
+k/, /[ / /( q /; b /)/]P
+/=/[ / /( q
+/0/; b /)/]P
+/. Th us/, / cannot distinguish b et w een the elemen ts in B relativ eto the partition P /. A partition Q r esp e cts P if ev ery blo c k of Q resp ectsP /. A partition is stable if it resp ects itself/. The c o arsest/, stable p artitionQ r esp e cting P is a unique partition suc h that an y other stable partitionresp ecting P is a re/nemen t of Q /.
+
+--- Page 17 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /1/7The re/nemen t algorithmThe minim al automaton A
+/0recognizing L /( A /) is isomorphic to the au/-tomaton de/ned b y the coarsest stable partition Q
+Aof Q resp ecting thepartition f F /; Q n F g /. The states of A
+/0are Q
+A/, the transition function /
+/0isde/ned b y /
+/0/(/[ p /] /; b /) /= /[ / /( p/; b /)/] /, the initial state is /[ i/0
+/] /, and the set of /nalstates is F
+/0/= f /[ f /] j f /2 F g /.No w w e are ready to sk etc h our minim izing algorithm/, whic h w orks b ygradually re/ning a curren t partition/./ First split Q in to an initial partition Q /= f F /; Q n F g /. Note that Q
+Ais a re/nemen t of this partition/./ No w let P b e the curren t partition/. W e construct the new curren tpartition Q so that it resp ects P while Q
+Aremains a re/nemen t ofQ /.F or eac h state q in Q consider the functions fq
+/: B
+k/! P de/ned b yfq
+/( b /) /= /[ / /( q /; b /)/]P
+for all q and b /. No w let the equiv alence relation /b e de/ned as q / q
+/0/, /( fq
+/= fq
+/0/^ /[ q /]P
+/= /[ q
+/0/]P
+/) /. The new partitionQ then consists of the equiv alence classes of / /. By de/nition of thefq
+/'s/, Q resp ects P and is the coarsest suc h partition implying thein v arian t/.W e rep eat this pro cess un til P /= Q /.It can b e sho wn that the /nal partition Q is obtained in at most niterations and equals Q
+A/. The preceding algorithm is an abstraction of theinitial naiv e algorithm presen ted in Section /4/./1/3 of /[AHU/7/4/]/.The di/cult step in the ab o v e algorithm is the splitting according tothe functions fq
+/. Ho w ev er/, w e can here elegan tly tak e adv an tage of theshared BDD represen tation/. The idea is to construct a BDD represen tingthe functions fq
+for eac h state/. W e represen t a partition of the states Q /, b yasso ciating with eac h state q /2 Q a blo ck id iden tifying its blo c k/. The BDDfor fq
+is calculated b y p erforming a unary apply on the collection of sharedBDDs/, where the v alue calculated in a leaf is the blo c k id/. By a suitablegeneralization of the standard algorithm/, it is p ossible to carry out thesecalculations while visiting eac h no de at most once /(assuming that hashingtak es constan t time/)/. Th us the split op eration requires time O /(max /( n/; m /)/) /.Since w e use shared BDDs/, w e ma y use the results of the apply op erationsdirectly as new blo c k ids/.
+
+--- Page 18 ---
+/1/8 Henriksen et al/.The splitti ng step without hashingAn alternativ e implemen tatio n of the splitting step is p ossible thatac hiev es the same w orst case time b ound O /(max /( n/; m /)/) without hashing/.It is instructiv e to /rst consider the case in whic h the shared BDDs are re/-duced only b y eliminating redundan t no des but not b y eliminating redun/-dan t tests/. In this case the BDD ma y b e regarded as an acyclic deterministicautomaton D whose states are the BDD no des/, and whose alphab et is zeroand one/. Consider a partition P
+/0of the BDD no des de/ned b y equiv alenceclasses of the follo wing relation/. Tw o BDD lea v es are equiv alen t i/ theirnext states b elong to the same blo c k of partition P /. All decision no des ofthe BDD are equiv alen t/. The coarsest stable partition Q
+/0that resp ects P
+/0for automaton D can b e solv ed in O /( m /) w orst case time b y Revuz /[Rev/9/2 /]and Cai and P aige /[CP/9/4 /]/, Sec/. /3/./4/. Finding the equiv alence classes of s/-tates in Q that p oin t to BDD ro ots b elonging to the same blo c k of Q
+/0/(i/.e/./,/nding the coarsest partition Q that resp ects P /) solv es the splitting stepin the original automaton in time O /( n /) /.In the case of fully reduced BDDs/, the splitting step is somewhat harder/,and a closer lo ok at the BDD structure is needed/. F or eac h decision no dev /, v /:index represen ts a p osition in a string of length k suc h that v /:index /</( v /:l o /) /:index /^ v /:index /< /( v /:hi /) /:index /. F or eac h BDD leaf v w e ha v e v /:index/= k /, and let v /:l o /= v /:hi b e an automaton state b elonging to Q /. F or eac hBDD no de v w e de/ne function fv
+/: B
+k/! P m uc h lik e the w a y functions fqw ere de/ned earlier on automaton states/. F or eac h nonleaf v /, fv
+is de/nedb y the rule fv
+/( b /) /= fv /:lo
+/( b /) if bv /:index
+/= /0 /; fv
+/( b /) /= fv /:hi
+/( b /) if bv /:index
+/= /1 /.F or eac h leaf v /, fv
+is a constan t function that maps ev ery argumen t in toan elemen t /(i/.e/./, a blo c k/) of partition P /.If q /2 Q is an automaton state that p oin ts to a BDD ro ot v /, then/, clearly /,fq
+/= fv
+/. It is also not hard to see that for an y t w o nonleaf BDD no des vand v
+/0/, fv
+/= fv
+/0i/ either of the follo wing t w o conditions hold/:/1/. v /:index /= v
+/0/:index /^ fv /:hi
+/= fv
+/0/:hi
+/^ fv /:lo
+/= fv
+/0/:lo
+/, or/2/. fv /:hi
+/= fv /:lo
+/= fv
+/^ v /:hi /= v
+/0/.This leads to the more concrete equiv alence relation / on BDD no desde/ned as v / v
+/0i/ fv
+/= fv
+/0i/ either/,/1/. v /:index /= v
+/0/:index /= k /^ /[ v /:l o /]P
+/= /[ v
+/0/:l o /]P
+/, or/2/. v /:index /= v
+/0/:index /< k /^ v /:hi / v
+/0/:hi /^ v /:l o / v
+/0/:l o /, or/3/. v /:index /< k /^ v /:l o / v /:hi / v
+/0/.Note that t w o BDD no des of di/eren t index can b e equiv alen t only b ycondition /(/3/)/. Note also/, that w e can strengthen condition /(/2/) with the
+
+--- Page 19 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /1/9additional constrain t v /:hi /6/ v /:l o without mo difying the equiv alence rela/-tion/. These t w o observ ations allo w us to construct the equiv alence classesinductiv ely using a b ottom/-up algorithm that pro cesses all BDD no des ofthe same index in descending order/, pro ceeding from lea v es to ro ots/. Thesteps are sk etc hed just b elo w/./1/. In a linear time pass through all of the BDD no des/, place eac h no dein a buc k et according to its index/. An arra y of k /+ /1 buc k ets can b eused for this purp ose/./2/. Next/, distribute the BDD lea v es /(con tained in the buc k et asso ciatedwith index k /) in to blo c ks whose no des all ha v e l o successors thatb elong to the same blo c k of P /. This tak es time prop ortional to then um b er of lea v es/./3/. F or j /= k /? /1 /; /:/:/:/; /0 examine eac h no de v with v /:index /= j /. Both no desv /:l o and v /:hi ha v e already b een examined/, and ha v e b een placed in toblo c ks/. Hence/, a streamlined form of m ultiset sequence discrimination/[CP/9/4 /] can b e used to place v either in an old blo c k /(according tocondition /(/3/)/) or a new blo c k /(according to condition /(/2/)/) for no deswhose c hildren b elong pair/-wise to the same old blo c k/.The preceding algorithm computes the equiv alence classes as the /nalset of blo c ks in O /( m /) time/. As b efore/, w e can use these equiv alence classesto /nd the coarsest partition Q that resp ects P /, whic h solv es the splittingstep in the original automaton/, in time O /( n /) /. Th us/, the total w orst/-casetime to solv e the splitting step is O /(max /( n/; m /)/) /(without hashing/)/.In an e/cien t implemen tati on of /nite/-state automaton minimi zation/,when the splitting algorithm ab o v e is is p erformed rep eatedly /, w e onlyneed to p erform the /rst step of that algorithm /(i/.e/./, sorting BDD no desaccording to index/) once/. Th us/, the full DF A minimi zation algorithm runsin w orst case time O /(max /( n/; m /) n /) without hashing/.BDD reduction without hashingSieling and W egener/[SW/9/3 /] w ere the /rst to compress an arbitrary BDDin to fully reduced form in linear time/. Their result dep ended on a radixsort/, whic h is closely related to the m ultiset discrimination tec hnique thatw e use/. Ho w ev er/, their algorithm needs to main tain in teger represen tationsof BDD no des/, and it utilizes t w o arra ys of size m /. W e can sho w ho wour algorithm just describ ed can b e mo di/ed to fully reduce an arbitraryBDD in w orst case time linear in the n um b er of BDD no des /(withouthashing/)/, but with exp ected auxiliary space k times smaller than Sielingand W egener/'s algorithm/.Let Q
+/0b e the partition of BDD no des pro duced b y the algorithm/. Thestates of the reduced BDD are the blo c ks in Q
+/0/. F or eac h blo c k B /2 Q
+/0/,
+
+--- Page 20 ---
+/2/0 Henriksen et al/.B /:index is the largest index of an y BDD no de con tained in B /. Let v
+/0b ean y no de b elonging to B of maxim um index/. If v
+/0is a BDD leaf/, then B isa leaf in the reduced BDD /(i/.e/./, B /:index /= k /)/, and B /:l o /= B /:hi /= v
+/0/:l o /.Otherwise/, B /:l o /= /[ v
+/0/:l o /]Q
+/0and B /:hi /= /[ v
+/0/:hi /]Q
+/0/. The hi and l o successorblo c ks can b e determined during the m ultiset sequence discrimination passwhen a new blo c k is /rst created/. The index of the /rst no de placed in anewly created blo c k is the index for that blo c k/.What distinguishes our algorithm from that of Sieling and W egener isthat our buc k ets in steps /(/2/) and /(/3/) are asso ciated with actual BDD no des/(inside the main BDD data structure/)/. Their buc k ets are asso ciated withcomp onen ts of t w o auxiliary arra ys of size m eac h/. If w e replaced eac hequiv alence class b y a single witness /(as they do/) eac h iteration of step/(/3/)/, then our auxiliary space w ould b e b ounded b y the maxim um n um b erof BDD no des that ha v e the same index/. If BDD no des w ere uniformlydistributed among indexes/, then this n um b er is m/=k /, whic h w ould giv e usa k /-fold adv an tage in auxiliary space o v er their algorithm/. W e exp ect aminor constan t factor adv an tage in time as w ell/, b ecause our BDD no desare represen ted b y their lo cations instead of b y computed in teger v alues/,and b ecause w e a v oid arra y access in fa v or of less exp ensiv e list and p oin terpro cessing/.W ork is in progress for exploring the /pro cessing the smaller half / ideafound in e/.g/. /[PT/8/7 /]/. W e should men tion/, ho w ev er/, that the curren t imple/-men tation of the minim i zation algorithm in practice seems to run fasterthan the pro cedures for constructing pro duct and subset automata/./6/./5 MONA fe atur esMONA is enric hed b y facilities similar to those of programmi ng languages/.PredicatesThe user ma y declare predicates that can later b e instan tiated/. F or ex/-ample/, if the predicate P is declared b y P /( X /; x /) /= /(/0 /= x /^ x /2 X /) /,then P can b e instan tiated as the form ula P /( /{ Y /; p / /1/) with the ob viousmeaning/.LibrariesMONA supp orts creation of user/-de/ned libraries of predicates/.Separate translationMONA automatically stores the automaton for a translated predicate/. Ifthere are n free v ariables/, then there ma y b e up to n /! di/eren t automatacorresp onding to di/eren t orderings of v ariables in the BDD represen tation/.
+
+--- Page 21 ---
+/1/. Mona/: Monadic Second/-Order Logic in Practice /2/1/6/./6 T o b e doneIn the curren t implemen tati on/, v ariables are ordered in their BDDs accord/-ing to the lev el of syn tactic nesting in the form ula/; i/.e/. innermost v ariablesreceiv e the highest index/. This strategy is ob viously often far from optimaland w e are w orking on implemen ting heuristics to impro v e v ariable order/-ing/. Another orthogonal optimization strategy is to reorder the pro ductconstructions b y heuristics/. In b oth cases/, ho w ev er/, it is not hard to seethat /nding optimal orderings is NP/-complete/.Ac kno wledgemen tsW e are thankful to Vladimiro Sassone for commen ts on an earlier v ersion/,and to Andreas P ottho/ for his advice based on the M/2L implemen tatio nat the Univ ersit y of Kiel/./7 References/[AHU/7/4/] A/. Aho/, J/. Hop croft/, and J/. Ullman/. Design and A nalysis ofComputer A lgorithms /. Addison/-W esley /, /1/9/7/4/./[BK/9/5/] D/. Basin and N/. Klarlund/. Hardw are v eri/cation using monadicsecond/-order logic/. T ec hnical Rep ort RS/-/9/6/-/7/, BRICS/, /1/9/9/5/. T oapp ear in CA V /'/9/5 Pro ceedings/./[Bry/8/6/] R/.E/. Bry an t/. Graph/-based algorithms for b o olean function ma/-nipulation/. IEEE T r ansactions on Computers /, C/-/3/5/(/8/)/:/6/7/7//6/9/1/,Aug /1/9/8/6/./[Bry/9/2/] R/. E/. Bry an t/. Sym b olic Bo olean manipulation with orderedbinary/-decision diagrams/. A CM Computing surveys /, /2/4/(/3/)/:/2/9/3//3/1/8/, Septem b er /1/9/9/2/./[BSV/9/3/] F/. Balarin and A/.L/. Sangio v anni/-Vincen telli/. An iterativ e ap/-proac h to language con tainmen t/. In Computer A ide d V eri/c a/-tion/, CA V /'/9/3/, LNCS /6/9/7 /, pages /2/9//4/0/, /1/9/9/3/./[CP/9/4/] J/. Cai and R/. P aige/. Using m ultiset discrimination to solv elanguage pro cessing problems without hashing/. to app e arThe or etic al Computer Scienc e /, /1/9/9/4/. also/, U/. of Cop en/-hagen T ec h/. Rep ort/, DIKU/-TR Num/. D/-/2/0/9/, /9/4///1/6/, URLftp/:////ftp/.diku/.dk//diku// seman tics//pap ers//D/-/2/0/9/.ps/.Z/./[CR/9/4/] M/-M Corsini and A/. Rauzy /. Sym b olic mo del c hec king and con/-strain t logic programmi ng/: a cross/-fertilisation/. In /5th/. Eur op/.Symp/. on Pr o gr amming/, LNCS /7/8/8 /, pages /1/8/0//1/9/4/, /1/9/9/4/.
+
+--- Page 22 ---
+/2/2 Henriksen et al/./[GF/9/3/] A/. Gupta and A/.L/. Fisher/. P arametric circuit represen tation us/-ing inductiv e b o olean functions/. In Computer A ide d V eri/c ation/,CA V /'/9/3/, LNCS /6/9/7 /, pages /1/5//2/8/, /1/9/9/3/./[Hop/7/1/] J/. Hop croft/. An n log n algorithm for minim i zing states in a /niteautomaton/. In Z/. Koha vi and P az A/./, editors/, The ory of machinesand c omputations /, pages /1/8/9//1/9/6/. Academic Press/, /1/9/7/1/./[JJK/9/4/] J/. Jensen/, M/. J/ørgensen/, and N/. Klarlund/. Monadic second/-orderlogic for parameterized v eri/cation/. T ec hnical rep ort/, BRICS Re/-p ort Series RS/-/9/4/-/1/0/, Departmen t of Computer Science/, Univ er/-sit y of Aarh us/, /1/9/9/4/./[KM/8/9/] B/. Kurshan and K/. McMillan/. A structural induction theorem forpro cesses/. In Pr o c/. Eigth Symp/. Princ/. of Distribute d Computing /,pages /2/3/9//2/4/7/, /1/9/8/9/./[PT/8/7/] R/. P aige and R/. T arjan/. Three e/cien t algorithms based onpartition re/nemen t/. SIAM Journal of Computing /, /1/6/(/6/)/, /1/9/8/7/./[Rev/9/2/] D/. Revuz/. Minimisatio n of acyclic deterministic automata inlinear time/. The or etic al Computer Scienc e /, /9/2/(/1/)/:/1/8/1//1/8/9/, /1/9/9/2/./[RS/9/3/] J/-K/. Rho and F/. Somenzi/. Automatic generation of net w ork in/-v arian ts for the v eri/cation of iterativ e sequen tial systems/. InComputer A ide d V eri/c ation/, CA V /'/9/3/, LNCS /6/9/7 /, pages /1/2/3//1/3/7/, /1/9/9/3/./[Ste/9/3/] M/. Steinmann/. /Üb ersetzung v on logisc hen Ausdr/üc k en in Bau/-mautomaten/: En t wic klung eines V erfahrens und seine Implemen/-tierung/. Unpublished/, /1/9/9/3/./[SW/9/3/] D/. Sieling and I/. W egener/. Reduction of OBDDs in linear time/.IPL /, /4/8/:/1/3/9//1/4/4/, /1/9/9/3/./[Tho/9/0/] W/. Thomas/. Automata on in/nite ob jects/. In J/. v an Leeu w en/,editor/, Handb o ok of The or etic al Computer Scienc e /, v olume B/,pages /1/3/3//1/9/1/. MIT Press//Elsevier/, /1/9/9/0/.

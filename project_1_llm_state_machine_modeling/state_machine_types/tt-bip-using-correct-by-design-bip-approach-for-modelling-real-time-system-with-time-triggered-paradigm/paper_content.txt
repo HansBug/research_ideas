@@ -1,0 +1,2925 @@
+--- Page 1 ---
+HAL Id: hal-01823749
+https://inria.hal.science/hal-01823749v1
+Submitted on 26 Jun 2018
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+TT-BIP: using correct-by-design BIP approach for modelling
+real-time system with time-triggered paradigm
+Hela Guesmi, Belgacem Ben Hedia, Simon Bliudze, Saddek Bensalem, Briag
+Lenabec
+To cite this version:
+Hela Guesmi, Belgacem Ben Hedia, Simon Bliudze, Saddek Bensalem, Briag Lenabec. TT-BIP: using correct-
+by-design BIP approach for modelling real-time system with time-triggered paradigm. Innovations in Systems
+and Software Engineering, 2018, 14 (2), pp.117 - 142. ⟨10.1007/s11334-018-0312-y⟩. ⟨hal-01823749⟩
+
+--- Page 2 ---
+Noname manuscript No.
+(will be inserted by the editor)
+TT-BIP: Using Correct-by-Design BIP Approach for Modellin g
+Real-Time System with Time-Triggered Paradigm
+Hela Guesmi ·Belgacem Ben Hedia ·Simon Bliudze ·Saddek Bensalem ·
+Briag Lenabec
+Received: date / Accepted: date
+Abstract InordertocombineadvantagesofReal-Time
+Operating Systems (RTOS) implementing the Time-
+Triggered (TT) execution model and model-based de-
+sign frameworks, we aim at proposing a correct-by-
+design methodology that derives correct TT implemen-
+tations from high-level models. This methodology con-
+sists of two main steps; (1) transforming the high-level
+model into an intermediate model which respects the
+TT communication principles and where all commu-
+nications between components are simple send/receive
+interactions, and (2) transforming the obtained inter-
+mediate model into the programming language of the
+target platform.
+In this paper, we focus on the presentation of the
+transformational methodology of the ﬁrst step of this
+design ﬂow. This methodology produces a correct-by-
+construction TT model by starting from a high-level
+modelofthe applicationsoftwareinBehaviour,Interac-
+tion, Priority (BIP). BIP is a component-based frame-
+Hela Guesmi
+CEA-LIST, PC 172, 91191 Gif-sur-Yvette, France
+E-mail: ﬁrstname.lastname@cea.fr
+Belgacem Ben Hedia
+CEA-LIST, PC 172, 91191 Gif-sur-Yvette, France
+E-mail: ﬁrstname.lastname@cea.fr
+Simon Bliudze
+INRIA Lille – Nord Europe, Parc scientiﬁque de la Haute
+Borne, 40 avenue Halley 59650, Villeneuve d’Ascq, France
+E-mail: simon.bliudze@inria.fr
+Saddek Bensalem
+Verimag / Universit´ e Grenoble Alpes, Bˆ atiment IMAG, 700
+avenue Centrale, 38401 St Martin d’H` eres, France,
+E-mail: saddek.bensalem@imag.fr
+Briag Lenabec
+CEA-LIST, PC 172, 91191 Gif-sur-Yvette, France
+E-mail: ﬁrstname.lastname@cea.frwork with formal semantics that rely on multi-party
+interactions for synchronizing components. Commonly
+in TT implementations, tasks interact with each other
+through a communication medium. Our methodology
+transforms, depending on a user-deﬁned task mapping,
+high-level BIP models where communication between
+components is strongly synchronized, into TT model
+that integrates a communication medium. Thus, only
+inter-task communications and components participat-
+ing in such interactions are concerned by the transfor-
+mation process. We also provide correctness proofs of
+the transformation and apply it on an industrial case
+study.
+Keywords Component-based design ·time-triggered
+paradigm ·model to model transformation ·correct-
+by-construction transformation ·formal methods
+1 Introduction
+The Time-Triggered (TT) paradigm for the design of
+real-time systems was introduced by Kopetz [12]. TT
+systems are based on a periodic clock synchronization
+in order to enable a TT communication and computa-
+tion. Each subsystem of a TT architecture is isolated
+by a so-called temporal ﬁrewall . It consists of a shared
+memory element for unidirectional exchange of infor-
+mation between sender and receiver task components.
+It is the responsibility of the TT communication sys-
+temto transport,by relyingon the common globaltime
+the information from the sender ﬁrewall to the receiver
+ﬁrewall. The strong isolation provided by the tempo-
+ral ﬁrewall is key to ensuring the determinism of task
+execution and, thereby, allowing the implementation of
+eﬃcient scheduling policies.
+Developing embedded real-time systems based on
+the TT paradigm is a challenging task due to the in-
+
+--- Page 3 ---
+2 Guesmi et al.
+creasing complexity of such systems and the necessity
+tomanage,alreadyin theprogrammingmodel, theﬁne-
+grained temporal constraints and the low-level com-
+munication primitives imposed by the temporal ﬁre-
+wall abstraction. Several Real-Time Operating Systems
+(RTOS) implement the TT execution model, such as
+PharOS [4] and PikeOS [11]. However, they do not pro-
+vide high-level programming models that would allow
+the developers to think on a higher level of abstraction
+andtotacklethe complexityoflargesafety-criticalreal-
+time systems. Model-based design frameworks, such as
+BIP [1] and SCADE [7], allow the speciﬁcation, de-
+sign and simulation of real-time systems. In particu-
+lar, BIP—a component-based framework for the design
+of real-time systems—allows veriﬁcation of behavioural
+properties, such as deadlock-freedom, and lends itself
+well to model transformations.
+To the best of our knowledge, few connections ex-
+ist between high-level component-based design frame-
+works,allowingreasoningaboutapplicationmodelsand
+veriﬁcationoftheirfunctional behaviourandTT execu-
+tion platforms, which guarantee temporal determinism
+of the system.
+Inthiswork,weproposetheﬁrststepofthemethod-
+ologythat links between the model-based design frame-
+work BIP and TT execution platforms. This ﬁrst step
+transformsagenericBIPmodelintoarestrictedmodel—
+calledTT-BIPmodel.Thisobtainedmodelshouldcom-
+ply with the TT communication primitives and thereby
+be ready for a future transformation into the program-
+ming language of the target platform that is based on
+the TT paradigm. In this paper, we identify the key dif-
+ﬁculties in deﬁning this transformational methodology,
+propose exhaustive solutions to address these diﬃcul-
+ties,provideformaltransformationrulesandprovethat
+this transformation is semantics-preserving.
+The rest of this paper is structured as follows. Sec-
+tion 2 presentsthe BIP framework.In Section 3,we dis-
+cuss challenges of the transformation. In Section 4, we
+explainapproachallowingtoaddressthesechallengesas
+well as choices leading to the deﬁnition of the structure
+of the target TT-BIP model. In Section 5, we formally
+deﬁnethetransformationofahigh-levelBIPmodelinto
+a TT-BIP model. Section 7 presents the application of
+the proposed approach on an industrial use case. Cor-
+rectness proofs of the proposed transformation are pro-
+vided in the appendix 6.
+2 The BIP Framework
+BIP is a component framework for constructing real-
+time systems by superposing three layers of modelling:
+Behaviour,Interaction,andPriority.TheBehaviourlayer
+consists of a set of components deﬁned by timed au-tomata [3] extended with data and C functions. Transi-
+tion labels of a component automaton are called ports.
+Interactions are sets of ports used for synchronization.
+Thus, the Interaction layer describes all possible syn-
+chronizations among components as a set of interac-
+tions. The third layer deﬁnes priorities among interac-
+tions, providing a mechanism for conﬂict resolution.
+In this paper, we do not consider priorities. Thus,
+we only consider BIP models obtained by composing
+components with interactions.
+2.1 Preliminary notations
+Beforeweformallydeﬁne BIPcomponentsand their se-
+mantics, we ﬁrst introduce some notations. For a vari-
+ablex, denote D(x) its domain (i.e. the set of all val-
+ues possibly taken by x). A valuation on a set of vari-
+ablesXis a function v:X→/uniontext
+x∈XD(x), such that
+v(x)∈D(x), for all x∈X. We denote by V(X) the set
+of all possible valuations on Xand byGX=BV(X)the
+set ofBoolean guards onX.
+Deﬁnition 1 (Clock constraints) LetCbe a set of
+clocks. The associated set GCof clock constraints CC
+is deﬁned by the following grammar:
+CC:=True|False|c∼a|CC∧CC,
+withc∈C,∼∈ {≤,=,≥}anda∈Z+. Notice that
+any guard CCcan be written as:
+CC:=/logicalanddisplay
+c∈Clc≤c≤uc,
+where∀c∈C, lc,uc∈Z+∪{+∞}.(1)
+2.2 Ports and Interfaces
+Ports are particular names used for deﬁning communi-
+cation interfaces for BIP components. In BIP, we as-
+sume that every port has an associated distinct set
+of data variables. This set of variables is used to ex-
+change data with other components when interactions
+take place.
+Deﬁnition 2 (Port) A portpis deﬁned by:
+–p: The port identiﬁer;
+–Xp: The set of data variables associated with p.
+A port can be made invisible to other components,
+and thus label only internal computational transitions.
+In that case, it is called internal port. Symmetrically,
+ports visible to other components are composing the
+communicationinterfaceofthecomponentwhichisused
+to establish interactions with other components. These
+portsarecalled exported ports.Wemaydenote exported
+ports in the remainder of this work simply by ”ports”.
+
+--- Page 4 ---
+TT-BIP 3
+2.3 BIP component
+Deﬁnition 3 Acomponent is a tuple B= (L,P,X,C,
+T,tpc), where:
+–Lis a ﬁnite set of locations,
+–Pis a ﬁnite set of ports,
+–Xis a ﬁnite set of local variables,
+–Cis a ﬁnite set of clocks,
+–T⊆L×(P×GX×GC×2C× V(X)V(X))×Lis
+a ﬁnite set of transitions, each labelled with a port,
+two Boolean guards (on variables and on clocks), a
+set of clocks to be reset and a function updating a
+subset of variables of X,
+–the function tpc:L→GCassigns a time progress
+condition to each location, such that, for any l∈L,
+the constraint tpc(l) is a conjunction of constraints
+of the form c≤uc.
+Task1Task2 Task3qI1
+r sI2
+L1
+L2i
+fip
+1≤c≤3
+reset cc≤2xp
+clock c, int x
+Fig. 1: RT-BIP example
+Figure 1, shows a model comprising three BIP com-
+ponentsTask1,Task2andTask3, composed by two
+binary interactions. The automaton of Task1is also
+shown in the ﬁgure. First consider Task1independently
+of the rest of the model and assume that the system
+reaches the state L1ofTask1with 1≤c <2. Since
+tpc(L1) =c≤2, time can progress until c= 2 or, since
+the guard 1 ≤c≤3 is also satisﬁed, transition pcan be
+executed. If L1is reachedwith c= 2, the system cannot
+let the time progressand has to execute the transition p
+immediately. Finally, if c >2, the time cannot progress
+and the system is blocked.
+Deﬁnition 4 (Semantics of a component) The se-
+mantics of a component B= (L,P,X,C,T,tpc ) is de-
+ﬁned as a Labelled Transition System (LTS) ( Q,P,− →),
+whereQ=L×V(X)×V(C) denotes the set of states of
+Band− → ⊆Q×(P∪R/greaterorequalslant0)×Qis the set of transitions
+deﬁned as follows. Let ( l,vx,vc) and (l′,v′
+x,v′
+c) be two
+states,p∈Pandδ∈R/greaterorequalslant0.– Jump transitions :We have( l,vx,vc)p− →(l′,v′
+x,v′
+c)
+iﬀthereexistsatransition τ= (l,p,gX,gC,R,f,l′)∈
+T, such that gC(vc) =gX(vx) =True,v′
+x=f(vx)
+and
+v′
+c(c) =/braceleftBigg
+0,for allc∈R,
+vc(c) for all c∈C\R.
+– Delaytransitions :Wehave( l,vx,vc)δ− →(l,vx,vc+
+δ) iﬀ∀δ′∈[0,δ],tpc(l)(vc+δ′) =True, where ( vc+
+δ)(c)def=vc(c)+δ, for allc∈C.
+A component Bcan execute a transition τ= (l,p,gX,
+gC,R,fτ,l′) from a state ( l,vx,vc) if the timing con-
+straintgCis met by the valuation vc. The execution
+ofτcorresponds to moving from control location lto
+l′, updating variables and resetting clocks of R. Alter-
+natively, it can wait for a duration δ >0, if the time
+progress condition tpc(l) evaluates to True. This in-
+creases all the clock values by δ. Notice that execution
+of jump transitions is instantaneous; control location
+cannot change while time elapses.
+2.4 Interactions
+Componentscommunicatebymeansofinteractions.An
+interaction is a synchronization between transitions of
+a ﬁxed subset of components. An interaction is mainly
+a set of ports exporting each a set of variables. An in-
+teraction can access all variables exported by its ports.
+Particularly, it is guarded by a predicate deﬁned on
+these variables. This predicate, if evaluated to True,
+enables the interaction. This latter also deﬁnes a data
+transfer function which modiﬁes the values of variables
+upon the execution of the interaction.
+Deﬁnition 5 (Interaction) Aninteraction αbetween
+components {Bi}n
+i=1is a triplet ( Pα,Gα,Fα), where:
+–Pαis a set of ports such that |Pα∩Pi|/lessorequalslant1, for all
+i∈[1,n],
+–Gαis the set of boolean guards associated to αand
+deﬁned over a subset of/uniontext
+p∈PαXp.
+–Fαis the set of the update functions associated to
+αand deﬁned over/uniontext
+p∈PαXp.
+In Deﬁnition 5, an interaction consists of one or more
+ports, a guard on variables associated with these ports
+and a data transfer function. In the remainder of this
+article, when no confusion is possible from the context,
+we may simply denote the port set of the interaction by
+the interaction name. Thus we may use p∈αinstead
+ofp∈Pαandp∈α1∩α2instead of p∈Pα1∩Pα2.
+We denote by comp(α) the set of components that
+have ports participating in α.comp(α) is formally de-
+ﬁned as:
+comp(α) ={Bi|i∈[1,n],Pi∩α/\e}atio\slash=∅}. (2)
+
+--- Page 5 ---
+4 Guesmi et al.
+Two interactions are conﬂicting at a given state of
+the system if both are enabled, but it is not possible
+to execute both from that state (i.e., the execution of
+one of them disables the other). In fact, the enabled-
+ness of interactions only indirectly depends on the cur-
+rent state, through the enabledness of the participating
+ports. In systems having only the glue of interactions,
+two interactions αandα′may conﬂict only if they in-
+volve a shared component. In Figure 2a, the conﬂict
+comes from the fact that αandα′involve two ports p
+andqof the same component and that these two ports
+are labelling two transitions enabled from the same lo-
+cation. When reaching the location l0, the component
+can execute either transition labelled by por the one la-
+belled by qbut not both. This implies that when αand
+α′are enabled, only one of them should execute. Fig-
+ure2bshowsaspecialcaseofconﬂictwhereinteractions
+αandα′aresharingnot onlyacommoncomponentbut
+also a common port p.
+p
+l0q
+q p
+l1 l2α' α
+(a)p
+l0
+p
+l1α' α
+(b)
+Fig. 2: Conﬂicting interactions
+The execution of interactions in BIP framework is
+guaranteedbyasequentialengine.Thislattercomputes
+from the states of single components, the set of en-
+abledinteractionsandchoosesaninteractiontoexecute
+among the enabled ones.
+Below, we deﬁne the semantics of the model ob-
+tained by gluing BIP components with the interaction
+glue.ThisBIPsemanticspresentedbelowassumeatomic
+execution of interactions which provide sequential exe-
+cution of the system.
+Deﬁnition 6 (Semantics of composition with in-
+teraction model γ)Letγbe a set of interactions
+and let{Bi}n
+i=1whereBi= (Li,Pi,Xi,Ci,Ti,tpci) be
+a set of components. The semantics of the composite
+component B=γ(B1,...,B n) is the transition system
+Sγ= (Q,Σ,− →γ) where:
+–Q=L× V(C)× V(X), is the set of states, with
+L=L1×···×Lnthe set of global locations, C=/uniontextn
+i=1Cithe global set of clocks and X=/uniontextn
+i=1Xi
+the global set of variables. A state q∈Qis of the
+form (l,vc,vx) such that l= (l1,...,ln) is the globallocation, vc= (vc1,...,v cn) is a global clocks valu-
+ation and vx= (vxi,...,v xn) is a global data vari-
+ables valuation.
+–Σ=γ∪R+is the set of labels,
+–− →γis the set of labelled transitions satisfying the
+following rules:
+–Action transitions:
+Interα= ({pi}i∈I,Gα,Fα)∈γ
+Gα({vxi}i∈I)∀i∈I,(li,vci,vxi)pi− →i
+({v∗
+xi}i∈I) =Fα({vxi}i∈I)
+∀i∈I,(li,vci,v∗
+xi)pi− →i(l′
+i,v′
+ci,v′
+xi)
+∀i /∈I,(li,vci,vxi) = (l′
+i,v′
+ci,v′
+xi)
+(l,vc,vx)α− →γ(l′,v′
+c,v′
+x) ,
+where, in the third premise above, we use the
+standard shorthand qp− →for∃q′:qp− →q′.
+–Delays transitions:
+Delδ∈R+∀i∈[1,n],∀δ′∈[0,δ],tpc(li)(vci+δ′)
+(l,vc,vx)δ− →γ(l,vc+δ,vx)
+The ﬁrst inference rule of Deﬁnition 6 speciﬁes that
+acomposite component B=γ(B1,...,B n) can execute
+an interaction α= ({pi}i∈I,Gα,Fα) from a global state
+q= (l,vc,vx) only if (1) each port piis enabled in its
+corresponding component Bi, i.e.qi= (li,vci,vxi)pi− →,
+whereqiis the projection of the state qon the compo-
+nentBi, and (2) the guard Gαdeﬁned over variables
+exported by ports {pi}i∈Iis evaluated to True. The
+function Fis triggered by the execution of α. It mod-
+iﬁes the variables {vxi}i∈Iexported by ports {pi}i∈I.
+Obtained new values {v∗
+xi}i∈Iare then processed by
+their respective components’ transitions, which in turn
+can apply transformations to obtain values {v′
+xi}i∈I.
+The clock valuation v′
+ctakes into account clocks that
+have been reset by their respective components’ transi-
+tions. States of components which are not participating
+in the interaction αremain unchanged.
+The second inference rule of Deﬁnition 6 states that
+Bcan execute a delay transition δfrom a state q=
+(l,vc,vx), only if respective time progress conditions
+{tpci}i∈Iof each participating component Biare eval-
+uated to True.
+3 Problem Statement
+In this article, we focus on transforming BIP models in
+such a way that the TT communication system can be
+explicitly instantiated in the resulting model.
+Since tasks are the building blocks of TT implemen-
+tations,it wouldbe interestingforthe userto be able to
+specify if several components are grouped into one task
+of its application. Therefore, we parametrize the trans-
+formation by a user-deﬁned task mapping which lists
+
+--- Page 6 ---
+TT-BIP 5
+diﬀerent application tasks and their composing compo-
+nents.
+In this section, we detail challenges of transform-
+ing a user-deﬁned task mapping and a high-level BIP
+model based on multi-party interaction model into an
+equivalent model where interactions comply with the
+TT communication pattern. From one hand, introduc-
+ing TT settings consists in (1) instantiating tasks in
+the derived model according to the user-deﬁned task
+mapping, (2) modelling the TT communication system
+by introducing dedicated components and (3) restrict-
+ing the synchronous multiparty inter-task interactions
+to simple unidirectional communications with the in-
+troduced communication components. From the other
+hand, the derived model is required to be observation-
+ally equivalent to the original BIP model.
+In order to understand diﬀerent challenges of such
+a transformation, consider the BIP model in Figure 3.
+p1 p2p3 p4 p5
+B1B2B3B4a1 a2
+p7
+B5p6a3
+Fig. 3: High-level BIP model
+In Figure 3, the model consists of ﬁve components
+B1,...,B5which aresynchronizingthrough rendezvous
+interactions a1, ...,a3. In BIP framework, interactions
+are executed sequentially and atomically by the BIP
+engine. Thus, combiningthe need for respectingthe TT
+settings with the need for providing the transformation
+correctness,requiresthetargetmodelto dealwith more
+complex issues:
+Decomposition into Tasks
+Tasks (processes, threads, etc.) are building blocks of
+TT applications. In the design phase, designers have
+the choice to model a TT task using one or more BIP
+components. This task mapping is needed not only for
+deﬁning task components but also for deﬁning inter-
+task interactions that are concerned by the transforma-
+tion.
+For example, if we consider the task mapping dis-
+played in Figure 4a for the model of Figure 3, then
+inter-task interactions are interactions a2anda3. Only
+these two interactions have to be handled by dedicated
+communication components. Figure 4b shows a skele-
+ton of the obtained model from the BIP model of Fig-
+ure 3 and task mapping of Figure 4a. Dashed and dot-
+ted lines in Figure 4b display communication between
+tasks’ components and their corresponding communi-
+cation components. Details about connectors of thesecommunications are provided by answering to the next
+challenge.
+Task1   = {B1; B2}
+Task2  = {B3; B4} 
+Task3  = {B5}
+(a)
+T ask1 T ask2B4
+T ask3p1 p2
+B1B2B3a1a2Communication component
+ for executing a2
+B5a2Communication component
+ for executing a3
+(b)
+Fig.4: Skeletonofthe obtainedmodel accordingto task
+mapping
+Strong synchronization in BIP interactions Vs.
+asynchronous message-passing
+In order to respect TT communication settings, the
+derived model should handle each inter-task commu-
+nication through a dedicated BIP component which
+stands for the TT communication system. This lat-
+ter can communicate with tasks only through message-
+passing. The challenge here is to switch from the high-
+level BIP model, where multi-party interactions pro-
+vide component synchronization on top of data trans-
+fer, to asynchronous message-passing communications
+while preserving the models equivalence.
+Suppose that the interaction a2of the example of
+Figure 3 allows to transfer data from component B2to
+components B3andB4. Note that this interaction is
+atomic and allows to synchronize components B2,B3
+andB4. Suppose alsothat the dashed lines in Figure 4b
+present three binary connectors allowing B2to send
+data to the communication component and B3andB4
+to receive data from that component. Clearly, this op-
+tion doesn’t preservethe synchronisationbetween these
+three components ensured by the interaction a2in the
+original model since the atomicity of the original inter-
+action is no more respected. In such a case, the commu-
+nication component must be designed so that execution
+of interactions does not introduce behaviors that were
+not allowed in the initial model.
+This issue is addressed by breaking the atomicity of
+execution of interactions. A task can execute unobserv-
+able actions to notify the communication component
+
+--- Page 7 ---
+6 Guesmi et al.
+about their states. If all participating components are
+ready, the communication component can execute the
+corresponding interaction.
+Resolving conﬂicts
+Suppose interaction a2is conﬂicting with interaction a1
+and/or with interaction a3. Interaction a2shares with
+interaction a1(resp.a3)component B2(resp.B4).Thus,
+a2can not execute concurrently with a1and/or with
+a3. In high-level BIP model, such conﬂicts are resolved
+by the single engine. TT communication components in
+the derived model must ensure that execution of con-
+ﬂicting interactions is mutually exclusive.
+4 Proposed Solution
+We propose a generic framework for transforming a
+high-level BIP model into an equivalent model satisfy-
+ing the TT settings and addressing the previously cited
+challenges.
+The obtained model (1) expresses multiparty inter-
+actions in terms of asynchronous message passing and
+(2) is observationally equivalent to the initial model.
+The target model is structured following a three-layer
+architecture called TT-BIP architecture:
+Layer 1
+The Task Components Layer consists of a transforma-
+tion of components corresponding to the behavior layer
+of the initial model. This layer also depends on a user-
+deﬁned task mapping. A task component can inter-
+fere even in an internal computation, intra-task inter-
+action (i.e. communication between components of the
+same task) or inter-task interaction (i.e. communica-
+tion with other tasks). Components within a task that
+are concerned by the inter-task interaction or partic-
+ipating in an intra-task interaction that is conﬂicting
+with an inter-task interaction, only communicate with
+dedicated communication components.
+Layer 2
+The communication Layer aims at modelling the TT
+communication system by hosting inter-task interac-
+tions and allowing to resolve their potential conﬂicts by
+soliciting the third layer. This layer contains TT com-
+munication component (TTCC) hosting each an inter-
+task interaction of the original model.
+We have essentially two conﬂict cases involving inter-
+task interactions; conﬂict between only inter-task in-
+teractions and conﬂict between inter-task interactions
+and intra-task interactions or internal computations.
+By dedicating a third layer for resolving conﬂicts, the
+ﬁrst case of conﬂicts, if existing, can be directly re-
+solved. Resolving the second conﬂict case, can not be
+resolved locally since a task has a partial observabilityof the system. This needs however, to host the con-
+ﬂicting intra-task interaction or internal computation
+in the communication layer in order to be resolved by
+requesting the third layer. Notice also that two con-
+ﬂicting intra-task interactions a1anda2, such that a2
+is conﬂicting with an inter-task interaction b, need both
+to be handled in the communication layer. We say that
+a2isdirectlyconﬂicting with b, whilea1isindirectly
+conﬂicting with the same interaction.
+Thus, this layer consists of components hosting each
+either an inter-task interaction or an interaction that
+is either directlyorindirectly conﬂicting with another
+inter-task interaction. For simplifying the notation, all
+constituent components of the communication layer are
+denoted by TTCC components.
+Layer 3
+The Conﬂict Resolution Protocol (CRP) Layer resolves
+the conﬂicts requested by the communication layer. In
+the original model, these conﬂicts are resolved by the
+BIPengine. In orderto guaranteeconﬂicts resolutionin
+the derived model, we reuse the same solution proposed
+in [10,14,15] which consists in dedicating a third layer
+to implement the fully centralized committee coordina-
+tion algorithm presented in [5].
+Cross-layerinteractionsaresend/receiveinteractions,
+i.e. providing a unidirectional data transfer from one
+sender component to one or more receiver(s).
+Note that tasks are building blocks of the ﬁrst layer,
+which addresses the ﬁrst challenge. The second layer
+allows to handle multiparty interaction of the original
+BIP model through dedicated communication compo-
+nents. And interactions between these components and
+task components are send/receive interactions, which
+addresses the second challenge. The introduction of the
+third layerand hosting all interactionsthat areconﬂict-
+ing with inter-task interactions in the communication
+layer allows to resolve the third challenge.
+4.1 TT-BIP: Architecture of the Target Model
+In this subsection, we present in details the TT-BIP ar-
+chitecture. As explained before, it imposes a structure
+for the target model of the transformation in order to
+guaranteeboth its compliancewith the TTsettings and
+its observational equivalence with respect to the origi-
+nal BIP model.
+A BIP model complies with the TT-BIP architec-
+ture if it consists of three layers: Tasks layer, TTCC
+layer and CRP layer, organized by the following ab-
+stract grammar:
+TT-BIP-Model::=Task+.TTCC+.CRP.
+S/R-connector+
+Task ::=connectors+.component+.
+atomic-talking-component+
+TTCC ::=TTCCNC|TTCCC
+
+--- Page 8 ---
+TT-BIP 7
+The TT-BIPmodelconsistsofaset ofTasks,TTCC
+and CRP components. A task component is a BIP com-
+ponent consisting of one or more components. Com-
+ponents within a task which interfere in inter-task in-
+teractions (via the task interface) are called atomic-
+talking-components (ATC). These latter can only com-
+municate with a TTCC component or a component
+within the same task. The behavior of a TTCC compo-
+nent depends on whether the interaction it is hosting is
+conﬂicting or not. If the interaction is conﬂicting, the
+TTCC component is denoted by TTCCCand needs
+to communicate with the CRP component. Otherwise,
+it is denoted by TTCCNC. Conﬂicts between diﬀerent
+TTCCCcomponents are resolved through CRP com-
+ponent.
+Task components (resp. TTCC components) and
+TTCCs(resp.CRPcomponents)communicatewitheach
+other through message-passing, i.e. send/receive inter-
+actions. Such interaction is a set of one send port and
+one or more receive ports. Communications between
+components inside a task are classic multi-party BIP
+interactions. Figure 5 shows an overview of the TT-
+BIP model derived from BIP model of Figure 3 and
+the task mapping displayed in Figure 4a. Notice that
+in Figure 5a, we assume that the interaction a2is con-
+ﬂicting only with the interaction a3, while in Figure 5b
+a2is conﬂicting with both a1anda3.
+T ask1 T ask2 T ask3p1 p2
+B1B2B3a1TTCCC     (a2)
+B5TTCCC      (a3)CRP
+B4
+(a)a2conﬂicting with a3
+T ask1 T ask2 T ask3B1B2B3TTCCC     (a2)
+B5TTCCC      (a3)CRP
+B4TTCCC     (a1)
+(b)a2conﬂicting with a1anda3
+Fig. 5: Overview of the TT-BIP model of the model of
+Figure 3Formally, we deﬁne a TT-BIP model as follows:
+Deﬁnition 7 Wesaythat BTT=γTT(BTT
+1,...,BTT
+n)
+is a TT-BIP model iﬀ we can partition the set of its
+ports into three sets Pu,PsandPrthat are respec-
+tively the set of unary ports, send ports and receive
+ports, such that:
+–Eachinteraction α∈γTTiseitherasend/receivein-
+teractionwith Pα=s,r1,...,r k,s∈Ps,r1,...,r k∈
+Pr,Gα=TrueandFαcopies variables exported by
+portsto variables associated with ports r1,...,r k,
+oraunaryinteraction—calledalso external interaction—
+wherePα=pαwithpα∈Pu,Gα=TrueandFαis
+the identity function.
+–Interactionsthatarerelatingcomponentsofthesame
+task are classic multiparty interactions—called in-
+ternalinteraction—.
+–Ifsis a port in Ps, then there exists one and only
+one send/receive interaction α∈γTTwithPα=
+(s,r1,...,r k)andallports r1,...,r karereceiveports.
+We say that r1,...,r kare receive ports of s,
+–In the TT-BIP model, from the same state, an in-
+ternal port can be simultaneously enabled only with
+anotherinternalport.Areceiveportcanbe conﬂict-
+ing either with receiveor send ports or both. A send
+port can be conﬂicting either with send or receive
+ports.
+–If deﬁned, update functions of transitions labelled
+by send ports do not involve data associated to the
+labelling port (send port).
+–Alltransitionsthataretriggeredbyreceiveportsare
+associated with timing constraint and guards that
+are always default to True.
+–Ifα∈γTTis a send/receive interaction such that
+Pα= (s,r1,...,r k) andsis enabled at some global
+state ofBTT, then all its receive ports r1,...,r kare
+also enabled at that state.
+4.2 Discussion
+The proposed solution leads out to a 3-layer architec-
+ture structuring the target model of the transforma-
+tion. Although our work doesn’t have the same goal
+as transformational approaches proposed in [10,14,15],
+butthereissomeintersectionbetweenbothtargetmod-
+els’architectures.Aiming atderivingdistributed imple-
+mentations from high-level BIP model, these cited ap-
+proachesproposeanintermediatemodel calledsend/re-
+ceive model. This latter is a 3-layer model consisting of
+components layer, schedulers layer and CRP layer.
+As already mentioned —earlier in this section—, we
+reuse the third layer of the send/receive model (i.e. the
+CRP layer) since it is, so far, the unique solution to
+guarantee the conﬂicts resolution without requesting
+
+--- Page 9 ---
+8 Guesmi et al.
+the BIP engine. The diﬀerence between the send/re-
+ceive and the TT-BIP architectures lies in the task no-
+tion introduced in the TT-BIP architecture. Thus, we
+build the task layer depending on a user-deﬁned task
+mapping,andweconstructcommunicationcomponents
+in orderto handle inter-taskinteractionsandother con-
+ﬂicting interactions. In the second layer of send/receive
+models,areintroducedschedulersallowingtohandlein-
+teractions between all components. Also, we introduce
+one component per external interaction, while a sched-
+uler of send/receive model can handle more than one
+interaction.
+5 Transformation of a BIP Model into a TT-BIP
+Model
+In this section, we describe in details our technique for
+transforming a BIP model
+Bdef=γ(B1,...,Bn)intoaTT-BIPmodel BTTsuchthat
+BTT=γTT(BTT
+1,...,BTT
+n,TTCC 1,...,TTCC m,CRP).
+One parameter to this transformation is the user-
+deﬁned task mapping which consists in associating to
+each task Tka group of components of the model B.
+We denote by Bthe set of components of model B.
+The task mapping is formally deﬁned as follows:
+Deﬁnition 8 (Task mapping) We assume, we have
+K≤ntasks and we denote by T={Tk}k∈Kthe task
+set, such that Tis a partition of B: where for all j,k∈
+Kandj/\e}atio\slash=k,Tj∩Tk=∅. For all k∈Kwe have
+Tk={Bi}i∈Ik,Ik⊆Ksuch that ∪
+k∈KIk=K.
+Thetransformationprocessisperformedintwosteps
+asshowninFigure6.First, depending onthe giventask
+mapping, the original model is analysed in order to de-
+ﬁne the set of components and connectors to be trans-
+formed. Then, the BIP model is transformed into a TT-
+BIP model where only inter-task interactions and other
+related conﬂicting interactions are replaced by TTCC
+components. Non conﬂicting intra-task interactions re-
+main intact.
+We ﬁrst present details about the analysis phase in
+Subsection 5.1. Then, we explain how concerned com-
+ponents are transformed and how task components are
+instantiatedinSubsection5.2.ThenweshowhowTTCC
+components are built in order to coordinate task com-
+ponents in Subsection 5.3. The behavior of the CRP
+component is detailed in Subsection 5.3.1. Finally, we
+deﬁne the cross-layer connections in Subsection 5.5.
+5.1 Analysis phase
+We have ﬁrst to identify internal and external interac-
+tions as well as ATC components denoted respectively
+AI,AEandBATC. These obtained sets are inputs for
+the transformation of components and connectors of B
+intoBTT.User-dened
+ task Mapping BIP model
+TT-BIP modelStep 2Analysis phase
+Component Transformation
+TTCC and CRP constructionStep 1
+Fig. 6: A two-step transformation
+External interactions
+In order to be able to deﬁne the set AE, we need ﬁrst
+to deﬁne the set of inter-task interactions denoted AIT.
+An interaction a∈γis an inter-task interaction iﬀ at
+least two of its participating components belong to two
+diﬀerent tasks. Formally,
+AIT=/braceleftbigg
+α∈γ/vextendsingle/vextendsingle/vextendsingle/vextendsingle∃B1,B2∈comp(α),T1,T2∈ T:
+B1∈T1,B2∈T2,T1/\e}atio\slash=T2/bracerightbigg
+We denote intra-task interactions that are either di-
+rectlyorindirectly conﬂicting with inter-task ones by
+A#
+ITdeﬁned as follows:
+A#
+IT={a∈γ|a/\e}atio\slash∈AIT,∃α∈AIT:a#α}
+∪/braceleftbigg
+a∈γ/vextendsingle/vextendsingle/vextendsingle/vextendsinglea/\e}atio\slash∈AIT,∃b/\e}atio\slash∈AIT,
+∃α∈AIT:a/\e}atio\slash=b,a#b,b#α/bracerightbigg
+And we denoteby Ap
+ITthe set oftransitionslabelled
+by internal ports and conﬂicting with interactions of
+A#
+IT∩AIT. It is deﬁned as follows:
+Ap
+IT=/braceleftBigg
+p/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle∀a∈γ,p/\e}atio\slash∈Pa,∃α∈AIT∪A#
+IT,:q∈Pα,
+∃i∈[1,n],∃l∈Li:lp− →,lq− →/bracerightBigg
+As explained in Deﬁnition 7, AEconsists of inter-task
+interactions AIT, intra-task interactions A#
+ITand inter-
+nal transitions Ap
+ITthat are either directlyorindirectly
+conﬂicting with inter-task ones. Thus, we have:
+AE=AIT∪A#
+IT∪Ap
+IT (3)
+Internal interactions
+The set AIis deﬁned as the set of intra-task interac-
+tions (i.e. participating components are belonging to
+the same task) which are neither directlynorindirectly
+conﬂicting with inter-task components:
+AI=γ\AE. (4)
+
+--- Page 10 ---
+TT-BIP 9
+Atomic talking components
+BATCset is the set of components in Bthat are con-
+cerned by external interactions AE. We deﬁne:
+BATC={B∈ B|AE∩PB/\e}atio\slash=∅}, (5)
+wherePBis the set of ports of the component B.
+5.2 Transformation of Task Components
+We transform each ATC component Bi∈ B∩BATCof
+a BIP model into a TT ATC component BTT
+ithat is
+capable of communicating with TTCCcomponent(s).
+This transformation consists mainly in decomposing
+each ”atomic” inter-task synchronization into send and
+receive actions. The synchronization between the ATC
+component (via the task interface) and the TTCC layer
+is implemented as a two-phase protocol.
+First,BTT
+isendscommunication oﬀersthroughded-
+icated send ports. Then, in the second step, it waits for
+a notiﬁcation coming from the TTCC component via a
+receive port. The communication oﬀercontains infor-
+mation about the enabledness of the interaction. Each
+oﬀer is associated to one of the enabled ports of Bi
+through which the component is ready to interact. An
+oﬀer consists of a set of variables related to the cor-
+responding enabled port. Let pbe such port enabled
+from a location l(i.e.lp− →). The set of variables of the
+corresponding oﬀer includes variables initially exported
+bypsince they may be read and written by the inter-
+action. It also includes variables tcpandtpclstoring
+respectively timing constraint of transition labelled by
+pand enabled from land the time progresscondition of
+the location l. Another variable gpis dedicated to store
+the evaluation of the Boolean guard of the transition
+labelled by pand enabled from l. The oﬀer contains
+also a variable fistoring the update function of the
+transition labelled by the port p. In order to be able to
+resolve conﬂicts, each oﬀer contains the participation
+countvariablenbof the component BTT
+i. This variable
+countsthe numberofinteractions BTT
+ihasparticipated
+in.
+The notiﬁcation —received after sending oﬀers—
+allows the ATC component to execute the transition
+triggered by the enabled receive port marking the end
+of the interaction.
+Noticethateachoﬀer—sentbyacomponent—contains
+information about only one enabled interaction among
+the enabled interaction set. Therefore, if in the original
+modelB, more than one interaction involving Biare
+enabled, then BTT
+ihas to send ﬁrst successive oﬀers
+before waiting for notiﬁcation from the TTCC com-
+ponent executing the interaction selected after conﬂict
+resolution.
+Let a location l, inBi, from which p1,...,pnare en-
+abled such that at least one of the nports interferesin an inter-task interaction. In BTT
+i, we split such a
+location linton+1 locations, namely litself and loca-
+tions{⊥l
+pi}i∈[1,n]from which corresponding oﬀers are
+sent (see Figure 7). Consider the case when, in the orig-
+l
+p1p2p3op1
+tpcltpcl
+tpcl
+tpcl
+tpclop2
+op3
+p1p2p3⟂l
+p1
+⟂l
+p2
+⟂l
+p3
+Fig. 7: Component transformation into an ATC com-
+ponent
+inal model Bi, time is allowed to progress from location
+l, i.e. before executing the interaction. In order to en-
+force the correctness of the target model, time should
+be able to progress until the interaction is actually ex-
+ecuted. Thus we associate to locations ⊥l
+pithe time
+progress condition of location loriginally deﬁned in the
+component Bi.
+5.2.1 Expressing Timing Constraints andTime Progress
+Conditions over a Common Global Clock
+In BIP framework, each component can deﬁne its own
+local set of clocks. These clocks can be reset at any
+time and are used in deﬁnitions of timing constraints
+and time progress conditions.
+Inordertoexecuteanexternalinteraction a=pi,i∈I,
+a TTCC component needs to evaluate the timing con-
+straint of the interaction, i.e. the conjunction of timing
+constraints of transitions labelled by ports piinvolved
+in the interaction in the original model. These respec-
+tivetiming constraintsaresent byrespectiveATC com-
+ponents to the TTCC layer within oﬀers. In order to al-
+low the TTCC to compute interactions between tasks
+components and schedule them correctly, we need to
+reduce the eﬀort of keeping track of diﬀerent clocks
+of participating components. This can be resolved by
+expressing timing constraints in terms of a single time
+scale, that is, a single globalclock. Moreover,the global
+
+--- Page 11 ---
+10 Guesmi et al.
+time scale is a key feature of the TT paradigm targeted
+by the transformation.
+For these two reasons, we need to translate all tim-
+ing constraints and express them over the global clock.
+We denote by cg, the global clock which is initialized
+to 0 and measures the absolute time elapsed since the
+system started executing, i.e. cgis never reset.
+We follow a similar approach as in [2] in order to
+translate selected timing constraints. Here are the dif-
+ferent translation steps:
+1. foreachcomponent Bi∈ Bandforeachclock c∈C,
+we introduce a variable wcthat stores the absolute
+time of the last reset of c. The variable wcis initial-
+ized to zero and updated to the absolute time (i.e.
+the valuation of the global clock cg) whenever the
+component executes a transition resetting clock c.
+2. Each atomic expressions lb/lessorequalslantc/lessorequalslantubinvolved in a
+timing constraint tc, is rewritten by using the global
+clockcgand the variable wc. Mainly, we have to add
+to the initial lower and upper bounds the last reset
+valuewcof the local clock cas follows:
+lb/lessorequalslantc/lessorequalslantub≡lb+wc/lessorequalslantcg/lessorequalslantub+wc (6)
+3. Similarly, we rewrite each atomic expressions c/lessorequalslant
+ubof time progress conditions tpc—deﬁned on all
+locations from which an external interaction can be
+enabled—as follows:
+c/lessorequalslantub≡cg/lessorequalslantub+wc (7)
+Notice that the value of each local clock ccan be com-
+puted from the current value of the global clock cgand
+the variable wcby using the equality c=cg−wc. This
+allowstoentirelyremoveclocksofcomponents Bi,keep-
+ing only the clock cgand variables wc;c∈C.
+5.2.2 Formal transformation rule
+Rule 51 (Transforming ATC components) Each
+ATC BIP component Bi= (Li,Pi,Xi,Ci,Ti,tpci)∈
+BATCis transformed intoa TT ATC component BTT
+i=
+(LTT
+i,PTT
+i,XTT
+i,CTT
+i,TTT
+i,tpcTT
+i)as detailed by the
+following rules:
+–Each location l∈Li, enabling ports {pj}j∈[1,n]⊆
+Pi∩AE, is split into n+ 1locations. Obtained lo-
+cations are litself and locations {⊥l
+pj}j∈[1,n]. The
+time progress conditions of locations ⊥l
+pjandlare
+equal totpc(l),
+–Each port pj∈Pi∩AEsuch that lpj− →, is split into
+two ports; receive port pjand send port opj. A port
+pj∈PTT
+iexports variables Xpj⊆Xioriginally ex-
+ported by port pj∈Pi. A portopjexports, on top of
+variables Xpj⊆Xi, variables tpc,tcp,gp,fpandnb
+which are respectively the timing constraint variable,the time progress constraint variable, the Boolean
+guard variable, the update function variable and the
+participation count variable. These variables store
+respectively tpcof location l(i.e.tpc(l)) expressed
+on clock cg, the timing constraint, the update func-
+tion and the guard of transition enabled from land
+labelled by pjand the number of interactions the
+component has participated in.
+–For each clock c∈Ci, we add a corresponding reset
+variablewc,
+–For each transition τpj= (l,pj,gτpj,tcτpj,rτpj,fτpj,
+l′), such that ∀j∈[1,n],lpj− →andpj∈Pi∩AE,
+we include, in TTT
+i, the corresponding oﬀer transi-
+tionτopjand notiﬁcation transition τ′
+pj. The oﬀer
+transition τopjis enabled from location ⊥l
+pj. Both
+its guard and timing constraint are True. Its up-
+date function is the identity function and it resets
+no clock. It reaches location ⊥opkifj/\e}atio\slash=kand the
+oﬀeropkis not yet sent,otherwise it reaches location
+l. Notiﬁcation transition τ′
+pjis enabled from location
+land reaches location l′. As in the oﬀer transition,
+guard and timing constraint of the notiﬁcation tran-
+sition are always True. It resets the same clock set
+asrτpj. The update function fτ′
+pj(1) updates the
+clock reset variables: ∀c∈rτpj,wc=vc(cg), where
+vcis the clock valuation function, (2) increments
+the participation count variable nband (3) updates
+variables of oﬀers sent from next reached state.
+–For each transition τp= (l,p,gτp,tcτp,rτp,fτp, l′),
+such that p∈Pi\AE, we instantiate the transi-
+tionτ′
+p, where only the update function is changed
+compared to the initial transition τp. The update
+function fτ′p(1) applies the original update function
+fτp, (2) updates the clock reset variables: ∀c∈rτpj,
+wc=vc(cg), wherevcis the clock valuation func-
+tion, (3) increments the participation count variable
+nband (4) updates variables of oﬀers sent from next
+reached state.
+–In order to update variables of oﬀers that will be
+sent from its reached location l′, a transition needs
+to execute the following functions:
+–tpc:=tpc(l′)cg, wheretpc(l′)cgcorresponds to
+expressing the tpc of l′over the global clock cg
+following (7),
+–∀p∈Pi∩AE, such that ∃τp= (l′,p,gτp,tcτp,rτp,
+fτp,l”)∈Ti,tcp:=tccg
+τp,gp=gτpandfp:=fτp,
+wheretccg
+τpcorresponds to expressing the timing
+constraint of τpover the global clock cgfollowing
+(6) andgτpis the guard evaluation.
+After applying Rule 51, we can formally deﬁne the ob-
+tained component in function of the original one.
+
+--- Page 12 ---
+TT-BIP 11
+Deﬁnition 9 Formally, BTT
+iis obtained from Bias
+follows:
+–LTT
+i=Li∪L⊥, whereL⊥={⊥l
+p|∃l∈Li,∃τ=
+(l,p,g,tc,r,f,l′)∈Ti,p∈Pi∩AE},
+–PTT
+i=Pi∪Po, where Po={op|p∈Pi∩AE}.
+Each port opexports the set of variables XTT
+op=
+Xp∪{tpc,tcp,gp,fp,nb}.Forallportsin p∈Pi∩AE,
+we have XTT
+p=Xp. For all ports p∈Pi\AI, we
+haveXTT
+p=Xp. ,
+–XTT
+i=Xi∪{tpc}∪{tcp,gp,fp}p∈Pi∩AE∪{wc}c∈Ci∪
+{nb},
+–CTT
+i={cg},
+–TTT
+i={τop}p∈Pi∩AE∪{τ′
+p}p∈Pi. Such that for each
+τp= (l,p,gτp,tcτp,rτp,fτp,l′)∈Tiwe have:
+τop= (⊥l
+op,op,True,True,∅,Id,⊥′l
+op) ifp∈Pi∩AE
+τ′
+p= (l,p,True,True,rτp,fτ′p,l′),
+where⊥′l
+opislor⊥l
+oqsuch that lq− →andfτ′pis as
+described in Rule 51.
+–For places of L⊥, the time progress condition
+tpcTT(⊥l
+op) =tpc(l).
+Example 1 Figure8illustratestransformationofanATC
+component into its corresponding ATC TT component.
+In this example we consider that ports pandqare par-
+ticipating in external interactions.
+5.3 Building TTCC Components
+As explained before, a TTCC component layer is intro-
+duced initially in order to handle intertask interactions
+andthus modelthe TT communicationsystem. Bycon-
+sidering the need for operationalequivalence, and in or-
+der to be able to resolveall conﬂicts of the target model
+interactions, the TTCC layer handles, on top of inter-
+task interactions, other interactions that are conﬂicting
+directly or indirectly with these latter. Recall that all
+interactions of the original model, that are handled in
+the TTCC layer are called external interactions.
+Initially, all components are doing their initial com-
+putations and the TTCC layer does not know their
+state or their enabled communication ports until they
+send oﬀers. Handling only one external interaction, a
+TTCC can execute this latter only when all participat-
+ing tasks’ components have sent their oﬀers and are
+ready to execute the interaction.
+Since in the input model we assume that no priority
+rules can be established between external interactions,
+a TTCC component doesn’t need to connect with tasks
+participatingininteractionsothertheoneitishandling.
+Since the enabledness ofits interaction only depends on
+oﬀers received from its participating tasks components.When the interaction is conﬂicting with another exter-
+nal interaction, the TTCC has to communicate, after
+checking the enabledness of the interaction, with the
+CRP in order to get the permission or not to execute.
+We call this communication a reservation mechanism.
+To summarize, the behavior of a TTCC component
+handling an interaction a= (a,Ga,Fa)∈γis made
+of three steps: (1) it waits for oﬀers from its partici-
+pating task components, (2) once all oﬀers are received
+—regardless their order, the TTCC component takes a
+decision by either executing the interaction upon syn-
+chronization (i.e., conjunction of received guards and
+Gaevaluates to True) ifais a non-conﬂicting interac-
+tion or soliciting the CRP component to ﬁnd out if the
+conﬂicting interaction acan be executed and (3) ﬁnally
+it writes on appropriate task components by sending a
+notiﬁcation.
+Figure 9 shows a representative part of a TTCC
+automaton, where we can distinguish the three steps.
+From location wait, the TTCC is waiting for respective
+oﬀersfrom its participatingcomponents. Since these of-
+fers can be received in a random order, the TTCC is
+designed in such a way to allow all possible combina-
+tion from location wait. Once all oﬀers are received, the
+location readis reached. From this location, the TTCC
+startsthesecondstepinordertoexecutetheinteraction
+depending on whether it is conﬂicting or not. Once the
+TTCC executes the interaction, the automaton reaches
+location sendfrom which it executes a transition al-
+lowing to notify participating components and reaches
+back the location wait. All transitions of the ﬁrst step
+are triggered by receive ports corresponding to respec-
+tive oﬀers. The transition of the third step is triggered
+by a send port. Behaviour and ports triggering transi-
+tions of the second step are detailed later.
+Let a TTCC component handling an external inter-
+actionα= (Pα,Gα,Fα)∈γ∩AE. We denote by n
+the number of components related to TTCC, i.e. the
+number of participating components of α.
+In the case when αis a non-conﬂicting interaction,
+the execution of this latter is performed without re-
+questing the CRP component. As shown in Figure 10a,
+the TTCC executes a transition from location readto
+sendlabelled by a unary port denoted pα. Its update
+function executes the update function Fαof the inter-
+actionα, and then respective update functions that are
+received in oﬀers. The transition pαis guarded by the
+conjunction of the guard Gαand respective guards and
+timing constraints received in oﬀers. If the conjunction
+of these guards evaluates to True, the interaction is
+executed and the TTCC sends a notiﬁcation to partic-
+ipating components.
+
+--- Page 13 ---
+12 Guesmi et al.
+l
+l3l1
+l2pq
+i2i3
+i1c3
+1c3
+2c4fp
+reset        f
+
+xy
+creset        c
+clock c i1i2i3fi3
+fi1fi2
+l3l1
+l2p	i2
+i3
+i1cg
+3+wc
+2wc
+cg4wc
+f'fq
+
+y
+clock cgo
+o
+
+
+tpctcp
+gp nb tcqgq wcwc:=cg
+tpc:=cg3+wcwc:=cg
+tcp:=1+wc
+cg3+wc
+gp:=Truetcq:=- cg+ 
+gq:=Truenb++f'pnb++
+f'qnb++
+f'i2fi2
+f'i3
+f'i1f'i2nb++f'i1fi1
+nb++
+f'i3fi3
+i1i2i3f0
+tpc:=cg!3+wc
+tcp:=1+wc
+"cg#3+wc
+gp:=Truetcq:=-$ %cg&+(
+gq:=Truetpc:=cg)3+wc
+tcp:=1+wc
+*cg,3+wc
+gp:=Truetcq:=-- .cg/+0
+gq:=Truef0
+s
+cg13+wc
+cg23+wc
+3l
+q
+lfp fq
+fp:=fp
+fq:=fqfp:=fp
+fq:=fq
+fp:=fp
+fq:=fq
+Fig. 8: Example of transformation of an ATC component
+wait
+loilojreadsend
+Receive respective offers
+ from participating
+ componentsExecute interactionSend notification
+Fig. 9: Skeleton of a TTCC automaton
+In the case when αis conﬂicting with another in-
+teraction, the TTCC goes through a reservation mech-
+anism (cf. Figure 10b). If the interaction is enabled, i.e.
+the conjunction of the guard Gαand respective guards
+and timing constraints received in oﬀers evaluates toTrue, the TTCC executes transition rsvαfrom location
+read. This transition reaches location try. By the exe-
+cution of rsvα, a reservation request is sent to the CRP
+component.Thisreservationcontainsdiﬀerent valuesof
+participation count variables of αparticipating compo-
+nents. Based on these participation counters, the CRP
+decideswhethertoallowordisallowtheinteractionexe-
+cution. It notiﬁes the TTCC component either through
+portokαin the case when the reservation succeeds or
+through port failαif the reservation can not be made.
+While waiting for CRP notiﬁcation, the TTCC occu-
+pies the location try. If the port okαis enabled, then
+it executes the transition reaching location sendfrom
+which notiﬁcation to components are ready to be sent.
+Note that update function Fαcomposed with those of
+received oﬀers is associated with the transition labelled
+by theokαport. If the port failαis enabled, the TTCC
+
+--- Page 14 ---
+TT-BIP 13
+reachesbackthe location readin orderto proceedagain
+for the reservation.
+read sendp45i gi 6 789i tci wait
+loilojoi
+f1
+:...∘fn∘F;
+(a)αis not conﬂicting
+read try
+r < =>send
+? @A
+f B C DEFi gi G GHIi tci wait
+loilojJ1 
+K L2... Mn
+N1 
+O P2... Qn
+R1 
+S T2... UnV1 
+W X2...Yn
+Zif1
+[...\fn
+]F^
+(b)αis conﬂicting
+Fig. 10: Mechanisms for execution of interaction α=
+(Pα,Gα,Fα)
+When an ATC component is participating in two
+conﬂicting interactions α1andα2, it sends successively
+oﬀers to each of the corresponding TTCC components
+TTCC α1andTTCC α2and waits from a notiﬁcation
+from one of them. After resolving the conﬂict by re-
+questing the CRP, suppose TTCC α1will notify the
+component after successfully executing the interaction
+α1, whileTTCC α2reaches back its location readin or-
+der to proceed to a new reservation attempt. The com-
+ponent is able to continue execution of its next tran-
+sitions. And it may reach again the location allowing
+to send again oﬀers to TTCC α1andTTCC α2. Both
+TTCC components should be ready to receive the of-
+fers. For that, we add loop transitions in TTCC au-
+tomata labelled by oﬀers receive ports over locations
+readandtry. Furthermore, such an ATC component
+may need to resend an oﬀer to a TTCC even before
+this latter receives other oﬀers from the rest of its par-
+ticipating components. This is resolved by adding loop
+transitions labelled by oﬀer receive ports over locations
+that areplaced between location waitandread(cf. Fig-
+ure 10b). These added loop transitions allow to respect
+the last point of Deﬁnition 7 stating that whenever a
+send port is activated, all its receive ports are enabled
+as well.
+5.3.1 Formal Transformation rules
+In the following, we explicit the transformation rule al-
+lowing to instantiate a TTCC components for each ex-
+ternal interaction. Each external interaction
+α= (Pα,Gα,Fα)∈γ∩AE, such that Pα={pi}i∈[1,n],
+andcomp(α) ={Bi}i∈[1,n],istransformedintoaTTCCcomponent TTCC=
+(LTTCC,PTTCC,XTTCC,CTTCC,TTTCC,tpcTTCC).
+Rule 52 (Ports PTTCCand variables XTTCC)
+–For each port pi∈Pα, we include in PTTCCa re-
+ceive port opi. For each port opiwe associate a local
+copy of the set of variables Xpiinitially exported by
+portpiof component Bi. We associate also to opi
+the time progress condition variable tpci,the timing
+constraint variable tcpi, the Boolean guard variable
+gpi, the update function variable fpiand the partic-
+ipation count variable nbi.
+–We include also one send port pα
+sinPTTCC. To
+the portpα
+s, we associate sets of local variables Xpi,
+pi∈Pα.
+–Ifαis not conﬂicting, then we include a unary port
+denotedpα, which allows to label the transition ex-
+ecuting the interaction. Otherwise, we include in
+PTTCCone send port rsvαand two receive ports
+okαandfailα. Only port rsvαhas associated vari-
+ables, which are participation count variables nbifor
+alli∈[1,n], i.e. all participation count variables of
+participating components {Bi}i∈[1,n]
+Rule 53 (Clock set CTTCC)As explained before, the
+TTCC component deﬁnes only one clock which is the
+global clock denoted cg.
+Rule 54 (Locations set LTTCCandtpcTTCC)
+–We include in LTTCClocationwaitmarking thee be-
+ginning of oﬀer reception, location readmarking the
+reception of all oﬀers and the location sendmark-
+ing the end of interaction execution. If n≥2, we
+include —between location waitandread—the set
+of intermediate waiting locations L⊥allowing recep-
+tion of oﬀers in any order.
+LetO={opi|pi∈Pα,i∈[1,n]}be the set of all of-
+fers received by TTCC. The set L⊥is constructed
+as follows; L⊥={lk
+Ok|k∈[1,n−1],Ok∈ Pk(O)},
+wherePk(O)is thek-permutation of O, allowing
+to indicate the ordered subset of oﬀers sent before
+reaching the location lk
+Ok. Note that the cardinality
+ofL⊥is|L⊥|=n−1/summationtext
+k=1n!
+(n−k)!. Figure 11 shows how in-
+termediate waiting locations (displayed in gray) are
+constructed for n= 2andn= 3. Its shows also
+the case when n= 1, where no intermediate waiting
+location is needed.
+–Ifαis conﬂicting, we introduce in LTTCCthe loca-
+tiontryallowing the reservation mechanism.
+–The time progress condition of location waitis set to
+True. The time progress condition of location send
+is False. In the case of a conﬂicting TTCC, the time
+progress condition of its tryis True. For location
+
+--- Page 15 ---
+14 Guesmi et al.
+waitreado1
+(a) n=1wait read
+l1o1
+o1 o2o2 {o1}
+{o2}l1
+(b) n=2
+wait read l1o1o2
+l1l2
+o1
+o3o2
+o2o3
+o2o3o2
+o1l2
+l2
+l2
+l2
+l2o1o3o3
+o1l1
+{o1}
+{o3}{o2}{o1
+_o2
+}{o1
+`o3
+abo2
+co1
+deo2
+go3
+hio3
+jo1
+klo3
+mo2
+n
+(c) n=3
+Fig. 11: Intermediate waiting locations
+read, the time progress condition is set to the con-
+junction of time progress conditions received in the
+oﬀers. That is, after receiving oﬀers from partici-
+pating components, we require that the TTCC com-
+ponent executes its interaction before diﬀerent time
+progress conditions of participating components be-
+come False.
+Rule 55 (Transitions set TTTCC)
+–In order to receive oﬀers from task components Bi,
+we include receiving transition, we have three classes
+of receiving transitions; the ntransitions starting
+from location wait and labelled each by an oﬀer port,
+transitions between locations L⊥and transitions reach-
+ing the location read. They are respectively as fol-
+lows:
+τopi=(wait,o pi,True,True,∅,Id,l1
+O1),
+∀O1∈ P1(O) :opi∈O1,
+τopi=(lk
+Ok,opi,True,True,∅,Id,lk+1
+Ok+1),
+∀k∈[1,n−2] :Ok/∼ub∼etnoteqlOk+1,opi∈Ok+1\Ok,
+τopi=(ln−1
+On−1,opi,True,True,∅,Id,read ),
+∀On−1∈ Pn−1(O) :opi/∈On−1.
+These transitions’ guards and timing constraints are
+default to True, their update functions are the iden-
+tity function and they does not reset clocks.
+–Ifαis conﬂicting, the set of transitions includes loop
+waiting transitions as already explained, for each
+lk
+Ok∈L⊥, we include kloop transitions labelled each
+by an oﬀer port opi∈Ok. That is, for each lk
+Ok∈
+L⊥, and for each opi/∼ub∼etnoteqlOk, we include the transitionτlk
+Okopi= (lk
+Ok,opi,True,True,∅,Id,lk
+Ok). we add also
+loop transitions on locations readandtry, i.e. for
+eachopi∈ O, we add τread
+opi= (read,opi,True,True,
+∅,Id,read)andτtry
+opi= (try,opi,True,True,∅,Id,try).
+These transitions allow components participating in
+conﬂicting interactions that have already sent their
+oﬀer to be able to send it again.
+–To notify task components after executing the inter-
+actionα, we include the transition τsend=
+(send,pα
+s,True,True,Identity, ∅,wait).
+–Ifαis not conﬂicting, we include the transition τα=
+(read,p α,G∗,TC∗,∅,F∗,write), where the port pα
+is a unary port, G∗=Gα/logicalandtext(n/logicalandtext
+i=1gpi),TC∗=n/logicalandtext
+i=1tcpi,
+F∗=fp1◦...◦fpn◦Fαsuch that GαandFαare re-
+spectively the guard and the update function of the
+initial interaction α,gpi,tcpiandfpiare respec-
+tively the guard, the timing constraint and the up-
+date function of oﬀer opi.
+–Ifαis conﬂicting, we include transitions allowing
+the reservation mechanism: τrsv= (read,rsv,G∗,
+TC∗,∅,Id,try),
+τok= (try,ok,True,True,∅,F∗,send),
+τfail= (try,fail, True,True,∅,Id,read ), whereG∗,
+TC∗andF∗are as detailed in the previous item.
+Example 2 In Figure 12b (resp. Figure 12c), we illus-
+trate transformation of a conﬂicting (resp. non con-
+ﬂicting) external interactions αinto its corresponding
+TTCC component. In these examples we consider that
+portspandqof the interaction αare exporting respec-
+tively variables xpandxq.
+The conﬂict resolution protocol (CRP) that we use
+in our workis the same CRP used in [10,14,15].It is, so
+far, the unique solution to guarantee the resolution of
+conﬂicts without requesting the BIP execution engine.
+It accommodates the algorithm proposed in [5]. It uses
+message counts to ensure synchronization and reduces
+the conﬂict resolution problem to dining or drinking
+philosophers [8]. Its main role is to check the freshness
+of requests received for an interaction, that is, to check
+that no conﬂicting interactions have been already ex-
+ecuted using the same request. In each request, an in-
+teraction sends the participation numbers of its compo-
+nents, i.e. number of interactions each ATC component
+has participated in. This ensures that two conﬂicting
+interactions cannot execute with the same request. Mu-
+tual exclusion is ensured using participation numbers.
+To this end, the conﬂict resolution protocol keeps the
+last participation number NBiof each component Bi
+and comparesit with the participation number nbipro-
+vided along with the reservation request from TTCC
+components. If each participation number from the re-
+
+--- Page 16 ---
+TT-BIP 15
+p qsp
+tq
+u=({p,q},Gv,Fw)
+(a) Original interactionwait read
+l1oqyq
+zp
+|p{oq}
+{op}l1
+clock cgtry
+~  sendokfail
+ p
+ q
+tcp  tcqp
+qp
+
+  okfail
+opoqq
+p
+q
+pnb1nb2q
+p fp
+fq∘F 
+tpc1
+ptcpgp nb1 fp tpc2
+qtcqgq nb2 fpps
+
+(b) TTCC component of a conﬂicting interaction
+wait read
+l1oq
+oq opop{oq}
+{op}l1
+clock cgsendp ¡¢
+£ gp ¤ gq
+tcp ¥ tcq
+op oqps
+¦opoq
+ fp
+§fq
+¨F© oqop
+tpc1xptcpgp nb1 tpc2
+ªqtcqgq nb2
+«q
+¬pp­
+fp fpps
+®
+(c) TTCC component of a non-conﬂicting interaction
+Fig. 12: Example of transformation of an interaction into a TTCC com ponent
+quest is greater than the one recorded by the conﬂict
+resolutionprotocol ( nbi> NB i), the interaction is then
+granted to execute and NBiis updated to nbi. Other-
+wise, the interaction execution is disallowed.
+Example 3 Figure 13 presents the places, transitions,
+variables, guards and update functions involved in han-
+dling an interaction αwith two participating compo-
+nentsB1andB2. Whenever a reservation for executing
+αarrives,the place rαis reached.From this place, if the
+guardofthe transitionlabelled by okαisTrueaccording
+to the current values of NBivariable and freshly re-
+ceivednbivariables, the transition can take place. The
+transition labelled by failαis always possible.
+5.4 Building the CRP Component
+5.4.1 Formal Transformation rule
+In the following, we explicit the rule allowing to instan-
+tiate a CRP component.
+Rule 56 Given the model Bdef=γ(B1,...,Bn), we in-
+stantiate the component CRP=
+(LCRP,PCRP,XCRP,CCRP,TCRP,tpcCRP)where:
+–LCRPcontains the waiting place wwheretpc(w) =
+True;
+–XCRPcontains the last used oﬀer variable Nifor
+eachBi∈comp(α)whereα∈AE,fail¯ ok°NB1
+± nb1
+²NB2
+³nb2w´ µ¶·r¸NB1:= nb1NB2:=nb2
+nb1nb2
+NB1NB2rsv¹okºfail»
+Fig. 13: Fragment of the CRP component
+–CCRP=cg,
+–For each externally conﬂicting α∈AE,
+–LCRPcontains the reservation place rαwhere
+tpc(rα) =False,
+–PCRPcontains the ports rsvα,okαandfailα,
+–XCRPcontains the participation numbers
+{nbα
+i|Bi∈comp(α)}. These variables are asso-
+ciated to the port rsvα. Portsokαandfailαdo
+not have associated variables.
+–TCRPcontains the following three transitions;
+τrsvα= (w,rsvα,rα),τokα= (rα,okα,w)and
+τfailα= (rα,failα,w). The transitions τrsvαand
+τfailαhas no guard, no timing constraint and no
+
+--- Page 17 ---
+16 Guesmi et al.
+update function. The transition τokαhas no tim-
+ing constraint but is guarded by
+Gτokα=/logicalanddisplay
+Bi∈comp(α)nbα
+i> NB i.
+Its update function sets the variables NBiof
+components Bi∈comp(α)to the values of corre-
+sponding participation numbers nbα
+i: i.e. for each
+Bi∈comp(α), it performs NBi:=nbα
+i.
+5.5 Cross-layer interactions
+In this section, we deﬁne the interactions between the
+task components and the TTCC layer and between this
+latter and the CRP component. Tasks and TTCC com-
+ponents exchange oﬀers and notiﬁcations. Communica-
+tion between TTCC components and the CRP compo-
+nent involves the transmission of messages correspond-
+ing torsv,okandfail(cf. Rule 57). In the following
+rule, and for clarityofpresentation, we use the notation
+B.pto denote the port pof the component B.
+Rule 57 LetBdef=γ(B1,...,Bn)be a BIP model, T
+be a task mapping. We deﬁne the obtained model after
+transformation as
+BTT=γTT(BTT
+1,...,BTT
+n,TTCC 1,...,TTCC m,CRP).
+The send/receive interactions of γTTare deﬁned as fol-
+lows:
+–For each task component BTT
+Tjsuch that Tj∈ T, for
+each port BTT
+Tj.opand each TTCC αsuch that p∈
+α, we include in γTTthe oﬀer interaction based on
+ports (BTT
+Tj.op,TTCC α.op). Its guard is set to True.
+And its update function copies variables associated
+withBTT
+Tj.opto those of the receive port TTCC α.op.
+–For each TTCC α, and all {BTT
+Tj}j∈J, such that for
+allj∈J,Tj∩comp(α)/\e}atio\slash=∅, we include the notiﬁ-
+cation interaction based on ports
+(TTCC α.pα
+s,{BTT
+Tj.pj}j∈J), where for all j∈J,
+pj∈α. Its guard is set to True. And its update func-
+tion copies variables associated with TTCC α.pα
+sto
+those of the receive ports BTT
+Tj.pj.
+–For each interaction α∈γthat is not conﬂicting, we
+include the unary interaction having as unique port
+(TTCC α.pα), where TTCC αis the TTCC compo-
+nent handling the interaction α. Its guard is set to
+True. And its update function is the identity func-
+tion.
+–For each interaction α∈γthat is conﬂicting, we in-
+clude a triplet of interactions having respectively the
+following sets of ports: ( TTCC α.rsvα,CRP.rsv α),
+(CRP.ok α,TTCC α.okα) and
+(CRP.fail α,TTCC α.failα). All their guards are
+set toTrue. The update function of the former inter-
+action copies variables of ports TTCC α.rsvαto portCRP.rsv α. Since ports CRP.ok αandCRP.fail αdo
+not have any associated variables, the update func-
+tion of the last two interactions is the identity func-
+tion.
+6 Transformation Correctness
+In this section, we show that the described transforma-
+tion is correct, that is the obtained TT-BIP model is
+observationally equivalent to the original BIP model.
+Before proving the observational equivalence, we show
+that the ﬁnal model is a valid TT-BIP model.
+6.1 Validity of the Obtained Model
+Proposition 1 Given a BIP model B=γ(B1,...,B n)
+and a task mapping T={T1,...,T k}, the model BTT=
+γTT(BTT
+1,...,BTT
+n,TTCC 1,...,TTCC m,CRP)obtained
+by the transformation in Section 5 meets the properties
+of Deﬁnition 7.
+A proof of Proposition 1 is provided in Appendix A.
+This proof ensures that any component ready to per-
+form a transition labelled by a send port will not be
+blocked by waiting for the corresponding receive ports.
+6.2 Observational Equivalence Between BandBTT
+We denote B=γ(B1,...,B n) the initial model and
+BTT=γTT(BTT
+1,...,BTT
+n,TTCC 1,...,TTCC m,CRP)
+the resulting model of the ﬁrst step of the transforma-
+tion.
+In order to prove the correctness of the transforma-
+tion from BtoBTT, we have to show that their corre-
+sponding semantic LTSs are observationally equivalent.
+We denote by G(B) andG(BTT) successively the LTSs
+ofBandBTT(see Deﬁnition 6).
+We deﬁne observational equivalence between tran-
+sition systems based on the classical notion of weak
+bisimilarity [13], where some transitions are considered
+unobservable.
+We will use the following notation. Consider a bi-
+nary relation R⊆X×Y. Forx∈X, we denote
+R(x)def={y∈Y|(x,y)∈R}.
+Deﬁnition 10 (LTS relations) Let A= (QA,PA,− →
+A)
+andB= (QB,PB,− →
+B) be two LTS. Given a relation
+β⊆PA×PB, we write qβ− →
+Aq′, forq∈QA, iﬀ there
+existsa∈PA, such that qa− →
+Aq′andaisnotrelated
+byβto any label in PB, i.e.β(a) =∅. The notation
+qβ− →
+Bq′, forq∈QB, is deﬁned symmetrically.
+
+--- Page 18 ---
+TT-BIP 17
+Aweak simulation overAandB, is a pair of rela-
+tionsR⊆QA×QBandβ⊆PA×PB, such that:
+∀(q,r)∈R,∀a∈PA,/parenleftBig
+β(a)/\e}atio\slash=∅∧qa− →
+Aq′
+=⇒ ∃(a,b)∈β:∃(q′,r′)∈R:rβ∗bβ∗
+− −−− →
+Br′/parenrightBig
+and
+∀(q,r)∈R,/parenleftBig
+qβ− →
+Aq′=⇒ ∃(q′,r′)∈R:rβ∗
+−→
+Br′/parenrightBig
+,
+whereβ∗denotes zero or more successive βtransitions
+(i.e.transitionswhoselabelisnotrelatedbytherelation
+β).
+Aweak bisimulation overAandBis a pair of re-
+lationsR⊆QA×QBandβ⊆PA×PB, such that
+both(R,β)and(R−1,β−1)areweaksimulations,where
+R−1⊆QB×QAandβ−1⊆PB×PAare the inverse
+relations of Randβ, respectively.
+We say that AandBareweakly bisimilar w.r.t. β⊆
+PA×PB, denoted A∼βB, if there exists R⊆QA×QB
+total on both QAandQB, such that ( R,β) is a weak
+bisimulation.
+First, we have to establish a correspondence be-
+tween labels of G(B) (ranging over the set γ∪R+)
+and those of G(BTT) (ranging over the set γTT∪R+).
+Therefore, we deﬁne the relation βas follows:
+β=/braceleftbig/parenleftbig
+α,α/parenrightbig
+|α∈γ∩AI/bracerightbig
+∪/braceleftbig/parenleftbig
+α,pα
+s/parenrightbig
+|α∈γ∩AE/bracerightbig
+,
+(8)
+wherepα
+sis the send port of the TTCC component al-
+lowing to send notiﬁcations to its related components.
+Note that by this relation, we can say that each
+transition α∈γ, is represented in γTTeither by the
+transition αitself if it is internal, or by pα
+sif it is ex-
+ternal. Transitions of Bthat are not related by the re-
+lationβare only delay transitions. And transitions of
+BTTthat are not related by the relation βare oﬀer,
+reserve, fail, ok and pαtransitions.
+We may use later in this proof the notations failα,
+okαandrsvαto denote, respectively, the fail, ok and
+reservationinteractionsbetweentheCRPandtheTTCC
+component handling interaction αinBTTmodel.
+Theorem 1 The LTSs G(B)andG(BTT)are weakly
+bisimilar w.r.t. β, i.e.G(B)∼βG(BTT).
+A proof of this theorem is provided in Appendix B.
+7 Implemantation and use case
+The transformation rules have been implemented into
+BIP toolset as an eclipse plugin called BIP2TT-BIP
+tool. The case study used to validate the implementedtool is the Flight Simulator (FS) application [6] dedi-
+cated to the navigation of DIY radio controlled planes.
+The original application is written in Modelica [9].
+Thisapplicationprovidesasimulationofthephysics
+of a plane and an automatic pilot who tries to reach
+given way-pointson a map. The simulation of the Mod-
+elica model gives a display of the road followed by the
+plane(speciﬁcallythetrajectoriesofleftandrightwingtips).
+The Modelica model consists of a set of six com-
+municating sub-models (cf. Figure 15): autopilot, ﬂy-
+by-wire, route planner, servo (i.e. the actuator), simu-
+lator and sensor. The autopilot models the pilot com-
+mands in function of the ﬂight state. It has four main
+functionalities: ﬂight state reception from sensor com-
+ponent, execution ofthe route planner, execution of ﬂy-
+by-wireandsendingcommandtoservocomponent.The
+route component sends information to ﬂy-by-wire after
+computing distance to current waypoint and changing
+route towards next waypoint if necessary. It operates in
+low frequency: every 15 seconds. The ﬂy-by-wire com-
+ponent allows course correction by setting roll attitude
+and aileronsand elevator.It operatesin high frequency:
+every 5 seconds. The servo refers to the autopilot’s ac-
+tuation on plane’s ﬂight control surfaces. Servo compo-
+nent receives command from autopilot component and
+transfersit to simulatorcomponent. Some ﬁltering (e.g.
+low-pass, delay) could be added to mimic realistic ac-
+tuators. The Flight simulator simulates ﬂight dynamics
+computation of plane and wing tips position based on
+received commands (i.e. new values of roll, pitch and
+throttle). The sensor refers to the autopilot’s percep-
+tion of real world data. Sensor component receives data
+about ﬂight state from simulator component and re-
+sends them to the autopilot. The sensor can add some
+noise (e.g. delay, etc. ) to mimic realistic data acqui-
+sitions. But in our example, it stands for copying the
+state computed by simulator component.
+These submodels are communicating through Mod-
+elica connectors. The software architecture of the orig-
+inal Modelica model is shown in Figure 14.
+We have ﬁrst modelled the FS application in BIP
+language.Thislatter—coupledwithdiﬀerenttaskmap-
+ping strategies—is the input of transformation tools.
+We also simulate the initial BIP model, the TT-BIP
+model (the output of the BIP2TT-BIP tool) in order
+to compare their respective behavior.
+Each sub-model of the modelica model is modelled
+as a BIP component, communication between diﬀer-
+ent components is modeled using BIP connectors. In
+Figure 15, the overall architecture of the BIP model is
+displayed. The bihavior of each component is modeled
+with a timed automata. We apply the transformation
+of the BIP2TT-BIP tool in order to derive the TT-
+
+--- Page 19 ---
+18 Guesmi et al.¼ ½ ¾ ¿ À ÁÂ Ã Ä Å Æ
+Çilot
+ÈÉÊ Ë Ì
+Í Î Ï Ð Ñ Ò ÓÔ ÕÖ ×Ø ÙÚ ÛÜ ÝÞ ß à á â
+ã äå æ ç è é
+ê ë ì í îï ð ñ ò óô õ ö ÷ ø ù ú û ü
+ý þ ÿ S ro   
+    
+Fig. 14: Software Architecture of the Modelica Model
+of the Flightsim Application
+BIP model following diﬀerent task mapping strategies.
+In this paper we consider the task mapping strategy
+TM1 :T1={FLY},T2={ROUTE },T3={PILOT},
+T4={SERVO },T5={SIMULATOR }andT6=
+{SENSOR }.
+Figure 16, shows the obtained model for the task
+mapping TM1.For clarity reason,behavioursof TTCC
+and CRP components are not displayed. Nonetheless,
+since all TTCC components are connecting exactly two
+tasks, their automata are strictly similar to those of
+Figure 12b and Figure 12c.
+In order to be able to compare the functionality
+of the original BIP model with the obtained TT-BIP
+model, we use BIP simulator that generates C++ code
+from the original and the TT-BIP models. Simulation
+of two generated C++ codes allowed us to visualize
+and compare the output signals. A band shows the tra-
+jectories of left and right wingtips and illustrates the
+roll movement that precedes the change in course at
+each waypoint, while the plane progressively reaches
+its desired altitude. Figure 17 presents the simulation
+results of the initial and the derived models, for the
+waypoints (300,0,300), (300,300,300), (0,300,300) and
+(0,0,300). The inspection reveals that the output of the
+transformedmodel is strictly similar to that of the orig-
+inal model.
+8 Conclusion
+In this paper, we have presented a model to model
+transformational method allowing to explicit TT com-
+munication settings in the obtained model. The ob-
+tained model is structured following the TT-BIP ar-
+chitecture. It consists of tasks layer, communication
+layer and the conﬂict resolution layer. The ﬁrst layer
+is obtained after transforming components participat-
+ing in external interactionsdepending on a user-deﬁned
+task mapping. Each TTCC component of the second
+layer is dedicated to handle one external interactionand communicate with tasks of the layer underneath in
+two steps; it receives oﬀers and sends notiﬁcation after
+executing the interaction. The third layer is responsi-
+ble of resolving conﬂicts between diﬀerent interactions
+handled by the second layer.
+The obtained model is based on one global clock,
+implements multiparty interactions through dedicated
+communication media (i.e. TTCC components) and en-
+sures communication between diﬀerent layers by using
+message passing interactions (i.e. Send/receive interac-
+tions).EventhoughtheobtainedmodelsatisﬁestheTT
+settings described in the opening of Section 3, it is yet
+still far from being intuitively translatable to the pro-
+gramming language of a target platform which is based
+on the TT execution model.
+In an ongoing work, we present a method for gen-
+erating TT implementation from the obtained TT-BIP
+model.
+References
+1. Abdellatif, T.: Rigourous implementation of real-time
+systems. Ph.D. thesis, UJF (2012)
+2. Abdellatif, T., Combaz, J., Sifakis, J.: Model-based im-
+plementation ofreal-time applicationspp.229–238 (2010)
+3. Alur, R., Dill, D.L.: A theory of timed automata. Theo-
+retical computer science 126(2), 183–235 (1994)
+4. Aussagues, C., Chabrol, D., David, V., Roux, D., Wil-
+ley, N., Tournadre, A., Graniou, M.: Pharos, a multicore
+os ready for safety-related automotive systems: results
+and future prospects. Proc. of The Embedded Real-Time
+Software and Systems (ERTS2) (2010)
+5. Bagrodia, R.: Process synchronization: Design and per-
+formance evaluation of distributed algorithms. Software
+Engineering, IEEE Transactions on 15(9), 1053–1065
+(1989)
+6. Ben Hedia, B., Hamelin, E.: Projet openprod rapport
+r4.28 : Model to embedded real-time transformation.
+Tech. rep. (2012)
+7. Boulanger, J.L., Fornari, F.X., Camus, J.L., Dion, B.:
+SCADE: Language and Applications. Wiley-IEEE Press
+(2015)
+8. Chandy,K.M.,Misra,J.:Thedrinkingphilosophersprob-
+lem. ACM Transactions on Programming Languages and
+Systems (TOPLAS) 6(4), 632–646 (1984)
+9. Elmqvist, H., Mattsson, S.E.: An introduction to the
+physical modeling language modelica. In: Proceedings of
+the 9th European Simulation Symposium, ESS, vol. 97,
+pp. 19–23. Citeseer (1997)
+10. Jaber, M.: Centralized and distributed implementation s
+of correct-by-construction component-based systems by
+using source-to-source transformations in bip. Theses,
+Universit´ e Joseph-Fourier - Grenoble I (2010). URL
+https://tel.archives-ouvertes.fr/tel-00531082
+11. Kaiser, R., Wagner, S.: Evolution of the pikeos microker -
+nel. In: Proceedings of the 1st International Workshop on
+Microkernels for Embedded Systems, pp. 50–57 (2007)
+12. Kopetz, H.:The time-triggered approach toreal-time sy s-
+tem design. Predictably Dependable Computing Sys-
+tems. Springer (1995)
+13. Milner, R.: Communication and Concurrency. Prentice
+Hall International (UK) Ltd., Hertfordshire, UK, UK
+(1995)
+
+--- Page 20 ---
+19
+  i-state   o-state	 
+      i-cmd   o-state
+SIMULATOR  cmpt  i-cmd   o-cmd
+SERVO  i-state  o-cmd
+PILOT
+routeo-course
+ROUTE
+y
+i-courseFLY
+y
+SensorPilotFlyServo
+ServoSim
+SimSensoryroute
+course
+route
+Fig. 15: Initial Flightsim BIP model
+  i-state
+TT-SENSOR  i-cmd   o-state
+TT-SIMULATOR
+  cmpt  i-cmd   o-cmd
+TT-SERVO  i-state  o-cmd
+TT-PILOT
+routeo-course
+TT-ROUTE
+y
+i-courseTT-FLYyoy
+oi-course
+oo-course oroute  oi-state  oo-cmd
+  oi-cmd  oo-cmd   oi-cmd  oo-state   o-state   oi-state   oo-stateTTCCFlyServoTTCCServoSimTTCCSimSensor
+T1
+T2T3 T4 T5 T6CRP
+TTCC yrsv ok fail
+TTCC!SensorPilotrsv ok fail
+TTCC"routeTTCC#coursersv ok fail rsv ok fail
+o$y
+route oroutersv ok fail
+Fig. 16: FS TT-BIP Model for the Task mapping TM1
+trajectoire
+trajectoire au sol
+-100
+-50
+0
+50
+100
+150
+200
+250
+300
+350-100-50050100150200250300350400
+-50050100150200250300350
+Fig. 17: Trajectories of left and right wingtips
+14. Quilbeuf, J.: Distributed implementations of componen t-
+based systems with prioritized multiparty interactions.
+application to the bip framework. Ph.D. thesis, Univer-
+sit´ e de Grenoble (2013)
+15. Triki, A.: Distributed implementations of timed
+component-based systems. Ph.D. thesis, Grenoble Alpes
+(2015)Appendices
+A Proof of Proposition 1
+ProofPoints 1-3 of Deﬁnition 7
+The ﬁrst three criteria of Deﬁnition 7 are syntactic, namely
+only allowed interactions are either classic multiparty in ter-
+actions or send/receive interactions or unary interaction s and
+each send port participates in exactly one Send/Receive in-
+teraction. These criteria are met by the previous deﬁnition .
+Point 4 of Deﬁnition 7
+The fourth point of Deﬁnition 7, enumerates all conﬂict case s
+of a TT-BIP model. The ﬁrst case states that an internal port
+can only be conﬂicting with a similar port. By construction
+of the transformation, internal ports are instantiated onl y in
+taskcomponents (cf. Rule 51). If an internal transition is o rig-
+inally conﬂicting with a similar transition then this conﬂi ct
+is preserved, since these transitions remain intact after t rans-
+formation. If in the original model, an internal transition is
+conﬂicting with an external transition then this port will b e
+replaced by a send and receive ports. Therefore, the origina l
+conﬂict is no more existing in TT-BIP.
+The second case involves receive ports. In task compo-
+nents, by construction of the transformation (cf. Rule 51),
+a receive port can be only conﬂicting with receive port. In
+TTCC component, receive transitions are oﬀer transitions o r
+ok/failtransitions. Oktransitions and failtransitions have
+the same source location. Similarly, oﬀer transitions can b e
+also enabled from the same location (in the case of conﬂictin g
+TTCC component). They also can be conﬂicting with a send
+transition labelled by an rsvαport (cf. Rule 54 and Rule 55).
+
+--- Page 21 ---
+20
+In CRP component, receive transitions are rsvtransitions
+which are enabled from the initial location only simultane-
+ouslywith other rsvtransitions. Therefore, in all compone nts,
+a receive transition can be enabled simultaneously either w ith
+a receive port or with a send port or both.
+The third case involves send ports. In task components
+send ports are oﬀerports and by construction of the trans-
+formation (cf. Rule 51) only one send port is enabled from
+one location. In TTCC components, send ports are either
+pα
+sports (sending notiﬁcations to task components) or rsvα
+ports. The former has no conﬂicting port (i.e. no other port
+is enabled from its source location) while the latter is en-
+abled from the same location as receive ports (oﬀer ports)
+(cf. Rule 54 and Rule 55 ). In CRP component, send ports
+areokorfailports. Note that these ports are enabled from
+the same location. Therefore we deduce that a send port can
+have the same source location as a receive or other send ports .
+Point 5 of Deﬁnition 7
+The ﬁfth point of Deﬁnition 7 states that the update function
+of a transition labelled by a send port does not involve vari-
+ables exported by this port. In task components, send ports
+areoﬀerports and they trigger transitions whose update
+functions are the identity function (cf. Rule 51). In TTCC
+components, the send port is either a pα
+sor arsvαport.
+In both cases, it labels a transition with an identity update
+function (cf. Rule 54 and Rule 55). In the CRP component,
+send port can be either an okorfailport. In the ﬁrst case,
+the port labels a transition whose update function applies o n
+NBivariables which are not exported. In the second case,
+the port labels a transition with an identity update functio n.
+Point 6 of Deﬁnition 7
+The second-last point in Deﬁnition 7 states that a transitio n
+labelled by a receive port always has a timing constraint and
+guards that are default to True. In the layer of task compo-
+nents, receive ports label only notiﬁcation transitions wh ich,
+by construction, are associated with a timing constraint an d
+guard equal to True(cf. Rule 51). In the TTCC layer, re-
+ceive ports label either oﬀertransitions or ok/failtransitions.
+These latter are also associated with a timing constraint an d
+guard always default to True(cf. Rule 54 and Rule 55 ). In the
+third layer (i.e. the CRP component), receive ports label rsv
+transitions, which are also associated with timing constra int
+and guard always equal to True.
+Point 7 of Deﬁnition 7
+The last criterion of Deﬁnition 7 states that whenever a send
+port is enabled, the associated receive ports will uncondit ion-
+ally become enabled within a ﬁnite number of transitions in
+the receiver component. Intuitively, this holds since comm u-
+nications between tasks and
+TTCCcomponents, andbetweenTTCCcomponents andCRP
+component followarequest/acknowledgement pattern.When -
+ever a component sends a request (via a send port) it enables
+the receive port to receive acknowledgement. In the followi ng,
+we detail diﬀerent conﬁguration cases:
+–Communications between a task component BTT
+iand
+aTTCC jcomponent, for all interactions αinvolving a
+component Bi. We denote by lBTT
+ithe enabled location
+ofBTT
+iand bylTTCC jthe active place of TTCC j. We
+distinguish the following cases:
+Case 1: lBTT
+i=⊥l
+pwherepis exported by Bi
+andlTTCC j∈ {wait}∪L⊥.
+In this conﬁguration, the only enabled send port involved
+in a send/receive interaction is the oﬀer port opofBTT
+i.
+Note that the initial state allowing a send/receive inter-
+action between tasks and TTCC components falls in thatcase. By deﬁnition of the conﬁguration, all associated re-
+ceive ports are also enabled (the TTCC jcomponent can
+only execute transitions labelled by receive ports).
+Case 2: lBTT
+i=lwherelis a place of Biand
+lTTCC j={read}.
+This conﬁguration is reached from the ﬁrst one by execut-
+ing oﬀer transitions. From this conﬁguration, no send/re-
+ceive interaction with the task components can be en-
+abled (i.e. no send port is enabled). To send oﬀers, the
+task component should be in a ⊥l
+plocation which is not
+the case.
+Case 3: lBTT
+i=lwherelis a place of Biand
+lTTCC j={send}.
+In this case, the component BTT
+iis still in a place lthat
+is not a busy location, and the TTCC jcomponent is in
+thesendplace. From that conﬁguration, the enabled send
+port that is involved in a send/receive interaction with
+BTT
+iis the port pα
+sof the TTCC component. By deﬁni-
+tion of the conﬁguration, the receive port associated to
+this send port is the one activated from place lof compo-
+nentBTT
+i. Thus, the property holds in that conﬁguration
+as well. Note that after executing the send/receive inter-
+action with the component BTT
+i, the ﬁrst conﬁguration
+is reached back.
+–Communications between a conﬂicting TTCCC
+jcompo-
+nent with the CRPcomponent, for all conﬂicting interac-
+tionαinvolving a component Bi. We denote by lTTCCC
+j
+the enabled location of TTCCC
+jand bylCRPthe active
+set of marked placesof CRP. Wedistinguishthe following
+cases:
+Case 1: lTTCCC
+j=readandlCRP∋ {wα}.
+In this case, the unique enabled send port is the port
+rsvαof the component TTCCC
+j. And by deﬁnition of
+the conﬁguration, the associated receive port of this send
+port is enabled, i.e. the port rsvαof component CRPis
+enabled from place wα. Thus, the property holds in that
+conﬁguration as well.
+Case 2: lTTCCC
+j=tryandlCRP∋ {rα}.
+This case is reached by executing the reservation inter-
+action from the previous conﬁguration. In this case, two
+send ports are active, okαandfailαof the component
+CRP. From the enabled location of TTCCC
+jcomponent,
+the corresponding receive ports associated to these two
+send ports are enabled as well. Thus, the property holds
+by-construction in that conﬁguration as well.
+B Proof of Theorem 1
+ProofLetG(B) = (QB,P,− →
+B)andG(BTT) = (QBTT,PBTT,
+− −− →
+BTT). Recall (Deﬁnition 4) that state spaces QBandQBTT
+have each three components: control location, clock and var i-
+able valuations.For agiven state q, we will denote vc(q) (resp.
+vx(q)) its clock (resp. variable) valuation component. Simi-
+larly, we denote l(q) the location of a state q.
+Below, we will use variables qB,rB, ranging over QB, and
+qBTT,rBTT, ranging over QBTTand denote their respective
+components as follows:
+qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+rB=/parenleftbig
+l′,vx(rB),vc(rB)/parenrightbig
+,
+qBTT=/parenleftbig
+lTT,vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+l′
+TT,vx(rBTT),vc(rBTT)/parenrightbig
+.
+
+--- Page 22 ---
+21
+For clarity reasons, for each state qBTT, we detail the con-
+trol location lTTby using the triplet ( lB
+TT,lTTCC
+TT,lCRP
+TT)
+wherelB
+TTdenotes the tuple of active locations of the tasks
+layer components, lTTCC
+TTcontains the tuple of active lo-
+cations of all TTCC components of the TTCC layer, and
+lCRP
+TTcontains enabled locations of the CRP. We recall also
+that a place lof a model B=γ(B1,...,B n) is written
+l= (l1,..,ln). The place lB
+TTof the tasks components layer
+of the model BTTis written lB
+TT= (lTT
+1,..,lTT
+n). The place
+lTTCC
+TTof the TTCC components layer is written as follows
+lTTCC
+TT= (lTTCC
+1,...,lTTCC
+m) while the place lCRP
+TTof the
+CRP component is written as lTTCC
+TT∈ {wα,rα}.
+We deﬁne the relation R⊆QB×QBTTas follows:
+R=
+
+(qB,qBTT)/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsinglelB
+TT∈ {li,⊥lipi}n,wherelipi− − →
+Bi,
+vc(qB) =vc(qBTT),
+vx(qB) =v∗
+x(qBTT)
+
+(9)
+wherev∗
+xis the restriction of vxto the variables Xof the
+original model B. That is the valuation function v∗
+xis deﬁned
+only over variables which are common between BandBTT.
+We recall that the notation lipi− − →
+Bimeans that port piis
+enabled from place liof the component Bi.
+Note that in the deﬁnition (9) of the relation R, there
+is no restriction to the location of TTCC and CRP compo-
+nents. This means that we consider all states of these com-
+ponents in the deﬁned equivalence class. That is qBis equiv-
+alent with qBTTwhose location is a combination of any lo-
+cation of TTCC and CRP components with the locations
+lior⊥lipiof components B. That is ∀j∈[1,m],lTTCC
+j∈
+{wait,l op,..,read,try,send }andlCRP
+TT∈ {wα,rα}.
+Thus,the following four assertions prove that ( R,β) is a
+weak bisimulation:
+(i)∀(qB,qBTT)∈R,
+qBβ− →
+BrB=⇒ ∃(rB,rBTT)∈R:qBTTβ∗
+− −− →
+BTTrBTT,
+(ii)∀(qB,qBTT)∈R,
+qBTTβ− −− →
+BTTrBTT=⇒ ∃(rB,rBTT)∈R:qBβ∗
+− − →
+BrB,
+(iii)∀(qB,qBTT)∈R,∀α∈γ,
+β(α)/ne}ationslash=∅∧qBα− →
+BrB=⇒ ∃(α,α′)∈β:
+∃(rB,rBTT)∈R:qBTTβ∗α′β∗
+− −−−− →
+BTTrBTT,
+(iv)∀(qB,qBTT)∈R,∀k∈K,
+β−1(k)/ne}ationslash=∅∧qBTTk− −− →
+BTTrBTT=⇒ ∃(p,k)∈β:
+∃(rB,rBTT)∈R:qBp− →
+BrB.
+Hereafter, we detail proofs of each of these four points:
+(i) In deﬁnition (8) of the relation β, only interactions of γ
+are related to interactions of γTT. That is for each α∈γ,
+β(α)/ne}ationslash=∅. Therefore if qBβ− →
+BrB, then this transition
+corresponds to a transition that is not related by the re-
+lationβ. Therefore, by deﬁnition (8) of the relation β, the
+corresponding transition is not an interaction of γ. It isthen a transition labelled by a real number representing
+a delay transition.
+By Deﬁnition 6, there is a tpc constraint on location l
+inB,tpc(l) = (cg≤v). That is the tpc constraint of
+each location liof each component Biof the model B
+(suchthat l= (l1,..,ln)) mustsatisfythissame condition.
+Therefore, we have:
+qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+rB=/parenleftbig
+l,vx(rB),vc(rB)/parenrightbig
+,
+vx(rB) =vx(qB),
+vc(rB) =vc(qB)+δ,vc(qB)+δ≤v.(10)
+Note that, depending on the nature of interactions en-
+abled from rB, two cases should be considered. In the
+ﬁrst case, only an internal interaction αI∈AIcan be en-
+abled from state rBonceβexecuted. In the second case,
+only external interactions αE∈AEare enabled from rB.
+By construction of the deﬁnition (9) of R, we have qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+, such that
+vc(qB) =vc(qBTT) and vx(qB) =v∗
+x(qBTT).(11)
+By construction of the transformation (Rule 54, Rule 54
+and Rule 51) the same tpc constraint is mapped in the
+ﬁrst case to the place lTTwherelTT=l. In the second
+case, the same tpc constraint is mapped to the places li
+and⊥lipiwherepi∈αEas well as to the place readof
+the corresponding TTCC (handling the interaction αE).
+Thus, after executing the βtransition corresponding to
+the mapped tpc in the BTTmodel, components do not
+change theirplaces.Andthere existatransition qBTTδ− −− →
+BTT
+rBTTinBTTwhererBTT= (l′TT,vx(rB),vc(rB)) such
+that:
+l′B
+TT=l, vc(qB) =vc(rB)+δandvx(qB) =vx(rB).
+(12)
+Combining(10), (11) and(12), weobtain that vc(rBTT) =
+vc(rB) andv∗
+x(rBTT) =vx(rB). And we deduce that by
+deﬁnition (9) of the relation R, we have ( rB,rBTT)∈R.
+(ii) If (qB,qBTT)∈R,qBTTβ− −− →
+BTTrBTT, then this transition
+is not related to any transition in γby the relation β.
+Therefore and by deﬁnition (8) of the relation β, the tran-
+sitionβis either labelled by a real number representing
+a delay transition or by a send/receive interaction other
+than the notiﬁcation transition or a pαtransition. That
+is,βcorresponds either to a rsvα,failα, oﬀer,okα,pα
+interaction or to a delay step.
+Case 1: β∈ {rsvα,failα}.
+ByDeﬁnition6, there isatransition lTTβ∈{rsvα,fail α}− −−−−−−−−−−− →
+l′
+TTinBTT, such that:
+qBTT=/parenleftbig
+lTT(qBTT),vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+l′
+TT(rBTT),vx(rBTT),vc(rBTT)/parenrightbig
+,
+vx(rBTT) =vx(qBTT),andvc(rBTT) =vc(qBTT).
+(13)
+Note that both rsvαandfailαdeﬁne no update function
+nor a guard or timing constraints (see Rule 57).
+Bydeﬁnitionofthetransformation rules(Rule54, Rule55
+and Rule 56), in the case of a rsvα(resp.failα) inter-
+action, the corresponding TTCC component is in a read
+
+--- Page 23 ---
+22
+(resp.try) place and the CRP component is in wα(resp.
+rα) place. After executing this rsvα(resp.failα) transi-
+tion, the TTCC component reaches place try(resp.read)
+and the place rα(resp.wα) is activated in the CRP. Note
+that, in both cases, places of other components remain in-
+tact. That is, the reached place l′B
+TT=lB
+TT=l. Thus,
+we have :
+l′B
+TT=l= (l1,..,ln), (14)
+Byconstruction(9)of R,wehave qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+such that
+vc(qB) =vc(qBTT) and vx(qB) =v∗
+x(qBTT).(15)
+Combining (13) and (15) we obtain that vc(rBTT) =
+vc(qB) andv∗
+x(rBTT) =vx(qB). Combining this to (14),
+we deduce that bydeﬁnition (9) of the relation R, we have
+(qB,rBTT)∈R.
+Case 2: βis an oﬀer interaction.
+By Deﬁnition 6, there is a transition lTTβ− →l′
+TTinBTT,
+whereβallows sendinganoﬀer from port piof component
+Bito the corresponding TTCC component, such that:
+qBTT=/parenleftbig
+lTT,vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+l′
+TT,vx(rBTT),vc(rBTT)/parenrightbig
+,
+vx(rBTT) =vx(qBTT),andvc(rBTT) =vc(qBTT).
+(16)
+Note that the oﬀer transition deﬁnes no update function
+nor a guard or timing constraint (see Rule 57).
+Bydeﬁnitionofthetransformation rules(Rule54,Rule55
+and Rule 56), after executing this βtransition, the TTCC
+component reaches a place loiand the component Bi
+reaches a place ⊥li
+p′
+iif another oﬀer is likely to be sent,
+otherwise it reaches the place li. Note that this βtransi-
+tion does not change the location of the CRP component.
+Thus, we have :
+l′B
+TT∈ {li,⊥lipi}n. (17)
+Byconstruction(9)of R,wehave qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+such that
+vc(qB) =vc(qBTT) and vx(qB) =v∗
+x(qBTT).(18)
+Combining (16) and (18) we obtain that vc(rBTT) =
+vc(qB) andv∗
+x(rBTT) =vx(qB). Combining this to (17),
+we deduce that bydeﬁnition (9) of the relation R, we have
+(qB,rBTT)∈R.
+Case 3: β∈ {okα,pα}
+By Deﬁnition 6, there is a transition lTTβ− →l′
+TTinBTT,
+whereβis labelled either bythe port okαorpα. The tran-
+sitionpαchanges only location of the TTCC component
+(fromreadtosendlocation). Whereas the transition okα
+changes the location of the TTCC component (from try
+tosend) and the location of the CRP (from rαtowα).
+In both cases, locations of other components are intact.
+We denote G∗,TC∗andF∗respectively the guard, tim-
+ing constraint and update function of the transition β.Therefore, we have:
+qBTT=/parenleftbig
+(lB
+TT,lTTCC
+TT(qBTT),lCRP
+TT(qBTT)),
+vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+(l′B
+TT,l′TTCC
+TT(rBTT),l′CRP
+TT(rBTT)),
+v′
+x(rBTT),vc(rBTT)/parenrightbig
+,
+G∗(vx(qBTT)) =True,
+TC∗(vc(qBTT)) =True,
+vc(rBTT) =vc(qBTT)
+vx(rBTT) =F∗(vx(qBTT)), ,
+(19)
+In the before last equality of (19), we have vc(rBTT) =
+vc(qBTT) since transition is instantaneous. For the last
+equality of (19), notice that, F∗operates only on vari-
+ables that are local to the TTCC component. Therefore
+this function does not update variables of the components
+BTT
+ithat are common with the model B. Therefore the
+execution of this update function does not change the
+valuation v∗
+x. Thus, we have:
+v∗
+x(rBTT) =v∗
+x(qBTT). (20)
+Bydeﬁnitionofthetransformation rules(Rule54, Rule55
+and Rule 56), after executing this βtransition, the TTCC
+component reaches the place sendand the CRP compo-
+nent reaches back the place wait. The component BTT
+i
+does not change its location. Thus, we have :
+l′B
+TT=lB
+TT. (21)
+Byconstruction (9)of R, wehave qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+such that
+lB
+TT∈ {li,⊥lipi}n,
+vc(qB) =vc(qBTT),
+vx(qB) =v∗
+x(qBTT).(22)
+Combining(19), (20), (21)and(22), weobtainthat vc(rBTT) =
+vc(qB),v∗
+x(rBTT) =vx(qB) andl′B
+TT=lB
+TT∈ {li,⊥lipi
+}n. Thus, we deduce that by deﬁnition (9) of the relation
+R, we have ( qB,rBTT)∈R.
+Case 4: βis a delay step labelled by δ∈R+.
+By Deﬁnition 6, there is a tpc constraint on location lTT
+inBTT,tpc(lTT) = (cg≤v). That is the tpc condition
+of each location of each component of the BTTmodel
+that is composing the global location lTTmust satisfy
+this same condition. Therefore, we have:
+qBTT=/parenleftbig
+lTT,vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+lTT,vx(rBTT),vc(rBTT)/parenrightbig
+,
+vx(rBTT) =vx(qBTT),
+vc(rBTT) =vc(qBTT)+δ,vc(qBTT)+δ≤v.(23)
+Note that,byconstructionofthetransformation (Rule54,
+Rule 55), this delay transition is only possible if at least
+one conﬂicting TTCC component is not occupying the
+sendplace, i.e. lTTCCC
+TT /ne}ationslash={send}k. After executing this
+βtransition, the TTCC component does not change the
+global place nor the variables valuation, only the clock
+valuation is augmented by δ. Thus, we have :
+l′B
+TT=l. (24)
+
+--- Page 24 ---
+23
+By construction of the deﬁnition (9) of R, we have qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+, such that
+vc(qB) =vc(qBTT) and vx(qB) =v∗
+x(qBTT).(25)
+By deﬁnitionof the transformation (see Rule 54, Rule 55),
+the tpc constraints of the TTCC component is the con-
+junction of time progress conditions received in the oﬀers
+from participating components. Thus there exist a transi-
+tionqBδ− →
+BrBinBwhererB= (l,vx(rB),vc(rB)) such
+that:
+vc(qB) =vc(rB)+δandvx(qB) =vx(rB).(26)
+Combining(23), (25) and(26), we obtainthat vc(rBTT) =
+vc(rB) andv∗
+x(rBTT) =vx(rB). Combining this to (24),
+we deduce that bydeﬁnition (9) of the relation R, we have
+(rB,rBTT)∈R.
+(iii) Let ( qB,qBTT)∈Rsuch that qBα− →
+BrB. Ifβ(α)/ne}ationslash=∅ ∧
+qBα− →
+BrB, then by deﬁnition (8) of the relation β,α∈γ
+and can be either an internal ( α∈AI) or an external
+interaction ( α∈AE).
+Case 1: α∈γ∩AI.
+By Deﬁnition 6, there is a transition lα− →l′inB, whereα
+is guarded by G∗, the timing constraint TC∗and having
+as transfer function F∗, such that:
+qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+, rB=/parenleftbig
+l′,vx(rB),vc(rB)/parenrightbig
+,
+TC∗(vc(qB)) =True, G∗(vx(qB)) =True,
+vx(rB) =F∗(vx(qB)),andvc(rB) =vc(qB),
+(27)
+where the update function F∗=fi◦···◦fj◦Fα, where
+ficorresponds to the update function of the transition
+labelled byport pi∈Pαin the component Bi∈comp(α).
+By construction (9) of R, we have
+qBTT=/parenleftbig
+lTT,vx(qBTT),vc(qBTT)/parenrightbig
+, such that
+vc(qB) =v∗
+c(qBTT) and vx(qB) =v∗
+x(qBTT).(28)
+By deﬁnitionof the transformation ( Rule 54, Rule 55 and
+Rule 51), this interaction remains intact in the obtained
+BTTmodel. Therefore, by Deﬁnition 6, we also have
+qBTTα− −− →
+BTTrBTT,whererBTT=/parenleftbig
+l′TT,vx(rBTT),vc(rBTT)/parenrightbig
+such that:
+l′B
+TT=l′,
+vc(rBTT) =vc(qBTT),
+v∗
+x(rBTT) =F∗/parenleftbig
+v∗
+x(qBTT)/parenrightbig
+.(29)
+Inthesecondequalityof(29), wehave vc(rBTT) =vc(qBTT)
+since transition αis instantaneous. For the last equalityof
+(29), notice that, v∗
+xoperates only on common variables
+between models BandBTT.
+Combining(27), (28) and(29) we obtainthat lTTsatisﬁes
+l′B
+TT=l′,v∗
+c(rBTT) =vc(rB) andv∗
+x(rBTT) =vx(rB).
+Thus, we have qBTTα− −− →
+BTTrBTTsuch that ( α,α)∈β
+sinceα∈γ∩AI. By deﬁnition (9) of the relation R, we
+obtain (rB,rBTT)∈R.Case 2: α∈γ∩AE.
+By Deﬁnition 6, there is a transition lα− →l′inB, where
+αis guarded by G∗, the timing constraint TCand having
+as transfer function F∗, such that:
+qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+, rB=/parenleftbig
+l′,vx(rB),vc(rB)/parenrightbig
+,
+TC∗(vc(qB)) =True, G∗(vx(qB)) =True,
+vx(rB) =F∗(vx(qB)),andvc(rB) =vc(qB),
+(30)
+where the update function F∗=fi◦···◦fj◦Fα, where
+ficorresponds to the update function of the transition
+labelled by port pi∈Pαin the component Bi∈comp(α).
+By construction (9) of R, we have
+qBTT=/parenleftbig
+lTT,vx(qBTT),vc(qBTT)/parenrightbig
+, such that
+vc(qB) =v∗
+c(qBTT) and vx(qB) =v∗
+x(qBTT).(31)
+By deﬁnition of the transformation ( Rule 54, Rule 55 and
+Rule 51), the interaction αof the original model Bis held
+by a dedicated TTCC component that we denote here
+TTCC αin the obtained BTTmodel. It may be mapped
+to the following successive transitions in the BTTmodel:
+–If the component lB
+TTof the global place lTTcontains
+a placelTT
+i=⊥lipi, whereBi∈comp(α) andpi∈Pα,
+then a sending oﬀer interaction may be enabled, note
+that by deﬁnition of β, this interaction is a βtransi-
+tion. If the component lB
+TTof the global place lTTis
+equal to l(i.e.lB
+TT= (l1,..,ln)), no oﬀer transition is
+enabled.
+–Once all oﬀers of components Bi∈comp(α) are send
+toTTCC α, then this latter reaches the place read. If
+initially, αis not conﬂicting, then from the reached
+global location, after sending oﬀers, the transition la-
+belled by the unary interaction pαis enabled. This
+transition has the guard G∗, the timing constraint
+TC∗and executes the function F∗. Note that by
+deﬁnition of β,β(pα) =∅. Ifαis initially a con-
+ﬂicting interaction, then from the reached global lo-
+cation, after sending oﬀers, the enabled transition is
+thersvαinteraction. This interactions has the guard
+G∗and the timing constraint TC∗. By deﬁnition of
+β,β(rsvα) =∅, it is then a βtransition. From the
+reached location by the rsvαinteraction, two inter-
+actions are possible, failαorokα.β(failα) =∅and
+β(okα) =∅. If thefailαinteraction is enabled then
+theTTCC αcomponent is reaching back the state
+enabling again the rsvαinteraction until the okαis
+enabled. From this reached global location a loop of
+rsvαandfailαmay be enabled before the okαinter-
+action is enabled. This latter reaches a state where
+theTTCC αis in place send. Theokαas well as the
+pαtransition applies the update function F∗to the
+local variables that are local to the TTCC. Note that
+these variables are not concerned by the valuation v∗
+x.
+–Note that after the previously executed interaction
+the components Bi∈comp(α) do not change their
+locations. The TTCC αcomponent reaches the send
+location. From this new reached global state, the no-
+tiﬁcation interaction is enabled. It relates the port pα
+s
+of theTTCC αto ports piof components Bi, such
+thatpi∈Pα. Note that β(pα
+s)/ne}ationslash=∅. This notiﬁca-
+tion interaction updates variables of components Bi
+according to their copies in the component TTCC α.
+Note that these copies have been transformed by F∗
+in the previous βtransition. The reached location of
+
+--- Page 25 ---
+24
+the notiﬁcation interaction in a component Biisl′
+ior
+⊥l′
+i
+p′
+i, wherel′
+ip′
+i−→.
+Notice that in the previously cited cases of possible in-
+teractions, we consider only βinteractions in which the
+TTCCα participates. For clarity reasons, we do not de-
+tail diﬀerent other possible βtransitions involving other
+TTCC components and potential oﬀer sending requests.
+Not considering them, does not invalidate this proof since
+they always satisfy the property lB
+TT∈ {li,⊥lipi}n, are in-
+stantaneous and do not hold any update function (i.e.
+they do not impact the location property, nor the clock
+and variables valuations).
+Therefore, by Deﬁnition 6, we have:
+qBTTβ∗
+− −− →
+BTTq′
+BTTpα
+s− −− →
+BTTrBTT,
+where
+q′
+BTT=/parenleftbig
+(lB
+TT,lTTCC
+TT(q′
+BTT),l′CRP
+TT(q′
+BTT)),vx(q′
+BTT),
+vc(q′
+BTT)/parenrightbig
+,
+rBTT=/parenleftbig
+(l′B
+TT,lTTCC
+TT(rBTT),lCRP
+TT(rBTT)),vx(rBTT),
+vc(q′
+BTT)/parenrightbig
+,
+with
+l′B
+TT∈ {l′
+i,⊥l′
+i
+p′
+i}n,
+vc(rBTT) =vc(q′
+BTT) =vc(qBTT),
+v∗
+x(q′
+BTT) =v∗
+x(qBTT),
+v∗
+x(rBTT) =F∗/parenleftbig
+v∗
+x(q′
+BTT)/parenrightbig
+,(32)
+For the last equality of (32), notice that, v∗
+xoperates
+only on common variables between models BandBTT.
+AndF∗has been ﬁrst applied to local variables of the
+TTCC component in the βtransition preceding the pα
+s
+transition. These variables are not concerned by the v∗
+x
+valuation, thus, the equality v∗
+x(q′
+BTT) =v∗
+x(qBTT). The
+transition pα
+scopies values of TTCC variables to those
+ofBicomponents. Thus the function F∗is indirectly
+applied to variables of Bi. Which explains the equality
+v∗
+x(rBTT) =F∗/parenleftbig
+v∗
+x(q′
+BTT)/parenrightbig
+.
+Combining (30), (31) and (32), we obtain that l′
+TTsatis-
+ﬁesl′B
+TT∈ {l′
+i,⊥l′
+i
+p′
+i}n,v∗
+c(rBTT) =vc(rB)andv∗
+x(rBTT) =
+vx(rB).Thus,wehave qBTTβ∗pα
+s− −−− →
+BTTrBTTsuchthat( α,pα
+s)∈
+β.Bydeﬁnition(9)oftherelation R,weobtain( rB,rBTT)∈
+R.
+(iv) Let( qB,qBTT)∈Rsuchthat qBTTαTT− −− →
+BTTrBTT.Ifβ−1(αTT)/ne}ationslash=
+∅∧qBTTαTT− −− →
+BTTrBTT, then by deﬁnition (8) of the relation
+β,
+αTT∈(γ∩AI)∪{pα
+s∈γTT|α∈γ∩AE}
+Case 1: αTT=α∈γ∩AI.
+By Deﬁnition 6, there is a transition lTTαTT− −− →l′
+TTin
+BTT, where the transition αTThas a guard G∗, a timingconstraint TC∗and an update function F∗, such that:
+qBTT=/parenleftbig/parenleftbig
+l,lTTCC
+TT(qBTT),lCRP
+TT(qBTT)/parenrightbig
+,
+vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+l′,l′TTCC
+TT(rBTT),l′CRP
+TT(rBTT)/parenrightbig
+vx(rBTT),vc(rBTT)/parenrightbig
+,
+G∗(vx(qBTT)) =True,
+TC∗(vc(qBTT)) =True,
+vx(rBTT) =F∗(vx(qBTT),
+vc(rBTT) =vc(qBTT).
+(33)
+Bydeﬁnitionofthetransformation (cf.Rule55andRule51),
+the transition αTT=αis exactly the same as in the
+modelBwhich corresponds to the following transition
+lα− →l′inB, which is guarded by G∗,TC∗and has the
+update function F∗.
+Byconstruction (9)of R, wehave qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+such that
+vc(qB) =vc(qBTT) and vx(qB) =v∗
+x(qBTT).(34)
+Therefore, By Deﬁnition 6, we also have qBα− →
+BrB,,
+where
+rB=/parenleftbig
+l′,vx(rB),vc(rB)/parenrightbig
+,
+with
+G∗(vx(qB)) =True,
+TC∗(vc(qB)) =True,
+vc(rB) =vc(qB),
+vx(rB) =F∗(vx(qB)).(35)
+Combining (33), (34) and (35), we obtain that l′
+TTsat-
+isﬁesl′B
+TT=l′∈ {li,⊥lipi}n,vc(rBTT) =vc(rB) and
+v∗
+x(rBTT) =vx(rB). Thus, we have qBα− →
+BrBand, by
+deﬁnition (9) of the relation R, (rB,rBTT)∈R.
+Case 2: αTT=pα
+s,α∈γ∩AE.
+By Deﬁnition 6, there is a transition lTTαTT− −− →l′
+TTin
+BTT. The transition αTThas no guard.
+Byconstruction ofthetransformation (cf.Rule54,Rule55
+and Rule 51), this αTTtransition is always preceded by
+aβtransition consisting in pαifαis not conﬂicting and
+inokαifαis conﬂicting. These latter execute an update
+function F∗that updates variables local to the TTCC
+component. These variables are local copies of variables
+ofBi. When receiving oﬀers, values of variables of the
+TTCC component are the same as their remote copies in
+Bicomponents. And then, they are updated by using the
+function F∗of transition okαorpα.
+The notiﬁcation transition is not guarded and have an up-
+date function which copies values of local variables of the
+TTCC to their corresponding copies in the participating
+Bicomponents. Therefore the function F∗is indirectly
+applied to variables of Bicomponents. These variables
+are concerned by the v∗
+xvaluation.
+Note that this αTTtransition, changes the location of the
+TTCC component to its initial waitlocation and allows
+to reach location l′
+ior⊥l′
+i
+p′
+i, wherel′
+ip′
+i−→andp′
+i∈AE.
+
+--- Page 26 ---
+25
+Therefore, we have lTTαTT− −− →l′
+TT, such that:
+qBTT=/parenleftbig
+(lB
+TT(qBTT),lTTCC
+TT(qBTT),lCRP
+TT(qBTT),
+vx(qBTT),vc(qBTT)/parenrightbig
+,
+rBTT=/parenleftbig
+l′B
+TT(qBTT),l′TTCC
+TT(rBTT),l′CRP
+TT(rBTT),
+vx(rBTT),vc(rBTT)/parenrightbig
+,
+v∗
+x(rBTT) =F∗(v∗
+x(qBTT)),
+vc(rBTT) =vc(qBTT),
+(36)
+such that
+l′B
+TT∈ {l′
+i,⊥l′
+i
+p′
+i}n. (37)
+By deﬁnition of the transformation (cf. Rule 54, Rule 55
+and Rule 51), there exist a corresponding transition lα− →
+l′inB, which is having as transfer function F∗.
+Byconstruction(9)of R,wehave qB=/parenleftbig
+l,vx(qB),vc(qB)/parenrightbig
+,
+such that
+lB
+TT(qBTT)∈ {li,⊥lipi}n,
+vc(qB) =vc(qBTT),
+vx(qB) =v∗
+x(qBTT).(38)
+Therefore, By Deﬁnition 6, we also have qBα− →
+BrB,,
+where
+rB=/parenleftbig
+l′,vx(rB),vc(rB)/parenrightbig
+,
+with
+vc(rB) =vc(qB),
+vx(rB) =F∗(vx(qB)).(39)
+Combining (36), (37), (38) and (39), we obtain that l′
+TT
+satisﬁes l′B
+TT∈l′
+i,⊥l′
+i
+p′
+in
+,vc(rBTT) =vc(rB)andv∗
+x(rBTT) =
+vx(rB). Thus, we have qBα− →
+BrBand, by deﬁnition (9)
+of the relation R, (rB,rBTT)∈R.

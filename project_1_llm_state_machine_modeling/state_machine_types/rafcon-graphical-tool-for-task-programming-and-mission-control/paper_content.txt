@@ -1,0 +1,334 @@
+--- Page 1 ---
+RAFCON: a Graphical Tool for
+Task Programming and Mission Control
+Sebastian G. Brunner?1, Franz Steinmetz?1, Rico Belder1, and Andreas D omel1
+1Robotics and Mechatronics Center (RMC) of the German Aerospace Center (DLR),
+Oberpfaenhofen-Wessling, Germany
+firstname.lastname@dlr.de
+Abstract. There are many application elds for robotic systems in-
+cluding service robotics, search and rescue missions, industry and space
+robotics. As the scenarios in these areas grow more and more complex,
+there is a high demand for powerful tools to eciently program hetero-
+geneous robotic systems. Therefore, we created RAFCON, a graphical
+tool to develop robotic tasks and to be used for mission control by re-
+motely monitoring the execution of the tasks. To dene the tasks, we
+use state machines which support hierarchies and concurrency. Together
+with a library concept, even complex scenarios can be handled gracefully.
+RAFCON supports sophisticated debugging functionality and tightly in-
+tegrates error handling and recovery mechanisms. A GUI with a powerful
+state machine editor makes intuitive, visual programming and fast pro-
+totyping possible. We demonstrated the capabilities of our tool in the
+SpaceBotCamp national robotic competition, in which our mobile robot
+solved all exploration and assembly challenges fully autonomously. It is
+therefore also a promising tool for various RoboCup leagues.
+1 Introduction
+Managing the heterogeneous modules (e. g. navigation, vision, manipulation etc.)
+of a robot is challenging, as the scenarios in common robotic application elds
+like household and industries grow more and more complex. In this work, we
+thus focus on how complex tasks can be programmed and how all subsystems
+of a robot orchestrated at a central instance using visual programming and
+hierarchical state machines.
+For solving complex tasks, one approach is to semantically specify the robot
+and its environment in a planning domain on which a task planner can be used
+to infer all steps for reaching a certain goal, which is also specied in the plan-
+ning domain. PDDL [13] is a common solution for such planning problems and is
+often used in service robotic scenarios [12]. Such planners often suer from over-
+or under-constraint models and fail if a real world failure cannot be represented
+in their environment model [4]. Furthermore, they have a much higher compu-
+tational footprint. Therefore, they are not suited for many real-world tasks, e. g.
+industrial scenarios.
+?Both authors contributed equally to this work.arXiv:1605.09185v1  [cs.RO]  30 May 2016
+
+--- Page 2 ---
+2
+Alternatively, state machines [11] often come into play to specify the behav-
+ior of the robot in a more bottom-up like approach (see [5, 9, 14]). The robotic
+system is always in a certain state and proceeds to the next state depending
+on internal or external events. As classical state machines have problems cop-
+ing with complex scenarios, powerful dialects were invented like statecharts [8]
+and SyncCharts [1]. They augment a classical state machine with hierarchy and
+concurrency concepts, preemption handling, error recovery and data manage-
+ment. Our state machine dialect uses and adapts many of these features and is
+furthermore based on owcharts in regards of its eventless design.
+Specically for programming robotic tasks, there exist many tools. Next to
+well-designed solutions for educational purposes like Scratch [17] or NXT-G [10]
+from LEGO Mindstorms, all tools designed for real world robots suer from
+certain problems. For some tools, maintenance and support was canceled, e. g.
+ROS Commander [14], RobotFlow [7] or MissionLab [2], others do not oer their
+code to the open source community, like Gostai Studio [3], or do not provide a
+graphical editor, such as SMACH [4].
+Therefore, we developed RAFCON, a visual programming tool, allowing for
+the creation of hierarchical state machines. It is written in Python, as the lan-
+guage is interpreted, easy to learn and can be integrated with software modules
+of other languages. RAFCON was created completely from scratch. It is inspired
+by the ow control tool Bubbles , which has been developed at our institute some
+years ago [20]. Before starting with the implementation, experienced roboticist
+of our institute elaborated a long list of requirements. The key advantages of our
+tool are the novel visualization supporting state machines of several hundreds of
+states (see Sec. 4), powerful error recovery mechanisms, sophisticated debugging
+functionalities and usability and intuitiveness to allow for fast prototyping.
+Furthermore, RAFCON enables collaborative state machine development.
+During the SpacebotCamp 20161, we successfully used RAFCON as both an
+autonomous task control software on a mobile robot as well as part of a mission
+control center setup with powerful remote monitoring and control capabilities.
+The mission in the SpacebotCamp included autonomous exploration and local-
+ization on a moon-like terrain, as well as object detection and assembly, all
+within a 60 minute time limit (see Fig. 1). Thereby, many challenges had to be
+tackled that are also common e. g. in the RoboCup Rescue League.
+The paper is structured as follows: At rst we explain the core framework
+in Sec. 2. The following Sec. 3 describes all important components of the GUI.
+After proong the capabilities of our task programming tool in the case study
+in Sec. 4, we will summarize our results and future work in Sec. 5.
+2 Core framework
+The core of the RAFCON framework mainly consists of the state machine and
+theexecution engine . Hereby, next to the logical ow, also data ow concepts
+are supported. All of these concepts are described in the following.
+1http://s.dlr.de/ura7
+
+--- Page 3 ---
+3
+Fig. 1. The left gure shows the state machine for the SpaceBotCamp, in which we
+took part with our Lightweight Rover Unit (LRU, [19]). On the right, the LRU is
+depicted while it mounts a blue container onto the red base station.
+State machine: A state machine contains an execution engine and a root state
+that is the starting point of the execution. State machines are hierarchical, mean-
+ing that there are states that can contain child states.
+State: The states of a state machine are the instances at which actions take
+place (Moore machine). There are four dierent types of states:
+{Execution states are the essential states as they contain a user-dened func-
+tion called execute , which is written in Python code. This execute function
+serves as connection to other middleware. These states cannot have any chil-
+dren.
+{Hierarchy states group several child states. Each hierarchy state has a xed
+start state that denes the entry point of the state.
+{Concurrency states also group several child states, however all of these child
+states are evaluated concurrently, i. e. in parallel. The subtype preemptive
+concurrency state stops all child states, as soon as one child state has nished
+its execution, while a barrier concurrency state waits for all child states to
+nish.
+{Library states are intended to reuse state machines. They simply wrap a
+whole state machine.
+Outcome: Each state has two or more outcomes. As the name implies, these
+elements dene the possible exit statuses of a state. Mandatory outcomes are
+aborted , in case an error occurred in the state, and preempted , for which the state
+was preempted from outside.
+Transition: States are connected via transitions. A transition starts at an out-
+come and either ends in a sibling state or in an outcome of a parent state. If a
+state ends with a certain outcome, the transition connected to that outcome is
+followed to determine the next state.
+Data port: Next to outcomes, states can also have input data ports and output
+data ports . They correspond to parameters respectively return values of func-
+tions. Data ports have a name, type and default value.
+
+--- Page 4 ---
+4
+Data ow: Data ports of the same type can be connected using data ows.
+Thereby, the value assigned to the source ports gets forwarded to the target
+port.
+Execution engine: The execution engine runs a state machine, starting at the
+root state. If a hierarchy state is reached, the execution goes down in the hi-
+erarchy to the dened start state. The execution can split up, if a concurrency
+state is executed. The hierarchy is went back up, if a transition is reached that
+goes from a child to its parent state. For execution states, the values assigned
+to the input data ports are forwarded to the execute function that can contain
+arbitrary code. The function can also assign values to the output data ports and
+denes the outcome of the state.
+Many features of the engine help in debugging and testing even complex state
+machines. The engine supports continuous and step mode. In step mode, one
+can step over, into and out of states. In addition, step back mode is possible, for
+which execution states can have a separate execute_backwards function. One
+can also command the engine to start execution at an arbitrary state. During the
+execution, a state machine can be changed on the y. Finally, the execution can
+be controlled from a separate host, which is especially useful for mobile robots.
+3 Graphical user interface
+The graphical user interface, shown in Fig. 2, is the most prominent feature
+of RAFCON. The central widget, the Graphical State Machine Editor , is the
+part of the GUI that renders RAFCON unique amongst other (visual) task
+programming tools. Next to the creation of state machines, this GUI enables
+the user to execute and monitor the state machine, also from remote. The GUI
+design was developed in cooperation with professional interface designers2.
+Concerning task engineering, visual programming is in our opinion superior to
+textual languages in this context due to several reasons: First of all, the overview
+and the understanding of a state machine is increased as the user builds a mental
+model [15] of it. Beyond that, the logic and data ows are visualized separately,
+which gives a clear view on the data handling and routing. Furthermore, visual
+programming is more intuitive. All this improves the speed of state machine
+creation.
+3.1 GUI layout
+The GTK+ widget toolkit was used to implement the GUI. A model-view-
+controller architecture is used for the GUI in order to communicate with the
+core. Thus, the core and the GUI are clearly separated. The four Gestalt princi-
+ples[6] closure, similarity, continuity and proximity are heavily used to enhance
+information retrieval. A modular and exible layout is achieved by making all
+sidebar tabs detachable, scalable and foldable.
+2Interaktionswerk, https://interaktionswerk.de/
+
+--- Page 5 ---
+5
+1
+23
+4
+56
+7Outcomes Transition
+Data flowInput data portsPreemptiveConcurrencyState
+HierarchyState
+ExecutionState8
+Income
+Fig. 2. An example state machine visually programmed in RAFCON. An autonomous
+agent explores a unknown environment until it localizes a red ball or stops because a
+timer preempts the execution.
+All the dierent components of the GUI can be seen in Fig. 2. The right
+sidebar shows the state editor (1). It lists all details of a state, like name, de-
+scriptions, ports and connections and oers functionality to modify all of these
+properties. Execution states have in addition a source view to edit their execute
+function.
+The left sidebar features many widgets with dierent purposes. A Library
+manager (2) organizes all library states in a clear fashion for easy reuse. The State
+machine tree (3) shows the structure of the state machine in a tree and can be
+used to explicitly select and navigate to a certain state. (4) is the Global variable
+manager managing all global variables, (5) shows the Modication history of all
+changes performed to the a state machine under construction and the Execution
+history (6) keeps track of all states during an execution including the context
+data.
+The sidebar (7) at the bottom is the Logging View . Here all output of the
+executed states, the core and the GUI is collected and can be ltered by their
+logging level.
+3.2 Graphical editor
+As already mentioned, the Graphical State Machine Editor is the most sophis-
+ticated element of the GUI. A clear visualization of complex state machines
+with highly nested hierarchies (see Sec. 4) is a big challenge. We implemented a
+mature navigation solution that is often experienced in digital maps. Zooming
+into the state machine (e. g. with the mouse wheel) reveals more of the details
+of lower hierarchy levels, while zooming out hides their details. The panning
+mechanism enables the user to translate the view to another position. Thus, the
+
+--- Page 6 ---
+6
+dierent hierarchy levels can be shown in varying degrees of detail, depending
+on the states the user is interested in.
+The editor can also be used for direct interaction with the state machine for
+e. g. handling states, creating connections with via-points, copying and pasting
+of states and moving logic and data ports along the state border. Dierent view
+modes help the user to focus on the kind of information he is interested.
+4 Case study
+In November 2015, the DLR Space Administration organized the SpaceBotCamp
+2016 with the aim to stimulate research and innovations in autonomous space
+robotic scenarios. The mission of the competition was to explore a rough, un-
+known terrain with a mobile robot, to localize and pick up two objects and
+nally to assemble those objects on a base station located on a crushed stone
+hill top, shown in Fig. 1. Next to having no uplink to the robot for the majority
+of the time, and complete communication blackouts for two occasions, there was
+also a constant two second communication delay. Concerning these restrictions,
+a highly autonomous behavior was required from the LRU robot [18] to solve
+the challenge in less than 60 minutes.
+Our robot accomplished all tasks in only half of the given time limit. Hereby,
+RAFCON played a central role in autonomously orchestrating all modules of the
+system, like navigation, manipulation and vision. An abstract overview of this
+system architecture is shown in Fig. 3.
+Fig. 3. The architecture in the SpaceBotCamp, in which RAFCON is coordinating the
+main software modules of our mobile robot.
+RAFCON enabled us to collaboratively dene the rst two hierarchies of the
+overall state machine in the beginning. Subsequently, the state machine could
+be clearly divided into several sub-state-machines that were programmed by
+dierent developers. All in all, our nal state machine consisted of more than
+750 states and more than 1200 transitions. The maximum depth, i. e. number of
+hierarchies, was eight. This is a high number, considering the rather high-level
+nature of the used states.
+During competition runtime, a ground station team was allowed to monitor
+the robot. Hereby, we were able to observe the current status of the state machine
+
+--- Page 7 ---
+7
+execution remotely. Therefore, several ground stations operators could subscribe
+to the state machine running on the robot and were supplied with status data of
+the state machine. This included the current execution point(s) and the values of
+data ports. Thus, an operator for navigation could observe the correct behavior
+of the robot during navigation, a manipulation expert could examine correct
+object assembly and an operator for computer vision could keep track of the
+detection and pose estimation procedures.
+5 Conclusions
+The visual programming tool RAFCON, presented in this paper, lls a gap in the
+robot programming domain. While for example ROS [16] unies the communi-
+cation in a heterogenous system, there is currently no graphical tool at hand for
+using that communication. RAFCON seamlessly integrates with ROS or other
+middlewares to orchestrate the dierent components in a way that they together
+perform a certain task. Our tool features a clear programming interface (API)
+that can be used for programmatic state machine generation or the integration
+with a logical planner. The state machine concept allows to quickly alter the ex-
+ecution by simply reconnecting some transitions. For this, no deep programming
+skills as required, as the GUI allows for intuitive visual programming.
+Therefore, RAFCON is an ideal tool for mission control that can be used
+in dierent RoboCup competitions, for example the Logistics or Rescue League.
+This has been proved in the SpaceBotCup, in which similar requirements com-
+pared to the mentioned RoboCup leagues had to be met. A video of RAFCON
+is presented on http://213.136.81.227/23483/rafcon.mp4 .
+We are constantly improving RAFCON and planning to release it as open
+source by the end of the year via GitHub. By then, the documentation will be
+nished and the implementation be stable.
+Acknowledgment
+This work has been funded by the Helmholtz-Gemeinschaft Germany as part of
+the project RACELab, by the Helmholtz Association, project alliance ROBEX,
+under contract number HA-304 and by the European Commission under contract
+number FP7-ICT-608849-EUROC.
+References
+1. Andr e, C.: SyncCharts: A visual representation of reactive behaviors. Rapport de
+recherche tr95-52, Universit e de Nice-Sophia Antipolis (1995)
+2. Arkin, R.: Missionlab v 7.0. http://www.cc.gatech.edu/ai/robot-lab/
+research/MissionLab (2006)
+3. Baillie, J.C., Demaille, A., Hocquet, Q., Nottale, M., Tardieu, S.: The Urbi uni-
+versal platform for robotics. In: First International Workshop on Standards and
+Common Platform for Robotics (2008)
+
+--- Page 8 ---
+8
+4. Bohren, J., Cousins, S.: The SMACH high-level executive [ROS news]. IEEE
+Robotics & Automation Magazine 4(17), 18{20 (2010)
+5. Bohren, J., Rusu, R.B., Jones, E.G., Marder-Eppstein, E., Pantofaru, C., Wise, M.,
+M osenlechner, L., Meeussen, W., Holzer, S.: Towards autonomous robotic butlers:
+Lessons learned with the PR2. In: Robotics and Automation (ICRA), 2011 IEEE
+International Conference on. pp. 5568{5575 (2011)
+6. Chang, D., Dooley, L., Tuovinen, J.E.: Gestalt theory in visual screen design: a
+new look at an old subject. In: Proceedings of the Seventh world conference on
+computers in education conference on Computers in education: Australian topics-
+Volume 8. pp. 5{12. Australian Computer Society, Inc. (2002)
+7. C^ ot e, C., L etourneau, D., Michaud, F., Valin, J.M., Brosseau, Y., Ra evsky, C.,
+Lemay, M., Tran, V.: Code reusability tools for programming mobile robots. In:
+Intelligent Robots and Systems (IROS), IEEE/RSJ International Conference on.
+pp. 1820{1825 (2004)
+8. Harel, D.: Statecharts: A visual formalism for complex systems. Science of com-
+puter programming 8(3), 231{274 (1987)
+9. Jentzsch, S., Riedel, S., Denz, S., Brunner, S.: TUMsBendingUnits from TU Mu-
+nich: RoboCup 2012 Logistics League Champion. In: Chen, X., Stone, P., Sucar,
+L., van der Zant, T. (eds.) RoboCup 2012: Robot Soccer World Cup XVI, Lecture
+Notes in Computer Science, vol. 7500, pp. 48{58. Springer Berlin Heidelberg (2013)
+10. Kelly, J.F.: Lego Mindstorms NXT-G Programming Guide. Apress (2010)
+11. Krithivasan, K.: Theory of Automata, Formal Languages and Computation (2014)
+12. Leidner, D., Borst, C., Hirzinger, G.: Things are made for what they are: Solv-
+ing manipulation tasks by using functional object classes. In: Humanoid Robots
+(Humanoids), 12th IEEE-RAS International Conference on. pp. 429{435 (2012)
+13. Mcdermott, D., Ghallab, M., Howe, A., Knoblock, C., Ram, A., Veloso, M., Weld,
+D., Wilkins, D.: PDDL - The Planning Domain Denition Language. Tech. rep.,
+Yale Center for Computational Vision and Control, (1998)
+14. Hai Nguyen, Ciocarlie, M., Kaijen Hsiao, Kemp, C.: ROS commander (ROSCo):
+Behavior creation for home robots. In: Robotics and Automation (ICRA), 2013
+IEEE International Conference on. pp. 467{474 (2013)
+15. Navarro Prieto, R., Jose J. Ca~ nas: Are visual programming languages better?
+The role of imagery in program comprehension. International Journal of Human-
+Computer Studies 54(6), 799{829 (2001)
+16. Quigley, M., Conley, K., Gerkey, B., Faust, J., Foote, T., Leibs, J., Wheeler, R.,
+Ng, A.Y.: ROS: an open-source Robot Operating System. In: ICRA workshop on
+open source software. vol. 3 (2009)
+17. Resnick, M., Maloney, J., Monroy Hern andez, A., Rusk, N., Eastmond, E., Bren-
+nan, K., Millner, A., Rosenbaum, E., Silver, J., Silverman, B., et al.: Scratch:
+programming for all. Communications of the ACM 52(11), 60{67 (2009)
+18. Schuster, M., Brand, C., Brunner, S., Lehner, P., Reill, J., Riedel, S., Bodenm uller,
+T., Bussmann, K., B uttner, S., D omel, A., Friedl, W., Grixa, I., Hellerer, M.,
+Hirschm uller, H., Kassecker, M., Marton, Z.C., Nissler, C., Rue, F., Suppa, M.,
+Wedler, A.: The LRU Rover for Autonomous Planetary Exploration and its Suc-
+cess in the SpaceBotCamp Challenge (2016), submitted to IEEE International
+Conference on Autonomous Robot Systems and Competitions (ICARSC), 2016
+19. Wedler, A., Rebele, B., Reill, J., Suppa, M., Hirschm uller, H., Brand, C., Schuster,
+M., Vodermayer, B., Gmeiner, H., Maier, A., Willberg, B., Bussmann, K., Wappler,
+F., Hellerer, M.: LRU - Lightweight Rover Unit. In: ASTRA (2015)
+20. Widmoser, H.: Interaction Planning for collaborative Human-Robot Assembly
+Tasks. Master's thesis, TU M unchen (2012)

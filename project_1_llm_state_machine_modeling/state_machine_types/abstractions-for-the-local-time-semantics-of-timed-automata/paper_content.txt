@@ -1,0 +1,1718 @@
+--- Page 1 ---
+Abstractions for the local-time semantics of timed automata: a
+foundation for partial-order methods
+R. Govind
+IIT Bombay
+Mumbai, India
+govindr.1993@gmail.comFrédéric Herbreteau
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR5800
+Talence, France
+fh@labri.fr
+B. Srivathsan
+Chennai Mathematical Institute
+Chennai, India
+sri@cmi.ac.inIgor Walukiewicz
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR5800
+Talence, France
+igw@labri.fr
+ABSTRACT
+A timed network is a parallel composition of timed automata syn-
+chronizing on common actions. We develop a methodology that
+allows to use partial-order methods when solving the reachability
+problem for timed networks. It is based on a local-time seman-
+tics proposed by [Bengtsson et al. 1998]. A new simulation based
+abstraction of local-time zones is proposed. The main technical
+contribution is an efficient algorithm for testing subsumption be-
+tween local-time zones with respect to this abstraction operator.
+The abstraction is not finite for all networks. It turns out that, un-
+der relatively mild conditions, there is no finite abstraction for
+local-time zones that works for arbitrary timed networks. To cir-
+cumvent this problem, we introduce a notion of a bounded-spread
+network. The spread of a network is a parameter that says how far
+the local times of individual processes need to diverge. For bounded-
+spread networks, we show that it is possible to use subsumption
+and partial-order methods at the same time.
+CCS CONCEPTS
+•Theory of computation →Logic ;Verification by model
+checking .
+KEYWORDS
+Timed automata, local-time semantics, abstraction, partial-order
+reduction
+ACM Reference Format:
+R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. 2022.
+Abstractions for the local-time semantics of timed automata: a foundation
+for partial-order methods. In 37th Annual ACM/IEEE Symposium on Logic
+in Computer Science (LICS) (LICS ’22), August 2–5, 2022, Haifa, Israel. ACM,
+New York, NY, USA, 14 pages. https://doi.org/10.1145/3531130.3533343
+1 INTRODUCTION
+The reachability problem for timed automata [ 3] is to decide if a
+given automaton has an execution from an initial to a final state.
+LICS ’22, August 2–5, 2022, Haifa, Israel
+©2022 Copyright held by the owner/author(s). Publication rights licensed to ACM.
+This is the author’s version of the work. It is posted here for your personal use. Not
+for redistribution. The definitive Version of Record was published in 37th Annual
+ACM/IEEE Symposium on Logic in Computer Science (LICS) (LICS ’22), August 2–5, 2022,
+Haifa, Israel , https://doi.org/10.1145/3531130.3533343.
+P1
+0
+1
+2bx≤1
+$P2
+0
+1
+2c
+y≥2
+$(a) Network
+(0,0)
+(1,0) (0,1)
+(1,1)
+(2,2)b c
+b c
+$ (b) Untimed
+product
+(0,0)x, y≥0
+(1,0)x, y≥0(0,1)x, y≥2
+(1,1)x, y≥2
+(2,2)x, y≥2b c
+c
+$(c) Timed product
+Figure 1: A network of two processes. Timing constraints
+break the diamond formed by actions involving different
+processes.
+Usually, a model is given as a network of timed automata working
+in parallel and synchronizing on common actions. It is tempting
+to exploit the concurrency information provided by such a repre-
+sentation to speed up reachability testing. For untimed systems,
+partial-order methods [ 2,15,19,20,22,35,37,38] can provide expo-
+nential improvements. The presence of time greatly complicates the
+picture because individual automata may synchronize implicitly
+via time. In this work we extend the classical zone based approach
+to the reachability problem so that partial-order reduction methods
+become applicable.
+Let us explain the challenge on a simple example. Figure 1a
+shows a network of two processes. The first process does a local
+action𝑏, the second a local action 𝑐, and then they synchronize
+on action $. If we ignore the timing constraints, the graph of all
+executions of this system has a diamond : since𝑏and𝑐are executed
+on different processes they commute, so the sequence 𝑏𝑐leads to
+the same state as 𝑐𝑏as shown in Figure 1b. The timing constraints
+break this diamond: the sequence 𝑐𝑏is impossible since doing 𝑐
+requires to wait at least 2time units, and then it is too late for doing
+𝑏that needs to be executed within 1time unit from the start, as
+in Figure 1c. This is a major obstacle for applying partial-order
+methods in the timed automata setting.
+Before addressing this obstacle let us review how the reacha-
+bility problem of a single timed automaton is solved. The most
+efficient solutions to the reachability problem construct an explicit
+graph, that we call here an abstract zone graph with subsumptions .
+
+--- Page 2 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+(0,0)t1= 0, t2= 0
+(1,0)t1= 0, t2= 0 (0,1)t1= 0, t2= 2
+(1,1)t1= 0, t2= 2
+(2,2)t1= 2, t2= 2b c
+b c
+$
+Figure 2: Diamonds are recovered in local-time semantics. In
+the rightmost path the local times of the two process differ.
+Zones [17] are special convex sets of clock valuations with the prop-
+erty that a set of valuations reachable from a zone is once again a
+zone. The nodes of the graph represent the zones that are reach-
+able by the transitions of the automaton. For some timed automata,
+there could be infinitely many reachable zones. This is why ab-
+stractions [6,17], such as Extra𝐿𝑈or𝔞≼𝐿𝑈, are used to "abstract"
+a finite number of representative sets. Finally, only zones whose
+abstractions are maximal with respect to inclusion are kept during
+exploration. This technique is called subsumption [17], and it is
+essential for efficiency.
+When applying this method to networks of timed automata, the
+state explosion problem occurs. For untimed systems this problem
+can be alleviated either by partial-order methods, or by symbolic
+methods based on BDDs or SAT-solving. For timed systems BDD
+and SAT based solutions [ 4,5,7,18,33,34,39] have been tried with
+mixed results. Here we pursue a partial-order approach to tackle
+the state explosion problem.
+Partial-order methods limit the search space by using the dia-
+monds present in the graph of executions. In our example from
+Figure 1b, it is enough to explore the sequence 𝑏𝑐$as thanks to the
+diamond we are sure that the sequence 𝑐𝑏$leads to the same state.
+For more complicated cases, this approach can give exponential
+gains in time as well in the size of the graph to be explored. In order
+to apply partial-order methods for timed systems it is essential to
+recover the diamonds lost due to implicit synchronization caused
+by time constraints. Otherwise, choosing 𝑐𝑏$as a representative
+for𝑏𝑐$in Figure 1c would lead to incompleteness. Solutions pro-
+posed in the literature consider only diamonds where time does not
+elapse [ 9,10,30], or try to deduce which diamonds are still bound
+to stay despite time constraints [ 16,24]. Here we develop a set of
+theoretical results permitting a much wider use of partial-order
+methods in constructing abstract zone graphs with subsumption.
+Our starting point is the local-time semantics [ 8] for networks
+of timed automata, that addresses exactly the diamond problem
+by making time local to each process. The processes are required
+to synchronize their times when performing common actions. As
+a result, local-time semantics can be actually used to solve the
+reachability problem even if it allows more behaviours as compared
+to the standard global-time semantics. Moreover, actions executing
+on different processes are independent as there are no implicit
+synchronizations on time.
+Let us revisit our example to see how diamonds are recovered
+thanks to local-time. Figure 2 illustrates two executions under thelocal-time semantics. The two processes have their local and inde-
+pendent times represented by clocks 𝑡1and𝑡2, respectively. The
+path𝑏𝑐$is still feasible as before, by keeping the local times of
+process𝑃1and𝑃2synchronized. But now, 𝑐𝑏$becomes feasible as
+well.𝑃2may delay by 2time units and do 𝑐while𝑃1does not delay
+at all. Then, 𝑃1can do𝑏, and then delay 2time units to synchro-
+nize its time with 𝑃2and enable the common action $. As in the
+standard (global-time) setting, there is a notion of a local-zone , and
+one can try to use the local-zone graph for checking reachability.
+The advantage is that the local-zone graph has diamonds. However,
+this graph may be infinite.
+What is lacking to make the local-time approach algorithmically
+interesting, is an efficient abstraction operator that would guarantee
+finiteness of abstract local-zone graphs. An abstraction operator has
+been proposed in [ 8], but as we show here, the associated decision
+problem is Pspace -hard (Proposition 3.11), so there is little hope
+that it can be used to give an efficient solution.
+To sum up, to be able to use partial-order methods with the help
+of local-time semantics, we need to find an abstraction operator for
+local-zones that:
+(1) preserves reachability,
+(2) leads to a finite abstract local-zone graph,
+(3) is efficient algorithmically,
+(4) preserves diamonds of actions from distinct processes.
+The first two conditions are required for correctness and termina-
+tion of an exploration algorithm. The third is essential to be com-
+petitive with existing solutions: computing an inclusion between
+two abstracted zones should be easier than solving the reachability
+problem in the first place. The fourth condition is needed to apply
+partial-order methods. The formalization of the fourth condition is
+actually weaker than requiring diamonds to exist in the abstract
+local-zone graph with subsumptions. The latter property would be
+much too strong to demand; c.f. Figure 5.
+Our first result is an extension of the well-known 𝔞≼𝐿𝑈abstrac-
+tion for global-time semantics [ 6,26] to the local-time setting (The-
+orem 6.5). We call it 𝔞★
+≼𝐿𝑈. The main technical result is an effi-
+cient algorithm for testing inclusion 𝔞★
+≼𝐿𝑈(𝑍)⊆𝔞★
+≼𝐿𝑈(𝑍′)in time
+O((|𝑋|+𝑛)2), where|𝑋|is the number of clocks, and 𝑛is the num-
+ber of processes in the network (Theorem 6.8). This complexity is
+essentially the same as in the global-time setting, with the factor 𝑛
+coming due to extra clocks added by the local-time semantics.
+Unfortunately, the 𝔞★
+≼𝐿𝑈abstraction is not finite, that is, it does
+not satisfy property (2). Actually, we observe a strong negative
+result: there is no simulation based abstraction operator satisfying
+properties (1), (2) and (4) at the same time (Theorem 5.1). This is
+a serious obstacle because we do not know how to guarantee (4)
+for abstractions that are not simulation based. To the best of our
+knowledge, all abstractions used in timed automata verification
+algorithms are simulation based. The main hindrance to get finite-
+ness is that the local times of processes can drift from each other
+by arbitrary amounts, but this quantity cannot be abstracted away.
+Given this roadblock, we propose a restricted setting of bounded-
+spread networks . These are networks where the drift between pro-
+cesses can be controlled: every sequence of actions can be realized
+while maintaining a bounded drift between processes. For such
+
+--- Page 3 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+networks, a suitable adaptation of the 𝔞★
+≼𝐿𝑈abstraction becomes
+finite, and has all the required four properties (Theorem 7.10).
+The final step is to apply partial-order methods to the finite ab-
+stract local-zone graph with subsumptions. This is slightly delicate
+because the abstract local-zone graph with subsumptions does not
+have diamonds, precisely due to subsumptions (cf. Figure 5). Yet,
+we do not want to disallow subsumptions as they are essential
+to get an effective and an algorithmically efficient solution. We
+show that every partial-order method that works on graphs with-
+out subsumptions, intuitively for untimed systems, can be used
+for bounded-spread networks (Theorem 4.3). Abstractly, we see a
+partial-order method as computing a function srcindicating for
+every state a subset of its outgoing transitions, such that exploring
+only this subset of transitions is sufficient to verify reachability. In
+our example from Figure 1b we may have src(0,0)={𝑏}indicating
+that it is sufficient to explore only the transition 𝑏from the initial
+node. Since the 𝔞★
+≼𝐿𝑈abstraction is based on a simulation, we can
+show that if the srcfunction is correct for the local-zone graph
+(without subsumptions), it is also correct to use it for the abstract
+local-zone graph with subsumptions, even though the latter does
+not have diamonds.
+Putting these results together we obtain a methodology allow-
+ing to apply existing partial-order methods to timed-systems. The
+methodology is not general because it applies only to networks of
+bounded spread, while in general networks could have unbounded
+spread. Moreover, computing a spread of a given network is at
+least as difficult as testing reachability. On a positive side, we give
+examples of some types of networks that are guaranteed to have a
+bounded spread. We also propose a method to convert an arbitrary
+network into a bounded-spread network by introducing synchro-
+nizations between processes. We conclude with simple examples
+where our method brings exponential gains.
+Related work. Local-time semantics has been considered by three
+groups. Bengtsson et al. in their article introducing local-time se-
+mantics [ 8] propose an algorithm for reachability checking. For
+this they introduce an abstraction called catch-up equivalence. It is
+rather improbable that an algorithm using this equivalence can be
+competitive against standard solutions because, as we show here,
+checking if two valuations are catch-up equivalent is PSPACE-hard.
+In [32] another equivalence is proposed, but it turns out to be not
+sound [ 23]. Sync-subsumption has been introduced in [ 23], but this
+subsumption does not preserve diamonds, hence it is not suitable
+for partial-order reduction.
+An alternative to local-time zones was proposed by [ 31]. In that
+approach zones maintain a partial-order between clocks. For finite-
+ness, an abstraction similar to sync-subsumption of [ 23] is used.
+Again, this does not preserve diamonds and hence the approach is
+not suitable for partial-order reduction on the control states.
+Other works have proposed partial-order methods for timed
+automata, while keeping the standard semantics. For example, lim-
+iting partial-order methods only to parts where independent actions
+occur in zero-time [ 11,30,33]. Some works propose ways to dis-
+cover which actions remain independent despite time constraints,
+either statically [ 16] or dynamically [ 24]. Two works [ 12,13] apply
+unfolding techniques to bounded timed automata which admit a
+finite representation of their state space without abstraction.Partial-order methods have been introduced in the 90s [ 22,35,37]
+as a method to speed up verification of transition systems. Later the
+accent shifted to program verification, and in particular to stateless
+model-checking [ 21]. The subject has become very active since
+the work of Abdulla et al. [ 1,2] introducing a notion of optimal
+partial-order reduction (see [ 14,28,40] and references within). In
+this paper we take an abstract view of partial-order methods and
+do not focus on any concrete methods. The most recent works need
+some adaptation to be applicable in our setting. One reason is that
+they consider only straight-line processes, i.e., without branching.
+This is too restrictive in our setting.
+Synopsis. In the Preliminaries, we introduce local-time semantics,
+local-zone graphs and their most important properties. We also
+present a succinct description of partial-order methods that is suffi-
+cient for this work. In Section 3 we introduce a notion of abstrac-
+tion for local-zone graphs, and study conditions under which an
+abstraction can be used for reachability. In Section 4 we show how
+partial-order methods can be used in the presence of abstractions.
+Unfortunately, under mild assumptions, abstractions of local-zone
+graphs compatible with partial-order cannot be finite (Section 5).
+Our solution is to put a restriction on timed networks, but before
+this we develop in Section 6 an abstraction operator 𝔞★
+≼𝐿𝑈, which is
+a generalization of the well-known 𝔞≼𝐿𝑈operator. We show that
+inclusion testing with respect to the new operator 𝔞★
+≼𝐿𝑈can be done
+efficiently. In Section 7 we introduce bounded-spread networks,
+give examples of such networks, as well as a general construction
+transforming a timed network into a bounded-spread network. We
+show that a modification of 𝔞★
+≼𝐿𝑈is finite on bounded-spread net-
+works. We conclude with some examples where our method gives
+exponential gains and discuss where they come from.
+2 PRELIMINARIES
+In this section we introduce networks of timed automata, local-time
+semantics, and partial-order reduction. We present the standard
+global-time semantics as a special case of the local-time semantics.
+This clearly shows the differences between the two. Our approach
+allows to transfer any partial-order method from the untimed set-
+ting to the timed setting. In this paper, a partial-order method is
+given as an oracle that tells which transitions need to be explored.
+The only constraint is that the method keeps at least one execution
+from each trace equivalence class. At the end of the section, we
+introduce local-zone graphs, and state their properties.
+We useNfor the set of natural numbers, Rfor the set of reals
+andR≥0for the set of non-negative reals. Let 𝑋be a finite set of
+variables called clocks . Let𝜙(𝑋)denote a set of clock constraints
+generated by the following grammar: 𝜙:=𝑥∼𝑐|𝜙∧𝜙where
+𝑥∈𝑋,𝑐∈N, and∼∈{ <,≤,=,≥,>}. The base constraints 𝑥∼𝑐
+will be called atomic constraints .
+Anetwork of timed automata is a collection of timed automata
+communicating with each other via shared actions. We have seen
+an example of a network with two automata in Figure 1a. Each
+automaton participating in the network is called a process . Formally,
+a timed network is a 𝑘-tuple of processes N=(𝐴1,...,𝐴𝑘). Each
+process𝐴𝑝=
+𝑄𝑝,Σ𝑝,𝑋𝑝,𝑞init𝑝,𝑇𝑝
+has a finite set of states 𝑄𝑝, a
+finite alphabet of actions Σ𝑝, a finite set of clocks 𝑋𝑝. We require
+
+--- Page 4 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+that the sets of states, and the sets of clocks are pairwise disjoint:
+𝑄𝑝1∩𝑄𝑝2=∅, and𝑋𝑝1∩𝑋𝑝2=∅for𝑝1≠𝑝2. The sets of labels
+need not be disjoint - a label shared by two processes represents
+an action synchronizing the processes. The remaining components
+are an initial state 𝑞init𝑝and a set of transitions 𝑇𝑝⊆(𝑄𝑝×Σ𝑝×
+𝜙(𝑋𝑝)×2𝑋𝑝×𝑄𝑝). A transition(𝑞,𝑏,𝑔,𝑅,𝑞′)∈𝑇𝑝has a label𝑏,
+aguard𝑔, and a set𝑅of clocks to be reset. We write Proc for the
+set of all processes. We will use some abbreviations: 𝑄=Π𝑘
+𝑝=1𝑄𝑝,
+Σ=Ð𝑘
+𝑝=1Σ𝑝and𝑋=Ð𝑘
+𝑝=1𝑋𝑝. For a tuple of states 𝑞∈𝑄, we
+write𝑞(𝑝)to be the state of process 𝑝in the tuple𝑞. Every action 𝑏
+has its domain dom(𝑏)=
+𝑝:𝑏∈Σ𝑝	. The execution of action 𝑏
+requires participation of all processes in the domain. We denote by
+𝑞𝑖𝑛𝑖𝑡the tuple of initial states 𝑞𝑖𝑛𝑖𝑡𝑝for each process 𝑝.
+Local-time semantics. We introduce the local-time semantics of
+timed automata [ 8], and then the standard global-time semantics
+as a particular case. Fix a timed network N.
+In the local-time semantics, each process 𝑝has its local time
+represented by a clock 𝑡𝑝. The processes synchronize their times
+when doing a common action. The clock 𝑡𝑝, called the reference
+clock of process𝑝, is never tested in a guard nor reset by the process.
+We will denote by 𝑋𝑡the set{𝑡𝑝|𝑝∈Proc}of reference clocks.
+The other clock variables will store the local-time when the clock
+was last reset. Thus the value of 𝑡𝑝cannot be smaller than values
+of clocks of process 𝑝. More formally, a local valuation assigns a
+value, a real number, to each clock in 𝑋∪𝑋𝑡:
+𝑣:(𝑋∪𝑋𝑡)→R provided𝑣(𝑡𝑝)≥𝑣(𝑥)for𝑥∈𝑋𝑝
+With this intuition, the difference 𝑣(𝑡𝑝)−𝑣(𝑥)gives the time since
+the last reset of clock 𝑥. This is what is considered as the value of
+𝑥in the standard semantics. In the local-time semantics we allow
+negative values for 𝑣(𝑡𝑝),𝑣(𝑥)since we will always work with the
+difference𝑣(𝑡𝑝)−𝑣(𝑥)and allowing for negative values offers some
+simplicity later while handling zones of local valuations. We use
+LocalVal(𝑋,Proc)for the set of local valuations, but mostly we will
+just write LocalVal as𝑋andProc will be clear from the context. In
+the sequel, we use the notation 𝑣(𝑥−𝑦)for𝑣(𝑥)−𝑣(𝑦).
+Operations of clock reset for local valuations as well as local
+time elapse are defined accordingly, based on the interpretation
+given above. For a set of clocks 𝑅, let𝑣[𝑅]denote the local valuation
+obtained by resetting 𝑅in𝑣. That is:𝑣[𝑅](𝑥)=𝑣(𝑡𝑝)if𝑥∈𝑅∩𝑋𝑝
+for some𝑝∈𝑃𝑟𝑜𝑐 , and𝑣[𝑅](𝑥)=𝑣(𝑥)otherwise. For a tuple
+of non-negative reals Δ=
+𝛿𝑝∈R≥0	
+𝑝∈Procwe define𝑣Δ−→𝑣′
+when𝑣′(𝑡𝑝)=𝑣(𝑡𝑝)+𝛿𝑝for all𝑝∈Proc, and𝑣′(𝑥)=𝑣(𝑥)for all
+𝑥∈𝑋. This denotes a local delay ofΔfrom the valuation 𝑣. The
+notion of a local valuation satisfying a guard is also adapted to this
+interpretation. For 𝑥a clock of process 𝑝, i.e.𝑥∈𝑋𝑝, we define
+𝑣|=𝑥∼𝑐if𝑣(𝑡𝑝−𝑥)∼𝑐for∼∈{<,≤,=,≥,>}and𝑐∈N.
+Remark: One may wonder why not just keep the value of the
+clock in𝑣(𝑥). This interpretation gives a big problem later when
+we consider zones of local valuations. It turns out that in this inter-
+pretation the set of valuations reachable by a transition from a zone
+may not be a zone. Quite remarkably the interpretation presented
+above avoids this problem [8].
+A configuration of the network is a pair (𝑞,𝑣)where𝑞is a tuple
+of control states of all processes, and 𝑣is a local valuation. An initialvaluation𝑣0associates the same real to each clock: 𝑣0(𝑟−𝑠)=0for
+all𝑟,𝑠∈𝑋∪𝑋𝑡. Let𝑉0denote the set of initial local valuations. The
+initial configurations are
+𝑞𝑖𝑛𝑖𝑡	
+×𝑉0. For an action 𝑏, the network
+Ncan execute a transition (𝑞,𝑣)𝑏−→(𝑞′,𝑣′)if there is a tuple of
+𝑏-transitionsn
+(𝑞𝑝,𝑏,𝑔𝑝,𝑅𝑝,𝑞′𝑝)o
+𝑝∈dom(𝑏)such that:
+•states of involved processes change: 𝑞𝑝=𝑞(𝑝),𝑞′𝑝=𝑞′(𝑝),
+if𝑝∈dom(𝑏), and𝑞(𝑝)=𝑞′(𝑝)if𝑝∉dom(𝑏);
+•local times are synchronized: 𝑣(𝑡𝑝1)=𝑣(𝑡𝑝2), for every
+𝑝1,𝑝2∈dom(𝑏);
+•guards are satisfied: 𝑣|=𝑔𝑝, for every𝑝∈dom(𝑏);
+•resets are performed: 𝑣′=𝑣[Ð
+𝑝∈dom(𝑏)𝑅𝑝];
+Alocal run ofNis a sequence of local delay and action transitions
+from an initial configuration (𝑞0,𝑣0):
+(𝑞0,𝑣0)Δ0−→(𝑞0,𝑣′
+0)𝑏1−→(𝑞1,𝑣1)Δ1−→···𝑏𝑛−→(𝑞𝑛,𝑣𝑛)Δ𝑛−→(𝑞𝑛,𝑣′
+𝑛)
+We write(𝑞0,𝑣0)𝑢d(𝑞𝑛,𝑣′𝑛)to say that there is a sequence as
+above for𝑢=𝑏1...𝑏𝑛and adequate delays.
+Global-time semantics and reachability. The standard semantics of a
+network, which we refer to as global-time semantics or just global
+semantics in short, is given by the semantics of the monolithic
+timed automaton obtained as the “synchronized product” of the
+individual processes. There is a common time for all processes: their
+reference clocks are always equal. In other words global semantics
+uses only synchronized valuations 𝑣where𝑣(𝑡𝑝)=𝑣(𝑡𝑞)for all
+𝑝,𝑞∈𝑃𝑟𝑜𝑐 . In consequence, in the global semantics, we only allow
+global delays 𝑣Δ−→𝑣′which are local delays such that 𝛿𝑝=𝛿𝑞
+for any two processes 𝑝,𝑞∈Proc. We use𝛿for global delays to
+distinguish from local delays Δ. Aglobal run ofNis an alternat-
+ing sequence of global delay and action transitions starting from
+a synchronized valuation: (𝑞0,𝑣0)𝛿0−→(𝑞0,𝑣′
+0)𝑏1−→(𝑞1,𝑣1)𝛿1−→
+(𝑞1,𝑣′
+1)𝑏2−→···𝑏𝑛−→ (𝑞𝑛,𝑣𝑛)𝛿𝑛−→ (𝑞𝑛,𝑣′𝑛). Observe that all the
+valuations on a global run are synchronized.
+The reachability problem asks if a state 𝑞𝑓is reachable in the
+global-time semantics. In other words, does there exist a global run
+from an initial configuration to a configuration (𝑞𝑓,𝑣)for some
+synchronized valuation 𝑣. This problem is known to be Pspace -
+complete [ 3]. Most algorithms solving the reachability problem use
+the global semantics [6, 17, 25, 26]. The state 𝑞𝑓that we check for
+reachability is called the final state of the networkNin the sequel.
+Partial-order reduction (POR). We give a general outline of partial-
+order reductions that is sufficient for this work. The main idea is to
+use information about concurrency to avoid exploring equivalent
+interleavings of actions. In Figure 1, we have seen that the order of
+execution between 𝑏and𝑐is irrelevant: starting from (0,0)both
+sequences end in(1,1). We say that 𝑏and𝑐areindependent in a
+transition systemSif this property holds for every state of S. The
+notion of independence leads to trace equivalence on sequences:
+two sequences are trace equivalent, denoted 𝑢∼S𝑣, if one can
+be obtained from the other by permuting adjacent independent
+actions. This is an equivalence relation on sequences of actions.
+Moreover, if 𝑢∼S𝑣and𝑢leads from an initial to a final state in S
+then so does 𝑣. A POR method aims at exploring at least one path
+from every trace-equivalence class, but preferably not much more.
+
+--- Page 5 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+For instance in Figure 1 we may only explore the sequence 𝑏𝑐$, and
+ignore the sequence 𝑐𝑏$. This avoids visiting state (0,1). In some
+cases this optimization may lead to exponential reductions in the
+number of visited states.
+We think of a POR method as a way of computing for a given
+transition systemSasource function ,src:𝑄→P( Σ)assigning to
+every state ofSa set of relevant actions. A path in Sis asource
+path if it is a path in the restriction of Swhere from every state 𝑞
+we eliminate transitions on actions that are not in src(𝑞). A source
+function should be trace-faithful meaning that for every state 𝑞
+and every path 𝑞→𝑢𝑞𝑓to a final state 𝑞𝑓, there must be a trace-
+equivalent sequence 𝑣∼S𝑢such that𝑞→𝑣𝑞𝑓is a source path. In
+the example from Figure 1 we may take src(0,0)=src(0,1)={𝑏},
+src(1,0)={𝑐}andsrc(1,1)={$}. The goal is to find a trace-faithful
+source function without exploring the transition system.
+A common way to get a srcfunction is to look at the parallelism
+in a given system. In a network of automata without timing con-
+straints, two actions with disjoint domains are independent in the
+sense of the previous paragraph. Stubborn sets [ 37], ample sets [ 35],
+persistent sets [ 22], faithful decompositions [ 27], stamper sets [ 36],
+source sets [ 2], are different ways of computing a source function
+in this setting.
+Our goal in this work is to develop a theory allowing to use
+the same approach for networks of timed automata. As seen in
+Figure 1c, in timed networks, two domain-disjoint actions may not
+be independent. Global time destroys diamonds, making it difficult
+to find out which actions are independent. Local-time semantics
+allows to recover diamonds, cf. Figure 2. Reachability can be solved
+using local-time, as we see next.
+Reachability and diamonds in local-time. Observe that every global
+run is a local-time run. Conversely, for every local-time run there
+is a trace equivalent global run.
+Lemma 2.1. [23] Let𝑣,𝑣′be synchronized local valuations, and
+let(𝑞,𝑣)𝑢d(𝑞′,𝑣′)be a local run. Then there exists a global run
+(𝑞,𝑣)𝑤d(𝑞′,𝑣′)such that𝑢∼𝑤.
+Since the initial valuations are all synchronized, the above lemma
+ensures that a control state 𝑞is reachable in the local-time semantics
+iff it is reachable in the global-time semantics. This is particularly
+true of the final state 𝑞𝑓. Given this correspondence, we will hence-
+forth work completely with the local-time semantics. Additionally,
+the local-time semantics offers the diamond property which is es-
+sential for POR.
+Lemma 2.2 (Diamond property). Suppose dom(𝑎)∩dom(𝑏)=∅.
+If(𝑞,𝑣)𝑎𝑏d(𝑞′,𝑣′)then(𝑞,𝑣)𝑏𝑎d(𝑞′,𝑣′).
+Local-zone graphs. To make the local-time semantics feasible for
+use in algorithms, a notion of local-zones, analagous to the zones
+in the global-time setting [ 17], is employed. A local-zone is a set
+of local valuations given by conjunctions of constraints: 𝑥−𝑦⋖𝑐
+where𝑥,𝑦∈𝑋∪𝑋𝑡,⋖∈ {<,≤}and𝑐∈Z. For a set of local
+valuations𝑊, define:
+•local-elapse(𝑊):=n
+𝑣+Δ|𝑣∈𝑊,Δ∈R𝑘
+≥0o
+,
+•𝑊[𝑅]:={𝑣[𝑅]|𝑣∈𝑊}, for a set of clocks 𝑅⊆𝑋.
+•𝑊∩𝑔:={𝑣|𝑣|=𝑔}for a guard𝑔.It can be shown that for a local-zone 𝑍, the sets local-elapse(𝑍)
+(local-time delay), 𝑍[𝑅](clock reset) and 𝑍∩𝑔(intersection with
+guard) are local-zones [8, 23].
+Local-zones can be implemented using Difference Bound Ma-
+trices (DBMs), similar to the case of standard zones. Hence, they
+can be computed and stored as efficiently as standard zones. Be-
+fore defining the local-zone graph, we lift the local semantics from
+configurations to sets of configurations.
+Definition 2.3 (Symbolic transition relation). Let𝑊be a set of
+local valuations. We write (𝑞,𝑊)𝑏⇒(𝑞′,𝑊′)if there exists a tuple
+of𝑏-transitions{(𝑞𝑝,𝑏,𝑔𝑝,𝑅𝑝,𝑞′𝑝)}𝑝∈dom(𝑏)such that
+•𝑞(𝑝)=𝑞𝑝and𝑞′(𝑝)=𝑞′𝑝for all𝑝∈dom(𝑏), and𝑞(𝑝)=
+𝑞′(𝑝)for all𝑝∉dom(𝑏);
+•𝑊′=local-elapse(𝑊2)is not empty, where 𝑊2is defined as:
+𝑊2=𝑊1[Ð
+𝑝∈dom(𝑏)𝑅𝑝]and𝑊1=𝑊∩(Ó
+𝑝∈dom(𝑏)𝑔𝑝∧Ó{𝑡𝑝=𝑡𝑞|𝑝,𝑞∈dom(𝑏)})
+We write(𝑞,𝑊)𝑏1...𝑏𝑛⇒ (𝑞𝑛,𝑊𝑛)if there is a sequence of symbolic
+transitions(𝑞,𝑊)𝑏1⇒(𝑞1,𝑊1)···𝑏𝑛⇒(𝑞𝑛,𝑊𝑛).
+The following lemma states the relation between transitions on
+zones and on valuations. Its proof follows from the definition of
+symbolic transitions. We say that a local-zone 𝑍istime-elapsed if
+𝑍=local-elapse(𝑍).
+Lemma 2.4 (Pre and post properties). For every network of
+timed automata and every action 𝑏:
+pre-property: If(𝑞,𝑣)𝑏d(𝑞′,𝑣′)and𝑣∈𝑍for some time-elapsed
+local-zone𝑍then(𝑞,𝑍)𝑏⇒(𝑞′,𝑍′)and𝑣′∈𝑍′for some local-zone
+𝑍′.
+post-property: If(𝑞,𝑍)𝑏⇒(𝑞′,𝑍′)and𝑣′∈𝑍′for local-zones
+𝑍,𝑍′, then(𝑞,𝑣)𝑏d(𝑞′,𝑣′)for some𝑣∈𝑍.
+Definition 2.5 (Local-zone graph LZG(N)).The local-zone graph
+LZG(N) of a networkNis a transition system whose nodes are of
+the form(𝑞,𝑍)where𝑞is a state of the network, and 𝑍is a local-
+zone. The initial node is (𝑞0,𝑍0)with𝑍0=local-elapse(𝑉0)where
+𝑉0is the set of initial valuations and 𝑞0=𝑞𝑖𝑛𝑖𝑡. The transitions are
+given by the symbolic transition relation (𝑞,𝑍)𝑏⇒(𝑞′,𝑍′).
+The initial zone is time-elapsed. This entails that every zone
+reachable by⇒transitions is also time-elapsed, due to Defini-
+tion 2.3. Using this observation along with the pre- and post-properties
+of Lemma 2.4, we get the following theorem.
+Theorem 2.6. [8,23] For a given network N, there is a run ofN
+reaching a state 𝑞iff there is a path in LZG(N) from the initial node
+to a node(𝑞,𝑍).
+This theorem suggests that the local-zone graph LZG(N) could
+potentially be used to analyze reachability. The local-zone graph
+is an untimed transition system and we are interested in applying
+partial-order methods on it. As desired, domain-disjoint actions
+are independent in the local-zone graph. This is a consequence of
+Lemmas 2.2 and 2.4.
+Proposition 2.7 (Diamond property of LZG(N)).Assume
+dom(𝑎)∩dom(𝑏)=∅. If(𝑞,𝑍)𝑎𝑏⇒(𝑞′,𝑍′)then(𝑞,𝑍)𝑏𝑎⇒(𝑞′,𝑍′).
+
+--- Page 6 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+Let us remark that the so called enabledness property [ 15] may
+not hold in a local-zone graph: it is possible to construct a network,
+a local-zone 𝑍and two domain-disjoint actions 𝑎,𝑏such that from
+(𝑞,𝑍)there are both𝑎⇒and𝑏⇒transitions but neither𝑎𝑏⇒nor𝑏𝑎⇒
+are feasible from(𝑞,𝑍)[32]. This happens when every valuation
+in𝑍can do either𝑎⇒or𝑏⇒, but not both. Enabledness is however
+true at the level of configurations. Indeed if both𝑎−→and𝑏−→are
+feasible from(𝑞,𝑣), then both sequences𝑎𝑏dand𝑏𝑎dexist since
+domain-disjoint actions 𝑎and𝑏involve distinct clocks.
+Although the local-zone graph is sound and complete for reach-
+ability, and has the diamond property, it may be infinite. Hence a
+finite abstraction of the local-zone graph is required for analysis.
+This is the subject for the next section.
+3 ABSTRACT LOCAL-ZONE GRAPHS
+The goal of this section is to study finite abstractions of local-zone
+graphs that can be used to answer the reachability question. We
+introduce a general definition of an abstraction and of an abstract
+local-zone graph. Then we put restrictions on abstractions that
+make the abstract local-zone graph sound and complete for reacha-
+bility.
+We fix a timed network N. This allows us to omit indexing every
+notion withN.
+Definition 3.1. Aquasi-abstraction operator 𝔞:P(LocalVal)→
+P(LocalVal)is a function from sets of local valuations to sets of
+local valuations such that 𝔞(𝔞(𝑊))= 𝔞(𝑊)for all sets of local
+valuations𝑊. If the operator additionally satisfies 𝑊⊆𝔞(𝑊)for
+all sets𝑊, we call it an abstraction operator .
+The definition of the abstraction operator is the same as in the
+global-time semantics [ 6,26], except that now we work with local
+valuations. We will use the weaker notion which we have called a
+quasi-abstraction to get finite abstractions in our setting.
+A quasi-abstraction operator allows to compute an abstract
+local-zone graph. An exploration of a local-zone graph is stopped
+when a node with a bigger abstraction is already in the graph. The
+smaller node is said to be subsumed by the bigger node. If the quasi-
+abstraction is finite as defined below, then we can have a finite
+abstract graph.
+Definition 3.2. A quasi-abstraction 𝔞is said to be finite if for
+every infinite sequence of zones 𝑍1,𝑍2,... there exist𝑖<𝑗such
+that𝔞(𝑍𝑖)⊇𝔞(𝑍𝑗).
+Definition 3.3 ( LZG𝔞(N)).Suppose 𝔞is a quasi-abstraction oper-
+ator. An abstract local-zone graph is a subset of nodes and edges of
+LZG(N) together with some new edges called subsumption edges .
+Each node is labeled either covered oruncovered . The graph must
+satisfy the following conditions:
+•The initial node of LZG(N) belongs to the graph.
+•For every uncovered node (𝑞,𝑍), all its successors together
+with associated transitions (𝑞,𝑍)𝑏⇒ (𝑞′,𝑍′)inLZG(N)
+should be in the graph.
+•For every covered node (𝑞,𝑍)there is an uncovered node
+(𝑞,𝑍′)with𝔞(𝑍) ⊆𝔞(𝑍′); moreover there is an explicit
+subsumption edge (𝑞,𝑍)⇝(𝑞,𝑍′).•Every node of the graph must be reachable from the initial
+node by a path of⇒edges.
+We denote by LZG𝔞(N) some abstract zone graph for N. One can
+imagine that we take the first one in some fixed order on graphs.
+A point worth noting is that the algorithm stores zones and not
+abstract sets. Indeed, we do not assume that an abstraction of a
+zone is a zone, and therefore we do not know a priori how to store
+and manipulate abstract sets directly.
+The question now is when it is correct to examine the abstract
+local-zone graph instead of the network itself: when can we say that
+a given state is reachable by a run in a network iff it is reachable
+in its abstract local-zone graph. Since every node of LZG𝔞(N) is
+reachable by a sequence of ⇒transitions, we have:
+Lemma 3.4. Every abstract local-zone graph is sound: if a final
+state is reachable in LZG𝔞(N) then it is reachable in N.
+We now study the converse implication.
+Definition 3.5. A quasi-abstraction operator 𝔞iscomplete when
+reachability of a state 𝑞inNimplies its reachability in LZG𝔞(N) .
+The challenge is to get complete and finite quasi-abstraction
+operators for which the test 𝔞(𝑍)⊆𝔞(𝑍′)is efficient. Abstractions
+for the global semantics are based on simulation relations [ 6,17,26].
+Our next step is to consider abstractions based on simulations for
+the local semantics.
+Definition 3.6. A(time-abstract) simulation relation≼on the
+local semantics is a reflexive and transitive relation (𝑞,𝑣)≼(𝑞,𝑣′)
+between configurations having the same discrete state that satisfies
+two conditions:
+(1)for every local delay transition (𝑞,𝑣)Δ−→(𝑞,𝑣1), there exists
+a local delay Δ′such that(𝑞,𝑣′)Δ′
+−→(𝑞,𝑣′
+1)and(𝑞,𝑣1)≼
+(𝑞,𝑣′
+1),
+(2)for every transition (𝑞,𝑣)𝑏−→(𝑞1,𝑣1)there is a transition
+(𝑞,𝑣′)𝑏−→(𝑞1,𝑣′
+1)with(𝑞1,𝑣1)≼(𝑞1,𝑣′
+1).
+We say𝑣≼𝑣′if(𝑞,𝑣)≼(𝑞,𝑣′)for all states 𝑞. When Δ′=Δin the
+first condition above, the relation is called a strong-timed simulation .
+Definition 3.7. A quasi-abstraction operator 𝔞issimulation based
+if there is a simulation ≼such that 𝔞(𝑊)⊆{𝑣:∃𝑣′∈𝑊.𝑣≼𝑣′}.
+In particular, there is the biggest abstraction operator based on
+a simulation≼. It is simply the downward closure operator with
+respect to≼.
+Lemma 3.8. A simulation based abstraction operator is complete.
+This lemma is not true in general for quasi-abstractions. The
+proof of the lemma crucially uses 𝑍⊆𝔞(𝑍), a property which may
+not hold in a quasi-abstraction. We propose an additional condition
+for quasi-abstractions that requires the abstraction 𝔞(𝑍)to keep
+some of the “good” valuations from the local-zone 𝑍.
+Definition 3.9. A quasi-abstraction 𝔞keeps runs if for every node
+(𝑞,𝑍)inLZG(N) that is reachable from the initial node, and every
+path(𝑞,𝑍)𝑢⇒(𝑞𝑓,𝑍𝑓)to the final state 𝑞𝑓there is a valuation
+𝑣∈𝔞(𝑍)and a run(𝑞,𝑣)𝑢d(𝑞𝑓,𝑣𝑓).
+
+--- Page 7 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+q0
+0P0
+q1
+0
+q1
+1c,(x= 0)P1
+Figure 3: Warm-up example.
+This property means that 𝔞should keep all paths leading to a
+final state. Observe that every abstraction operator keeps runs since
+𝑍⊆𝔞(𝑍). The property of keeping runs, along with the operator
+being simulation based, gives a complete quasi-abstraction.
+Lemma 3.10. A simulation based quasi-abstraction operator that
+keeps runs is complete for reachability.
+Proof. We show a more general result in Theorem 4.3. This
+lemma follows by taking srcin Theorem 4.3 to be the set of all
+enabled actions for every (𝑞,𝑍). □
+The aim now is to come up with a concrete quasi-abstraction 𝔞
+that satisfies the properties of the above lemma and for which the
+test𝔞(𝑍)⊆𝔞(𝑍′)is efficient. We make a short digression into one
+of the first quasi-abstractions proposed for the local-time semantics.
+Catch-up equivalence. A quasi-abstraction operator based on a rela-
+tion between configurations called catch-up equivalence has been
+defined in [ 8]. However, as we show below, deciding whether two
+configurations are catch-up equivalent is Pspace -hard.
+We start with a definition of the equivalence. A delay (𝑞,𝑣)Δ−→
+(𝑞,𝑣′)is acatch-up delay ifmax({𝑣′(𝑡)}𝑡∈𝑇)=max({𝑣(𝑡)}𝑡∈𝑇). So
+catch-up delays only allow the processes that are behind in time to
+join the most advanced processes. Two local-time configurations
+(𝑞,𝑣)and(𝑞′,𝑣′)arecatch-up equivalent if the two can reach the
+same synchronized regions (i.e. Alur & Dill’s regions [3]) through
+catch-up delays and discrete transitions.
+Proposition 3.11. The problem of deciding if two given configura-
+tions(𝑞,𝑣),(𝑞′,𝑣′)of a given timed network are catch-up equivalent
+isPspace -hard.
+Proof. To warm-up we consider the simple network in Figure 3.
+Process𝑃0has no transitions, and process 𝑃1has one transition
+guarded with 𝑥=0. Recall that the guard (𝑥=0)is enabled
+in a valuation 𝑣if𝑣(𝑡1−𝑥)=0. We claim that the following
+configurations are not catch-up equivalent:
+(𝑞0
+0,𝑞1
+0,[𝑡0=𝑡1=1,𝑥=0])≁(𝑞0
+0,𝑞1
+0,[𝑡0=1,𝑡1=𝑥=0])
+Indeed, in the first configuration no transition or catch-up delay is
+possible. However, in the second configuration, process 𝑃1can do
+transition𝑐immediately, and then delay to catch-up 𝑃0, eventually
+reaching(𝑞0
+0,𝑞1
+1,[𝑡0=𝑡1=1,𝑥=0]). On the other hand if there is
+no𝑐transition then the two configurations are equivalent, because
+the only thing possible is that process 𝑃1lets the time pass to catch-
+up with process 𝑃0.
+We use the same idea to reduce the language emptiness of the
+intersection of 𝑛finite automata.
+q0
+0P0
+A1q1
+0
+q1
+f
+q1
+rc,(x1= 0)b
+(x1= 1)P1. . .
+Anqn
+0
+qn
+f
+qn
+rc,(xn= 0)b
+(xn= 1)PnFigure 4: Reduction from intersection of finite automata.
+We are given finite automata 𝐴1,...,𝐴𝑛with initial states 𝑞𝑖
+0and
+final states𝑞𝑖
+𝑓. From each automaton 𝐴𝑖we build a timed process
+𝑃𝑖as depicted in Figure 4. Process 𝑃𝑖has the same states as 𝐴𝑖and
+one extra state 𝑞𝑖𝑟. Each transition of 𝐴𝑖exists in𝑃𝑖but with guard
+(𝑥𝑖=0). Moreover on a new letter 𝑏we add transitions from the
+initial state of automaton 𝑃𝑖to every state of 𝑃𝑖with guard(𝑥𝑖=1).
+Finally, from the final state 𝑞𝑖
+𝑓we add a transition 𝑐with the guard
+(𝑥𝑖=0)to the new state 𝑞𝑖𝑟. The transitions 𝑏and𝑐synchronize
+processes𝑃1,...,𝑃𝑛. In particular, observe that transition 𝑐is only
+enabled if all processes are in their final states, that is if the all
+automata𝐴1,. . . ,𝐴𝑛can reach their final states. As in our warm-up
+example, we add an extra process 𝑃0with initial state 𝑞0
+0and no
+transition. We claim that 𝐿(𝐴1)∩···∩𝐿(𝐴𝑛)≠∅iff the following
+two configurations are not equivalent:
+conf1,1=(𝑞0
+0,𝑞1
+0,...,𝑞𝑛
+0,[𝑡0=𝑡1=···=𝑡𝑛=1,𝑥1=···=𝑥𝑛=0])
+conf1,0=(𝑞0
+0,𝑞1
+0,...,𝑞𝑛
+0,[𝑡0=1,𝑡1=𝑥1=···=𝑡𝑛=𝑥𝑛=0])
+If intersection is empty then transition 𝑐cannot be taken. The
+synchronized configurations reachable from conf1,1are all com-
+binations of states of 𝑃1,...,𝑃𝑛thanks to the added 𝑏transitions
+(recall that the guard (𝑥𝑖=1)is enabled in 𝑣if𝑣(𝑡𝑖−𝑥𝑖)=1). Simi-
+larly, from conf1,0, synchronized configurations are reached either
+by first doing a catch-up delay of 1unit in all processes 𝑃1,...,𝑃𝑛
+leading to conf1,1and then performing the 𝑏actions, or by taking
+the internal actions in 0-time and then delaying 1unit to catch-up
+with𝑃0. Either way, the set of synchronized configurations reached
+is the same as that of conf1,1.
+If the intersection is non-empty then from 𝑐𝑜𝑛𝑓 1,0processes can
+get to𝑞1
+𝑓,...,𝑞𝑛
+𝑓in0-time, and then do transition 𝑐followed by a
+delay, reaching(𝑞0
+0,𝑞1𝑟,...,𝑞𝑛𝑟,[𝑡0=𝑡1···=𝑡𝑛=1,𝑥1=···=𝑥𝑛=
+0]). This synchronized state cannot be reach from conf1,1.□
+To summarize this section, we have seen the properties we need
+of a quasi-abstraction to get a correct abstract local-zone graph
+(Lemma 3.10). In Section 6 we will present an efficient simulation
+based abstraction for local-zone graphs. Before that, we talk about
+partial-order reduction.
+4 POR ON ABSTRACT LOCAL-ZONE GRAPHS
+We discuss how to use partial-order methods on abstract zone
+graphs. At this point, we have a local-zone graph of a network
+LZG(N) that has diamonds but may be infinite. We suppose that
+we have some quasi-abstraction 𝔞giving a finite abstract local-zone
+graph LZG𝔞(N). We would like to use partial-order methods on
+
+--- Page 8 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+(q, Z )
+(qa, Za) (qb, Zb)
+(qab, Zab)(qb, Z′
+b)
+(qab, Z′
+ab)a b
+b⇝
+a
+Figure 5: A diamond that is destroyed by a subsumption.
+LZG𝔞(N), but this graph may not have diamonds as we illustrate in
+Figure 5. Due to subsumption there are no transitions from (𝑞𝑏,𝑍𝑏).
+So,LZG(N) has diamonds but may be infinite, and LZG𝔞(N) is
+finite but has no diamonds. We show that when 𝔞satisfies the
+conditions given by Lemma 3.10, every partial-order method for
+LZG(N) can be used on LZG𝔞(N) even if it has no diamonds.
+In this section we will assume that we have a source function
+srcforLZG(N) given by a partial-order method as described in
+Section 2. In LZG(N), we have diamonds and so we can use any
+partial-order method to calculate a source function. Recall that
+the nodes of LZG(N) are pairs(𝑞,𝑍). The graph LZG(N) may be
+infinite since there are infinitely many local-zones. As we want the
+source function to be given by some finite description, we assume
+that it does not depend on the local-zone, and instead depends only
+on the state 𝑞and the set of actions enabled from (𝑞,𝑍), denoted
+asenabled(𝑞,𝑍).
+Definition 4.1. Asource function for a timed network Nis a
+function src:𝑄×P(Σ)→P( Σ). A source function of Nis trace-
+faithful if for every node (𝑞,𝑍)and a path𝑢from(𝑞,𝑍)to a final
+state there is a source path 𝑤∼𝑢from(𝑞,𝑍).
+The concept of trace-faithful source function is directly inspired
+by partial-order methods. Indeed, partial-order techniques always
+compute trace-faithful source functions as they guarantee that
+every path has at least one equivalent source path.
+Remark. Partial-order methods in general require both the di-
+amond and enabledness properties [ 15]. In our case LZG(N) has
+diamonds, but not necessarily the enabledness property. The latter
+property is not needed if, for example, final states are reached by a
+global synchronization action, or final states are determined by a
+state of one of the processes. The definition above of the source func-
+tion hides this problem. When applying some existing partial-order
+methods, some precaution, or transformation of a system, should
+be done to ensure that the source function is indeed trace-faithful.
+We can now combine abstraction and partial-order reduction.
+Definition 4.2. For a timed network Nand a source function
+src:𝑄×P(Σ)→P( Σ), the graph LZGsrc(N) is obtained from
+LZG(N) by keeping only the edges allowed by the srcfunction:
+(𝑞,𝑍)𝑏⇒(𝑞′,𝑍′)such that𝑏∈src(𝑞,enabled(𝑞,𝑍)).
+Then, LZG𝔞,src(N) is a graph obtained from LZGsrc(N) that
+satisfies the conditions in Definition 3.3.
+We now have a graph LZG𝔞,src(N) on which both subsumption
+and POR have been applied. Used separately, both of them yield
+transition systems that are sound and complete for reachability.
+The next theorem says that even the combination is correct.Theorem 4.3. Ifsrcis a trace-faithful source function and 𝔞is a
+simulation based quasi-abstraction that keeps runs, then a final state
+is reachable in LZG(N) iff it is reachable in LZG𝔞,src(N).
+Proof. If a final state is reachable in LZG𝔞,src(N) then it is
+reachable by a sequence of ⇒ transitions by definition (c.f.
+Definitions 4.2, 3.3). This gives a path in LZG(N).
+Consider left-to-right direction. Since srcis trace-faithful, it is
+sufficient to show that each source path in LZG(N) that leads
+to a final state has a representative source path in LZG𝔞,src(N),
+potentially with subsumption edges. Suppose 𝑤0is a source path in
+LZG(N) from(𝑞0,𝑍0)to(𝑞𝑛,𝑍𝑛), with𝑞𝑛an accepting state. Let
+𝑛=|𝑤0|be the length of 𝑤0. By induction on 𝑖we show that there
+are paths𝑢𝑖,𝑤𝑖such that:
+•(𝑞0,𝑍0)𝑢𝑖⇒(𝑞𝑖,𝑍𝑖)is a path in LZG𝔞,src(N),
+•(𝑞𝑖,𝑍𝑖)𝑤𝑖⇒(𝑞𝑛,𝑍𝑖𝑛)is a source path in LZG(N),
+•|𝑤𝑖|=𝑛−𝑖
+The initial step is trivial. The induction step is easy if (𝑞𝑖,𝑍𝑖)
+is uncovered in LZG𝔞,src(N). In this case, let 𝑏be the first let-
+ter of𝑤𝑖:𝑤𝑖=𝑏𝑤𝑖+1. We have(𝑞𝑖,𝑍𝑖)𝑏⇒(𝑞𝑖+1,𝑍𝑖+1)and𝑏∈
+src(𝑞𝑖,enabled(𝑍𝑖)). Hence taking 𝑢𝑖+1=𝑢𝑖𝑏and𝑤𝑖+1we obtain
+the induction step.
+It remains to check what happens when (𝑞𝑖,𝑍𝑖)is covered in
+LZG𝔞,src(N). Say(𝑞𝑖,𝑍𝑖)is subsumed by(𝑞𝑖,𝑍′
+𝑖), meaning 𝔞(𝑍𝑖)⊆
+𝔞(𝑍′
+𝑖). Since(𝑞𝑖,𝑍𝑖)𝑤𝑖⇒(𝑞𝑛,𝑍𝑖𝑛)and𝔞keeps runs, there exists a
+valuation𝑣𝑖∈𝔞(𝑍𝑖)and an execution(𝑞𝑖,𝑣𝑖)→𝑤𝑖(𝑞𝑛,𝑣𝑛). From
+𝔞(𝑍𝑖)⊆𝔞(𝑍′
+𝑖), we have𝑣𝑖∈𝔞(𝑍′
+𝑖). Secondly, as 𝔞is simulation
+based, there exists 𝑣′
+𝑖∈𝑍′
+𝑖such that𝑣𝑖≼𝑣′
+𝑖, where≼is the sim-
+ulation on which 𝔞is based on. Hence we also have an execu-
+tion(𝑞𝑖,𝑣′
+𝑖)→𝑤𝑖(𝑞𝑛,𝑣′𝑛). By pre-property of zones (𝑞𝑖,𝑍′
+𝑖)⇒
+𝑤𝑖(𝑞𝑛,𝑍′𝑛)inLZG(N). Since𝑤𝑖is a path reaching a final state,
+andsrcfunction is trace faithful, there is a source path (𝑞𝑖,𝑍′
+𝑖)⇒
+𝑤′
+𝑖(𝑞𝑛,𝑍′𝑛)inLZG(N) with𝑤𝑖∼𝑤′
+𝑖. In particular,|𝑤𝑖|=|𝑤′
+𝑖|. Let
+𝑏be the first letter of 𝑤′
+𝑖, i.e.,𝑤′
+𝑖=𝑏𝑤𝑖+1. We claim that 𝑢𝑖+1=𝑢𝑖𝑏
+and𝑤𝑖+1satisfy the induction conditions. The path 𝑢𝑖𝑏contains a
+subsumption edge. □
+5 NO FINITE ABSTRACTIONS FOR
+LOCAL-ZONE GRAPHS
+Theorem 4.3 gives a sufficient condition for a quasi-abstraction to
+be compatible with POR. There is one ingredient missing to get an
+algorithm. We need a finite quasi-abstraction. Unfortunately, we
+show that this is impossible under the assumptions made on the
+quasi-abstraction in Theorem 4.3. In the argument below, we do not
+really need that the quasi-abstraction keeps all runs. It would be
+enough to keep for every path a run with the same Parikh image.
+Theorem 5.1. There is a network N−such that LZG𝔞(N−)is
+infinite for every simulation based quasi-abstraction operator that
+keeps runs.
+Proof. We present a network N−such that LZG𝔞(N−)is in-
+finite for every simulation based quasi-abstraction 𝔞that keeps
+runs. The same example appears in Lugiez et al. [ 31] in a similar
+context. The network N−, presented in Figure 6, consists of two
+processes𝐴1and𝐴2. It is easy to see that any accepting run of the
+
+--- Page 9 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+network executes an equal number of 𝑏’s and𝑐’s followed by the
+global synchronizing action $.
+p0
+p1b,(x= 1),{x}
+$,(x= 1)
+A1q0
+q1c,(y= 1),{y}
+$,(y= 1)
+A2
+Figure 6: A network of two processes without a finite abstract
+zone graph that contains all runs.
+Consider LZG(N−), the local-zone graph of N−. For every𝑚,𝑛≥
+0, the network has a run on 𝑏𝑚𝑐𝑛. Let(𝑝0,𝑞0,𝑍𝑚,𝑛)be the node in
+LZG(N−)reached from the initial node after the sequence 𝑏𝑚𝑐𝑛:
+(𝑝0,𝑞0,𝑍0)⇒𝑏𝑚𝑐𝑛(𝑝0,𝑞0,𝑍𝑚,𝑛).
+Pick𝑖>𝑗≥0. We claim that:
+•𝔞(𝑍𝑖,𝑗)̸⊆𝔞(𝑍𝑘,𝑙)for any𝑘,𝑙≥0with(𝑖−𝑗)≠(𝑘−𝑙).
+Suppose to the contrary that 𝔞(𝑍𝑖,𝑗)⊆𝔞(𝑍𝑘,𝑙)for some𝑖,𝑗,𝑘,𝑙
+with(𝑖−𝑗)≠(𝑘−𝑙). Consider an execution (𝑝0,𝑞0,𝑣0)𝑏𝑖𝑐𝑗
+d
+(𝑝0,𝑞0,𝑣𝑖,𝑗)𝑐𝑖−𝑗$d(𝑝1,𝑞1,𝑣)ofN−. We have𝑣𝑖,𝑗∈𝑍𝑖,𝑗. Hence
+by pre-property from Lemma 2.4, there is a path (𝑝0,𝑞0,𝑍𝑖,𝑗)⇒
+𝑐𝑖−𝑗(𝑝1,𝑞1,𝑍)inLZG(N−). Now, as the operator 𝔞keeps runs,
+there is𝑣′
+𝑖,𝑗∈𝔞(𝑍𝑖,𝑗)and a run(𝑝0,𝑞0,𝑣′
+𝑖,𝑗)𝑐𝑖−𝑗
+d(𝑝1,𝑞1,𝑣′). By
+𝔞(𝑍𝑖,𝑗) ⊆𝔞(𝑍𝑘,𝑙)we have𝑣′
+𝑖,𝑗∈𝔞(𝑍𝑘,𝑙). Since 𝔞is simulation
+based there is 𝑣𝑘,𝑙∈𝑍𝑘,𝑙with configuration (𝑝0,𝑞0,𝑣𝑘,𝑙)simulat-
+ing(𝑝0,𝑞0,𝑣′
+𝑖,𝑗). Hence, we have(𝑝0,𝑞0,𝑣𝑘,𝑙)𝑐𝑖−𝑗$d(𝑝1,𝑞1,𝑢)inN−.
+From the fact that 𝑣𝑘,𝑙∈𝑍𝑘,𝑙and the post-property (Lemma 2.4),
+there is an execution (𝑝0,𝑞0,𝑣0)𝑏𝑘𝑐𝑙
+d(𝑝0,𝑞0,𝑣𝑘,𝑙). Combining the
+last two executions we obtain: (𝑝0,𝑞0,𝑣0)𝑏𝑘𝑐𝑙
+d(𝑝0,𝑞0,𝑣𝑘,𝑙)𝑐𝑖−𝑗$d
+(𝑝1,𝑞1,𝑢). This is impossible for (𝑖−𝑗)≠(𝑘−𝑙).
+By the diamond property of LZG(N−), any sequence containing
+𝑘occurrences of 𝑏, and𝑙occurrences of 𝑐ends in(𝑝0,𝑞0,𝑍𝑘,𝑙). From
+𝔞(𝑍𝑖,𝑗)̸⊆𝔞(𝑍𝑘,𝑙), the node(𝑝0,𝑞0,𝑍𝑖,𝑗)(reached by any sequence
+containing𝑖occurrences of 𝑏and𝑗occurrences of 𝑐) cannot be
+subsumed by any other node. This shows there is infinitely many
+nodes in LZG𝔞(N): at least one for every difference (𝑖−𝑗).□
+In [23], a simulation based quasi-abstraction is defined which is
+shown to be finite and complete. This operator however does not
+keep runs, which is in accordance with the above result. Due to this
+reason, this operator is not amenable for partial-order reduction.
+In the following sections we propose a way out from the apparent
+deadlock created by Theorems 4.3 and 5.1. One direction could be
+to find an abstraction operator not satisfying the hypothesis of
+Theorem 5.1, that is, either not simulation based or not keeping
+runs. We do not know how to do this while still preserving some
+form of Theorem 4.3. Our solution is to put some restrictions on
+the timed networks we consider. We will first generalize the 𝔞≼𝐿𝑈
+abstraction [ 6] for global-time semantics to the local-time semantics.
+Then we will show sufficient conditions under which it is finite.6𝐿𝑈-ABSTRACTION FOR THE LOCAL
+SEMANTICS
+We will present a concrete strong-timed simulation for local-time
+semantics. It generalizes the 𝐿𝑈-simulation for the global-time se-
+mantics from [ 6]. The simulation is parameterized by two functions
+𝐿and𝑈that keep for each clock the maximum constant among
+lower bound constraints 𝑥≥𝑐,𝑥>𝑐and upper bound constraints
+𝑥≤𝑐,𝑥<𝑐respectively. The simulation induces an abstraction op-
+erator 𝔞★
+≼𝐿𝑈which is sound, complete and keeps runs for networks
+with bounds 𝐿and𝑈. The impossibility result from the previous
+section still applies though. Indeed the operator is not finite. In Sec-
+tion 7, we will present a restriction on timed networks and modify
+the abstraction operator to a quasi-abstraction operator that will
+be finite for the restricted class of networks.
+Definition 6.1. An𝐿𝑈-bound is a pair of functions 𝐿:𝑋→
+N∪{−∞} and𝑈:𝑋→N∪{−∞} , each of which maps process
+clocks to a natural number or −∞. An atomic constraint 𝑥∼𝑐is an
+𝐿𝑈-constraint if𝑐≤𝐿(𝑥)when∼∈{≥,>}(lower bound constraint)
+and if𝑐≤𝑈(𝑥)when∼∈ { <,≤}(upper bound constraint). A
+networkNis an𝐿𝑈-network if every guard inNis a conjunction
+of𝐿𝑈-constraints.
+We next lift the 𝐿𝑈-preorder [ 6], written as≼𝐿𝑈and defined for
+the global-time semantics to the local-time setting. Here, when we
+relate𝑣and𝑣′, we require that the difference between reference
+clocks is the same for both 𝑣and𝑣′.
+Definition 6.2 (≼★
+𝐿𝑈-preorder). Given𝐿𝑈-bounds𝐿and𝑈. For
+two local valuations 𝑣,𝑣′, we say𝑣≼★
+𝐿𝑈𝑣′if:
+•𝑣(𝑡𝑝−𝑡𝑞)=𝑣′(𝑡𝑝−𝑡𝑞)for all𝑝,𝑞∈Proc
+•for all𝑝∈Proc and all𝑥∈𝑋𝑝
+–𝑣(𝑡𝑝−𝑥)≤𝑈𝑥=⇒𝑣′(𝑡𝑝−𝑥)≤𝑣(𝑡𝑝−𝑥)
+–𝑣(𝑡𝑝−𝑥)≤𝐿𝑥=⇒𝑣′(𝑡𝑝−𝑥)≥𝑣(𝑡𝑝−𝑥)
+–𝑣(𝑡𝑝−𝑥)>𝐿𝑥=⇒𝑣′(𝑡𝑝−𝑥)>𝐿𝑥
+Intuitively, the relation 𝑣≼★
+𝐿𝑈𝑣′ensures the following: (1) when-
+ever𝑣+Δsynchronizes 𝑡𝑝and𝑡𝑞,𝑣′+Δalso synchronizes them, (2)
+whenever𝑣+Δsatisfies an𝐿𝑈-constraint, 𝑣′+Δalso satisfies the
+same constraint. This is the basis for ≼★
+𝐿𝑈to induce a simulation
+over the local semantics. When 𝑣,𝑣′are synchronized valuations,
+the≼★
+𝐿𝑈preorder is identical to the ≼𝐿𝑈preorder of the global-time
+semantics.
+We use the same notation ≼★
+𝐿𝑈to denote a relation between con-
+figurations: we define (𝑞,𝑣)≼★
+𝐿𝑈(𝑞,𝑣′)whenever𝑣≼★
+𝐿𝑈𝑣′. The
+next theorem states that ≼★
+𝐿𝑈relation is a strong-timed simulation
+onN. We illustrate the theorem on an example. Consider a transi-
+tion𝑞→𝑏𝑞1with guard𝑥1>𝑐∧𝑥2≤𝑑and a reset{𝑥1}. Action
+𝑏is shared between processes 1and2. Suppose(𝑞,𝑣)→𝑏(𝑞1,𝑣1).
+Then𝑣(𝑡1)=𝑣(𝑡2), and𝑣satisfies the guard. Let 𝑣≼★
+𝐿𝑈𝑣′. We
+will see that(𝑞,𝑣′)→𝑏(𝑞1,𝑣′
+1)and𝑣1≼★
+𝐿𝑈𝑣′
+1. Firstly, we have
+𝑣′(𝑡1)=𝑣′(𝑡2)by the first item in the ≼★
+𝐿𝑈definition. Next, we
+have𝑣(𝑡1−𝑥1)>𝑐and𝑣(𝑡2−𝑥2)≤𝑑. If𝑣(𝑡1−𝑥1)≤𝐿(𝑥1), then
+𝑣′(𝑡1−𝑥1)≥𝑣(𝑡1−𝑥1)by the second sub-item in the second con-
+dition; else𝑣′(𝑡1−𝑥1)>𝐿(𝑥1)by third sub-item. Since 𝐿(𝑥1)≥𝑐,
+we get𝑣′(𝑡1−𝑥1)>𝑐in both cases. Similarly, we can argue that
+𝑣′(𝑡2−𝑥2)≤𝑑using the first sub-item with 𝑈(𝑥2). Moreover, after
+resetting𝑥1, all conditions of≼★
+𝐿𝑈are still satisfied in the resulting
+valuations𝑣1and𝑣′
+1.
+
+--- Page 10 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+Theorem 6.3. LetNbe an𝐿𝑈-network. The relation ≼★
+𝐿𝑈is a
+strong-timed simulation on the local semantics of N.
+Definition 6.4. The abstraction operator 𝔞★
+≼𝐿𝑈is defined, for ev-
+ery set of valuations 𝑊, as𝔞★
+≼𝐿𝑈(𝑊):={𝑣|𝑣≼★
+𝐿𝑈𝑣′for some𝑣′∈
+𝑊}. This is the downward closure of 𝑊with respect to the ≼★
+𝐿𝑈
+relation.
+Theorem 6.5. For every LU-network N, the abstraction operator
+𝔞★
+≼𝐿𝑈is sound and complete. It also keeps runs.
+Unfortunately, despite this theorem we still miss two pieces to
+analyze timed networks with local semantics:
+•We need an efficient test for 𝔞★
+≼𝐿𝑈(𝑍)⊆𝔞★
+≼𝐿𝑈(𝑍′)because
+it is used in the definition of LZG𝔞★
+≼𝐿𝑈(N).
+•We need LZG𝔞★
+≼𝐿𝑈(N) to be finite.
+We discuss an efficient inclusion test in Section 6.1. The impos-
+sibility result from Theorem 5.1 tells us that LZG𝔞★
+≼𝐿𝑈(N) cannot
+be always finite. To address this, we introduce the concept of a
+bounded-spread network in Section 7 and show that a variant of
+LZG𝔞★
+≼𝐿𝑈(N) is finite there.
+6.1 An algorithm for 𝔞★
+≼𝐿𝑈(𝑍)⊆𝔞★
+≼𝐿𝑈(𝑍′)
+The counterpart of 𝔞★
+≼𝐿𝑈in the global-semantics is the abstrac-
+tion operator 𝔞≼𝐿𝑈[6]. It is well known that the 𝔞≼𝐿𝑈abstraction
+of a zone need not result in a zone, in fact, it may not even be
+convex [ 6,26]. The current abstraction operator 𝔞★
+≼𝐿𝑈is a gener-
+alization of 𝔞≼𝐿𝑈which is identical to 𝔞≼𝐿𝑈over zones that con-
+tain only synchronized valuations. Therefore, 𝔞★
+≼𝐿𝑈is not convex.
+As in the global setting, the challenge is to decide the inclusion
+𝔞★
+≼𝐿𝑈(𝑍)⊆𝔞★
+≼𝐿𝑈(𝑍′)by looking at zones 𝑍and𝑍′. We start with
+some simplification steps. Since 𝔞★
+≼𝐿𝑈is the downward closure
+operator with respect to ≼★
+𝐿𝑈, we make the first simplication below.
+Lemma 6.6. For every pair of zones 𝑍,𝑍′:𝔞★
+≼𝐿𝑈(𝑍)⊆𝔞★
+≼𝐿𝑈(𝑍′)
+iff𝑍⊆𝔞★
+≼𝐿𝑈(𝑍′).
+The test𝑍⊆𝔞★
+≼𝐿𝑈(𝑍′)can be seen as checking whether for
+every𝑣∈𝑍there exists a 𝑣′∈𝑍′such that𝑣≼★
+𝐿𝑈𝑣′. Define
+⟨𝑣⟩★:={𝑣′|𝑣≼★
+𝐿𝑈𝑣′}. The next lemma shows that we can reduce
+inclusion to intersection.
+Lemma 6.7. Let𝑍,𝑍′be non-empty zones. Then, 𝑍̸⊆𝔞★
+≼𝐿𝑈(𝑍′)
+iff there exists 𝑣∈𝑍satisfying⟨𝑣⟩★∩𝑍′=∅.
+As mentioned before, when 𝑍,𝑍′contain only synchronized
+valuations, we have 𝔞★
+≼𝐿𝑈(𝑍)= 𝔞≼𝐿𝑈(𝑍),𝔞★
+≼𝐿𝑈(𝑍′)= 𝔞≼𝐿𝑈(𝑍′)
+and the test boils down to checking 𝑍⊆𝔞≼𝐿𝑈(𝑍′), which is studied
+in [26] for the global semantics. In the local semantics we need to
+consider valuations that are desynchronized. However, by definition
+of≼★
+𝐿𝑈, for𝑣≼★
+𝐿𝑈𝑣′, we require 𝑣(𝑡𝑝−𝑡𝑞)=𝑣′(𝑡𝑝−𝑡𝑞). This
+property allows us to lift the technique used in [ 26] to our setting.
+For our analysis, we will make use of a graph representation of
+local-zones, called distance graphs [26,29]. A distance graph has
+vertices𝑋∪𝑋𝑡. For every𝑥,𝑦∈𝑋∪𝑋𝑡there is an edge 𝑥→𝑦with
+aweight that is either(<,∞)or of the form(⋖,𝑐)with𝑐∈Rand⋖
+standing for≤or<. The edge𝑥→(⋖,𝑐)𝑦represents the constraint
+𝑦−𝑥⋖𝑐. For example, the zone 𝑍1:=𝑡1−𝑥≥5∧𝑡2−𝑦≤2canbe represented as a graph with edges: 𝑡1→(≤,−5)𝑥,𝑡2→(≤,0)𝑦
+and𝑦→(≤,2)𝑡2. To reason about cumulative constraints of a path
+in this graph representation, an arithmetic over weights is defined.
+Order: for𝑐1,𝑐2∈R, we say(⋖1,𝑐1)<(⋖2,𝑐2)if𝑐1<𝑐2, or
+𝑐1=𝑐2,⋖1is<and⋖2is≤; secondly, we have (⋖,𝑐)<(<
+,∞)for every𝑐∈R.
+Addition: for𝑐1,𝑐2∈R, we have(⋖1,𝑐1)+(⋖2,𝑐2)to be equal
+to(⋖,𝑑)where𝑑=𝑐1+𝑐2and⋖is<if one of⋖1or⋖2is
+<, and⋖is≤otherwise; secondly, (⋖,𝑐)+(<,∞)is defined
+to be(<,∞)for every weight(⋖,𝑐).
+The addition allows us to define the weight of a path in a distance
+graph, as the sum of weights of the edges. A distance graph is
+canonical if for all pairs of vertices 𝑥≠𝑦, the smallest weight of a
+path from𝑥to𝑦is given by the weight of the edge 𝑥→𝑦. For a zone
+𝑍we denote by 𝑍𝑥𝑦the weight of the 𝑥→𝑦edge in the canonical
+distance graph representing 𝑍. We now have all the notation to
+state our inclusion test.
+Theorem 6.8. Let𝑍,𝑍′be non-empty local-zones. We have 𝑍⊈
+𝔞★
+≼𝐿𝑈(𝑍′)iff there exist two variables 𝑥,𝑦∈𝑋∪𝑋𝑡s.t.
+•𝑍′𝑦𝑥<𝑍𝑦𝑥, and
+•(≤,𝑈𝑥)+𝑍𝑡𝑝𝑥≥(≤,0)if𝑥∈𝑋𝑝for a process 𝑝, and
+•(<,−𝐿𝑦)+𝑍′𝑦𝑥<𝑍𝑡𝑞𝑥, if𝑦∈𝑋𝑞for some process 𝑞.
+The test runs over pairs of variables 𝑥,𝑦and uses the weights
+𝑍𝑦𝑥,𝑍′𝑦𝑥,𝑍𝑡𝑝𝑥and𝑍𝑡𝑞𝑥to check the conditions given by the the-
+orem. This can be acheived in time O(|𝑋∪𝑋𝑡|2). When we look
+at local-zones consisting of only synchronized valuations, we can
+add constraints 𝑡𝑝=𝑡𝑞and derive the test 𝑍⊆𝔞≼𝐿𝑈(𝑍′)in the
+global-setting as a special case of the above theorem.
+7 BOUNDED-SPREAD NETWORKS
+The impossibility result for local-time semantics (Theorem 5.1)
+says that no simulation based abstraction can ensure finiteness of
+an abstract zone graph. Even if we go to quasi-abstractions, it is
+impossible to get a finite abstraction that keeps runs. As we do
+not know how to obtain abstractions that would go around this
+problem, we need to look for subclasses of timed networks where
+abstraction guarantees finiteness. In the example from the proof of
+Theorem 5.1, the local times of the two processes can differ by an
+arbitrary amount, and moreover this difference influences future
+behavior. We give a sufficient condition to avoid this situation.
+We introduce the notion of bounded-spread networks and show
+how we can adapt the 𝔞★
+≼𝐿𝑈abstraction (Definition 6.4) to get a finite
+quasi-abstraction that keeps runs for bounded-spread networks.
+This gives an algorithm for bounded-spread networks that can use
+both subsumption and partial-order reduction at the same time.
+We also discuss some cases when a network is guaranteed to be
+of bounded spread, as well as present a method of converting any
+network into an equivalent bounded-spread network by adding
+some synchronizations.
+Definition 7.1. The spread between processes 𝐴𝑝,𝐴𝑞in a local
+valuation𝑣is the absolute value of the difference between their
+reference clocks:|𝑣(𝑡𝑝−𝑡𝑞)|. Let𝐷≥0be a natural number. We
+say that a valuation𝑣has spread𝐷if the spread between every pair
+of processes in 𝑣is at most𝐷.
+
+--- Page 11 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+Definition 7.2. A run in the local time semantics
+(𝑞0,𝑣0)Δ0−→(𝑞0,𝑣′
+0)𝑏1−→(𝑞1,𝑣1)Δ1−→···𝑏𝑛−→(𝑞𝑛,𝑣𝑛)Δ𝑛−→(𝑞𝑛,𝑣′
+𝑛)
+is said to be 𝐷-spread if all𝑣0,𝑣′
+0...,𝑣𝑛,𝑣′𝑛have spread 𝐷.
+Definition 7.3. A networkNis said to be 𝐷-spread if every
+local run ofNcan be converted to a 𝐷-spread run by adjust-
+ing the delays: that is, for every run (𝑞0,𝑣0)Δ0−→ (𝑞0,𝑣′
+0)𝑏1−→
+(𝑞1,𝑣1)Δ1−→···𝑏𝑛−→(𝑞𝑛,𝑣𝑛)Δ𝑛−→(𝑞𝑛,𝑣′𝑛)there exists a 𝐷-spread
+run(𝑞0,ˆ𝑣0)Δ′
+0−→ (𝑞0,ˆ𝑣′
+0)𝑏1−→ (𝑞1,ˆ𝑣1)Δ′
+1−→···𝑏𝑛−→ (𝑞𝑛,ˆ𝑣𝑛)Δ′
+𝑛−→
+(𝑞𝑛,ˆ𝑣′𝑛)where ˆ𝑣0=𝑣0.
+Example. Consider the network in Figure 1a. We have two pro-
+cesses with clocks 𝑥and𝑦respectively. There are also two reference
+clocks𝑡1and𝑡2. Let𝑣𝑖,𝑗stand for a valuation 𝑡1=𝑖,𝑡2=𝑗,𝑥=𝑦=0.
+In particular, 𝑣0,0is an initial valuation. In the local semantics we
+have a run(0,0,𝑣0,0)(0,9)−→( 0,0,𝑣0,9)𝑐−→( 0,1,𝑣0,9)𝑏−→( 1,1,𝑣0,9).
+Valuation𝑣0,9has spread 9. Yet the run has a spread 1because we
+can adjust the delays: (0,0,𝑣0,0)(1,2)−→( 0,0,𝑣1,2)𝑐−→( 0,1,𝑣1,2)𝑏−→
+(1,1,𝑣1,2). If we did not allow for adjusting delays in the definition
+of𝐷-spread, this network would have an unbounded spread. With
+the adjustment, it is 1-spread.
+7.1 When is a network bounded-spread
+We give some examples where it is easy to check that a network is
+of bounded spread. For such classes we can apply the verification
+method presented in this work. In general, checking if the spread
+of a network is bounded by a given 𝐷is at least as hard as checking
+reachability. So an approach consisting of taking an arbitrary net-
+work, calculating its spread, and then applying our method, would
+not work. Observe that every network can be made 0-spread if
+one makes all the processes synchronize on all actions. However,
+this removes all parallelism in the network and any possibility of
+applying partial-order reduction. We show a less radical method of
+converting any network to a 𝐷-spread network. The method intro-
+duces some new synchronizations, but still leaves some parallelism
+where partial-order methods can be applied. We start with some
+sufficient conditions for a network to be bounded spread and later
+describe the general construction.
+Acyclic systems. We claim that acyclic systems are bounded-spread
+where the bound depends on the size of the network description.
+The local-zone graph of an acyclic network is finite and no abstrac-
+tion is needed. But, making use of “cross” subsumptions reduces the
+state-space when there are multiple ways to reach a state. Show-
+ing that an acyclic system is bounded-spread allows to use both
+subsumption and partial-order reduction.
+Lemma 7.4. Suppose𝑀is a maximal constant in guards. The
+spread of a run of length 𝑛is bounded by 𝑛𝑀+1.
+Proof. Consider a timed automaton and let 𝑀be its maximal
+constant. We claim that the minimal time for executing 𝑛actions in
+the automaton is at most 𝑛𝑀+1in the global semantics. Indeed, in
+the global-time semantics there is no point of waiting more than 𝑀
+time units in a state, since after waiting 𝑀time units the valuationis already in the biggest region and valuations within a region
+simulate each other (see [ 3] for the definition and properties of
+regions). This intuition is less evident in the local-time semantics
+but we can transfer this observation from global-time to local-time.
+Consider a local run on a sequence 𝑏1...𝑏𝑛. By Lemma 2.1 there
+is a global run on a sequence 𝑐1...𝑐𝑛such that𝑏1...𝑏𝑛is trace
+equivalent to 𝑐1...𝑐𝑛. This means that there is a bijection 𝑓:[𝑛]→
+[𝑛]with𝑏𝑖=𝑐𝑓(𝑖)and respecting order of actions on each process:
+if𝑏𝑖and𝑏𝑗are two actions of process 𝑝, and𝑖<𝑗then𝑓(𝑖)<𝑓(𝑗).
+The global run has the form:
+(𝑞0,𝑣0)𝛿1−→(𝑞0,𝑣′
+0)𝑐1−→(𝑞1,𝑣1)𝛿2−→...𝑐𝑛−→(𝑞𝑛,𝑣𝑛).
+We can assume that the cumulated time of this run is at most
+𝑛𝑀+1; this is because if some 𝛿𝑖is strictly bigger than 𝑀then we
+can shorten it to 𝑀+𝜖for a 0<𝜖<1
+𝑛as anyway the resulting
+valuation is the maximal region. Let 𝜃𝑖be the cumulated time before
+the𝑖-th action:𝜃𝑖=𝛿1+···+𝛿𝑖. We construct a local-time execution
+(𝑞0,𝑣0)Δ1−→(𝑞0,𝑣′
+0)𝑏1−→(𝑞′
+1,𝑣1)Δ2−→...𝑏𝑛−→(𝑞𝑛,𝑣𝑛).
+such that for every 𝑖and process 𝑝∈dom(𝑏𝑖)we have𝑣′
+𝑖(𝑡𝑝)=
+𝜃𝑓(𝑖). This means that we execute action 𝑏𝑖exactly at the time when
+the corresponding action 𝑐𝑓(𝑖)was executed in the global run. This
+constraint determines Δ𝑖, hence determines the run completely. It
+can be checked that it is indeed a run: all Δ’s are positive, and all
+guards are satisfied. By definition we have 𝑣𝑖(𝑡𝑝)−𝑣0(𝑡𝑝)≤𝑛𝑀+1
+for all reference clocks and for all 𝑖. Since all reference clocks are
+equal in𝑣0, we get that the spread is at most 𝑛𝑀+1.□
+Here is an example where we get the maximal spread:
+𝑏,𝑥>𝑀,𝑥:=0−→ ···𝑏,𝑥>𝑀,𝑥:=0−→𝑎,𝑦=0−→
+Actions𝑎and𝑏are local actions of two processes. At the beginning
+the two clocks are at 0. The clock of 𝑏process gets to some 𝑛𝑀+𝜖′
+for0<𝜖′<1, while the clock of 𝑎process is still 0. Lemma 7.4
+gives an upper bound for the spread of any run in an acyclic system.
+Corollary 7.5. An acyclic timed network N=⟨𝐴1,...,𝐴𝑘⟩
+is(Í𝑖=𝑘
+𝑖=1|𝑇𝑖|)×𝑀+1-spread bounded where |𝑇𝑖|is the number of
+transitions in 𝐴𝑖, and𝑀is the maximum constant in N.
+Frequently communicating systems. More interesting examples of
+bounded-spread networks are frequently communicating client-
+server systems. In such systems we have one server process 𝑆, and
+a number of client processes 𝐶1,...,𝐶𝑛. The only communication
+actions are between the server and clients: the domain of an action
+can be either a singleton or {𝑆,𝐶𝑖}for some𝑖. Such a network is
+frequently communicating if there is a bound 𝐷such that every
+client communicates with the server in every time interval of length
+𝐷. It is not difficult to see that in this case the network is 2𝐷-spread.
+Another example is a network with barriers that can be modeled
+as global synchronizations. Assume there are no other communica-
+tion actions: each action is either local to a process or it is a global
+synchronization. If we know that there is a synchronizing action
+on every loop of every process then the system is bounded-spread
+thanks to Lemma 7.4.
+This idea of using frequent communication to get bounded-
+spread brings us to the next construction. Any arbitrary network
+
+--- Page 12 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+can be converted to a bounded-spread system, at the price of re-
+ducing concurrency. Lemma 7.4 suggests adding global synchro-
+nizations, say on every loop. This would indeed bound the spread
+as the length of runs between two global configurations would be
+bounded. This construction is however not correct: we miss some
+behaviors of the original system. Another solution is to synchronize
+all processes every 𝐷units of time, which we formalize below.
+Definition 7.6. LetNbe an arbitrary timed network and 𝐷≥1a
+natural number. Define N𝐷to be the timed network obtained from
+Nas follows. Add a fresh clock 𝑧𝑝to every process 𝑝, and a new
+synchronization action 𝑠whose domain is the set of all processes.
+To every state of every process we add a self-loop on 𝑠with a guard
+𝑧𝑝=𝐷and reset of 𝑧𝑝. To every other transition add 𝑧𝑝<𝐷to the
+existing guard.
+The construction ensures that in every 𝐷units of time every
+process needs to do the 𝑠transition. Hence the resulting system
+is𝐷-spread bounded. Moreover reachability is preserved as every
+state that is reachable is reachable by a global run (Lemma 2.1) and
+global runs are 0-spread. Hence all global runs of Nappear inN𝐷,
+with embedded 𝑠actions.
+Proposition 7.7. For every networkNand natural number 𝐷≥
+1, the systemN𝐷is𝐷-spread. A final state 𝑞𝑓is reachable inNiff it
+is reachable inN𝐷.
+The methodology that we develop in the subsequent section
+can be applied toN𝐷. While independence between actions of the
+original networkNis preserved inN𝐷, there may be more traces
+due to new synchronization actions. In Section 8, we will see an
+example where these extra traces get compensated by partial-order
+reduction, in fact by an exponential factor.
+7.2 Abstraction for bounded-spread networks
+We come back to the crucial point of obtaining finite abstractions
+of bounded-spread networks. For a given bound 𝐷we use the 𝔞★
+≼𝐿𝑈
+abstraction restricted to 𝐷-spread valuations. We show that this
+guarantees finiteness of the abstract graph.
+Definition 7.8. For a set of valuations 𝑊define spread𝐷(𝑊)
+to be{𝑣∈𝑊|𝑣has spread𝐷}. The quasi-abstraction operator
+𝔞𝐷
+≼𝐿𝑈is defined as 𝔞𝐷
+≼𝐿𝑈(𝑊):= 𝔞★
+≼𝐿𝑈(spread𝐷(𝑊))for every set
+of valuations 𝑊.
+Since𝔞𝐷
+≼𝐿𝑈first restricts to 𝐷-spread valuations, let us restrict to
+zones containing only 𝐷-spread valuations. For such zones we have
+𝔞𝐷
+≼𝐿𝑈(𝑍)⊆𝔞𝐷
+≼𝐿𝑈(𝑍′)iff𝑍⊆𝔞★
+≼𝐿𝑈(𝑍′). Define an order 𝑍≼𝑍′if
+𝑍⊆𝔞★
+≼𝐿𝑈(𝑍′).
+Lemma 7.9. In every infinite sequence 𝑍1,𝑍2,... of𝐷-spread zones,
+there exist indices 𝑖,𝑗with𝑖<𝑗such that𝑍𝑗≼𝑍𝑖.
+Proof. Suppose there is an infinite sequence 𝑍1,𝑍2,... such
+that for all𝑗, we have𝑍𝑗̸≼𝑍𝑖for every𝑖<𝑗. If𝑍̸≼𝑍′there is a
+pair of clocks 𝑥,𝑦witnessing the non-inclusion. Since the number
+of such pairs is finite, by standard Ramsey arguments, there are two
+clocks𝑥,𝑦and an infinite sequence 𝑍1,𝑍2,... such that𝑍𝑖+1̸≼𝑍𝑖
+is witnessed by 𝑥,𝑦for all𝑖. This by Theorem 6.8 means that for
+all𝑖≥1we have:(1)𝑍𝑖𝑦𝑥<𝑍𝑖+1𝑦𝑥
+(2) if𝑥∈𝑋𝑝, then(≤,𝑈𝑥)+𝑍𝑖+1
+𝑡𝑝𝑥≥(≤,0),
+(3) if𝑦∈𝑋𝑞then(<,−𝐿𝑦)+𝑍𝑖𝑦𝑥<𝑍𝑖+1
+𝑡𝑞𝑥
+Let us assume that 𝑥and𝑦are process clocks, with 𝑥∈𝑋𝑝and
+𝑦∈𝑋𝑞. The argument below can be adapted to the cases when one
+of them is a reference clock.
+From 1, we see that 𝑍𝑖𝑦𝑥keeps increasing as 𝑖increases and since
+the zones we get have only integer weights, for every 𝐾≤0, we
+can find an 𝑖such that𝑍𝑖𝑦𝑥>(≤,𝐾). Therefore, from (3), 𝑍𝑖+1
+𝑡𝑞𝑥is
+also increasing. But, 𝑍𝑖+1
+𝑡𝑞𝑥≤𝑍𝑖+1
+𝑡𝑞𝑡𝑝+𝑍𝑖+1
+𝑡𝑝𝑥. We have𝑍𝑖+1
+𝑡𝑞𝑡𝑝≤(≤,𝐷)
+as𝑍𝑖+1is𝐷-spread and 𝑍𝑖+1
+𝑡𝑝𝑥≤(≤,0)since𝑥is a clock of process 𝑝
+so𝑥−𝑡𝑝≤0for all valuations in 𝑍𝑖+1. Hence𝑍𝑖+1
+𝑡𝑞𝑥≤(≤,𝐷). This
+is a contradiction to the previous inference. □
+We now show that we can use the 𝔞𝐷
+≼𝐿𝑈abstraction to check
+state reachability in 𝐷-spread networks.
+Theorem 7.10. Quasi-abstraction 𝔞𝐷
+≼𝐿𝑈is sound, complete, finite,
+and keeps runs for 𝐷-spread networks.
+Proof. Soundness follows from Lemma 3.4. We now show that
+𝔞𝐷
+≼𝐿𝑈keeps runs. Consider a 𝐷-spread networkNand a node(𝑞,𝑍)
+reachable from the initial node in LZG(N): there exists a path
+(𝑞0,𝑍0)𝑢′
+⇒(𝑞,𝑍). Let(𝑞,𝑍)𝑢⇒(𝑞𝑓,𝑍𝑓)be a path to a final state. By
+post-property there is a local run (𝑞0,𝑣0)𝑢′
+d(𝑞,𝑣)𝑢d(𝑞𝑓,𝑣𝑓)with
+𝑣0∈𝑍0,𝑣∈𝑍and𝑣𝑓∈𝑍𝑓. SinceNis𝐷-spread we can assume
+𝑣∈spread𝐷(𝑍), and hence by Definition 7.8 we have 𝑣∈𝔞𝐷
+≼𝐿𝑈(𝑍).
+This proves that 𝔞𝐷
+≼𝐿𝑈keeps runs, as per Definition 3.9. Lemma 3.10
+then entails that 𝔞𝐷
+≼𝐿𝑈is complete. From Lemma 7.9 we know that
+𝔞𝐷
+≼𝐿𝑈is finite. □
+Finally, we show that we can check 𝔞𝐷
+≼𝐿𝑈(𝑍)⊆𝔞𝐷
+≼𝐿𝑈(𝑍′)effi-
+ciently for time-elapsed zones. Since the local-zone graph has only
+time-elapsed zones, it is sufficient to consider such zones for the
+inclusion test.
+Lemma 7.11. Let𝑍,𝑍′be time-elapsed zones. The test 𝔞𝐷
+≼𝐿𝑈(𝑍)⊆
+𝔞𝐷
+≼𝐿𝑈(𝑍′)can be done in time O(|𝑋∪𝑋𝑡|2).
+Proof. The test involves two steps: (1) computing the 𝐷-spread
+zones𝑍1:=spread𝐷(𝑍)and𝑍′
+1:=spread𝐷(𝑍′)and then (2) check-
+ing𝔞★
+≼𝐿𝑈(𝑍1)⊆𝔞★
+≼𝐿𝑈(𝑍′
+1). The second step can be done in time
+O(|𝑋∪𝑋𝑡|2)thanks to Theorem 6.8. We show that spread𝐷(𝑍)
+can also be computed in the same complexity.
+Let𝐺𝑍be the canonical distance graph of 𝑍. Let(⋖𝑥𝑦,𝑐𝑥𝑦)be
+the weight of 𝑥→𝑦in𝐺𝑍. Since𝑍is time-elapsed, there are no
+constraints that give an upper bound on the reference clocks, that
+is, there are no constraints of the form 𝑡𝑝−𝑥⋖𝑐. This implies that
+every edge of the form 𝑥→𝑡𝑝with𝑥∈𝑋∪𝑋𝑡and𝑡𝑝∈𝑋𝑡has
+weight(<,∞). Same is the case with 𝐺𝑍′as𝑍′is time-elapsed.
+Computing spread𝐷(𝑍)involves adding edges 𝑡𝑝→(≤,𝐷)𝑡𝑞
+between every pair of reference clocks 𝑡𝑝,𝑡𝑞in𝐺𝑍and canonicaliz-
+ing the resulting graph. Call this resulting graph ¯𝐺. Since𝐺𝑍had
+no incoming edges to reference clocks, the only incoming edges to
+𝑡𝑝in¯𝐺are from other reference clocks. In particular, there are no
+edges in ¯𝐺of the form 𝑥→𝑡𝑝where𝑥∈𝑋. Therefore, the only
+
+--- Page 13 ---
+Abstractions for the local-time semantics of timed automata LICS ’22, August 2–5, 2022, Haifa, Israel
+q0 q1 q2 q3ai,(xi≤i),{xi} bi,(xi≥2i) $
+Figure 7: A process in our first example.
+shortest paths that can change are of the form 𝑡𝑝→𝑦, where𝑦
+is a process clock. The shortest path from 𝑡𝑝to𝑦is given by the
+minimum of(⋖𝑡𝑝𝑦,𝑐𝑡𝑝𝑦)and(≤,𝐷)+(⋖𝑡𝑞𝑦,𝑐𝑡𝑞𝑦)over all𝑞. This
+can be computed in time O(|𝑋𝑡|)for each𝑡𝑝→𝑦. Overall, ranging
+over all such edges, we get a complexity O((|𝑋𝑡|·|𝑋|)·|𝑋𝑡|). This
+gives anO(|𝑋∪𝑋𝑡|2)procedure for computing spread𝐷(𝑍). The
+same complexity holds for computing spread𝐷(𝑍′).□
+8 EXAMPLES WITH EXPONENTIAL GAIN
+Theorems 7.10 and 4.3, along with Definitions 4.2 and 4.1 give
+an algorithm for testing reachability in bounded-spread networks:
+explore the local-zone graph restricted to the successors given by
+thesrcfunction, and for each fresh node (𝑞,𝑍)that is discovered, do
+not explore further if it is subsumed, that is 𝔞𝐷
+≼𝐿𝑈(𝑍)⊆𝔞𝐷
+≼𝐿𝑈(𝑍′)
+for an already visited node (𝑞,𝑍′). We now present two examples
+on which this method gives exponential gain.
+The first example shows advantages of local-time semantics
+together with partial-order methods. Consider a network of 𝑁
+timed automataA𝑖as depicted in Figure 7, where 𝑎𝑖and𝑏𝑖are
+local actions, whereas $is a synchronized action.
+Notice that not all sequences of actions are feasible in global time.
+For instance, 𝑏2requires a delay of 4time units, hence it cannot
+happen before 𝑎3which only allows a delay of 3time units. Still,
+all3𝑁combinations of states 𝑞0,𝑞1and𝑞2are reachable, although
+some of them are deadlocks. Partial-order reduction cannot be
+applied in algorithms using global-time semantics since the guards
+remove most diamonds.
+In the local-time semantics, all sequences of actions are feasible.
+The spread is bounded by 2𝑁. We can apply a very simple partial-
+order technique: if there is a local action in enabled(𝑞,𝑍)then keep
+only the action of the smallest process, otherwise only $action is
+enabled and keep this action. This source function is complete for
+reachability of the final state (𝑞3,...,𝑞 3). There is only one source
+path and it follows the sequence of actions 𝑎1𝑏1𝑎2𝑏2···𝑎𝑁𝑏𝑁$.
+Without partial-order reduction at least 3𝑁states are visited.
+The second example illustrates the general construction given in
+Definition 7.6 converting any network to a bounded-spread network
+(Proposition 7.7). Recall the example of a network with unbounded
+spread from Figure 6. We consider an extension of it to 𝑛processes,
+N−𝑛. We apply to it the construction for bounding the spread to 1,
+obtaining a network N+𝑛=⟨𝐴1,...,𝐴𝑛⟩, where𝐴𝑖are as in Figure 8.
+The actions 𝑠and$are global actions and 𝑏𝑖is local to𝐴𝑖.
+Consider a srcfunction that gives for each (𝑝,𝑍𝜎), the action 𝑠
+and the action 𝑏𝑖with the least index that is enabled at 𝑍𝜎. Denote
+byLZG1,𝑠𝑟𝑐
+𝐿𝑈(N+𝑛)the abstract local-zone graph over the 𝔞𝐷
+≼𝐿𝑈oper-
+ator with𝐷=1. The uncovered nodes in LZG1,𝑠𝑟𝑐
+𝐿𝑈(N+𝑛)are those
+accessible by paths 𝑠𝑏1...𝑏𝑖for0≤𝑖<𝑛and by𝑠𝑏1...𝑏𝑖𝑠𝑏1...𝑏𝑗
+where 0≤𝑖<𝑛and 0≤𝑗<𝑖. The covered nodes are the
+ones accessible by paths 𝑠𝑏1...𝑏𝑛and by𝑠𝑏1...𝑏𝑖𝑠𝑏1...𝑏𝑗𝑠where
+0≤𝑖<𝑛,0≤𝑗≤𝑖. This gives anO(𝑛2)bound on the number
+pi qi
+bi, z i<1∧xi= 1,{xi}s, z i= 1,{zi}
+$, z i<1∧xi= 1Figure 8: A process in our second example.
+of nodes in LZG1,𝑠𝑟𝑐
+𝐿𝑈(N+). Without partial-order reduction, there
+will be a node(𝑝,𝑍𝑠𝑢)for each sequence 𝑢of𝑏actions without
+repetitions. This is because 𝑍𝑠𝑢1and𝑍𝑠𝑢2with𝑢1and𝑢2not be-
+ing interleavings of each other cannot be covered with respect to
+each other by the 𝔞𝐷
+≼𝐿𝑈quasi-abstraction. A detailed analysis shows
+that without a partial-order method, an exploration needs to visit
+exponentially many zones, in both local and global-time semantics.
+9 CONCLUSION
+We have introduced a framework for applying partial-order meth-
+ods to the analysis of timed automata. It uses local-time semantics
+in order to regain independence, hence commutativity, of domain-
+disjoint actions. However, the resulting local-time zone graph is
+usually infinite, and prior finite abstractions were either impractical
+or incompatible with partial-order methods. We have introduced a
+new abstraction 𝔞★
+≼𝐿𝑈that is simulation based, and hence compati-
+ble with partial-order methods. The abstraction 𝔞★
+≼𝐿𝑈is generally
+not finite. Even worse, as we have shown here, there does not exist
+an abstraction that is finite, and simulation based. To circumvent
+this obstacle, we have introduced bounded-spread timed networks,
+for which the 𝔞★
+≼𝐿𝑈abstraction can be made finite. This requires the
+introduction of quasi-abstractions. We have given examples of sub-
+classes of timed networks that are naturally bounded-spread, and
+we have shown that every timed network can be made bounded-
+spread, at the cost of reducing concurrency. We have illustrated the
+benefits of our framework on two examples.
+Our next steps will be designing concrete partial-order methods
+that provide exponential gains for a wide class of timed networks.
+We hope that our framework can be extended to other verification
+problems, like liveness or solving timed games, as well as to richer
+timed models, like pushdown timed automata, or weighted timed
+automata.
+REFERENCES
+[1]Parosh Aziz Abdulla, Stavros Aronis, Bengt Jonsson, and Konstantinos Sagonas.
+2014. Optimal dynamic partial order reduction. In The 41st Annual ACM SIGPLAN-
+SIGACT Symposium on Principles of Programming Languages, POPL ’14, San Diego,
+CA, USA, January 20-21, 2014 , Suresh Jagannathan and Peter Sewell (Eds.). ACM,
+373–384. https://doi.org/10.1145/2535838.2535845
+[2]Parosh Aziz Abdulla, Stavros Aronis, Bengt Jonsson, and Konstantinos Sagonas.
+2017. Source Sets: A Foundation for Optimal Dynamic Partial Order Reduction.
+J. ACM 64, 4 (2017), 25:1–25:49. https://doi.org/10.1145/3073408
+[3]Rajeev Alur and David L. Dill. 1994. A Theory of Timed Automata. Theor. Comput.
+Sci.126, 2 (1994), 183–235. https://doi.org/10.1016/0304-3975(94)90010-8
+[4]Gilles Audemard, Alessandro Cimatti, Artur Kornilowicz, and Roberto Sebastiani.
+2002. Bounded Model Checking for Timed Systems. In Formal Techniques for
+Networked and Distributed Systems - FORTE 2002, 22nd IFIP WG 6.1 International
+Conference Houston, Texas, USA, November 11-14, 2002, Proceedings (Lecture Notes
+in Computer Science, Vol. 2529) , Doron A. Peled and Moshe Y. Vardi (Eds.). Springer,
+243–259. https://doi.org/10.1007/3-540-36135-9_16
+[5]Bahareh Badban and Martin Lange. 2011. Exact Incremental Analysis of Timed
+Automata with an SMT-Solver. In Formal Modeling and Analysis of Timed Systems
+
+--- Page 14 ---
+LICS ’22, August 2–5, 2022, Haifa, Israel R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz
+- 9th International Conference, FORMATS 2011, Aalborg, Denmark, September 21-23,
+2011. Proceedings (Lecture Notes in Computer Science, Vol. 6919) , Uli Fahrenberg
+and Stavros Tripakis (Eds.). Springer, 177–192. https://doi.org/10.1007/978-3-
+642-24310-3_13
+[6]Gerd Behrmann, Patricia Bouyer, Kim Guldstrand Larsen, and Radek Pelánek.
+2006. Lower and upper bounds in zone-based abstractions of timed automata.
+Int. J. Softw. Tools Technol. Transf. 8, 3 (2006), 204–215.
+[7]Gerd Behrmann, Kim Guldstrand Larsen, Justin Pearson, Carsten Weise, and
+Wang Yi. 1999. Efficient Timed Reachability Analysis Using Clock Difference
+Diagrams. In Computer Aided Verification, 11th International Conference, CAV
+’99, Trento, Italy, July 6-10, 1999, Proceedings (Lecture Notes in Computer Science,
+Vol. 1633) , Nicolas Halbwachs and Doron A. Peled (Eds.). Springer, 341–353.
+https://doi.org/10.1007/3-540-48683-6_30
+[8]Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang Yi. 1998. Partial Order
+Reductions for Timed Systems. In CONCUR (Lecture Notes in Computer Science,
+Vol. 1466) . 485–500.
+[9]Frederik M. Bønneland, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marco Muñiz,
+and Jirí Srba. 2018. Start Pruning When Time Gets Urgent: Partial Order Reduction
+for Timed Systems. In Computer Aided Verification - 30th International Conference,
+CAV 2018, Held as Part of the Federated Logic Conference, FloC 2018, Oxford, UK,
+July 14-17, 2018, Proceedings, Part I (Lecture Notes in Computer Science, Vol. 10981) ,
+Hana Chockler and Georg Weissenbacher (Eds.). Springer, 527–546. https:
+//doi.org/10.1007/978-3-319-96145-3_28
+[10] Frederik M. Bønneland, Peter Gjøl Jensen, Kim G. Larsen, Marco Muñiz, and Jirí
+Srba. 2021. Stubborn Set Reduction for Timed Reachability and Safety Games. In
+Formal Modeling and Analysis of Timed Systems - 19th International Conference,
+FORMATS 2021, Paris, France, August 24-26, 2021, Proceedings (Lecture Notes in
+Computer Science, Vol. 12860) , Catalin Dima and Mahsa Shirmohammadi (Eds.).
+Springer, 32–49. https://doi.org/10.1007/978-3-030-85037-1_3
+[11] Frederik Meyer Bønneland, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marco
+Muñiz, and Jirí Srba. 2021. Stubborn Set Reduction for Two-Player Reachability
+Games. Log. Methods Comput. Sci. 17, 1 (2021). https://lmcs.episciences.org/7278
+[12] Patricia Bouyer, Serge Haddad, and Pierre-Alain Reynier. 2006. Timed Unfoldings
+for Networks of Timed Automata. In Automated Technology for Verification and
+Analysis, 4th International Symposium, ATVA 2006, Beijing, China, October 23-26,
+2006 (Lecture Notes in Computer Science, Vol. 4218) , Susanne Graf and Wenhui
+Zhang (Eds.). Springer, 292–306. https://doi.org/10.1007/11901914_23
+[13] Franck Cassez, Thomas Chatain, and Claude Jard. 2006. Symbolic Unfoldings
+for Networks of Timed Automata. In Automated Technology for Verification and
+Analysis, 4th International Symposium, ATVA 2006, Beijing, China, October 23-26,
+2006 (Lecture Notes in Computer Science, Vol. 4218) , Susanne Graf and Wenhui
+Zhang (Eds.). Springer, 307–321. https://doi.org/10.1007/11901914_24
+[14] Krishnendu Chatterjee, Andreas Pavlogiannis, and Viktor Toman. 2019. Value-
+centric dynamic partial order reduction. Proc. ACM Program. Lang. 3, OOPSLA
+(2019), 124:1–124:29. https://doi.org/10.1145/3360550
+[15] Edmund M. Clarke, Orna Grumberg, Marius Minea, and Doron A. Peled. 1999.
+State Space Reduction Using Partial Order Techniques. Int. J. Softw. Tools Technol.
+Transf. 2, 3 (1999), 279–287. https://doi.org/10.1007/s100090050035
+[16] Dennis Dams, Rob Gerth, Bart Knaack, and Ruurd Kuiper. 1998. Partial-order
+Reduction Techniques for Real-time Model Checking. Formal Aspects Comput.
+10, 5-6 (1998), 469–482. https://doi.org/10.1007/s001650050028
+[17] Conrado Daws and Stavros Tripakis. 1998. Model Checking of Real-Time Reacha-
+bility Properties Using Abstractions. In TACAS (Lecture Notes in Computer Science,
+Vol. 1384) . Springer, 313–329.
+[18] Rüdiger Ehlers, Daniel Fass, Michael Gerke, and Hans-Jörg Peter. 2010. Fully
+Symbolic Timed Model Checking Using Constraint Matrix Diagrams. In Pro-
+ceedings of the 31st IEEE Real-Time Systems Symposium, RTSS 2010, San Diego,
+California, USA, November 30 - December 3, 2010 . IEEE Computer Society, 360–371.
+https://doi.org/10.1109/RTSS.2010.36
+[19] Cormac Flanagan and Patrice Godefroid. 2005. Dynamic partial-order reduction
+for model checking software. In Proceedings of the 32nd ACM SIGPLAN-SIGACT
+Symposium on Principles of Programming Languages, POPL 2005, Long Beach,
+California, USA, January 12-14, 2005 , Jens Palsberg and Martín Abadi (Eds.). ACM,
+110–121. https://doi.org/10.1145/1040305.1040315
+[20] Patrice Godefroid. 1996. Partial-Order Methods for the Verification of Concurrent
+Systems - An Approach to the State-Explosion Problem . Lecture Notes in Computer
+Science, Vol. 1032. Springer. https://doi.org/10.1007/3-540-60761-7
+[21] Patrice Godefroid. 1997. Model Checking for Programming Languages using
+Verisoft. In Conference Record of POPL’97: The 24th ACM SIGPLAN-SIGACT Sympo-
+sium on Principles of Programming Languages, Papers Presented at the Symposium,
+Paris, France, 15-17 January 1997 , Peter Lee, Fritz Henglein, and Neil D. Jones
+(Eds.). ACM Press, 174–186. https://doi.org/10.1145/263699.263717
+[22] Patrice Godefroid and Pierre Wolper. 1994. A Partial Approach to Model Checking.
+Inf. Comput. 110, 2 (1994), 305–326. https://doi.org/10.1006/inco.1994.1035
+[23] R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. 2019. Re-
+visiting Local Time Semantics for Networks of Timed Automata. In CONCUR
+(LIPIcs, Vol. 140) . Schloss Dagstuhl - Leibniz-Zentrum für Informatik, 16:1–16:15.[24] Henri Hansen, Shang-Wei Lin, Yang Liu, Truong Khanh Nguyen, and Jun Sun.
+2014. Diamonds Are a Girl’s Best Friend: Partial Order Reduction for Timed
+Automata with Abstractions. In CAV (Lecture Notes in Computer Science, Vol. 8559) .
+Springer, 391–406.
+[25] Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. 2013. Lazy Abstrac-
+tions for Timed Automata. In CAV (Lecture Notes in Computer Science, Vol. 8044) .
+Springer, 990–1005.
+[26] Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. 2016. Better abstrac-
+tions for timed automata. Inf. Comput. 251 (2016), 67–90. https://doi.org/10.1016/
+j.ic.2016.07.004
+[27] Shmuel Katz and Doron A. Peled. 1992. Verification of Distributed Programs
+Using Representative Interleaving Sequences. Distributed Comput. 6, 2 (1992),
+107–120. https://doi.org/10.1007/BF02252682
+[28] Michalis Kokologiannakis, Iason Marmanis, Vladimir Gladstein, and Viktor
+Vafeiadis. 2022. Truly Stateless, Optimal Dynamic Partial Order Reduction.
+Proc. ACM Program. Lang. 6, POPL, Article 49 (Jan 2022), 28 pages. https:
+//doi.org/10.1145/3498711
+[29] Kim Guldstrand Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. 2003.
+Compact Data Structures and State-Space Reduction for Model-Checking Real-
+Time Systems. Real Time Syst. 25, 2-3 (2003), 255–275. https://doi.org/10.1023/A:
+1025132427497
+[30] Kim G. Larsen, Marius Mikucionis, Marco Muñiz, and Jirí Srba. 2020. Urgent
+Partial Order Reduction for Extended Timed Automata. In Automated Technology
+for Verification and Analysis - 18th International Symposium, ATVA 2020, Hanoi,
+Vietnam, October 19-23, 2020, Proceedings (Lecture Notes in Computer Science,
+Vol. 12302) , Dang Van Hung and Oleg Sokolsky (Eds.). Springer, 179–195. https:
+//doi.org/10.1007/978-3-030-59152-6_10
+[31] Denis Lugiez, Peter Niebert, and Sarah Zennou. 2005. A partial order semantics
+approach to the clock explosion problem of timed automata. Theor. Comput. Sci.
+345, 1 (2005), 27–59. https://doi.org/10.1016/j.tcs.2005.07.023
+[32] Marius Minea. 1999. Partial Order Reduction for Model Checking of Timed
+Automata. In CONCUR (Lecture Notes in Computer Science, Vol. 1664) . Springer,
+431–446.
+[33] Jesper B. Møller, Jakob Lichtenberg, Henrik Reif Andersen, and Henrik Hulgaard.
+1999. Fully Symbolic Model Checking of Timed Systems using Difference Decision
+Diagrams. Electron. Notes Theor. Comput. Sci. 23, 2 (1999), 88–107. https://doi.
+org/10.1016/S1571-0661(04)80671-6
+[34] Peter Niebert, Moez Mahfoudh, Eugene Asarin, Marius Bozga, Oded Maler, and
+Navendu Jain. 2002. Verification of Timed Automata via Satisfiability Checking.
+InFormal Techniques in Real-Time and Fault-Tolerant Systems, 7th International
+Symposium, FTRTFT 2002, Co-sponsored by IFIP WG 2.2, Oldenburg, Germany,
+September 9-12, 2002, Proceedings (Lecture Notes in Computer Science, Vol. 2469) ,
+Werner Damm and Ernst-Rüdiger Olderog (Eds.). Springer, 225–244. https:
+//doi.org/10.1007/3-540-45739-9_15
+[35] Doron A. Peled. 1993. All from One, One for All: on Model Checking Using
+Representatives. In Computer Aided Verification, 5th International Conference,
+CAV ’93, Elounda, Greece, June 28 - July 1, 1993, Proceedings (Lecture Notes in
+Computer Science, Vol. 697) , Costas Courcoubetis (Ed.). Springer, 409–423. https:
+//doi.org/10.1007/3-540-56922-7_34
+[36] Doron A. Peled, Antti Valmari, and Ilkka Kokkarinen. 2001. Relaxed Visibility
+Enhances Partial Order Reduction. Formal Methods Syst. Des. 19, 3 (2001), 275–289.
+https://doi.org/10.1023/A:1011202615884
+[37] Antti Valmari. 1989. Stubborn sets for reduced state space generation. In Advances
+in Petri Nets 1990 [10th International Conference on Applications and Theory of Petri
+Nets, Bonn, Germany, June 1989, Proceedings] (Lecture Notes in Computer Science,
+Vol. 483) , Grzegorz Rozenberg (Ed.). Springer, 491–515. https://doi.org/10.1007/3-
+540-53863-1_36
+[38] Antti Valmari. 1992. A Stubborn Attack on State Explosion. Formal Methods Syst.
+Des. 1, 4 (1992), 297–322. https://doi.org/10.1007/BF00709154
+[39] Farn Wang. 2001. Symbolic Verification of Complex Real-Time Systems with
+Clock-Restriction Diagram. In Formal Techniques for Networked and Distributed
+Systems, FORTE 2001, IFIP TC6/WG6.1 - 21stInternational Conference on Formal
+Techniques for Networked and Distributed Systems, August 28-31, 2001, Cheju Island,
+Korea (IFIP Conference Proceedings, Vol. 197) , Myungchul Kim, Byoungmoon Chin,
+Sungwon Kang, and Danhyung Lee (Eds.). Kluwer, 235–250.
+[40] Naling Zhang, Markus Kusano, and Chao Wang. 2015. Dynamic partial order
+reduction for relaxed memory models. In Proceedings of the 36th ACM SIGPLAN
+Conference on Programming Language Design and Implementation, Portland, OR,
+USA, June 15-17, 2015 , David Grove and Stephen M. Blackburn (Eds.). ACM,
+250–259. https://doi.org/10.1145/2737924.2737956

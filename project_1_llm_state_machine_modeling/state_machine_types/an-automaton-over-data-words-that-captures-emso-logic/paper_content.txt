@@ -1,0 +1,1494 @@
+--- Page 1 ---
+arXiv:1101.4475v4  [cs.FL]  10 Jun 2011An automaton over data words that captures
+EMSO logic
+Benedikt Bollig
+LSV, ENS Cachan, CNRS & INRIA, France
+bollig@lsv.ens-cachan.fr
+Abstract. We develop a general framework for the speciﬁcation and
+implementation of systems whose executions are words, or pa rtial or-
+ders, over an inﬁnite alphabet. As a model of an implementati on, we in-
+troduce class register automata, a one-way automata model o ver words
+with multiple data values. Our model combines register auto mata and
+class memory automata. It has natural interpretations. In p articular, it
+captures communicating automata with an unbounded number o f pro-
+cesses, whose semantics can be described as a set of (dynamic ) message
+sequence charts. On the speciﬁcation side, we provide a loca l existential
+monadic second-order logic that does not impose any restric tion on the
+number of variables. We study the realizability problem and show that
+every formula from that logic can be eﬀectively, and in eleme ntary time,
+translated into an equivalent class register automaton.
+1 Introduction
+A recent research stream, motivated by models from XML datab ase theory,
+considers data words , i.e., strings over an inﬁnite alphabet [2,10,14,21,23]. T he
+alphabet is the cartesian product of a ﬁnite supply of labels and an inﬁnite supply
+ofdata values . While labels may represent, e.g., an XML tag or reveal the ty pe of
+an action that a system performs, data values can be used to mo del time stamps
+[10,11,15], process identiﬁers [6,25], or text contents in XML documents [4].
+We will consider data words as behavioral models of concurre nt systems. In
+this regard, it is natural to look at suitable logics and auto mata. Logical formulas
+may serve as speciﬁcations, and automata as system models or tools for deciding
+logical theories. This viewpoint raises the following clas sical problems/tasks:
+satisﬁability (does a given logical formula have a model ?), model checking (do
+all executions of an automaton satisfy a given formula ?), an drealizability (given
+a formula, construct a system model in terms of an automaton w hose executions
+are precisely the models of the formula). Much work has indee d gone into deﬁning
+logics and automata for data words, with a focus on satisﬁabi lity [5,13].
+One of the ﬁrst logical approaches to data words is due to [10] . Since then, a
+two-variable logic has become a commonly accepted yardstic k wrt. expressivity
+and decidability [5]. The logic contains a predicate to comp are data values of
+two positions for equality. Its satisﬁability problem is de cidable, indeed, but sup-
+posedly of very high complexity. An elementary upper bound h as been obtained
+
+--- Page 2 ---
+only for weaker fragments [5, 13]. For speciﬁcation of commu nicating systems,
+however, two-variable logic is of limited use: it cannot exp ress properties like
+“whenever a process Pid1 spawns some Pid2, then this is follo wed by a message
+from Pid2 to Pid1”. Actually, the logic was studied for words with only one
+data value at each each position, which is not enough to encod e executions of
+message-passing systems. But three-variable logics as wel l as extensions to two
+data values lead to undecidability. To put it bluntly, any “i nteresting” logic for
+dynamic communicating systems has an undecidable satisﬁab ility problem.
+Instead of satisﬁability or model checking, we therefore co nsider realizabil-
+ity. A system model that realizes a given formula can be considered correct by
+construction. Realizability questions for data words have , so far, been neglected.
+One reason may be that there is actually no automaton that cou ld serve as a
+realistic system model. Though data words naturally reﬂect executions of sys-
+tems with an unbounded number of threads, existing automata fail to model
+distributed computation. Three features are minimum requi rements for a suit-
+able system model. First, the automaton should be a one-way device , i.e., read
+an execution once, processing it “from left to right” (unlik e data automata [5],
+class automata [3], two-way register automata, and pebble a utomata [21]). Sec-
+ond, it should be non-deterministic (unlike alternating automata [14,21]). Third,
+it should reﬂect paradigms that are used in concurrent progr amming languages
+such as process creation and message passing. Two known mode ls match the ﬁrst
+two properties: register automata [17,18,25] and class mem ory automata [2]; but
+they clearly do not fulﬁll the last requirement.
+Contribution. We provide an existential MSO logic over data words, denoted
+rEMSO, which does not impose any restriction on the number of variables. The
+logic is strictly more expressive than the two-variable log ic from [5] and suitable
+to express interesting properties of dynamic communicatin g systems.
+We then deﬁne class register automata as a system model. They are a mix of
+register automata [17,18,25] and class memory automata [2] . A class register au-
+tomaton is a non-deterministic one-way device. Like a class memory automaton,
+it can access certain conﬁgurations in the past. However, we extend the notion
+of a conﬁguration, which is no longer a simple state but compo sed of a state and
+some data values that are stored in registers. This is common in concurrent pro-
+gramming languages and can be interpreted as “read current s tate of a process”
+or “send process identity from one to another process”. More over, it is in the
+spirit of communicating ﬁnite-state machines [12] or neste d-word automata [1],
+where more than one resource (state, channel, stack, etc.) c an be accessed at a
+time. Actually, our automata run over directed acyclic grap hs rather than words.
+To our knowledge, they are the ﬁrst automata model of true con currency that
+deals with structures over inﬁnite alphabets.
+We study the realizability problem and show that, for every r EMSO formula,
+we can compute, in elementary time, an equivalent class regi ster automaton.
+The eﬀective translation is based on Hanf’s locality theore m [16] and properly
+generalizes [7,9] to a dynamic setting with unbounded proce ss creation.
+2
+
+--- Page 3 ---
+Outline. Sections 2 and 3 introduce data words and their logics. In Sec tion 4,
+we deﬁne the new automata model. Section 5 is devoted to the re alizability
+problem and states our main result. In Section 6, we give tran slations from
+automata back to logic. An extension of our main result to inﬁ nite data words
+is discussed in Section 7. We conclude in Section 8.
+2 Data Words
+LetN={0,1,2,...}denote the set of natural numbers. For m∈N, we denote
+by[m]the set{1,...,m}. Aboolean formula over a (possibly inﬁnite) set Aof
+atoms is a ﬁnite object generated by the grammar β::=true|false|a∈A|
+¬β|β∨β|β∧β. For an assignment of truth values to elements of A, a boolean
+formulaβis evaluated to true or false as usual. Its size |β|is the number of
+vertices of its syntax tree. Moreover, |A| ∈N∪ {∞} denotes the size of a set
+A. The symbol ∼=will be used to denote isomorphism of two structures. For a
+partial function f, the domain of fis denoted by dom (f).
+We ﬁx an inﬁnite set Dofdata values . Note that Dcan be anyinﬁnite
+set. For examples, however, we usually choose D=N. In a data word, every
+position will carry m≥0data values. It will also carry a labelfrom a non-
+empty ﬁnite alphabet Σ. Thus, a data word is a ﬁnite sequence over Σ×Dm
+(overΣifm= 0). Given a data word w= (a1,d1)...(an,dn)withai∈Σand
+di= (d1
+i,...,dm
+i)∈Dm, we letℓ(i)refer to label aianddk(i)to data value dk
+i.
+Classical words without data come with natural relations on word positions
+such as the direct successor relation ≺+1and its transitive closure <. In the
+context of data words with one data value (i.e., m= 1), it is natural to consider
+also a relation ≺∼for successive positions with identical data values [5]. As , in
+the present paper, we deal with multiple data values, we gene ralize these notions
+in terms of a signature. A signature Sis a pair(σ,I). It consists of a ﬁnite set σof
+binary relation symbols and an interpretation I. The latter associates, with every
+⊳∈σand every data word w=w1...wn∈(Σ×Dm)∗, a relation ⊳w⊆[n]×[n]
+such that the following hold, for all word positions i,j,i′,j′∈[n]:
+(1)i⊳wjimpliesi<j
+(2) there is at most one ksuch thati⊳wk
+(3) there is at most one ksuch thatk⊳wi
+(4) ifi⊳wjandi′⊳wj′andwi=wi′andwj=wj′, theni<i′iﬀj <j′
+In other words, we require that ⊳w(1) complies with <, (2) has out-degree at
+most one, (3) has in-degree at most one, and (4) is monotone. O ur translation
+from logic into automata will be symbolic and independent of I, but its applica-
+bility and correctness rely upon the above conditions. Howe ver, several examples
+will demonstrate that the framework is quite ﬂexible and all ows us to capture
+existing logics and automata for data words. Note that ⊳wcan indeed be any
+relation satisfying (1)–(4). It could even assume an order o nD.
+As the interpretation Iis mostly understood, we may identify Swithσand
+write⊳∈Sinstead of ⊳∈σ, or|S|to denote |σ|. If not stated otherwise, we
+let in the following Sbe any signature.
+3
+
+--- Page 4 ---
+8 5 3 4 3 4 5 4r r r r a a a a≺∼
+≺+1
+Fig.1. Data word over S1
++1,∼n f n f n ! ? ! ! ? ?
+2 2 3 2 1 2 3 1 1 3 3
+2 3 2 1 2 3 2 3 3 1 1nf
+nf !n
+?! !
+? ?≺fork≺proc ≺msg≺msg
+Fig.2. Data word over S2
+dyn
+Example 1. Typical examples of relation symbols include ≺+1and≺k
+∼relating
+direct successors and, respectively, successive position s with the same k-th data
+value: Forw=w1...wn, we let ≺w
++1={(i,i+ 1)|i∈ {1,...,n−1}}and
+(≺k
+∼)w={(i,j)|1≤i < j≤n,dk(i) =dk(j), and there is no i < i′< j
+such thatdk(i) =dk(i′)}. Whenm= 1, we write ≺∼instead of ≺1
+∼. Automata
+and logic have been well studied in the presence of one single data value ( m=
+1) and for signature S1
++1,∼={≺+1,≺∼}with the above interpretation [2, 5].
+Here, and in the following, we adopt the convention that the u pper index of a
+signature denotes the number mof data values. Figure 1 depicts a data word
+overΣ={r,a}(request/acknowledgment) and D=Nas well as the relations
+≺+1(straight arrows) and ≺∼(curved arrows) imposed by S1
++1,∼. ♦
+Example 2. We develop a framework for message-passing systems with dyn amic
+process creation. Each process has a unique identiﬁer from D=N. Processc∈N
+can execute an action f(c,d), which forks a new process with identity d. This
+action is eventually followed by n(d,c), indicating that dis new (created by c) and
+begins its execution. Processes can exchange messages. Whe ncexecutes !(c,d), it
+sends a message through an unbounded ﬁrst-in-ﬁrst-out (FIF O) channel c→d.
+Processdmay execute ?(d,c)to receive the message. Elements from Σdyn=
+{f,n,!,?}reveal the nature of an action, which requires two identitie s so that
+we choosem= 2. When a process performs an action, it should access the curr ent
+state of (i) its own, (ii) the spawning process if a new-actio n is executed, and
+(iii) the sending process if a receive is executed (message c ontents are encoded in
+states). To this aim, we deﬁne a signature S2
+dyn={≺proc,≺fork,≺msg}with the
+following interpretation. Assume w=w1...wn∈(Σdyn×N×N)∗and consider,
+fora,b∈Σdynandi,j∈[n], the property
+P(a,b)(i,j) = (ℓ(i) =a∧ℓ(j) =b∧d1(i) =d2(j)∧d2(i) =d1(j)).
+We set≺w
+proc= (≺1
+∼)w, which relates successive positions with the same executin g
+process. Moreover, let i≺w
+forkjifi<j,P(f,n)(i,j), and there is no i<k<j such
+thatP(f,n)(i,k)orP(f,n)(k,j). Finally, we set i≺w
+msgjifi<j,P(!,?)(i,j), and
+|{i′<i|P(!,?)(i′,j)}|=|{j′<j|P(!,?)(i,j′)}|.
+This models FIFO communication. An example data word is give n in Figure 2,
+which also depicts the relations induced by S2
+dyn. Horizontal arrows reﬂect ≺proc,
+vertical arrows either ≺forkor≺msg, depending on the labels. Note that n(2,2)is
+executed by “root process” 2, which was not spawned by some other process. ♦
+4
+
+--- Page 5 ---
+Graph Abstraction. Note that the graph induced by the data word from
+Figure 2 does not resemble a word anymore, as the direct succe ssor relation on
+word positions is abandoned. Actually, we can see data words from a diﬀerent
+angle. A signature Sdetermines a class of data graphs Gwith(Σ×Dm)-labeled
+nodes and S-labeled edges. A data graph is contained in Gif it can be “squeezed”
+into a word wsuch that nodes that are connected by a ⊳-labeled edge turn
+into word positions that are related by ⊳w. In other words, we consider directed
+acyclic graphs such that at least one linearization (extens ion to a total order)
+matches the requirements imposed by the signature.
+Our principal proof technique relies on a graph abstraction of data words
+where data values are classiﬁed into equivalence classes. L etPart(m)be the
+set of all partitions of [m]. AnS-graph is a (node- and edge-labeled) graph
+G= (V,(⊳G)⊳∈S,λ,ν). Here,Vis the ﬁnite set of nodes, λ:V→Σand
+ν:V→Part(m)are node-labeling functions, and each ⊳G⊆V×Vis a set
+of edges such that, for all i∈V, there is at most one j∈Vwithi⊳Gj, and
+there is at most one j∈Vwithj⊳Gi. We represent ⊳Gand(⊳G)−1as partial
+functions and set nextG
+⊳(i) =jifi⊳Gj, andprevG
+⊳(i) =jifj⊳Gi.
+Local graph patterns, so-called spheres, will also play a ke y role. For nodes
+i,j∈V, we denote by distG(i,j)thedistance betweeniandj, i.e., the length of
+the shortest path from itojin the undirected graph (V ,/uniontext
+⊳∈S⊳G∪(⊳G)−1)
+(if such a path exists). In particular, distG(i,i) = 0. For some radiusB∈N,
+theB-sphere of Garoundi, denoted by B-SphG(i), is the substructure of G
+induced by {j∈V|distG(i,j)≤B}. In addition, it contains the distinguished
+elementias a constant, called sphere center .
+These notions naturally transfer to data words: With word wof lengthn,
+we associate the graph G(w) = ([n],(⊳w)⊳∈S,λ,ν)whereλmapsitoℓ(i)and
+νmapsito{{l∈[m]|dk(i) =dl(i)} |k∈[m]}. Thus,K∈ν(i)contains
+indices with the same data value at position i. Now,nextw
+⊳,prevw
+⊳,distw, and
+B-Sphw(i)are deﬁned with reference to the graph G(w). We hereby assume that
+Sis understood. We might also omit the index wif it is clear from the context.
+Data words uandvare called ( S-)equivalent ifG(u)∼=G(v). For a language
+L, we let[L]Sdenote the set of words that are equivalent to some word in L.
+Given the data word wfrom Figure 1, we have distw(1,8) = 3 . The picture
+rra aon the right shows 1-Sphw(4). The sphere center is framed by a
+rectangle; node labelings of the form {{1}}are omitted.
+3 Logic
+We consider monadic second-order logic to specify properti es of data words. Let
+us ﬁx countably inﬁnite supplies of ﬁrst-order variables {x,y,...}and second-
+order variables {X,Y,...}.
+The set MSO (S)ofmonadic second-order formulas is given by the grammar
+ϕ::=ℓ(x) =a|dk(x) =dl(y)|x⊳y|x=y|x∈X| ¬ϕ|ϕ∨ϕ| ∃xϕ| ∃Xϕ
+5
+
+--- Page 6 ---
+wherea∈Σ,k,l∈[m],⊳∈S,xandyare ﬁrst-order variables, and Xis a
+second-order variable. The size|ϕ|ofϕis the number of nodes of its syntax tree.
+Important fragments of MSO (S)are FO(S), the set of ﬁrst-order formulas,
+which do not use any second-order quantiﬁer, and EMSO (S), the set of formulas
+of the form ∃X1...∃Xnϕwithϕ∈FO(S).
+The models of a formula are data words. First-order variable s are interpreted
+as word positions and second-order variables as sets of posi tions. Formula ℓ(x) =
+aholds in data word wif position xcarries ana, and formula dk(x) =dl(y)
+holds if the k-th data value at position xequals thel-th data value at position
+y. Moreover, x⊳yis satisﬁed if x⊳wy. The atomic formulas x=yandx∈X
+as well as quantiﬁcation and boolean connectives are interp reted as usual.
+For realizability, we will actually consider a restricted, more “local” logic: let
+rMSO(S)denote the fragment of MSO (S)where we can only use dk(x) =dl(x)
+instead of the more general dk(x) =dl(y). Thus, data values of distinct positions
+can only be compared via x⊳y. This implies that rMSO (S)cannot distinguish
+between words uandvsuch thatG(u)∼=G(v). The fragments rFO (S)and
+rEMSO(S)of rMSO (S)are deﬁned as expected.
+In the case of one data value ( m= 1), we will also refer to the logic
+EMSO 2(S1
++1,∼∪{<})that was considered in [5] and restricts EMSO logic to
+two ﬁrst-order variables. The predicate <is interpreted as the strict linear or-
+der on word positions (strictly speaking, it is not part of a s ignature as we
+deﬁned it). We shall later see that rEMSO (S1
++1,∼)is strictly more expressive
+than EMSO 2(S1
++1,∼∪{<}), though the latter involves the non-local predicates
+d1(x) =d1(y)and<. This gain in expressiveness comes at the price of an unde-
+cidable satisﬁability problem.
+Asentence is a formula without free variables. The language deﬁned by
+sentenceϕ, i.e., the set of its models, is denoted by L(ϕ). ByMSO(S), rMSO(S),
+rEMSO(S), etc., we refer to the corresponding language classes.
+Example 3. Think of a server that can receive requests ( r) from an unbounded
+number of processes, and acknowledge ( a) them. We let Σ={r,a},D=N,
+andm= 1. A data value from Dis used to model the process identity of the
+requesting and acknowledged process. We present three prop erties formulated in
+rFO(S1
++1,∼). Formulaϕ1=∃x∃y(ℓ(x) =r∧ℓ(y) =a∧x≺∼y)expresses that
+there is a request that is acknowledged. Dually, ϕ2=∀x∃y(ℓ(x) =r→ℓ(y) =
+a∧x≺∼y)says that every request is acknowledged before the same proc ess
+sends another request. A last formula guarantees that two successive requests
+are acknowledged in the order they were received:
+ϕ3=∀x,y/parenleftbiggℓ(x) =r∧ℓ(y) =r∧x≺+1y
+→ ∃x′,y′/parenleftbig
+ℓ(x′) =a∧ℓ(y′) =a∧x≺∼x′≺+1y′∧y≺∼y′/parenrightbig/parenrightbigg
+This is not expressible in EMSO 2(S1
++1,∼∪{<}). We will see that ϕ1,ϕ2,ϕ3form
+a hierarchy of languages that correspond to diﬀerent automa ta models, our new
+model capturing ϕ3. ♦
+6
+
+--- Page 7 ---
+Example 4. We pursue Example 2 and consider Σdynwith signature S2
+dyn. Recall
+that we wish to model systems where an unbounded number of pro cesses com-
+municate via message-passing through unbounded FIFO chann els. Obviously,
+not every data word represents an execution of such a system. Therefore, we
+identify some well formed data words, which have to satisfy ϕ1∧ϕ2∧ϕ3∈
+rFO(S2
+dyn)given as follows. We require that there is exactly one root pr ocess:
+ϕ1=∃x/parenleftbig
+ℓ(x) =n∧d1(x) =d2(x)∧ ∀y(d1(y) =d2(y)→x=y)/parenrightbig
+. Next, we
+assume that every fork is followed by a corresponding new-ac tion, the ﬁrst ac-
+tion of a process is a new-event, and every new process was for ked by some other
+process:
+ϕ2=∀x
+ℓ(x) =f→ ∃y(x≺forky)
+∧ℓ(x) =n↔ ¬∃y(y≺procx)
+∧ℓ(x) =n→/parenleftbig
+d1(x) =d2(x)∨∃y(y≺forkx)/parenrightbig
+
+Finally, every send should be followed by a receive, and a rec eive be preceded
+by a send action: ϕ3=∀x/parenleftbig
+ℓ(x)∈ {!,?} → ∃y(x≺msgy∨y≺msgx)/parenrightbig
+. This for-
+mula actually ensures that, for every c,d∈N, there are as many symbols !(c,d)
+as?(d,c), theN-th send symbol being matched with the N-th receive symbol.
+We call a data word over ΣdynandS2
+dynamessage sequence chart (MSC, for
+short) if it satisﬁes ϕ1∧ϕ2∧ϕ3. Figure 2 shows an MSC and the induced rela-
+tions. When we restrict to MSCs, our logic corresponds to tha t from [20]. Note
+that model checking rMSO (S2
+dyn)speciﬁcations against fork-and-join grammars ,
+which can generate inﬁnite sets of MSCs, is decidable [20].
+A last rFO (S2
+dyn)-formula (which is not satisﬁed by all MSCs) speciﬁes that,
+whenever a process cforks some d, then this is followed by a message from dto
+c:∀x1,y1(x1≺forky1→ ∃x2,y2(x1≺procx2∧y1≺procy2≺msgx2)). ♦
+4 Class Register Automata
+In this section, we deﬁne class register automata, a non-det erministic one-way au-
+tomata model that captures rEMSO logic. It combines registe r automata [17,18]
+and class memory automata [2]. When processing a data word, d ata values from
+the current position can be stored in registers. The automat on reads the data
+word from left to right but can look back on certain states and register contents
+from the past (e.g., at the last position that is executed by t he same process).
+Positions that can be accessed in this way are determined by t he signature S.
+Their register entries can be compared with one another, or w ith current values
+from the input. Moreover, when taking a transition, registe rs can be updated by
+either a current value, an old register entry, or a guessed va lue.
+Deﬁnition 1. Aclass register automaton (over signature S) is a tuple A=
+(Q,R,∆,(F⊳)⊳∈S,Φ)where
+–Qis a ﬁnite set of states,
+–Ris a ﬁnite set of registers ,
+7
+
+--- Page 8 ---
+–theF⊳⊆Qare sets of local ﬁnal states ,
+–Φis the global acceptance condition: a boolean formula over {‘q≤N’|q∈
+QandN∈N}, and
+–∆is a ﬁnite set of transitions of the form
+(p,g)a−→(q,f).
+Here,p:S⇀ Qis a partial mapping representing the source states. More-
+over,gis a guard, i.e., a boolean formula over {‘θ1=θ2’|θ1,θ2∈[m]∪
+(dom(p)×R)}to perform comparisons of values that are are currently read
+and those that are stored in registers. Finally, a∈Σis the current label,
+q∈Qis the target state, and f:R⇀(dom(p)×R)∪([m]×N)is a partial
+mapping to update registers.
+In the following, we write p⊳instead ofp(⊳). Transition (p,g)a−→(q,f)
+can be executed at position iof a data word if the state at position prev⊳(i)is
+p⊳(for all⊳∈dom(p)) and, for a register guard (⊳1,r1) = (⊳2,r2), the entry
+of registerr1atprev⊳1(i)equals that of r2atprev⊳2(i). The automaton then
+reads the label atogether with a tuple of data values that also passes the test
+given byg, and goes to q. Moreover, register robtains a new value according
+tof(r): iff(r) = (⊳,r′)∈dom(p)×R, then the new value of ris the value
+ofr′at position prev⊳(i); iff(r) = (k,B)∈[m]×N, thenrobtains any k-th
+data value in the B-sphere around i. In particular, f(r) = (k,0)assigns torthe
+(unique)k-th data value of the current position. To some extent, f(r) = (k,B)
+calls an oracle to guess a data value. The guess is local and, t herefore, weaker
+than [18], where a non-deterministic reassignment allows o ne to write anydata
+value into a register. This latter approach can indeed simul ate our local version
+(this is not immediately clear, but can be shown using the sphere automaton
+from Section 5).
+Let us be more precise. A conﬁguration of Ais a pair (q,ρ)whereq∈Q
+is the current state and ρ:R ⇀Dis a partial mapping denoting the current
+register contents. If ρ(r)is undeﬁned, then there is no entry in r. Letw=
+w1...wn∈(Σ×Dm)∗be a data word and ξ= (q1,ρ1)...(qn,ρn)be a sequence
+of conﬁgurations. For i∈[n],k∈[m], andB∈N, letDk
+B(i) ={dk(j)|j∈[n]
+such that distw(i,j)≤B}. We callξarunofAonwif, for every position
+i∈[n], there is a transition (pi,gi)ℓ(i)−→(qi,fi)such that the following hold:
+(1) dom(pi) ={⊳∈S|prev⊳(i)is deﬁned }
+(2) for all ⊳∈dom(pi):(pi)⊳=qprev⊳(i)
+(3)giis evaluated to true on the basis of its atomic subformulas: θ1=θ2is true iﬀ
+vali(θ1) =vali(θ2)∈Dwherevali(k) =dk(i)andvali((⊳,r)) =ρprev⊳(i)(r)
+(the latter might be undeﬁned and, therefore, not be in D)
+(4) for allr∈R:
+
+ρi(r) =ρprev⊳(i)(r′)iffi(r) = (⊳,r′)∈dom(p)×R
+ρi(r)∈Dk
+B(i) iffi(r) = (k,B)∈[m]×N
+ρi(r)undeﬁned if fi(r)undeﬁned
+8
+
+--- Page 9 ---
+Runξis accepting if qi∈F⊳for alli∈[n]and⊳∈Ssuch that next⊳(i)is
+undeﬁned. Moreover, we require that the global condition Φis met. Hereby, an
+atomic constraint q≤Nis satisﬁed by ξif|{i∈[n]|qi=q}| ≤N. The language
+L(A)⊆(Σ×Dm)∗ofAis deﬁned in the obvious manner. The corresponding
+language class is denoted by CRA(S).
+The acceptance conditions are inspired by Björklund and Sch wentick [2], who
+also distinguish between local and global acceptance. Loca l ﬁnal states can be
+motivated as follows. When data values model process identi ties, a≺∼-maximal
+position of a data word is the last position of some process an d must give rise to
+a local ﬁnal state. Moreover, in the context of S2
+dyn, a sending position that does
+not lead to a local ﬁnal state in F≺msgrequires a matching receive event. Thus,
+local ﬁnal states can be used to model “communication reques ts”. The global
+acceptance condition of class register automata is more gen eral than that of [2]
+to cope with all possible signatures. However, in the specia l case of S1
++1,∼, there
+is some global control in terms of ≺+1. We could then perform some counting
+up to a ﬁnite threshold and restrict, like [2], to a set of glob al ﬁnal states.
+We can classify many of the non-deterministic one-way model s from the lit-
+erature (most of them deﬁned for m= 1) in our unifying framework:
+–Aclass memory automaton [2] is a class register automaton where, in all
+transitions (p,g)a−→(q,f), the update function fis undeﬁned everywhere.
+The corresponding language class is denoted by CMA(S).
+–As an intermediary subclass of class register automata, we c onsider non-
+guessing class register automata : for all transitions (p,g)a−→(q,f)and
+registersr, one requires f(r)∈(dom(p)×R)∪([m]×{0}). We denote the
+corresponding language class by CRA−(S).
+–Aregister automaton [14,17] is a non-guessing class register automaton over
+Sm
++1={≺+1}. Moreover, non-guessing class register automata over S1
++1,∼
+capture fresh-register automata [25], which can dynamically generate data
+values that do not occur in the history of a run. Actually, thi s feature is
+also present in dynamic communicating automata [6] and in cl ass memory
+automata over S1
++1,∼where a fresh data value is guaranteed by a transition
+(p,g)a−→(q,f)such thatp≺∼is undeﬁned.
+–Class register automata are a model of distributed computat ion: considered
+overΣdynandS2
+dyn, they subsume dynamic communicating automata [6]. In
+particular, they can handle unbounded process creation and message passing.
+Updates of the form f(r) = (≺fork,r′)andf(r) = (≺msg,r′)correspond to
+receiving a process identity from the spawning/sending pro cess. Moreover,
+when a process requests a message from the thread whose ident ity is stored
+in registerr, a corresponding transition is guarded by (≺proc,r) = (≺msg,r0)
+where we assume that every process keeps its identity in some registerr0.
+Example 5. Let us give a concrete example. Suppose Σ={r,a}andD=N.
+We pursue Example 3 and build a non-guessing class register a utomaton Aover
+S1
++1,∼forL= [{(r,1)...(r,n)(a,1)...(a,n)|n≥1}]S1
++1,∼. Roughly speaking,
+9
+
+--- Page 10 ---
+Transitions Run
+source (p) guard (g) input q update ( f) input stater1r2
+≺∼≺+1
+1 (r,d)q1r1:=d (r,8)q18⊥
+2 q1 (r,d)q1r1:=d
+r2:= (≺+1,r1)(r,5)q158
+3q1q1(≺∼,r2) =⊥(a,d)q2r1:=d (a,8)q28⊥
+4q1q2(≺∼,r2) = (≺+1,r1)(a,d)q2r1:=d (a,5)q25⊥
+Fig.3. A non-guessing class register automaton over S1
++1,∼and a run
+there is a request phase followed by an acknowledgment phase , and requests
+are acknowledged in the order they are received. Figure 3 pre sentsAand an
+accepting run on (r,8)(r,5)(a,8)(a,5). The states of Aareq1andq2. Stateq1is
+assigned to request positions (ﬁrst phase), state q2to acknowledgments (second
+phase). Moreover, Ais equipped with registers r1andr2. During the ﬁrst phase,
+r1always contains the data value of the current position, and r2the data value
+of the≺+1-predecessor (unless we deal with the very ﬁrst position, wh erer2is
+undeﬁned, denoted ⊥). These invariants are ensured by transitions 1 and 2. In
+the second phase, by transition 3, position n+1carries the same data value as the
+ﬁrst position, which is the only request with undeﬁned r2. Guard (≺∼,r2) =⊥
+is actually an abbreviation for ¬((≺∼,r2) = (≺∼,r2)). By transition 4, position
+n+iwithi≥2has to match the request position whose r2-contents equals r1
+atn+i−1. Finally,F≺∼={q2},F≺+1={q2}, andΦ=¬(q1≤0). ♦
+For the language Lfrom Example 5, one can show L/\e}a⊔io\slash∈CMA(S1
++1,∼), using
+an easy pumping argument. Next, we will see that non-guessin g class register
+automata, though more expressive than class memory automat a, are not yet
+enough to capture rEMSO logic. Thus, dropping just one featu re such as registers
+or guessing data values makes class register automata incom parable to the logic.
+Assumem= 2and consider S2
+∼={≺1
+∼,≺2
+∼}(cf. Example 1).
+Lemma 1. rFO(S2
+∼)/\e}a⊔io\slash⊆CRA−(S2
+∼).
+Proof. We determine a formula ϕ∈rFO(S2
+∼)and show, by contradiction, that
+every non-guessing class register automaton capturing L=L(ϕ)will necessarily
+accept a data word outside L. Roughly speaking, Lconsists of words where every
+position belongs to a pattern that is depicted in Figure 4 and captured by the for-
+mulapattern(x1,...,x 4) =x1≺1
+∼x3∧x1≺2
+∼x4∧x2≺2
+∼x3∧x2≺1
+∼x4. With
+this,ϕ=∀x∃x1,...,x 4(x∈ {x1,...,x 4} ∧pattern(x1,...,x 4))∈rFO(S2
+∼)is
+the formula for L. Suppose that there is a non-guessing class register automa ton
+AoverS2
+∼recognizing L. We build a data word w= (a,d1)...(a,dn)∈Lwith
+n∈4Nand{d1
+1,...,d1
+n} ∩ {d2
+1,...,d2
+n}=∅by nesting disjoint patterns as de-
+picted in Figure 4: we ﬁrst create i1,...,i4, then addj1,...,j 4; the next pattern
+is to be inserted at n1,...,n 4, etc. We assume that the data values of distinct
+patterns are disjoint. If we choose nlarge enough, then there are an accepting
+runξ= (q1,ρ1)...(qn,ρn)ofAonw(with transition ti= (pi,gi)a−→(qi,fi)at
+10
+
+--- Page 11 ---
+j1 j2 j3 j4 i1 i2 i3 i4 n1 n2 n3 n4≺1
+∼
+≺2
+∼
+Fig.4. Nested patterns
+j1 j2 j3 j4 i1 i2 i3 i4
+Fig.5. Merging patterns
+positioni) and positions i1,...,i4,j1,...,j 4ofwsuch thatj1<i1,i1,...,i4and
+j1,...,j 4form two (disjoint) patterns, and ti1=tj1,...,ti4=tj4. Now, consider
+the data word w′that we obtain from wwhen we swap the second data values
+of positions i1andj1. Thus, the data part of w′is
+d1...dj1−1(d1
+j1,d2
+i1)dj1+1... di1−1(d1
+i1,d2
+j1)di1+1...dn.
+We have the situation depicted in Figure 5. In particular, i1,...,i4do not form
+a single closed cycle. This violates ϕ, asx=i1impliesx1∈ {i1,i2}. Thus,
+w′/\e}a⊔io\slash∈L. However, applying transitions t1,...,tnstill yields an accepting run
+ξ′= (q1,ρ′
+1)...(qn,ρ′
+n)ofAonw′. Fori∈[n],ρ′
+iis then given as follows:
+ρ′
+i(r) =
+
+d2
+i1ifρi(r) =d2
+j1andi∈ {j1,j3}
+d2
+j1ifρi(r) =d2
+i1andi∈ {i1,i3}
+d1
+i1ifρi(r) =d1
+j1andi=j4
+d1
+j1ifρi(r) =d1
+i1andi=i4
+ρi(r)otherwise
+One can verify that ξ′is indeed an accepting run on w′. ⊓ ⊔
+The proof of Lemma 1 can be adapted to show r FO(S2
+dyn)/\e}a⊔io\slash⊆CRA−(S2
+dyn). It
+reveals that non-guessing class register automata can in ge neral not detect cycles .
+However, this is needed to capture rFO logic [16]. In Section 5, we show that full
+class register automata capture rFO and, as they are closed u nder projection,
+also rEMSO logic. Closure under projection is meant in the fo llowing sense. Let
+Γbe a non-empty ﬁnite alphabet. Given S= (σ,I), we deﬁne another signature
+SΓfor data words over (Σ×Γ)×Dm. Its set of relation symbols is {⊳Γ|⊳∈S}.
+Forw∈((Σ×Γ)×Dm)∗, we seti⊳w
+Γjiﬀi⊳projΣ(w)j. Hereby, the projection
+11
+
+--- Page 12 ---
+projΣjust removes the Γcomponent while keeping Σand the data values. For
+C ∈ {CRA,CRA−,CMA}, we say that C(S)isclosed under projection if, for
+everyΓandL⊆((Σ×Γ)×Dm)∗,L∈ C(SΓ)impliesprojΣ(L)∈ C(S).
+Lemma 2. For every signature S,CRA(S),CRA−(S), andCMA(S)are closed
+under union, intersection, and projection. They are, in gene ral, not closed under
+complementation.
+Proof. Closure under union and intersection follows standard auto mata-theoretic
+constructions. Closure under projection holds since proje ction preserves the
+graph structure of a data word. For non-complementability, we can rely on the
+corresponding result for communicating automata [9]. Roug hly speaking, a com-
+municating automaton is a dynamic communicating automaton with a ﬁxed
+set of at least two processes Proc. It can be identiﬁed as a special case of our
+framework: We let m= 0, since the number of processes is ﬁxed. Moreover,
+Σ={!(c,d),?(c,d)|c,d∈Procsuch thatc/\e}a⊔io\slash=d}is the set of actions. Finally,
+we deﬁne the signature S0
+Proc={≺proc,≺msg}as the straightforward restriction
+ofS2
+dyn(cf. Example 2) to this bounded case. Speaking in terms of our frame-
+work, [9] indeed shows that class register automata (or, as m= 0, class memory
+automata) over S0
+Procare not closed under complementation. ⊓ ⊔
+5 Realizability of EMSO Speciﬁcations
+In this section, we solve the realizability problem for rEMS O speciﬁcations:
+Theorem 1. For all signatures S,rEMSO(S)⊆CRA(S). An automaton can be
+computed in elementary time and is of elementary size.
+Classical procedures that translate formulas into automat a follow an induc-
+tive approach, use two-way mechanisms and tools such as pebb les, or rely on
+reductions to existing translations. There is no obvious wa y to apply any of
+these techniques to prove our theorem.
+We therefore follow a technique from [9], which is based on id eas from [22,24].
+We ﬁrst transform the ﬁrst-order kernel of the formula at han d into a normal
+form due to Hanf [16]. According to that normal form, satisfa ction of a ﬁrst-
+order formula wrt. data word wonly depends on the spheres that occur in
+G(w), and on how often they occur, counted up to a threshold. The si ze of a
+sphere is bounded by a radius that depends on the formula. The threshold can
+be computed from the radius and |S|. We can indeed apply Hanf’s Theorem, as
+the structures that we consider have bounded degree : every node/word position
+has at most |S|incoming and at most |S|outgoing edges. In a second step, we
+transform the formula in normal form into a class register au tomaton.
+Recall that B-SphG(i)denotes the B-sphere of graph/data word Garoundi
+(cf. Section 2). Its size (number of nodes) is bounded by maxSize := (2|S|+2)B.
+LetB-SpheresS={B-SphG(i)|G= (V,...)is anS-graph and i∈V}. We do
+not distinguish between isomorphic structures so that B-SpheresSis ﬁnite.
+12
+
+--- Page 13 ---
+Theorem 2 (cf. [8, 16]). Letϕ∈rFO(S). One can compute, in elementary
+time,B∈Nand a boolean formula βover{‘S≤N’|S∈B-SpheresSand
+N∈N}such thatL(ϕ)is the set of data words that satisfy β. Here, we say that
+w=w1...wnsatisﬁes atom S≤Niﬀ|{i∈[n]|B-Sphw(i)∼=S}| ≤N. The
+radiusBand the size of βand its constants Nare elementary in |ϕ|and|S|.
+Proof. A simple but crucial observation is that there exists a ﬁrst- order sentence
+that is equivalent to ϕbut talks about G(w)rather than w. We simply write
+λ(x) =ainstead ofℓ(x) =a, and/logicalortext
+η∈Pν(x) =ηinstead ofdk(x) =dl(x)where
+P ⊆Part(m)is the set of partitions of [m]such thatkandloccur in the same
+set. As rMSO (S)-formulas cannot distinguish between data words that induc e the
+same graph, the boolean formula βin normal form exists due to [16]. Actually,
+βcan be computed in triply exponential time [8]. ⊓ ⊔
+By Theorem 2, it will be useful to have a class register automa ton that,
+when reading a position iof data word w, outputs the sphere of waroundi. Its
+construction is actually the main diﬃculty in the proof of Th eorem 1, as spheres
+have to be computed “in one go”, i.e., reading the word from le ft to right, while
+accessing only certain conﬁgurations from the past.
+Proposition 1. LetB∈N. One can compute, in elementary time, a class reg-
+ister automaton AB= (Q,R,∆,(F⊳)⊳∈S,true)overS, as well as a mapping
+π:Q→B-SpheresSsuch thatL(AB) = (Σ×Dm)∗and, for every data word
+w=w1...wn, every accepting run (q1,ρ1)...(qn,ρn)ofABonw, and every
+i∈[n],π(qi)∼=B-Sphw(i). Moreover, |Q|and|R|are elementary in Band|S|.
+The proposition is proved below. Let us ﬁrst show how we can us e it, together
+with Theorem 2, to translate an rEMSO formula into a class reg ister automaton.
+Proof (of Theorem 1). Letϕ=∃X1...∃Xnψ∈rEMSO(S)be a sentence with
+ψ∈rFO(S)(we also assume n≥1). Since Theorem 2 applies to ﬁrst-order for-
+mulas only, we extend ΣtoΣ×ΓwhereΓ= 2{1,...,n}. Consider the extended
+signature SΓ(cf. Section 4). From ψ, we obtain a formula ψΓ∈rFO(SΓ)by re-
+placingℓ(x) =awith/logicalortext
+M∈Γℓ(x) = (a,M)andx∈Xjwith/logicalortext
+a∈Σ,M∈Γℓ(x) =
+(a,M∪{j}). Consider the radius B∈Nand the normal form βΓforψΓdue to
+Theorem 2. Let AB= (Q,R,∆,(F⊳)⊳∈SΓ,true)be the class register automaton
+overSΓfrom Proposition 1 and πbe the associated mapping. The global accep-
+tance condition of ABis obtained from βΓby replacing every atom S≤Nwith
+π−1(S)≤N(which can be expressed as a suitable boolean formula). We ho ld
+A′
+B, a class register automaton satisfying L(A′
+B) =L(ψΓ). Exploiting closure
+under projection (Lemma 2), we obtain a class register autom aton over Sthat
+recognizesL(ϕ) =projΣ(L(ψΓ)). ⊓ ⊔
+The Sphere Automaton. In the remainder of this section, we construct the
+class register automaton AB= (Q,R,∆,(F⊳)⊳∈S,true)from Proposition 1,
+together with π:Q→B-SpheresS. The idea is that, at each position iin the
+data wordwat hand, ABguesses the B-sphereSofwaroundi. To verify that
+the guess is correct, i.e., S∼=B-Sphw(i),Sis passed to each position that is
+13
+
+--- Page 14 ---
+connected to iby an edge in G(w). That new position locally checks label and
+data equalities imposed by S, then also forwards Sto its neighbors, and so on.
+Thus, at any time, several local patterns have to be validate d simultaneously
+so that a state q∈Qis actually a setof spheres. In fact, we consider extended
+spheresE= (S,α,col)whereS= (U,(⊳E)⊳∈S,λ,ν,γ)is a sphere (with universe
+Uand sphere center γ),α∈Uis theactive node , andcolis a color from a ﬁnite
+set, which will be speciﬁed later. The active node αindicates the current context,
+i.e., it corresponds to the position currently read.
+LetB-eSpheresSdenote the set of extended spheres, which is ﬁnite up to
+isomorphism. For E= (S,α,col)∈B-eSpheresS,S= (U,(⊳E)⊳∈S,λ,ν,γ), and
+j∈U, we letE[j]refer to the extended sphere (S,j,col)where the active node α
+has been replaced with j. Now suppose that the state qofABthat is reached after
+reading position iof data word wcontainsE= (S,α,col). Roughly speaking,
+this means that the neighborhood of iinwshall look like the neighborhood of
+αinS. Thus, ifScontainsj′such thatα⊳Ej′, then we must ﬁnd i′such that
+i⊳wi′in the data word. Local ﬁnal states will guarantee that i′indeed exists.
+Moreover, the state assigned to i′in a run of ABwill contain the new proof
+obligationE[j′]and so forth. Similarly, an edge in (the graph of) whas to be
+present in spheres, unless it is beyond their scope, which is limited by B. All
+this is reﬂected below, in conditions T2–T6 of a transition.
+We are still facing two major diﬃculties. Several isomorphic spheres have
+to be veriﬁed simultaneously, i.e., a state must be allowed t o include isomor-
+phic spheres in diﬀerent contexts. A solution to this proble m is provided by
+the additional coloring col. It makes sure that centers of overlapping isomorphic
+spheres with diﬀerent colors refer to distinct nodes in the i nput word. To put
+it diﬀerently, for a given position iin data word w, there may be i′such that
+0<distw(i,i′)≤2B+1andB-Sphw(i)∼=B-Sphw(i′). Fortunately, there cannot
+be more than (2|S|+1)·maxSize2such positions. As a consequence, the coloring
+colcan be restricted to the set {1,...,(2|S|+1)·maxSize2+1}.
+Implementing these ideas alone would do without registers a nd yield a class
+memory automaton. But this cannot work due to Lemma 1. Indeed , a faithful
+simulation of cycles in spheres has to make use of data values . They need to be
+anticipated, stored in registers, and locally compared wit h current data values
+from the input word. We introduce a register (E,k)for every extended sphere
+Eandk∈[m]. To get the idea behind this, consider a run (q1,ρ1)...(qn,ρn)
+ofABonw= (a1,d1)...(an,dn). Pick a position iofwand suppose that
+E= (U,(⊳E)⊳∈S,λ,ν,γ,α, col)∈qi. Ifαis minimal in E, then there is no
+pending requirement to check. Now, as αshall correspond to the current position
+iofw, we write, for every k∈[m],dk
+iinto register (E,k)(ﬁrst case of T8 below).
+For allj∈U\{α}, on the other hand, we anticipate data values and store them
+in(E[j],k)(also ﬁrst case of T8). They will be forwarded (second case of T8)
+and checked later against both the guesses made at other mini mal nodes of E
+(guardg3of T7) and the actual data values in w(guardg2). This procedure
+makes sure that the values that we carry along within an accep ting run agree
+with the actual data values of w.
+14
+
+--- Page 15 ---
+Now, as prevw
+⊳andnextw
+⊳are monotone wrt. positions with identical labels
+and data values, two isomorphic cycles cannot be “merged” in to one larger one,
+unlike in non-guessing class register automata where diﬀer ent parts may act
+erroneously on the assumption of inconsistent data values ( cf. Lemma 1). As a
+consequence, spheres are correctly simulated by the input w ord.
+Let us formalize AB= (Q,R,∆,(F⊳)⊳∈S,true)and the mapping π:Q→
+B-SpheresS, following the above ideas. The set of registers is R=B-eSpheresS×
+[m]. A state from Qis a non-empty set q⊆B-eSpheresSsuch that
+(i) there is a unique E= (U,(⊳E)⊳∈S,λ,ν,γ,α, col)∈qsuch thatγ=α(we
+setπ(q) = (U,(⊳E)⊳∈S,λ,ν,γ)to obtain the mapping required by Prop. 1),
+(ii) there are a∈Σandη∈Part(m)such that, for all E= (...,λ,ν,... )∈q,
+we haveλ(α) =aandν(α) =η(we letlabel(q) =aanddata(q) =η), and
+(iii) for every (S,α,col),(S,α′,col)∈q, we haveα=α′.
+Before we turn to the transitions, we introduce some notatio n. Below,Ewill
+always denote (S,α,col)withS= (U,(⊳E)⊳∈S,λ,ν,γ); in particular, αrefers
+to the active node of E. The mappings nextE
+⊳,prevE
+⊳, anddistEare deﬁned for
+extended spheres in the obvious manner. For j∈U, we settype−(j) ={⊳∈S|
+prevE
+⊳(j)is deﬁned }. Let us ﬁx, for all E∈B-eSpheresSsuch that type−(α)/\e}a⊔io\slash=∅,
+some arbitrary ⊳E∈type−(α). Finally, for state qandk1,k2∈[m], we write
+k1∼qk2if there isK∈data(q)such that {k1,k2} ⊆K.
+We have a transition (p,g)a−→(q,f)iﬀ the following hold:
+T1label(q) =a
+T2 for all ⊳∈S,E∈q:⊳/\e}a⊔io\slash∈dom(p) =⇒prevE
+⊳(α)is undeﬁned
+T3 for all ⊳∈dom(p),E∈q,j∈U:j⊳Eα⇐⇒E[j]∈p⊳
+T4 for all ⊳∈dom(p),E∈p⊳,j∈U:α⊳Ej⇐⇒E[j]∈q
+T5 for all ⊳∈dom(p),E∈q:prevE
+⊳(α)undeﬁned =⇒distE(γ,α) =B
+T6 for all ⊳∈dom(p),E∈p⊳:nextE
+⊳(α)undeﬁned =⇒distE(γ,α) =B
+T7g=g1∧g2∧g3where
+g1=/logicalandtext
+k1,k2∈[m]
+k1∼qk2k1=k2∧/logicalandtext
+k1,k2∈[m]
+k1/ne}ationslash∼qk2¬(k1=k2)g2=/logicalandtext
+k∈[m]E∈q
+⊳∈type−(α)k= (⊳,(E,k))
+g3=/logicalandtext
+k∈[m]E∈q j∈U
+⊳1,⊳2∈type−(α)(⊳1,(E[j],k)) = (⊳2,(E[j],k))
+T8 for allk∈[m]andE∈B-eSpheresS:
+f((E,k)) =
+
+(k,distE(j,α))if∃j∈U:E[j]∈qandtype−(j) =∅
+(⊳E[j],(E,k))if∃j∈U:E[j]∈qandtype−(j)/\e}a⊔io\slash=∅
+undeﬁned otherwise
+15
+
+--- Page 16 ---
+For every ⊳∈S, the local acceptance condition is given by F⊳={q∈Q|
+for allE∈q,nextE
+⊳(α)is undeﬁned }. Recall that the global one is true.
+As the maximal size of a sphere is exponential in Band polynomial in |S|,
+the numbers |Q|and|R|are elementary in Band|S|. Note that ABcan actually
+be constructed in elementary time.
+In the appendix, we show that the construction of ABandπis correct in the
+sense of Proposition 1.
+6 From Automata to Logic
+Next, we give translations from automata back to logic. Note that rEMSO(S1
++1)/subsetornotdbleql
+CRA(S1
++1), as rEMSO (S1
++1)cannot reason about data values. However, we show
+that the behavior of a class register automaton is always MSO deﬁnable and,
+in a sense, “regular”. There are natural ﬁnite-state automa ta that do not share
+this property: two-way register automata (even determinis tic ones) over one-
+dimensional data words are incomparable to MSO (S1
++1,∼)[21].
+Theorem 3. For every signature S, we have CRA(S)⊆MSO(S).
+Proof. As usual, second-order variables are used to encode an assig nment of
+positions to transitions, which is then checked for being an accepting run. To
+simulate register contents, we extend a technique from [21] . Let us describe how
+a class register automaton A= (Q,R,∆,(F⊳)⊳∈S,Φ)overSis translated into
+an MSO(S)-sentenceϕAsuch thatL(ϕA) =L(A). Suppose Bis the maximum
+of allBfor which there is a transition (p,g)a−→(q,f)∈∆withf(r) = (k,B),
+for somerandk.
+We assume a second-order variable Xδfor every transition δ∈∆. Moreover,
+we assume a variable Xβ
+r,Bfor eachr∈R,B∈ {1,...,B}, and each formula
+β(xu,xv)∈rFO(S), with free variables xuandxv, that is of the form
+β(xu,xv) =∃x1,...,x B(xu⊲⊳1x1⊲⊳2...⊲⊳BxB=xv)
+where⊲⊳i∈ {=,⊳,⊳−1|⊳∈S}. The intuition of these variables is as follows.
+If a position xis contained in Xδwithδ= (p,g)a−→(q,f)andf(r) = (k,B),
+thenxwill also be contained in some Xβ
+r,B, meaning that xexecutesδand the
+new data value of ris thek-th data value at the unique ysuch thatβ(x,y)is
+satisﬁed.
+The formula ϕAwill be of the form ∃(Xδ)δ∃(Xβ
+r,B)r,B,β(ψ1∧ψ2). Here,ψ1∈
+rFO(S)checks whether the following hold:
+–each position xis contained in exactly one set Xδ
+–for allxandr∈R,xis contained in at most one set of the form Xβ
+r,B
+–ifx∈Xδwithδ= (p,g)a−→(q,f)andf(r) = (k,B), thenx∈Xβ
+r,Bfor
+someβ
+–the label at position x∈Xδcorresponds to the label of δ
+–conditions (1) and (2) in the deﬁnition of a run are met
+16
+
+--- Page 17 ---
+MSO(S1
++1,∼) =rMSO(S1
++1,∼)
+CRA(S1
++1,∼)
+CRA−(S1
++1,∼)EMSO(S1
++1,∼)
+rEMSO(S1
++1,∼)
+EMSO2(S1
++1,∼∪{<}) =CMA(S1
++1,∼)
+CRA(S1
++1) =CRA−(S1
++1)Thm. 1
+[2][2,5]
+Fig.6. A hierarchy of automata and logics over one-dimensional dat a words
+–the (potential) run is accepting, i.e., F⊳andΦare respected
+It remains to deﬁne ψ2∈MSO(S)to check property (3) of a run. This can
+be done by means of formulas ψg(x), one for each atomic guard g∈ {θ1=θ2|
+θ1,θ2∈[m]∪(S×R)}. We restrict here to g= ((⊳,r) =l)withl∈[m]. The
+other cases are similar. Formula ψg(x)checks if the contents of rat position
+prev⊳(x)equals thel-th data value at x. It will be of the form ∃X∃(Xr)r∈Rχg.
+The idea is that the positions in Xdescribe a path x1⊳1x2⊳2...⊳n−1
+xn⊳xthat “transports” the data value dl(x). We suppose that every position
+xiis contained in precisely one set Xrimeaning that register riis updated by
+the contents of ri−1at position xi−1. More precisely, we require that, for all
+i∈ {2,...,n}, there is a transition δwith register-update mapping fsuch that
+xi∈Xδandf(ri) = (⊳i−1,ri−1). The last update should concern r, i.e., we
+requirexn∈Xr. So suppose x1∈Xr1. It remains to ensure that register r1, at
+x1, obtains the value dl(x). More precisely, there should be a transition δwith
+update mapping f, as well ask,B,β and a position x0such thatβ(x1,x0)holds,
+f(r1) = (k,B),x1∈Xδ∩Xβ
+r1,Banddk(x0) =dl(x).
+Note thatχgcan be deﬁned as an FO (S)-formula and ψg(x)holds iﬀ the
+register contents of ratprev⊳(x)equalsdl(x). ⊓ ⊔
+In the proof, the non-local predicate dk(x) =dl(y)is indeed essential to simulate
+register assignments, as we need to compare data values at po sitions where
+registers are updated. For one-dimensional data words, how ever, the predicate
+can be easily deﬁned in rMSO (S1
++1,∼). The following theorem is dedicated to
+this classical setting over S1
++1,∼.
+Theorem 4. We have the inclusions depicted in Figure 6. Here, −→means
+‘strictly included’ and /axisshort/axisshort/arrowaxisrightmeans ‘included’.
+Proof. The inclusion r EMSO(S1
++1,∼)⊆CRA(S1
++1,∼)is due to Theorem 1, and
+CRA(S1
++1,∼)⊆MSO(S1
++1,∼)is due to Theorem 3. The equality MSO(S1
++1,∼) =
+rMSO(S1
++1,∼)is obvious.
+17
+
+--- Page 18 ---
+CMA(S1
++1,∼)/subsetornotdbleqlrEMSO(S1
++1,∼): Consider a class memory automaton A.
+AsAis completely state-based and does not make use of any regist er, it is
+standard to deﬁne a sentence ψ∈rEMSO(S1
++1,∼)such thatL(ψ) =L(A). It
+remains to show strictness of the inclusion.1SupposeΣ={r,a}andD=N,
+and letL= [{(r,1)...(r,n)(a,1)...(a,n)|n≥1}]S1
++1,∼(note that the proof
+also works if Σis a singleton). Towards a contradiction, suppose Lis recog-
+nized by class memory automaton A. AsAhas no access to registers, a run
+ofAon(r,1)...(r,n)(a,1)...(a,n)is actually a sequence of states q1...q2n. If
+nis large enough, there are positions 1≤i < j≤nsuch thatqi=qj. Now,
+we can simply exchange the data values at positions iandjwithout aﬀect-
+ing acceptance. More precisely, q1...q2nis also an accepting run on the data
+word(r,1)...(r,i−1)(r,j)(r,i+1)...(r,j−1)(r,i)(r,j+1)...(r,n)(a,1)...(a,n),
+which is not contained in L, a contradiction. On the other hand, Lis the con-
+junctionϕ1∧ϕ2of the following rFO (S1
++1,∼)-sentences:
+–ϕ1=∃xtrue∧ ∀x∃=1y/parenleftbiggx≺∼y∧ℓ(x) =r∧ℓ(y) =a
+∨y≺∼x∧ℓ(y) =r∧ℓ(x) =a/parenrightbigg
+–ϕ2=∀x,y
+x≺+1y∧ ¬(ℓ(x) =r∧ℓ(y) =a)
+→ ∃x′,y′/parenleftbiggx≺∼x′≺+1y′∧y≺∼y′
+∨x′≺+1y′≺∼y∧x′≺∼x/parenrightbigg
+
+The ﬁrst formula expresses that the word has positive length and each ∼equiv-
+alence class has size two. The second formula ensures the FIF O structure of a
+data word.
+CMA(S1
++1,∼)/subsetornotdbleql CRA−(S1
++1,∼): Consider the language Lfrom the previous
+paragraph. It is not in CMA(S1
++1,∼). However, Example 5 demonstrates that
+there is a non-guessing class register automaton recognizi ngL.
+rMSO(S1
++1,∼)/\e}a⊔io\slash⊆CRA(S1
++1,∼): We encode grids into data words. An (i,j)-
+gridis a graph that has a height i∈Nand a width j∈Nmeaning that it has i
+rows andjcolumns that are connected by a horizontal and a vertical imm ediate
+successor relation. Nodes are labeled by elements from Σ={a,b,c}. We encode
+an(i,j)-grid as the data word
+(a11,1)...(ai1,i)(a12,1)...(ai2,i)......(a1j,1)...(aij,i)
+whereakl∈Σis the labeling of the grid node (k,l). Hereby, each subword
+(a1k,1)...(aik,i)constitutes a column. Then, moving down in the grid corre-
+sponds to a ≺+1-step in the data word, moving right corresponds to a ≺∼-step.
+These steps are rFO (S1
++1,∼)-deﬁnable.
+Consider the set Lof grids of the form H1.C.H2whereCis a single column
+ofc-labeled nodes, and H1andH2are grids with labels from {a,b}such that
+the sets of diﬀerent column words (over {a,b}) inH1andH2coincide. We know
+1Note that satisﬁability of rEMSO (S1
++1,∼)is undecidable, whereas emptiness of class
+memory automata over S1
++1,∼is decidable [5]. This already implies that there is no
+eﬀective translation of automata into formulas.
+18
+
+--- Page 19 ---
+thatLis MSO-deﬁnable in the signature of a grid. Therefore, the en codingLof
+Linto data words is rMSO (S1
++1,∼)-deﬁnable. Using an argument from [24], we
+show thatL/\e}a⊔io\slash∈CRA(S1
++1,∼). First observe that the number of distinct sets of
+columns words over {a,b}of lengthnis22n. Suppose, towards a contradiction,
+that there is a class register automaton A= (Q,R,∆,(F⊳)⊳∈S,Φ)such that
+L(A) =L. Without loss of generality, we assume that Φis given in terms of a
+simple set of global ﬁnal states. In a run of Aon the data-word encoding of grid
+H1.C.H2of heightn, all the information that Ahas aboutH1must be encoded
+in thenconﬁgurations that are taken while reading the c-labeled positions. The
+number of tuples of nconﬁgurations that Acan distinguish is bounded by
+N=|Q|n·2(|R|·n)2·(n+1)|R|·n.
+Here, the second factor is an upper bound on the number of equi valence classes
+on the set {1,...,|R| ·n}, which captures guessed values, and the third factor
+is the number of registers assignments. Now, as QandRare ﬁxed,Ndoes not
+grow suﬃciently fast so that Awill accept a data word outside L.
+CRA(S1
++1)⊆CRA−(S1
++1): Note ﬁrst that class register automata over S1
++1
+are a variant of the register automata with non-deterministic reassignment from
+[18]. The crucial diﬀerence is that the “look-ahead” of CRA(S1
++1)is bounded,
+while the automata from [18] can guess any arbitrary data val ue. As a conse-
+quence, the latter capture the set of data words such that all data values (except
+the last one) are diﬀerent from the last data value. We will sh ow that, on the
+other hand, class register automata over S1
++1are no more expressive than clas-
+sical register automata, which cannot recognize that langu age.
+LetA= (Q,R,∆,(F⊳)⊳∈S,Φ)be a class register automaton over S1
++1.
+We sketch the construction of a non-guessing class register automaton A′=
+(Q′,R′,∆′,(F′
+⊳)⊳∈S,Φ′)overS1
++1such thatL(A) =L(A′). LetBbe the maxi-
+mal valueBsuch that an update of Ais of the form f(r) = (k,B). Without loss
+of generality, we assume that B≥1exists. The idea is that A′keeps track of
+the register contents of the last Bpositions, and of the last Bdata values read.
+To this aim, we set R′={−B,...,−1}×(R⊎ {current}). Register (−i,current)
+contains the i-th last input data value (wrt. the next position to read), an d reg-
+ister(−i,r)simulates register assignments of Aforr. In particular, this allows
+us to access every input data value from the last B≤ Bpositions. In order to
+anticipate data values, a state of A′contains, apart from a state of A, an equiv-
+alence relation over both the new set of registers R′and the next Bpositions.
+Thus, a state of A′is a pair (q,∼)whereq∈Qand∼is an equivalence relation
+overR′×{1,...,B}.
+To simulate an update f(r) = (k,B)ofAwithB≥1,A′either writes the
+current value or one of the values stored in (−B,current),...,(−1,current)into
+r, or goes into a state in which rand at least one of the next Bpositions are
+considered equivalent. Of course, the equivalence has to be globally consistent
+andlocally consistent meaning that two equivalent registers should contain the
+same data value. Moreover, when A′is in a state where the next position and a
+deﬁned register rare considered equivalent, then the next symbol to read is th e
+19
+
+--- Page 20 ---
+contents of r. If, in contrast, the next position is not equivalent to some deﬁned
+register, then A′should read a data value that is currently not stored, and sto re
+it inr(unless another update for rapplies). This ﬁnally ensures that a suitable
+data value in terms of an equivalence relation has been guess ed when performing
+an update of the form f(r) = (k,B). ⊓ ⊔
+The remaining (strict) inclusions are left open. When there are no data values,
+we have expressive equivalence of EMSO logic and class regis ter automata (which
+then reduce to class memory automata). The translation from automata to logic
+follows the standard approach. The following theorem is a pr oper generalization
+of the main result of [9].
+Theorem 5. Supposem= 0. For every signature S,EMSO(S) =CRA(S).
+7 Inﬁnite Data Words
+In the realm of reactive systems, it is appropriate to consid er inﬁnite data words,
+i.e., sequences from the set (Σ×Dm)ω. Note that all the notions that we intro-
+duced in Section 2 carry over to the new domain. In particular , a formula from
+rMSO(S)is interpreted over an inﬁnite word wwithout modifying the deﬁnition.
+However, its fragment rEMSO (S)now appears limited. In terms of S2
+dyn, one can-
+not express “some process sends inﬁnitely many messages dur ing an execution”,
+as can be shown using Hanf’s Theorem. We therefore introduce a ﬁrst-order
+quantiﬁer ∃∞. Formula ∃∞xϕis satisﬁed by w=w1w2...∈(Σ×Dm)ωif there
+are inﬁnitely many positions i≥1such thatϕis satisﬁed when xis interpreted
+asi. We obtain the logics rFO∞(S)and rEMSO∞(S)as well as the language class
+rEMSO∞(S). Now, a translation from logic into automata requires an ext ension
+of class register automata. We deﬁne an ω-class register automaton (overS) to
+be a tuple A= (Q,R,∆,(F⊳)⊳∈S,Φ)whereQ,R,∆,(F⊳)⊳∈Sare as in class
+register automata, and Φis henceforth a boolean formula over {‘q=∞’|q∈
+Q} ∪ { ‘q≤N’|q∈QandN∈N}. Infnite runs (q1,ρ1)(q2,ρ2)...and satis-
+faction of the new global acceptance condition are deﬁned as one would expect.
+In particular, atom q=∞is satisﬁed if |{i≥1|qi=q}|=∞. The class
+of languages recognized by ω-class register automata is denoted by ω-CRA(S).
+Theorems 1 and 5 extend to inﬁnite words.
+Theorem 6. For allS, we have rEMSO∞(S)⊆ω-CRA(S). The size of the
+automaton is elementary in the size of the formula and |S|. Ifm= 0, then
+rEMSO∞(S) =ω-CRA(S).
+Proof. The crucial observation is that Proposition 1 still holds. W e actually take
+the same automaton ABand run it on inﬁnite words. The argument that makes
+the construction work relies on the fact that the pastof any word position
+is ﬁnite. Moreover, it was shown in [7] that Theorem 2 has a cou nterpart for
+formulas with inﬁnity quantiﬁer. The proof is based on Vinne r’s extension of
+Ehrenfeucht-Fraïssé games [26]. Thus, for ϕ∈rFO∞(S), there areB∈Nand a
+20
+
+--- Page 21 ---
+boolean formula βover{‘S=∞’,‘S≤N’|S∈B-SpheresSandN∈N}such
+thatL(ϕ)is the set of data words that satisfy β. With this, the constructions
+from Section 5 can be adapted to translate an rEMSO∞(S)-sentence into an
+ω-class register automaton over S. ⊓ ⊔
+We remark that the proof of Theorem 6 is not eﬀective. Unlike t he proof of
+Theorem 1, it does not rely on [8, 16]. We do not know if there is an eﬀective
+alternative.
+8 Conclusion
+We studied the realizability problem for data-word languag es. A particular case
+of this general framework constitutes a ﬁrst step towards a l ogically motivated
+automata theory for dynamic message-passing systems. In li ght of this, it would
+be desirable to synthesize smaller and deadlock-free autom ata from logical or
+algebraic speciﬁcations. A good starting point for those st udies may be temporal
+logic [14,19].
+Our approach to modeling systems over inﬁnite alphabets may also lead to
+meaningful model-checking questions. It would be interest ing to extend [20],
+whose logic corresponds to ours in the case of S2
+dyn, to general data words.
+References
+1. R. Alur and P. Madhusudan. Adding nesting structure to wor ds.Journal of the
+ACM, 56(3):1–43, 2009.
+2. H. Björklund and Th. Schwentick. On notions of regularity for data languages.
+Theoretical Computer Science , 411(4-5):702–715, 2010.
+3. M. Bojańczyk and S. Lasota. An extension of data automata t hat captures XPath.
+InLICS 2010 , pages 243–252. IEEE Computer Society, 2010.
+4. M. Bojańczyk, A. Muscholl, Th. Schwentick, and L. Segouﬁn . Two-variable logic
+on data trees and applications to XML reasoning. Journal of the ACM , 56(3),
+2009.
+5. M. Bojańczyk, A. Muscholl, Th. Schwentick, L. Segouﬁn, an d C. David. Two-
+variable logic on words with data. In LICS 2006 , pages 7–16. IEEE Computer
+Society, 2006.
+6. B. Bollig and L. Hélouët. Realizability of dynamic MSC lan guages. In F.M. Ablayev
+and E.W. Mayr, editors, CSR 2010 , volume 6072 of LNCS , pages 48–59, 2010.
+7. B. Bollig and D. Kuske. Muller message-passing automata a nd logics. Information
+and Computation , 206(9-10):1084–1094, 2008.
+8. B. Bollig and D. Kuske. An optimal construction of Hanf sen tences, 2011.
+arXiv:1105.5487.
+9. B. Bollig and M. Leucker. Message-passing automata are ex pressively equivalent
+to EMSO logic. Theoretical Computer Science , 358(2):150–172, 2006.
+10. P. Bouyer. A logical characterization of data languages .Information Processing
+Letters , 84(2):75–85, 2002.
+11. P. Bouyer, A. Petit, and D. Thérien. An algebraic approac h to data languages and
+timed languages. Information and Computation , 182(2):137–162, 2003.
+21
+
+--- Page 22 ---
+12. D. Brand and P. Zaﬁropulo. On communicating ﬁnite-state machines. Journal of
+the ACM , 30(2), 1983.
+13. C. David, L. Libkin, and T. Tan. On the satisﬁability of tw o-variable logic over
+data words. In C.G. Fermüller and A. Voronkov, editors, LPAR 2010 , LNCS, pages
+248–262. Springer, 2010.
+14. S. Demri and R. Lazić. LTL with the freeze quantiﬁer and re gister automata. ACM
+Transactions on Computational Logic , 10(3), 2009.
+15. D. Figueira, P. Hofman, and S. Lasota. Relating timed and register automata. In
+S.B. Fröschle and F.D. Valencia, editors, EXPRESS’10 , 2010.
+16. W. Hanf. Model-theoretic methods in the study of element ary logic. In J. W.
+Addison, L. Henkin, and A. Tarski, editors, The Theory of Models . North-Holland,
+Amsterdam, 1965.
+17. M. Kaminski and N. Francez. Finite-memory automata. Theoretical Computer
+Science , 134(2):329–363, 1994.
+18. M. Kaminski and D. Zeitlin. Finite-memory automata with non-deterministic re-
+assignment. International Journal of Foundations of Computer Science , 21(5):741–
+760, 2010.
+19. A. Kara, Th. Schwentick, and Th. Zeume. Temporal logics o n words with multiple
+data values. In K. Lodaya and M. Mahajan, editors, FSTTCS 2010 , volume 8 of
+LIPIcs , pages 481–492, 2010.
+20. M. Leucker, P. Madhusudan, and S. Mukhopadhyay. Dynamic message sequence
+charts. In M. Agrawal and A. Seth, editors, FSTTCS 2002 , volume 2556 of LNCS ,
+pages 253–264. Springer, 2002.
+21. F. Neven, Th. Schwentick, and V. Vianu. Finite state mach ines for strings over
+inﬁnite alphabets. ACM Transactions on Computational Logic , 5(3):403–435, 2004.
+22. Th. Schwentick and K. Barthelmann. Local normal forms fo r ﬁrst-order logic
+with applications to games and automata. Discrete Mathematics & Theoretical
+Computer Science , 3(3):109–124, 1999.
+23. L. Segouﬁn. Automata and logics for words and trees over a n inﬁnite alphabet. In
+Z. Ésik, editor, CSL 2006 , volume 4207 of LNCS , pages 41–57. Springer, 2006.
+24. W. Thomas. Elements of an automata theory over partial or ders. In POMIV 1996 ,
+volume 29 of DIMACS . AMS, 1996.
+25. N. Tzevelekos. Fresh-register automata. In Th. Ball and M. Sagiv, editors, POPL
+2011, pages 295–306. ACM, 2011.
+26. S. Vinner. A generalization of Ehrenfeucht’s game and so me applications. Israel
+Journal of Mathematics , 12:279–286, 1972.
+22
+
+--- Page 23 ---
+A. Correctness of sphere automaton
+We will show that the class register automaton AB= (Q,R,∆,(F⊳)⊳∈S,Φ)over
+Sand the mapping π:Q→B-SpheresSare correct in the sense of Proposition 1:
+L(AB) = (Σ×Dm)∗and, for every data word w=w1...wn(wherewi=
+(ai,di)), every accepting run (q1,ρ1)...(qn,ρn)ofABonw, and every position
+i∈[n],π(qi)∼=B-Sphw(i).
+Every data word is accepted. Let us ﬁrst show L(AB) = (Σ×Dm)∗, i.e.,
+that every data word is accepted by AB. Letw= (a1,d1)...(an,dn)∈(Σ×
+Dm)∗be any data word and let G(w) = ([n],(⊳w)⊳∈S,ˆλ,ˆν)be its associated
+graph. We have to show w∈L(AB). A key issue is the assignment of colors to
+word positions in wsuch that overlapping spheres can be veriﬁed simultaneousl y.
+Leti,i′∈[n]. We say that iandi′have aB-overlap inwif bothB-Sphw(i)∼=
+B-Sphw(i′)anddistw(i,i′)≤2B+1.
+Lemma 3. There is a mapping Φ: [n]→ {1,...,(2|S|+1)·maxSize2+1}such
+thatΦ(i)/\e}a⊔io\slash=Φ(i′)wheneveriandi′are distinct and have a B-overlap.
+Proof. We obtainΦas a coloring of the undirected graph ([n],Arcs)where two
+nodes are connected iﬀ they are distinct and have a B-overlap. The graph has
+degree at most (2|S|+1)·maxSize2so that it can be ((2|S|+1)·maxSize2+1)-
+colored by some mapping Φ, i.e.,Φ(i)/\e}a⊔io\slash=Φ(i′)for every edge {i,i′}. ⊓ ⊔
+We now deﬁne a sequence ξ= (q1,ρ1)...(qn,ρn)of conﬁgurations of ABand
+show thatξis an accepting run of ABonw. Leti∈[n]. We set
+qi={(B-Sphw(ic),i,Φ(ic))|ic∈[n]such that distw(ic,i)≤B}.
+SupposeE= (S,α,col),S= (U,(⊳E)⊳∈S,λ,ν,γ), andk∈[m]. We deﬁne
+ρi((E,k))as follows. If there are positions ic,i′∈[n]such that distw(ic,i)≤
+B,distw(ic,i′)≤B,(S,α)∼=(B-Sphw(ic),i′), andcol=Φ(ic), then we set
+ρi((E,k)) =dk(i′). Otherwise, we let ρi((E,k))be undeﬁned. Note that ρi((E,k))
+is well deﬁned, as there is at most one pair ic,i′satisfying the above properties.
+We check that qiis a state. Let E= (S,α,col)∈qiandE′= (E′,α′,col′)∈qi
+withS= (U,(⊳E)⊳∈S,λ,ν,γ)andS′= (U′,(⊳E′)⊳∈S,λ′,ν′,γ′).
+(i) Assume γ=αandγ′=α′. Then,(S,γ)∼=(B-Sphw(i),i)and(S′,γ′)∼=
+(B-Sphw(i),i). Thus,(S,γ)∼=(S′,γ′). Moreover, col=col′=Φ(i).
+(ii) Clearly, we have λ(α) =λ′(α′)andν(α) =ν′(α′).
+(iii) Suppose S∼=S′(S=S′, for simplicity) and col=col′. According to the
+deﬁnition of qi, there are positions i1,i2ofwsuch that distw(i,i1)≤B,
+distw(i,i2)≤B,(S,α)∼=(B-Sphw(i1),i),(S,α′)∼=(B-Sphw(i2),i), and
+col=Φ(i1) =Φ(i2). We have (B-Sphw(i1),i)∼=(B-Sphw(i2),i). Asi1and
+i2have aB-overlap, we also have, by Lemma 3, i1=i2. We deduce α=α′.
+23
+
+--- Page 24 ---
+Next, we deﬁne a tuple ti= (pi,gi)ai−→(qi,fi)for alli∈[n]. We let(pi)⊳=
+qprevw
+⊳(i)(which might be undeﬁned). Moreover, let giandfibe uniquely given by
+conditions T7 and T8 where we replace qwithqi. Before we check that conditions
+(1)–(4) of a run are satisﬁed, we verify that tiis indeed a transition. In the
+following, we let Ealways refer to E= (S,α,col)withS= (U,(⊳E)⊳∈S,λ,ν,γ).
+T1 Obviously, we have label(qi) =ai.
+T2 Let⊳∈S\dom(pi)(which implies that prevw
+⊳(i)is undeﬁned) and E∈qi. We
+have(S,α)∼=(B-Sphw(ic),i)for someicwithdistw(ic,i)≤B. Asprevw
+⊳(i)
+is undeﬁned, we conclude that prevE
+⊳(α)is undeﬁned, too.
+T3 Let⊳∈dom(pi),E∈qi,j∈U, andi⊳=prevw
+⊳(i).
+Supposej⊳Eα. We need to show E[j]∈qi⊳. AsE∈qi, there isic∈[n]
+such that distw(ic,i)≤B,(S,α)∼=(B-Sphw(ic),i), andcol=Φ(ic). Since
+distE(γ,j)≤Bimpliesdistw(ic,i⊳)≤B, and since (S,j)∼=(B-Sphw(ic),i⊳)
+andcol=Φ(ic), we deduce E[j] = (S,j,col)∈qi⊳.
+Conversely, suppose E[j]∈qi⊳. We shall show j⊳Eα. There are positions
+ic,i′
+c∈[n]such that we have distw(ic,i)≤B,distw(i′
+c,i⊳)≤B,(S,α)∼=
+(B-Sphw(ic),i),(S,j)∼=(B-Sphw(i′
+c),i⊳), andcol=Φ(ic) =Φ(i′
+c). Note
+thaticandi′
+chave aB-overlap. By Lemma 3, ic=i′
+c. As, then, (S,j)∼=
+(B-Sphw(i′
+c),i⊳),(S,α)∼=(B-Sphw(i′
+c),i), andi⊳⊳wi, we can deduce j⊳Eα.
+T4 is shown similarly to T3.
+T5 Let⊳∈dom(pi)andE∈qisuch that prevE
+⊳(α)is undeﬁned. There is ic∈
+[n]such that distw(ic,i)≤Band(S,α)∼=(B-Sphw(ic),i). Now, suppose
+distE(γ,α)< B. But then, we also have distw(ic,i)< BandprevE
+⊳(α)is
+deﬁned, a contradiction. We deduce that distE(γ,α) =B.
+T6 is shown similarly to T5.
+T7 and T8 are immediate.
+So far, we know that tiis a transition. Now, let us check the run conditions.
+(1) and (2) are readily veriﬁed.
+(3) Consider guard gi=g1∧g2∧g3. We ﬁrst check subformula g1. Fork1,k2∈
+[m], by the deﬁnition of ∼qiandG(w),k1∼qik2iﬀdk1
+i=dk2
+i. Now, consider
+g2and an atomic subformula k= (⊳,(E,k))wherek∈[m],E∈q, and⊳∈
+type−(α). Seti⊳=prevw
+⊳(i), which must indeed exist (by T2). As E∈qi,
+there isic∈[n]such that distw(ic,i)≤B,(S,α)∼=(B-Sphw(ic),i), and
+col=Φ(ic). This implies distw(ic,i⊳)≤B, and we obtain ρi⊳((E,k)) =dk
+i
+so thatg2also holds. Finally, we have to check g3. Consider its subformula
+(⊳1,(E[j],k)) = (⊳2,(E[j],k))wherek∈[m],E∈qi,j∈U, and⊳1,⊳2∈
+type−(α). Leti1=prevw
+⊳1(i)andi2=prevw
+⊳2(i)(they both exist). Moreover,
+letj1=prevE
+⊳1(α)andj2=prevE
+⊳2(α). AsE∈qi, there isic∈[n]such
+thatdistw(ic,i)≤B,(S,α)∼=(B-Sphw(ic),i), andcol=Φ(ic). Due to
+the isomorphism, there is a unique i′∈[n]such that distw(ic,i′)≤Band
+(S,j)∼=(B-Sphw(ic),i′). Moreover, we have (S,j1)∼=(B-Sphw(ic),i1)and
+(S,j2)∼=(B-Sphw(ic),i2). In particular, distw(ic,i1)≤Banddistw(ic,i2)≤
+B. We deduce ρi1((E[j],k)) =ρi2((E[j],k)) =dk
+i′. Thus,g3is satisﬁed.
+24
+
+--- Page 25 ---
+(4) Let(E,k)∈R. We distinguish three cases.
+•If there isj∈Usuch thatE[j]∈qi, andtype−(j)/\e}a⊔io\slash=∅, then we have
+fi((E,k)) = (⊳,(E,k))with⊳=⊳E[j]. SinceE[j]∈qi, there is a
+positionic∈[n]such that distw(ic,i)≤B,(S,j)∼=(B-Sphw(ic),i),
+andcol=Φ(ic). Moreover, there is a unique position i′∈[n]such that
+distw(ic,i′)≤Band(S,α)∼=(B-Sphw(ic),i′). Asj⊳=prevE
+⊳(j)is de-
+ﬁned,i⊳=prevw
+⊳(i)is deﬁned, too. Note that (S,j⊳)∼=(B-Sphw(ic),i⊳)
+anddistw(ic,i⊳)≤B. We obtain ρi((E,k)) =dk
+i′=ρi⊳((E,k)).
+•If there isj∈Usuch thatE[j]∈qiandtype−(j) =∅, thenfi((E,k)) =
+(k,distE(α,j)). We show ρi((E,k))∈Dk
+B′(i)whereB′=distE(α,j).
+AsE[j]∈qi, there isic∈[n]such that distw(ic,i)≤B,(S,j)∼=
+(B-Sphw(ic),i), andcol=Φ(ic). Thus, there is a unique position i′∈
+[n]such that distw(ic,i′)≤Band(S,α)∼=(B-Sphw(ic),i′). We have
+distw(i′,i)≤distE(α,j), and we can deduce ρi((E,k)) =dk
+i′∈Dk
+B′(i).
+•If there is no j∈Usuch thatE[j]∈qi, thenfi((E,k))is undeﬁned.
+Therefore,ρi((E,k))should be undeﬁned, too. Suppose, towards a con-
+tradiction, that ρi((E,k))∈D. Then, there are ic,i′∈[n]such that
+we have distw(ic,i)≤B,distw(ic,i′)≤B,(S,α)∼=(B-Sphw(ic),i′),
+andcol=Φ(ic), But then, there is a unique j∈Usuch that (S,j)∼=
+(B-Sphw(ic),i)so thatE[j]∈qi, which is a contradiction.
+We conclude that ξis a run. Let us quickly verify that it is accepting. Triviall y,
+Φ=trueis satisﬁed. Now suppose ⊳∈Sand consider any position i∈[n]such
+thatnextw
+⊳(i)is undeﬁned. We have to show that qiis contained in F⊳, i.e.,
+nextE
+⊳(α)is undeﬁned for all E∈qi. So suppose E∈qi. There isic∈[n]such
+thatdistw(ic,i)≤Band(S,α)∼=(B-Sphw(ic),i). Asnextw
+⊳(i)is undeﬁned,
+nextE
+⊳(α)must be undeﬁned, too.
+Every run keeps track of spheres. In this part of the proof, we show that
+we can infer, from every accepting run of ABon data word w, the spheres that
+occur inG(w).
+Letw= (a1,d1)...(an,dn)∈(Σ×Dm)∗be a data word and G(w) =
+([n],(⊳w)⊳∈S,ˆλ,ˆν)its graph. Suppose ξ= (q1,ρ1)...(qn,ρn)is an accepting
+run ofABonwwith corresponding transitions t1,...,tnwhereti= (pi,gi)ai−→
+(qi,fi).
+The following claim states that an arbitrarily long path of a n extended sphere
+Ethat starts in its active node is faithfully simulated by w. It will turn out to
+be crucial that, hereby, the data values in registers of the f orm(E[j],k)are
+invariant during that simulation.
+Lemma 4. Leti∈[n]be some position, e≥0, andE= (S,α,col)∈qiwith
+S= (U,(⊳E)⊳∈S,λ,ν,γ). Suppose there are j0,...,j e∈Uand⊳1...,⊳e∈S
+such thatα=j0and, for all z∈ {0,...,e−1},jz⊳E
+z+1jz+1orjz+1⊳E
+z+1jz.
+Then, there is a unique sequence i=i0,...,ie∈[n]such that the following hold:
+25
+
+--- Page 26 ---
+–for eachz∈ {0,...,e−1},jz⊳E
+z+1jz+1impliesiz⊳w
+z+1iz+1andjz+1⊳E
+z+1
+jzimpliesiz+1⊳w
+z+1iz
+–for eachz∈ {0,...,e}, we haveE[jz]∈qiz,λ(jz) =aiz, andν(jz) = ˆν(iz)
+–for eachz∈ {1,...,e},k∈[m], andj∈U, we have ρi0((E[j],k)) =
+ρiz((E[j],k))
+–for eachz∈ {0,...,e}andk∈[m], we have that ρiz((E[jz],k)) =dk
+iz
+Proof. We proceed by induction on e. Supposee= 0. By T1 and guard g1
+of T7,λ(α) =aiandν(α) = ˆν(i). Letk∈[m]and suppose type−(α)/\e}a⊔io\slash=
+∅. Then,fi((E,k)) = (⊳,(E,k))where we let ⊳=⊳E. Thus,ρi((E,k)) =
+ρprevw
+⊳(i)((E,k)). By guard g2of T7, we have ρi((E,k)) =dk
+i. Iftype−(α) =∅,
+thenρi((E,k)) =dk
+iis due to the update fi((E,k)) = (k,0)(T8).
+So lete≥0,j0,...,j e,je+1∈U, and⊳1,...,⊳e,⊳e+1∈Ssuch thatα=j0
+and, for every z∈ {0,...,e},jz⊳E
+z+1jz+1orjz+1⊳E
+z+1jz. Leti0,...,ie∈[n]
+be the unique corresponding sequence with the required prop erties. We consider
+two cases:
+–Assumeje⊳E
+e+1je+1. Then,qie/\e}a⊔io\slash∈F⊳e+1so thatnextw
+⊳e+1(ie)is deﬁned. We
+setie+1=nextw
+⊳e+1(ie).
+Due to T4, we have E[je+1]∈qie+1. By T1 and guard g1of T7, we obtain
+λ(je+1) =aie+1, andν(je+1) = ˆν(ie+1).
+Letk∈[m]andj∈U. Due to condition T8, E[je+1]∈qie+1implies that
+fie+1((E[j],k)) = (⊳,(E[j],k))for some ⊳∈S. Due to guard g3of condi-
+tion T7, we have ρprevw
+⊳(ie+1)((E[j],k)) =ρie((E[j],k)). We can now deduce
+ρie((E[j],k)) =ρie+1((E[j],k)).
+Finally, let k∈[m]. We havefie+1((E[je+1],k)) = (⊳,(E[je+1],k))where we
+let⊳=⊳E[je+1]. Thus,ρie+1((E[je+1],k)) =ρprevw
+⊳(ie+1)((E[je+1],k)). By
+guardg2of T7, we obtain ρie+1((E[je+1],k)) =dk
+ie+1.
+–Assumeje+1⊳E
+e+1je. By T2, ⊳e+1∈dom(pi). Thus, there is (a unique) ie+1
+such thatie+1⊳w
+e+1ie.
+By T3, we have E[je+1]∈qie+1. Moreover, λ(je+1) =aie+1, andν(je+1) =
+ˆν(ie+1).
+Letk∈[m]andj∈U. By condition T8, we have E[je]∈qieimplies
+fie((E[j],k)) = (⊳,(E[j],k))for some ⊳∈S. Due to guard g3of condition
+T7, we have ρprevw
+⊳(ie)((E[j],k)) =ρie+1((E[j],k)). We deduce ρie((E[j],k)) =
+ρie+1((E[j],k)).
+Finally, let k∈[m]. We distinguish two cases. Suppose type−(je+1)/\e}a⊔io\slash=∅.
+Then,fie+1((E[je+1],k)) = (⊳,(E[je+1],k))where we let ⊳=⊳E[je+1].
+Thus,ρie+1((E[je+1],k)) =ρprevw
+⊳(ie+1)((E[je+1],k)). By guard g2of T7, we
+haveρie+1((E[je+1],k)) =dk
+ie+1. Iftype−(je+1) =∅, thenρie+1((E[je+1],k)) =
+dk
+ie+1is due to the update fie+1((E[je+1],k)) = (k,0)(T8).
+This concludes the proof of Lemma 4. ⊓ ⊔
+By means of Lemma 4, we will show that spheres that are contain ed in states
+indeed occur in a data word. It will be used in combination wit h the following
+simple monotonicity fact, which follows easily from the deﬁ nitions.
+26
+
+--- Page 27 ---
+Next, we show that a sphere correctly simulates wand vice versa, which
+concludes the correctness proof for AB.
+Fori∈[n], letEi= (Si,αi,coli)withSi:= (Ui,(⊳Ei)⊳∈S,λi,νi,γi)be the
+unique extended sphere from qisuch thatγi=αi. In particular, Si=π(qi).
+Lemma 5. For alli∈[n], we haveB-Sphw(i)∼=Si.
+Proof. Fore∈ {0,...,B}, lete-Sidenote the e-sphere of (Ui,(⊳Ei)⊳∈S,λi,νi)
+aroundγi, which is deﬁned in the canonical manner. We show, by inducti on, the
+following more general statement:
+For everye∈ {0,...,B}, there is an isomorphism h:e-Sphw(i)→e-Si
+such that, for each i′∈[n]withdistw(i,i′)≤e, we haveEi[h(i′)]∈qi′.(*)
+We easily verify that (*) holds for e= 0. Now suppose there is an isomorphism
+h:e-Sphw(i)→e-Siwithe < B . We extend the domain of hto elements i′
+withdistw(i,i′) =e+1as follows. Let i1,i2∈[n]such that distw(i,i1) =eand
+distw(i,i2) =e+1. Let⊳∈S. We distinguish several cases:
+–Supposei1⊳wi2. Sincedistw(i,i1)< B, we have distw(γi,h(i1))< B. By
+T6, there is j2∈Uisuch thath(i1)⊳Eij2. SinceEi[h(i1)]∈qi1, we obtain,
+by T1, T4, and T7, λi(j2) =ai2,νi(j2) = ˆν(i2), andEi[j2]∈qi2.
+–Supposei2⊳wi1. Similarly, due to distw(i,i1)< Band T5, there is j2∈
+Uisuch thatj2⊳Eih(i1). Using T1, T3, and T7, we obtain λi(j2) =ai2,
+νi(j2) = ˆν(i2), andEi[j2]∈qi2.
+We set¯h(i2) =j2and¯h(i′) =h(i′)for all positions i′ine-Sphw(i). In doing so,
+we extend the domain of hto elements with distance e+ 1fromi. Note that
+this extension ¯h: (e+1)-Sphw(i)→(e+1)-Siis well deﬁned, i.e., j2is uniquely
+determined by i2and does not depend on the choice of i1or⊳: if, fori2, we
+obtained distinct elements j2andj′
+2, thenEi[j2]∈qi2andEi[j′
+2]∈qi2, which
+contradicts the deﬁnition of a state.
+We show that we obtain a homomorphism ¯h: (e+1)-Sphw(i)→(e+1)-Si.
+Leti1,i2∈[n]such that distw(i,i1) =distw(i,i2) =e+1. Moreover, let ⊳∈S.
+Supposei1⊳wi2(the casei2⊳wi1is symmetric). We have Ei[¯h(i1)]∈qi1and
+Ei[¯h(i2)]∈qi2. By T3 (or T4), this implies ¯h(i1)⊳Ei¯h(i2).
+Next, we show that ¯his surjective. Let j1,j2∈Uiand⊳∈Ssuch that
+distEi(γi,j1) =e,distEi(γi,j1) =e+ 1, andj1⊳Eij2(the casej2⊳Eij1is
+similar). We have Ei[j1]∈qh−1(j1). By T4 and qh−1(j1)/\e}a⊔io\slash∈F⊳, there isi2∈[n]
+such that distw(i,i2) =e+1,h−1(j1)⊳wi2, andEi[j2]∈qi2. We deduce that ¯h
+is surjective.
+Let us show that ¯his injective. Let i1,i2∈[n]such that distw(i,i1) =
+distw(i,i2) =e+ 1. Assumei1/\e}a⊔io\slash=i2. We show that, then, ¯h(i1)/\e}a⊔io\slash=¯h(i2). Let
+j1=¯h(i1)andj2=¯h(i2). Assume, towards a contradiction, that j1=j2.
+Furthermore, assume i1< i2(the other case is symmetric). In Ei, there are
+paths from j1toαand fromαtoj1that are simulated, in w, by paths from i2
+toiand fromitoi1, respectively. By Lemma 4 and monotonicity of a signature,
+we can simulate these paths of Eiarbitrarily often in w. This yields an inﬁnite
+27
+
+--- Page 28 ---
+i2i1i1
+1i2
+1
+i......
+Ei[j1]Ei[j1]Ei[j1]Ei[j1]
+EiEiEi
+Fig.7.¯his injective⊳w⊳w
+i2i1
+2i1i2
+2i1
+1i2
+1
+i......
+Ei[j2]Ei[j2]Ei[j1]Ei[j2]Ei[j1]Ei[j1]
+EiEiEi
+Fig.8.¯h−1is a homomorphism
+descending chain ...<i2
+1<i1
+1<i1<i2such thatE[j1]∈qil
+1anddk
+i2=dk
+i1=dk
+il
+1
+for alll≥1andk∈[m]. But this is a contradiction, as every word position has
+only ﬁnitely many smaller positions. The procedure is illus trated in Figure 7.
+Finally, we show that ¯h: (e+1)-Sphw(i)→(e+1)-Siis actually an isomor-
+phism. Let j1,j2∈Uiand⊳∈Ssuch that distEi(γ,j1) =distEi(γ,j2) =e+1
+andj1⊳Eij2. We show that this implies ¯h−1(j1)⊳w¯h−1(j2). Seti1=¯h−1(j1)
+andi2=¯h−1(i2). Assume, towards a contradiction, that i1/\e}a⊔io\slash⊳wi2. We have
+j1/\e}a⊔io\slash=j2,Ei[j1]∈qi1, andEi[j2]∈qi2. Due to the deﬁnition of the set of states
+ofAB, this implies i1/\e}a⊔io\slash=i2. Suppose nextw
+⊳(i1)< i2(the other case is similar).
+Again, by Lemma 4 and monotonicity of ⊳w, we can build an inﬁnite descending
+chain... < i2
+1< i1
+1< i1< i2such thatE[j1]∈qil
+1for alll≥1(cf. Figure 8).
+This is a contradiction. ⊓ ⊔
+B. Comparison with Class Automata
+We compare class register automata to class automata [3], wh ich have been
+shown to capture all (extended) XPath queries. Class automa ta are a smooth
+(undecidable) extension of data automata and, therefore, o f class memory au-
+tomata. A class automaton is suitable to work over words (eve n trees) with multi-
+ple data values. It consists in a pair (A,B)whereAis a non-deterministic letter-
+to-letter transducer from the label alphabet Σto some working alphabet Γ,
+andBis a ﬁnite automaton over Γ×{0,1}m. A data word (a1,d1)...(an,dn)∈
+Σ×{0,1}mis accepted if, for input a1...an, there is some output u1...un∈Γ∗
+ofAsuch that, for all d∈D, the word (u1,b1)...(un,bn)∈(Γ× {0,1}m)∗is
+accepted by B. Hereby,bk
+i= 1iﬀdk
+i=d.
+28
+
+--- Page 29 ---
+We will show that, for m= 2, class automata capture neither EMSO logic nor
+non-guessing class register automata. Note that class auto mata do not depend
+on a signature. To allow for a fair comparison, we choose the s imple signature
+S2
++1,∼={≺+1,≺1
+∼,≺2
+∼}.
+Theorem 7. There isL∈rEMSO(S2
++1,∼)∩CRA−(S2
++1,∼)such thatLcannot
+be recognized by any class automaton.
+Proof. LetΣ={a}andD=N. Using [3], one can show that there is no class
+automaton that recognizes L= [{(a,1,1)...(a,n,n)(a,1,1)...(a,n,n)|n≥
+1}]S2
++1,∼. It is, however, easy to deﬁne an rEMSO (S2
++1,∼)-sentence for L. We
+restrict to the construction of a non-guessing class regist er automaton, which is
+very similar to the automaton from Example 5. Here, we will ne ed four registers,
+rk
+1andrk
+2fork= 1,2. The crucial diﬀerence is in the second phase, where
+we encounter a data value for the second time. We henceforth r equire that, at
+positionn+i, thek-th data value dk
+n+iis contained in register rk
+1atprev≺k∼(n+
+i) =i. The value dk
+n+iis henceforth stored in rk
+1and has to coincide, at position
+n+i+1, with the contents of rk
+2at position prev≺k∼(n+i+1) =i+1.⊓ ⊔
+29

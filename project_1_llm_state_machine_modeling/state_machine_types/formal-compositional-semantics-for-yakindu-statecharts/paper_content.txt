@@ -1,0 +1,402 @@
+--- Page 1 ---
+Formal Compositional Semantics for
+Yakindu Statecharts
+Bence Graics, Vince Moln ´ar
+Budapest University of Technology and Economics,
+Department of Measurement and Information Systems
+Budapest, Hungary
+Email: bence.graics@inf.mit.bme.hu, molnarv@mit.bme.hu
+Abstract —Many of today’s safety-critical systems are reactive,
+embedded systems. Their internal behavior is usually represented
+by state-based models. Furthermore, as the tasks carried out
+by such systems are getting more and more complex, there is a
+strong need for compositional modeling languages. Such modeling
+formalisms start from the component-level and use composition
+to build the system-level model as a collection of simple modules.
+There are a number of solutions supporting the model-based
+development of safety-critical embedded systems. One of the
+popular open-source tools is Yakindu, a statechart editor with
+a rich language and code generation capabilities. However,
+Yakindu so far lacks support for compositional modeling. This
+paper proposes a formal compositional language tailored to the
+semantics of Yakindu statecharts. We propose precise semantics
+for the composition to facilitate formal analysis and precise code
+generation. Based on the formal basis laid out here, we plan
+to build a complete tool-chain for the design and veriﬁcation of
+component-based reactive systems.
+I. I NTRODUCTION
+Statechart [1] is a widely used formalism to design complex
+and hierarchical reactive systems. Among the many statechart
+tools, our work is based on the open-source Y akindu1, which
+supports the development of complex hierarchical statecharts
+with a graphical editor, validation and simulation features.
+Y akindu also supports source code-generation from statecharts
+to various languages (Java, C, C++).
+The requirements embedded systems have to meet are
+getting more and more complex. Therefore, the models cre-
+ated for such systems tend to become unmanageably large,
+which encumbers extensibility and maintenance. Instead, the
+resulting models could be created by composing smaller
+units. These units interact with each other using the speciﬁed
+connections, thus implementing the original behavior. There
+are several tools that aim to support this methodology.
+SysML [2], [3] tools have a large set of modeling elements
+which enables their users to express their thoughts and ideas as
+freely and concisely as possible. On the other hand, they rarely
+deﬁne precise semantics, which encumbers code generation
+and analysis. BIP [4]–[6] is a compositional tool with well-
+deﬁned semantics that supports the formal veriﬁcation of
+modeled systems. Source code generation is also possible with
+1https://itemis.com/en/yakindu/statechart-tools/this tool. Scade2[7], [8] is a tool that uniﬁes the advantages of
+design and analysis tools. It supports the generation of source
+code as well as the formal veriﬁcation of the modeled system.
+It is a commercial tool and does not support extensibility.
+Matlab Stateﬂow [9] is an environment for modeling and
+simulating decision logic using statecharts and ﬂow charts.
+It is a leading tool for composing state-based models in
+the domain of safety-critical embedded systems. It supports
+the encapsulation of state-based logics which can be reused
+throughout different models and diagrams.
+Unfortunately, Y akindu does not support composition fea-
+tures. The main goal of our work is to create a tool that
+enables the users to compose individual statechart components
+into a single composite system by constructing connections
+through ports. The ultimate goal of this work is to enable
+code generation and formal veriﬁcation of composite models
+with model transformations based on the proposed semantics.
+We will call this type of composition an event-based au-
+tomata network, as opposed to dataﬂow networks, which can
+be considered message-based automata networks in this sense.
+In event-based automata networks, data is only of secondary
+importance – the occurrence of the event is in focus. In
+message-based settings, data is more signiﬁcant, thus message
+queues are desirable to buffer the simultaneous messages.
+This paper is structured as follows. Section II presents
+the semantics of Y akindu statecharts serving as the basis of
+the compositional language. The syntax and semantics of the
+compositional language along with an example are introduced
+in Section III. Finally, Section IV provides concluding remarks
+and ideas for future work.
+II. A BSTRACTING YAKINDU STATECHARTS
+Y akindu adopts a statechart formalism which is the ex-
+tension of the well-known state machine formalism. State-
+charts support the deﬁnition of auxiliary variables as well
+as concurrency and state reﬁnement. This section introduces
+a syntactical abstraction of Y akindu, i.e. the actual model
+elements are ignored. We deal only with the input and output
+events in addition to the actual state conﬁguration, but not
+the semantics. This way we can generalize the composition
+2http://www.esterel-technologies.com/products/scade-suite/22
+
+--- Page 2 ---
+System SystemInterface
+Interfaceinterface inPorts
+portsinterfaces
+Instance
+name : String<<Enumeration >>
+PortDirection
+IN
+OUT
+Port
+direction : PortDirection
+signal : SignalDeclarationComponent
+statechart : 
+StatechartSpecificationcomponents
+outPorts
+component
+name : StringSystemOutPort
+name : StringSystemInPort
+name : String
+Channel
+Input
+Outputchannels
+inputs
+outputsinstance
+instanceport
+portinput
+outputinstancesFig. 1. Metamodel of the compositional language.
+of abstract models with minimal restrictions to the usable for-
+malisms. In this approach, a Y akindu statechart is considered
+a 5-tuple: S=/angbracketleftI,O,S,s 0,T/angbracketrightwhere:
+•Iis a ﬁnite set of input events (from the environment)
+•Ois a ﬁnite set of output events (for the environment)
+•S={s1,s2,···,sn}is a ﬁnite set of states, including a
+state conﬁguration and values of variables
+•s0∈Sis the initial state
+•T⊆(2I×S)×(S×2O)is a ﬁnite set of transitions, that
+represent changes of state in response to a set of input
+events and generate a set of output events
+Y akindu statecharts adopt a turn-based semantics. The fol-
+lowing paragraphs introduce the interpretation of turns as well
+as how the raising of events is associated to them.
+Events represent signal receptions. There are two types of
+events: simple orvoid events and parameterized ortyped
+events. The latter enables the modeling of parameterized sig-
+nals, which can describe additional details. Note that multiple
+input events can be raised in a single turn according to the
+abstract formalism deﬁned above. In Y akindu the raising of
+events is interpreted as setting a boolean ﬂag to true. Y akindu
+therefore does not support message queues. Owing to this
+semantics raising the same simple event in a particular turn
+once or several times has the same effect. On the other hand,
+parameterized events are deﬁned by their parameter as well,
+so a new event raising with a different parameter overwrites
+the former one. Although this behavior is an essential part
+of the semantics of Y akindu, it is not relevant either in the
+abstract formalism presented above or the semantics of the
+composition language deﬁned in Section III-B.
+All turns consist of two distinct sections, a raising section
+and a running section. In the raising section input events of
+the statechart are raised as presented in the previous paragraph.This is followed by the running section where a new stable
+state of the statechart is deﬁned. It starts with the examination
+of the transitions going out of the particular state conﬁguration.
+The goal is to specify the ﬁring transition. At this point a
+race condition might exist if multiple outgoing transitions
+are enabled, e.g. more of them are triggered by raised input
+events. Y akindu intends to solve ambiguity by introducing the
+concept of transition priority : users can specify which of the
+outgoing transitions of a state should be ﬁred in case of a race
+condition by deﬁning a total ordering of the transitions. The
+ﬁring transition speciﬁes the next stable state of the statechart,
+including the state conﬁguration, values of variables and events
+for the environment.
+III. L ANGUAGE FOR COMPOSITION
+This section deﬁnes the syntax of the compositional lan-
+guage and introduces the semantics the composite system
+conforms to. This semantics is heavily inﬂuenced by the
+statechart semantics deﬁned by Y akindu and strives to address
+some of its problems, e.g. gives the ability to parallel regions
+to communicate with each other.
+A. Syntax
+Figure 1 depicts the metamodel of the compositional lan-
+guage. The root element in the metamodel is the System.
+ASystem contains Components which refer to Y akindu
+statecharts as well as Instances of such Components. Each
+Component has an Interface that contains Ports. Through
+Ports, signals of statecharts can be transmitted or received
+according to their directions.
+Channels can be used for deﬁning the emergent behavior
+of the composite system. A Channel has one or more Inputs
+and one or more Outputs. An Input of a Channel connects
+to an output Port of an Instance and vice versa. Whenever a23
+
+--- Page 3 ---
+Channel receives a signal through any of its Inputs , the signal
+is sent to each Output , i.e. to the corresponding input Ports of
+Instances . The language does not support connecting Ports of
+the same direction and a validation rule is deﬁned that marksincorrect connections.
+The language supports the deﬁnition of an interface through
+which the composite system interacts with its environment.This is the SystemInterface that contains SystemPorts .Sys-
+temPorts are aliases of Ports ofInstances . If a signal arrives to
+aSystemInPort , it will be forwarded to the Port of the referred
+Instance instantly. SystemOutPorts work similarly, but with
+output Ports of Instances .
+For ease of understanding, an example is presented that
+deﬁnes a composition of statecharts using the speciﬁed com-positional language. The system consists of two Components ,
+CoffeMachineComponent and LightComponent referring to a
+coffee machine (CoffeMachine) statechart and a light switch(LightSwitch) statechart, respectively. CoffeMachine has sig-nal declarations for turning it on and off, for ordering acappuchino and for putting its light on and off. A LightSwitchmodels a lamp that can be turned on and off.
+// System interface definition
+interface {
+in{
+on : machine . on
+off : machine . off
+cappuchino : machine . cappuchino
+}
+}
+/ / Component interface definitions
+CoffeeMachine CoffeMachineComponent {
+interface {
+on : IN on
+off : I N off
+cappuchino : IN cappuchino
+lightOn : O U T fl ashLight
+lightOff : O U T turnOffLight
+}
+}
+LightSwitch LightComponent {
+interface {
+on : IN onButton
+off : I N offButton
+}
+}
+/ / Component i n s t a n t i a t i o n s
+CoffeMachineComponent machine
+LightComponent light
+// Channel definitions
+channels {
+[machine . lightOn ] −>[ light .o n]
+[ machine . lightOff ] −>[ light . off]
+}
+Note that a composite system description constists of the
+following parts:
+•System interface deﬁnition: All input Ports ofmachine
+are published to the interface of the system enabling thecappuchino off on
+lightOff lightOnmachine : CoffeMachineComponentcappuchino off on
+light : LightComponentoff on
+Fig. 2. A composite system of a CoffeMachine and a LightSwitch statechart.
+users to turn machine on and off or order a cappuchino.
+•Component interface deﬁnitions: CoffeMachineCompo-
+nent refers to on,offand cappuchino through input Ports
+(denoted by the IN keyword) and ﬂashLight ,turnOffLight
+through output Ports (denoted by the OUT keyword).
+Both signal declarations of LightSwitch are referred toby input Ports .
+•Component instantiations: Both Components are instan-
+tiated: machine and light .
+•Channel deﬁnitions: The output Ports ofmachine are
+connected to the input Ports oflight , making it possible
+for machine to turn on light at choice.
+Figure 2 depicts the composite system described by the
+previous code section. Note that the individual componentsof the system are encapsulated. Interactions can be speciﬁedonly through the deﬁned interface.
+B. Semantics
+During the design of the semantics one of our goal was to
+deﬁne a language that enables the reuse of the source code
+generator of Y akindu . Therefore the semantics of supported
+Y akindu statecharts elements had to be considered, most
+importantly event raising.
+This section introduces the semantics of the composi-
+tional language. The compositional language enables to cre-ate a composite system , that is formally a 4-tuple: C=
+/angbracketleftSC,CA,IN,OUT/angbracketrightwhere:
+•SC={/angbracketleftS1,s0
+1,T1,I1,O1/angbracketright,···,/angbracketleftSn,s0
+n,Tn,In,On/angbracketright}is
+a ﬁnite set of state machines.
+•I=/unionsqtextn
+j=1Ij, i.e. the union of all in events of state
+machine components
+•O=/unionsqtextn
+j=1Oj, i.e. the union of all out events of state
+machine components
+•CA⊆2O×2I, i.e. channel associations relate a ﬁnite
+set of outputs to a ﬁnite set of inputs
+•IN⊆I, i.e. the input interface is a subset of the union
+of the in events of state machine components
+•OUT⊆O, i.e. the output interface is a subset of the
+union of the out events of state machine components
+24
+
+--- Page 4 ---
+A sequence of steps /rho1= (τ1,τ2,···)is called a complete run
+ofCif the following conditions hold.
+•τj= (sj,ij,s/prime
+j,oj)is a single step that consists of a state
+vector representing each state of each component before
+the step, a ﬁnite set of inputs, a state vector representing
+each state of each component after the step and a ﬁnite set
+of outputs generated by each state machine components,
+where for all 1≤k≤nat least one of the following
+conditions holds:
+–(ij∩Ik,sj[k],s/prime
+j[k],oj[k])∈Tk, i.e. if a transition
+is deﬁned in a state machine component that is trig-
+gered by the input set, then the transition ﬁres taking
+the state machine to its target state and producing the
+corresponding outputs;
+–(sj[k] =s/prime
+j[k]∧oj[k] =∅∧∄s/prime,o/prime: (ij∩
+Ik,sj[k],s/prime,o/prime)∈Tj), i.e. a component is allowed
+to do nothing if and only if it has no transition that
+is triggered by input ijin statesj[k];
+•s1= (s0
+1,s0
+2,···,s0
+n,), i.e. at the beginning of the run,
+all state machine components are in their initial states;
+•s/prime
+j=sj+1, i.e. the state vector at the end of a step and
+at the beginning of the next step are equal;
+•tgd(/uniontextn
+k=1oj[k])⊆ij+1⊆tgd(/uniontextn
+k=1oj[k])∪INwhere
+tgd(Ω) =/uniontext
+ω∈2Ωω◦CA, i.e. the inputs of a step is at
+least the inputs triggered through a channel by outputs of
+the previous step and maybe some additional events of
+the input interface;
+•/rho1is either inﬁnite or the following condition holds:
+–∄(o,i )∈CA:o∩on/negationslash=∅, i.e. the execution of steps
+can terminate only if the last step does not produce
+any outputs that will be inputs in the next step.
+A partial run of a composite system can be any preﬁx of
+a complete run (any other sequence is not considered to be a
+behavior of the composite system).
+It is important to note that message queues (buffering) are
+not included, the semantics guarantees only that event raising
+and event receptions are in a causal relationship. Therefore,
+if a component does not buffer events (such as Y akindu),
+parameterized events may overwrite each other.
+The operational semantics presented above provides a way
+to reduce the semantics of the composite system to the
+semantics of the components. To formally analyze the system,
+denotational semantics has to be provided, e.g. by model
+transformations converting the composite system model into a
+formal model, in accordance with the operational semantics.
+IV. C ONCLUSIONS AND FUTURE WORK
+Y akindu is a popular open-source tool for the design of
+statechart models with support for code generation. It has a
+rich language to model a single hierarchical statechart, but
+it lacks the ability to compose statecharts into a component-
+based model. For the design of complex, embedded reactive
+systems, compositionality is essential to handle the design
+complexity. Moreover, a precise formal semantics is necessary
+to facilitate code generation and formal analysis.The deﬁned compositional language enables to instantiate
+Y akindu statecharts, specify ports for these instances and join
+these instances through port connections. The semantics of the
+language is well-deﬁned and suits the statechart semantics of
+Y akindu soundly.
+Subject to future work, we plan to extend the composi-
+tional language to allow hierarchical compositions, i.e. the
+composition of composite systems. Additionally, we intend
+to design a whole framework around the language that 1)
+enables the generation of source code which connects the
+Y akindu statecharts according to the deﬁned semantics and
+2)provides automated model transformation to formal models
+of composite systems on which exhaustive analysis can be
+performed by model-checkers.
+The automatic model transformers will utilize a graph-
+pattern-based approach to generate the traceability information
+that will facilitate the back-annotation of the results of formal
+analysis to the engineering domain. This way, we hope to
+support formal veriﬁcation without requiring the designers to
+get familiar with the formal languages involved.
+ACKNOWLEDGMENT
+This work was partially supported by IncQuery Labs Ltd.
+and MTA-BME Lend ¨ulet Research Group on Cyber-Physical
+Systems.
+REFERENCES
+[1] D. Harel, “Statecharts: A visual formalism for complex systems,” Sci.
+Comput. Program., vol. 8, no. 3, pp. 231–274, Jun. 1987. [Online].
+Available: http://dx.doi.org/10.1016/0167-6423(87)90035-9
+[2] OMG, OMG Systems Modeling Language (OMG SysML), Version
+1.3, Object Management Group Std., 2012. [Online]. Available:
+http://www.omg.org/spec/SysML/1.3/
+[3] L. Delligatti, SysML Distilled: A Brief Guide to the Systems Modeling
+Language, 1st ed. Addison-Wesley Professional, 2013.
+[4] A. Basu, M. Bozga, and J. Sifakis, “Modeling heterogeneous real-time
+components in BIP,” in Proceedings of the Fourth IEEE International
+Conference on Software Engineering and Formal Methods, ser. SEFM
+’06. Washington, DC, USA: IEEE Computer Society, 2006, pp. 3–12.
+[Online]. Available: http://dx.doi.org/10.1109/SEFM.2006.27
+[5] I. Konnov, T. Kotek, Q. Wang, H. Veith, S. Bliudze, and J. Sifakis,
+“Parameterized Systems in BIP: Design and Model Checking,” in 27th
+International Conference on Concurrency Theory (CONCUR 2016), ser.
+Leibniz International Proceedings in Informatics (LIPIcs), J. Desharnais
+and R. Jagadeesan, Eds., vol. 59. Dagstuhl, Germany: Schloss
+Dagstuhl–Leibniz-Zentrum fuer Informatik, 2016, pp. 30:1–30:16.
+[Online]. Available: http://drops.dagstuhl.de/opus/volltexte/2016/6167
+[6] M. D. Bozga, V . Sfyrla, and J. Sifakis, “Modeling synchronous
+systems in BIP,” in Proceedings of the Seventh ACM International
+Conference on Embedded Software , ser. EMSOFT ’09. New
+York, NY , USA: ACM, 2009, pp. 77–86. [Online]. Available:
+http://doi.acm.org/10.1145/1629335.1629347
+[7] H. Basold, M. Huhn, H. G ¨unther, and S. Milius, “An open alternative
+for SMT-based veriﬁcation of SCADE models,” in Proc. 19th Inter-
+national Workshop on Formal Methods for Industrial Critical Systems
+(FMICS’14), ser. Lecture Notes Comput. Sci., F. Lang and F. Flammini,
+Eds., vol. 8718. Springer, 2014, pp. 124–139.
+[8] R. Venky, S. Ulka, A. Kulkarni, and P. Bokil, “Statemate to scade model
+translation,” in ISEC ’08: Proceedings of the 1st conference on India
+software engineering conference. New York, NY , USA: ACM, 2008, pp.
+145–146. [Online]. Available: http://dx.doi.org/10.1145/1342211.1342245
+[9] J. Chen, T. R. Dean, and M. H. Alalﬁ, “Clone detection in matlab
+stateﬂow models,” Software Quality Journal, vol. 24, no. 4, pp. 917–946,
+2016. [Online]. Available: http://dx.doi.org/10.1007/s11219-015-9296-025

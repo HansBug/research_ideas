@@ -1,0 +1,779 @@
+--- Page 1 ---
+John P. Gallagher, Rob van Glabbeek and Wendelin Serwe (Eds) :
+Models for Formal Analysis of Real Systems (MARS’18)
+and Veriﬁcation and Program Transformation (VPT’18)
+EPTCS 268, 2018, pp. 150–168, doi:10.4204/EPTCS.268.5c/circlecopyrtP. Han, Z. Zhai B. Nielsen & U. Nyman
+This work is licensed under the
+Creative Commons Attribution License.A Modeling Framework for Schedulability Analysis of
+Distributed Avionics Systems
+Pujie Han Zhengjun Zhai
+School of Computer Science and Engineering
+Northwestern Polytechnical University
+Xi’an, China
+{hanpujie,zhaizjun }@mail.nwpu.edu.cnBrian Nielsen Ulrik Nyman
+Department of Computer Science
+Aalborg University
+Aalborg, Denmark
+{bnielsen,ulrik }@cs.aau.dk
+This paper presents a modeling framework for schedulabilit y analysis of distributed integrated mod-
+ular avionics (DIMA) systems that consist of spatially dist ributed ARINC-653 modules connected
+by a uniﬁed AFDX network. We model a DIMA system as a set of stop watch automata (SWA) in
+UPPAAL to analyze its schedulability by classical model checking ( MC) and statistical model check-
+ing (SMC). The framework has been designed to enable three ty pes of analysis: global SMC, global
+MC, and compositional MC. This allows an effective methodol ogy including (1) quick schedulability
+falsiﬁcation using global SMC analysis, (2) direct schedul ability proofs using global MC analysis in
+simple cases, and (3) strict schedulability proofs using co mpositional MC analysis for larger state
+space. The framework is applied to the analysis of a concrete DIMA system.
+1 Introduction
+In the avionics industry, Distributed Integrated Modular A vionics (DIMA) has been widely recognized as
+a promising architecture and the next generation of Integra ted Modular Avionics (IMA). A DIMA system
+installs standardized IMA modules in spatially distribute d processors[15] that communicate through a
+uniﬁed bus system[4] such as an AFDX network. Avionics funct ions residing on the IMA modules
+are implemented in the form of application software running in an ARINC-653[2] compliant operating
+system. The generic distributed structure of DIMA signiﬁca ntly improves performance and reliability
+as well as lowers weight and cost, while it also dramatically increases the complexity of schedulability
+analysis. A schedulable DIMA system should fulﬁl not only th e temporal requirements of real-time tasks
+in each ARINC-653 module but also several communication con straints among the distributed nodes. As
+a result, the DIMA architecture requires the system integra tors to analyze schedulability considering both
+computation and communication.
+The development of model checking based approaches has curr ently become an attractive topic for
+the schedulability analysis of complex real-time systems d ue to the sufﬁcient expressiveness of formal
+models. The techniques of classical model checking (MC) des cribe schedulability as temporal logic
+properties and verify the properties via symbolic state spa ce exploration. Unfortunately, when being
+applied to a complete avionics system, all of them suffer fro m an inevitable problem of state space
+explosion, which makes the exact symbolic model checking pr actically infeasible.
+Accordingly, Statistical Model Checking (SMC) is proposed as a promising technique that has pow-
+erful facilities of formal modeling as well as avoids the sta te-space explosion of classical model checking.
+A SMC engine runs and monitors a number of simulation process es, quickly estimating the statistical re-
+sults of the satisfaction or violation of certain propertie s. However, SMC cannot provide any guarantee of
+schedulability but quick falsiﬁcation owing to its nature o f statistical testing. Therefore, it is reasonable
+to apply both classical and statistical model checking to th e schedulability analysis of avionics systems.
+
+--- Page 2 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 151
+Related work: We found no studies that analyzed the schedulability of dist ributed avionics systems
+as a whole including the network by model checking. The relat ed research isolates computation modules
+from their underlying network, thereby considering these n odes as independent hierarchical scheduling
+systems or investigating the network in isolation, which po ssibly leads to pessimistic results. There have
+been works using model-checking approaches to analyze the t emporal behavior of individual avionics
+modules in various formal models such as Coloured Petri Nets (CPN)[11], preemptive Time Petri Nets
+(pTPN)[6], Timed Automata (TA)[3], and StopWatch Automata (SWA)[9], and verify schedulability
+properties via state space exploration. For hierarchical s cheduling systems, some studies[7, 14, 5] exploit
+the inherent temporal isolation of ARINC-653 partitions[2 ] and analyze each partition separately, but
+they ignore the behavior of the underlying network or the int eractions among partitions. Thus these
+methods are not applicable to DIMA environments in which mul tiple distributed ARINC-653 partitions
+communicate through a shared network to perform an avionics function together.
+Contributions: In this paper, we present a modeling framework for schedulab ility analysis of DIMA
+systems that are implemented as a set of U PPAAL SWA, i.e. the TA extended with stopwatches[8] in
+UPPAAL . The framework combines compositional and global analysis by classical and statistical model
+checking. The main contributions of this paper are summariz ed as follows:
+•Modeling of DIMA systems covers the major behavior of two-level ARINC-653 compliant sched-
+ulers, periodic/sporadic tasks, intra-partition synchro nization, and inter-partition communications
+through an AFDX network.
+•Compositional analysis using classical model checking veriﬁes the model of each ARINC-653
+partition including its environment individually and then assemble the local results together to
+derive conclusions about the schedulability of an entire sy stem.
+•Global analysis using statistical model checking allows users to quickly falsify non-schedulable
+conﬁgurations by SMC hypothesis testing, which can handle a complete system model and avoid
+an exhaustive exploration of the state space.
+The rest of the paper is organized as follows. Section 2 descr ibes the structure of a DIMA system.
+An overview of the modeling framework is presented in sectio n 3, where the methods of compositional
+and global analysis are brieﬂy outlined. In section 4, we det ail the U PPAAL models of the framework.
+Section 5 shows an experiment on a concrete DIMA system, and s ection 6 ﬁnally concludes.
+2 Avionics System Description
+We consider a generic architecture of a DIMA system with seve ral ARINC-653 modules connected by
+an AFDX network shown in Fig.1. There is a three-layer struct ure in the DIMA architecture consisting
+of scheduling, task, and communication layers.
+The scheduling layer comprises the scheduling facilities for generic computati on resources in a
+DIMA system, where physically distributed modules with ind ependent computational power execute
+application tasks simultaneously. The tasks run in a partit ioned operating system which provides a two-
+level scheduling mechanism and achieves temporal isolatio n between ARINC-653 partitions. In such
+a scheduling system, partitions are scheduled by a Time Divi sion Multiplexing (TDM) scheduler and
+each partition also has its local scheduling policy, preemp tive Fixed Priority (FP), to handle the internal
+tasks[2].
+All the application tasks executing avionics functions con stitute the task layer . We consider a task
+as the smallest scheduling unit, each of which can be execute d concurrently with other tasks in the same
+
+--- Page 3 ---
+152 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+End System 1
+Partition 4 Partition 5
+Partition 1
+Tasks Partition 2
+Tasks Partition 3
+Tasks Partitioned OS 
+Port 
+End System 2 End System 3
+Partitioned OS Partitioned OS Port Port 
+Port Port Port Port VL 1 VL 2 VL 3Core Module 1
+Core Module 2 Core Module 3
+AFDX 
+Network 
+Figure 1: An Example of DIMA systemsPartitionSupply 
+TaskScheduler 
+IPTx IPRx enter_partition exit_partition 
+ready sched release stop 
+pmsg 
+ipoutp ipinp 
+vl UDP IP Models 
+Virtual Link Models PeriodicTask / SporadicTask 
+VLinkRx VLinkTx Ports 
+Figure 2: An Overview of Modeling Framework
+partition. Assume that jobs of each task are scheduled repea tedly. We deﬁne two task types: periodic
+tasks andsporadic tasks . A periodic task has a ﬁxed release period, while a sporadic t ask is characterized
+by a minimum separation between consecutive jobs.
+The communication layer provides the services of inter-partition communication ov er a common
+AFDX network. The AFDX protocol stack realized by an End Syst em(ES) interfaces with the task layer
+through ARINC-653 ports. Based on the AFDX protocol structu re, the communication layer is further
+divided into UDP/IP layer and Virtual Link layer, where a Vir tual Link (VL) ensures an upper bound on
+end-to-end delay.
+The communication layer also affects the schedulability of the system. According to the ARINC-
+653 standard[2], there are two types of ARINC-653 ports, sam pling ports and queuing ports. A sampling
+port can accommodate at most a single message that remains un til it is overwritten by a new message.
+Moreover, a refresh period is deﬁned for each sampling port. This attribute provides a speciﬁed arrival
+rate of messages, regardless of the rate of read requests fro m tasks. In contrast, a queuing port is allowed
+to buffer multiple messages in a message queue with a ﬁxed cap acity. However, the operating system is
+not responsible for handling overﬂow from the message queue .
+In our framework, we verify the three following schedulabil ity properties of DIMA systems: (1) All
+the tasks meet their deadlines in each partition. (2) The ref resh period of any sampling port is guaranteed.
+(3) The overﬂow from any queuing ports is avoided.
+3 An Overview of the Modeling Framework
+3.1 An Outline of the UPPAAL Models
+The U PPAAL templates in the modeling framework are organized as the abo ve layered structure. Fig.2
+shows an overview of these templates together with the chann els between them.
+
+--- Page 4 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 153
+The scheduling layer consists of two TA templates PartitionScheduler andTaskScheduler . The
+PartitionScheduler model provides the service of TDM partition scheduler for an y partition. The Tas-
+kScheduler model implementing FP scheduling policy allocates process or time to the task layer only
+when the partition is active. Hence PartitionScheduler sends notiﬁcation on the broadcast channels
+enter_partition andexit_partition toTaskScheduler when entering and leaving its partition, re-
+spectively.
+The task layer contains a set of task models which are instant iated from two SWA templates Periodi -
+cTask andSporadicTask . A task model describes an instance of an avionics program. S ince the tasks
+in a partition are scheduled by a task scheduler, we deﬁne fou r channels ready ,release ,sched and
+stop as a set of scheduling commands to communicate between task t emplates and TaskScheduler .
+Moreover, the priority ceiling protocol is implemented by m utexes in task models to deal with intra-
+partition synchronization.
+The communication layer comprises two types of models: UDP/ IP and VL models. The UDP/IP
+models are divided into two TA templates IPTx andIPRx , which calculate the delivery latency of the
+UDP/IP layer in a transmitting ES and a receiving ES respecti vely. When sending a message to an
+ARINC-653 port, the source task notiﬁes the destination IPTx via the broadcast channel pmsg . In the link
+layer, two TA templates VLinkTx andVLinkRx model the total latency of a VL through the transmitting
+ES and the reception network respectively. The channel vlconnects VLinkTx andVLinkRx in the same
+VL. Additionally, there are also two broadcast channels ipoutp andipinp between the UDP/IP and VL
+models in opposite directions.
+3.2 Integration of MC and SMC
+In U PPAAL SMC, a model comprises networks of Stochastic Timed Automat a (STA), which is designed
+as a stochastic interpretation and extension of the TA forma lism of U PPAAL classic[10]. To integrate
+SMC into a common framework, we adapt the above templates for STA with the following features:
+•Input-enabledness : Only broadcast channels, which can attach to an arbitrary n umber of receivers,
+do we use in the modeling framework to ensure the input-enabl ed property that no input actions
+are prevented from being sent to a STA.
+•Deterministic bounded delays : The semantics of non-deterministic delays in TA is replace d with
+probability distributions. The bounded delay at a location of templates is deﬁned as a uniform dis-
+tribution in STA. For example, PeriodicTask executes computing operations at a location Running
+with a bounded delay interval [bcet,wcet]. Thus we assume this execution time to be random sam-
+ples from the uniform distribution U(bcet,wcet).
+•Deterministic unbounded delays : The unbounded delays are interpreted as exponential distr ibu-
+tions in STA. We take the model SporadicTask for example. There is a minimum separation but no
+maximum constraint between consecutive releases of a spora dic task. We describe this unbounded
+separation as an exponential distribution with an empirica l rate at a location WaitNextRelease .
+•Non-zenoness : We adopt two modeling principles to reduce the risk of zenon ess in U PPAAL : (1)
+Avoid the loops composed of permanently enabled edges and ur gent/committed locations where
+time cannot progress. (2) Provide normal locations with two types of outgoing edges, which are
+either event-driven edges that contain input channels or ti me-driven edges that do not have input
+labels but guards making time progress at source locations. Since U PPAAL SMC can detect zeno
+runs[10], the modeling framework has been checked thorough ly to achieve non-zenoness.
+
+--- Page 5 ---
+154 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+UPPAAL  
+classic UPPAAL  
+SMC Yes 
+No No / May not Yes TCTL Queries 
+Safety property 
+UPPAAL 
+Models SMC Queries 
+Hypothesis testing Scheduling 
+Configuration 
+1 2 3
+4Refining 
+Figure 3: The Procedure for Schedulability Analysis
+3.3 Schedulability Analysis by MC and SMC
+On the basis of the above models, we introduce the procedure f or our schedulability analysis, which
+combines classical and statistical model checking togethe r. Fig.3 shows the four steps in the procedure:
+(1) Scheduling conﬁguration is encoded into the U PPAAL model as a structure array. (2) We perform
+hypothesis testing of SMC for the model to falsify non-sched ulable conﬁguration rapidly. (3) If the
+model goes through the SMC test, its schedulability should b e veriﬁed by classical symbolic MC. (4) We
+reﬁne the conﬁguration that fails steps (2,3) and restart st ep (1).
+When we apply classical MC to the analysis of a DIMA system, th e schedulability constraints are
+expressed and veriﬁed as a safety property of SWA models. We a dd a boolean variable error with the
+initial value False to U PPAAL templates for this purpose. Once the schedulability is viol ated, the related
+model will assign the value True toerror immediately. Thus, the schedulability is replaced with thi s
+safety property ϕ:
+A[] not error , (1)
+which belongs to a simpliﬁed subset of TCTL used in U PPAAL .
+According to the size of state space, we choose either a globa l or compositional MC analysis. The
+system models with small size can be handled by the global analysis where the modeling elements of
+all the partitions in the system are instantiated and checke d directly. Nevertheless, most concrete system
+models have larger state space, thereby making the global an alysis infeasible. To reduce the state space
+in this case, we perform a compositional analysis which check each partition including its environment
+individually. A set of message interface automata is built t o model the environment for a partition.
+The schedulability can be obtained from the satisfaction of ϕ, i.e. the MC result “Yes” in Fig.3.
+However, since the symbolic MC of U PPAAL for SWA introduces a slight over-approximation[8], we
+cannot conclude non-schedulability from the MC results “No ” or “May not” with certainty. Therefore,
+we derive non-schedulability from SMC testing rather than f rom the veriﬁcation of ϕ.
+Considering the scalability of SMC, we only use a global anal ysis in U PPAAL SMC. The schedula-
+bility of a complete avionics system is described as followi ng queries of hypothesis testing:
+Pr[<= M](<> error) <= θ, (2)
+where Mis the time bound on the simulations and θis a very low probability. Since U PPAAL SMC
+approximates the answer using simulation-based tests, we c an falsify non-schedulable conﬁguration (i.e.
+the SMC result “No” in Fig.3) rapidly by ﬁnding counter-exam ples but identify schedulable ones only
+
+--- Page 6 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 155
+Figure 4: PartitionScheduler Model
+with high probability (1 −θ) (i.e. the SMC result “Yes” in Fig.3). Hence, the conﬁgurati on that goes
+through the SMC tests should be validated by symbolic MC to en sure the schedulability of the corre-
+sponding system.
+4 UPPAAL Models
+In this section, we detail the major U PPAAL templates according to the layered structure from top down.
+4.1 Scheduling Layer Models
+PartitionScheduler template In the scheduling layer, a partition is activated only durin g its partition win-
+dows within every major time frame Tm f. We build a TA model PartitionScheduler (See Fig.4) to
+provide the description of temporal resources for a particu lar partition.
+The template declarations in U PPAAL support the execution of a PartitionScheduler model. The
+parameter pidofPartitionScheduler is the identiﬁer of its partition and the partition schedule is
+recorded in an array of structures PartitionWindows . Each element in the array contains two integer
+ﬁeldsoffset andduration , whereoffset is the start time of a partition window and duration denotes
+the duration of this window. By reading PartitionWindowsTable from the declarations, the functions
+winStart andwinEnd with the same integer parameter wind return the start time and the end time of the
+wind th partition window, respectively. The integer constant MajorFrame stands for the major time frame
+Tm f, and the clock xmeasures time within every Tm f. In the template, all the guards and invariants use x
+to control the transitions between locations.
+There are three locations in a PartitionScheduler model. The initial location Init represents a
+conditional control structure that determines the next loc ation at the start of a major time frame. If a
+partition window and the major time frame start simultaneou sly, the model will move to the location
+InPartition . Otherwise, it will enter the location OutOfPartition . Within a major time frame, the
+model keeps traveling between InPartition andOutOfPartition according to whether or not the cur-
+rent time is in a partition window. For any time from the initi al instant, if the PartitionScheduler
+model of pidenters a new partition window, it will move to the location InPartition , and notify the
+unique task scheduler model in pidthrough the output channel enter_partition . On the contrary, if the
+PartitionScheduler leaves its current partition window, it will move to the loca tionOutOfPartition ,
+and send notiﬁcation to the task scheduler model through the output channel exit_partition .
+TaskScheduler template For any partition, there is a task scheduler that executes th e preemptive FP
+
+--- Page 7 ---
+156 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+scheduling policy while the partition is active. The behavi or of the task scheduler is depicted in the
+TA template TaskScheduler (See Fig.5). The only template parameter pidis the identiﬁer of the task
+scheduler’s partition.
+Figure 5: TaskScheduler ModelThe model of TaskScheduler receives
+notiﬁcation from the PartitionScheduler
+model through two channels enter_parti -
+tion andexit_partition , and uses the
+channels ready ,release ,sched andstop as
+scheduling commands to manage the tasks in
+the partition pid. If there is a task becoming
+ready to run or relinquishing the processor,
+the task model will send its TaskScheduler
+model aready orrelease command respec-
+tively.TaskScheduler maintains a ready
+queue that keeps all the tasks ready and wait-
+ing to run, and always allocates the processor
+to the ﬁrst task with the highest priority in the
+ready queue. If a new task having a higher
+priority than any tasks in the ready queue
+is ready, TaskScheduler will insert the task
+into the ready queue, interrupt the currently
+running task via the channel stop and sched-
+ule the new selected task via the channel sched . The task identiﬁer is delivered by the offset of channel
+arrays in the synchronization between TaskScheduler and the task layer.
+The ready queue is implemented by the integer array rqwhich contains a sorted set of task identiﬁers
+in priority order. The tasks with identical priority are ser ved in order of readiness. The function rqLen
+returns the number of the tasks in rq. We use the function enque to insert a new task (identiﬁer) into the
+ready queue rqand reorder the tasks in the queue. The function deque removes the ﬁrst element from
+the ready queue. The ﬁrst element in rq, namely the identiﬁer of the currently running task, is retu rned
+from the function front and recorded in the integer variable running .
+Table 1: The Major Locations in Task Scheduler
+LocationPartition Windows Ready Tasks
+Outside Inside 0>0
+NoTask√ √
+Idle√√
+WaitPartition√ √
+Occupied√ √According to whether the current time is in
+the partition windows as well as to the number
+of the tasks in the ready queue, we create four
+major locations listed in Table 1. These four
+locations cover all situations, where the model
+must be at one of these locations for any time
+from the initial instant. In contrast, all the other
+locations of the template are committed and uti-
+lized to realize conditional branches or atomic action sequ ences.
+4.2 Task Layer Models
+We build two SWA templates PeriodicTask andSporadicTask in U PPAAL . Both templates share the
+same skeleton. So we take PeriodicTask for example to sketch out the structure of a task model.
+In the template, we deﬁne two normal clock xandcurTime and a stopwatch exeTime . The clock
+xmeasures the delays prescribed by the task type to calculate the release points of the task. The clock
+
+--- Page 8 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 157
+Figure 6: The Main Structure of a Task Model
+curTime is used to determine the start of the next task period. By cont rast, the stopwatch exeTime
+measures the processing time during the execution of an abst ract instruction that describes concrete task
+behavior, and thus progresses only when the model is at the lo cationRunning .
+Once the task is scheduled by TaskScheduler through the channel sched , it will start execution on
+the processor and move from the location Ready toReadOp . For any task in the system, a sequential list
+of abstract instructions is implemented as the structure ar rayop. By using an integer variable pcas a
+program counter, the task can fetch the next abstract instru ction from op[pc] at the location ReadOp (See
+Fig.6).
+According to the command in the abstract instruction curren tly read from op, the task model performs
+a conditional branch and moves from the location ReadOp to one of the different locations that represent
+different operations. Therefore, the command set containi ng the following seven elements divides the
+rest of the template into seven corresponding parts.
+•COMPUTE Command: When the model reads a COMPUTE command, it will (re)start the stopwatch
+exeTime and enter the location Running , which means that the processor is being occupied by the
+task and executing a computation instruction.
+•LOCK Command: By reading a LOCK command, the task model attempts to acquire the mutual
+exclusion lock that is speciﬁed by the resﬁeld of the instruction. The availability of a mutual
+exclusion lock depend on the priority ceiling protocol.
+•UNLOCK Command: When fetching an UNLOCK command from op, the task releases the lock in
+the instruction and wakes up all the tasks blocked on this loc k.
+•DELAY Command: The instruction with a DELAY command can make a task suspended at the
+locationWaitDelay for a speciﬁed period of time.
+•SEND and RECEIVE Command: The commands SEND andRECEIVE represent non-blocking mes-
+sage I/O operations among different partitions.
+•END Command: The command ENDdenotes the accomplishment of the current job in this task
+period. The task will relinquish the processor through the c hannelrelease and stay at the location
+WaitNextRelease until the next period starts.
+
+--- Page 9 ---
+158 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+Figure 7: The VLinkTx Model
+4.3 Communication Layer Models
+The communication layer consists of four templates: IPTx andIPRx calculate the delivery latency of the
+UDP/IP layer. VLinkTx andVLinkRx calculate the transit delay of frames through a speciﬁed VL. We
+takeVLinkTx for example. It calculates the latency of frame delivery thr ough the source ES.
+VLinkTx has a template parameter vlid that is the unique identiﬁer of a VL. The VL models read the
+conﬁguration from the array vlink , which contains a source FIFO buffer src, an array dstof destination
+FIFO buffers, an identiﬁer esof the VL’s source ES, an integer ﬁeld BAGthat stands for the Bandwidth
+Allocation Gap (BAG)[1], and an integer ﬁeld TxDelay denoting the frame delay[1].
+The total delay through a VL is divided into technological la tency and conﬁguration latency. The
+technological latency is independent of trafﬁc load, where as the conﬁguration latency depends on system
+conﬁguration and trafﬁc load.
+We declare two integer constants TechMin andTechMax to be the interval of the technological latency
+[TechMin,TechMax]. The conﬁguration latency is divided into three parts: the ﬁ xed frame delay, the
+ﬂoating delay in waiting for the interval of BAG, and the vary ing conﬁguration jitter within each BAG.
+According to the ARINC-664 Part 7[1], a VL should regulate it s trafﬁc to send no more than one frame in
+each BAG. A clock tmeasures the interval of the jitter as well as the BAG. By cont rast, the conﬁguration
+jitter within BAGs is caused by the interference from the fra mes of the other VLs in the same transmitting
+ES[1]. We deﬁne an integer array txjitter where each element provides the maximum conﬁguration
+jitter according to the current trafﬁc at the output of an ES.
+As is depicted in Fig.7, VLinkTx obtains notiﬁcation of packet-receiving on the input chann elipoutp .
+At the initial location Init ,VLinkTx waits for the ﬁrst packet to arrive at the source FIFO. On rece iving
+this ﬁrst packet, the model enters the location Sending and resets the clock tto start the latency cal-
+culation as well as a new BAG interval. Leaving the location Sending means the model completes the
+sending operation of a frame. At this point, VLinkTx must invoke the function vlSend to decrease the
+message counter of the source FIFO.
+According to the number of packets in the source FIFO, VLinkTx waits for the next BAG interval or
+the next incoming packet after completing a sending operati on. First, if the model still has at least one
+packet in the source FIFO to transmit, it will enter the locat ionWaitBAG , thereby waiting for the start
+of the next BAG. Second, if there is only the sent packet in the source FIFO, the model will stay at the
+locationIdle until the arrival of the next incoming packet.
+
+--- Page 10 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 159
+5 Case Study
+This section demonstrates the schedulability analysis of a n avionics system which combines the workload
+of [7] and the AFDX conﬁguration of [13]. The workload is comp rised of 5 partitions, and further divided
+into 18 periodic tasks and 4 sporadic tasks. Considering the inter-partition messages in the workload, we
+assign each message type Msg i,i={1,2,3,4}a separate VL with the same subscript. The messages of
+Msg 1andMsg 2are handled at the refresh period 50 msin sampling ports. Msg 3andMsg 4are conﬁgured
+to operate in queuing ports, each of which can accommodate a m aximum of one message.
+Fig.8 illustrates the distributed deployment of the worklo ad. We consider 3 ARINC-653 modules
+connected by an AFDX network, and allocate each partition to one of the modules. The module M1
+accommodates P1andP2, the module M2executes P3andP5, and the partition P4is allocated to M3.
+There are 4 VLs V1-V4connecting 3 ESs across 2 switches S1andS2in the AFDX network. The arrows
+above VLs’ names indicate the direction of message ﬂow.
+P1P2
+P3
+P4P5ES 1M1
+ES 2M2
+ES 3M3V1
+V2
+V3
+V4V1V2V3
+V4
+V1V1V2V3
+V4S1 S2P1P2
+P3
+P4P5M1
+M2
+M3
+0 5 10 15 20 25 Major Time Frame 
+Time / ms 
+Figure 8: The Distributed Avionics Deployment and Partitio n Schedules (Times in Milliseconds)
+The avionics system equips each of its processor cores with a partition schedule. Assume the modules
+in the experiment to be single-processor platforms. Fig.8 g ives the partition schedules, which ﬁx a
+common major time frame Tm fat 25 msand allocate 5 msto each partition within every Tm f. All the
+partition schedules are enabled at the same initial instant and their clocks are always synchronized. The
+scheduling conﬁguration keeps the temporal order of the par titions in [7]. Hence the partition schedules
+contain ﬁve disjoint windows /an}bracketle{tP1,0,5/an}bracketri}ht,/an}bracketle{tP2,5,5/an}bracketri}ht,/an}bracketle{tP3,10,5/an}bracketri}ht,/an}bracketle{tP4,15,5/an}bracketri}ht, and/an}bracketle{tP5,20,5/an}bracketri}ht, where the second
+parameter is the offset from the start of Tm fand last the duration.
+After combining all the models of the system, we executed the schedulability analysis in U PPAAL .
+We set M=100000 and θ=0.001 for Eq.(2). The experiment was performed on the U PPAAL 4.1.19
+64-bit version and an Intel Core i7-5600U laptop processor.
+Results of the Analysis
+The result (The case 1 in Table 2) shows that the above schedul ing conﬁguration fails the SMC test and
+thus is non-schedulable. We can explore the cause of non-sch edulability on the basis of counter-examples
+to help reﬁne the system conﬁguration.
+The Gantt chart in Fig.9 shows such a counter-example, where the task Tsk3
+2inP3violates the con-
+straint of the refresh period of Msg 2. At the top of the chart are task models, where the line is pain ted
+in green whenever a task stays at Ready state and in blue at Running . The bottom line labels “partition”
+and “tscheduler” represent two scheduling-layer models PartitionScheduler andTaskScheduler re-
+spectively. For the line “partition”, color red denotes the time outside P3, and green is within P3. The
+communication-layer models transmitting the messages of Msg kcorrespond to the chart lines “msg k-
+snd”, “iptx k”, “iprx k”, “vltx k”, and “vlrx k”, which denote the message-delivery delays of Msg k.
+
+--- Page 11 ---
+160 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+Figure 9: The Gantt Chart of a Counter-example (Times in Micr oseconds)
+The counter-example illustrates that network latency incr eases the risk of breaching the schedulabil-
+ity constraints. Let tbe the elapsed time since the initial instant t0=0 shown in the Gantt chart. The ﬁrst
+message of Msg 2was sent by the message interface msg2_sndatt=7.625ms, and reached the destination
+port at t=8.088ms. When Tsk3
+2was scheduled to read Msg 2att=60.000ms, the age of the ﬁrst received
+message indicated the value 51 .912ms that had exceeded the refresh period. Thus, the copied message
+ofMsg 2was not a valid data sample. Although msg2_sndsent a new Msg 2message at t=59.585ms, the
+message did not arrive at the destination port until t=60.184ms due to network latency.
+Considering the effect of network latency on the scheduling conﬁguration, we updated the partition
+schedules by performing a swap of time slots between P1andP2. The modiﬁed partition schedules pro-
+vide ﬁve windows /an}bracketle{tP1,5,5/an}bracketri}ht,/an}bracketle{tP2,0,5/an}bracketri}ht,/an}bracketle{tP3,10,5/an}bracketri}ht,/an}bracketle{tP4,15,5/an}bracketri}ht, and/an}bracketle{tP5,20,5/an}bracketri}ht. The schedulability analysis
+of the updated system was executed again. The result (The cas e 2 in Table 2) shows that the conﬁgura-
+tion goes through the global SMC test and compositional veri ﬁcation of classical MC. Thus, the updated
+system ﬁnally achieves schedulability.
+Table 2 shows the execution time and memory usage. In composi tional analysis (MC in Table 2), the
+partition P3contains more instantiated models (19 processes) than the o ther four partitions. As a result,
+model-checking runs slower and requires more memory than th e others. Nevertheless, the compositional
+analysis could be performed on ordinary computers within an acceptable time.
+Compared with the compositional way, global analysis based on the same U PPAAL models would
+require 51 processes including all the 22 task models whose s tate space is much more complex than the
+others. This causes U PPAAL classic to run out of memory within a few minutes, and thus mak es the
+global analysis using classical MC infeasible. In contrast , SMC testing can be quickly accomplished
+when we perform global analysis (SMC in Table 2), offering ef fective state space reduction.
+6 Conclusion
+In this paper, we present a modeling framework for schedulab ility analysis of DIMA systems, which
+are implemented as a set of stopwatch automata in U PPAAL . We analyze the U PPAAL models including
+computation and communication by both classical and statis tical model checking. The techniques pre-
+sented in this paper are applicable to the design of DIMA sche duling systems. The experimental results
+show the applicability of our modeling framework. As future work, we plan to develop a model-based
+approach to the automatic optimization and generation of a D IMA scheduling system.
+
+--- Page 12 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 161
+Table 2: The Experiment Results (Result), Execution Time (T ime/sec.) and Memory Usage (Mem/MB)
+Case 1 Case 2
+MC SMC MC SMC
+No. Result Time Mem Result Time Mem No. Result Time Mem Result Time Mem
+P1 Yes 7.35 141
+No 2.67 53P1 Yes 6.07 101
+Yes 77.58 53P2 Yes 1.02 45 P2 Yes 1.09 49
+P3 Maynot 57.84 563 P3 Yes 437.99 3150
+P4 Yes 0.83 45 P4 Yes 0.88 43
+P5 Yes 33.27 526 P5 Yes 179.25 2078
+References
+[1] AEEC (2009): Aircraft Data Network, Part 7, Avionics Full-Duplex Switch ed Ethernet Network . ARINC
+Speciﬁcation 664P7-1, Aeronautical Radio Inc.
+[2] AEEC (2010): Avionics Application Software Standard Interface: Part 1 - Required Services . ARINC Spec-
+iﬁcation 653P1-3, Aeronautical Radio Inc.
+[3] Tobias Amnell, Elena Fersman, Leonid Mokrushin, Paul Pe ttersson & Wang Yi: TIMES: a tool for
+schedulability analysis and code generation of real-time s ystems . In: FORMATS 2003 , doi:10.1007/
+978-3-540-40903-8_6 .
+[4] Bj¨ orn Annigh¨ ofer & Frank Thielecke (2014): A Systems Architecting Framework for Distributed Integrat ed
+Modular Avionics . DGLR, doi: 10.1007/s13272-015-0156-1 .
+[5] Jalil Boudjadar, Kim Guldstrand Larsen, Jin Hyun Kim & Ul rik Nyman: Compositional schedulability anal-
+ysis of an avionics system using UPPAAL . In: AASE 2014 .
+[6] Laura Carnevali, Giuseppe Lipari, Alessandro Pinzuti & Enrico Vicario: A formal approach to design and
+veriﬁcation of two-level Hierarchical Scheduling systems . In: RST 2011 , doi:10.1007/BF00360340 .
+[7] Laura Carnevali, Alessandro Pinzuti & Enrico Vicario (2 013): Compositional veriﬁcation for hierarchical
+scheduling of real-time systems .IEEE Transactions on Software Engineering 39(5), pp. 638–657, doi: 10.
+1109/TSE.2012.54 .
+[8] Franck Cassez & Kim Larsen: The impressive power of stopwatches . In: CONCUR 2000 , doi:10.1007/
+3-540-44618-4_12 .
+[9] Franco Cicirelli, Angelo Furfaro & Libero Nigro et al.: Development of a schedulability analysis framework
+based on pTPN and UPPAAL with stopwatches . In: DSRA 2012 , doi:10.1109/DS-RT.2012.16 .
+[10] Alexandre David, Kim G Larsen, Axel Legay, Marius Mikuˇ cionis & Danny Bøgsted Poulsen (2015): Uppaal
+SMC tutorial .STTT 17(4), pp. 397–415, doi: 10.1007/s10009-014-0361-y .
+[11] RB Dodd (2006): Coloured petri net modelling of a generic avionics mission c omputer . Technical Report,
+DTIC.
+[12] Arvind Easwaran, Insup Lee, Oleg Sokolsky & Steve Vesta l:A compositional scheduling framework for
+digital avionics systems . In: RTCSA 2009 , doi:10.1109/RTCSA.2009.46 .
+[13] J Javier Guti´ errez, J Carlos Palencia & Michael Gonz´ a lez Harbour (2014): Holistic schedulability analysis for
+multipacket messages in AFDX networks .Real-Time Systems 50(2), doi: 10.1007/s11241-013-9192-2 .
+[14] Youcheng Sun, Giuseppe Lipari, Romain Soulat, Laurent Fribourg & Nicolas Markey: Component-based
+analysis of hierarchical scheduling using linear hybrid au tomata . In: ERCSA 2014 , doi:10.1109/RTCSA.
+2014.6910502 .
+[15] Guoqing Wang & Qingfan Gu: Research on distributed integrated modular avionics syste m architecture
+design and implementation . In: DASC 2013 , doi:10.1109/dasc.2013.6712647 .
+
+--- Page 13 ---
+162 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+Appendix
+The appendix consists of three sections. Appendix A gives a d escription of the remaining U PPAAL mod-
+els in this paper. Appendix B details the avionics workload i n the case study. The AFDX conﬁguration
+is then presented in Appendix C.
+A Remaining Models
+A.1 UDP/IP Layer Models
+Although the behavior of the UDP/IP layer largely depends on the implementation of the network proto-
+col stack, we create two TA templates IPTx andIPRx to estimate the latency of message delivery through
+the UDP/IP layer. Both templates have two msgbuf_tparameters srcanddstthat denote the source
+buffer and the destination buffer respectively. After bein g instantiated in the system declarations, these
+two templates give rise to a set of UDP/IP layer models. By ope rating the message counters bufinsrc
+anddst, the models transfer messages from their respective source buffers to the destination buffers.
+Two types of message buffers are provided for the UDP/IP laye r models. The ﬁrst is the port buffers
+between tasks and the UDP/IP layer. The set of port buffers in the system is deﬁned as a global array
+portbuf . We declare the second as another global msgbuf_tarrayfifo which represents the FIFO
+buffers between the UDP/IP layer and virtual links. Obvious ly,IPTx andIPRx forward messages in
+mutually opposed directions.
+The template IPTx calculates the latency of message delivery from a port buffe rsrcto a FIFO buffer
+dst. In order to specify the time interval of forwarding a single message from the source port to the
+destination FIFO, we declare two integer constants IpFwdMin andIpFwdMax as the lower bound and
+upper bound, respectively. For any queuing port, the model c an perform IP fragmentation according to
+the integer parameter frag , so breaking one message into f rag IP fragments during transmission. In this
+case, IfIPTx handles a message sent from srctodst, the message counter bufofsrcwill be decreased
+by one, and meanwhile the counter of dstmust increase by frag. On the contrary, since sampling ports
+should not use IP fragmentation[1], the default value 1 is as signed to the template parameters frag of the
+IPTx models whose source ports are declared to be sampling mode.
+Figure 10: The IPTx Model
+As is depicted in Fig.10, an iteration structure realizes th e major function of IPTx . After starting
+from the initial location Waiting , the model keeps waiting for the ﬁrst incoming message to arr ive in the
+port buffer src. Once any tasks send the port a message through the channel pmsg ,IPTx will increase the
+
+--- Page 14 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 163
+Figure 11: The IPRx Model
+counter of srcby invoking the function sndMsg and thereupon move to the location Forwarding . This
+location represents that the UDP/IP layer is executing the f orwarding operation. Thus, the model can
+non-deterministically choose a forwarding delay TFfrom the interval [IpFwdMin ,IpFwdMax ]and stay at
+the location Forwarding forTFto forward the ﬁrst message in the srcport. Receiving a new incoming
+message during forwarding will not affect the delay TFbut only raise the counter of srconce more. When
+the model completes the current forwarding operation, it wi ll send notiﬁcation to a VL model through
+the output channel ipoutp! as well as operate the message counters of srcanddst. The forwarding
+operation continues until the source buffer is empty. In oth er words, if there is still at least one message in
+thesrcport, the model will immediately return to the location Forwarding to forward the next message.
+Otherwise, the model will move back to the initial location Waiting and restart the iteration to wait for
+the arrival of the following messages.
+The template IPTx has a location VlError that represents the existence of errors in the destination
+VL. First, if any errors are reported by the VL, the function getErr serving as a guard will return true and
+the model will stop the forwarding iteration at the location VlError . Second, a shortage of FIFO space
+will also lead the model to VlError . The FIFO dst, which has a MaxMsg capacity, should accommodate
+at least f rag IP packet(s) during every forwarding operation, unless the guarddst.buf > MaxMsg −frag
+holds at the location Forwarding .
+In addition, once the function sndMsg tries sending a message to a full queuing port, the IPTx model
+will report an overﬂow error to the source task, which will th ereupon move to an error location MsgErr .
+In contrast, sampling ports can avoid overﬂow by overwritin g the previous message in the buffer. Hence
+sndMsg assigns 1 directly to the counter of a sampling port.
+The template IPRx calculates the latency of message delivery from a FIFO buffe rsrcto a port buffer
+dst. As is shown in Fig.11, IPRx also includes a forwarding iteration similar to IPTx , but we insert two
+following parts into the iteration structure.
+The ﬁrst is a reassembly iteration between the initial locat ionWaiting and the location Forwarding
+. The nested iteration contains only one Reassembly location, where the model waits for IP packets
+to arrive and reassembles a complete message. Assume that th e IP packets of every message can ar-
+rive in order. The template parameter reass denotes that reass consecutive IP packets constitute one
+
+--- Page 15 ---
+164 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+Figure 12: The VLinkRx Model
+complete message. At the location Reassembly , a non-deterministic time between two integer constants
+IpReassMin andIpReassMax is spent in processing an IP fragment. After this processing delay, the IP
+packet must be removed from the srcFIFO. When reassembling a message, the model uses an integer
+variablecntto record the number of IP packets that have arrived of the mes sage. Once the model accu-
+mulates the reass consecutive IP packets, it will enter the location Forwarding to forward the complete
+message to dst.
+Second, according to the transfer mode of the destination po rtdst, we add two different paths fol-
+lowing the location Forwarding to operate queuing ports and sampling ports, respectively. For a queuing
+port, we increase the value of its message counter bufby 1. The guard dst.buf < pcapacity() ensures
+that the number of messages in dstis less than the capacity of dst. Otherwise, the model will report an
+overﬂow error by moving to the Overflow location. For a sampling port, we should ﬁll an empty buffer
+with the new message or overwrite the previous one. Therefor e,IPRx directly assigns 1 to the message
+counterbuf. Meanwhile, IPRx resets the port clock of dst. If a task found an invalid message in the
+dstafter comparing the refresh period of the message with the po rt clock of the dst, theIPRx model
+would detect a port error using the function getPortErr and stop its forwarding iteration at the location
+InvalidMsg .
+Both the templates IPTx andIPRx provide a typical processing procedure for the UDP/IP proto col.
+Users can easily adapt the templates for their speciﬁc imple mentation.
+A.2 Virtual Link Models
+We create two TA templates VLinkTx andVLinkRx to calculate the transit delay of frames through a
+speciﬁed VL.
+The template VLinkRx provides the latency of frame delivery through the route fro m the ﬁrst switch
+to a destination ES. In VLinkRx , the integer argument links (resp.switches ) denotes the number of
+physical links(resp. switches) along the route. Assume tha t each switch and ES can send and receive
+frames at wire speed. We divide the latency into three parts: the transmission delay of physical links,
+the processing delay of switches, and the latency at the dest ination ES. First, given the frame delay
+
+--- Page 16 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 165
+vlink[vlid].TxDelay of each physical link, the total transmission delay can be de scribed as the ex-
+pressionvlink[vlid].TxDelay ∗links . Second, two integer constants SwMin andSwMax give the interval
+[SwMin∗switches ,SwMax∗switches ]of the processing delay through switches. Similarly, we als o deﬁne
+two integer constants RxMin andRxMax to record the the interval [RxMin,RxMax]of the latency at the des-
+tination ES. By adding up these three delays, we provide each frame with the range of the total latency
+through the route [ vlink[vlid].TxDelay ∗links +SwMin∗switches +RxMin ,vlink[vlid].TxDelay ∗
+links +SwMax∗switches +RxMax ]. At the initial instant, the model should invoke the functi oninitVar ,
+which records the total latency interval in two integer vari ablesVlTrMin andVlTrMax .
+Assume that no more than MaxPackets frames can travel along the route simultaneously. We create
+the clock array TrTimer with aMaxPackets size to measure the delivery latency of all the frames throug h
+the route. Given in-order reliable delivery in the network, TrTimer is operated as a circular queue, where
+each valid clock serves as the unique timer of a frame. As long asTrTimer is not empty, two integer
+variables first andlast indicate the start and the end of valid clocks in TrTimer , respectively. The
+clockTrTimer[first] represents the timer of the earliest frame that is travellin g along the route. When
+VLinkRx completes the delivery of a frame, TrTimer[first] will be reset and the offset first will be
+also updated according to the circular-queue implementati on. By contrast, the clock TrTimer[last]
+measures the delivery latency of the most recent frame being transmitted along the route. Immediately a
+new frame appears in its ﬁrst physical link, VLinkRx will call the function addthat appends a new element
+to the array TrTimer and updates the offset last .
+The template VLinkRx is shown in Fig.12. After initializing the latency interval [VlTrMin,VlTrMax]
+of a single frame in the function initVar , theVLinkRx model stays at the location Idle until it re-
+ceives frame arrival notiﬁcation from the input channel vl?. New frame arrivals are handled at the
+locationReceiving . First,VLinkRx invokes the function addto insert a new valid clock in TrTimer[
+last] . Immediately afterwards, the model resets the clock TrTimer[last] as well as enters the location
+Transmitting , thereby starting the latency calculation of the most recen t frame. Additionally, if more
+thanMaxPackets frames were transmitted simultaneously, the model should r eport error and move to the
+locationLinkError .
+For each frame that is travelling along the route, VLinkRx spends a non-deterministic time between
+VlTrMin andVlTrMax performing the frame delivery at the location Transmitting . Since a VL may
+have more than one destination partitions, we deﬁne a select n:pid_tto give a random arrival order of
+multicast frames. During frame delivery, the model still re act to the input channel vl?so that we can
+handle each frame arriving in the VL vlid . Once a frame is delivered to the UDP/IP layer in the receivin g
+ES, theVLinkRx model will call the function vlRcv to increase the destination FIFO, and notify vlid ’s
+IPRx model through the output channel ipinp! . Thereafter, frame delivery continues at the location
+Transmitting until there is no frame travelling along the route. In that ca se, the model will return to the
+locationIdle and wait for the incoming frames again.
+A.3 Message Interfaces
+Two U PPAAL TA templates have been created to help the construction of me ssage interfaces. By instan-
+tiating the parameters in the templates, one can build a mess age interface for a particular message type.
+In general, message-sending actions and the release of thei r source tasks have similar temporal patterns.
+Hence we assume that periodic and sporadic tasks generate pe riodic and sporadic messages respectively.
+The TA template of PMsgSender depicted in Fig.13 is built for the periodic messages. We deﬁ ne
+a set of functions in the template to access the parameters of this message pattern. The functions
+initialOffset ,offset andjitter read the corresponding parameters from the declarations. T he func-
+
+--- Page 17 ---
+166 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+Figure 13: Periodic Message Sender Figure 14: Sporadic Message Sender
+tionsminPeriod andmaxPeriod always return the same value of a ﬁxed period. There are two cl ocks
+curTime andxin the template. The clock curTime represents the accumulated time since the beginning
+of the current period. By using the clock xto measure time repeatedly in each period, PMsgSender can
+wait for the delays of initial offset, offset and jitter at th e locations WaitInitialOffset ,WaitOffset and
+WaitJitter respectively. The template exploits the broadcast action a rraypmsg to model the message-
+sending behavior. When transmitting a message to the UDP/IP layer, periodic message sender model
+gives the IPTx model a notiﬁcation of the broadcast action pmsg[msgid(rid)] , where the offset msgid
+(rid) is the identiﬁer of the message type. After the broadcast syn chronization of pmsg in normal
+execution, the model stays at the location WaitNextPeriod until the next period starts. However, if
+the port buffer were overﬂow after the broadcast synchroniz ation, the model would stop the following
+message-sending operation and enter the location Overflow to indicate the violation of schedulability
+properties.
+As is shown in Fig.14, the other TA template of SMsgSender has an analogous structure with the
+PMsgSender . In accordance with the sporadic message pattern, a SMsgSender can stay at the location
+MsgWind for any time before its next sending action. Location WaitNextRelease enables a minimum
+separation between the consecutive messages.
+
+--- Page 18 ---
+P. Han, Z. Zhai B. Nielsen & U. Nyman 167
+B Avionics Workload
+As shown in Table 3, the workload is comprised
+of 5 partitions ( P1−P5), and further divided into 18
+periodic tasks and 4 sporadic tasks. The type of a
+task depends on its release interval. A periodic task
+has a deterministic period, whereas the release time
+of a sporadic task is only bounded by a minimum
+separation. The execution of a task is character-ized as a sequence of chunks . Each chunk involves
+the description of a non-deterministic execution
+time, required resources and message-passing op-
+erations. There are 3 intra-partition locks(column
+mutex ) and 4 inter-partition message types deﬁned
+in the task set. The columns output andinput indi-
+cate transfer direction of messages.
+Table 3: The Workload of the Avionics System[7, 12](Times in Milliseconds)
+No. Task Release Offset Jitter Deadline PriorityExecution Chunks
+Time Mutex Output Input
+P1Tsk1
+1 [25,25] 2 0 25 2[0.8,1.3] - - -
+[0.1,0.2] - - -
+Tsk1
+2 [50,50] 3 0 50 3 [0.2,0.4] - Msg 1 -
+Tsk1
+3 [50,50] 3 0 50 4 [2.7,4.2] - - -
+Tsk1
+4 [50,50] 0 0 50 5 [0.1,0.2] Mux1
+1 - -
+Tsk1
+5 [120, ∞) 0 0 120 6[0.6,0.9] - - -
+[0.1,0.2] Mux1
+1 - -
+P2Tsk2
+1 [50,50] 0 0.5 50 2 [1.9,3.0] - - -
+Tsk2
+2 [50,50] 2 0 50 3 [0.7,1.1] - Msg 2 -
+Tsk2
+3[100,100] 0 0 100 4 [0.1,0.2] Mux2
+1 - -
+Tsk2
+4 [100, ∞) 10 0 100 5[0.8,1.3] - - -
+[0.2,0.3] Mux2
+1 - -
+P3Tsk3
+1 [25,25] 0 0.5 25 2 [0.5,0.8] - - Msg 1
+Tsk3
+2 [50,50] 0 0 50 3 [0.7,1.1] - - Msg 2
+Tsk3
+3 [50,50] 0 0 50 4 [1.0,1.6] - - Msg 3
+Tsk3
+4 [100, ∞) 11 0 100 5[0.7,1.0] - - -
+[0.1,0.3] - - -
+P4Tsk4
+1 [25,25] 3 0.2 25 2 [0.7,1.2] - - -
+Tsk4
+2 [50,50] 5 0 50 3 [1.2,1.9] - Msg 3Msg 1
+Tsk4
+3 [50,50] 25 0 50 4 [0.1,0.2] - - Msg 4
+Tsk4
+4[100,100] 11 0 100 5 [0.7,1.1] - - -
+Tsk4
+5[200,200] 13 0 200 6 [3.7,5.8] - - -
+P5Tsk5
+1 [50,50] 0 0.3 50 1 [0.7,1.1] - - Msg 1
+Tsk5
+2 [50,50] 2 0 50 2 [1.2,1.9] - Msg 4Msg 2
+Tsk5
+3[200,200] 0 0 200 3[0.4,0.6] - - -
+[0.2,0.3] Mux5
+1 - -
+Tsk5
+4 [200, ∞) 14 0 200 4[1.4,2.2] - - -
+[0.1,0.2] Mux5
+1 - -
+
+--- Page 19 ---
+168 A Modeling Framework for Schedulability Analysis of Distri buted Avionics Systems
+C AFDX Conﬁguration
+The AFDX conﬁguration in Table 4 is based
+on the case of [13]. There are four message types
+Msg i,i={1,2,3,4}, each of which is allocated
+to a separate VL with the same subscript shown
+in column “VL”. The column “Length” indicates
+the length of a message sent from an ARINC-653partition. For any VL in the conﬁguration, the
+columns “BAG” and “ Lmax” denote its Bandwidth
+Allocation Gap and Maximum packet Length re-
+spectively. The source and destination partition(s)
+are given in the columns “Source” and “Destina-
+tion” respectively.
+Table 4: The AFDX Conﬁguration in the Case Study (Times in Mil liseconds and Sizes in Bytes)
+Message Length VL BAG Lmax Source Destinations
+Msg 1 306 V1 8 200 P1 P3,P4,P5
+Msg 2 953 V2 16 1000 P2 P3,P5
+Msg 3 453 V3 32 500 P4 P3
+Msg 4 153 V4 32 200 P5 P4

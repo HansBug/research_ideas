@@ -1,0 +1,1372 @@
+--- Page 1 ---
+Fast zone-based algorithms for reachability in
+pushdown timed automata
+S. Akshay
+Department of CSE, Indian Institute of Technology Bombay, Mumbai, India
+akshayss@cse.iitb.ac.in
+Paul Gastin
+Université Paris-Saclay, ENS Paris-Saclay, CNRS, LMF, 91190, Gif-sur-Yvette, France
+paul.gastin@lsv.fr
+Karthik R. Prakash
+Department of CSE, Indian Institute of Technology Bombay, Mumbai, India
+karthikrprakash@cse.iitb.ac.in
+Abstract
+Given the versatility of timed automata a huge body of work has evolved that considers extensions of
+timed automata. One extension that has received a lot of interest is timed automata with a, possibly
+unbounded, stack, also called pushdown timed automata (PDTA). While diﬀerent algorithms have
+been given for reachability in diﬀerent variants of this model, most of these results are purely
+theoretical and do not give rise to eﬃcient implementations. One main reason for this is that none
+of these algorithms (and the implementations that exist) use the so-called zone-based abstraction,
+but rely either on the region-abstraction or other approaches, which are signiﬁcantly harder to
+implement.
+In this paper, we show that a naive extension, using simulations, of the zone based reachability
+algorithm for the control state reachability problem of timed automata is not sound in the presence
+of a stack. To understand this better we give an inductive rule based view of the zone reachability
+algorithm for timed automata. This alternate view allows us to analyze and adapt the rules to
+also work for pushdown timed automata. We obtain the ﬁrst zone-based algorithm for PDTA
+which is terminating, sound and complete. We implement our algorithm in the tool TChecker and
+perform experiments to show its eﬃcacy, thus leading the way for more practical approaches to the
+veriﬁcation of timed pushdown systems.
+2012 ACM Subject Classiﬁcation Theory of computation →Quantitative automata; Theory of
+computation→Logic and veriﬁcation; Theory of computation →Timed and hybrid models
+Keywords and phrases Timed automata, Zone-based abstractions, Pushdown automata, Simulations,
+Reachability
+Related Version An extended abstract of this paper will appear in the proceedings of CAV’2021.
+SupplementMaterial Ourprototypeimplementationisavailableat https://github.com/karthik-314/
+PDTA_reachability and benchmarks for evaluation are at https://doi.org/10.6084/m9.figshare.
+14501496.v2 .
+Funding Partly supported by ReLaX CNRS IRL 2000, DST/CEFIPRA/INRIA project EQuaVE
+and SERB Matrices grant MTR/2018/00074.
+1 Introduction
+Timed automata [ 6] are a popular formalism for capturing real-time systems, and of use for
+instance, in model checking of cyber-physical systems. They extend ﬁnite automata with real
+variables called clocks whose values increase over time; transitions are guarded by constraints
+over these variables. The main problem of interest is the reachability problem, which asks
+whether a given state can be reached while satisfying the constraints imposed by the guards.arXiv:2105.13683v2  [cs.FL]  19 Jul 2021
+
+--- Page 2 ---
+2 Fast zone-based algorithms for reachability in pushdown timed automata
+This problem is known to be PSPACE-complete (already shown in [ 6]). The PSPACE
+algorithm, uses the so-called region-automaton construction, which essentially abstracts the
+timed automaton into an exponentially larger ﬁnite automaton of regions (collections of clock
+valuations), which is sound and complete for reachability.
+Despite this complexity-theoretic hardness, the model of timed automata has proved to
+be extremely inﬂuential and versatile, resulting in an enormous body of work on its theory,
+variants and extensions over the past 25 years. Almost since its inception, researchers also
+began to develop tools to extend from theoretical algorithms to solve practical problems. Such
+tools range from the classical and richly featured tool UPPAAL [ 8,22] to the more recent
+open-source tool TChecker [ 18], which have been used on industry strength benchmarks and
+perform rather well on many of them. These tools use a diﬀerent algorithm for reachability,
+where reachable sets of valuations are represented as zones and explored in a graph. While
+a naive exploration of zones does not terminate, the algorithms used identify diﬀerent
+strategies [ 7,20,17], e.g., subsumption or simulations, extrapolations, for pruning the zone-
+based exploration graphs, while preserving soundness and completeness of reachability. While
+this does not change the worst case complexity, in practice, the zone exploration results in
+much better practical performance as it allows on-the-ﬂy computation of reachable zones.
+One could even argue that the wider adoption of timed automata paradigm in the veriﬁcation
+community has been a result of scalable implementations and tools built on this zone-based
+approach.
+Inlightofthis, zone-basedalgorithmsareoftenlookedfortoimprovepracticalperformance
+of extensions of timed automata as well. For instance, for timed automata with diagonal
+constraints, classical zone-based approaches were shown to be unsound [ 10,11], but recently,
+an approach has been developed which adapts the existing construction and obtains fast
+zone-based algorithms [ 16]. In the present paper, we are interesting in adding a diﬀerent
+feature to timed automata, namely an unbounded lifo-stack. This results in a powerful model
+ofpushdown timed automata (PDTA for short) , in which the source of “inﬁnity” is both from
+real-time and the unbounded stack. Unsurprisingly, this model and its variants have been
+widely studied over the last 20 years with several old and recent results on decidability of
+reachability, related problems and their complexity, including [ 1,2,3,4,5,9,12,13,14,15].
+A wide variety of techniques have been employed to solve these problems, from region-based
+abstractions, to using atoms and systems of constraints, to encoding into diﬀerent logics
+etc. However, except for [ 5,4], to the best of our knowledge, none of the others carry an
+implementation. In [ 5], the implementation uses a tree-automaton implicitly based on regions
+and the focus in [ 4] is towards multi-pushdown systems. A common factor of all these works
+is that none of them consider zone-based abstractions.
+In this paper, we ask whether zone-based abstractions can be used to decide eﬃciently
+reachability questions in PDTA. We focus on the problem of well-nested control-state
+reachability of PDTA, i.e., given a PDTA, an initial and a target state, does there exist a run
+of the PDTA that starts at the initial state with empty stack and reaches the target state
+with an empty stack (in between, i.e., during the run, the stack can indeed be non-empty). As
+with timed automata, our goal here is towards its applicability to build powerful tools which
+could lead to wider adoption of the PDTA model and showcase its utility to model-checking
+timed recursive systems. As the ﬁrst step, we examine the diﬃculties involved in mixing
+zones with stacks and point out that a naive adaptation of the zone-based algorithm would
+not be sound. Then we propose a new algorithm that modiﬁes the zone-based algorithm to
+work for pushdown timed automata. This is done in three steps.
+First we view the zone-graph exploration at the heart of the zone-based reachability
+
+--- Page 3 ---
+S. Akshay, P. Gastin and K. R. Prakash 3
+algorithm for timed automata as a least ﬁxed point computation of two inductive rules.
+When applied till saturation, they compute a sound and complete ﬁnite abstraction of
+the set of all reachable zones.
+Next, this view allows us to generalize the approach in the presence of a stack by adding
+new inductive rules that correspond to push and pop transitions, and hence are speciﬁc
+to the stack operation. There are two main technical diﬃculties in this. First, we need
+to ensure termination of the ﬁxed point computation, using a strong enough pruning
+condition of the (a priori inﬁnite) zone graph to ensure ﬁniteness, while being sound and
+not adding spurious runs. Second, we want to aggressively prune the graph as much as
+possible to obtain an eﬃcient zone-exploration algorithm. We show how we can minimally
+change the condition of pruning in the zone exploration graph to achieve this delicate
+balance. Indeed, in doing so we use a judicious combination of the subsumption (or
+simulation) relation and an equivalence relation for obtaining a ﬁxed point computation
+for PDTA that is terminating, while being sound and complete.
+Finally, we build new data structures that allow us to write an eﬃcient algorithm that
+implements this ﬁxed point computation. While getting a correct algorithm is relatively
+simple, to obtain an eﬃcient one, we must again encounter and overcome several technical
+diﬃculties.
+We implement our approach to build the ﬁrst zone-based tool that eﬃciently solves well-
+nested control state reachability for PDTA. Our tool is built on top of existing infrastructure
+of TChecker [ 18], an open source tool and beneﬁts from many existing optimizations. We
+perform experiments to show the practical performance of multiple variants of our algorithm
+and show how our most optimized version is vastly better in performance than other variants
+and of course the earlier region-based approach on a suite of example benchmarks.
+We note that our PDTA model diﬀers slightly from the model considered in [ 1,3], as
+there is no age on stack and time spent on stack cannot be compared with clocks. Hence
+our model is closer to [ 9,15]. However, in [ 12], it was shown that these two models are
+equivalent, more speciﬁcally, the stack can be untimed without loss of expressivity (albeit
+with an exponential blowup). Thus our approach can be applied to the other model as
+well by just untiming the stack. There are other more powerful extensions [ 14,13] studied
+especially in the context of binary reachability, where only theoretical results are known.
+We also remark that the idea of combining the subsumption relation between zones with
+an equivalence relation also occurs while tackling liveness, or Buchi acceptance, in timed
+automata. This has been studied in depth [ 23,21,19], where the naive zone-based algorithm
+does not work, forcing the authors to strengthen the simulation relation in diﬀerent ways.
+Though these problems are quite diﬀerent, there are surprising similarities in the issues faced,
+as explained in Section 3.
+The structure of the paper is as follows: we start with preliminaries and move on to the
+diﬃculty in using zones and simulation relations in solving reachability in PDTA. Then, we
+introduce in Section 4 our inductive rules for timed automata and PDTA and show their
+correctness. In Section 5, we present our algorithm and helpful data-structural advancements.
+We show the experimental performance in Section 6 and end with a brief conclusion.
+2 Preliminaries
+2.1 Timed automata
+Timed automata extend ﬁnite-state automata with a set Xof (non-negative) real-valued
+variables called clocks. We let Φ(X)denote the set of constraints ϕthat can be formed using
+
+--- Page 4 ---
+4 Fast zone-based algorithms for reachability in pushdown timed automata
+the grammar: ϕ::=x∼c|x−y∼c|ϕ∧ϕ, wherex,y∈X,c∈N,∼∈{≤,≥,<,>}, where
+constraints of the form x∼c,x−y∼care called atomic constraints. A clock valuation
+is a mapv:X→R≥0and is said to satisfy ϕ, denotedv|=ϕ, ifϕevaluates to true when
+each clockx∈Xis replaced with v(x). Forδ∈R≥0, we writev+δto denote the valuation
+deﬁned as (v+δ)(x) =v(x) +δfor all clocks x. ForR⊆X, we write [R]vto denote the
+valuation obtained by resetting clocks in R, i.e., ([R]v)(x) = 0ifx∈R, and ([R]v)(x) =v(x)
+otherwise. Finally, v0is the valuation that sets all clocks to 0.
+A timed automaton Ais a tuple (Q,X,q 0,∆,F), whereQis a ﬁnite set of states, X
+is a ﬁnite set of clocks, q0∈Qis an initial state, F⊆Qis the set of ﬁnal states and
+∆⊆Q×Φ(X)×2X×Qis a set of transitions. A transition t∈∆is of the form (q,g,R,q/prime),
+whereq,q/primeare states, g∈Φ(X)is the guard of the transition and R⊆Xis the set of
+clocks that are reset at the transition. The semantics of a timed automaton Ais given as a
+transition system TS(A)over conﬁgurations. A conﬁguration is a pair (q,v)whereq∈Q
+is a state and vis a valuation, with the initial conﬁguration being (q0,v0). The transitions
+are of two types. First, for a conﬁguration (q,v)andδ∈R≥0,(q,v)δ− →(q,v+δ)is a delay
+transition. Second, for t= (q,g,R,q/prime)∈∆,(q,v)t− →(q/prime,v/prime)is a discrete transition if v|=g
+andv/prime= [R](v). A run is an alternating sequence of delays and discrete transitions starting
+from the initial conﬁguration, and is said to be accepting if the last state in the sequence is
+a ﬁnal state. A timed automaton is said to be diagonal-free if the atomic constraints used in
+guards do not involve diagonal constraints, i.e., constraints of the form x−y∼c.
+2.2 Reachability, Zones and simulations
+The problem of control-state reachability asks whether a given timed automaton has an
+accepting run. This problem is known to be PSPACE-complete [ 6], originally shown via the
+so-called region abstraction. Note that, since TS(A)is inﬁnite, some abstraction is needed to
+get an algorithm. In practice however, the abstraction used to solve reachability, e.g., in tools
+such as UPPAAL [ 22] or TChecker [ 18] is thezone abstraction . A zoneZis deﬁned as a set
+of valuations deﬁned by a conjunction of atomic clock constraints. Given a guard gand reset
+R, we deﬁne the following operations on zones: time elapse− →Z={v+δ|v∈Z,δ∈R≥0},
+guard intersection g∩Z={v∈Z|v|=g}and reset [R]Z={[R]v|v∈Z}. The resulting
+sets are also zones. With this, we can deﬁne the zone graph ZG(A)as a transition system
+obtained as follows: the nodes are (state, zone) pairs and (q,Z)t− →(q/prime,Z/prime), ift= (q,g,R,q/prime)
+is a transition of AandZ/prime=−−−−−−−→[R](g∩Z). The initial node is (q0,Z0=−−→{v0})and a path in
+the zone graph is said to be accepting if it ends at an accepting state. The zone graph is
+known to be sound and complete for reachability, but as the graph may still be inﬁnite, this
+does not give an algorithm for solving reachability yet.
+To obtain an algorithm, one resorts to diﬀerent techniques such as extrapolation or
+simulation. Here we focus on simulation relations which will lead to ﬁnite abstractions.
+Given a timed automaton A, a binary relation /precedesequalon conﬁgurations is called a simulation if
+whenever (q,v)/precedesequal(q/prime,v/prime), we haveq=q/primeand
+for each delay δ∈R≥0,(q,v+δ)/precedesequal(q,v/prime+δ)and
+for eacht= (q,g,R,q 1)∈∆, ifv|=gthenv/prime|=gand(q1,[R]v)/precedesequal(q1,[R]v/prime).
+We often simply write v/precedesequalqv/primeinstead of (q,v)/precedesequal(q,v/prime). We can now lift this to sets
+Z,Z/primeof valuations as Z/precedesequalqZ/primeif for allv∈Zthere exists v/prime∈Z/primesuch thatv/precedesequalqv/prime. We say
+that node (q,Z)is subsumbed by node (q,Z/prime)whenZ/precedesequalqZ/prime. As a consequence we obtain
+the following lemma.
+
+--- Page 5 ---
+S. Akshay, P. Gastin and K. R. Prakash 5
+ILemma 1. If(q,Z)t− →(q1,Z1)inZG(A)andZ/precedesequalqZ/prime, then (q,Z/prime)t− →(q1,Z/prime
+1)and
+Z1/precedesequalq1Z/prime
+1.
+Proof.Indeed, let v1∈Z1=−−−−−−−→[R](g∩Z). We ﬁndv∈Zandδ≥0such thatv|=gand
+v1= [R]v+δ. SinceZ/precedesequalqZ/prime, we ﬁndv/prime∈Z/primewithv/precedesequalqv/prime. We deduce that v/prime|=gand
+[R]v/precedesequalq1[R]v/prime, which implies v1/precedesequalq1v/prime
+1withv/prime
+1= [R]v/prime+δ∈Z/prime
+1=−−−−−−−→[R](g∩Z/prime). J
+A simulation/precedesequalis said to be ﬁniteif for every sequence of nodes (q1,Z1),(q2,Z2),...
+there exist two nodes (qi,Zi)and(qj,Zj)withi<jsuch thatqi=qjandZj/precedesequalqiZi. The
+importance of the ﬁniteness is that it allows us to stop exploration of zones along a branch of
+the zone graph: when a node (qj,Zj)is reached which is subsumed by an earlier node (qi,Zi),
+we may cut the exploration since all control states reachable from the latter are already
+reachable from the former. For a timed automaton A, we call this pruned graph as ZG/precedesequal(A).
+Thus, if the simulation relation /precedesequalis ﬁnite, then ZG/precedesequal(A)is ﬁnite, sound and complete for
+control state reachability. We formalize this algorithm in Section 4, using inductive rules.
+Various ﬁnite simulations have been shown to exist in the literature, including the famous
+LU-abstractions [ 7] for diagonal-free timed automata, and more recent G-abstractions based
+on sets of guards [ 16] for timed automata with diagonal constraints. Hence this theory indeed
+has resulted in better implementations and is used in standard tools in this domain.
+We will see that using simulation in the context of pushdown timed automata is not always
+sound, in some cases we need a stronger condition to stop the exploration. Towards this,
+we consider the equivalence relation on nodes induced by the simulation relation: Z∼qZ/prime
+ifZ/precedesequalqZ/primeandZ/prime/precedesequalqZ. We say that the simulation /precedesequalis strongly ﬁnite if the induced
+equivalence relation ∼has ﬁnite index. Notice that strongly ﬁnite implies ﬁnite but the
+converse does not necessarily hold. Fortunately, the usual simulations for timed automata,
+in particular the LU-simulation and the G-simulation, are strongly ﬁnite.
+2.3 Pushdown timed automata (PDTA)
+A Pushdown Timed Automaton Ais a tuple (Q,X,q 0,Γ,∆,F), whereQis a ﬁnite set of
+states,Xis a ﬁnite set of clocks, q0∈Qis an initial state, Γis the stack alphabet, F⊆Q
+is the set of ﬁnal states and ∆is a set of transitions. A transition t∈∆is of the form
+(q,g,op,R,q/prime), whereq,q/primeare states,g∈Φ(X)is the guard of the transition and R⊆Xis
+the set of clocks that are reset at the transition, opis one of three stack operations: nopor
+pushaorpopafor somea∈Γ.
+The semantics of a PDTA Ais given as a transition system TS(A)over conﬁgurations.
+A conﬁguration here is a tuple (q,v,χ )whereq∈Qis a state,vis a valuation, χ∈Γ∗is the
+stack content, with the initial conﬁguration being (q0,v0,ε). The transitions are of two types.
+First, for a conﬁguration (q,v,χ )andδ∈R≥0,(q,v,χ )δ− →(q,v+δ,χ)is a delay transition.
+Second, for t= (q,g,op,R,q/prime)∈∆,(q,v,χ )t− →(q/prime,v/prime,χ/prime)is a discrete transition if v|=g,
+v/prime= [R](v)and
+ifop = nop , thenχ/prime=χ,
+ifop = pushathenχ/prime=χ·a,
+ifop = popa, thenχ=χ/prime·a.
+A run is an alternating sequence of delays and discrete actions starting from the initial
+conﬁguration. It is accepting if the last state in the sequence is ﬁnal.
+Our main focus is the well-nested control state reachability problem for PDTA, which asks
+whether a conﬁguration (q,v,ε )withq∈Fis reachable, where the stack is empty. Later,
+in Section 7, we remark how our solution can be extended to solve general control state
+
+--- Page 6 ---
+6 Fast zone-based algorithms for reachability in pushdown timed automata
+q0 q1 q2 q3 q4pusha pusha pushay≤3,popa,{x}
+x≥1,popa,{x}
+Figure 1 A simple PDTA with 2 clocks {x, y}. Note that if we ignore the push/pop actions we
+get a TA, say A.
+q0,Z0q1,Z0q2,Z0q3,Z0q4,(0≤y−x≤3)q4,(1≤y−x≤4)pusha pusha pusha popa popa
+Figure 2 Zone graph with simulation edges for ﬁniteness. Again ignoring push/pop actions gives
+us a zone graph for the TA. Z0is the initial zone.
+reachability, i.e., asking whether a conﬁguration (q,v,χ )withq∈Fis reachable, possibly
+with a nonempty stack χ.
+3 Zones in PDTA and the problem with simulations
+As mentioned earlier, zones are collections of clock valuations deﬁned by conjunctions of
+timing constraints, and exploring zones reached by a timed automaton gives a sound and
+complete abstraction for state reachability. To make sure that the exploration is ﬁnite we
+need to prune the graph and one way this is done by simulation, i.e., not exploring paths
+from some nodes if they are “subsumed” by earlier nodes visited in the graph. Consider
+Figure 1, in which we ignore the pushaandpopaor we can think of them as internal actions.
+Then the usual zone-graph construction with simulation would give the graph depicted in
+Figure 2. In this section, just for illustration we instantiate the simulation relation to be the
+well-known LU-simulation (we do not give the deﬁnition here as it is not relevant to what
+comes later, instead we refer to earlier work [ 7]). Using this, we obtain that the rightmost
+node is subsumed by the previous one, and hence the dotted simulation edge. If we did not
+do this we immediately observe that we get an inﬁnite graph with increasing sets of zones.
+Now, our ﬁrst question is whether this zone exploration with simulation can be lifted to
+PDTA. In this example, if we were to add back the push/pop edges, we get exactly the same
+Zone graph with annotations, and further, the ﬁnal state is indeed reachable. Hence, for this
+particular example we do obtain a ﬁnite, sound and complete graph exploration. However,
+in general it turns out that the procedure is not sound.
+Consider the example in Figure 3. In this example, again considering it as a TA (ignoring
+the push/pops), we would get the zone graph below, which would be ﬁnite, sound and
+complete for reachability in that TA. But if we consider it as a PDTA, now doing the
+same does not preserve soundness. In other words, in the PDTA, q3is no longer reachable.
+However, in the zone graph we would conclude that it is reachable due to the simulation
+edge. If, to ﬁx this, we remove the dotted simulation edge, then we will lose ﬁniteness.
+Thus, it seems that we have a diﬃcult situation where zones with the simulation relation,
+needed for termination, do not preserve soundness. This situation resembles the situation
+studied in [ 23,21,19], where the authors study liveness or Buchi-acceptance conditions in
+timed automata. Again in that situation, the naive algorithm with zone simulation does not
+work and the authors are forced to strengthen the simulation relation in diﬀerent ways.
+Surprisingly, it turns out, that even in our very diﬀerent problem setting of reachability
+in PDTA, a similar solution works. That is, we replace simulation by equivalence (deﬁned
+in the previous section) as the pruning criterion. However, there are two issues (i) it is not
+
+--- Page 7 ---
+S. Akshay, P. Gastin and K. R. Prakash 7
+q0 q2 q3
+q1x≥1,{x} y≤1,pushapopa popaq0,Z0q2,Z0
+q1,y−x≥1q3,Z0
+q0,y−x= 1pushapopa popa
+Figure 3 A PDTA and its zone graph with simulation. With the simulation (dotted) edges, q3is
+reachable in the zone graph, but its not reachable in the PDTA.
+easy to prove its correctness and (ii) this is far from eﬃcient as shown in the experimental
+section. Our goal to use zones in the ﬁrst place was eﬃciency and hence we would like to
+prune the zone graph as much as possible, i.e., we would like to use simulation edges as much
+as possible. In the next two sections, we describe our ﬁx. We ﬁrst show a diﬀerent view
+of the exploration algorithm as a ﬁxed point rule based approach. This allows us to then
+describe our ﬁx in the same language, which is much easier to understand conceptually. Also
+as a corollary we will be able to show that using equivalence everywhere also gives a correct
+algorithm. After proving the correctness of our rule-based algorithm, we then tackle the
+challenges in implementing it.
+4 Viewing reachability algorithms using rewrite rules
+In this section, our goal is to compute a set Sof nodes of the zone graph of a PDTA, as a
+least ﬁxed point of a small set of inductive rules, such that a control state qoccurs inS, i.e.,
+(q,Z)∈Sfor someZiﬀqis reachable in the PDTA from its initial state. To understand the
+rules and their correctness it is easier to ﬁrst visualize this on plain timed automata without
+any push-pop edges.
+4.1 Rewrite rules for Timed automata.
+Given a TAA= (Q,X,q 0,∆,F), the setScontaining all reachable nodes of the zone graph,
+can be obtained as the least ﬁxed point of the following inductive rules, with a natural
+deduction style of presentation.
+startS:={(q0,Z0)}
+(q,Z)∈S qg,R−−→q/primeZ/prime=−−−−−−→R(g∩Z)/negationslash=∅
+TransS:=S∪{(q/prime,Z/prime)}
+LetS∗denote the set at the ﬁxed point by starting with the start rule and repeatedly
+applying the trans rule. It is easy to see that this computes the set of all reachable nodes of
+the zone graph: the start rule starts with the initial node and each application of trans rule
+takes a reachable node and applies a transition of the automaton and includes the resulting
+node reached. However, this set S∗is a priori inﬁnite since number of zones is inﬁnite.
+To make it ﬁnite we add a condition under which we will apply the transition rule based
+on a ﬁnite simulation relation (let us denote it /precedesequal) forA.
+(q,Z)∈S qg,R−−→q/primeZ/prime=−−−−−−→R(g∩Z)/negationslash=∅
+Trans-/precedesequalS:=S∪{(q/prime,Z/prime)}, unless∃(q/prime,Z/prime/prime)∈S,Z/prime/precedesequalq/primeZ/prime/prime
+
+--- Page 8 ---
+8 Fast zone-based algorithms for reachability in pushdown timed automata
+Thus to obtain an algorithm, we would explore all nodes in the Zone graph using a search
+algorithm (say DFS/BFS) and we would add a node only if it is not subsumed by an already
+visited node, according to the simulation relation. We explained in Section 2.2 that doing
+this preserves soundness and completeness and gives a ﬁnite exploration.
+ILemma 2. LetS∗
+/precedesequaldenote any set obtained from the start rule and by repeatedly applying
+Trans-/precedesequaltill a ﬁxed point is reached. Note that depending on the order of applications we
+may have diﬀerent sets. Then we have:
+1.(ﬁniteness) S∗
+/precedesequalis ﬁnite.
+2.(soundness and completeness) For all q∈Q, a conﬁguration (q,v)is reachable from
+(q0,v0)in the TAAiﬀ(q,Z)∈S∗
+/precedesequalfor some zone Z.
+We do not give the proof here as (i) it is only a reformulation of known results and (ii) it
+will be subsumed by the much stronger theorem we prove next.
+4.2 Rewrite rules for PDTA.
+LetA= (Q,X,q 0,Γ,∆,F)be a PDTA, we will need not just a set but a tuple of sets. More
+precisely, we maintain a set of nodes Scalledrootnodes. For each root node (q,Z)∈S, we
+also maintain a set of nodes, denoted S(q,Z). The intuition is that root nodes are those that
+can be reached after pushing a symbol to the stack, whereas S(q,Z)will be the set of nodes
+that can be reached from (q,Z)with a well-nested run, i.e., starting with an empty stack and
+ending in an empty stack. This is to avoid storing the stack contents in our algorithm, which
+would be another source of inﬁnity. Again, we use simulations to make the computation
+ﬁnite. So we ﬁx a strongly ﬁnite simulation relation /precedesequalforA.
+StartS:={(q0,Z0)},S(q0,Z0):={(q0,Z0)}
+(q,Z)∈S (q/prime,Z/prime)∈S(q,Z)q/primeg,nop,R−−−−−→q/prime/primeZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅
+InternalS(q,Z):=S(q,Z)∪{(q/prime/prime,Z/prime/prime)}, unless∃(q/prime/prime,Z/prime/prime/prime)∈S(q,Z),Z/prime/prime/precedesequalq/prime/primeZ/prime/prime/prime
+(q,Z)∈S (q/prime,Z/prime)∈S(q,Z)q/primeg,pusha,R−−−−−−→q/prime/primeZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅
+PushS:=S∪{(q/prime/prime,Z/prime/prime)},S(q/prime/prime,Z/prime/prime)={(q/prime/prime,Z/prime/prime)}, unless∃(q/prime/prime,Z/prime/prime/prime)∈S,Z/prime/prime∼q/prime/primeZ/prime/prime/prime
+(q,Z)∈S
+(q/prime/prime,Z1)∈S(q/prime,Z/prime)∈S(q,Z)
+(q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1)q/primeg,pusha,R−−−−−−→q/prime/prime
+q/prime
+1g1,popa,R1−−−−−−−→ q2Z/prime/prime=−−−−−−→R(g∩Z/prime)∼q/prime/primeZ1
+Z2=−−−−−−−−→R1(g1∩Z/prime
+1)/negationslash=∅
+PopS(q,Z):=S(q,Z)∪{(q2,Z2)}, unless∃(q2,Z/prime
+2)∈S(q,Z),Z2/precedesequalq2Z/prime
+2
+Table 1Inductive rules for well-nested control state reachability of PDTA
+Our inductive rules for well-nested control state reachability of pushdown timed automata
+are given in Table 1. Note that the internal rule is just the same as for timed automata
+above. The start rule not only starts the set of nodes computation but also the set of roots
+computation as described above. So the only interesting rules are the Push and Pop rules.
+The push rule says that when a push is encountered, then we must start exploring from a
+new root (i.e., context). So the only complicated rule is the Pop rule. Here the intuition
+
+--- Page 9 ---
+S. Akshay, P. Gastin and K. R. Prakash 9
+is that if we see a push at a node and from a root equivalent to the root created from it,
+(i.e., its context) we see a matching pop reaching a new node, then this push-pop context is
+complete, and we can add this new node to the set of reachable nodes. This is precisely the
+point where we needequivalence rather than simulation and this will be made clear in the
+proof of the theorem below.
+ITheorem 3. LetS∗and(S(q,Z))(q,Z)∈S∗denote any tuple of sets obtained from the start
+rule and by repeatedly applying the rules in Table 1 till a ﬁxed point is reached1. Note that
+we always have (q0,Z0)∈S∗. The following statements hold:
+1.(ﬁniteness) S∗is ﬁnite and for each (q,Z)∈S∗,S(q,Z)is ﬁnite.
+2.(completeness) For each (q,Z)∈S∗, if there exists a run (q,v,ε )∗− →(q/prime,v/prime,ε)ofAwith
+{v}/precedesequalqZ, then there exists (q/prime,Z/prime)∈S(q,Z)such that{v/prime}/precedesequalq/primeZ/prime.
+3.(soundness) For each (q,Z)∈S∗,(q/prime,Z/prime)∈S(q,Z)andv/prime∈Z/prime, there exists a run in
+PDTA from (q,v,ε )to(q/prime,v/prime/prime,ε)withv∈Zandv/prime/precedesequalq/primev/prime/prime.
+Proof. 1.Note that only the Push rule creates new root nodes and the red condition states
+that a new root node is added only if there isn’t already an equivalent node in S∗. Since the
+simulation relation is strongly ﬁnite, the set of roots S∗must be ﬁnite. Also, before adding
+a node to some S(q,Z)with the internal rule or the pop rule, we check that the node is not
+subsumed by an existing one. Since the simulation relation is ﬁnite, this ensures that each
+setS(q,Z)is ﬁnite.
+2.Let(q,Z)∈S∗and assume that (q/prime,v/prime,ε)is reachable from some (q,v,ε )withv/precedesequalqZ,
+i.e., there exists a run (q,v,ε ) = (q1,v1,χ1)→···→ (qn,vn,χn) = (q/prime,v/prime,ε). We will then
+show thatvn/precedesequalqnZ/primefor some (qn,Z/prime)∈S(q,Z). The proof is by induction on n. Base case:
+Forn= 1we haveq/prime=qandv/prime=v. The result is obtained by taking Z/prime=Z. Notice
+that (q,Z)∈S(q,Z)follows immediately from the start rule if q=q0,Z=Z0or from the
+push-create rule.
+Let us then assume that the statement holds for runs of length at most n−1. Consider
+any run of the form (q,v,ε ) = (q1,v1,χ1)→···→ (qn,vn,χn=ε)withv/precedesequalqZ. Notice
+that its last transition (qn−1,vn−1,χn−1)→(qn,vn,χn)cannot be a push transition (in the
+PDTA) since χn=ε. Hence, we have three subcases, depending on the last transition.
+Time elapse. χn−1=χn=ε,qn−1=qn=q/prime,vn=vn−1+δfor someδ∈R≥0. Applying
+induction hypothesis, we have vn−1/precedesequalq/primeZ/primefor some (q/prime,Z/prime)∈S(q,Z). Since zones are
+closed under time elapse, we get Z/prime=− →Z/primeand by deﬁnition of the simulation relation
+vn=vn−1+δ/precedesequalq/prime− →Z/prime=Z/prime. This completes the case.
+Discrete internal transition. In this case χn−1=χn=ε,t=qn−1g,nop,R−−−−−→qn,vn−1|=g
+andvn= [R]vn−1. Then applying induction hypothesis, there exists (qn−1,Z/prime)∈S(q,Z)
+such thatvn−1/precedesequalqn−1Z/prime. Now letZ/prime/prime=−−−−−−→R(g∩Z/prime). From the deﬁnition of the simulation
+relation we get vn/precedesequalqnZ/prime/prime. Then, applying the Internal rule, there exists (qn,Z/prime/prime/prime)∈S(q,Z)
+such thatZ/prime/prime/precedesequalqnZ/prime/prime/prime, with possibly Z/prime/prime/prime=Z/prime/prime. Hence,vn/precedesequalqnZ/prime/prime/precedesequalqnZ/prime/prime/prime, which
+completes the case.
+Poptransition. Thenthereexists 1≤i<n−1suchthattherunhastheform: (q1,v1,ε)→
+...→(qi,vi,χi=ε)pusha−−−−→ (qi+1,vi+1,χi+1=a)→...→(qn−1,vn−1,χn−1=a)popa−−−→
+(qn,vn,χn=ε), where the push and pop are matching transitions, i.e., |χj|≥1for all
+1As before, there could be several such sets depending on the order in which the rules are applied.
+
+--- Page 10 ---
+10 Fast zone-based algorithms for reachability in pushdown timed automata
+(q,v,ε )∗− → (qi,vi,ε)t− → (qi+1,vi+1,a)∗− → (qn−1,vn−1,a)t1−→ (qn,vn,/epsilon1)
+v/precedesequalqZ v i/precedesequalqiZi vi+1/precedesequalqi+1Zi+1 vn−1/precedesequalqn−1Zn−1 vn/precedesequalqnZn
+(q,Z)∈S (qi,Zi)∈S(q,Z)Zi+1=−−−−−−→R(g∩Zi) (qn−1,Zn−1)∈S(qi+1,Z/prime
+i+1)Zn=−−−−−−−−−−→R1(g1∩Zn−1)
+Zi+1∼qi+1Z/prime
+i+1 Zn/precedesequalqnZ/prime
+n
+(qi+1,Z/prime
+i+1)∈S (qn,Z/prime
+n)∈S(q,Z)
+Figure 4 Construction for the completeness-push-pop last sub-case.
+i<j <n−1(see Figure 4). Then by induction hypothesis at i, we have
+vi/precedesequalqiZifor some (qi,Zi)∈S(q,Z). (1)
+From the push transition we have
+∃t=qig,pusha,R−−−−−−→qi+1∈∆withvi|=gandvi+1= [R]vi. (2)
+LetZi+1=−−−−−−→R(g∩Zi). By deﬁnition of the simulation relation, we deduce from vi/precedesequalqiZi
+thatvi+1/precedesequalqi+1Zi+1. We can apply the Push rule to obtain
+(qi+1,Z/prime
+i+1)∈S∗for someZ/prime
+i+1∼qi+1Zi+1 (3)
+possibly with Z/prime
+i+1=Zi+1as a special case.
+Further the segment of run (qi+1,vi+1,a)→...(qn−1,vn−1,a)in the PDTA never pops
+the symbol a(by choice, since otherwise the push and pop would not be matching).
+Hence we will also have the same sequence of transitions forming a run (qi+1,vi+1,ε)→
+...(qn−1,vn−1,ε). Usingvi+1/precedesequalqi+1Zi+1∼qi+1Z/prime
+i+1, we deduce that vi+1/precedesequalqi+1Z/prime
+i+1.
+By induction hypothesis,
+vn−1/precedesequalqn−1Zn−1for some (qn−1,Zn−1)∈S(qi+1,Z/prime
+i+1). (4)
+Finally, we have the pop transition
+t1=qn−1g1,popa,R1−−−−−−−→ qn∈∆withvn−1|=g1andvn= [R1]vn−1. (5)
+We letZn=−−−−−−−−−−→R1(g1∩Zn−1). Fromvn−1/precedesequalqn−1Zn−1and the deﬁnition of the simulation
+relation we obtain vn/precedesequalqnZn. Then, combining all the above equations (1–5), and
+applying the Pop-rule we obtain some (qn,Z/prime
+n)∈S(q,Z)withZn/precedesequalqnZ/prime
+n(possibly
+Z/prime
+n=Zn). Finally we get vn/precedesequalqnZn/precedesequalqnZ/prime
+n. This completes the proof.
+3.We will show that the following property is invariant by rule applications:
+∀(q,Z)∈S,∀(q/prime,Z/prime)∈S(q,Z),∀v/prime∈Z/prime,there is a run
+(q,v,ε )∗− →(q/prime,v/prime/prime,ε)withv∈Zandv/prime/precedesequalq/primev/prime/prime(Inv)
+The invariant holds initially, i.e., after application of the start rule. Indeed, in this case we
+haveS={(q0,Z0)}andS(q0,Z0)={(q0,Z0)}. Hence (q/prime,Z/prime) = (q,Z) = (q0,Z0)and for all
+v∈Z0we can choose the empty run (q0,v,ε)0− →(q0,v,ε).
+We show below that (Inv)is preserved by application of an internal/push/pop rule.
+Therefore, the invariant still holds when reaching the ﬁxed point, which proves the soundness.
+Let us write S−andS−
+(q,Z)for the sets before the application of the rule and SandS(q,Z)
+for the sets after the application of the rule.
+
+--- Page 11 ---
+S. Akshay, P. Gastin and K. R. Prakash 11
+(q/prime
+1,v4,a)t1−→δ/prime
+−→ (q2,v/prime,/epsilon1)
+/precedesequal
+(q/prime/prime,v3,a)∗− → (q/prime
+1,v/prime
+4,a)
+/precedesequal/precedesequal
+(q/prime,v2,ε)t− →δ− →(q/prime/prime,v/prime
+3,a)/precedesequal
+/precedesequal/precedesequal
+(q,v,ε )∗− →(q/prime,v/prime
+2,ε)t− →δ− →(q/prime/prime,v/prime/prime
+3,a)∗− →(q/prime
+1,v/prime/prime
+4,a)t1−→δ/prime
+−→ (q2,v/prime/prime,/epsilon1)
+Figure 5 Construction for the soundness.
+Internal rule. Let(q,Z)∈S=S−,(q/prime,Z/prime)∈S(q,Z)andv/prime∈Z/prime. If(q/prime,Z/prime)∈S−
+(q,Z)then
+we get the result since (Inv)holds before applying the internal rule. Otherwise, there is some
+(q1,Z1)∈S−
+(q,Z)and a transition t=q1g,nop,R−−−−−→q/primewithZ/prime=−−−−−−→R(g∩Z1).
+By deﬁnition, there exists v1∈Z1such thatv1|=gandv/prime= [R]v1+δfor someδ≥0.
+Hence we have a run (q1,v1,ε)t− →δ− →(q/prime,v/prime,ε). Since the invariant holds before the internal
+rule, there is a run (q,v,ε )∗− →(q1,v/prime
+1,ε)withv∈Zandv1/precedesequalq1v/prime
+1. Now since/precedesequalis a
+simulation we obtain that (q1,v/prime
+1,ε)t− →δ− →(q/prime,v/prime/prime,ε)withv/prime/precedesequalq/primev/prime/primeand we are done.
+Push rule. Let(q,Z)∈S,(q/prime,Z/prime)∈S(q,Z)andv/prime∈Z/prime. If (q,Z)∈S−then we
+get the result since (Inv)holds before applying the Push rule. Otherwise, we must have
+(q/prime,Z/prime) = (q,Z)and we can choose the empty run (q,v/prime,ε)0− →(q,v/prime,ε).
+Pop rule. Let(q,Z)∈S=S−,(q2,Z2)∈S(q,Z)andv/prime∈Z2. Again, if (q2,Z2)∈S−
+(q,Z)
+then we get the result since (Inv)holds before applying the Pop rule. Otherwise, by deﬁnition
+of the pop rule we have:
+1.some (q/prime,Z/prime)∈S(q,Z),
+2.some push transition t=q/primeg,pusha,R−−−−−−→q/prime/prime,
+3.some (q/prime/prime,Z1)∈SwithZ1∼q/prime/primeZ/prime/prime=−−−−−−→R(g∩Z/prime),
+4.some (q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1),
+5.some pop transition t1=q/prime
+1g1,popa,R1−−−−−−−→ q2,
+withZ2=−−−−−−−−→R1(g1∩Z/prime
+1). The construction below is illustrated in Figure 5.
+Sincev/prime∈Z2, we get some v4∈Z/prime
+1such thatv4|=g1andv/prime= [R1]v4+δ/primefor some
+δ/prime≥0. Hence we have a run (q/prime
+1,v4,a)t1−→δ/prime
+−→(q2,v/prime,ε).
+Now, applying the invariant to (q/prime/prime,Z1)∈S,(q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1)andv4∈Z/prime
+1, we get
+a run (q/prime/prime,v3,ε)∗− →(q/prime
+1,v/prime
+4,ε)withv3∈Z1andv4/precedesequalq/prime
+1v/prime
+4. Hence, we also have a run
+(q/prime/prime,v3,a)∗− →(q/prime/prime,v/prime
+4,a).
+Letv/prime
+3∈Z/prime/prime=−−−−−−→R(g∩Z/prime)∼q/prime/primeZ1withv3/precedesequalq/prime/primev/prime
+3. we get some v2∈Z/primesuch thatv2|=g
+andv/prime
+3= [R]v2+δfor someδ≥0. Hence we have a run (q/prime,v2,ε)t− →δ− →(q/prime/prime,v/prime
+3,a).
+Finally, we apply the invariant to (q,Z)∈S,(q/prime,Z/prime)∈S(q,Z)andv2∈Z/prime, we get a run
+(q,v,ε )∗− →(q/prime,v/prime
+2,ε)withv∈Zandv2/precedesequalq/primev/prime
+2.
+Byrepeatedlyapplyingthepropertyofsimulation /precedesequal, wemayextendtherunfrom (q/prime,v/prime
+2,ε)
+with (q/prime,v/prime
+2,ε)t− →δ− →(q/prime/prime,v/prime/prime
+3,a)∗− →(q/prime
+1,v/prime/prime
+4,a)t1−→δ/prime
+−→(q2,v/prime/prime,ε)wherev3/precedesequalq/prime/primev/prime
+3/precedesequalq/prime/primev/prime/prime
+3and
+v4/precedesequalq/prime
+1v/prime
+4/precedesequalq/prime
+1v/prime/prime
+4. Finallyv/prime/precedesequalq2v/prime/prime. Therefore, the invariant holds after the pop rule.
+J
+
+--- Page 12 ---
+12 Fast zone-based algorithms for reachability in pushdown timed automata
+5 Algorithm for PDTA Reachability via Zones
+In this section, we describe Algorithm 1 implementing the ﬁxed point computation deﬁned
+by the inductive rules in Table 1. We describe the structure of the algorithm and its main
+data-structures.
+Notice ﬁrst that the sets SandS(q,Z)for(q,Z)∈Scan be alternatively represented as
+a single set of pairs of nodes:
+S={[(q,Z),(q/prime,Z/prime)]|(q,Z)∈Sand(q/prime,Z/prime)∈S(q,Z)}.
+We can recover Sas the ﬁrst projection of SandS(q,Z)as the second projection of Sﬁltered
+by the ﬁrst component being (q,Z). We use both notations below depending on which is
+more convenient. The start rule initializes Sto{[(q0,Z0),(q0,Z0)]}.
+Let us consider ﬁrst the rule for internal transitions. For each already discovered pair
+of nodes [(q,Z),(q/prime,Z/prime)]∈S(or(q/prime,Z/prime)∈S(q,Z)with (q,Z)∈S), we have to consider
+each possible internal transition q/primeg,nop,R−−−−−→q/prime/primeand check whether the node (q/prime/prime,Z/prime/prime)with
+Z/prime/prime=−−−−−−→R(g∩Z/prime)should be added to S(q,Z)or is subsumed by an existing node. This is like a
+graph traversal. The set Sstores the already discovered pairs of nodes, and we will use a
+ToDo(unordered) list to store the newly discovered nodes from which outgoing transitions
+should be considered. The ToDolist should also consist of pairs [(q,Z),(q/prime,Z/prime)]so that when
+a new node (q/prime/prime,Z/prime/prime)is discovered by an internal transition from (q/prime,Z/prime)we know to which
+setS(q,Z)it should be added.
+As we can see from Theorem 3-soundness, given (q,Z)∈S, the setS(q,Z)should consist
+of nodes reachable from (q,Z)via a well-nested run. Hence, when dealing with a pair
+[(q,Z),(q/prime,Z/prime)]∈Sand we see a push transition q/primeg,pusha,R−−−−−−→q/prime/primewithZ/prime/prime=−−−−−−→R(g∩Z/prime), we
+should not try to add the pair (q/prime/prime,Z/prime/prime)toS(q,Z)since the corresponding run would not
+be well-nested. Instead, we should search for a matching pop transition which could be
+taken after a well-nested run starting from (q/prime/prime,Z/prime/prime). This is why the push rule adds the
+new root (q/prime/prime,Z/prime/prime)toS(unless it is equivalent to an existing root). The pair of nodes
+[(q/prime/prime,Z/prime/prime),(q/prime/prime,Z/prime/prime)]is newly discovered and added to the ToDolist for further exploration.
+The push transition may be matched with several pop transitions (which could be already
+discovered or yet to be discovered by the algorithm). To avoid revisiting the push transition
+many times, it will be stored by the algorithm in an additional set Spush. More precisely, we
+will store inSpushthe tuple [(q,Z),a,(q/prime/prime,Z/prime/prime)]meaning that the root node (q/prime/prime,Z/prime/prime)may be
+reached from the root node (q,Z)via a well-nested run reaching some (q/prime,Z/prime)followed by a
+transition pushing aonto the stack.
+Finally, assume that, when dealing with a pair [(q1,Z1),(q/prime
+1,Z/prime
+1)]∈S, we see a pop
+transitionq/prime
+1g1,popa,R1−−−−−−−→ q2withZ2=−−−−−−−−→R1(g1∩Z/prime
+1). We will check whether it can be matched
+with an already visited push transition, stored in the set Spushas a pair [(q,Z),a,(q/prime/prime,Z/prime/prime)]
+with (q/prime/prime,Z/prime/prime) = (q1,Z1). If this is the case, the pop rule may be applied and the node (q2,Z2)
+added toS(q,Z)(unless it is subsumed by an existing node). The newly discovered pair of
+nodes [(q,Z),(q2,Z2)]is also added to the ToDolist for further exploration. Once again,
+the pop transition may also be matched with push transitions that will be discovered later
+by the algorithm. To avoid revisiting the pop transition many times, we store the tuple
+[(q1,Z1),a,(q2,Z2)]in a new setSpop.
+Data structures. We use a data structure TLMto store the triple of sets (S,Spush,Spop)
+and which is accessed with the following methods.
+TLM.create ()creates the data structure with the three sets empty.
+
+--- Page 13 ---
+S. Akshay, P. Gastin and K. R. Prakash 13
+TLM.add(q,Z,q/prime,Z/prime)adds [(q,Z),(q/prime,Z/prime)]toS.
+TLM.addPush (q,Z,a,q/prime,Z/prime)adds [(q,Z),a,(q/prime,Z/prime)]toSpush.
+TLM.addPop (q,Z,a,q/prime,Z/prime)adds [(q,Z),a,(q/prime,Z/prime)]toSpop.
+TLM.isNewRoot (q,Z)returns [false,Z/prime]if there exists some (q,Z/prime)∈SwithZ/prime∼qZ,
+and returns [true,Z]otherwise.
+TLM.isNewNode (q,Z,q/prime,Z/prime)returns falseif∃[(q,Z),(q/prime,Z/prime/prime)]∈SwithZ/prime/precedesequalq/primeZ/prime/prime, and
+returns trueotherwise.
+TLM.isNewPop (q,Z,a,q/prime,Z/prime)returns falseif∃[(q,Z),a,(q/prime,Z/prime/prime)]∈SpopwithZ/prime/precedesequalq/primeZ/prime/prime,
+trueotherwise.
+TLM.isNewPush (q,Z,a,q/prime,Z/prime)returns falseif[(q,Z),a,(q/prime,Z/prime)]∈Spush, and returns true
+otherwise.
+TLM.iterPop (q,Z,a )returns the list of (q/prime,Z/prime)with [(q,Z),a,(q/prime,Z/prime)]∈Spop.
+TLM.iterPush (a,q/prime,Z/prime)returns the list of (q,Z), s.t. [(q,Z),a,(q/prime,Z/prime)]∈Spush.
+Concretely, the data structure should store sets of nodes (q,Z)and be able to search or
+iterate through such sets. In order to make the algorithm slightly faster, we will segregate
+our sets of nodes, with the name of the state. We will use a hashmap in order to accomplish
+this task. See Figure 6 where the concrete data structure is depicted.
+We will use a ﬁrst level hashmap to store the set of roots S. In order to implement
+TLM.isNewNode (q,Z,q/prime,Z/prime), we ﬁrst search for (q,Z)in the ﬁrst level map, then a pointer
+TLM[q][Z][0]will lead to a second level hashmap for the set of nodes S(q,Z)and we search
+for(q/prime,Z/prime)in this second level map. See Figure 6(b).
+To implement TLM.isNewPop (q,Z,a,q/prime,Z/prime)andTLM.iterPop (q,Z,a ), we ﬁrst search the
+root node (q,Z)in the ﬁrst level map, then a pointer TLM [q][Z][2]will lead to a second level
+hashmap storing the set of triples (a,q/prime,Z/prime)such that [(q,Z),a,(q/prime,Z/prime)]∈Spop. To speed up
+the access, this second level pop map is segregated ﬁrst on the key a, then on the key q/primeto
+get the list of corresponding zones Z/prime. See Figure 6(c,d).
+Finally, we also store the set Spushto implement TLM.isNewPush (q,Z,a,q/prime,Z/prime)and
+TLM.iterPush (a,q/prime,Z/prime). Notice thatSpushconsists of triples [(q,Z),a,(q/prime,Z/prime)]where both
+(q,Z)and(q/prime,Z/prime)are root nodes from S. Notice also that for the iteration we ﬁx the second
+node (q/prime,Z/prime). To get an eﬃcient implementation, we ﬁrst search the root node (q/prime,Z/prime)in
+the ﬁrst level map, then a pointer TLM [q/prime][Z/prime][1]will lead to a second level hashmap storing
+the set of triples (a,q,Z )such that [(q,Z),a,(q/prime,Z/prime)]∈Spush. To speed up the access, this
+second level push map is segregated ﬁrst on the key a, then on the key qto get the list of
+corresponding zones Z. See Figure 6(c,d).
+We move next to proving the main lemmas that will help us show correctness of Al-
+gorithm 1. We start with termination.
+ILemma 4 (Termination) .Algorithm 1 will always terminate.
+Proof.If we look at our algorithm, we can clearly see that before adding a pair of nodes to
+theToDolist, we add the same pair to Swith TLM.add, and before that, we always check
+whether the pair is already in our TLMor not ( isNewNode orisNewRoot ). Since the size of
+theTLMis always bounded because we check either the ﬁrst level map or the second level
+map before adding, the outer while loop will be called only a ﬁnite number of times, which
+shows termination of the algorithm. J
+
+--- Page 14 ---
+14 Fast zone-based algorithms for reachability in pushdown timed automata
+Algorithm 1 PDTA Reachability Using Zones.
+1:procedure PDTAReach
+2: TLM.create ()
+3: TLM.add(q0, Z0, q0, Z0) ⊿Start Rule
+4: ToDo ={[(q0, Z0),(q0, Z0)]}
+5: while ToDo/negationslash=∅do
+6: [(q, Z),(q/prime, Z/prime)] =ToDo .get() ⊿(q, Z)∈S∧(q/prime, Z/prime)∈S(q,Z)
+7: fort=q/primeg,op,R−−−−→ q/prime/primeandZ/prime/prime=−−−−−−→
+R(g∩Z/prime)/negationslash=∅do
+8: ifop = nop∧TLM.isNewNode (q, Z, q/prime/prime, Z/prime/prime)then
+9: TLM.add(q, Z, q/prime/prime, Z/prime/prime) ⊿Internal Rule
+10: ToDo .add([(q, Z),(q/prime/prime, Z/prime/prime)])
+11: else if op = pushathen
+12: [isNew, Z 1] =TLM.isNewRoot (q/prime/prime, Z/prime/prime)
+13: ifisNew ==truethen
+14: TLM.add(q/prime/prime, Z/prime/prime, q/prime/prime, Z/prime/prime) ⊿Push Rule
+15: ToDo .add([(q/prime/prime, Z/prime/prime),(q/prime/prime, Z/prime/prime)])
+16: end if
+17: ifTLM.isNewPush (q, Z, a, q/prime/prime, Z1)then
+18: TLM.addPush (q, Z, a, q/prime/prime, Z1)
+19: for(q2, Z2)inTLM.iterPop (q/prime/prime, Z1, a)do
+20: ifTLM.isNewNode (q, Z, q 2, Z2)then
+21: TLM.add(q, Z, q 2, Z2) ⊿Pop Rule
+22: ToDo .add([(q, Z),(q2, Z2)])
+23: end if
+24: end for
+25: end if
+26: else if op = popathen
+27: ifTLM.isNewPop (q, Z, a, q/prime/prime, Z/prime/prime)then
+28: TLM.addPop (q, Z, a, q/prime/prime, Z/prime/prime)
+29: for(q3, Z3)inTLM.iterPush (a, q, Z )do
+30: ifTLM.isNewNode (q3, Z3, q/prime/prime, Z/prime/prime)then
+31: TLM.add(q3, Z3, q/prime/prime, Z/prime/prime) ⊿Pop Rule with q=q3, Z=Z3
+32: ToDo .add([(q3, Z3),(q/prime/prime, Z/prime/prime)]) ⊿ q2=q/prime/prime, Z2=Z/prime/prime
+33: end if
+34: end for
+35: end if
+36: end if
+37: end for
+38: end while
+39:end procedure
+
+--- Page 15 ---
+S. Akshay, P. Gastin and K. R. Prakash 15
+q1 Z1...
+q2 Z2...
+q3 Z31... Z32... Z33...
+q4 Z41... Z42... Z43...
+q5 Z51... Z52... Z53...
+q6 Z61... Z62... Z63...
+(a)Firstlevelmapconstructedusingequivalence
+∼qfor controlling size. Keys will be state names,
+values will be lists of quadruplets, each of which
+has four pointers to second level maps, second
+level pushes maps, second level pops maps, and
+zones.q1Z1
+q2Z/prime
+2
+q3Z/prime
+3
+q4Z42Z45
+q5Z57
+q6Z61
+(b)Second level map corresponding to S(q1,Z1).
+Each ﬁrst level map node will have its own
+second level map.
+a1 .
+a2 .
+a3 .
+a4 . .
+a5 .
+(c)Pushes/Pops map corresponding to root
+node (q1, Z1). Each pointer points to a diﬀerent
+map where (q, Z)are stored.q1Z1
+q2Z2
+q3Z32
+q4Z42Z43
+q5Z53
+q6Z61
+(d)For pushes/pops map, this is a map corres-
+ponding to root node (q1, Z1), and symbol a2
+(say). The (q, Z)storedhereisconstructedusing
+equivalence (pushes map), or using simulation
+(pops map).
+Figure 6 Two level map implementing the data structure TLMstoring the setsS,Spush,Spop.
+
+--- Page 16 ---
+16 Fast zone-based algorithms for reachability in pushdown timed automata
+Next, recall that TLMencodes a triple of sets (S,Spush,Spop)deﬁned by:
+S={[(q,Z),(q/prime,Z/prime)]|(q/prime,Z/prime)∈TLM [q][Z][0]}
+Spush={[(q,Z),a,(q/prime,Z/prime)]|(a,q,Z )∈TLM [q/prime][Z/prime][1]}
+Spop={[(q,Z),a,(q/prime,Z/prime)]|(a,q/prime,Z/prime)∈TLM [q][Z][2]}
+Recall also the correspondence explained at the beginning of Section 5 between a set Sof
+pairs of nodes, and the set of roots Stogether with the sets of nodes S(q,Z)for(q,Z)∈S.
+Then we have the following properties.
+ILemma 5. If[(q,Z),(q/prime,Z/prime)]∈ToDo, then (q/prime,Z/prime)∈TLM [q][Z][0].
+Proof. TLM[q][Z][0]is changed only when addmethod is called. As we can see in the al-
+gorithm,everyadditionto ToDowith ToDo.add([(q,Z),(q/prime,Z/prime)])followsacall TLM.add(q,Z,q/prime,Z/prime)
+resulting in (q/prime,Z/prime)∈TLM[q][Z][0]. And since TLMonly increases, we can say that the
+lemma is true. The converse is not true, as ToDocan increase and decrease.
+J
+ILemma 6 (Pops).If(a,q/prime/prime,Z/prime/prime)∈TLM[q][Z][2], then there exist (q/prime,Z/prime)∈TLM[q][Z][0]
+and some transition t=q/primeg,popa,R−−−−−−→q/prime/primewithZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅.
+Proof.The method addPopis only used in Line 28, where (a,q/prime/prime,Z/prime/prime)is added to TLM [q][Z][2].
+When reaching this line, the pair extracted from ToDois[(q,Z),(q/prime,Z/prime)]and by Lemma 5,
+we get (q/prime,Z/prime)∈TLM [q][Z][0]. The for loop on Line 7 considers a transition t=q/primeg,op,R−−−−→q/prime/prime
+such thatZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. Moreover, we have op = popa, which completes the proof.
+J
+ILemma 7 (Pushes).If(a,q,Z )∈TLM [q/prime/prime][Z1][1], then there exist (q/prime,Z/prime)∈TLM [q][Z][0]
+and some transition t=q/primeg,pusha,R−−−−−−→q/prime/primesuch thatZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅andZ/prime/prime∼q/prime/primeZ1.
+Proof.Themethod addPush isonlyusedinLine18, whenweadd (a,q,Z )intoTLM [q/prime/prime][Z1][1].
+We haveZ1∼q/prime/primeZ/prime/primedue to the call to isNewRoot on Line 12. When reaching this line, the
+pair extracted from ToDois[(q,Z),(q/prime,Z/prime)]and by Lemma 5, we get (q/prime,Z/prime)∈TLM [q][Z][0].
+The for loop on Line 7 considers a transition t=q/primeg,op,R−−−−→q/prime/primesuch thatZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅.
+Moreover, we have op = pusha, which completes the proof.
+J
+Using the three properties above, we will now show soundness and completeness of
+Algorithm 1. We start with soundness, for which we need to deﬁne the notion of a mid-
+computation.
+IDeﬁnition 8 (Mid-Computation (MC)) .A mid-computation is any set Sof pairs of nodes
+[(q,Z),(q/prime,Z/prime)]that can be obtained by applying the inductive rules in Table 1 in some order
+(not necessarily until a ﬁxed point is reached). We say that TLMis a mid-computation when
+it encodes a triple (S,Spush,Spop)whereSis a mid-computation.
+For example, just applying the start rule yields S={[(q0,Z0),(q0,Z0)]}, which is a
+mid-computation. Now we can show the following lemma.
+ILemma 9 (Soundness) .At any point in Algorithm 1, TLMis a mid-computation.
+
+--- Page 17 ---
+S. Akshay, P. Gastin and K. R. Prakash 17
+Proof.We will prove this lemma by induction.
+Base Case : Just after execution of Line 3, we have S={[(q0,Z0),(q0,Z0)]}which is the
+smallest MC, just after applying the start rule.
+Induction Hypothesis : Let us say that after letting the algorithm execute for some time
+we stop it, and TLMis a mid-computation.
+Induction : Now we prove that no matter what happens, TLMwill still be a MC. There
+are only a few statements in the algorithm that will change Sencoded by TLM, and that
+is when some addmethod is called. Apart from the initialization in Line 3 which has been
+considered in the base case, they all start with a pair [(q,Z),(q/prime,Z/prime)]popped from ToDolist.
+According to Lemma 5, we can see that (q/prime,Z/prime)∈TLM[q][Z][0], i.e., [(q,Z),(q/prime,Z/prime)]∈Sor
+equivalently (q,Z)∈Sand(q/prime,Z/prime)∈S(q,Z). Now, we have several cases.
+TLM.add(q,Z,q/prime/prime,Z/prime/prime)on Line 9: The transtion in consideration is t=q/primeg,nop,R−−−−−→q/prime/prime
+withZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. From the test TLM.isNewNode (q,Z,q/prime/prime,Z/prime/prime), we know that
+(q/prime/prime,Z/prime/prime)is not already subsumed by an element in S(q,Z). Therefore, the rule for internal
+transitions can be applied, resulting in S:=S∪{ [(q,Z),(q/prime/prime,Z/prime/prime)]}. And this corresponds
+to excecuting Line 9. Therefore, the new TLMafter Line 9 is also a mid-computation.
+TLM.add(q/prime/prime,Z/prime/prime,q/prime/prime,Z/prime/prime)on Line 14: Now, t=q/primeg,pusha,R−−−−−−→q/prime/primeis a push transition with
+Z/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. The call to isNewRoot on Line 12 returned [true,Z/prime/prime], indicating
+that (q/prime/prime,Z/prime/prime)is a new root. Therefore, the push rule can be applied here, which is what
+is done in Line 14 and TLMis still a mid-computation.
+TLM.add(q,Z,q 2,Z2)on Line 21: The transition in consideration is t=q/primeg,pusha,R−−−−−−→q/prime/prime
+withZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. According to Line 12, Z1∼q/prime/primeZ/prime/prime. Since we are looping on
+TLM.iterPop (q/prime/prime,Z1,a) =TLM[q/prime/prime][Z1][2][a], by Lemma 6, there exist a node (q/prime
+1,Z/prime
+1)∈
+TLM [q/prime/prime][Z1][0]and a transition t1=q/prime
+1g1,popa,R1−−−−−−−→ q2withZ2=−−−−−−−−→R1(g1∩Z/prime
+1)/negationslash=∅. Since
+TLMencodesS, we have [(q/prime/prime,Z1),(q/prime
+1,Z/prime
+1)]∈S, i.e., (q/prime/prime,Z1)∈Sand(q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1).
+We can therefore apply the pop rule over here, unless (q2,Z2)is subsumed by an existing
+node inS(q,Z), which is checked in Line 20. Therefore the pop rule can be applied, which
+is exactly done in Line 21, resulting in TLMbeing again a mid-computation.
+TLM.add(q3,Z3,q/prime/prime,Z/prime/prime)on Line 31: The main transition under consideration is t=
+q/primeg,popa,R−−−−−−→q/prime/primewithZ/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. Weareloopingon (q3,Z3)inTLM.iterPush (a,q,Z ) =
+TLM [q][Z][1][a]. Hence, by Lemma 7, that there exist (q/prime
+3,Z/prime
+3)∈TLM [q3][Z3][0]and some
+transitiont3=q/prime
+3g3,pusha,R3−−−−−−−−→ qsuch thatZ/prime/prime
+3=−−−−−−−−→R3(g3∩Z/prime
+3)∼qZ. Since TLMencodes
+S, we have (q3,Z3)∈Sand(q/prime
+3,Z/prime
+3)∈S(q3,Z3). We can therefore apply the pop rule
+here as well, if the node (q/prime/prime,Z/prime/prime)is not subsumed by any other node in S(q3,Z3), which is
+checked in Line 30. The pop rule can therefore be applied and the resulting TLMis still
+a mid-computation.
+J
+Next we turn to completeness of the algorithm.
+ILemma 10 (Completeness) .After the termination of Algorithm 1, the set Sencoded by
+TLMis a ﬁxed point of the inductive rules in Table 1, that is, no new node can be added by
+applying one of these rules.
+Proof.We show that the rules deﬁned in Table 1 will not add any new pair of nodes to the
+setSdeﬁned by TLM.
+Start Rule : After Line 3 of the algorithm we see that [(q0,Z0),(q0,Z0)]∈S. Therefore,
+applying the start rule would not add any new pair of nodes.
+
+--- Page 18 ---
+18 Fast zone-based algorithms for reachability in pushdown timed automata
+Internal Rule : Let (q,Z)∈Sand(q/prime,Z/prime)∈S(q,Z), i.e., [(q,Z),(q/prime,Z/prime)]∈S. Let
+t=q/primeg,nop,R−−−−−→q/prime/primebe an internal transition and Z/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. Applying the
+internal rule in Table 1 would add (q/prime/prime,Z/prime/prime)toS(q,Z)unless there is (q/prime/prime,Z/prime/prime/prime)∈S(q,Z)
+withZ/prime/prime/precedesequalq/prime/primeZ/prime/prime/prime. Now, since [(q,Z),(q/prime,Z/prime)]∈Sthen TLM.add(q,Z,q/prime,Z/prime)was ex-
+ecuted, and [(q,Z),(q/prime,Z/prime)]was also added to ToDo. When [(q,Z),(q/prime,Z/prime)]was re-
+moved from ToDo, the internal transition twas considered. Hence, either the test
+TLM.isNewNode (q,Z,q/prime/prime,Z/prime/prime)returnedtrueand TLM.add(q,Z,q/prime,Z/prime)wasexecuted; weget
+(q/prime/prime,Z/prime/prime)∈S(q,Z). Or the test returned false and we had some (q/prime/prime,Z/prime/prime/prime)∈TLM [q][Z][0] =
+S(q,Z)such thatZ/prime/prime/precedesequalq/prime/primeZ/prime/prime/prime. In both cases, the rule for internal transitions is satisﬁed.
+Push Rule : Let (q,Z)∈Sand(q/prime,Z/prime)∈S(q,Z), i.e., [(q,Z),(q/prime,Z/prime)]∈S. Lett=
+q/primeg,pusha,R−−−−−−→q/prime/primebe a push transition and Z/prime/prime=−−−−−−→R(g∩Z/prime)/negationslash=∅. Since [(q,Z),(q/prime,Z/prime)]∈S
+then TLM.add(q,Z,q/prime,Z/prime)was executed, and [(q,Z),(q/prime,Z/prime)]was also added to ToDo.
+When [(q,Z),(q/prime,Z/prime)]was removed from ToDo, the push transition twas considered
+andTLM.isNewRoot (q/prime/prime,Z/prime/prime)was called and returned [isNew,Z 1]. If the boolean isNew
+is true then Line 14 is executed resulting in [(q/prime/prime,Z/prime/prime),(q/prime/prime,Z/prime/prime)], i.e., (q/prime/prime,Z/prime/prime)∈Sand
+(q/prime/prime,Z/prime/prime)∈S(q/prime/prime,Z/prime/prime). Otherwise, (q/prime/prime,Z1)∈SandZ/prime/prime∼q/prime/primeZ1. In both cases, the rule for
+push transitions is satisﬁed.
+Pop Rule : Let the rule premises be (q,Z)∈S,(q/prime,Z/prime)∈S(q,Z),t=q/primeg,pusha,R−−−−−−→q/prime/prime,
+Z/prime/prime=−−−−−−→R(g∩Z/prime)∼Z1; and (q/prime/prime,Z1)∈S,(q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1),t1=q/prime
+1g1,popa,R1−−−−−−−→ q2,
+Z2=−−−−−−−−→R1(g1∩Z/prime
+1)/negationslash=∅. We will show that there is (q2,Z†
+2)∈S(q,Z)withZ2/precedesequalq2Z†
+2so
+that the conclusion of the pop rule is satisﬁed.
+First, by the argument used earlier with respect to [(q,Z),(q/prime,Z/prime)]∈S, we can say
+that the transition t, hence also the node (q/prime/prime,Z/prime/prime), should have been considered while
+popping [(q,Z),(q/prime,Z/prime)]from the ToDolist. Since no two nodes in the ﬁrst level map of
+TLMare equivalent, we can say that Z1used in Line 17-25 coincide with Z1used here.
+Due to Lines 17-18, we get (a,q,Z )∈TLM[q/prime/prime][Z1][1]. Let us note Tpushthe time when
+TLM.addPush (q,Z,a,q/prime/prime,Z1)was executed. Note that this time could have been earlier
+than when transition twas considered if condition on Line 17 was not satisﬁed.
+With respect to (q/prime
+1,Z/prime
+1)∈S(q/prime/prime,Z1), i.e., [(q/prime/prime,Z1),(q/prime
+1,Z/prime
+1)]∈S, we can say that transition
+t1, hence also node (q2,Z2), should have been considered when [(q/prime/prime,Z1),(q/prime
+1,Z/prime
+1)]was
+removed from the ToDolist. Notice the correspondence between the notation in the
+algorithm and the notation above, correspondence given by:
+q/mapsto→q/prime/primeZ/mapsto→Z1 q/prime/mapsto→q/prime
+1 Z/prime/mapsto→Z/prime
+1
+q/prime/prime/mapsto→q2 Z/prime/prime/mapsto→Z2 q3/mapsto→q Z 3/mapsto→Z
+Hence, the test on Line 27 translates to TLM.isNewNode (q/prime/prime,Z1,a,q 2,Z2). If it returns
+false, there must be some other node (q2,Z/prime
+2)∈TLM[q/prime/prime][Z1][2][a]withZ2/precedesequalq2Z/prime
+2. If
+it returns true then TLM.addPop (q/prime/prime,Z1,a,q 2,Z2)is executed, resulting in (q2,Z2)∈
+TLM [q/prime/prime][Z1][2][a], and to unify the notation, we let Z/prime
+2=Z2. Let us note Tpopthe time
+when TLM.addPop (q/prime/prime,Z1,a,q 2,Z/prime
+2)was executed.
+We have the following cases now
+Tpush> T pop: In this case, the for loop Line 19 is executed with node (q2,Z/prime
+2)
+inTLM.iterPop (q/prime/prime,Z1,a) = TLM[q/prime/prime][Z1][2][a]. Due to Lines 20-21, we get either
+(q2,Z/prime
+2)∈TLM [q][Z][0] =S(q,Z)or there is some (q2,Z†
+2)∈TLM [q][Z][0] =S(q,Z)such
+thatZ/prime
+2/precedesequalq2Z†
+2. In both cases, using Z2/precedesequalq2Z/prime
+2, we deduce that the pop rule is
+satisﬁed.
+
+--- Page 19 ---
+S. Akshay, P. Gastin and K. R. Prakash 19
+Tpush< T pop: In this case, the for loop Line 29 is executed with node (q,Z)in
+TLM.iterPush (a,q/prime/prime,Z1) =TLM[q/prime/prime][Z1][1][a](recall the correspondence of notations).
+Due to Lines 30-31, we get either (q2,Z2)∈TLM[q][Z][0] =S(q,Z)or there is some
+(q2,Z†
+2)∈TLM[q][Z][0] =S(q,Z)such thatZ2/precedesequalq2Z†
+2. In both cases, we deduce that
+the pop rule is satisﬁed.
+J
+Finally, from Lemma 4, Lemma 9, Lemma 10 and Theorem 3, we obtain:
+ITheorem 11. The setSencoded by TLMcomputed by Algorithm 1 is a ﬁxed point obtained
+starting from the empty set by applying the inductive rules in Table 1. Therefore, Algorithm 1
+terminates and is sound and complete for well-nested control state reachability of pushdown
+timed automata.
+6 Experiments and Results
+We build on the existing architecture of an open-source tool for analysis of timed automata,
+TChecker [ 18]. Our tool is freely available for download and use at https://github.
+com/karthik-314/PDTA_reachability . Currently, our implementation uses only the LU-
+simulation [ 7] and hence we only deal with diagonal-free timed automata. But we could also
+extend it to useG-simulations from [ 16], which would allow us to handle diagonal constraints
+as well.
+6.1 Implementation
+The input for our implementation are PDTA, rather than TA so we modify TChecker in order
+to run our experiments. While most of the TChecker ﬁle format will remain the same, the
+only place where we make a change to the syntax of the input, will be the edges. TChecker
+uses the following format, for its transitions,
+edge:<Process>:<src>:<tgt>:<label>{
+do:<Reset1(x=0)> ; <Reset2(y=0)> :
+provided: <guard1(x==0)> && <guard2(y>=1)>}
+The new format in order to incorporate the pushes and pops will be,
+edge:<Process>:<src>:<tgt>:<label>{
+do:<Reset1(x=0)> ; <Reset2(y=0)> :
+provided: <guard1(x==0)> && <guard2(y>=1)>}
+[<push/pop>:<symbol>]
+In case the operation is nop, the square brackets are left empty.
+We have implemented two variants of Algorithm 1 for PDTA and we will compare these
+between each other and also with a region-based approach. More precisely, we consider the
+following 3 algorithms:
+Simulation Based Approach (/precedesequalLU): Direct implementation of Algorithm 1.
+Equivalence Based Approach (∼LU): This is a variation of Algorithm 1, with two
+methods changed,
+TLM.isNewNode (q,Z,q/prime,Z/prime): Returns falseif∃[(q,Z),(q/prime,Z/prime/prime)]∈SwithZ/prime∼q/primeZ/prime/prime,
+andtrueotherwise.
+
+--- Page 20 ---
+20 Fast zone-based algorithms for reachability in pushdown timed automata
+TLM.isNewPop (q,Z,a,q/prime,Z/prime): Returns falseif∃[(q,Z),a,(q/prime,Z/prime/prime)]∈SpopwithZ/prime∼q/prime
+Z/prime/prime, and trueotherwise.
+As mentioned in Section 4, if instead of simulation, we just use equivalence everywhere,
+we do obtain a correct algorithm for reachability in PDTA. Hence it is interesting to
+compare it with the above approach.
+Region Based Implementation (RB): A previous implementation [ 5], uses a region
+based approach in order to solve the non-emptiness problem in PDTA. We note two
+features of the algorithm. First, it uses a tree-automaton based approach for eﬃciency
+and correctness, but underlying it is the region (rather than zone) construction. Second,
+it works only with closed guards, while our approach works with closed and open guards.
+We note the following important points regarding our implementation:
+1.The/precedesequalused in our implementation will be /precedesequalLU[7], without extrapolation and with global
+clock bounds.
+2.The ToDolist used currently uses LIFO (stack) ordering for popping of elements. This
+corresponds to a DFS exploration of the zone-graph. But we can use other data structures
+for this purpose as well, e.g., changing it to FIFO would give us a BFS exploration etc.
+3.Both the simulation based and equivalence based approach are tested on PDTA with
+empty and non-empty languages, but we have ensured that both of them return an answer
+only after the entire exploration has been completed. In other words, we do not stop the
+exploration when we reach a ﬁnal state. This is to make fair comparisons, where we do
+not terminate because of being “lucky” in encountering the ﬁnal state early. Of course in
+practice we would not do this. In contrast, we note that the RBapproach is an on the ﬂy
+approach which returns non-empty as soon as the ﬁnal state turns out to be reachable.
+All experiments are run on Intel-i5 10th Generation processor, with an 8GB RAM, with
+a timeout of 120seconds.
+6.2 Benchmarks
+We used a total of 10 benchmarks in our experiments, but parameterized several of them in
+order to test the scalability and to give us more insight into performance comparisons. The
+benchmark and their parameterizations are explained in A.1. We highlight only some salient
+points here. The benchmark B1is the PDTA from Figure 1. B2(k)is directly adapted from
+Figure 3 with the constant y≤1parametrized to y≤k, andk+ 1pops between q0andq2.
+Note thatq3is unreachable regardless of the value of k. Benchmarks B3,B4are adapted
+from [5] withB3involving untiming of a stack age into normal clocks. B5,B6involve signiﬁc-
+ant interplay of push/pop edges and clocks and B6,B7also have open guards. More details
+can be found in A.1. We also note that automata B1,B3(3,4),B5(k1,k2),B8,B9(k1,k2)ac-
+cept a nonempty language, while the rest are empty. As described earlier this does not change
+the performance of the simulation and equivalence based approaches, but may signiﬁcantly
+change the performance of the Region Based Approach.
+6.3 Results
+Table 2 contains a selection of our experimental results; more detailed results can be found
+in A.2. From the table, we conclude ﬁrst that the zone based approach is indeed faster than
+the Region Based Approach for all examples. Second, the simulation based approach runs
+faster than the equivalence based approach for all examples if the ToDopriority for removal
+remains the same. In fact, the performance of the simulation based approach depends mostly
+on the size of the PDTA, but the equivalence based approach is dependant on the constants
+
+--- Page 21 ---
+S. Akshay, P. Gastin and K. R. Prakash 21
+Benchmark /precedesequalLU/precedesequalLU∼LU∼LU RB RB
+Time # nodes Time # nodes Time # nodes
+B1 0.2 17 0.2 17 235.6 4100
+B2(10) 0.8 77 0.8 77 6835.8 30200
+B2(100) 20.0 5252 20.7 5252 T.O.≥154700
+B3(4,3) 0.2 6 0.2 6 1043.8 14300
+B3(3,4) 0.2 9 0.2 9 98.8 3400
+B4 0.2 8 0.1 8 0.3 17
+B5(100,10) 0.8 202 5.4 2212 OoM OoM
+B5(100,1000) 0.7 202 3564.3 201202 OoM OoM
+B5(5000 ,100) 23.2 10002 3429.3 1010102 OoM OoM
+B6(5,4,1000) 0.3 30 611.8 30047 NA NA
+B6(5,4,10000) 0.3 30 60271.9 300047 NA NA
+B6(501,500,100)38.2 3006 501.0 34799 NA NA
+B7 112.4 4475 113.1 4475 NA NA
+Table 2 Results on the Benchmarks. Time recorded in ms, and timeout (T.O.) used is 120
+seconds. OoM stands for Out of Memory kill. Results rounded up to 1 decimal. # nodes refers to
+the number of nodes in the zone/region graph explored. In case of timeout ≥n, refers to recorded
+number of nodes nbefore timeout occurred. NA in RBcolumns represents that the region based
+approach does not handle open guards in transitions ( B6,B7have open guards.)
+used in guards as well, which is even more the case for the region based approach. Finally,
+our approach can easily handle closed and open guards.
+Most of the timeouts that occurred during the experiments are due to Out of Memory
+(OoM) kills, especially for larger sized PDTAs. For smaller sized PDTA such as B2(100), the
+recorded number of nodes before timeout was 154700.
+Regarding the performance, we would like to emphasize that B1, B2, B3, B4, B7 were
+designed to compare the Zone approach to the region (RB) approach. As a consequence
+these models are very simple and the number of explored nodes remains almost the same
+regardless of whether we use ∼or/precedesequalto prune, which reﬂects in the times/sizes not being too
+diﬀerent. However, the other examples B5, B6 are more complex and have nodes that get
+pruned during exploration (both using ∼and/precedesequal). Here we can see the clear improvement of
+/precedesequalover∼both in terms of time taken and also of number of explored nodes.
+7 Discussion and Future work
+In this paper, we examined how an unbounded stack can be integrated seamlessly with
+zone-abstractions in timed automata. We would like to point out that two easy extensions
+of our work are possible. First, as remarked earlier, our algorithm checks for well-nested
+reachability, i.e., it requires to reach a ﬁnal state with empty stack for acceptance. But we
+can generalize this to general control-state reachability by showing that a control state qis
+reachable in the PDTA (with possibly a non-empty stack) iﬀ some node (q,Z)is discovered
+by our algorithm and added to some S(q/prime,Z/prime)(and not just to S(q0,Z0)as in the well-nested
+case). While this idea is simple and requires only minor edits to the existing algorithm, the
+proof of correctness requires more work and we leave this for future work.
+Secondly, we can handle the model with ages in stack as in [ 3,1] with an exponential
+blowup (thanks to [ 12]). However, an open question is whether this blowup can be avoided
+
+--- Page 22 ---
+22 Fast zone-based algorithms for reachability in pushdown timed automata
+in practice. As noted earlier, there exist extensions [ 14,13] studied especially in the context
+of binary reachability, which are expressively strictly more powerful, for which decidability
+results are known. It would be interesting to see how we can extend the zone-based approach
+to those models.
+Finally, it seems interesting to examine further the link to the liveness problem, possibly
+allowing us to transfer ideas and obtain faster implementations. Another possibility would
+be to use the extrapolation operator (rather than, or in addition to, simulation), which we
+have not considered in this work.
+References
+1Parosh Aziz Abdulla, Mohamed Faouzi Atig, and Jari Stenman. Dense-timed pushdown
+automata. In Proceedings of the 27th Annual IEEE Symposium on Logic in Computer Science,
+LICS 2012, Dubrovnik, Croatia, June 25-28, 2012 , page 35–44, 2012.
+2S. Akshay, Paul Gastin, Vincent Jugé, and Shankara Narayanan Krishna. Timed systems
+through the lens of logic. In 34th Annual ACM/IEEE Symposium on Logic in Computer
+Science, LICS 2019, Vancouver, BC, Canada, June 24-27, 2019 , pages 1–13, 2019.
+3S. Akshay, Paul Gastin, and Shankara Narayanan Krishna. Analyzing Timed Systems Using
+Tree Automata. Logical Methods in Computer Science , Volume 14, Issue 2, May 2018.
+4S. Akshay, Paul Gastin, Shankara Narayanan Krishna, and Sparsa Roychowdhury. Revisiting
+underapproximate reachability for multipushdown systems. In Tools and Algorithms for the
+Construction and Analysis of Systems - 26th International Conference, TACAS 2020, Held as
+Part of the European Joint Conferences on Theory and Practice of Software, ETAPS 2020,
+Dublin, Ireland, April 25-30, 2020, Proceedings, Part I , volume 12078 of Lecture Notes in
+Computer Science , pages 387–404. Springer, 2020.
+5S. Akshay, Paul Gastin, Shankara Narayanan Krishna, and Ilias Sarkar. Towards an eﬃcient
+tree automata based technique for timed systems. In 28th International Conference on
+Concurrency Theory, CONCUR 2017, September 5-8, 2017, Berlin, Germany , pages 39:1–
+39:15, 2017.
+6Rajeev Alur and David L Dill. A theory of timed automata. Theoretical computer science ,
+126(2):183–235, 1994.
+7Gerd Behrmann, Patricia Bouyer, Kim Guldstrand Larsen, and Radek Pelánek. Lower and
+upper bounds in zone based abstractions of timed automata. In Kurt Jensen and Andreas
+Podelski, editors, Tools and Algorithms for the Construction and Analysis of Systems, 10th
+International Conference, TACAS 2004, Held as Part of the Joint European Conferences on
+Theory and Practice of Software, ETAPS 2004, Barcelona, Spain, March 29 - April 2, 2004,
+Proceedings , volume 2988 of Lecture Notes in Computer Science , pages 312–326. Springer,
+2004.
+8Johan Bengtsson, Kim Larsen, Fredrik Larsson, Paul Pettersson, and Wang Yi. Uppaal—a
+tool suite for automatic veriﬁcation of real-time systems. In International Hybrid Systems
+Workshop , pages 232–243. Springer, 1995.
+9Ahmed Bouajjani, Rachid Echahed, and Riadh Robbana. On the automatic veriﬁcation of
+systems with continuous variables and unbounded discrete data structures. In International
+Hybrid Systems Workshop , pages 64–85. Springer, 1994.
+10Patricia Bouyer. Forward analysis of updatable timed automata. Formal Methods Syst. Des. ,
+24(3):281–320, 2004.
+11Patricia Bouyer, François Laroussinie, and Pierre-Alain Reynier. Diagonal constraints in
+timed automata: Forward analysis of timed systems. In Paul Pettersson and Wang Yi, editors,
+Formal Modeling and Analysis of Timed Systems, Third International Conference, FORMATS
+2005, Uppsala, Sweden, September 26-28, 2005, Proceedings , volume 3829 of Lecture Notes in
+Computer Science , pages 112–126. Springer, 2005.
+
+--- Page 23 ---
+S. Akshay, P. Gastin and K. R. Prakash 23
+12Lorenzo Clemente and Slawomir Lasota. Timed pushdown automata revisited. In 30th Annual
+ACM/IEEE Symposium on Logic in Computer Science, LICS 2015, Kyoto, Japan, July 6-10,
+2015, page 738–749, 2015.
+13Lorenzo Clemente and Slawomir Lasota. Reachability relations of timed pushdown automata.
+J. Comput. Syst. Sci. , 117:202–241, 2021.
+14Lorenzo Clemente, Slawomir Lasota, Ranko Lazic, and Filip Mazowiecki. Timed pushdown
+automata and branching vector addition systems. In 32nd Annual ACM/IEEE Symposium
+on Logic in Computer Science, LICS 2017, Reykjavik, Iceland, June 20-23, 2017 , pages 1–12.
+IEEE Computer Society, 2017.
+15Zhe Dang. Pushdown timed automata: a binary reachability characterization and safety
+veriﬁcation. Theor. Comput. Sci. , (1-3):93–121, 2003.
+16Paul Gastin, Sayan Mukherjee, and B. Srivathsan. Fast algorithms for handling diagonal
+constraints in timed automata. In Computer Aided Veriﬁcation - 31st International Conference,
+CAV 2019, New York City, NY, USA, July 15-18, 2019, Proceedings, Part I , volume 11561 of
+Lecture Notes in Computer Science , pages 41–59. Springer, 2019.
+17Frédéric Herbreteau, Dileep Kini, B. Srivathsan, and Igor Walukiewicz. Using non-convex
+approximations for eﬃcient analysis of timed automata. In IARCS Annual Conference
+on Foundations of Software Technology and Theoretical Computer Science, FSTTCS 2011,
+December 12-14, 2011, Mumbai, India , volume 13 of LIPIcs, pages 78–89. Schloss Dagstuhl -
+Leibniz-Zentrum für Informatik, 2011.
+18Frédéric Herbreteau and Gerald Point. Tchecker. Available at https://github.com/fredher/
+tchecker .
+19Frédéric Herbreteau, B. Srivathsan, Thanh-Tung Tran, and Igor Walukiewicz. Why liveness
+for timed automata is hard, and what we can do about it. ACM Trans. Comput. Log. ,
+21(3):17:1–17:28, 2020.
+20Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better abstractions for timed
+automata. In Proceedings of the 27th Annual IEEE Symposium on Logic in Computer Science,
+LICS 2012, Dubrovnik, Croatia, June 25-28, 2012 , pages 375–384. IEEE Computer Society,
+2012.
+21Alfons Laarman, Mads Chr. Olesen, Andreas Engelbredt Dalsgaard, Kim Guldstrand Larsen,
+and Jaco van de Pol. Multi-core emptiness checking of timed Büchi automata using inclusion
+abstraction. In Natasha Sharygina and Helmut Veith, editors, Computer Aided Veriﬁcation
+- 25th International Conference, CAV 2013, Saint Petersburg, Russia, July 13-19, 2013.
+Proceedings , volume 8044 of Lecture Notes in Computer Science , pages 968–983. Springer,
+2013.
+22Kim G Larsen, Paul Pettersson, and Wang Yi. Uppaal in a nutshell. International journal on
+software tools for technology transfer , 1(1-2):134–152, 1997.
+23Stavros Tripakis. Checking timed büchi automata emptiness on simulation graphs. ACM
+Trans. Comput. Log. , 10(3):15:1–15:19, 2009.
+A Appendix
+A.1 Benchmarks Used
+We have used a total of 10 benchmarks. Of these the following are the ones which accept an
+empty language, B2(k)for all values of k,B4,B6(k1,k2,k3)fork1≥k2, andB7. The rest
+of the PDTA accept non-empty languages. The benchmarks we have used are described as
+follows,
+B1: The benchmark B1in Figure 8 is an adaptation of the PDTAin Figure 1. Instead
+of 3 pushes we have 8, and instead of, y≤3we havey≤10. The state q1is reachable in
+
+--- Page 24 ---
+24 Fast zone-based algorithms for reachability in pushdown timed automata
+the benchmark. We use this benchmark, since the zone graph for this PDTAwithout
+any simulation will be inﬁnitely large.
+B2(k): This is an adaptation of the PDTAin Figure 3, with k+ 1pops between q0, and
+q3, andy≤kreplacingy≤1. The PDTA has k+ 4states, and state q2is unreachable
+irrespective of the value of k. We have chosen this as a benchmark since in order to say
+thatq2is unreachable, the loop q0− →q1− →q0, has to be taken as many times as possible,
+creating more number of root nodes, with each root node containing the set of nodes that
+it can reach, making the size of the entire TLMproportional to k2. Therefore in order to
+accurately say that q2is unreachable, it would take O(k2)time.
+B3(k1,k2): We have made this benchmark using a TPDA, with timed stack, and
+converting it to a timeless stack PDTAusing an approach similar to the one proposed
+in [12]. TheTPDAwith timed stack is shown in Figure 7. In both Figures 7 and 10, we
+can see that state s1is reachable only if k1≤k2. This creates a signiﬁcant diﬀerence in
+execution times when it comes to B3(4,3), andB3(3,4).
+q1 r1 s1pusha
+popa,age≥k1 popa,age≤k2
+Figure 7 Timed Stack TPDAused for conversion to B3(k1, k2).
+B4: This benchmark was originally used for testing in the region based implementation [ 5].
+Since there was only one push-pop pair, and no cycles with push/pop in it, it could be
+simulated using an extra clock x3. The language accepted by the automaton is empty,
+sinceq5is unreachable.
+B5(k1,k2): An illustration of this benchmark is shown in Figure 12, with k1= 4.k1
+should be even for q1to be reachable. This PDTA benchmark is used since a large number
+of pushes are required to reach q1, creating more root nodes. Also because of internal
+transition loops between rx, andr/prime
+xin the PDTA which can create many non equivalent
+zones, this creates the possibility of a large TLM.
+B6(k1,k2,k3): The illustration for this benchmark is shown in Figure 13. It has been used
+to indicate that the size of the TLM is not just dependent on the size of the automaton,
+but also on the constants used in the automaton. In this PDTA, the size of the TLMis
+dependent on all k1,k2, andk3.k1, andk2enforce the pushes and pops in the automaton
+to be taken a ﬁxed number of times, and if k1≥k2, the language accepted is empty.
+B7: The benchmark illustrated in Figure 14 has been used also in order to highlight
+the signiﬁcance of open guards. The guards over the pushes, pusha, andpushb, make it
+impossible to take two pushes on a, then a push on b, which is required to empty the
+stack on reaching q2. And the guards x== 0∧z== 20, also make it harder to directly
+reachq2with an empty stack.
+B8: A variation of this PDTAwas used in testing for the region based implementation
+as well. States{q1,q3,q5,q6,q8}are reachable, and the language is not empty.
+B9(k1,k2): The PDTA for this benchmark with k1= 2is illustrated in Figure 16. This
+benchmark has been used in order to force the automaton to take only a single path which
+is allowed. Also the extra 2 state loops on nodes like r2, can create many non-equivalent
+nodes under one root node, and these nodes can then be propagated to other root nodes
+via pushes and pops, which can make the execution time heavily dependent on the
+constantk2.
+
+--- Page 25 ---
+S. Akshay, P. Gastin and K. R. Prakash 25
+B10: This benchmark has been used in order to show that our tool can also handle
+open constraints on guards. This benchmark like B6one can have the size of TLMhighly
+dependent on the constants in transition guards.
+q0 ···
+q1t0:push8
+a
+t1:y≤10,{x},popa
+t2: (x≥1,{x}),popa
+Figure 8 B1:PDTA. States q0, and q1are reachable. The ···indicates that there are a series
+of states, say,{r1, r2, ...r 8}between q0, and q1, with 8 pushes, starting from q0− →r1, tor7− →r8.
+And in the end there transition t1is in between r8andq1.
+q0 ··· q2
+q1x≥1,{x} y≤k,pushapopk+1
+a
+Figure 9 Parametrized PDTA-B2(k). Used in experiments using diﬀerent values of k. The···
+indicate there are a series of transitions (linear) between q0andq2consisting of k+ 1pops. The
+number of states between q0andq2, will be k+ 1.
+
+--- Page 26 ---
+26 Fast zone-based algorithms for reachability in pushdown timed automata
+q1 q2 r1
+r2 s1s2pusha2,{y}pusha1,{x}
+pushapusha1,{x}popa1,x≥k1
+popa1,x≥k1
+popa,y≤k2popa2,y≤k2
+Figure 10 B3(k1, k2)Parametrized PDTAwith parameters k1, and k2. Ifk1> k 2, then the
+state{q1, r1}is reachable. Otherwise, {q1, r1, s1}are reachable.
+q0
+q1
+q2 q3
+q4
+q5q6{x1,x2}
+x1≥1,{x3},pusha x1= 1,{x2}
+x1= 1,x2≤3 x1= 1
+{x1≤1,x2≥1,x3= 1},popa{x1,x2}
+{x1= 1,x2= 0}x1= 0
+Figure 11 B4PDTA, states{q0, q1, q3, q4}are reachable.
+
+--- Page 27 ---
+S. Akshay, P. Gastin and K. R. Prakash 27
+q0 r1
+r/prime
+1r2r/prime
+2
+r3
+r/prime
+3r4r/prime
+4
+q1pusha
+x≥1,{x} y≤k2pushax≥1,{x}y≤k2
+popa
+x≥1,{x} y≤k2popax≥1,{x}y≤k2
+Figure 12 B5(4, k2): Parametrized PDTA with k1= 4.k1indicates the total number of pairs of
+states rx, and r/prime
+xin between q0andq1. For all even k1, state q1is reachable.
+q1
+q/prime
+1q2
+q3q4
+q5x= 1,{x}y≤k1,pusha
+z1≥1,{z1} z2≤k3x= 0,y≥k1,{x,y}x= 1,{x}y<k 2,popa
+Figure 13 B6(k1, k2, k3): State q5is not reachable if k1≥k2, otherwise it is.
+q1 q2q3 q4
+q5x>1,pusha,{x}
+y<2,pushb,{y}x= 0,z= 20popbpopa
+popa
+Figure 14 B7:PDTAwith state{q1}as reachable.
+
+--- Page 28 ---
+28 Fast zone-based algorithms for reachability in pushdown timed automata
+q1 q2 q3
+q4 q5 q6
+q7 q8pusha,{x2}x2= 1,popa,{x4}
+x4= 0,pushb,{x3}
+x3≥1,popb,{x1} {x1}
+pusha,{x2}
+x2≥1,popa
+Figure 15 B8:PDTAwith states{q1, q3, q5, q6, q8}as reachable.
+q0r1r2r/prime
+2
+r3
+r4
+r5
+r/prime
+5r6s1 s2 ··· sfpusha1pusha2pusha3
+pusha4
+pusha5
+pusha6 pusha7pusha8popa4 popa3 popa2 popa5x≥1,{x}y≤k2
+x≥1,{x} y≤k2
+Figure 16 B9(2, k2): Parametrized PDTA with k1= 2.k1indicates the total number of loops of
+size 4, around q0. It involves a direct loop of 4 pushes on unique symbols aitoai+4, and another
+loop on the middle state. Finally starting from q0there is a line of transitions with no loops, having
+pops matching all loops in order. Only {q0, sf}are reachable in the automata irrespective of the
+values of k1, k2.
+
+--- Page 29 ---
+S. Akshay, P. Gastin and K. R. Prakash 29
+q1 q2q3
+q4x>1,pusha,{x}
+y<2,pushb,{y}x= 0,z= 4popapopb
+Figure 17 B10:PDTAwith states{q1, q2, q3, q4}as reachable.
+
+--- Page 30 ---
+30 Fast zone-based algorithms for reachability in pushdown timed automata
+A.2 All Results
+Here we display all results on the benchmarks that have been used.
+Testing on Benchmarks
+Benchmark /precedesequalLU/precedesequalLU∼LU∼LU RB RB
+Time # nodes Time # nodes Time # nodes
+B1 0.2 17 0.2 17 235.6 4100
+B2(5) 0.3 27 0.3 27 21 1500
+B2(10) 0.8 77 0.8 77 6835.8 30200
+B2(100) 20.0 5252 20.7 5252 T.O.≥154700
+B2(1000) 9140.4 502502 9164.8 502502 T.O. T.O.1
+B3(4,3) 0.2 6 0.2 6 1043.8 14300
+B3(3,4) 0.2 9 0.2 9 98.8 3400
+B4 0.2 8 0.1 8 0.3 17
+B5(100,10) 0.8 202 5.4 2212 OOM OOM
+B5(100,100) 0.6 202 67.6 20302 OOM OOM
+B5(100,1000) 0.7 202 3564.3 201202 OOM OOM
+B5(1000 ,100) 4.2 2002 673.8 202102 OOM OOM
+B5(5000 ,100) 23.2 10002 3429.3 1010102 OOM OOM
+B6(4,5,100) 0.3 30 12.4 2459 NA NA
+B6(4,5,1000) 0.3 30 483.1 24059 NA NA
+B6(4,5,10000) 0.3 30 47694.8 240059 NA NA
+B6(5,4,100) 0.3 30 14.3 3047 NA NA
+B6(5,4,1000) 0.3 30 611.8 30047 NA NA
+B6(5,4,10000) 0.3 30 60271.9 300047 NA NA
+B6(500,501,100)38.9 3006 509.8 34802 NA NA
+B6(501,500,100)38.2 3006 501.0 34799 NA NA
+B7 112.4 4475 113.1 4475 NA NA
+B8 0.2 8 0.2 8 0.6 26
+B9(10,10) 0.3 81 13.3 4136 T.O.≥96500
+B9(50,10) 1.1 401 52.9 20856 OOM OOM
+B9(100,10) 1.9 801 107.0 41756 OOM OOM
+B9(10,20) 0.5 81 47.2 14091 T.O.≥106400
+B9(10,50) 0.4 81 543.2 79356 T.O.≥370500
+B9(10,100) 0.4 81 5374.1 306131 T.O.≥133600
+B10 1.8 150 2.0 166 NA NA
+Table 3List of all results on the three environments. All time is recorded in milliseconds. T.O.
+refers to timeout before 120 seconds, and OOM refers to OOM kill of process. In case of timeout ≥n,
+refers to recorded number of nodes before timeout occurred. In case of B2(1000)the preprocessing
+is not complete before the timeout and hence no nodes are displayed.

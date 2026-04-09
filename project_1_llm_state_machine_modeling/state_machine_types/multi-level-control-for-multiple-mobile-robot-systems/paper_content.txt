@@ -1,0 +1,934 @@
+--- Page 1 ---
+Discrete Event Dynamic Systems (2023) 33:425–453
+https://doi.org/10.1007/s10626-023-00383-x
+Multi-level control for multiple mobile robot systems
+Elzbieta Roszkowska1·Piotr Makowski-Czerski2·Lukasz Janiec1
+Received: 22 March 2023 / Accepted: 10 August 2023 / Published online: 18 October 2023
+© The Author(s) 2023
+Abstract
+This paper contributes with a multi-level, hierarchical control system for a ﬂeet of mobilerobots sharing a common 2D motion space. The system consists of three levels, with thetop level being a supervisor based on a discrete representation of the Multiple Mobile RobotSystem (MMRS), in which robot motion processes are seen as sequences of stages. Thesupervisor controls centrally the changes of their stages by robots, ensuring their collision-,and deadlock-free concurrent movement. The intermediate control level supervises locally theexecution of robot motion on individual stages in a manner consistent with the decisions of thetop level. The lowest level, robot control, is responsible for motion execution as determined bythe local supervisor. We capitalize on some earlier results concerning the supervisory controlof MMRS and propose a common framework for three supervisory control models. Thenwe propose relevant solutions for the local supervisors, in particular, a DES-based robot-motion-mode control and application of the Artiﬁcial Potential Field model for ensuringcollision-free motion of two robots sharing a space sector. Next we assume simple robotcontrol and subject the system to simulation experiments aimed at comparing the impact ofthe different solutions on the performance of MMRS.
+Keywords Multiple mobile robot system ·Hybrid control ·DES-based control ·
+Artiﬁcial potential ﬁeld
+This article belongs to the Topical Collection: Special Issue on Applications 2022
+Guest Editors: Jan Komenda, Tomas Masopust, and Spyros Reveliotis
+B Elzbieta Roszkowskaelzbieta.roszkowska@pwr.edu.pl
+Piotr Makowski-Czerski
+piomcz@gmail.com
+Lukasz Janiec
+lukasz.janiec@pwr.edu.pl
+1Department of Cybernetics and Robotics, Wroclaw University of Science and Technology,Janiszewskiego 11/17, Wroclaw 50-372, Poland
+2Graduate of Embedded Robotics Program, Wroclaw University of Science and Technology, 2022,
+Wroclaw, Poland
+123
+
+--- Page 2 ---
+426 Discrete Event Dynamic Systems (2023) 33:425–453
+1 Introduction
+The use of a mobile robot team in place of one robot substantially increases the performance
+of many robotic applications, including those related to area searching, search and rescue,interplanetary exploration, extraction of minerals, agriculture, forestry, or transport. A keyissue in the design of such systems is to coordinate the movement of a number of robotsoperating in the same workspace. Regardless of their tasks, the robots must be able to effec-tively share a common area in order to prevent the mutual disruption of trafﬁc and effectivelypursue their missions.
+In the above context, a widely considered problem in robotics has become multiple-
+robot motion planning. Planning approaches can be categorized in various ways, with twocategories - centralized and decoupled - that can be distinguished as opposite ends of thespectrum of solutions. A centralized approach typically constructs a path in a compositeconﬁguration space, which is formed by the Cartesian product of the conﬁguration spaces ofthe individual robots, e.g. Barraquand and Latombe ( 1991 ). A decoupled approach typically
+generates paths for each robot independently, and then considers the interactions between therobots, e.g. Buckley ( 1989 ). The approaches that lie in the middle of the spectrum, e.g. La Valle
+and Hutchinson ( 1998 ), constrain the robot motions before considering interactions between
+robots and assume that they travel on independent networks of paths called road-maps.
+In classical robotics, these problems are understood as kinodynamic motion planning
+(Donald et al. 1993 ), that takes into account the robot kinematics, dynamics, and colli-
+sion avoidance requirements, and seeks for each robot a trajectory specifying a continuoussequence of positions, orientations, and speeds while avoiding contact with any stationaryand moving obstacles (other robots). The methodology applied usually combines techniquesfrom optimal control and mathematical programming. For example, the approach proposedin Peng and Akella ( 2004 ) consists of identifying collision segments along each robot’s path,
+and then optimizing the robots velocities along the collision and collision-free segments.First, for each path segment, for each robot, the minimum and maximum possible traver-sal times that satisfy the dynamics constraints are computed by solving the correspondingtwo-point boundary value problems. The collision avoidance constraints for pairs of robotscan then be combined to formulate two mixed integer linear programming (MILP) modelsthat provide schedules that are lower and upper bounds on the optimum; the upper boundschedule is designed to be a continuous velocity schedule.
+An interesting concept of multiple mobile robot motion planning that applies constraint-
+based techniques is also considered in Pecora et al. ( 2012 ); Andreasson et al. ( 2015 ). These
+papers employ the notion of trajectory envelope, which is a set of spatial and temporal con-straints on the position of a vehicle’s reference point. An envelope deﬁnes a set of alternativeexecution patterns that ensure conﬂict-free robot motion. The approach consists of multi-ple constraint solvers, which progressively reﬁne trajectory envelopes according to missionrequirements.
+Many works assume that robot paths are already given, and focus solely on robot velocity
+planning in a way to optimize some system criteria. For example, paper (Soltero et al. 2011 )
+deals with the problem of persistent monitoring in multi-robot systems, seeking a policy tocalculate the speed of each robot that maximizes the stability margin of a function character-izing changes in the environment introduced by the robots while ensuring conﬂict-free robotmotion. The proposed approach to collision and deadlock-avoidance is based on the assump-tion of temporary stops of robots during their travel and is correct. However, the stoppingpolicy is based on a condition that is sufﬁcient, but not necessary for no-collisions, whichmakes the proposed solution excessively conservative.
+123
+
+--- Page 3 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 427
+Decoupled approaches to motion planning of multiple mobile robots are typically reactive,
+that is, aim to make robots adapt themselves in real time to changes in the environment (Ferreraet al. 2013 ,2017 ). Robots are often viewed as agents with simple dynamic and kinematic
+models. An interesting example of such an approach is considered in Pallottino et al. ( 2007 ).
+The paper proposes a novel policy for steering multiple vehicles that move with a constantspeed between assigned start and goal conﬁgurations, ensuring collision avoidance. Thispolicy is based on a concept of reserved regions, over which active agents claim exclusiveownership, and trafﬁc rules that ensure maintaining the interiors of reserved regions disjoint.The policy is decentralized, as it requires that each agent decides about its own motion byapplying trafﬁc rules based on the locally available information, and scalable, in the sensethat the complexity of the decision algorithms do not increase with the number of agents inthe scenario. A reactive method of motion control is also employed in Ferrera et al. ( 2013 ),
+where decentralized robot coordination algorithm takes the form of a state machine. Tomlinet al. ( 2007 ) and Lygeros et al. ( 1998 ) contribute with hybrid control solutions for aircraft and
+highway systems, respectively. The air trafﬁc model is inspired by linear hybrid automata,with the difference that it allows for a nonlinear continuous dynamic model within eachdiscrete state and a general discrete transition relation. The methodology of the highwaymodel synthesis joins techniques from game theory and optimal control. Another commonreactive method makes use of potential ﬁelds (Khatib 1986 ). In this approach, a robot moves
+through space as if it is being acted upon by a set of forces. Attractive forces pull the robottoward a goal destination, while repulsive forces push the robot away from obstacles and/orother robots. At each point in the conﬁguration space, the robot moves along the vectorrepresenting the combined forces acting on that point in the conﬁguration space.
+The main contribution of the above discussed works are methodologies ensuring collision-
+free control of robot movement. The resulting algorithms have, however, two majordrawbacks: a) due to high computational complexity, they are not scalable, and b) theydo not give formal guarantees of the correct operation of the system, e.g., in terms of ensur-ing the completion of the robot missions. The ineffectiveness of these models in providingthe above properties is mainly due to the assumed representation of the robot system, whoseoperation is abstracted in continuous time.
+A new trend in the robotic motion planning literature is to use formal methods, like model
+checking, reactive synthesis and supervisory control theory, to automatically design con-trollers that drive a mobile robot to accomplish some high level missions in a guaranteedmanner (Lin 2014 ; Farrell et al. 2018 ;K r e s s - G a z i te ta l . 2018 ). In robotics, formal synthesis
+provides a framework for specifying complex robot tasks in a mathematically precise lan-guage and automatically transforming these speciﬁcations into correct-by-construction robotcontrollers. As noted in Kress-Gazit et al. ( 2018 ), the process of automating high-level behav-
+ior of robots is the major focus of related communities, most notably the artiﬁcial intelligence(AI) community planning intelligent robot behavior and the discrete event systems (DES)community. In AI, the planning problem is typically represented as a set of actions, each withpreconditions and postconditions. Then, planning algorithms search for a sequence of actionsthat will lead the system from the initial state to the goal state. In discrete event systems, thesystem (plant) is a transition system with states and transitions. The main problem addressedby the discrete event systems community is ﬁnding a supervisory controller that chooseswhich controlled transitions to take so that the system achieves a required high-level behavior.
+This work falls in the area of interest of the DES community as characterized above. Based
+on some concepts from our earlier works (Roszkowska 2005 ; Reveliotis and Roszkowska
+2011 ; Roszkowska and Reveliotis 2013 ), the paper contributes with a multi-level, hierarchical
+control system, where the logic of robot coordination is developed using the DES formalism.
+123
+
+--- Page 4 ---
+428 Discrete Event Dynamic Systems (2023) 33:425–453
+The proposed models ensure the correct space sharing by a group of robots through imposing
+certain constraints on their motion, and can be applied to mobile robots accomplishing anyarbitrarily assumed missions in both centralized and distributed supervisory control architec-tures. To respect the requirements of a so-deﬁned DES-based supervisory-control scheme,the robots need to modify their individual motion control proﬁles, based on the CTS (Con-tinuous Time System) abstraction. Consequently, the control of a team of multiple mobilerobots, requires a hybrid control system, incorporating both DES and CTS control layers.
+One of the basic issues when modeling a multiple mobile robot system (MMRS) in the
+form of a DES is the concept of its discrete representation. In the works cited above, twomain approaches can be distinguished: i) division of robot motion paths into sub-paths orsectors , and ii) division of the robot motion area into sub-areas or cells . Then, a simple
+solution of the problem of collision-free robot movement consists of controlling the robottransitions between sectors/cells and, in the case of a potential conﬂict, refraining the robotfrom entering the next sector/cell until the conﬂict disappears. In approach (i), a conﬂict occursif the minimal distance between two sectors respectively occupied by two robots does notprovide a desired degree of separation between them. In approach (ii), a conﬂict is a situationwhere more than one robot occupies the same cell. More complex solutions allow exceedingthese constraints, which potentially leads to more efﬁcient MMRS performance, but requireadditional robot coordination levels. Introduction of the constraints ensuring collision-freerobot motion has a side effect that is the deadlock phenomenon, whose handling requiresimposing further restriction on the supervisory control. To achieve realization of the requiredlogic, the robots must be able to modify their motion and be equipped with a set of CTS robotcontrol algorithms that induce adequate motion modes.
+In the following sections we present a three-level control system, including a central
+supervisor, local controllers of robot motion mode, and low-level robot control. Capitalizingon earlier results we introduce a common framework for three supervisory control modelsand propose relevant solutions for the local supervisors. The different models are subjectedto simulation experiments aimed at comparing their impact on the MMRS performance.
+2 Assumptions and requirements
+We consider a Multiple Mobile Robot System (MMRS) viewed as a group of autonomousmobile robots sharing a 2D space. Each robot performs a mission that requires it to travelalong a speciﬁc path. The path of each robot is planned independently, without taking intoaccount any positional constraints introduced by the paths of other robots. The robots operateasynchronously and are able to control their motion with path-following algorithms that alloweach of them to correctly perform its mission when alone on the stage. When sharing themotion space, the robots must reﬁne their motion strategies in order to avoid collisions,through modiﬁcation of their paths, velocity proﬁles, or both.
+The objective of the MMRS control is to ensure that the operation of the system is correct
+andefﬁcient , which generates the following problems:
+1. How to modify dynamically the initially assumed motion control of the robots so that:
+(a) at each moment of their motion, the areas occupied by the robots are disjoint,
+(b) in a ﬁnite time interval, all the robots will have accomplished their missions.
+2. How to induce efﬁcient MMRS behavior within the admissible (i.e. observing require-
+ments (1.a) and (1.b)) robot concurrent operation.
+123
+
+--- Page 5 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 429
+As can be noticed, satisfaction of requirement (1.a) implies collision-free motion of the
+robots, whereas requirement (1.b) ensures that the modiﬁcation of the initially assumed robotmotion strategies will guarantee their convergence to the destination points and occurrence ofno such side effects as deadlocks or starvation. Requirement (2) implies the need of a ﬂexiblemodel of MMRS control, that leaves room for the optimization of the system efﬁciency, and oftools to carry it out. The notion efﬁciency refers to real-valued measures of individual robots
+performance or their combination into single scalar criteria to be optimized. For example, atypical individual criterion for a robot accomplishing its travel mission is the minimal traveltime, and a system performance criterion is the minimal time taken by the last robot to reachits goal.
+To achieve realization of these postulates, we propose a hierarchical, hybrid control based
+on the concept of dividing the robot motion processes into stages and consisting of threecontrol levels:
+•stage transition control
+•stage pass control
+•robot motion control
+The stages of robot travel processes arise from the partition of robot paths into sectors; the
+presence of a robot in a particular sector determines the current stage of its motion process.The two upper control levels are supervisors that provide the logic of the admissible progressof each particular robot on its path. The stage transition control decides if a robot can transferfrom one sector to the next one in a way that ensures no collisions or deadlocks among therobots. The stage pass control deﬁnes a set of robot motion modes (e.g., constant velocity,acceleration, deceleration, standstill) and the logic of their application. They take the form ofa state machine that enables each robot to conform to the decisions set at the stage transitioncontrol level. Finally, the motion control is a set of CTS robot control algorithms that inducethe motion of a robot in the modes deﬁned by the mode control.
+3 Stage transition control
+In this section, we discuss DES models of MMRS to be applied for the supervisory controlof the robot motion processes. First, we introduce an uncontrolled MMRS, a DES modelof the system of asynchronous robot motion processes, and next, we modify it in order toensure the required behavior of the system. Moreover, as mentioned in Section 1, two ways
+of the discrete representation of MMRS can be considered: direct partition of robot pathsinto sectors, and indirect partition of robot paths into sectors, resulting from the division ofthe motion space into cells. Both of these approaches will be considered below.
+3.1 Uncontrolled model of MMRS
+For the purposes of the supervisory control development, we will view MMRS as a set ofmobile robots A={A
+i:i=1...n}sharing a planar work space WS. Each robot Aiis
+represented by a disk with radius ai, and a curve pidescribing the path followed by Ai.B e i n g
+a curve on a plane, each path piis a continuous map from a one-dimensional space RtoR2.
+Thus, in the XYcoordinate system, piis represented with two functions: xi(l)andyi(l),a n d
+the starting and ending points, (xs
+i,ys
+i)and(xe
+i,ye
+i), respectively. At the supervisory control
+level of MMRS, instead of the detailed knowledge of the robots’ and paths’ geometry, the
+123
+
+--- Page 6 ---
+430 Discrete Event Dynamic Systems (2023) 33:425–453
+control model will use a map of MMRS topology, given in the form of a certain relation
+between robot stages distinguished as follows.
+LetP={pk
+i:i=1...n,k=1...mi}be the set of path sectors obtained through an
+arbitrary partition of each path piinto sub-paths pk
+isuch that for each k>1, the end-point of
+pk−1
+iis the start-point of pk
+i.T h e n Z=Z1∪Z2∪...∪Zn,w h e r e Zi={zk
+i:k=1...mi},
+is the set of robot stages . The stages represent in a discrete way the states of the robot motion
+processes. In particular, robot Aitraveling along the k-th sector of its path is at stage zk
+i.
+The dynamics of the so characterized MMRS will be viewed as an event-driven system,
+described in terms of a deterministic automaton (Cassandras and Lafortune 2010 ).
+Deﬁnition 1 A deterministic automaton is a 6-tuple G=(S,E,/Gamma1 , f,s0,SM),w h e r e
+•Sis the set of states .
+•Eis the set of events . The occurrence of an event causes a state transition in G.
+•/Gamma1:S→2Eis the feasible event function .E v e n t e∈Ecan occur in state s∈Siff
+e∈/Gamma1(s).
+•f:S×E→Sis the transition function .fis a partial function deﬁned for pairs (s,e)
+such that e∈/Gamma1(s), i.e., event eis feasible in state s.s/prime=f(s,e)is the new state resulting
+from the occurrence of event ein state s.
+•s0∈Sis the initial state .
+•SM⊆Sis the set of marked states .
+In the discrete picture of MMRS, the state of each robot Aiis distinguished with the
+accuracy of a stage number, that is, state siof robot Aiis given by the number kof its current
+stage zk
+i. The state of the system of nrobots will be represented by the vector of the robot
+stage numbers (s1,s2,..., sn). The event set Eof MMRS will be constituted by the events
+ei,i=1...n, associated with stage transitions of each robot Ai. In the initial (ﬁnal) state,
+each robot Aiis at stage 1 (stage mi, resp.). The uncontrolled MMRS is deﬁned as follows.
+Deﬁnition 2 Given the set of robot stages Z={ zk
+i:i=1...n,k=1...mi},
+the uncontrolled model of MMRS, U-MMRS (Z)is a deterministic automaton G=
+(S,E,/Gamma1 , f,s0,SM)such that:
+•S={s=(s1,s2, ..., sn)∈N1×N2×...×Nn},w h e r e Ni={1,..., mi}
+•E={ei:i=1..n}
+•/Gamma1(s1,s2, ..., sn)={ei:si<mi}
+•f((s1,s2, ..., sn),ei)=(s1,..., si−1,si+1,si+1,..., sn)
+•s0=(1,1,..., 1),
+•SM={sm},w h e r e sm=(m1,m2,..., mn)
+The above deﬁned model represents asynchronous robot movement. Thus, any event eican
+occur in any state sproviding that robot Aihas not reached its ﬁnal stage yet. The occurrence
+of event eiaffects only the state of robot Ai, that is, the value of the i-th component of s
+changes from sitosi+1.
+3.2 Collision avoidance in /CAN-MMRS
+We will use the following information about the robot paths’ geometry in order to ensure
+collision-free robot movement.
+123
+
+--- Page 7 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 431
+Deﬁnition 3 Given the set of robot path sectors Pand the values ai,i=1...nof the robot
+disks’ radii, the stage conﬂict relation is the subset ξ⊆Z×Zsuch that ∀i,j=1..n,
+∀k=1..mi,∀l=1..mj:(zk
+i,zl
+j)∈ξiffi/negationslash=jand dmin(pk
+i,pl
+j)< ai+aj;w h e r e
+dmin(pk
+i,pl
+j)is the minimal distance between path sectors pk
+iand pl
+j.
+The concept of the conﬂict relation is illustrated in Fig. 1that depicts two paths, p1and p2,
+of two robots, A1and A2, respectively. Path p1consists of six sectors, p1
+1-p6
+1, and path p2
+consists of seven sectors, p1
+2-p7
+2.T h u s ,t h es t a g es e t Z={zk
+1:k=1..6∪{zk
+2:k=1..7}.T h e
+stage conﬂict relation ξincludes the sectors that cross each other: {(z2
+1,z6
+2), (z3
+1,z5
+2), (z5
+1,z2
+2)},
+their symmetric pairs: {(z6
+2,z2
+1), (z5
+2,z3
+1), (z2
+2,z5
+1)}, and the pairs of stages corresponding to
+the sectors that do not intersect, but the shortest distance between them is less than the sumof the robots radii: {(z
+3
+1,z4
+2), (z4
+2,z3
+1)}.
+The following property lets us deﬁne a strategy for robot trafﬁc coordination that ensures
+no collisions among the robots.
+Property 1 The sub-spaces occupied by any pair of robots Ai,Aj∈Aare always disjoint if
+their respective conﬂicting stages never overlap each other in time. That is, for each conﬂictingpair(z
+k
+i,zl
+j)∈ξ, the entry of robot Aiinto path sector pk
+iprevents the entry of robot Ajinto
+path sector pl
+jas long as robot Aidoes not leave pk
+i.
+Proof It stems directly from the deﬁnition of the conﬂict-relation. If conﬂicting stages never
+overlap in time then the distance between any two robots will always exceed the sum of theirdisk radii. Hence the sub-spaces occupied by any two robots will be disjoint. /intersectionsq/unionsq
+The set of stages Zand the stage conﬂict relation ξgive the parameters of a discrete
+representation of MMRS. Note that the new abstraction does not involve robots’ paths, thatis, any direct information on the system geometry. Instead, it consists of a set Zof abstract
+elements and a well-deﬁned relation ξonZ. The "well-deﬁned" requirement means that the
+consideration is limited to such a class of relations that arise from geometrical systems, andno initial or ﬁnal stage of any robot is in conﬂict with any other stage in Z.M o r ep r e c i s e l y ,
+we will require that: i) for each ξ, there exists a set of planar paths that can be divided into
+sectors related in the way given by ξ, and ii) for each i=1..n, neither stage z
+1
+inorzmi
+iis in
+conﬂict with any stage in Z,
+In order to avoid collisions, the robots must observe the mutual exclusion of conﬂict stages.
+Thus, robot Aimust not change stage from zk
+itozk+1
+iif any robot Ajis currently on stage zl
+j
+Fig. 1 Example paths of two mobile robots, partitioned arbitrarily into sectors. Robot stages zk
+1andzl
+2conﬂict
+iffdmin(pk
+1,pl
+2)<a1+a2
+123
+
+--- Page 8 ---
+432 Discrete Event Dynamic Systems (2023) 33:425–453
+and stages zk+1
+iandzl
+jare in conﬂict. Otherwise the event associated with the state transition
+is feasible. Implementation of this principle in the uncontrolled model U-MMRS requires
+a relevant restriction of function /Gamma1(s), and yields a collision-free control model, ξ-MMRS .
+Deﬁnition 4 For each well deﬁned pair (Zw,Dw),ξ-MMRS (Z,ξ) is a deterministic
+automaton G=(S,E,/Gamma1 , f,s0,SM)such that:
+•the state set S, the event set E, the transition function f, the initial state s0,a n dt h e
+marked-state set SMare deﬁned in the same way as in Deﬁnition 2forU-MMRS (Z)
+•the feasible event function is given by:
+/Gamma1(s1,s2, ..., sn)={ei:si<mi∧∀ j=1..n,(zsi+1
+i,zsj
+j)/∈ξ}
+Function /Gamma1(s)ensures that each event ei, associated with stage transition by robot Ai,i s
+feasible in state siff robot Aihas not reached yet its ﬁnal stage and its next stage, zsi+1
+i,i s
+not in conﬂict with the current stage, sj, of any robot Aj. The automaton model of MMRS
+gives the logic of the relative robots’ progress on their paths, which, due to that no states withconﬂict stages are reachable, allows the robots to avoid colliding with one another.
+3.3 Collision avoidance in D-MMRS
+A discrete model of MMRS operation can also be obtained through partitioning of the motion
+space WS into a set Wof squares with a side length of at least the diameter of the robot disk,
+called cells . A graphical illustration of such a space division is given in Fig. 2, where the cell
+borders are depicted by solid horizontal and vertical lines. As can be noticed, depending onits location in W, the disk of a robot will overlap from one to four cells at a time. The subset
+Fig. 2 Robots’ work space partitioned into cells (solid lines), and their further partitioning into areas of a
+ﬁxed number of overlapped cells (dashed lines). Depending on the position of the center of the robot disk, itoverlaps 1 cell ( A
+1), 2 cells ( A2), 3 cells ( A3), or 4 cells ( A4)
+123
+
+--- Page 9 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 433
+of the cells overlapped or occupied by robot Aican be effectively determined by the relative
+position of the center point of Aiwith respect to another partitioning of the motion plane,
+induced by the geometry of the cells and the robot disk, and depicted by the dashed lines inthe ﬁgure. A robot with its disk center in the inner square of a cell (case A
+1) overlaps one cell,
+a robot with its disk center in any of the adjacent rectangles belonging to two neighboringcells (case A
+2) overlaps these two cells, a robot with its disk center in a corner square of the
+cell, but not in the circle inscribed in this square (case A3), overlaps three cells, and a robot
+with its disk center in a corner circle of a cell (case A4) overlaps four cells.
+As follows from the above discussion, the path of any robot can be divided into maximal
+sectors characterized by that at each position of the robot disk center within a sector, the robotoverlaps the same subset of cells. The beginnings and ends of such sectors are determinedby the intersection points of the path with the induced grid, depicted with dashed lines. Anexample of such a path partitioning is given in Fig. 3. The path is divided into eight sectors
+that deﬁne eight respective stages of the robot travel. The table below the ﬁgure lists thesubsets of cells overlapped by the disk of the robot at each particular stage.
+Note that in ξ-MMRS , the set of robot stages Zarises from any arbitrary partition of
+the paths into sectors. In contrast, in the model considered now, the set of stages dependson the work space partition into cells and the geometry of the paths. Clearly, if no cell isoccupied by more than one robot at a time, the sub-spaces overlapped by the robot disks aredisjoint and no collision among the robots occurs. To determine the model that implementsthis principle, we will treat the set of cells Was system resources, and deﬁne the resource
+requirement function
+D:Z→2
+W(1)
+For each zk
+i∈Z,D(zk
+i)⊂Windicates the subset of cells occupied by robot Aiat its k-th
+stage, k=1...mi. Similar to the speciﬁcation of ξ-MMRS , we will require that the pair
+(Z,D)be well deﬁned, that is, i) the values of function Darise from the geometry of the
+Fig. 3 Robot path divided into maximal stages with constant subsets of cells overlapped by the disk of the
+robot traveling along this path
+123
+
+--- Page 10 ---
+434 Discrete Event Dynamic Systems (2023) 33:425–453
+system, and ii) for each robot Ai∈A, the resource sets required for its initial and ﬁnal stage
+are ’private’ singletons, i.e., Aiis entirely located in a cell that is not required for any other
+stage in Z. The parameters Zand Dallow us to modify function /Gamma1(s)in the uncontrolled
+U-MMRS (Z)so that the robot movement is collision-free.
+Deﬁnition 5 For each well deﬁned pair (Z,D),D-MMRS (Z,D)is a deterministic automa-
+tonG=(S,E,/Gamma1 , f,s0,SM)such that:
+•the state set S, the event set E, the transition function f, the initial state s0,a n dt h e
+marked-state set SMare deﬁned in the same way as in Deﬁnition 2forMMRS (Z)
+•the feasible event function is given by:
+/Gamma1(s1,s2, ..., sn)={ei:si<mi∧∀ j=1..n,j/negationslash=i,Rsj
+j∩Rsi+1
+i=∅ }
+As deﬁned above, event eiis feasible in state s=(s1,s2, ..., sn)iff for each robot Aj/negationslash=Ai,
+the set of resources used in the current state s,Rsj
+j, and the set of resources required by robot
+Aiat its next stage zi+1,Rsi+1
+i, are disjoint. This ensures that in each state reachable from
+s0, the subsets of resources used by any two robots are disjoint, i.e., no cell is overlapped by
+more than one robot at a time, hence no collisions occur.
+4 Deadlock avoidance in MMRS
+The MMRS models discussed in the previous sections, ξ-MMRS and D-MMRS , satisfy
+requirement (1.a) imposed on the control system, that is, ensure collision-free trafﬁc of therobots. Fulﬁllment of condition (1.b) - deadlock-free robot movement - requires a furtherrestriction of the possibility of event occurrence given by function /Gamma1(s). The approach to
+the development of a relevant deadlock-avoidance algorithm depends on the computationalcomplexity of the coaccessibility problem for a given class of models. The problem consist
+in determining whether or not a given reachable state siscoaccessible , i.e., whether or not
+the ﬁnal state s
+mis reachable from s. As similar problems have been studied in the context
+of Resource Allocation Systems (RAS) taxonomy (Reveliotis 2005 ), in the next section, we
+will consider the MMRS models in this framework.
+4.1 RAS classification of MMRS models
+The RAS classiﬁcation applies to systems of discrete processes that share a a set of resourcesin a non-preemptive manner. Each process consists of a set of stages, and each resource ischaracterized by its capacity or the number of its units. Subclasses of RAS are distinguished bytwo criteria: the required execution order of the process stages, and the resource requirementsof the process stages. Speciﬁcally, the LIN-CON-RAS class consists of the systems havinga linearly ordered set of stages and resource requirements deﬁned by the function
+D:Z→R
+MS (2)
+where RMSis the set of all ﬁnite multisets
+b=/Sigma1|R|
+i=1biRi,bi∈{0,1,...} (3)
+deﬁned for a resource set R={R1,R2,... R|R|}.
+123
+
+--- Page 11 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 435
+The class of RASs corresponding to D-MMRS is a sub-class of LIN-CON-RAS called
+FREE-RANGE-RAS (Reveliotis and Roszkowska 2011 ). Both these classes deal with linear
+processes, yet in FREE-RANGE-RAS, each resource has only one unit, and the resourcerequirement function is more speciﬁc. Namely, in LIN-CON-RAS, the values of of function
+Dare any multisets of R, whereas in FREE-RANGE-RAS, for each z
+k
+i∈Z,D(zk
+i)is a
+multiset with at most one copy of each element of R, i.e., it is a set D(zk
+i)=Rk
+i⊂R,a n d
+consists of only 1 to 4 resources, depending on the geometry of the path sector followed byrobot A
+iat its k-th stage.
+For reasons explained later, we will also consider another subclass of LIN-CON-RAS,
+namely FREE-RANGE*-2-RAS (Roszkowska and Reveliotis 2013 ). This class differs from
+FREE-RANGE-RAS in two aspects:
+•the capacity of each resource is equal to 2, i.e., each cell can be occupied by up to 2
+robots at a time, and
+•the path of each robot avoids the areas where the robot’s disk overlaps more than two cells
+at a time. That is, each robot traverses a sequence of cells and its motion process consistsof, alternately, a stage when the robot’s disk ﬁts entirely in the cell it is traversing, and astage when the robot transits to the next cell occupying two cells - the previous and thenext one.
+The automaton modeling this type of MMRS, denoted by D-2-MMRS , differs from
+D-MMRS by its feasible event function /Gamma1(s).
+Deﬁnition 6 For each well deﬁned pair (Z,D),D-2-MMRS (Z,D)is a deterministic
+automaton G=(S,E,/Gamma1 , f,s
+0,SM)such that:
+•the state set S, the event set E, the transition function f, the initial state s0,a n dt h e
+marked-state set SMare deﬁned in the same way as in Deﬁnition 2forMMRS (Z)
+•the feasible event function is given by:
+/Gamma1(s1,s2, ..., sn)={ei:si<mi∧/Sigma1n
+j=1|(Rsi+1
+i\Rsi
+i)∩Rsj
+j|≤1}
+Taking into account that in the considered model, the resource requirement Rk
+iis a set of
+either one cell or two adjacent cells, we can distinguish two cases of the event feasibility: i)
+Rsi+1
+i\Rsi
+i={w},w∈W, and ii) Rsi
+i\Rsi+1
+i={w/prime},w/prime∈W. Case (i) concerns the event
+eithat represents the start of a transition of robot Aito its next cell w/prime, which is feasible
+providing that this cell is occupied by no more than one other robot, hence can be allocatedtoA
+i. Case (ii) concerns the event eithat represents the end of a transition of robot Aito cell
+w, which is always feasible as w∈Rsi
+i, i.e., cell whas already been allocated to Ai, and no
+more resources to do this are required. On the contrary, the occurrence of eiresults in the
+release of the previous cell w/primeby robot Ai.
+Note that D-2-MMRS ensures the collision avoidance providing that no collision occurs
+among any two robots sharing a single cell. Thus, another control level is needed to coordinatethe robot motion within a cell.
+The model MMRS (Z,ξ), using the conﬂict relation for avoiding collisions, does not
+belong to the RAS taxonomy, but can be equivalently transformed to a class of RAS. Todo this, with each two conﬂicting stages we associate a distinct resource to be used on themutually exclusive basis. Consequently, the resource set is deﬁned by
+R={R
+kl
+ij=Rlk
+ji:(zk
+i,zl
+j)∈ξ} (4)
+123
+
+--- Page 12 ---
+436 Discrete Event Dynamic Systems (2023) 33:425–453
+Since each stage zk
+i∈Zcan be in conﬂict with a number of other stages zl
+j∈Z,j/negationslash=i,
+the motion process of each robot Ai,i=1..n, will be viewed as a sequence of stages zk
+i,
+k=1..mi, each of which requires a subset of resources Rk
+i⊂R,w h e r e :
+Rk
+i=D(zk
+i)={Rkl
+ij:(zk
+i,zl
+j)∈ξ} (5)
+Note that for stages zk
+ithat are not in conﬂict with any other stage, the resource set Rk
+i=∅.
+The principle of collision avoidance is in this case the same as in D-MMRS , i.e., the mutually
+exclusive use of resources. Thus, in both cases, we can use the same automaton model givenin Deﬁnition 7. However, one should keep in mind that in each case, D-MMRS (Z,D)is
+deﬁned for its speciﬁc class of parameters (Z,D), arising from its speciﬁc way of determining
+the stages Zand their resource requirements D.
+4.2 Deadlock avoidance algorithms
+The optimal, i.e., the least restrictive approach to avoid deadlocks is to forbid the occurrence
+of only those events that get a negative solution of the following decision problem: Given a
+coaccessible state s and a feasible event e i∈/Gamma1(s),is state s/prime=f(s,ei)coaccessible Alas,
+as proved in Reveliotis and Roszkowska ( 2010 ), the coaccessibility problem is NP-hard in
+FREE-RANGE-RAS, which makes it practically impossible to develop an optimal deadlockavoidance algorithm for D-MMRS (Z,D)systems in the case when the set of stages Z
+and the resource requirement function Dare determined based on the work space partition
+into cells. For D-MMRS systems obtained from ξ-MMRS , although no formal proof of the
+computational complexity has been demonstrated, the construction of a polynomial algorithmto solve the coaccessibility problem does not seem easily achievable. Therefore for bothclasses of D-MMRS , we will use the same policy, a compromise solution that is not optimal
+but allows calculation of the decisions in polynomial time.
+To provide the correct operation of MMRS, in each current state s, we will screen the
+events in /Gamma1(s). That is, we substitute the feasible-event function /Gamma1(s)with a more restrictive
+admissible-event function /Gamma1
+∗(s)that ensures the reachability of the ﬁnal state smfrom each
+state sreachable under the screening policy from the initial state s0.
+The admissibility test assumes distinguishing between two types of stages: private and
+shared .I n D-MMRS , obtained from ξ-MMRS , where the resource set Rrepresents the
+conﬂicts among stages, stage zk
+i∈Zis private if the required resource set Rk
+i=∅ .I n
+D-MMRS , where the resource set Ris the set of cells, stage zk
+i∈Zis private if for each
+zl
+j∈Z,i/negationslash=j,Rk
+i∩Rl
+j=∅, i.e., no robot Aj/negationslash=Aiever occupies any cell that belongs to the
+resource requirements of zk
+i. Otherwise stage zk
+iis shared. We will consider event ei∈/Gamma1(s∗)
+as admissible if the next state s=f(s∗,ei)is found safe by the following algorithm.
+State safety test
+Input:
+Examined state s=[s1,..., sn]
+For all robots Aiand their all stages zk
+i:
+−resource requirement Rk
+i⊂R,
+−stage type Typ e(i,k)∈{private,shared }
+1. Set the content of the working robot set A∗=A
+2. For each Ai∈Aﬁnd the nearest private stage, i.e., the smallest value bi≥sisuch that
+Typ e(i,bi)=private.
+123
+
+--- Page 13 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 437
+3. In A∗, ﬁnd robot Aisuch that no other robot in A∗is allocated any resource required by
+any stage between the current stage of Ai,zsi
+i, and its nearest private stage zbi
+i.
+IF robot Aidoes not exist THEN EXIT {state sis not safe }
+ELSE A∗=A∗\{Ai}.
+4. IF A∗/negationslash=∅ THEN GO TO 3 ELSE EXIT {state s is safe}
+Below, we prove that the restriction of event occurrence to those that are admissible ensures
+the reachability of the ﬁnal state i.e., deadlock avoidance.
+Theorem 1 For M M R S (Z,D)as in Deﬁnition 7,l e t/Gamma1(s)be restricted to only such events
+eithat the potential next state s/prime=f(s,ei)is found safe by the state-safety test. Then the
+ﬁnal state s mis reachable from each state reachable from the initial one.
+Proof The algorithm ﬁnds state s/primesafe iff there exists an order of robots such that, one by
+one, they can move to their nearest private stages. Clearly, from such a state, the robots can,one by one, reach their ﬁnal stages. /intersectionsq/unionsq
+In contrast to the above discussed models, the coaccesibility problem has an optimal,
+scalable solution for systems in FREE-RANGE*-2-RAS class (Roszkowska and Reveliotis2013 ), described here by automata D-2-MMRS . Note that in this model, the events repre-
+senting the end of the transition of robot A
+ifrom one cell to the next one are associated with
+the release of the previous cell and require no additional resource. Thus, their occurrence can-not render the state unsafe. Consequently, we can merge each pair of events -representing thestart and the end of the transition of robot A
+ifrom one cell to the next one - and consider such
+a transition as one event ei. Then, the set of stages Zonly comprises the stages zk
+iassociated
+with the presence of a robot in a cell, and their resource requirements are single cells deﬁnedbyD:Z→W. In this case, a well-deﬁned pair (Z,D)requires that for each robot A
+i,
+i=1...n,s t a g e s z1
+iandzmi
+iare private, and for each k=2..mi, the resource requirements
+of stages zk−1
+iand zk
+iare vertically or horizontally adjacent cells w=D(zk−1
+i)∈Wand
+w/prime=D(zk
+i)∈W, respectively.
+The automaton modeling this type of MMRS, denoted by D-2-MMRS∗, differs from
+D-2-MMRS by the feasible event function /Gamma1(s)and is deﬁned as follows.
+Deﬁnition 7 For each well deﬁned pair (Z,D),D-2-MMRS∗is a deterministic automaton
+G=(S,E,/Gamma1 , f,s0,SM)such that:
+•the state set S, the event set E, the transition function f, the initial state s0,a n dt h e
+marked-state set SMare deﬁned in the same way as in Deﬁnition 2forMMRS (Z)
+•the feasible event function is given by:
+/Gamma1(s1,s2, ..., sn)={ei:si<mi∧/Sigma1n
+j=1|(Rsi+1
+i∩Rsj
+j|≤1}
+The feasibility and admissibility of the event occurrence in D-2-MMRS∗can be con-
+sidered in terms of the feasibility and admissibility of the allocation to the robots their nextrequired cells. The algorithm for state-safety testing is based on the analysis of the cell
+allocation graph that is deﬁned below and illustrated with an example depicted in Fig. 4.
+Deﬁnition 8 A cell allocation graph Gis a directed graph that depicts the state of the cell
+allocation and the nearest further needs of the robots. The vertices of Grepresent the cells,
+and the arcs of Grepresent the active robots. There exists arc A
+i=(wk,wl)inGiff robot
+Aioccupies cell wkand the next stage of its route is cell wl.
+123
+
+--- Page 14 ---
+438 Discrete Event Dynamic Systems (2023) 33:425–453
+Fig. 4 An example resource allocation graph (lower part of the ﬁgure) corresponding to a group of robots
+executing their missions. The upper part of the ﬁgure depicts the distribution of the robots in the motion areaas well as the directions towards their next cells on the route
+Next we employ this concept for the feasible and admissible cell allocation to the robots.
+Deﬁnition 9 Given a graph Ga n da na r c Ai=(wk,wl), allocation of cell wlto robot Aiis
+feasible iff cell wlhas less than two outgoing arcs ( wlis allocated to less than two robots).
+Allocation of cell wlto robot Aiisadmissible iff any of the following conditions holds:
+1.wlis the last cell on the route of robot Ai,o r
+2. in graph G,wlhas no outgoing arcs (cell wlis not allocated to any robot), or
+3. in graph G/prime, obtained from Gby allocating cell wlto robot Aiand deallocating cell wk,
+there exists a path from vertex wlto some vertex wpthat has no more than one outgoing
+arc (i.e., to cell wpthat is allocated to at most one robot)
+If the allocation of the next required cell wlto robot Aiis admissible in state sthen the
+event eirepresenting the transition of the robot from its current cell wktowlwill also be
+considered as admissible. This results in the following theorem.
+Theorem 2 For D - 2-MMRS∗,l e t/Gamma1(s)be restricted to only such events e ithat are admissible
+in state s. Then the ﬁnal state s mis reachable from each state reachable from the initial one.
+Proof D-2-MMRS∗is an automaton model of FREE-RANGE*-2-RAS systems considered
+in Roszkowska and Reveliotis ( 2013 ), where their liveness under the admissibility conditions
+is proved. This implies reachability of the ﬁnal state (hence, also deadlock-free robot motion)also in this case. /intersectionsq/unionsq
+123
+
+--- Page 15 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 439
+4.3 Architecture of the central MMRS supervisor
+Figure 5shows the architecture of the central supervisor implementing the established logic.
+It is assumed that the robots move autonomously within path sectors as well as they can crossa sector border if it is associated with event e
+icausing a release of a resource. A transition
+to the next sector, associated with event ei, that requires an additional resource, must be
+authorized by the supervisor. Issuing such a permission to robot Aiis a controllable event
+next i. In addition, there are two observable events api,a n d rpirelated to the achievement
+of certain points on the path by robot Ai, and the transmission of this information to the
+supervisor. Event apireports the approach of robot Aito the next sector and a request for
+permission to enter it. Event rpiannounces the transition of robot Ai’s to the sector that does
+not require permission and the release of no more needed resources.
+The supervisor maintains the state of MMRS, which is changed by event occurrence.
+Event next ican occur in state sif a prior event apioccurred and event eiis admissible in
+s. If the supervisor decides to activate it, a message next iis sent to robot Aiand the state
+of the supervisor is updated to s/prime=f(s,ei). Receipt of a message of type rpannounces a
+sector change by the robot that sent it, and is directly followed by a relevant state update.Receipt of a message of type apcauses placement of the robot that sent it in the queue of
+robots awaiting permission to enter next sector. The queue is sorted according to the adoptedpriority rule. If event e
+i,w h e r e Aiis the the ﬁrst element of the queue, is admissible in the
+current state s, a message of type next is sent to robot Ai. Next, this robot is removed from
+the list of waiting robots and the state of the system is updated. Otherwise, the above processis repeated for the next robot in the queue.
+5 Stage pass control
+Implementation of the established logic raises the problem of how to prevent a robot fromentering a new sector when it is has not received permission from the supervisor to do this.Moreover, whereas all the discussed models ensure the correct transition of robots betweenpath sectors, in D-2-MMRS , collisions can occur among two robots that are allowed in a
+single cell. Both of these problems concern the behavior of the robots when passing througha given sector of the path, and are studied in this section.
+5.1 Robot motion mode control
+As mentioned in the previous section, the supervisor communicates with robots using mes-sages, whose sending and receiving can be viewed as events. The supervisor generates onlyone event, next, and the robots inform the supervisor about reaching two characteristic points
+on their path sectors: ap- request to enter the next path sector, and rp- information about
+transition to a new sector, whose entering does not require permission. Additionally, eachrobot can sense the critical points cp, lying at the braking distance from its path sectors’ ends..
+Figure 6depicts an automaton modeling the robot motion-mode control during its travel in a
+sector and transition to the next one. We distinguish four motion modes: next sector ,towards
+cp,deceleration ,acceleration ,a n d standstill ,
+In the initial or the ﬁnal state, and while waiting for the permission to enter the next sector,
+the robot remains in the standstill state. Occurrence of event next allows the robot to start
+moving to the next path sector and results in the transition to state acceleration . The robot
+123
+
+--- Page 16 ---
+440 Discrete Event Dynamic Systems (2023) 33:425–453
+Fig. 5 Architecture of the central MMRS supervisor
+123
+
+--- Page 17 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 441
+Fig. 6 Robot motion-mode control
+remains in this state until the velocity v=vmax, and continues its motion with constant
+velocity in the next path sector. The occurrence of event rpsignals that the robot has entered
+a consecutive sector (a sector that does not require supervisor’s authorization). Occurrenceof event apsignals that the robot is approaching a consecutive sector and asks permission to
+enter it. If the event next occurs before the critical point cpis reached, the robot proceeds to
+the next sector. Otherwise, at point cp, the robot changes its motion mode to deceleration and
+starts awaiting signal next, which can occur after the robot has come to the standstill or still
+when decelerating. In both cases, having received the next signal, the robot starts accelerating
+and heads to the next sector.
+5.2 Cell traverse control in D-2-MMRS
+With the cell transition control discussed in the previous section, the problem of correct
+robot motion in D-2-MMRS reduces to enabling collision-free movement of two robots
+within a cell. Achieving this goal requires an online policy to modify the paths of the robots,that takes into account the speciﬁcs of their missions. In this work, two such solutions areconsidered. In the case of no-task cells , i.e., when there are no particular locations that the
+robots are supposed to visit, we assume the establishment of virtual roundabouts to ensurethe correct trafﬁc. If, however, the robots must be able to reach some arbitrarily designatedpoints in the motion area, i.e., in the case of task cells , the trafﬁc on roundabouts is no more
+a satisfactory solution, and we focus on a reactive collision avoidance method, based on theArtiﬁcial Potential Field (APF) abstraction. These two solutions can also be combined ifneeded, as e.g. in the puck collection system . Then the robots traversing concurrently a cell
+123
+
+--- Page 18 ---
+442 Discrete Event Dynamic Systems (2023) 33:425–453
+with no pucks travel on roundabout, whereas the motion of robots in cells containing pucks
+is coordinated using the APF concept.
+The role of the cell-traverse control is to supervise the entry of each robot into a new cell
+and its travel in the cell in the case when the cell is being shared with another robot and theirpaths are conﬂicting . The latter property means that the paths of the robots either cross in this
+cell or do not cross but go in the opposite direction and the minimal distance between themis shorter than the sum of the robots radii. Otherwise, that is if the robot is the only user of acell or the robots’ paths are not conﬂicting, no supervision of their motion is necessary. Thesupervisor communicates both, with the cell transition controller and the robot controllers,and takes action as soon as some robot A
+igets allocated a new cell wk. The control takes the
+following steps.
+General scheme of the cell-traverse control
+1. If cell wkis only allocated to robot Ai, or it is also allocated to another robot Ajbut their
+paths in wkare not conﬂicting then prompt Aito enter wkand continue its initial travel
+plan. Otherwise go to (2).
+2. Since (1) is not true, there exists another robot, say Aj, that was allocated cell wkearlier
+than Ai.I f Ajhas already been allocated its next cell, say wl, then wait until it has
+ﬁnished the transit to wla n dg ot o( 1 ) .O t h e r w i s eg ot o( 3 ) .
+3. Ifwkis a no-task cell then apply roundabout-control. Otherwise go to (4).
+4. Apply APF-control.
+The control procedures called in steps (3) and (4) of this algorithm are discussed below.
+Roundabout-control
+The RC procedure is not called unless some robot Aiis permitted to enter a new no-task cell
+wkthat is already occupied by another robot Aj. The control takes the form of a supervisor
+that induces a change of the robots’ motion modes. The robots are commanded to enterone by one the roundabout, head towards their cell exits, and either directly leave the circleand drive to the next cell or wait at the roundabout until such a transition is enabled by thecell-transition controller. If the way to the exit of the robot supposed to leave the cell ﬁrst isblocked by the other robot then the latter is ordered to make another circle on the roundaboutand thus let the former reach the exit. Moreover, it is assumed that the robots are equippedwith proximity sensors, which allows them to keep the distance and avoid collisions betweeneach other. Alternatively, the collision free motion can be enforced centrally based on a RASmodel. In this case the roundabout is partitioned into sectors that represent resources, andthe supervisor controls their mutually exclusive use. The left part of Fig. 7shows exemplary
+robot paths on the roundabout. The actual shape of the path entry on the roundabout willdepend on the kinematics of the robots.
+APF-control
+The APF-control procedure is called each time when some robot Aiis permitted to enter
+a new task-cell wkthat is already occupied by another robot Aj. In this case, one or both
+robots need to visit some speciﬁc locations in the cell and then head towards the entry totheir next cells. The AFP concept deals with the potential ﬁeld constituted by attractive ﬁeldsand repulsive ﬁelds that induce attractive and repulsive forces, respectively. The robot isrepresented by a particle that is subjected to these forces, which results in its movement. In
+123
+
+--- Page 19 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 443
+Fig. 7 Modiﬁcation of the robot paths enforced by the cell-traverse control. Left ﬁgure shows the motion on
+roundabout. Right ﬁgure illustrates the APF-control assumption that robot Ajfollows its path, while the path
+ofAiis determined in real-time by the combination of the attractive APF force of the goal and the repulsive
+APF forces of the borders and the other robot
+planning the robot path, the attractive force is associated with the robot target, whereas the
+repulsive forces, with the obstacles. When using this abstraction for the coordination of tworobots motion in a cell, we make the following assumptions.
+•Robot A
+iis subjected to the APF forces with the force interaction point placed in the
+center of the robot’s disk.
+•The borders , depicted by the dashed lines spaced from the sides of the cell by the radius
+of the disc (see Fig. 7) are considered as obstacles, which ensures that when traversing
+the cell, the robot is entirely contained in it. The repulsive force is only activated for theborders of w
+k, that is of the cell currently traversed by robot Ai. During its transit to the
+next cell, the forces of both cells are active, and once Aileaves entirely wk, the repulsive
+forces associated with the borders of wkget deactivated.
+•The locations that robot Aihas to visit in cell wkare considered its targets, and modeled
+as attractive potential ﬁelds that become activated in the order of their occurrence onthe initial robot path. That is, if there is no puck to pick in cell w
+k, the attractive force
+associated with the exit from wkis immediately activated. Otherwise the attractive force
+of the ﬁrst puck to collect is activated and kept active until the puck gets collected. Thesame is repeated for all the subsequent pucks and ﬁnally for the exit. Then the exit forceis deactivated and the robot either directly transits to the next cell or stops and waits forthe permission to continue its motion.
+•The robots are considered as moving obstacle, generating a repulsive potential ﬁeld,
+which prevents collisions between them.
+•Robot A
+jis not subjected to the APF forces (hence its path is not modiﬁed) unless at a
+standstill, while awaiting permission to enter the next cell, blocks the exit of robot Ai.
+Then the repulsive ﬁeld of Aiis increased and the APF control for robot Ajis initiated,
+which makes it move aside.
+When implementing this concept, the basic problem is the construction of smooth repulsive
+and attractive APF functions over the extent of the conﬁguration space. Their combination
+123
+
+--- Page 20 ---
+444 Discrete Event Dynamic Systems (2023) 33:425–453
+should provide high values when the robot is near to an obstacle, lower values when it is
+further away, the lowest value at the desired goal location, and its increase when movingto conﬁgurations that are further away. Then the gradient of such a function, deﬁning theresultant APF force, can be used to guide the robot to the desired conﬁguration. The controlalgorithm consists in the repeated calculation of its value for the subsequent positions of therobot. The force vector indicates the direction of the robot motion at the current control step,while the velocity function can be deﬁned arbitrarily. For example, one can choose to moveat a constant speed until close enough to the target and then to scale the speed depending onthe distance to the target. Based on Matoui et al. ( 2015 ), we chose the following functions
+to deﬁne the potential ﬁelds.
+•Attractive Potential Field:
+U
+att(X)=1
+2kρ2(X,Xg) (6)
+where :
+X=(x,y)– position of the robot
+Xg=(xg,yg)– goal of the robot
+ρ(X,Xg)=| |Xg−X||– distance from robot to goal
+K– positive scaling vector
+The function Uattra(X)is positive or null and attains the minimum in goal point. Attrac-
+tive force: Fattra(X)is the negative gradient of the attractive potential ﬁeld function:
+•Attractive force:
+Fatt(X)=− ∇ [ Uatt(X)]=− kρ(X,Xg) (7)
+•Repulsive Potential Field:
+Urepu(X)=/braceleftBigg
+1
+2η/parenleftBig
+1
+ρ(X,Xo)−1
+ρo/parenrightBig
+if(X,Xo)≤ρo
+0i f(X,Xo)>ρ o(8)
+where:
+ρ(X,Xo)– the minimum distance between the robot the obstacles
+ρo– distance inﬂuence imposed by obstacles
+η> 0 – positive scaling factor
+•Repulsive force:
+Frep(X)=∇ [ Urep(X)]=/braceleftBigg
+η/parenleftBig
+1
+ρ(X,Xo)−1
+ρo/parenrightBig
+1
+ρ2(X,Xo)if(X,Xo)≤ρo
+0i f(X,Xo)>ρ o(9)
+The values of the scaling factors Kandη, as well as of the distance inﬂuence ρoneed to be
+set experimentally. The force acting on robot Aiat a given position Xis equal to the attractive
+force generated by the nearest goal and the repulsive forces generated by the cell borders andof the other robot, and can be calculated using the above deﬁned functions.
+F(X)=F
+border
+rep(X)+Fother−robot
+rep +Fgoal
+att (10)
+Using the direction of the force vector at position X, the next position of the robot, X/prime,i s
+calculated at a unit distance from X, which corresponds to the assumption of a constant speed
+ofAi.
+123
+
+--- Page 21 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 445
+Fig. 8 State variables of the differential drive robot
+6 Robot control
+The low level robot control model reﬂects the speciﬁcs of the robot construction. In particular,
+we assume the implementation of the control concept presented in this work for differentialdrive robots, an example of which are Turtlebots. These robots have two separately drivenwheels placed on either side of its body, and an additional, free of control wheel, used fortheir stabilization.
+The state of the robot is represented with three variables: position (x,y)of the central
+point of the robot disk, and its orientation θ(see Fig. 8). There are two control variables:
+linear velocity vand angular velocity ωof the robot platform. The kinematic model of the
+robot is described by the following differential equation:
+˙q=⎛
+⎝˙x
+˙y
+˙θ⎞
+⎠=⎛
+⎝cosθ
+sinθ
+0⎞
+⎠v+⎛
+⎝0
+0
+1⎞
+⎠ω (11)
+Then, the angular velocity of the robot is given by:
+˙θ=ω=v
+r−vl
+D(12)
+where Dis the distance between the centers of the wheels, and vl,vrare the linear velocities
+of the left and right wheels, respectively. The velocity of the robot is the average of theindividual wheel velocities:
+v=v
+l+vr
+2,where vl=v−D
+2ω, v r=v+D
+2ω (13)
+The low-level robot controller is responsible for the motion execution. It contains a local
+planner, which calculates the required wheel velocities given a path to be followed and thecurrent robot position with respect to this path. In the case of differential drive robots, theangular and forward velocities can be calculated separately. The angular velocity is calculated
+123
+
+--- Page 22 ---
+446 Discrete Event Dynamic Systems (2023) 33:425–453
+based on the spline approximation to smoothly follow the path and to reduce any drift error
+if it appears. The forward velocity of the robot depends on the motion modes required toperform its mission and conform to the decisions of the higher level controllers. For the‘accelerate’ and ‘decelerate’ modes it forms a trapezoidal velocity proﬁle constrained withmaximum values of velocity, regular acceleration and deceleration. In the case of the ’stop’requirement, an emergency break is activated to immediately stop the robot.
+7 Simulation experiments
+The aim of the simulation experiments was a comparison of the system behavior under theestablished three supervisory control models. The research comprised three MMRS simula-tion instances, each of which aimed at the visualization of the concurrent travel of a groupof robots along a speciﬁc set of paths as well as at the measurement of parameters suchas time and distance traveled by the robots. The considered assignments for the robot ﬂeetare delivery tasks speciﬁed by a set of locations to visit. The motion area was assumed tobe a square with side length of 30 m and each cell with dimension 2 m×2m. Animations
+of the studied simulation instances are accessible at https://drive.google.com/drive/folders/
+1no1sHDCunRuXtzjt167SKy21hqW0g-ec?usp=sharing .
+Experiment 1
+The experiment included three instances, corresponding to the simulation of the robot move-
+ment along the same cyclic paths, but under the supervision based on the three discussedmodels, ξ-MMRS ,D-MMRS ,a n d D-2-MMRS . Figure 9presents the considered motion
+area and its tessellation employed in D-MMRS and D-2-MMRS . Next to the layout of
+Fig. 9 Simulation instance 1 - 10 robots moving along cyclic paths. Motion space partitioned into cells with
+depicted robots’ paths and their private sectors (lighter shade of the path color)
+123
+
+--- Page 23 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 447
+Fig. 10 Simulation instance 1 - 10 robots moving along cyclic paths. Approximation of the paths with Bezier
+curves and their analytically established partition into sectors with the minimum length of the conﬂictingstages
+the robot paths, the ﬁgure depicts their private sectors (colored with a lighter shade of the
+path’s color) and their shared sectors (uncolored) used in the state-safety algorithm. Theξ-MMRS was established through path division based on the criterion of minimal length of
+the conﬂicting sectors. To enable analytical optimization, the paths of robots were presentedin the mathematical form. Figure 10depicts Bezier splines approximating the considered
+paths together with their partition into sectors. The simulation assumed the red robots to passalong their paths three times, the yellow, purple, brown and blue robots - twice, and the greenand black robots - once.
+Table 1presents the makespan the makespan C
+max (the completion time of the task
+completed at the latest) values obtained using the the three supervisory control models. Infact, the makespans values are very similar. The shortest time was achieved for D-2-MMRS ,
+but the difference between the other cases is less than 2%. Moreover, the approximation ofthe paths with Bezier splines changed slightly their lengths.
+Experiment 2
+Table 1 Experiment 1:
+simulation resultsmodel C max [s] Total length [m]
+D-MMRS 234 999.8
+D-2-MMRS 230 1004.4
+ξ-MMRS 235 1016.8
+123
+
+--- Page 24 ---
+448 Discrete Event Dynamic Systems (2023) 33:425–453
+Fig. 11 Simulation instance 2 - the paths of 22 robots
+The second scenario dealt with a system of an increased number of robots and their poten-
+tial conﬂicts, and only concerned comparison of D-MMRS and D-2-MMRS supervisory
+control models. Figure 11shows the paths of the robots and their initial positions. The paths
+of each robot had the same length, and each robots followed its path four times.
+Table 2presents the averaged results for 5 runs of each robot under the supervision of
+D-MMRS and D-2-MMRS models. The following two basic observations can be made.
+•The average distance traveled in system D-2-MMRS is about 0.84% longer than in
+D-MMRS .
+•Robots’ average task completion time is 10.87% lower in D-2-MMRS compared to
+D-MMRS .
+The obtained results are consistent with the expectations. The decrease of time in the case
+ofD-2-MMRS is due to both a better usage of the space (two robots in a cell) and a less
+restrictive state-safety test.
+Experiment 3
+A possible approach to minimize the makespan is to provide more robots to the system anddivide between them long, perhaps cyclic, tasks. Figure 12shows the path of ﬁve robots that
+are to be cyclically tracked a ﬁxed number of times. The red, green, yellow, and cyan robotsare supposed to make 5 cycles, and the navy-blue robot, traveling on the longest path, fourcycles. The realization of the last task was examined with its assignment to one robot, and itsdivision among two, three, and four robots., both for D-MMRS and D-2-MMRS control
+systems. The obtained results are presented in Table 3. One can observe that introducing one
+123
+
+--- Page 25 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 449
+Table 2 Experiment 2:
+simulation resultsD-MMRS D -2-MMRS
+Robot ID Distance [m] Time [s] Distance [m] Time [s]
+R1 111.09 311.258 111.28 292.628
+R2 111.11 352.73 112.22 307.03R3 111.08 319.52 111.31 298.28R4 111.12 342.10 111.69 300.11R5 111.10 350.84 112.48 312.91R6 111.08 352.80 112.70 312.49R7 111.07 328.99 111.98 298.90R8 111.09 330.96 111.64 299.45R9 111.082 306.57 111.50 300.17R10 111.09 333.02 111.45 299.18R11 111.09 307.53 111.24 290.39R12 111.07 384.93 111.71 294.61R13 111.14 342.62 111.10 295.35R14 111.09 369.43 112.25 302.40R15 111.08 351.62 111.85 300.56R16 111.08 332.82 114.07 324.15R17 111.10 311.58 114.29 315.37R18 111.07 315.94 113.18 317.79R19 111.10 361.31 111.50 296.34R20 111.11 350.94 112.01 303.79R21 111.08 354.28 111.52 295.90R22 111.08 350.16 111.44 292.79Average 111.09 339.18 112.02 302.30
+more robot reduces the makespan by nearly half. Each additional robot does not have such a
+signiﬁcant impact on shortening this time. For D−2−MMRS model, an acceleration of
+3-4% relative to the D-MMRS can be noticed.
+Other conclusions drown from the simulation experiments are as follows.
+•Local maneuvers can make the robot paths longer, but only to a small extent in relation
+to the total path length.
+•Two robots allowed in the cell not always help with the system speedup if simultaneous
+requests for resources are rare. Effect of this is signiﬁcant when the instance is dense,with more agents in the motion space. The time gain is visible in systems with longer,perhaps cyclical tasks that could greatly beneﬁt from the concurrent execution.
+•Use of the potential ﬁeld algorithm in the D-2-MMRS requires careful adjustment of
+parameter values for forces between agents and resource barriers. Overly large valuesmay cause problems in maintaining the state of resource allocations in the supervisorcontroller. This algorithm is computationally expensive and requires access to not alwaysavailable information (positions of other robots, their velocities).
+123
+
+--- Page 26 ---
+450 Discrete Event Dynamic Systems (2023) 33:425–453
+Fig. 12 Simulation instance 3: blue path is supposed to be traveled four times, and the remaining paths, ﬁve
+times
+8 Conclusions
+This paper contributes with a hybrid, three-level control system for MMRS, comprising
+a central supervisor that controls the robot transitions between the stages of their motionprocesses, local controllers that induce the robot’s motion mode within a stage to suit thesupervisor’s decisions, and low-level robot controllers that are responsible for the requiredmotion-mode execution. As can be noticed, the solutions proposed for the highest control levelaffect the solutions needed for the implementation of lower levels and, as a result, the operationof the entire system. The paper mostly focuses on the two upper levels, leaving the speciﬁcproblems of robot control to be solved at the laboratory research stage. Within a commonframework, we considered three supervisory control models that differ in the discretization
+Table 3 Experiment 3: simulation results
+model Main task n C max [s] Total length [m]
+D-MMRS 1 robot assigned 5 1960 2346.6
+2 robots assigned 6 955 2341.63 robots assigned 7 636 2338.14 robots assigned 8 508 2335.0
+D-2-MMRS 1 robot assigned 5 1898 2360.4
+2 robots assigned 6 941 2362.33 robots assigned 7 612 2387.8
+4 robots assigned 8 503 2403.1
+123
+
+--- Page 27 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 451
+of the robot continuous motion processes and/or the way of event occurrence restriction to
+provide collision-, and deadlock-free trafﬁc. Next we proposed relevant solutions for the localcontrollers, and a general architecture of the supervisor that was implemented in a simulationsystem. We conducted three experiments to compare the impact of the different solutions onthe performance of MMRS. The scenarios concerned transport tasks concurrently executedby a team of robots. The main observation was that type of MMRS model used does notaffect the efﬁciency of the system as long as the layout of the robot paths is not very dense.Then some differences were observed. However, further research is needed to determine theinﬂuence of other system parameters on its performance, e.g., cell size, event prioritizationpolicy, or local controllers’ parameters. Other problems, such as, e.g., the impact of the robotpositioning precision or the communication packets loss on the system performance, need tobe established at the level of experiments with real robots.
+Acknowledgements This research was partially supported by the National Science Centre, Poland, under the
+project number 2016/23/B/ST7/01441.
+Declarations
+Conﬂict of Interest The authors have no conﬂicts of interest to declare that are relevant to this article.
+Open Access This article is licensed under a Creative Commons Attribution 4.0 International License, which
+permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as you giveappropriate credit to the original author(s) and the source, provide a link to the Creative Commons licence,and indicate if changes were made. The images or other third party material in this article are included in thearticle’s Creative Commons licence, unless indicated otherwise in a credit line to the material. If material is
+not included in the article’s Creative Commons licence and your intended use is not permitted by statutory
+regulation or exceeds the permitted use, you will need to obtain permission directly from the copyright holder.To view a copy of this licence, visit http://creativecommons.org/licenses/by/4.0/ .
+References
+Andreasson H, Bouguerra A, Cirillo M, Dimitrov D, Driankov D, Karlsson L, Lilienthal A, Pecora F, Saarinen
+J, Sherikov A, Stoyanov T (2015) Autonomous transport vehicles: Where we are and what is missing.IEEE Robot Autom Mag 22(1):64–75
+Barraquand J, Latombe JC (1991) Robot motion planning: A distributed representation approach. The Int J
+Robot Res 10:628–649
+Buckley SJ (1989) Fast motion planning for multiple moving robots. In: Proceedings, 1989 international
+conference on robotics and automation, pp 322–3261
+Cassandras C, Lafortune S (2010) Introduction to Discrete Event Systems. Springer, NYDonald B, Xavier P, Canny J, Reif J (1993) Kinodynamic motion planning. Journal of ACM 40(5):1048–1066Farrell M, Luckcuck M, Fisher M (2018) Robotics and integrated formal methods: Necessity meets opportunity.
+Integrated Formal Methods. Springer, Cham, pp 161–171
+Ferrera E, Capitan J, Rodriguez Castano A, Marron P (2017) Decentralized safe conﬂict resolution for multiple
+robots in dense scenarios. Robot Auton Syst 91:179–193
+Ferrera E, Castano A, Capitan J, Ollero A, Marron P (2013) Decentralized collision avoidance for large teams
+of robots. In: 2013 16th international conference on advanced robotics (ICAR), pp 1–6
+Khatib O (1986) Real-time obstacle avoidance for manipulators and mobile robots. Int J of Robotics Res
+8(1):90–98
+Kress-Gazit H, Lahijanian M, Raman V (2018) Synthesis for robots: Guarantees and feedback for robot
+behavior. Annual Review of Control, Robotics, and Autonomous Systems 1(1):211–236
+La Valle SM, Hutchinson SA (1998) Optimal motion planning for multiple robots having independent goals.
+IEEE Trans Robot Autom 14(6):912–925
+Lin H (2014) Mission accomplished: An introduction to formal methods in mobile robot motion planning and
+control. Unmanned Systems 02(02):201–214
+123
+
+--- Page 28 ---
+452 Discrete Event Dynamic Systems (2023) 33:425–453
+Lygeros J, Godbole DN, Sastry S (1998) Veriﬁed hybrid controllers for automated vehicles. IEEE Trans Autom
+Control 43(4):522–539
+Matoui F, Boussaid B, Abdelkrim MN (2015)Local minimum solution for the potential ﬁeld method in mul-
+tiple robot motion planning task. In: 2015 16th international conference on sciences and techniques ofautomatic control and computer engineering (STA), pp 452–457
+Pallottino L, Scordio VG, Bicchi A, Frazzoli E (2007) Decentralized cooperative policy for conﬂict resolution
+in multivehicle systems. IEEE Trans Robot 23:1170–1183
+Pecora F, Cirillo M, Dimitrov D (2012) On mission-dependent coordination of multiple vehicles under spatial
+and temporal constraints. In: 2012 IEEE/RSJ international conference on intelligent robots and systems,
+pp 5262–5269
+Peng J, Akella S (2004) Coordinating Multiple Robots with Kinodynamic Constraints along Speciﬁed Paths.
+Springer, Berlin, Heidelberg, pp 221–237
+Reveliotis SA (2005) Real-Time Management of Resource Allocation Systems. Springer, NYReveliotis SA, Roszkowska E (2011) Conﬂict resolution in free-ranging multivehicle systems: A resource
+allocation paradigm. IEEE Trans Robot 27(2):283–296
+Roszkowska E (2005) Provably correct closed-loop control for multiple mobile robot systems. In: Proceedings
+of the 2005 IEEE international conference on robotics and automation, pp 2810–2815
+Reveliotis SA, Roszkowska E (2010) On the complexity of maximally permissive deadlock avoidance in
+multi-vehicle trafﬁc systems. IEEE Trans Autom Control 55(7):1646–1651
+Roszkowska E, Reveliotis SA (2013) A distributed protocol for motion coordination in free-range vehicular
+systems. Automatica 49(6):1639–1653
+Soltero DE, Smith SL, Rus D (2011) Collision avoidance for persistent monitoring in multi-robot systems
+with intersecting trajectories. In: Proceedings of IEEE/RSJ international conference on intelligent robotsand systems, pp 3645–3652
+Tomlin C, Pappas GJ, Sastry S (1998) Conﬂict resolution for air trafﬁc management: a study in multiagent
+hybrid systems. IEEE Trans Autom Control 43:509–521
+Publisher’s Note Springer Nature remains neutral with regard to jurisdictional claims in published maps and
+institutional afﬁliations.
+Elzbieta Roszkowska holds the M.S. degree in computer science and
+the Ph.D. and D.Sc. (habilitation) degrees in automation and robotics.She is a professor at the Department of Cybernetics and Robotics,at Wroclaw University of Science and Technology (WUST), Poland,
+involved in both research and teaching. Her professional interest is
+in the event-based and hybrid control for complex systems with aspeciﬁc reference to automation and robotics applications. She coor-dinated a number of research projects, the recent of which has beennominated to the award granted by Polish Center of Intelligent Devel-opment. As one of the creators of a new ﬁeld of study at WUST -Embedded Robotics, prof. Roszkowska acts currently as its director.She also serves as expert in national and international bodies, includ-ing European Commission and industry. Elzbieta Roszkowska is asenior member of IEEE, worked two terms as an associate editor inthe IEEE Transactions on Automation Science and Engineering, andhas been a PC member of many international conferences.
+123
+
+--- Page 29 ---
+Discrete Event Dynamic Systems (2023) 33:425–453 453
+Piotr Makowski-Czerski was born on August 8, 1996 in Zielona Gora,
+Poland. He received the Automation and Robotics Engineer degreeand M.Sc degree in Embedded Robotics from the Wroclaw Univer-sity of Science and Technology, Wroclaw, Poland, in 2019 and 2022respectively. He is currently working as a robotics software engineer.His main interests include control of a ﬂeet of autonomous mobilerobots.
+Łukasz Janiec holds a Master’s degree in Control Engineering and
+Robotics from Wrocław University of Science and Technology, spe-
+cializing in Robotics. He is currently a PhD Student at the Department
+of Cybernetics and Robotics at the same university. His research inter-ests focus on investigating the control of multiple mobile robot groups,their coordination, collision avoidance, and deadlock prevention, aswell as the use of ROS 2 in robotic simulations and experiments.
+123

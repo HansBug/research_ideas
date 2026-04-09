@@ -1,0 +1,1414 @@
+--- Page 1 ---
+Checking LTL Properties of Recursive Markov Chains
+Mihalis Yannakakis
+Department of Computer Science
+Columbia UniversityKousha Etessami
+LFCS, School of Informatics
+University of Edinburgh
+Abstract
+We present algorithms for the qualitative and quantita-
+tive model checking of Linear Temporal Logic (LTL) prop-
+erties for Recursive Markov Chains (RMCs). Recursive
+Markov Chains are a natural abstract model of procedural
+probabilistic programs and related systems involving recu r-
+sion and probability. For the qualitative problem (“Given
+a RMC /BTand an LTL formula /B3, do the computations
+of /BTsatisfy /B3almost surely?”) we present an algorithm
+that runs in polynomial space in /BTand exponential time
+in /B3. For several classes of RMCs, including RMCs with
+one exit (a special case that corresponds to well-studied
+probabilistic systems, e.g., multi-type branching proces ses
+and stochastic context-free grammars) the algorithm runs
+in polynomial time in /BTand exponential time in /B3. On the
+other hand, we also prove that the problem is EXPTIME-
+hard, and hence it is EXPTIME-complete. For the quan-
+titative problem (“does the probability that a computation
+of /BTsatisﬁes /B3exceed a given threshold /D4?”, or approxi-
+mate the probability within a desired precision) we present
+an algorithm that runs in polynomial space in /BTand expo-
+nential space in /B3. For linearly-recursive RMCs, we can
+compute the exact probability in time polynomial in /BTand
+exponential in /B3. These results improve by one exponential,
+in both the qualitative and quantitative case, the complexi ty
+that one would obtain if one ﬁrst translated the LTL formula
+to a B ¨uchi automaton and then applied the model checking
+algorithm for B ¨uchi automata from [11]. Our results com-
+bine techniques developed in [10, 11] for analysis of RMCs,
+and in [6] for LTL model checking of ﬂat Markov Chains,
+and extend them with new techniques.
+1 Introduction
+Recursive Markov Chains (RMCs), introduced in [10,
+11], are a natural abstract model of procedural probabilist ic
+programs and related systems involving recursion and prob-
+ability. RMCs succinctly deﬁne a natural class of denumer-
+able Markov chains that generalize well-studied stochas-
+tic processes such as multi-type Branching Processes. An
+RMC consists of a collection of ﬁnite state component
+Markov chains (MCs) that can call each other in a poten-
+/CT/DC/BD/CT/DC/BE
+/BD /BP /BE
+/BT/BD/BD
+/CT/D2
+/BC
+/BT/BE/CT/DC
+/BC/BD/CT/DC
+/BC/BE/BD
+/BF /BP /BH
+/CQ/BD
+/BM /BT/BE
+/CQ
+/BC/BD
+/BM /BT/BD/CQ
+/BC/BE
+/BM /BT/BE/DE
+/D9
+/BF /BP /BG/BD /BP /BG
+/BE /BP /BF/BD /BP /BF/BD /BP /BF
+/CT/D2/DA
+/BD /BP /BG
+/BD /BP /BG
+/BE /BP /BH/BD/BD /BP /BF
+/BE /BP /BF
+/BD
+/BD/BD /BP /BF/BD /BP /BF
+Figure 1. A sample Recursive Markov Chain
+tially recursive manner. Each component has a set of nodes ,
+a set of boxes (each mapped to a component), an interface
+consisting of a set of entry andexitnodes (nodes in the
+component where we may start and terminate), and a set of
+probabilistic transitions connecting the nodes and boxes. A
+transition to a box speciﬁes the entry node and models the
+invocation of the component MC associated with the box;
+when (and if) the component MC terminates at an exit, ex-
+ecution of the calling MC resumes from the corresponding
+exit of the box. An example RMC with 2 components, /BT/BD
+and /BT/BE, each with one entry and two exits, is depicted in
+Figure 1. Note that, e.g., box /CQ/BDof component /BT/BDmaps to
+a copy of component /BT/BE.
+RMCs are a probabilistic version of Recursive State Ma-
+chines (RSMs). RSMs ([1, 2]) and closely related models
+like Pushdown Systems (PDSs) (see, e.g., [3, 7]) have been
+studied extensively in research on model checking and pro-
+gram analysis, because of their applications to veriﬁcatio n
+of sequential programs with procedures. RMCs are inti-
+mately related to probabilistic Pushdown Systems (pPDSs),
+and decidability and complexity of model checking ques-
+tions for pPDSs has also been studied recently ([8, 4]).
+RMCs generalize other well-studied models involving
+probability and recursion: Stochastic Context-Free Gram-
+mars (SCFGs) have been extensively studied, mainly in
+natural language processing (NLP) (see [16]). Multi-Type
+Branching Processes (MT-BPs), are an important family of
+stochastic processes with many applications in a variety of
+areas (see, e.g., [14]). Both SCFG’s and MT-BP’s are essen-
+tially equivalent to 1-exit RMC’s: the special case of RMC’s
+in which all components have one exit.
+
+--- Page 2 ---
+Probabilistic models of programs and systems are of in-
+terest for several reasons. First, a program may use random-
+ization, in which case the transition probabilities reﬂect the
+random choices of the algorithm. Second, we may want
+to model and analyse a program or system under statistical
+conditions on its behaviour (e.g., based on proﬁling statis -
+tics or on statistical assumptions), and to determine the in -
+duced probability of properties of interest.
+In this paper, we study the model checking problems for
+RMCs when the speciﬁcation is given by a formula /B3in
+Linear Temporal Logic (LTL). As is well known, LTL is
+a standard logic for specifying properties of the execution s
+of a system. Speciﬁcally, we are given an RMC /BTand an
+LTL formula /B3. Every vertex of the RMC is labeled by
+the subset of the propositions of /B3which hold at the ver-
+tex. Let /C8/BT
+/B4 /B3 /B5denote the probability that an execution of/BTsatisﬁes /B3. The qualitative model checking problem is:
+determine whether almost all executions of /BTsatisfy /B3, i.e.,
+whether /C8/BT
+/B4 /B3 /B5 /BP /BD. (Note that almost no executions of /BT
+satisfy /B3, i.e. /C8/BT
+/B4 /B3 /B5 /BP /BC, iff /C8/BT
+/B4 /BM /B3 /B5 /BP /BD.)
+In the quantitative model checking problems we wish
+to compare /C8/BT
+/B4 /B3 /B5to a given rational threshold /D4, i.e., is/C8/BT
+/B4 /B3 /B5/A1 /D4?, where /A1 /BE /CU /BO/BN /AK /BN /BP /CV, or alternatively, we
+may wish to approximate /C8/BT
+/B4 /B3 /B5to within a given number
+of bits of precision. In general, as shown in [10], /C8/BT
+/B4 /B3 /B5
+may be irrational. Hence we can not compute it exactly.
+We show that the qualitative model checking problems
+can be solved in PSPACE in /BTand EXPTIME in /B3. More
+speciﬁcally, the exponent depends only on the number of
+temporal operators in /B3, which in practice is a small con-
+stant. For three classes of RMC’s we obtain polynomial
+time in /BT(and exponential in /B3): (1) The class of 1-exit
+RMCs (which correspond to SCFG’s and MT-BP’s); (2)
+The class of RMCs (denoted Bd-RMCs) with a bounded to-
+tal number of entries and exits. In terms of probabilistic pr o-
+gram abstractions, this class of RMC’s corresponds to pro-
+grams with a bounded number of distinct procedures, each
+of which has a bounded number of input/output parameter
+values. The internals of the components of the RMCs (i.e.,
+the procedures) can be arbitrarily large and complex; (3)
+The class of “linearly-recursive” RMCs ( lr-RMCs), where
+no component contains a path of transitions from a return-
+port of a box to an entry of a box.
+For quantitative model checking, we show that, given a
+rational /D4 /BE /CJ/BC /BN /BD℄, deciding whether /C8/BT
+/B4 /B3 /B5 /AL /D4, (or /BQ /D4, or
+any other comparison operator) can be decided in PSPACE
+in /CY /BT /CYand EXPSPACE in /CY /B3 /CY. For /BTalr-RMC we can
+compute the exact (rational) probability /C8/BT
+/B4 /B3 /B5in polyno-
+mial time in /BTand exponential time in /B3. For /BTa Bd-RMC
+and when /B3is ﬁxed, it follows already from the results of
+[11] (by translating /B3to a B¨ uchi automaton) that there is an
+algorithm that runs in polynomial time in /CY /BT /CY.
+For lower bounds, we prove that qualitative LTL modelchecking, even for a ﬁxed, single entry/exit RMC, is already
+EXPTIME-hard, and thus EXPTIME-complete.
+As observed in [10, 11], our PSPACE complexities in/CY /BT /CYfor quantitative model checking of 1-exit RMCs, and
+for qualitative model checking of multi-exit RMCs, can not
+be improved without a breakthrough on the complexity of a
+long standing open problem in the complexity of exact nu-
+merical computation. Namely, we showed in [10] that the
+Square Root Sum Problem , reduces to quantitative reacha-
+bility analysis for 1-exit RMCs and qualitative reachabili ty
+analysis for multi-exit RMCs.
+Related Work. Model checking of ﬂat Markov chains has
+received extensive attention both in theory and practice (e .g.
+[6, 15, 19, 22]). It is known that both qualitative and quan-
+titative model checking of a ﬁnite Markov chain /BTwith re-
+spect to an LTL speciﬁcation /B3are PSPACE-complete, and
+furthermore the probability /C8/BT
+/B4 /B3 /B5can be computed exactly
+in time polynomial in /BTand exponential in /B3([6]).
+RMCs and the closely related model of probabilistic
+Pushdown Systems (pPDS) have been studied recently
+[10, 11, 12, 8, 4, 9]. Most relevant to the subject of the
+current paper are the results on model checking of prop-
+erties speciﬁed by B¨ uchi automata [4, 11]. In [11] we
+showed that qualitative model checking of an RMC /BTwith
+respect to a B¨ uchi automaton /BUcan be done in PSPACE in/CY /BT /CYand EXPTIME in /CY /BU /CY, and is also EXPTIME-complete
+in /CY /BU /CY, and that quantitative model checking can also be
+done in PSPACE in /CY /BT /CY, and in EXPSPACE in /CY /BU /CY. As is
+well known ([23]), any LTL formula /B3can be translated
+to equivalent B¨ uchi automaton /BU, and thus our prior algo-
+rithms also yield algorithms for checking LTL properties
+of RMCs. However, translation of LTL formulas to B¨ uchi
+automata necessarily incurs a worst-case exponential blow
+up. Thus, if we use our earlier results directly, we would
+obtain a doubly exponential time algorithm for qualitative
+LTL model checking, and a doubly exponential space al-
+gorithm for quantitative LTL model checking. We show in
+this paper that these extra exponential costs in complexity
+are not necessary.
+Our results build on both the techniques developed in
+[10, 11] for analysis of RMCs, as well as the techniques de-
+veloped for LTL model checking of ﬂat Markov Chains in
+[6]. There are a number of difﬁculties that have to be sur-
+mounted however. The algorithm of [6] for model checking
+LTL properties of ﬂat Markov chains employs an iterative
+approach, whereby the chain is reﬁned in each iteration and
+the formula is simpliﬁed by elimination of temporal opera-
+tors, until at the end the formula becomes propositional and
+can be veriﬁed directly. There are serious technical obsta-
+cles however for effectively extending this approach to the
+recursive setting, and this is not what we do. Instead, we
+follow a different approach which is more global in nature.
+We use an idea from another method of [6], used there for
+2
+
+--- Page 3 ---
+another purpose, and we extend it with other techniques to
+handle recursion and LTL.
+The paper is organized as follows. Sec. 2 gives def-
+initions and background from [10, 11]; Sec.’s 3 and 4
+give our upper bounds for qualitative and quantitative LTL
+model checking, respectively; Sec. 5 gives our EXPTIME-
+hardness result for qualitative LTL model checking.
+2 Deﬁnitions and Background
+ARecursive Markov Chain (RMC) , /BT, is a tuple/BT /BP /B4 /BT/BD
+/BN /BM /BM /BM /BN /BT/CZ
+/B5, where each component chain /BT/CX
+/BP/B4 /C6/CX
+/BN /BU/CX
+/BN /CH/CX
+/BN /BX /D2/CX
+/BN /BX /DC/CX
+/BN Æ/CX
+/B5consists of:/AFA set /C6/CXofnodes ./AFA subset of entry nodes /BX /D2/CX
+/AI /C6/CX, and a subset of exit
+nodes /BX /DC/CX
+/AI /C6/CX./AFA set /BU/CXofboxes . Let /BU /BP /CJ
+/CZ/CX /BP/BD
+/BU/CXbe the (disjoint)
+union of all boxes of /BT./AFA mapping /CH/CX
+/BM /BU/CX
+/BJ/AX /CU /BD /BN /BM /BM /BM /BN /CZ /CVassigns a component
+to every box. Let /CH /BP /CJ
+/CZ/CX /BP/BD
+/CH/CXbe /CH /BM /BU /BJ/AX /CU /BD /BN /BM /BM /BM /BN /CZ /CV
+where /CH /CY/BU/CX
+/BP /CH/CX, for /BD /AK /CX /AK /CZ./AFTo each box /CQ /BE /BU/CX, we associate a set of call ports ,
+Call/CQ
+/BP /CU /B4 /CQ/BN /CT/D2 /B5 /CY /CT/D2 /BE /BX /D2/CH /B4 /CQ /B5
+/CV, and a set of return
+ports ,Return/CQ
+/BP /CU /B4 /CQ/BN /CT/DC /B5 /CY /CT/DC /BE /BX /DC/CH /B4 /CQ /B5
+/CV./AFA transition relation Æ/CX, where transitions are of the
+form /B4 /D9/BN /D4/D9/BN/DA
+/BN /DA /B5where:
+1. the source /D9is either a non-exit node /D9 /BE /C6/CX
+/D2 /BX /DC/CX,
+or a return port /D9 /BP /B4 /CQ/BN /CT/DC /B5 /BEReturn/CQ, where /CQ /BE /BU/CX.
+2. The destination /DAis either a non-entry node/DA /BE /C6/CX
+/D2 /BX /D2/CX, or a call port /DA /BP /B4 /CQ/BN /CT/D2 /B5 /BECall/CQ,
+where /CQ /BE /BU/CX.
+3. /D4/D9/BN/DA
+/BE /CA/BQ /BCis the probability of transition from /D9
+to /DA. (We assume /D4/D9/BN/DAis rational for computational
+purposes.)
+4. Consistency of probabilities :/C8/CU /DA
+/BC/CY /B4 /D9/BN/D4/D9/BN/DA
+/BC
+/BN/DA
+/BC/B5 /BE Æ/CX
+/CV
+/D4/D9/BN/DA
+/BC/BP /BD /BNfor each /D9that is
+not a call port or exit node (the latter do not have
+outgoing transitions).
+We use the term vertex of /BT/CXto refer collectively to its set
+of nodes, call ports, and return ports, and we denote this set
+by /C9/CX, and we let /C9 /BP
+/CB/CZ/CX /BP/BD
+/C9/CXbe the set of all vertices
+of the RMC /BT. That is, the transition relation Æ/CXis a set of
+probability-weighted directed edges on the vertices /C9/CXof/BT/CX. Let Æ /BP /CJ/CX
+Æ/CXbe the set of all transitions of /BT.
+RMCs where every component has at most one exit
+are called 1-exit RMCs. RMCs where the total num-
+ber of entries and exits is bounded by a constant , (i.e.,/C8/CZ/CX /BP/BD
+/CY /BX /D2/CX
+/CY /B7 /CY /BX /DC/CX
+/CY /AK ) are called bounded total entry-
+exitRMCs (Bd-RMCs, for short). The class of linear RMCs
+(lr-RMCs, for short) are those with no paths (in any com-
+ponent) from a return-port to a call-port.
+An RMC /BTdeﬁnes a global denumerable Markov chain/C5/BT
+/BP /B4 /CE /BN /A1/B5as follows. The global states /CE /AI /BU
+/A3/A2 /C9are pairs of the form /CW /AC /BN /D9 /CX, where /AC /BE /BU
+/A3is a (possibly
+empty) sequence of boxes and /D9 /BE /C9is avertex of /BT. More
+precisely, the states /CEand transitions /A1are deﬁned induc-
+tively as follows:
+1. /CW /AF/BN /D9 /CX /BE /CE, for /D9 /BE /C9. ( /AFdenotes the empty string.)
+2. if /CW /AC /BN /D9 /CX /BE /CEand /B4 /D9/BN /D4/D9/BN/DA
+/BN /DA /B5 /BE Æ, then /CW /AC /BN /DA /CX /BE /CE
+and /B4 /CW /AC /BN /D9 /CX /BN /D4/D9/BN/DA
+/BN /CW /AC /BN /DA /CX /B5 /BE /A1
+3. if /CW /AC /BN /B4 /CQ/BN /CT/D2 /B5 /CX /BE /CEand /B4 /CQ/BN /CT/D2 /B5 /BECall/CQ, then/CW /AC /CQ/BN /CT/D2 /CX /BE /CE, and /B4 /CW /AC /BN /B4 /CQ/BN /CT/D2 /B5 /CX /BN /BD /BN /CW /AC /CQ/BN /CT/D2 /CX /B5 /BE /A1.
+4. if /CW /AC /CQ/BN /CT/DC /CX /BE /CEand /B4 /CQ/BN /CT/DC /B5 /BEReturn/CQ, then/CW /AC /BN /B4 /CQ/BN /CT/DC /B5 /CX /BE /CEand /B4 /CW /AC /CQ/BN /CT/DC /CX /BN /BD /BN /CW /AC /BN /B4 /CQ/BN /CT/DC /B5 /CX /B5 /BE /A1.
+Item 1 corresponds to the possible initial states, 2 corre-
+sponds to a transition within a component, 3 is when a new
+component is entered via a box, 4 is when a component is
+exited and control returns to the calling component.
+We will consider /C5/BTwith various initial states of the
+form /CW /AF/BN /DA /CX, or we can consider a distribution on these initial
+states. Some states of /C5/BTareterminating , i.e., have no
+outgoing transitions. Namely, states /CW /AF/BN /CT/DC /CX, where /CT/DCis
+an exit. We want /C5/BTto be a proper Markov chain, so we
+consider terminating states as absorbing , with a self-loop of
+probability 1. A trace (ortrajectory ) /D8 /BE /CE
+/AXof /C5/BTis an
+inﬁnite sequence of states /D8 /BP /D7/BC
+/D7/BD
+/D7/BE
+/BM /BM /BM. such that for all/CX /AL /BC, there is a transition /B4 /D7/CX
+/BN /D4/D7/CX
+/BN/D7/CX /B7/BD
+/BN /D7/CX /B7/BD
+/B5 /BE /A1.
+Given a vertex /D9 /BE /C9/CXand an exit /CT/DC /BE /BX /DC/CX, both in the
+same component /BT/CX, let /D5
+/A3/B4 /D9/BN/CT/DC /B5denote the probability that
+a trajectory starting at the state /CW /AF/BN /D9 /CXeventually reaches the
+state /CW /AF/BN /CT/DC /CX; we will often simply say that a trajectory of the
+RMC that starts at /D9exits the component at /CT/DC. As shown
+in [10], the probabilities /D5
+/A3/B4 /D9/BN/CT/DC /B5are the Least Fixed Point
+(LFP) of a system of multivariate polynomial equations/DC /BP /C8 /B4 /DC /B5, where /DCis the vector of variables /DC/B4 /D9/BN/CT/DC /B5corre-
+sponding to the vertex-exit pairs, /CT/DC /BE /BX /DC/CX, for /BD /AK /CX /AK /CZ.
+The system contains one equation /DC/B4 /D9/BN/CT/DC /B5
+/BP /C8/B4 /D9/BN/CT/DC /B5
+/B4 /DC /B5,
+for each variable /DC/B4 /D9/BN/CT/DC /B5, where /C8/B4 /D9/BN/CT/DC /B5
+/B4 /DC /B5is a multivariate
+polynomial with positive rational coefﬁcients. There are 3
+cases, based on the “type” of vertex /D9:
+1. Type I: /D9 /BP /CT/DC. In this case: /DC/B4 /CT/DC/BN/CT/DC /B5
+/BP /BD.
+2. Type II: either /D9 /BE /C6/CX
+/D2 /CU /CT/DC /CVor /D9 /BP /B4 /CQ/BN /CT/DC
+/BC/B5is a return
+port. Then /DC/B4 /D9/BN/CT/DC /B5
+/BP
+/C8/CU /DA /CY /B4 /D9/BN/D4/D9/BN/DA
+/BN/DA /B5 /BE Æ /CV
+/D4/D9/BN/DA
+/A1 /DC/B4 /DA /BN/CT/DC /B5
+/BM
+3. Type III: /D9 /BP /B4 /CQ/BN /CT/D2 /B5is a call port. In this case:/DC/B4/B4 /CQ/BN/CT/D2 /B5 /BN/CT/DC /B5
+/BP
+/C8/CT/DC
+/BC/BE /BX /DC/CH /B4 /CQ /B5
+/DC/B4 /CT/D2/BN/CT/DC
+/BC/B5
+/A1 /DC/B4/B4 /CQ/BN/CT/DC
+/BC/B5 /BN/CT/DC /B5
+The vector /D5
+/A3of the exit probabilities /D5
+/A3/B4 /D9/BN/CT/DC /B5is a solu-
+tion to this system. Furthermore, it is the least nonnegativ e
+solution. That is, if /DC /BP /C8 /B4 /DC /B5and /DC /AL /BC, where /BCde-
+notes the all /BCvector and comparison of vectors is done
+component-wise, then /DC /AL /D5
+/A3.
+The exit probabilities may in general be irrational and
+not even solvable by radicals [10], so they cannot be com-
+puted exactly. However, we can effectively compare them
+3
+
+--- Page 4 ---
+with given rational values. For notational convenience, le t
+us enumerate the pairs /B4 /D9/BN /CT/DC /B5from 1 to /D1, and identify the
+variable /DC/B4 /D9/BN/CT/DC /B5of the /CYth pair with /DC/CY. Suppose that we
+want to check whether the probability /D5
+/A3/B4 /D9/BN/CT/DC /B5of the /CYth pair
+is at most a given rational number /D4. Consider the follow-
+ing sentence in the Existential Theory of Reals (which we
+denote by ExTh /B4 /CA /B5):/B3 /AH /BL /DC/BD
+/BN /BM /BM /BM /BN /DC/D1
+/D1/CM/CX /BP/BD
+/B4 /DC/CX
+/BP /C8/CX
+/B4 /DC/BD
+/BN /BM /BM /BM /BN /DC/D1
+/B5/B5 /CM
+/D1/CM/CX /BP/BD
+/BC /AK /DC/CX
+/CM /B4 /DC/CY
+/AK /D4 /B5/B3is true precisely when the LFP of /DC /BP /C8 /B4 /DC /B5, i.e., /D5
+/A3,
+satisﬁes /D5
+/A3/B4 /D9/BN/CT/DC /B5
+/AK /D4. We can check this using a decision
+procedure for ExTh /B4 /CA /B5. It is known that ExTh /B4 /CA /B5can be
+decided in PSPACE and in exponential time, where the time
+exponent depends (linearly) only on the number of vari-
+ables; thus for a ﬁxed number of variables the algorithm
+runs in polynomial time [5, 20]. For Bd-RMCs, as shown in
+[10] it is possible to efﬁciently construct a system of equa-
+tions in a bounded number of variables, whose LFP yields
+the entry-exit probabilities /D5
+/A3/B4 /CT/D2/BN/CT/DC /B5, and check it in polyno-
+mial time. Furthermore, for 1-exit RMCs (SCFGs), we can
+efﬁciently solve qualitative termination/reachability p rob-
+lems, i.e. determine whether /D5
+/A3/B4 /D9/BN/CT/DC /B5is 0, 1, or in-between;
+this algorithm does not use the ExTh /B4 /CA /B5but rather an
+eigenvalue characterization and graph theoretic methods.
+lr-RMCs were not studied explicitly in [10]. However,
+there we showed that a “decomposed” multi-variate New-
+ton’s method which operates bottom-up on the “SCCs” of
+the system /DC /BP /C8 /B4 /DC /B5, converges monotonically from
+/AM/BCto
+the solution /D5
+/A3(see section 4 of [10]), and we observed
+that if these SCCs constitute linear systems, as in the case
+of ﬁnite Markov chains, then this decomposed Newton’s
+method converges in 1 iteration to the (rational) solutions .
+It can be shown easily that for an lr-RMC the SCCs of
+the system /DC /BP /C8 /B4 /DC /B5that are encountered bottom-up are
+all linear systems. Thus our decomposed Newton’s method
+again converges in one iteration on each of these systems,
+and we obtain the (rational) reachability probabilities /D5
+/A3in
+polynomial time. The qualitative problem can be solved
+more efﬁciently with graph theoretic methods. We summa-
+rize these results in the following theorem:
+Theorem 1 ([10]) 1. Given RMC /BTand rational /D4, there
+is a PSPACE algorithm to decide whether /D5
+/A3/B4 /D9/BN/CT/DC /B5
+/AK /D4, with
+running time /C7 /B4 /CY /BT /CY
+/C7 /B4/BD/B5/A1 /BE
+/C7 /B4 /D1 /B5/B5where /D1is the number of
+variables in the system /DC /BP /C8 /B4 /DC /B5for /BT. Moreover /D5
+/A3/B4 /D9/BN/CT/DC /B5
+can be approximated to within /CYbits of precision within
+PSPACE and with running time at most /CYtimes the above.
+2. For a Bd-RMC these problems can be solved in polyno-
+mial time.
+3. For a 1-exit RMC, we can determine in polynomial
+time which of the following holds:(1) /D5
+/A3/B4 /D9/BN/CT/DC /B5
+/BP /BC, (2)/D5
+/A3/B4 /D9/BN/CT/DC /B5
+/BP /BD, or (3) /BC /BO /D5
+/A3/B4 /D9/BN/CT/DC /B5
+/BO /BD.4. Forlr-RMCs, we can compute in polynomial time the
+rational probability vector /D5
+/A3.
+On the lower bound side, evidence of the difﬁculty of
+reachability problems for RMCs was given in [10] in the
+form of the Square-root Sum Problem , which is the follow-
+ing decision problem: given /B4 /CS/BD
+/BN /BM /BM /BM /BN /CS/D2
+/B5 /BE /C6
+/D2and /CZ /BE /C6,
+decide whether
+/C8/D2/CX /BP/BD
+/D4/CS/CX
+/AK /CZ. It is solvable in PSPACE,
+but it has been a major open problem since the 1970’s (see,
+e.g., [13, 21]) whether it is solvable even in NP. The square-
+root sum problem is P-time reducible to deciding whether/D5
+/A3/B4 /D9/BN/CT/DC /B5
+/AL /D4, in a 1-exit RMC, and to deciding whether/D5
+/A3/B4 /D9/BN/CT/DC /B5
+/BP /BDfor a 2-exit RMC [10].
+The system /DC /BP /C8 /B4 /DC /B5of an RMC may have in gen-
+eral multiple (nonnegative) ﬁxpoints. An augmented sys-
+tem can be constructed which has a unique ﬁxpoint, as fol-
+lows. For each vertex /DA /BE /C9/CX, deﬁne the probability of
+never exiting : /D2/CT /B4 /DA /B5 /BP /BD /A0
+/C8/CT/DC /BE /BX /DC/CX
+/D5
+/A3/B4 /DA /BN/CT/DC /B5. Call a vertex/DAdeﬁcient if /D2/CT /B4 /DA /B5 /BQ /BC, i.e. there is a nonzero probability
+that if the RMC starts at /DAit will never terminate (reach an
+exit of the component). We can determine if a vertex /DAis
+deﬁcient by replacing the last constraint in the formula /B3
+above with the constraints /D2/CT /B4 /DA /B5 /BP /BD /A0
+/C8/CT/DC /BE /BX /DC/CX
+/D5
+/A3/B4 /DA /BN/CT/DC /B5
+and /D2/CT /B4 /DA /B5 /BQ /BCand testing the resulting formula. Doing
+this for all the vertices, determines the set /C9
+/BCof deﬁcient
+vertices, /C9
+/BC/BP /CU /DA /BE /C9 /CY /D2/CT /B4 /DA /B5 /BQ /BC /CV. It is shown in [11]
+that the system /DC /BP /C8 /B4 /DC /B5 /BN /DC /AL /BChas a unique ﬁxpoint that
+satisﬁes
+/C8/CT/DC
+/D5
+/A3/B4 /DA /BN/CT/DC /B5
+/BO /BDfor every deﬁcient vertex /DA /BE /C9
+/BC
+and
+/C8/CT/DC
+/D5
+/A3/B4 /DA /BN/CT/DC /B5
+/AK /BDfor every other vertex.
+With a RMC /BTwe can associate a ﬁnite-state ﬂat
+Markov chain, called the summary chain /C5
+/BC/BT. Assume,
+w.l.o.g., that the RMC has one initial state /D7/BC
+/BP /CW /AF/BN /CT/D2/CX/D2/CX/D8
+/CX,
+with /CT/D2/CX/D2/CX/D8the only entry of a component /BT/BCthat does not
+contain any exits. Any RMC can readily be converted to
+an “equivalent” one in this form, while preserving relevant
+probabilities. The summary chain /C5
+/BC/BT
+/BP /B4 /C9
+/BC/BN Æ/C5
+/BC/BT
+/B5is de-
+ﬁned as follows. The set of states of /C5
+/BC/BTis the set of deﬁ-
+cient vertices: /C9
+/BC/BP /CU /DA /BE /C9 /CY /D2/CT /B4 /DA /B5 /BQ /BC /CV. For /D9/BN /DA /BE /C9
+/BC,
+there is a transition /B4 /D9/BN /D4
+/BC/D9/BN/DA
+/BN /DA /B5in Æ/C5
+/BC/BTif and only if one of
+the following conditions holds:
+1. /D9/BN /DA /BE /C9/CXand /B4 /D9/BN /D4/D9/BN/DA
+/BN /DA /B5 /BE Æ/CX, and /D4
+/BC/D9/BN/DA
+/BP
+/D4/D9/BN/DA
+/A1 /D2/CT /B4 /DA /B5/D2/CT /B4 /D9 /B5.
+2. /D9 /BP /B4 /CQ/BN /CT/D2 /B5 /BECall/CQ, /DA /BP /B4 /CQ/BN /CT/DC /B5 /BEReturn/CQ,/D5
+/A3/B4 /CT/D2/BN/CT/DC /B5
+/BQ /BC, and /D4
+/BC/D9/BN/DA
+/BP
+/D5
+/A3/B4 /CT/D2/BN/CT/DC /B5
+/D2/CT /B4 /DA /B5/D2/CT /B4 /D9 /B5. We call these
+summary transitions.
+3. /D9 /BP /B4 /CQ/BN /CT/D2 /B5 /BECall/CQand /DA /BP /CT/D2, and /D4
+/BC/D9/BN/DA
+/BP
+/D2/CT /B4 /DA /B5/D2/CT /B4 /D9 /B5.
+We call these nesting transitions.
+In all three cases, /D4
+/BC/D9/BN/DAis well-deﬁned (the denominator
+is nonzero) and positive. Recall that we assumed that the
+initial vertex /CT/D2/CX/D2/CX/D8is the entry of a component /BT/BC, and /BT/BC
+has no exits. Thus for all /D9 /BE /C9/BC, /D2/CT /B4 /D9 /B5 /BP /BD, and thus/C9/BC
+/AI /C9
+/BC, and if /B4 /D9/BN /D4/D9/BN/DA
+/BN /DA /B5 /BE Æ/BC, then /B4 /D9/BN /D4/D9/BN/DA
+/BN /DA /B5 /BE Æ/C5
+/BC/BT.
+4
+
+--- Page 5 ---
+Once the deﬁcient vertices are determined, the transi-
+tions of the summary Markov chain can be constructed in
+polynomial time; the transition probabilities however may
+not be rational, thus they are not computed explicitly.
+A mapping /AQcan be deﬁned that maps every trace /D8of the
+original (inﬁnite) Markov chain /C5/BTstarting at /CW /AF/BN /CT/D2/CX/D2/CX/D8
+/CX,
+either to a unique trajectory /AQ /B4 /D8 /B5of the MC /C5
+/BC/BTstarting
+at /CT/D2/CX/D2/CX/D8, or to the special symbol /BR. Brieﬂy, /AQ /B4 /D8 /B5is ob-
+tained from /D8by shortcutting recursive calls that eventually
+return, and replacing them with summary edges from the
+call port to the return port of the box; if any of the ver-
+tices after this shortcutting is not in the summary chain (i. e.
+is not in /C9
+/BC) then we set /AQ /B4 /D8 /B5 /BP /BR. In more detail, let/D8 /BP /D7/BC
+/D7/BD
+/BM /BM /BM /D7/CX
+/BM /BM /BMbe a trajectory of /C5/BT, starting at state/D7/BC
+/BP /CW /AF/BN /CT/D2/CX/D2/CX/D8
+/CX. Its summary image /AQ /B4 /D8 /B5is deﬁned se-
+quentially based on preﬁxes of /D8, as follows. To start, map/D7/BCto /CT/D2/CX/D2/CX/D8. Suppose /D7/CX
+/BP /CW /AC /BN /D9 /CX, and, inductively, sup-
+pose that the preﬁx /D7/BC
+/BM /BM /BM /D7/CXhas been mapped to /CT/CX/D2/CX/D8
+/BM /BM /BM /D9 .
+First, suppose /D9is not a call port, and that /D7/CX /B7/BD
+/BP /CW /AC /BN /DA /CX;
+if /DA /BE /C9
+/BCthen /D7/BC
+/BM /BM /BM /D7/CX
+/D7/CX /B7/BDmaps to /CT/CX/D2/CX/D8
+/BM /BM /BM /D9/DA , otherwise
+deﬁne /AQ /B4 /D8 /B5 /BP /BRand quit. Next, suppose /D9 /BP /B4 /CQ/BN /CT/D2 /B5is
+a call port and /D7/CX /B7/BD
+/BP /CW /AC /CQ/BN /CT/D2 /CX. If the trace eventually
+returns from this call (i.e., there exists /CY /BQ /CX /B7 /BD, such
+that /D7/CY
+/BP /CW /AC /CQ/BN /CT/DC /CXand /D7/CY /B7/BD
+/BP /CW /AC /BN /B4 /CQ/BN /CT/DC /B5 /CX, and such that
+each of the states /D7/CX /B7/BD
+/BM /BM /BM /D7/CY, have /AC /CQas a preﬁx of the
+call stack), then /D7/BC
+/BM /BM /BM /D7/CYis mapped to /CT/D2/CX/D2/CX/D8
+/BM /BM /BM /D9 /B4 /CQ/BN /CT/DC /B5
+(provided /B4 /CQ/BN /CT/DC /B5 /BE /C9
+/BC, otherwise /AQ /B4 /D8 /B5 /BP /BR). If the
+trace never returns from this call, then /D7/BC
+/BM /BM /BM /D7/CX
+/D7/CX /B7/BDmaps
+to /CT/D2/CX/D2/CX/D8
+/BM /BM /BM /D9 /CT/D2, again provided /CT/D2 /BE /C9
+/BC, else /AQ /B4 /D8 /B5 /BP /BR.
+This concludes the deﬁnition of /AQ.
+Important properties of the mapping /AQare that (i) with
+probability 1, a trajectory of /C5/BTstarting at /D7/BC
+/BP /CW /AF/BN /CT/D2/CX/D2/CX/D8
+/CX
+is mapped to a trajectory /AQ /B4 /D8 /B5of the summary chain /C5
+/BC/BT
+(i.e. it is not mapped to /BR), and (ii) the mapping preserves
+probabilities: for any measurable set /BWof trajectories of/C5
+/BC/BT, its inverse image /AQ
+/A0 /BD/B4 /BW /B5of trajectories of /C5/BTis also
+measurable and has equal probability. The mapping /AQcan
+be extended similarly to trajectories /D8of /C5/BTthat start at
+other states /D7/BC
+/BP /CW /AF/BN /DE /CX, with /DE /BE /C9
+/BCand which do not
+reach any exit /CT/DCof /DE’s component, i.e. a state /CW /AF/BN /CT/DC /CX.
+The summary chain plays a central role in the analysis
+of properties of RMCs given by B¨ uchi automata [11]. Note
+that forlr-RMCs, where probabilities are rational, /C5
+/BC/BTcan
+be computed explicitly, and in that case our model checking
+algorithms from [11] run in polynomial time in the size of
+anlr-RMC. The summary chain will be important also for
+our analysis of LTL properties.
+Linear Temporal Logic.
+Formulas in LTL [18] are built from a ﬁnite set /C8 /D6 /D3/D4
+of propositions using the usual Boolean connectives (eg./BM /BN /CN /BN /CM), the unary temporal connective Next (denoted /AD)
+and the binary temporal connective Until ( /CD); thus, if Ꜵ /BN /AW
+are LTL formulas then /AD Ꜵand Ꜵ /CD /AWare also LTL formu-las. Every vertex of the given RMC /BTis labelled with a
+subset of /C8 /D6 /D3/D4 : the set of propositions that hold at that ver-
+tex. That is, there is a given valuation function /CE /CP/D0 /BM /C9 /BJ/AX/BE
+/C8 /D6 /D3/D4. The function can be extended naturally to the in-
+ﬁnite Markov chain /C5/BTthat corresponds to /BT, by letting/CE /CP/D0 /B4 /CW /AC /BN /D9 /CX /B5 /BP /CE /CP/D0 /B4 /D9 /B5. If /D8 /BP /D7/BC
+/BN /D7/BD
+/BN /D7/BE
+/BM /BM /BMis a trajectory
+of /C5/BTand /B3is an LTL formula, then we deﬁne Satisfaction
+of the formula by /D8at step /CX, denoted /D8/BN /CX /CY /BP /B3inductively
+on the structure of /B3as follows./AF /D8/BN /CX /CY /BP /D4for /D4 /BE /C8 /D6 /D3/D4 iff /D4 /BE /CE /CP/D0 /B4 /D7/CX
+/B5./AF /D8/BN /CX /CY /BP /BM Ꜵiff not /D8/BN /CX /CY /BP Ꜵ./AF /D8/BN /CX /CY /BP Ꜵ /CN /AWiff /D8/BN /CX /CY /BP Ꜵor /D8/BN /CX /CY /BP /AW./AF /D8/BN /CX /CY /BP /AD Ꜵiff /D8/BN /B4 /CX /B7 /BD/B5 /CY /BP Ꜵ./AF /D8/BN /CX /CY /BP Ꜵ /CD /AWiff there is a /CY /AL /CXsuch that /D8/BN /CY /CY /BP /AW, and/D8/BN /CZ /CY /BP Ꜵfor all /CZwith /CX /AK /CZ /BO /CY.
+We say that the trajectory /D8satisﬁes /B3iff /D8/BN /BC /CY /BP /B3. Other
+useful temporal connectives can be deﬁned from /CD. The
+formula /CC /D6 /D9/CT /CD /AWmeans ”eventually /AWholds” and is abbre-
+viated /BF /AW. The formula /BM /B4 /BF /BM /AW /B5means ”always /AWholds”
+and is abbreviated /BE /AW.
+If /B3is an LTL formula and /BTis an RMC with a valuation
+function to the propositions of /B3, then the set of executions
+of /BT(i.e., trajectories of /C5/BT) that satisfy /B3is a measur-
+able set. We use /C8/BT
+/B4 /B3 /B5to denote the probability of this
+set. The qualitative model checking problem is the follow-
+ing: Given a LTL formula /B3and an RMC /BT(including a
+valuation function), is /C8/BT
+/B4 /B3 /B5 /BP /BD, i.e. do the executions
+of /BTsatisfy almost surely the property /B3? This is the ques-
+tion of interest if /B3is a required property of the model /BT.
+Note that the complementary question, i.e., is /C8/BT
+/B4 /B3 /B5 /BP /BC,
+corresponding to forbidden properties /B3, is equivalent, and
+can be answered by simply negating the property and de-
+termining whether /C8/BT
+/B4 /BM /B3 /B5 /BP /BD. The quantitative model
+checking problem is the following: Given an LTL formula/B3, an RMC /BT(including a valuation function), and a ratio-
+nal /D4, determine whether /C8/BT
+/B4 /B3 /B5 /BO /D4, /BP /D4, or /C8/BT
+/B4 /B3 /B5 /BQ /D4.
+3 Qualitative Model Checking
+We are given RMC /BTand an LTL formula /B3. We assume
+wlog that the RMC starts at the entry node /CT/D2/CX/D2/CX/D8of compo-
+nent /BT/BCof /BT, which has no exit. First, we construct from /BT
+the graph of the summary Markov chain /C5
+/BC/BT; we only need
+the nodes and edges of /C5
+/BC/BTand not the precise transition
+probabilities. We identify the formula /B3with its parse tree/CC. The leaves of the tree are labelled with atomic propo-
+sitions and its nonleaf nodes are labelled with temporal or
+Boolean connectives. Let /D2be the number of propositions
+and internal nodes of /CC; number the propositions and inter-
+nal nodes from 1 to /D2bottom-up: ﬁrst the propositions and
+then the internal nodes. For each /CX, let /B3/CXbe the subformula
+of /B3corresponding to the tree /CC/CXrooted at node /CX.
+5
+
+--- Page 6 ---
+Let /C5/BTbe the (inﬁnite) Markov chain represented by
+the RMC /BT. Let /CG /BP /DC/BC
+/DC/BD
+/DC/BE
+/BM /BM /BMbe an inﬁnite trajectory
+of /C5/BTstarting at some state /DC/BC
+/BP /CW /AC /BN /D9 /CX. We deﬁne the
+type of the trajectory to be a Boolean vector /D8of length /D2,
+where for each /CX, /D8/CX
+/BP /BDiff /CGsatisﬁes the formula /B3/CX. From
+the deﬁnition of the satisfaction of LTL formulas it follows
+that the pair /B4 /D9/BN /D8 /B5satisﬁes the following properties
+1. If /B3/CXis a proposition /D4, then /D8/CX
+/BP /BDif /D4holds at /D9, else/D8/CX
+/BP /BC.
+2. If /CXis an internal node of the parse tree labelled with
+a Boolean connective /BM(resp. /CN, /CM) and has child /CY
+(resp. children /CY/BN /D0), then /D8/CX
+/BP /BM /D8/CY(resp. /D8/CX
+/BP /D8/CY
+/CN /D8/D0,/D8/CX
+/BP /D8/CY
+/CM /D8/D0).
+3. If /CXis labelled with a temporal connective /CDand has
+children /CY/BN /D0, i.e., /B3/CX
+/BP /B3/CY
+/CD /B3/D0, then (a) if /D8/D0
+/BP /BDthen
+also /D8/CX
+/BP /BD, and (b) if /D8/CY
+/BP /D8/D0
+/BP /BCthen also /D8/CX
+/BP /BC.
+We call any pair /B4 /D9/BN /D8 /B5consisting of a vertex /D9of the
+RMC /BTand a Boolean /D2-vector /D8consistent if it satisﬁes
+these three properties. Similarly we say that the pair /B4 /DC/BC
+/BN /D8 /B5
+consisting of a state /DC/BC
+/BP /CW /AC /BN /D9 /CXof /C5/BTand a vector /D8is
+consistent if the pair /B4 /D9/BN /D8 /B5is consistent. Observe that if/B4 /D9/BN /D8 /B5is consistent then the temporal coordinates of /D8(those
+corresponding to nodes of /B3labelled with temporal con-
+nective) determine uniquely the rest of the coordinates of /D8
+because of properties (1), (2).
+Consider a trajectory /CG /BP /DC/BC
+/DC/BD
+/DC/BE
+/BM /BM /BMand suppose that
+we know the type /D7of its sufﬁx /DC/BD
+/DC/BE
+/BM /BM /BM. Then we can de-
+termine uniquely the type /D8of /CGfrom /D7and the state /DC/BC
+(more precisely, the vertex /D9of /DC/BC) as follows: The co-
+ordinates /D8/CXcorresponding to propositions are determined
+from /D9by property (1). For the internal nodes of the parse
+tree, proceed bottom-up in the tree. Let /CXbe an internal
+node and suppose that we have determined the coordinates
+corresponding to the children of /CX. If /CXis labelled by a
+Boolean connective then /D8/CXis determined by property (2) of
+consistency. If /CXis labelled by a temporal connective then/D8/CXis determined by property (3) unless /CXis labelled (i) /AD
+(Next) or (ii) it is labelled /CD(Until) with children /CY/BN /D0and/D8/CY
+/BP /BD /BN /D8/D0
+/BP /BC. In case (i), if /CXhas child /CY, i.e. /B3/CX
+/BP /AD /B3/CY
+then /D8/CX
+/BP /D7/CY; in case (ii) we must have /D8/CX
+/BP /D7/CX. Thus, these
+two properties (i), (ii) and the consistency conditions (1- 3)
+above determine uniquely /D8from /D9and /D7. We will say that/D8is the type backwards implied for vertex /D9from type /D7.
+The backward implication extends to ﬁnite paths: If /AP /BP/DC/BC
+/DC/BD
+/BM /BM /BM /DC/CZis a ﬁnite path of /C5/BTand /D7is a type consistent
+with the ﬁnal state /DC/CZ, then there is a unique type /D8that is
+backwards implied from /D7and /APfor the initial state /DC/BCof
+the path and its vertex.
+We construct a graph /BZas follows. The nodes of /BZare
+all pairs /B4 /D9/BN /D8 /B5where /D9is a node of the summary chain /C5
+/BC/BT
+and /D8is a Boolean /D2-vector such that the pair /B4 /D9/BN /D8 /B5is con-
+sistent. We include an edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5between twonodes of /BZif /C5
+/BC/BThas an edge /D9 /AX /DAand (a) either the
+edge is not a summary edge and /D8is the type that is back-
+wards implied from /D7for node /D9, or (b) /D9 /AX /DAis a summary
+edge, i.e. /D9 /BP /B4 /CQ/BN /CT/D2 /B5, /DA /BP /B4 /CQ/BN /CT/DC /B5for some box /CQ, and there
+is a path /APin the RMC corresponding to the summary edge
+(i.e., goes from /D9to /DAwith empty context) such that /D8is the
+type that is backwards implied from /APand /D7.
+We can check whether there exists a path /APin the RMC
+from /D9to /DAsatisfying the above requirement, as follows:
+Construct a Recursive State Machine (RSM)
+/CM/BT, called the
+augmented RSM , which has a component
+/CM/BT/CXfor each com-
+ponent /BT/CXof the RMC /BT. There is a vertex /B4 /D9/BN /D8 /B5for each
+vertex /D9of /BTand each type /D8that is consistent with /D9; if /D9is
+an entry or exit of a component /BT/CX, then /B4 /D9/BN /D8 /B5is an entry or
+exit of the corresponding component
+/CM/BT/CX. If /CQis a box of /BT/CX
+mapped to /BT/CY, then there is a corresponding box
+/CM/CQin
+/CM/BT/CXthat
+is mapped to
+/CM/BT/CY; for every entry /CT/D2of /BT/CYand consistent tu-
+ple /D8, the box
+/CM/CQhas a corresponding call port /B4/B4
+/CM/CQ/BN /CT/D2 /B5 /BN /D8 /B5(the
+vertex is labelled with the same propositions as /CT/D2), and we
+deﬁne similarly the return ports of
+/CM/CQ. Note that the ver-
+tices of the form /B4 /D9/BN /D8 /B5, where /D9 /BP /B4 /CQ/BN /CT/D2 /B5or /D9 /BP /B4 /CQ/BN /CT/DC /B5
+was a call port or return port of box /CQof /BT, are now or-
+dinary nodes of
+/CM/BT. We include an edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5
+for each pair of vertices /B4 /D9/BN /D8 /B5 /BN /B4 /DA /BN /D7 /B5such that /D8is the type
+backwards implied from /D7for /D9, and /BTcontains an edge/D9 /AX /DA, or /D9 /BP /B4 /CQ/BN /CT/D2 /B5and /DA /BP /B4
+/CM/CQ/BN /CT/D2 /B5for some box /CQ
+of /BT, or /D9 /BP /B4
+/CM/CQ/BN /CT/DC /B5and /DA /BP /B4 /CQ/BN /CT/DC /B5. (Note: The reason
+that we introduced new call ports and return ports is that
+the trajectories of the Markov chain /C5/BTcontain explicit
+steps corresponding to the recursive calls and returns from
+the calls. This is a small technical detail.) It is easy to see
+now that there is a path /APin the RMC /BTfrom /D9 /BP /B4 /CQ/BN /CT/D2 /B5
+to /DA /BP /B4 /CQ/BN /CT/DC /B5(with empty context) that corresponds to the
+summary edge /D9 /AX /DAand such that /D8is the type that is
+backwards implied from /APand /D7iff the RSM
+/CM/BTcontains a
+path from /B4 /D9/BN /D8 /B5to /B4 /DA /BN /D7 /B5(with empty context).
+Consider again a trajectory /CG /BP /DC/BC
+/DC/BD
+/DC/BE
+/BM /BM /BMof /C5/BT. For
+each /CY, let /D8
+/CYbe the type of the path /DC/CY
+/DC/CY /B7/BD
+/BM /BM /BM. By our pre-
+vious remarks, the pair /B4 /DC/CY
+/BN /D8
+/CY/B5is consistent. Also, note that/D8
+/CYis the type backwards implied by /D8
+/CY /B7/BDand /DC/CX. Let
+/CM/CGbe
+the sequence /B4 /DC/BC
+/BN /D8
+/BC/B5 /BN /B4 /DC/BD
+/BN /D8
+/BD/B5 /BN /B4 /DC/BE
+/BN /D8
+/BE/B5 /BM /BM /BM; we call this the
+augmented trajectory corresponding to /CG. It corresponds
+to a trajectory of the RSM
+/CM/BT.
+Recall that there is a mapping /AQfrom trajectories /CGof
+the original Markov chain /C5/BTto a trajectory of the sum-
+mary chain /C5
+/BC/BT, or to the symbol /BR, with the property that/C8/BT
+/B4 /AQ
+/A0 /BD/B4 /BR /B5/B5 /BP /BC. Suppose that /AQ /B4 /CG /B5 /BI/BP /BR. Then /AQ /B4 /CG /B5
+consists of the vertex parts /D9/BC
+/D9/CX /BD
+/D9/CX /BE
+/BM /BM /BMof a subsequence/DC/BC
+/DC/CX /BD
+/DC/CX /BE
+/BM /BM /BMof /CGobtained by shortcutting subpaths of /CG
+by summary edges. The mapping /AQcan be extended to
+the augmented trajectory
+/CM/CG: /AQ /B4
+/CM/CG /B5 /BP /B4 /D9/BC
+/BN /D8
+/BC/B5 /BN /B4 /D9/CX /BD
+/BN /D8
+/CX /BD/B5 /BM /BM /BM
+is obtained from the corresponding subsequence of
+/CM/CGby
+keeping only the vertex parts and the types. By our con-
+6
+
+--- Page 7 ---
+struction of the graph /BZ, /AQ /B4
+/CM/CG /B5is a path of /BZ.
+If /B4 /DA/BC
+/BN /D7/BC
+/B5 /BN /B4 /DA/BD
+/BN /D7/BD
+/B5 /BN /B4 /DA/BE
+/BN /D7/BE
+/B5 /BM /BM /BMis a sequence of vertex-
+type pairs, then the projection of the sequence on the ﬁrst
+component is the sequence /DA/BC
+/BN /DA/BD
+/BN /DA/BE
+/BM /BM /BMof vertices.
+Lemma 2 1. Every ﬁnite or inﬁnite path of /BZprojected on
+the ﬁrst component yields a path of /C5
+/BC/BT. 2. Conversely,
+every path of /C5
+/BC/BTis the projection of at least one path in /BZ.
+Recall, a vertex /D9of /BTis included in summary chain /C5
+/BC/BT
+iff /D2/CT /B4 /D9 /B5 /BQ /BC. Call a pair /B4 /D9/BN /D8 /B5probable if there is positive
+probability that a trajectory of /BTstarting at /D9does not exit
+the component of /D9and has type /D8. We denote by /C8
+/BC/B4 /D9/BN /D8 /B5
+the probability that a trajectory from /D9has type /D8condi-
+tioned on the event that it does not exit /D9’s component.
+Lemma 3 1. If /BZcontains an edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5and/B4 /DA /BN /D7 /B5is probable then /B4 /D9/BN /D8 /B5is also probable. 2. In partic-
+ular, in every strongly connected component /BVof /BZ, either
+all nodes are probable or none is.
+Let /C0be the subgraph of /BZconsisting of probable
+nodes. By the above lemma, in order to compute /C0, it suf-
+ﬁces to identify which strongly connected components of /BZ
+are the bottom scc’s of /C0. Then /C0consists of all the nodes
+that are ancestors of these bottom scc’s. Once we compute
+the graph /C0, we can answer the qualitative model checking
+problem: The trajectories of the given RMC /BTsatisfy the
+given formula /B3almost surely if and only if /C0does not in-
+clude any node of the form /B4 /CT/D2/CX/D2/CX/D8
+/BN /D8 /B5, where /CT/D2/CX/D2/CX/D8is the
+initial node of /BT(the entry node of the top component) and/D8is a type with /D8/D2
+/BP /BC. Note that /D2corresponds to the root
+of the parse tree of /B3, i.e., /B3/D2
+/BP /B3, so /B4 /CT/D2/CX/D2/CX/D8
+/BN /D8 /B5probable
+with /D8/D2
+/BP /BCwould mean that there is positive probability
+that a trajectory starting at /CT/D2/CX/D2/CX/D8does not satisfy /B3. (Re-
+call that the top component has no exit, so all the trajectori es
+from /CT/D2/CX/D2/CX/D8do not exit its component.)
+A trajectory /CGof the RMC (i.e. of the inﬁnite chain/C5/BT) maps with probability 1 to a trajectory /CG
+/BC/BP /AQ /B4 /CG /B5
+of the summary chain /C5
+/BC/BT, and the augmented trajectory
+/CM/CG
+maps to an augmented trajectory
+/CM/CG
+/BC/BP /AQ /B4
+/CM/CG /B5that is a path
+in /BZ. Call a trajectory /CGof /C5/BTtypical if /CG
+/BC/BP /AQ /B4 /CG /B5is
+deﬁned and all pairs of
+/CM/CG
+/BC/BP /AQ /B4
+/CM/CG /B5are probable, i.e. if/CM/CG
+/BCis a path of the subgraph /C0. It follows easily from the
+Markov property that the set of typical trajectories of the
+RMC starting at the initial state has probability 1. More
+generally:
+Lemma 4 For every vertex /D9of the RMC /BTwith /D2/CT /B4 /D9 /B5 /BQ/BC, the probability that a trajectory starting at /D9does not exit
+its component and is typical with type /D8is /D2/CT /B4 /D9 /B5 /C8
+/BC/B4 /D9/BN /D8 /B5.
+We wish to ﬁnd the improbable nodes of /BZand remove
+them to obtain /C0. As we noted, it sufﬁces to identify the
+bottom scc’s of /C0. From the deﬁnition of /BZ, if /BZcontainsa path from /B4 /D9/BN /D8 /B5to /B4 /DA /BN /D7 /B5then /C5
+/BC/BTcontains a path from /D9
+to /DA. Therefore, for every scc /BVof /BZ, the ﬁrst components
+of all the nodes of /BVbelong to the same scc /C3of /C5
+/BC/BT. We
+will say that the scc /BVcorresponds to /C3.
+Lemma 5 If /BVis a bottom scc of /C0, then it corresponds to
+a bottom scc /C3of /C5
+/BC/BT.
+We will now give a necessary condition for a node of /BZ
+to be probable. Consider a summary edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5of/BZ. We say that the edge is probable if the nodes are proba-
+ble. We label the edge with a subset of /CU /BD /BN /BM /BM /BM /D2 /CVas follows.
+A label /D0 /BE /CU /BD /BN /BM /BM /BM /D2 /CVis included in the subset iff the aug-
+mented RMC
+/CM/BThas a path from /CW /AF/BN /B4 /D9/BN /D8 /B5 /CXto /CW /AF/BN /B4 /DA /BN /D7 /B5 /CXthat
+goes through some node /CW /AC /BN /B4 /DE /BN /D6 /B5 /CXwith /D6/D0
+/BP /BD. This can
+be determined in polynomial time in the size of
+/CM/BTusing the
+algorithm for Recursive State Machines of [1].
+Lemma 6 If /B4 /D9/BN /D8 /B5is probable, then it satisﬁes the follow-
+ing condition. For every node /CXof (the parse tree of) /B3la-
+belled /CD, with corresponding subexpression /B3/CX
+/BP /B3/CY
+/CD /B3/D0,
+if /D8/CX
+/BP /BDthen node /B4 /D9/BN /D8 /B5can reach in /C0(and in /BZ) some
+probable node /B4 /DA /BN /D7 /B5with /D7/D0
+/BP /BDor some probable sum-
+mary edge whose label set includes /D0.
+It is convenient for the purposes of the analysis to reﬁne
+the summary graph /C5
+/BC/BTinto a multigraph /C5
+/BC/BC/BTas follows.
+For each summary edge /D9 /BP /B4 /CQ/BN /CT/D2 /B5 /AX /DA /BP /B4 /CQ/BN /CT/DC /B5con-
+sider all paths of the RMC that give rise to the edge, i.e.
+paths of the form /CW /AF/BN /D9 /CX /AX /CW /CQ/BN /CT/D2 /CX /AX /BM /BM /BM /CW /CQ/BN /CT/DC /CX /AX /CW /AF/BN /DA /CX.
+For every type /D7for the ﬁnal state, each path implies back-
+wards a type /D8for /D9. Let us call two paths equivalent if
+they induce the same mapping from types /D7at /DAto types/D8at /D9. This gives us a partition of the paths into equiva-
+lence classes. Replace the summary edge /D9 /AX /DAwith a
+set of parallel edges, one for each equivalence class. Do
+the same for all summary edges of /C5
+/BC/BTand let /C5
+/BC/BC/BTbe the
+resulting multigraph. We can view /C5
+/BC/BC/BTalso as a (reﬁned)
+Markov chain where the probability of the summary edges
+is divided among the parallel edges that replaced it accord-
+ing to the total probability of all paths in each equivalence
+class. (We do not actually perform this transformation; it i s
+only for the purposes of the analysis.) The multigraph /C5
+/BC/BC/BT
+has the property that for every edge /D9 /AX /DA(whether an or-
+dinary, a summary, or a nesting edge) and every type /D7for/DAthere is a unique type /D8that is implied for /D9by /D7and the
+edge. Note that, by construction, the graph /BZcontains an
+edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5; we will say that the edge /D9 /AX /DAof/C5
+/BC/BC/BTis a projection of the edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5of /BZ. (More
+than one parallel summary edges of /C5
+/BC/BC/BTfrom /D9to /DAmay be
+the projection of the same edge of /BZ.) We can extend the
+notion of projection to paths of /BZ. Obviously /C5
+/BC/BTand /C5
+/BC/BC/BT
+have the same scc’s (replacing an edge by a set of parallel
+edges does not change the scc’s).
+7
+
+--- Page 8 ---
+Lemma 7 Let /BVbe a scc of /BZand let /C3be the correspond-
+ing scc of /C5
+/BC/BC/BT. The following are equivalent.
+1. For every node /B4 /DA /BN /D7 /B5of /BV, every edge /D9 /AX /DAof /C3is a
+projection of some edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5of /BVinto /B4 /DA /BN /D7 /B5.
+2. Every ﬁnite path in /C3is a projection of some path in /BV.
+3. No other scc of /BZcorresponding to /C3is ancestor of /BV.
+The proof is omitted here; it is nontrivial but it is very simi -
+lar to the proof of Lemma 5.10 of [6]. The characterization
+of bottom scc’s of /C0is given by the following Theorem.
+Theorem 8 A scc /BVof /BZis a bottom scc of /C0if and only
+if the following three conditions are satisﬁed.
+1. /BVcorresponds to a bottom scc /C3of /C5
+/BC/BT.
+2. No other scc of /BZcorresponding to /C3is ancestor of /BV.
+3. For every subexpression /B3/CX
+/BP /B3/CY
+/CD /B3/D0of /B3, either all
+nodes /B4 /D9/BN /D8 /B5of /BVhave /D8/CX
+/BP /BCor there is a node /B4 /DA /BN /D7 /B5 /BE /BV
+with /D7/D0
+/BP /BDor there is a summary edge of /BVwhose label
+set includes /D0.
+Proof. Suppose that /BVis a bottom scc of /C0. Then /BV
+satisﬁes conditions 1 and 3 by Lemmas 5 and 6 respectively.
+Suppose that it does not satisfy (2). Then from Lemma 7
+there is a ﬁnite path /ACof /C3that is not the projection of any
+path in /BV. Let /B4 /D9/BN /D8 /B5be any node of /BV. A trajectory of /C5
+/BC/BC/BT
+starting at /D9contains with probability 1 the path /AC(in fact
+the path occurs inﬁnitely often in the trajectory). Such a
+trajectory is not the projection of any path in /BV. It follows
+that /B4 /D9/BN /D8 /B5is not probable.
+Conversely, suppose /BVsatisﬁes the three conditions. We
+show that /BVcontains all probable pairs /B4 /D9/BN /D8 /B5whose ﬁrst
+component /D9is in /C3. From this it follows that /BVis the only
+scc of /C0that corresponds to /C3, and /BVis a bottom scc of/C0because any descendant scc must then also correspond to/C3. To prove the above fact we show the following lemma.
+The proof uses induction with a very involved case analysis.
+Lemma 9 Suppose that /BVsatisﬁes the three conditions of
+Theorem 8. For every probable pair /B4 /D9/BN /D8 /B5with /D9 /BE /C3, the
+following are true for each /CX /BP /BD /BN /BM /BM /BM /BN /D2 .
+1. There is a node /B4 /D9/BN /D8
+/BC/B5of /BVsuch that /D8and /D8
+/BCagree in the
+ﬁrst /CXcoordinates.
+2. There is a ﬁnite path /AB /B4 /D9/BN /D8/BN /CX /B5of /C5
+/BC/BC/BTstarting at /D9such
+that the type of almost all trajectories of the RMC from /D9
+that do not exit /D9’s component, whose summary image has
+preﬁx /AB /B4 /D9/BN /D8/BN /CX /B5, agrees with /D8in the ﬁrst /CXcoordinates.
+Summarizing, the qualitative model checking algorithm
+for a RMC /BTand a LTL formula /B3works as follows.
+1. Construct the graph of the summary chain /C5
+/BC/BT.
+2. Generate all consistent pairs /B4 /D9/BN /D8 /B5, /D9 /BE /C5
+/BC/BT, /D8a type.
+3. Construct the graph /BZon the consistent pairs.4. Find the strongly connected components of /BZ, and
+construct the DAG of scc’s.
+5. While there is a bottom scc that violates one of the
+conditions of Theorem 8, remove it from /BZ.
+6. If the ﬁnal graph /C0contains a node /B4 /CT/D2/CX/D2/CX/D8
+/BN /D8 /B5with/D8/D2
+/BP /BCthen reject, else accept.
+By our analysis, the ﬁnal graph is the subgraph /C0of /BZ
+induced by the probable pairs.
+Step 1 (which depends only on the RMC /BT, not on the
+formula /B3) can be done in polynomial space in /BT[11]. The
+rest of the steps can be done in polynomial time in the size
+of the graph /BZand the RSM
+/CM/BT, both of which are poly-
+nomial in /CY /BT /CYand exponential in /CY /B3 /CY(more speciﬁcally, the
+exponent only depends on the number of temporal operators
+in /B3). If /BTis a 1-exit RMC, or Bd-RMC, or lr-RMC, then
+Step 1 can be done in polynomial time in /BT. Thus:
+Theorem 10 Given RMC /BT&LTL formula /B3, we can
+check whether /BTsatisﬁes /B3with probability 1 in PSPACE
+in /BT&EXPTIME in /B3. If /BTis a 1-exit RMC or a Bd-RMC
+orlr-RMC then the time complexity is polynomial in /BT.
+4 Quantitative Model Checking
+We are given a Recursive Markov Chain /BTand an a LTL
+formula /B3. We are also given a rational number /D4, and we
+want to determine whether the probability /C8/BT
+/B4 /B3 /B5that a tra-
+jectory of /BTsatisﬁes /B3is at least (or at most) /D4. As men-
+tioned in Section 2, the probability /C8/BT
+/B4 /B3 /B5is in general ir-
+rational and thus it cannot be computed explicitly. We will
+construct a system of polynomial equations and inequalitie s
+in a set of real variables, one of which stands for the desired
+probability /C8/BT
+/B4 /B3 /B5. The system will be constructed in such
+a way that it has a unique solution. Then we will attach the
+inequality /C8/BT
+/B4 /B3 /B5 /AL /D4(or /C8/BT
+/B4 /B3 /B5 /AK /D4) and invoke a proce-
+dure for the existential theory of the reals to check whether
+the resulting system is satisﬁable.
+First we set up the system (1a) /DC /BP /C8 /B4 /DC /B5of ﬁx-
+point equations for the RMC /BTwhich contains one vari-
+able /DC/B4 /D9/BN/CT/DC /B5for every vertex /D9and exit /CT/DCof /D9’s com-
+ponent. Recall that we can compute in PSPACE in /CY /BT /CY
+the set /C9
+/BC/BP /CU /D9 /BE /C9 /CY /D2/CT /B4 /D9 /B5 /BQ /BC /CVof deﬁcient ver-
+tices. We add to (1a) the constraints (1b) /DC /AL /BC; (1c)/DD/D9
+/BP /BD /A0
+/C8/CT/DC /BE /BX /DC/B4 /D9 /B5
+/DC/B4 /D9/BN/CT/DC /B5for every vertex /D9; (1d)/DD/D9
+/BQ /BCfor every vertex /D9in /C9
+/BC; and (1e) /DD/D9
+/BP /BCfor every
+vertex /D9in /C9 /A0 /C9
+/BC. Let (1) be the system of constraints (1a)-
+(1e). From the Unique Fixpoint Theorem of RMC’s (Theo-
+rem 9 of [11]), system (1) has a unique solution /B4 /DC /BN /DD /B5, and
+this solution is /DC/B4 /D9/BN/CT/DC /B5
+/BP /D5
+/A3/B4 /D9/BN/CT/DC /B5and /DD/D9
+/BP /D2/CT /B4 /D9 /B5.
+Now, we carry out the algorithm for the qualitative model
+checking. As a result we compute all probable pairs /B4 /D9/BN /D8 /B5.
+For a deﬁcient vertex /D9and a type /D8, let /C8
+/BC/B4 /D9/BN /D8 /B5be the
+8
+
+--- Page 9 ---
+probability that a trajectory /CGstarting at /D9has type /D8con-
+ditioned on the event that /CGdoes not exit /D9’s component.
+We have a corresponding variable /DE /B4 /D9/BN /D8 /B5(we only need to
+include the probable pairs, since the others have probabili ty
+0). These variables satisfy several constraints:
+(2a)
+/C8/D8
+/DE /B4 /D9/BN /D8 /B5 /BP /BDfor all /D9 /BE /C9
+/BC.
+(2b) If /D9is not a call port, then /DE /B4 /D9/BN /D8 /B5 /BP
+/C8/B4 /DA /BN/D7 /B5
+/D4
+/BC/D9/BN/DA
+/DE /B4 /DA /BN /D7 /B5,
+where /D4
+/BC/D9/BN/DAis the probability of transition /D9 /AX /DAin the sum-
+mary Markov chain /C5
+/BC/BT, and the sum ranges over all proba-
+ble pairs /B4 /DA /BN /D7 /B5such that /C0contains an edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5.
+(2c) If /D9is a call port, /D9 /BP /B4 /CQ/BN /CT/D2 /B5, then /DE /B4 /D9/BN /D8 /B5 /BP/D4
+/BC/D9/BN/CT/D2
+/C8/D7
+/DE /B4 /CT/D2/BN /D7 /B5 /B7
+/C8/B4 /DA /BN/D7 /B5
+/D4
+/BC/D9/BN/DA
+/CU/D9/BN/DA /BN/D8/BN/D7
+/DE /B4 /DA /BN /D7 /B5, where the
+ﬁrst sum ranges over all types /D7such that /C0contains an
+edge /B4 /D9/BN /D8 /B5 /AX /B4 /CT/D2/BN /D7 /B5, and the second sum ranges over all
+exits /DA /BP /B4 /CQ/BN /CT/DC /B5of the box /CQand types /D7such that /C0con-
+tains an edge /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5and /CU/D9/BN/DA /BN/D8/BN/D7 is the fraction of
+the probability of /D9 /A0 /DApaths of the RMC for which the type/D7at /DAimplies backwards the type /D8at /D9.
+These constraints are justiﬁed by the following lemma.
+Lemma 11 Probabilities /C8
+/BC/B4 /D9/BN /D8 /B5satisfy constraints 2a-2c.
+The transition probabilities /D4
+/BC/D9/BN/DAof /C5
+/BC/BTare rational func-
+tions of the probabilities captured by the variables /B4 /DC /BN /DD /B5of
+system (1). The quantities /CU/D9/BN/DA /BN/D8/BN/D7 are in general irrational,
+so we cannot compute them explicitly; however, we will
+later present a system of constraints with a unique solution
+that gives precisely these quantities. Suppose for now that
+we have also determined the parameters /CU/D9/BN/DA /BN/D8/BN/D7 . Then the
+constraints (2) form a linear system in the variables /DE /B4 /D9/BN /D8 /B5.
+It turns out that this system has a unique solution.
+Lemma 12 The system (2) of linear equations in the vari-
+ables /DE /B4 /D9/BN /D8 /B5has a unique solution.
+We will now construct a system of constraints that de-
+termines uniquely the parameters /CU/D9/BN/DA /BN/D8/BN/D7 . Recall the aug-
+mented Recursive State machine
+/CM/BTthat we constructed. We
+add weights to its edges and convert it to a weighted RSM;
+it will not necessarily be a RMC because the weights out
+of a node may not sum to 1. The edges of
+/CM/BTare of the
+form /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5. If /BTcontains the edge /D9 /AX /DAthen
+we let the weight of /B4 /D9/BN /D8 /B5 /AX /B4 /DA /BN /D7 /B5be the probability of
+the edge /D9 /AX /DA. The other cases are that /D9 /BP /B4 /CQ/BN /CT/D2 /B5and/DA /BP /B4
+/CM/CQ/BN /CT/D2 /B5, or /D9 /BP /B4
+/CM/CQ/BN /CT/DC /B5and /DA /BP /B4 /CQ/BN /CT/DC /B5; in these cases
+we give these edges weight 1.
+Let /D9 /BP /B4 /CQ/BN /CT/D2 /B5, /DA /BP /B4 /CQ/BN /CT/DC /B5be a call port and a return
+port of a box /CQ, and let /APbe a path in the RMC correspond-
+ing to the summary edge /D9 /AX /DAin the summary graph, i.e./APis a path /CW /AF/BN /D9 /CX /AX /CW /CQ/BN /CT/D2 /CX /AX /BM /BM /BM /CW /CQ/BN /CT/DC /CX /AX /CW /AF/BN /DA /CX, where
+all the intermediate nodes include /CQin the context. For ev-
+ery type /D7for the ﬁnal vertex /DA, we can infer uniquely types
+for the vertices along the path, and in particular a type /D8
+for the initial vertex /D9. Thus, the augmented RSM
+/CM/BTcon-
+tains for every type /D7a unique path /CM /AP/D7corresponding to
+/APwhich goes from a vertex /B4 /D9/BN /D8 /B5for some /D8(with empty
+context) to /B4 /DA /BN /D7 /B5and that path /CM /AP/D7has the same weight as
+the probability of the path /AP. The path /CM /AP/D7is composed of
+an edge from /B4 /D9/BN /D8 /B5to an entry /B4/B4
+/CM/CQ/BN /CT/D2 /B5 /BN /D8
+/BC/B5of the box
+/CM/CQ,
+then a path that eventually reaches an exit /B4/B4
+/CM/CQ /BN /CT/DC /B5 /BN /D7
+/BC/B5of
+the box
+/CM/CQand ﬁnally an edge from the exit to /B4 /DA /BN /D7 /B5. Sup-
+pose that we have at hand for each entry /B4 /CT/D2/BN /D8
+/BC/B5and exit/B4 /CT/DC/BN /D7
+/BC/B5of each component
+/CM/BT/CXof the weighted RSM
+/CM/BTthe
+sum /CW /B4 /CT/D2/BN /D8
+/BC/BN /CT/DC/BN /D7
+/BC/B5of the weights of all the paths from
+the entry to the exit. Then we can use them to compute
+the quantity /DC/CT/D2/BN/CT/DC
+/A1 /CU/D9/BN/DA /BN/D8/BN/D7 which is the sum of the proba-
+bilities of all the paths /APcorresponding to summary edges/D9 /AX /DAfor which type /D7at /DAis mapped back to type /D8at /D9.
+Namely, (3a) /DC/CT/D2/BN/CT/DC
+/A1 /CU/D9/BN/DA /BN/D8/BN/D7
+/BP
+/C8/CW /B4 /CT/D2/BN /D7
+/BC/BN /CT/DC/BN /D8
+/BC/B5where
+the summation ranges over all /D7
+/BC/BN /D8
+/BCsuch that
+/CM/BThas edges/B4 /D9/BN /D8 /B5 /AX /B4/B4
+/CM/CQ/BN /CT/D2 /B5 /BN /D8
+/BC/B5and /B4/B4
+/CM/CQ/BN /CT/DC /B5 /BN /D7
+/BC/B5 /AX /B4 /DA /BN /D7 /B5.
+We introduce a variable /CW /B4 /D9/BN /D8/BN /CT/DC/BN /D7 /B5for every pair con-
+sisting of a vertex /B4 /D9/BN /D8 /B5of
+/CM/BTand an exit /B4 /CT/DC/BN /D7 /B5of its com-
+ponent, to represent the sum of the weights of all the paths
+from /B4 /D9/BN /D8 /B5that exit at /B4 /CT/DC/BN /D7 /B5. We will construct a set of ﬁx-
+point equations, whose solution will be the desired weights .
+The ﬁxpoint equations are similar to the system of equa-
+tions for an RMC, given in Section 2. The only difference
+now is that the weights on the edges out of a vertex may not
+sum to 1. Let (3b) /CW /BP
+/CM/C8 /B4 /CW /B5be this system of equations.
+We add the constraints (3c): /CW /AL /BC. Finally we add the
+following constraints (3d):
+/C8/D8
+/CW /B4 /D9/BN /D8/BN /CT/DC/BN /D7 /B5 /BP /DC /B4 /D9/BN /CT/DC /B5for
+every triple /D9/BN /CT/DC/BN /D7 where /D9is a vertex of component /BT/CX
+of the RMC /BT, /CT/DCis an exit of the same component and /D7
+is a type. Note that /B4 /D9/BN /D8 /B5is a vertex of component
+/CM/BT/CXand/B4 /CT/DC/BN /D7 /B5is an exit of the component. The justiﬁcation for
+these constraints is the following. For every path /APfrom /D9
+to /CT/DC(with empty context) and every type /D7there is a unique
+corresponding path in
+/CM/BTto /B4 /CT/DC/BN /D7 /B5, and this path starts at a
+vertex /B4 /D9/BN /D8 /B5for some /D8and has weight equal to the proba-
+bility of the path /AP. Summing over all such paths /APgives
+the constraint (3d).
+We claim now that having ﬁxed the /DCvariables (from
+constraints (1)), the system (3b-d) has a unique solution.
+First, note that the intended solution /CWrepresenting the
+weights of the vertex-exit paths is the least ﬁxed point so-
+lution of the system (3b-c). This can be shown in the same
+way as it is shown for Recursive Markov Chains. Namely,
+if we start with /CW /BP /BCand apply repeatedly the operator/CM/C8then the vector will converge to the least ﬁxpoint solu-
+tion and this coincides with the desired vector of weights.
+If we pick a ﬁxpoint solution that is strictly greater in some
+component /CW /B4 /D9/BN /D8/BN /CT/DC/BN /D7 /B5than the correct weights, then the
+solution will violate a constraint (3d). We conclude that th e
+system (3b-d) has a unique solution. It follows then that
+(3a) determine uniquely the parameters /CU/D9/BN/DA /BN/D8/BN/D7 .
+To summarize, we have three sets of constraints
+(1),(2),(3). The quantities /D4
+/BC/D9/BN/DAin constraints (2) (the tran-
+9
+
+--- Page 10 ---
+sition probabilities of the summary chain) are ratios, so
+we ﬁrst rewrite (2) to clear the denominators so that they
+become also polynomial equations. If we want to check
+whether the probability /C8/BT
+/B4 /B3 /B5, that a trajectory of /BTsatis-
+ﬁes /B3, is at least a given threshold /D4, then we add the con-
+straint (4)
+/C8/DE /B4 /CT/D2/CX/D2/CX/D8
+/BN /D8 /B5 /AL /D4, where the summation ranges
+over all /D8with /D8/D2
+/BP /BD. Then we call a procedure for the
+existential theory of the reals on the system (1-4). Similar ly
+we can determine if the probability is less than /D4. We can
+also approximate the probability /C8/BT
+/B4 /B3 /B5within any number/CZof bits of precision by doing a binary search using the
+above procedure /CZtimes.
+The size of the system of constraints is polynomial in/CY /BT /CYand exponential in /CY /B3 /CY. It follows that the complexity is
+polynomial space in /CY /BT /CYand exponential in /CY /B3 /CY. For linear
+RMCs, we can solve the constraints explicitly by solving a
+series of linear systems of equations.
+Theorem 13 Given RMC /BT, LTL formula /B3and rational
+value /D4, we can determine whether the probability /C8/BT
+/B4 /B3 /B5
+that a trajectory of /BTsatisﬁes /B3is /AL(or /AK) /D4in space
+polynomial in /BTand exponential in /B3. If /BTis alr-RMC,
+then we can compute /C8/BT
+/B4 /B3 /B5exactly in time polynomial in/BTand exponential in /B3.
+5 Lower Bound
+Theorem 14 The qualitative problem of determining
+whether an RMC /BTsatisﬁes an LTL formula /B3with proba-
+bility 1 (i.e., whether /C8/BT
+/B4 /B3 /B5 /BP /BD) is EXPTIME-hard (thus
+EXPTIME-complete). Furthermore, this holds even if the
+RMC is ﬁxed and each component has 1 entry and 1 exit.
+The theorem is similar to theorems in [3, 17] showing
+that LTL model checking for Pushdown Systems and Basic
+Process Algebra (equivalent to RSMs, resp. RSMs with 1
+exit) is EXPTIME-hard. We show that the same holds in the
+probabilistic case, and it holds even for a ﬁxed RMC.
+Acknowledgement: Research partially supported by NSF
+Grant CCF-04-30946. Thanks to Amir Pnueli for asking us
+about the special case of lr-RMCs.
+References
+[1] R. Alur, K. Etessami, and M. Yannakakis. Analysis of recu r-
+sive state machines. In Proc. of 13th Int. Conf. on Computer-
+Aided Veriﬁcation , pages 304–313, 2001.
+[2] M. Benedikt, P. Godefroid, and T. Reps. Model check-
+ing of unrestricted hierarchical state machines. In Proc. of
+ICALP’01 , volume 2076 of LNCS , pages 652–666, 2001.
+[3] A. Bouajjani, J. Esparza, and O. Maler. Reachability ana lysis
+of pushdown automata: Applications to model checking. In
+CONCUR’97 , pages 135–150, 1997.[4] T. Br´ azdil, A. Kuˇ cera, and O. Straˇ zovsk´ y. Decidabil ity of
+temporal properties of probabilistic pushdown automata. I n
+Proc. of 22nd STACS’05 . Springer, 2005.
+[5] J. Canny. Some algebraic and geometric computations in
+PSPACE. In Prof. of 20th ACM STOC , pages 460–467, 1988.
+[6] C. Courcoubetis and M. Yannakakis. The complexity of
+probabilistic veriﬁcation. J. of ACM , 42(4):857–907, 1995.
+[7] J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Efﬁ -
+cient algorithms for model checking pushdown systems. In
+12th CAV , volume 1855, pages 232–247. Springer, 2000.
+[8] J. Esparza, A. Kuˇ cera, and R. Mayr. Model checking proba -
+bilistic pushdown automata. In Proc. of 19th LICS’04 , 2004.
+[9] J. Esparza, A. Kuˇ cera, and R. Mayr. Quantitative analys is
+of probabilistic pushdown automata: expectations and vari -
+ances. To appear in Proc. of 20th IEEE LICS , 2005.
+[10] K. Etessami and M. Yannakakis. Recursive Markov Chains ,
+Stochastic Grammars, and Monotone Systems of Nonlin-
+ear Equations. In Proc. of 22nd STACS’05 . Springer, 2005.
+(Tech. Report, U. Edinburgh, June 2004.)
+[11] K. Etessami and M. Yannakakis. Algorithmic Veriﬁcatio n
+of Recursive Probabilistic State Machines. In Proc. 11th
+Int. Conf. on Tools and Algorithms for the Construction and
+Analysis of Systems (TACAS’05) , 2005.
+[12] K. Etessami and M. Yannakakis. Recursive Markov Decisi on
+Processes and Recursive Stochastic Games. To appear in
+ICALP’05 , 2005.
+[13] M. Garey, R. Graham, and D. Johnson. Some NP-complete
+geometric problems. In 8th ACM STOC , pages 10–22, 1976.
+[14] T. E. Harris. The Theory of Branching Processes . Springer-
+Verlag, 1963.
+[15] M. Kwiatkowska. Model checking for probability and tim e:
+from theory to practice. In Proc. 18th IEEE LICS , pages
+351–360, 2003.
+[16] C. Manning and H. Sch¨ utze. Foundations of Statistical Nat-
+ural Language Processing . MIT Press, 1999.
+[17] R. Mayr. Strict lower bounds for model checking BPA. In
+Elec. Notes in Theor. Comp. Sci. , 1998.
+[18] A. Pnueli. The temporal logic of programs. In Proc. 18th
+Symp. on Foundations of Comp. Sci. , pages 46–57, 1977.
+[19] A. Pnueli and L. D. Zuck. Probabilistic veriﬁcation. Inf. and
+Comp. , 103(1):1–29, 1993.
+[20] J. Renegar. On the computational complexity and geome-
+try of the ﬁrst-order theory of the reals. parts i,ii, iii. J. of
+Symbolic Computation , pages 255–352, 1992.
+[21] P. Tiwari. A problem that is easier to solve on the unit-c ost
+algebraic ram. Journal of Complexity , pages 393–397, 1992.
+[22] M. Vardi. Automatic veriﬁcation of probabilistic conc urrent
+ﬁnite-state programs. In Proc. of 26th IEEE FOCS , pages
+327–338, 1985.
+[23] M. Y . Vardi and P. Wolper. An automata-theoretic approa ch
+to automatic program veriﬁcation. In Proc. 1st Symp. on
+Logic in Comp. Sci. (LICS) , pages 322–331, 1986.
+10

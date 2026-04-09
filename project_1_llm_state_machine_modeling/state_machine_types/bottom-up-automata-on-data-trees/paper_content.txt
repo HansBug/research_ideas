@@ -1,0 +1,611 @@
+--- Page 1 ---
+Bottom-up automata on data trees
+and vertical XPath∗
+Diego Figueira and Luc Segouﬁn
+INRIA and ENS Cachan, LSV
+Abstract
+A data tree is a tree whose every node carries a label from a ﬁnite alphabet and a datum from
+some inﬁnite domain. We introduce a new model of automata over unranked data trees with
+a decidable emptiness problem. It is essentially a bottom-up alternating automaton with one
+register, enriched with epsilon-transitions that perform tests on the data values of the subtree.
+We show that it captures the expressive power of the vertical fragment of XPath—containing
+the child, descendant, parent and ancestor axes— obtaining thus a decision procedure for its
+satisﬁability problem.
+1998 ACM Subject Classiﬁcation F.4.1 Mathematical Logic
+Keywords and phrases Decidability, XPath, Data trees, Bottom-up tree automata
+Digital Object Identiﬁer 10.4230/LIPIcs.xxx.yyy.p
+1 Introduction
+We study formalisms for data trees. A data tree is a tree where each position carries a
+label from a ﬁnite alphabet and a datumfrom some inﬁnite domain. This structure has
+been considered in the realm of semistructured data, timed automata, program veriﬁcation,
+and generally in systems manipulating data values. Finding decidable logics or automaton
+models over data trees is an important quest when studying data-driven systems.
+A data tree can model an xmldocument. One wants to decide, for example, if two
+properties of xmldocuments expressed in some formalism are equivalent. This problem is
+usually equivalent to the satisﬁability problem. One such formalism to express properties
+ofxmldocuments is the logic XPath. Although satisﬁability of XPathin the presence of
+data values is undecidable, there are some known decidable data-aware fragments [4, 5, 1, 3].
+Here, we investigate a rather big fragment that nonetheless is decidable. Vertical-XPathis
+the fragment that contains all downward and upward axes, but no horizontal axis is allowed.
+We introduce a novel automaton model that captures vertical- XPath. We show that the
+automaton has a decidable emptiness problem and therefore that the satisﬁability problem
+of vertical- XPathis decidable. The Bottom-UpDataAutomata (or BUDA) are bottom-up
+alternating tree automata with one register to store and compare data values. Further, these
+automata can compare the data value currently stored in the register with the data value of
+a descendant node, reached by a downward path satisfying a given regular property. Hence,
+in some sense, it has a two-way behavior. However, they cannot test horizontal properties
+on the siblings of the tree, like “the root has exactly three children”.
+Our main technical result shows the decidability of the emptiness problem of this auto-
+maton model. We show this through a reduction to the the coverability problem of a
+well-structured transition system ( wsts[8]). Each BUDAautomaton is associated with a
+∗This research was funded by the ERC research project FoX under grant agreement FP7-ICT-233599.
+©Diego Figueira and Luc Segouﬁn;
+licensed under Creative Commons License ND
+Conference title on which this volume is based on.
+Editors: Editor; pp. 1–12
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+2 Bottom-up automata on data trees and vertical XPath
+transition system, in such a way that a derivation in this transition system corresponds to a
+run of the automaton, and vice-versa. The domain of the transition system consists in the
+abstract conﬁgurations of the automaton, which contains all the information necessary to
+preserve from a (partial) bottom-up run of the automaton in a subtree in order to continue
+the simulation of the run from there. On the one hand we show that BUDAcan be sim-
+ulated using an appropriate transition relation on sets of abstract conﬁgurations. On the
+other hand, we exhibit a well-quasi-order ( wqo) on those abstract conﬁgurations and show
+that the transition relation is “monotone” relative to this wqo. This makes the coverability
+problem (and hence the emptiness problem) decidable [8].
+In terms of expressive power, we show that BUDAcan express any node expression of the
+vertical fragment of XPath.Core-XPath(term coined in [10]) is the fragment of XPath1.0
+that captures its navigational behavior, but cannot express any property involving data. It
+is easily shown to be decidable. The extension of this language with the possibility to make
+equality and inequality tests between data values is named Core-Data-XPathin [3], and it
+has an undecidable satisﬁability problem [9]. By “vertical XPath” we denote the fragment
+ofCore-Data-XPaththat can only use the downward axes childanddescendant and the
+upward axes parent andancestor (no navigation among siblings is allowed). It follows
+that vertical XPathis decidable, settling an open question [2, Question 5.10].
+Related work. A model of top-down tree automata with one register and alternating
+control ( ATRA) is introduced in [12], where the decidability of its emptiness problem is
+proved. ATRAare used to show the decidability of temporal logics extended with a “freeze”
+operator. This model of automata was extended in [5] with the name ATRA (guess,spread )in
+order to prove the decidability of the forwardfragment of XPath, allowing only axes navig-
+ating downward or rightward ( next-sibling andfollowing-sibling ). The two models of
+automata are incomparable: ATRAcan express all regular tree languages while BUDAcan
+express unary inclusion dependency properties (like “the data values labeled by ais a subset
+of those labeled by b”). In order to capture vertical XPath, the switch from top-down to
+bottom-up seems necessary to express formulas with upward navigation, and this also makes
+the decidability of the emptiness problem signiﬁcantly more diﬃcult. In [5], the decidability
+of the forward fragment of XPathis also obtained using a wsts. This wstsrelies on a wqo
+over conﬁgurations. As our automaton model is bottom-up we have to work with setsof
+conﬁgurations and had to invoke the theory of ω2-quasi-orderings [11, 13] in order to derive
+ourwqo. The paper [2] contains a comprehensive survey of the known decidability results
+for various fragments of XPath, most of which cannot access data values. In the presence of
+data values, the notable new results since the publication of [2] are the downward [4] and
+the forward [5] fragments, as well as the fragment containing only the successor axis [3] (the
+latter closely related to ﬁrst-order logic with two variables). As already mentioned, this
+paper solves one of the remaining open problems of [2].
+Organization. In Section 3 we introduce the BUDAmodel and we show that it captures
+vertical XPath. The associated well-structured transition system and the outline of the proof
+to show the decidability of its reachability is in Section 4. Due to space limitations many
+proofs are omitted or only sketched. We refer the reader to [6, Chapter 7] for detailed proofs.
+2 Preliminaries
+Basic notation. Let℘(S)denote the set of subsets of S, and℘<∞(S)be the set of ﬁnite
+subsets ofS. Let N={0,1,2,...},N+={1,2,3,...}, and let [n]:={1,...,n}for any
+n∈N+. We ﬁx once and for all Dto be any inﬁnite domain of data values; for simplicity
+
+--- Page 3 ---
+Diego Figueira and Luc Segouﬁn 3
+in our examples we will consider D=N. In general we use letters A,Bfor ﬁnite alphabets,
+the letter Dfor an inﬁnite alphabet and the letters EandFfor any kind of alphabet. By
+E∗we denote the set of ﬁnite sequences over E, byE+the set of ﬁnite sequences with at
+least one element over E, and by Eωthe set of inﬁnite sequences over E. We write /epsilon1for the
+empty sequence and ‘ ·’ as the concatenation operator between sequences. We write |S|to
+denote the length of S(ifSis a ﬁnite sequence), or its cardinality (if Sis a set).
+Regular languages. We make use of the many characterizations of regular languages over
+a ﬁnite alphabet A. In particular, we use that a word language L⊆A∗is regular iff there is
+a ﬁnite semigroup (S,·)with a distinguished subset T⊆S, and a semigroup homomorphism
+h:A∗→Ssuch that for all wwith|w|>0,w∈Liffh(w)∈T.
+Unranked ﬁnite trees. ByTrees (E)we denote the set of ﬁnite ordered and unranked
+trees over an alphabet E. We view each position in a tree as an element of (N+)∗. Formally,
+we deﬁne POS⊆℘<∞((N+)∗)as the set of sets of ﬁnite tree positions, such that: X∈POS
+iff (a)X⊆(N+)∗,|X|<∞; (b)Xis preﬁx-closed; and (c) if n·(i+ 1)∈Xfori∈N+,
+thenn·i∈X. A tree is then a mapping from a set of positions to letters of the alphabet
+Trees (E):={t:P→E|P∈POS}. By t|x(y)we denote the subtree of tat position x:
+t|x(y) =t(x·y). The root’s position is the empty string and we denote it by ‘ /epsilon1’. The position
+of any other node in the tree is the concatenation of the position of its parent and the node’s
+index in the ordered list of siblings. Along this work we use x,y,z,w,v as variables for
+positions, and i,j,k,l,m,n as variables for numbers. For example, x·iis a position which is
+not the root, that has xas parent position, and that has i−1siblings to the left.
+Given a tree t∈Trees (E),pos(t)denotes the domain of t, which consists of the set of
+positions of the tree, and alph(t) =Edenotes the alphabet of the tree. From now on, we
+informally refer by ‘node’ to a position xtogether with the value t(x).
+Given two trees t1∈Trees (E),t2∈Trees (F)such that pos(t1) =pos(t2) =P, we deﬁne
+t1⊗t2:P→(E×F)as(t1⊗t2)(x) = (t1(x),t2(x)).
+The set of data trees over a ﬁnite alphabet Aand an inﬁnite
+a, 2a, 2b, 2b, 9b, 5b, 3a, 2b, 1b, 2
+Figure 1 A data tree.domain Dis deﬁned as Trees (A×D). Note that every tree t∈
+Trees (A×D)can be decomposed into two trees a∈Trees (A)and
+d∈Trees (D)such that t=a⊗d. Figure 1 shows an example
+of a data tree. The notation for the set of data values used in
+a data tree is data(a⊗d):={d(x)|x∈pos(d)}. With an
+abuse of notation we write data(X)to denote all the elements of
+Dcontained in X, for whatever object Xmay be.
+XPath on data trees. Next we deﬁne vertical XPath, the fragment of XPathwhere no
+horizontal navigation is allowed. We actually consider an extension of XPathallowing the
+Kleene star on anypath expression and we denote it by regXPath . Although we deﬁne
+this logic over data trees, our decidability result also holds for the class of xmldocuments
+through a standard reduction.
+Vertical regXPath is a two-sorted language, with pathexpressions (that we write α,β,γ)
+andnodeexpressions ( ϕ,ψ,η). Path expressions are binary relations resulting from com-
+posing the child and parent relations (which are denoted respectively by ↓and↑), and node
+expressions. Node expressions are boolean formulas that test a property of a node, like for
+example, that is has a certain label, or that it has a child labeled awith the same data value
+as an ancestor labeled b, which is expressed by /angbracketleft↓[a] =↑∗[b]/angbracketright. We write regXPath (V,=)to
+denote this logic. A formulaofregXPath (V,=)is either a node expression or a path expres-
+sion of the logic. Its syntax and semantics are deﬁned in Figure 2. As another example,
+we can select the nodes that have a descendant labeled bwith two children also labeled by
+STACS’11
+
+--- Page 4 ---
+4 Bottom-up automata on data trees and vertical XPath
+α,β ::=o|α[ϕ]|[ϕ]α|αβ|α∪β|α∗o∈{ε,↓,↑},
+ϕ,ψ ::=a| ¬ϕ|ϕ∧ψ|ϕ∨ψ| /angbracketleftα/angbracketright | /angbracketleftα=β/angbracketright | /angbracketleftα/negationslash=β/angbracketright a∈A.
+[ [↓] ]t={(x,x·i)|x·i∈pos(t)} [ [↑] ]t={(x·i,x)|x·i∈pos(t)}
+[ [[ϕ]] ]t={(x,x)∈|x∈pos(t),x∈[ [ϕ] ]t} [ [α∗] ]t=the reﬂexive transitive closure of [ [α] ]t
+[ [ε] ]t={(x,x)|x∈pos(t)} [ [αβ] ]t={(x,z)|there exists ysuch that
+[ [α∪β] ]t= [ [α] ]t∪[ [β] ]t(x,y)∈[ [α] ]t,(y,z)∈[ [β] ]t}
+[ [a] ]t={x∈pos(t)|a(x) =a} [ [/angbracketleftα/angbracketright] ]t={x∈pos(t)|∃y.(x,y)∈[ [α] ]t}
+[ [¬ϕ] ]t=pos(t)\[ [ϕ] ]t[ [ϕ∧ψ] ]t= [ [ϕ] ]t∩[ [ψ] ]t
+[ [/angbracketleftα=β/angbracketright] ]t={x∈pos(t)|∃y,z(x,y)∈[ [α] ]t, [ [/angbracketleftα/negationslash=β/angbracketright] ]t={x∈pos(t)|∃y,z(x,y)∈[ [α] ]t,
+(x,z)∈[ [β] ]t,d(y) =d(z)} (x,z)∈[ [β] ]t,d(y)/negationslash=d(z)}
+Figure 2 The syntax of XPath (V,=); and its semantics for a data tree t=a⊗d.
+bwith diﬀerent data value by a formula ϕ=/angbracketleft↓∗[b∧/angbracketleft↓ [b]/negationslash=↓[b]/angbracketright]/angbracketright. Given a tree tas in
+Figure 1, we have [ [ϕ] ]t={ε,1,12}.
+Thesatisﬁabilityproblemfor regXPath (V,=)istheproblemof, givenaformula ϕ, wether
+there exists a data tree tsuch that [ [ϕ] ]t/negationslash=∅. Our main result on XPathis the following.
+ITheorem 1. The satisﬁability problem for regXPath (V,=)is decidable.
+Well-structured transition systems. The proof of Theorem 1 relies on a translation
+to an automaton model deﬁned in the next section whose emptiness problem is decidable.
+This is showed through methods from the theory of well-structured transition systems , or
+wstsfor short [8]. The emptiness test of our model of automata is obtained by interpreting
+its execution using a transition system compatible with some well-quasi-ordering ( wqo). We
+reproduce here only the result of the theory of wststhat we will need.
+A quasi-order≤(i.e., a reﬂexive and transitive relation) over a set Sis said to be a
+well-quasi-order (wqo) iff for every inﬁnite sequence s1s2···∈Sωthere are two indices
+i<jsuch thatsi≤sj. Given a wqo(S,≤)andT⊆S, we deﬁne the downward closure of
+Tas↓T:={s∈S|∃t∈T,s≤t}andTisdownward closed if↓T=T.
+Given a transition system (S,→), andT⊆Swe deﬁneSucc (T):={s∈S|∃t∈
+Twitht→s}, andSucc∗as its reﬂexive-transitive closure. We say that (S,→)isﬁnitely
+branching iffSucc ({s})is ﬁnite for all s∈S. IfSucc ({s})is also eﬀectively computable for
+alls, we say that (S,→)iseﬀective .
+We adapt some results and deﬁnitions of [8, §5] of what is there called reﬂexive com-
+patibility (i.e., compatibility in zero or one steps) to extend them to N-compatibility ( i.e.,
+compatibility in at most Nsteps). Given a binary relation R⊆S×SandK⊆S, let us
+writeR≤nforId∪R∪R2∪···∪Rn, whereIdis the identity relation and Riis thei-fold
+composition of R. GivenN∈N+, a transition system (S,→)isN-downward compatible
+with respect to a wqo(S,≤)iff for every s1,s2,s/prime
+1∈Ssuch thats/prime
+1≤s1ands1→s2, there
+existss/prime
+2∈Ssuch thats/prime
+2≤s2ands/prime
+1(→)≤Ns/prime
+2. In some sense any behavior from the
+bigger element s1can be simulated by the smaller element s/prime
+1. In truth,s/prime
+1may need several
+transitions, but not more than N. Hereafter we use the term ‘ wsts’ to refer to any wqo
+and transition system N-downward compatible. A simple adaptation of [8, §5] yields the
+following proposition, what will be used to show decidability for BUDA.
+IProposition 1. If(S,≤)is awqoand(S,→)a transition system such that (1) it is N-
+downwards compatible for some ﬁxed N, (2) it is eﬀective, and (3) ≤is decidable, V⊆S
+is a recursive downward-closed set and, T⊆Sis a ﬁnite set; then the problem of whether
+there existt∈Tandv∈Vsuch thatt→∗vis decidable.
+
+--- Page 5 ---
+Diego Figueira and Luc Segouﬁn 5
+In the above statement one must think of Sas the conﬁgurations of an automaton, Tas
+its initial conﬁgurations, →as the relation deﬁned by the run, and ≤as a suitable relation
+between conﬁgurations such that the set of accepting conﬁgurations Vis downward-closed.
+3 The automaton model
+In this section we introduce the BUDAmodel. It is essentially a bottom-up tree automaton
+with one register to store a data value and an alternating control. We show that these
+automata are at least as expressive as vertical regXPath . In Section 4 we will show that
+their emptiness problem is decidable. Theorem 1 then follows immediately.
+An automaton A∈BUDAthat runs over data trees of Trees (A×D)is deﬁned as a tuple
+A= (A,B,Q,q 0,δ/epsilon1,δup,S,h)where Ais the ﬁnite alphabet of the tree, Bis an internal ﬁnite
+alphabet of the automaton (whose purpose will be clear later), Qis a ﬁnite set of states, q0
+is the initial state, Sis a ﬁnite semigroup, his a semigroup homomorphism from (A×B)+
+toS,δ/epsilon1is the/epsilon1-transition function of A, andδupis theup-transition function of A.
+δupis a partial function from states to formulas. For q∈Q,δup(q)is either undeﬁned or
+a formula consisting in a disjunction of conjunctions of states. δ/epsilon1is also a partial function
+from states to disjunctions of conjunctions of ‘atoms’ of one of the following forms:
+p|guess (p)|univ(p)|store(p)|eq|eq|
+| /angbracketleftµ/angbracketright=| /angbracketleftµ/angbracketright/negationslash=|/angbracketleftµ/angbracketright=|/angbracketleftµ/angbracketright/negationslash=|root|root|leaf|leaf|a|¯a|b|¯b
+whereµ∈S,p∈Q,a∈A,b∈B.
+Before we present the precise semantics of our automaton model, here is the intuition.
+The automaton’s control is nondeterministic and alternating, as reﬂected by the disjunctions
+and conjunctions in the formulæ specifying the transition functions. Hence, at any node
+severalthreadsof the automaton run in parallel. Each thread consists of a state and a
+data value stored in the register. At every node of the tree, the automaton guesses a ﬁnite
+internal label of Band all threads can share access to this ﬁnite information. At any node
+of the tree, the automaton can perform some actions depending on the result of local tests.
+We ﬁrst describe the battery of tests the automata can perform. All these tests are
+explicitly closed under negation, denoted with the ·notation, and of course they are also
+closed under intersection and union using the alternating and nondeterministic control of
+the automata. The automata can test the label and internal label of the current node and
+also whether the current node is the root, a leaf or an internal node. The automata can test
+(in)equality of the current data value with the one stored in the register ( eqandeq). Finally
+the automata can test the existence of some downward path, starting from the current node
+and leading to a node whose data value is (or is not) equal to the one currently stored in the
+register, such that the path satisﬁes some regular property on the labels. These properties
+are speciﬁed using the ﬁnite semigroup Sand the morphism h: (A×B)+→Sover the
+words made of the label of the tree and the internal label. For example, /angbracketleftµ/angbracketright=tests for the
+existence of a path that evaluates to µviah, which starts at the current node and leads to
+a node whose data value matches the one currently stored in the register. Similarly, /angbracketleftµ/angbracketright/negationslash=
+tests that it leads to a data value diﬀerent from the one currently in the register. Observe
+that we could have used ﬁnite automata, or regular expressions instead of ﬁnite semigroup
+homomorphisms. We take this approach because it simpliﬁes the notation.
+Based on the result of these tests, the automata can perform the following actions. They
+can change state, store the current data value in the register ( store(p)), or store an arbitrary
+data value nondeterministically chosen ( guess (p)). Finally, a transition can demand to start
+STACS’11
+
+--- Page 6 ---
+6 Bottom-up automata on data trees and vertical XPath
+a new thread in state pfor every data value of the subtree with the operation univ(p). The
+automata can also decide to move up in the tree according to the up-transition.
+Before we move on to the formal deﬁnition, we stress that the automaton model is
+not closed under complementation because its set of actions are not closed under comple-
+mentation: guessis a form of existential quantiﬁcation while univis a form of universal
+quantiﬁcation, but they are not dual. Actually, we will show in the journal version of this
+paper that adding any of their dual would yield undecidability of the model.
+We now turn to the formal deﬁnition. A data tree a⊗d∈Trees (A×D)is accepted by
+Aiff there exists an internal labeling b∈Trees (B)with pos(b) =pos(a⊗d)such that there
+is an accepting run on a⊗b⊗d. We focus now on the deﬁnition of a run.
+Aconﬁguration of aBUDA Ais a setCof threads, viewed as a ﬁnite subset of Q×D.
+A conﬁgurationCis said to be initialiff it is of the form {(q0,e)}for somee∈D. A
+conﬁgurationCisaccepting iff it is empty.
+/epsilon1-transitions. Lett=a⊗b⊗dandx∈pos(t). Given two conﬁgurations CandC/primeof
+A, we say that there is an /epsilon1-transition of AatxbetweenCandC/prime, denoted (x,C)/epsilon1
+(x,C/prime)(assuming Aandtare understood from the context) if the following holds: there
+is a thread with state qand with a data value d(i.e.,(q,d)∈C) whereδ/epsilon1(q) =/logicalortext
+i∈Iγi.
+Eachγiis a conjunction of atoms, and there must be one i∈Iwithγi=/logicalandtext
+j∈Jαjand
+C/prime= (C\{(q,d)})∪ˆCsuch that the following holds for all j∈J:
+Ifαjis one of the tests a,b,root,leaf,eqor its negations, it must be true with the
+obvious semantics as described above.
+Ifαjis/angbracketleftµ/angbracketright=then there is a downward path in tstarting at xand ending at some
+descendant position ywith d(y) =d, such that the sequence of labels in A×Bread
+while going from xtoyalong this path (including the endpoints) evaluates to µviah.
+The case of/angbracketleftµ/angbracketright/negationslash=is treated similarly replacing d(y) =dbyd(y)/negationslash=d. The tests/angbracketleftµ/angbracketright=
+and/angbracketleftµ/angbracketright/negationslash=correspond to the negation of these tests.
+Ifαjispfor somep∈Q, then (p,d)∈ˆC,
+ifαjisstore(p)then (p,d(x))∈ˆC,
+ifαjisguess (p)then (p,d/prime)∈ˆCfor somed/prime∈D,
+ifαjisuniv(p), then for all d/prime∈data(t|x),(p,d/prime)∈ˆC,
+nothing else is in ˆC.
+The/epsilon1-closure of a pair (x,C)is deﬁned as the reﬂexive transitive closure of /epsilon1, i.e. the
+set of conﬁgurations reachable from (x,C)by a ﬁnite sequence of /epsilon1-transitions.
+up-transitions. We say that a conﬁguration Cismoving iff for all (q,d)∈C,δup(q)is
+deﬁned. Given two conﬁgurations CandC/primeofA, we say that there is an up-transition of A
+betweenCandC/prime, denotedCupC/prime(assuming Ais understood from the context) if the
+following conditions hold:
+Cis moving,
+for all (q,d)∈C, ifδup(q) =/logicalortext
+i∈I/logicalandtext
+j∈Jpi,jthen there is i∈Isuch that for all j∈J,
+(pi,j,d)∈C/prime,
+nothing else is in C/prime.
+IRemark. In the deﬁnition of the run the automaton behaves synchronously: all threads
+move up at the same time. This is only for convenience of presentation. Since all the threads
+are independent, one can also deﬁne a run in which each thread moves independently. This
+alternative deﬁnition would be equivalent to the current one.
+
+--- Page 7 ---
+Diego Figueira and Luc Segouﬁn 7
+Runs. We are now ready to deﬁne a runρofAont=a⊗b⊗d. It is a function
+associating a conﬁguration to any node xoftsuch that
+1.for any leaf xoft,ρ(x) ={(q0,d(x))},
+2.for any inner position xoftwhose children are x·1,...,x·n, then there are conﬁgura-
+tionsC/prime
+1,···,C/prime
+nandC/prime/prime
+1,···,C/prime/prime
+nsuch that for all i∈[n],(x·i,C/prime/prime
+i)is in the/epsilon1-closure of
+(x·i,ρ(x·i)),C/prime/prime
+iupC/prime
+i, andρ(x) =/uniontext
+i∈[n]C/prime
+i.
+The runρisaccepting if moreover at the root (i.e., for the position /epsilon1), the/epsilon1-closure ofρ(/epsilon1)
+contains an accepting conﬁguration.
+BUDAand vertical regXPath.Given a formula ηofregXPath (V,=), we say that a BUDA
+Aisequivalent toηif a data tree tis accepted by Aiff[ [η] ]t/negationslash=∅.
+IProposition 2. For everyη∈regXPath (V,=)there exists an equivalent A∈BUDA
+computable from η.
+Proof idea. It is easy to simulate any positive test /angbracketleftα=β/angbracketrightor/angbracketleftα/negationslash=β/angbracketrightof vertical regXPath
+by a BUDAusing guess,/angbracketleftµ/angbracketright=and/angbracketleftµ/angbracketright/negationslash=. For example, consider the property /angbracketleft↓∗[a]/negationslash=↑↓[b]/angbracketright,
+which states that there is a descendant labeled awith a diﬀerent data value than a sibling
+labeledb. ABUDAautomaton can test this property as follows.
+1.It guesses a data value dand stores it in the register.
+2.It tests that dcan be reached by ↓∗[a]with a test/angbracketleftµ/angbracketright=for a suitable µ.
+3.It moves up to its parent.
+4.It tests that a diﬀerent value than dcan be reached in one of its children labeled with b,
+using the test/angbracketleftµ/angbracketright/negationslash=for a suitable µ.
+The simulation of negative tests ( ¬/angbracketleftα=β/angbracketrightor¬/angbracketleftα/negationslash=β/angbracketright) is more tedious as BUDA
+is not closed under complementation. Nevertheless, the automaton has enough universal
+quantiﬁcations (in the operations univ,/angbracketleftµ/angbracketright=and/angbracketleftµ/angbracketright/negationslash=) in order to do the job. Consider for
+example the formula ¬/angbracketleft↑∗[b]↓[a] =↓∗[c]/angbracketright, that states that no data value is shared between a
+descendant labeled cand ana-child of ab-ancestor. The automaton behaves as follows.
+1.It creates one thread in state qfor every data value in the subtree, using univ(q).
+2.qtests whether the data value of the register is reachable by ↓∗[c], using a test/angbracketleftµ/angbracketright=. If
+it is, it changes to state p.
+3.pmoves up towards the root, and each time it ﬁnds a b, it tests that the currently stored
+data value cannot be reached by ↓[a]. This is done with a test of the kind /angbracketleftµ/angbracketright=.J
+Therefore, in order to conclude the proof of Theorem 1, it remains to show that the
+emptiness problem of BUDAis decidable. This is the goal of Section 4.
+Automata normal form. We now present a normal form of BUDA, removing all the
+redundancy in its deﬁnition. This normal form simpliﬁes the technical details in the proof
+of decidability presented in the next section.
+(NF1) The semigroup Sand morphism hhave the following property. For all w∈(A×B)+
+andc∈A×B,h(w) =h(c)iffw=c.
+(NF2) In the deﬁnition of δupofA, there is exactly one disjunct that contains exactly one
+conjunct. That is, for all q∈Q,δup(q)is undeﬁned or δup(q) =pfor somep∈Q.
+(NF3) For all q∈Q,δ/epsilon1(q)is deﬁned either as an atom, as p∧p/primeor asp∨p/primefor some
+p,p/prime∈Q.
+(NF4) For all q∈Q,δ/epsilon1(q)does not contain tests for labels ( a,¯a,b,¯b),eq,eq,store,leafor
+leaf.
+STACS’11
+
+--- Page 8 ---
+8 Bottom-up automata on data trees and vertical XPath
+Diego Figueira and Luc Segouﬁn 111.θ1grow−−→θ2. Given two abstract conﬁgurationsθ1andθ2as above, we sayθ1grow−−→θ2ifr1=m1=false, and for all(q,d)∈∆1,δup(q)is deﬁned andθ2is such thatm2=true,∆1￿up∆2, andΓ2={(µ￿,e):(µ, e)∈Γ1,µ￿=h(c)·µ}∪{(h(c),d)}, for somec∈A×Bandd∈D. Notice thatcanddare then the label and data value ofθ2. As a consequenceof the normal form (NF1) of the semigroup, this operation preserves property (￿).2.θ1,θ2merge−−−→θ0. Given 3 abstract conﬁgurationsθ1=(∆1,Γ1,r1,m1),θ2=(∆2,Γ2,r2,m2),θ0=(∆0,Γ0,r0,m0)we deﬁneθ1,θ2merge−−−→θ0if they all have the same label and datavalue,m1=m2=true,r1=r2=r0,∆0=∆1∪∆2, andΓ0=Γ1∪Γ2. Notice that thisoperation preserves property (￿).￿Remark.inc(S,χ)−− − − −→can be seen as a kind ofmerge−−−→which preserves the truth of tests.￿Deﬁnition 5.We deﬁne thatΘ1⇒Θ0if one the following conditions holds:1.There isθ1∈Θ1andθ￿1∼θ1such thatθ￿1→￿θ0orθ￿1inc(S,χ)−− − − −→θ0orθ￿1grow−−→θ0, for someθ0,χ, andΘ0=Θ1∪{θ0}.2.There areθ1,θ2∈Θ1andθ￿1∼θ1,θ￿2∼θ2such thatθ￿1,θ￿2merge−−−→θ0for someθ0, andΘ0=Θ1∪{θ0}.In the deﬁnition of the transition system, themﬂag is simply used to constrain thetransition system to have all itsmerge−−−→operations right beforegrow−−→. Thus, if we take aderivation and examine the kind of→transitions that originated each⇒transition, weobtain a word described by the following regular expression￿(→￿|inc(S,χ)−− − − −→)∗(merge−−−→)∗grow−−→￿∗(→￿|inc(S,χ)−− − − −→)∗(merge−−−→)∗.(†)4.4 CompatibilityWe now show that all the previous deﬁnitions were chosen appropriately and that the trans-ition system deﬁned in Section 4.3 is compatible with thewqodeﬁned in Section 4.2. Theproof of this result is very technical and consists in a case analysis over each possible kind oftransition. In this proof, the operationinc(S,χ)−− − − −→becomes crucial to show that the downwardscompatibility can always be done in a bounded amount ofNsteps. The detailed proof willappear in the journal version of this paper.￿Theorem 6.(℘<∞(AC),⇒)isN-downward compatible with respect to(℘<∞(AC),≤min),forN:=2.(|S|.|Q|)2+1.Let≡be the equivalence relation over℘<∞(AC)such thatΘ≡Θ￿iffΘ≤minΘ￿andΘ￿≤minΘ.G i v e n aBUDAA,t h ewsts(℘<∞(AC)/≡,⇒,≤min)as built in the previoussection is calledthewstsassociated toA. From Theorem 6 and Proposition 1 we obtain:￿Corollary 7.Given aBUDAA, it is decidable whether thewstsassociated toAcan reachan accepting abstract conﬁguration from its initial abstract conﬁguration.As shown next, this implies the decidability for the emptiness problem forBUDA.4.5 FromBUDAto its abstract conﬁgurationsAs expected, thewstsassociated to aBUDAAreﬂects its behavior. That is, reachability ofone corresponds exactly to accessibility of the other. One direction is easy as the transitionsystem can easily simulateA. The other direction requires more care. As evidenced in (†),thewstsmay perform ainc(S,χ)−− − − −→transition anytime. However,BUDAcan only make thetree grow in width when moving up in the tree. This issue is solved by showing that allother transitions commute withinc(S,χ)−− − − −→. Finally we obtain the following.STACS’11
+Diego Figueira and Luc Segouﬁn 111.θ1grow−−→θ2. Given two abstract conﬁgurationsθ1andθ2as above, we sayθ1grow−−→θ2ifr1=m1=false, and for all(q,d)∈∆1,δup(q)is deﬁned andθ2is such thatm2=true,∆1￿up∆2, andΓ2={(µ￿,e):(µ, e)∈Γ1,µ￿=h(c)·µ}∪{(h(c),d)}, for somec∈A×Bandd∈D. Notice thatcanddare then the label and data value ofθ2. As a consequenceof the normal form (NF1) of the semigroup, this operation preserves property (￿).2.θ1,θ2merge−−−→θ0. Given 3 abstract conﬁgurationsθ1=(∆1,Γ1,r1,m1),θ2=(∆2,Γ2,r2,m2),θ0=(∆0,Γ0,r0,m0)we deﬁneθ1,θ2merge−−−→θ0if they all have the same label and datavalue,m1=m2=true,r1=r2=r0,∆0=∆1∪∆2, andΓ0=Γ1∪Γ2. Notice that thisoperation preserves property (￿).￿Remark.inc(S,χ)−− − − −→can be seen as a kind ofmerge−−−→which preserves the truth of tests.￿Deﬁnition 5.We deﬁne thatΘ1⇒Θ0if one the following conditions holds:1.There isθ1∈Θ1andθ￿1∼θ1such thatθ￿1→￿θ0orθ￿1inc(S,χ)−− − − −→θ0orθ￿1grow−−→θ0, for someθ0,χ, andΘ0=Θ1∪{θ0}.2.There areθ1,θ2∈Θ1andθ￿1∼θ1,θ￿2∼θ2such thatθ￿1,θ￿2merge−−−→θ0for someθ0, andΘ0=Θ1∪{θ0}.In the deﬁnition of the transition system, themﬂag is simply used to constrain thetransition system to have all itsmerge−−−→operations right beforegrow−−→. Thus, if we take aderivation and examine the kind of→transitions that originated each⇒transition, weobtain a word described by the following regular expression￿(→￿|inc(S,χ)−− − − −→)∗(merge−−−→)∗grow−−→￿∗(→￿|inc(S,χ)−− − − −→)∗(merge−−−→)∗.(†)4.4 CompatibilityWe now show that all the previous deﬁnitions were chosen appropriately and that the trans-ition system deﬁned in Section 4.3 is compatible with thewqodeﬁned in Section 4.2. Theproof of this result is very technical and consists in a case analysis over each possible kind oftransition. In this proof, the operationinc(S,χ)−− − − −→becomes crucial to show that the downwardscompatibility can always be done in a bounded amount ofNsteps. The detailed proof willappear in the journal version of this paper.￿Theorem 6.(℘<∞(AC),⇒)isN-downward compatible with respect to(℘<∞(AC),≤min),forN:=2.(|S|.|Q|)2+1.Let≡be the equivalence relation over℘<∞(AC)such thatΘ≡Θ￿iffΘ≤minΘ￿andΘ￿≤minΘ.G i v e n aBUDAA,t h ewsts(℘<∞(AC)/≡,⇒,≤min)as built in the previoussection is calledthewstsassociated toA. From Theorem 6 and Proposition 1 we obtain:￿Corollary 7.Given aBUDAA, it is decidable whether thewstsassociated toAcan reachan accepting abstract conﬁguration from its initial abstract conﬁguration.As shown next, this implies the decidability for the emptiness problem forBUDA.4.5 FromBUDAto its abstract conﬁgurationsAs expected, thewstsassociated to aBUDAAreﬂects its behavior. That is, reachability ofone corresponds exactly to accessibility of the other. One direction is easy as the transitionsystem can easily simulateA. The other direction requires more care. As evidenced in (†),thewstsmay perform ainc(S,χ)−− − − −→transition anytime. However,BUDAcan only make thetree grow in width when moving up in the tree. This issue is solved by showing that allother transitions commute withinc(S,χ)−− − − −→. Finally we obtain the following.STACS’11
+Figure 3 The grow and merge operations.
+An automaton A∈BUDAis said to be in normal form if it satisﬁes (NF1), (NF2), (NF3)
+and (NF4). Notice that once (NF1) holds, then any test concerning a label ( a,¯a,b, or¯b)
+can be simulated using tests of the form /angbracketleftµ/angbracketrightfor some appropriate µ. Using similar ideas, it
+is not hard to check that:
+IProposition 3. For any A∈BUDA, there is an equivalent A/prime∈BUDAin normal form
+that can be eﬀectively obtained.
+4 The emptiness problem for BUDA
+The goal of this section is to show:
+ITheorem 2. The emptiness problem for BUDAis decidable.
+Inordertoachievethis, weassociatewitheach BUDAawststhatsimulatesitsruns. The
+transition system works on sets of abstract conﬁgurations . Given an automaton, an abstract
+conﬁguration consists of all the information of the run that is necessary to maintain at the
+root of a given subtree in order to continue the simulation of the automaton from there.
+The aforesaid transition system works with setsof such abstract conﬁgurations in order
+to capture the bottom-up behavior of the automaton on unranked trees. The transition
+relation of the wstsessentially corresponds to the transitions of the automaton except for
+theup-transition. An up-transition of the automaton is simulated by a succession of two
+types of transitions of the wsts, calledgrowandmerge. The object of doing this is to avoid
+having transitions that take an unbounded number of arguments (as the uprelation in the
+run of the automaton does). The growtransition adds a node on top of the current root, and
+themergetransition identiﬁes the roots of two abstract conﬁgurations. Intuitively, these
+transitions correspond to the operations on trees of Figure 3. This is necessary because we
+do not know in advance the arity of the tree and therefore the transition system has to build
+one subtree at a time. We then exhibit a wqoon abstract conﬁgurations and show that
+the transition system is N-downward compatible with respect to this wqofor someNthat
+depends on the automaton. Decidability will then follow from Proposition 1.
+In the sequel we implicitly assume that all our BUDAare in normal form.
+4.1 Abstract conﬁgurations
+Given a BUDA A= (A,B,Q,q 0,δ/epsilon1,δup,S,h), we start the deﬁnition of its associated wsts
+by deﬁning its universe: ﬁnite sets of abstract conﬁgurations of A.
+Anabstract conﬁguration ofAis a tuple (∆,Γ,r,m )whererandmare either true
+or false, ∆is a ﬁnite subset of Q×DandΓis a ﬁnite subset of S×Dsuch that
+Γcontains exactly one pair of the form (h(c),d)withc∈A×B. ( ⋆)
+This unique element of A×Bis denoted as the labelof the abstract conﬁguration and the
+unique associated data value is denoted as the data value of the abstract conﬁguration.
+
+--- Page 9 ---
+Diego Figueira and Luc Segouﬁn 9
+Intuitively rsays whether the current node should be treated as the root or not, m
+says whether we are in a phase of merging conﬁgurations or not (a notion that will become
+clear when we introduce our transition system later on), ∆is the set of ongoing threads
+(corresponding to the conﬁguration of the automaton) and a pair (µ,d)∈Γsimulates the
+existence of a downward path evaluating to µand whose last element carries the datum d.
+In the sequel we will use the following notation: ∆(d) ={q|(q,d)∈∆},Γ(d) ={µ|
+(µ,d)∈Γ},∆(q) ={d|(q,d)∈∆},Γ(µ) ={d|(µ,d)∈Γ}. We also use the notation
+∆⊗Γ :D→℘(Q)×℘(S)with (∆⊗Γ)(d) = (∆(d),Γ(d)). Given a data value dand an
+abstract conﬁguration θ,(∆⊗Γ)(d)is also denoted as the type ofdinθ. We use the letter
+θto denote an abstract conﬁguration and we write AC to denote the set of all abstract
+conﬁgurations. Similarly, we use Θto denote a ﬁnite set of abstract conﬁgurations and
+℘<∞(AC)for the set of ﬁnite sets of abstract conﬁgurations.
+An abstract conﬁguration θ= (∆,Γ,r,m )is said to be initialif it corresponds to a leaf
+node, i.e., is such that ∆ ={(q0,d)}andΓ ={(h(a),d)}for somed∈Danda∈A×B. It
+is said to be accepting if∆is empty and ristrue.
+Two conﬁgurations θ1andθ2are said to be equivalent if there is a bijection f:D→D
+such thatf(θ1) =θ2(with some abuse of notation). In this case we note θ1∼θ2.
+Finally, we write ΘIto denote the set of all initial abstract conﬁgurations modulo ∼
+(i.e., a set containing at most one element for each ∼equivalence class). Note that ΘIis
+ﬁniteand eﬀective. A set of abstract conﬁgurations is said to be accepting iff it contains
+an accepting abstract conﬁguration.
+4.2 Well-quasi-orders
+We now equip ℘<∞(AC)with a well-quasi-order (℘<∞(AC),≤min). The order≤minbuilds
+upon a wqo(AC,-)over abstract conﬁgurations. Let us deﬁne these orderings precisely.
+Theproﬁle of an abstract conﬁguration θ= (∆,Γ,r,m ), denoted by proﬁle (θ), is
+proﬁle (θ) = (A0, A1, r, m )withAi={(S,χ)∈℘(Q)×℘(S) :|(∆⊗Γ)−1(S,χ)|=i}.
+We ﬁrst deﬁne the quasi-order /precedesequalover abstract conﬁgurations, and then we deﬁne the
+order (AC,-)as(AC,/precedesequal)modulo∼. Given two abstract conﬁgurations θ1= (∆ 1,Γ1,r1,m1)
+andθ2= (∆ 2,Γ2,r2,m2), we denote by θ1/precedesequalθ2the fact that
+proﬁle (θ1) =proﬁle (θ2), and
+(∆1⊗Γ1)⊆(∆2⊗Γ2).
+IRemark. Notice that due to condition ( ⋆),θ1/precedesequalθ2implies that θ1andθ2have the same
+label and same data value.
+We now deﬁne-as:θ1-θ2iffθ/prime
+1/precedesequalθ2for someθ/prime
+1∼θ1.
+We are now ready to deﬁne our wqoover℘<∞(AC). Given Θ1andΘ2in℘<∞(AC)we
+deﬁne≤minas:Θ1≤minΘ2iff for allθ2∈Θ2there isθ1∈Θ1such thatθ1-θ2. That is,
+every element from Θ2isminorized by an element of Θ1.
+The following is a key observation:
+ILemma 3. (℘<∞(AC),≤min)is awqo.
+Finally, the following obvious lemma will be necessary to apply Proposition 1.
+ILemma 4.{Θ∈℘<∞(AC)|Θis accepting}is downward closed for (℘<∞(AC),≤min).
+4.3 Transition system
+We now equip ℘<∞(AC)with a transition relation ⇒. This transition relation is built upon
+a transition relation →over AC.
+STACS’11
+
+--- Page 10 ---
+10 Bottom-up automata on data trees and vertical XPath
+Let us ﬁrst deﬁne →over AC. It is speciﬁed so that it reﬂects the transitions of A. For
+each possible test of the automaton there is a transition that simulates this test by using the
+information contained in Γ, and removes the corresponding in ∆. And for every operation
+store,guess,univthere is a transition that modiﬁes ∆. We call the /epsilon1-transitions of→, that
+we note→/epsilon1. On the other hand, any uptransition of Ais decomposed into transitionsmerge−−−→
+andgrow−−→that modify not only ∆but also Γaccordingly.
+We start with /epsilon1-transitions. Given two abstract conﬁgurations θ1= (∆ 1,Γ1,r1,m1)and
+θ2= (∆ 2,Γ2,r2,m2), we say that θ1→/epsilon1θ2ifm1=m2=false(the merge information is
+used for simulating an up-transition as will be explained later), r2=r1(whether the current
+node is the root or not should not change), θ1andθ2have the same label and data value,
+Γ2= Γ1(the tree is not aﬀected by an /epsilon1-transition) and, furthermore, one of the following
+conditions holds:
+1.θ1univ−−→θ2. This transition can happen if there is (q,d)∈∆1withδ/epsilon1(q) =univ(p)for some
+p,q∈Q. In this case θ2is such that ∆2= (∆ 1\{(q,d)})∪{(p,e) :∃µ .(µ,e)∈Γ1}.
+2.θ1guess−−→θ2. This transition can happen if there is (q,d)∈∆1withδ/epsilon1(q) =guess (p)for
+somep,q∈Q. In this case θ2is such that ∆2= (∆ 1\{(q,d)})∪{(p,d/prime)}for somed/prime∈D.
+3.θ1/angbracketleftµ/angbracketright=
+−−−→θ2(resp.θ1/angbracketleftµ/angbracketright/negationslash=
+−−−→θ2). This transition can happen if there is (q,d)∈∆1with
+δ/epsilon1(q) =/angbracketleftµ/angbracketright=(resp.δ/epsilon1(q) =/angbracketleftµ/angbracketright/negationslash=) for some q∈Q,µ∈S, andµ∈Γ1(d)(resp. there
+existse∈D,e/negationslash=dsuch thatµ∈Γ1(e)). In this case θ2is such that ∆2= (∆ 1\{(q,d)}).
+The negation of these tests/angbracketleftµ/angbracketright=−−−→and/angbracketleftµ/angbracketright/negationslash=−−−→are deﬁned in a similar way.
+4.θ1root− −→θ2(resp.θ1root−− →θ2). This transition can happen if there is (q,d)∈∆with
+δ/epsilon1(q) =rootandr1=true(resp.δ/epsilon1(q) =rootandr1=false). In this case θ2is such
+that ∆2= (∆ 1\{(q,d)}).
+5.θ1∧− →θ2. This transition can happen if there is (q,d)∈∆1withδ/epsilon1(q) =p∧p/primefor some
+p,p/prime,q∈Q. In this case θ2is such that ∆2= (∆ 1\{(q,d)})∪{(p,d),(p/prime,d)}.
+6.θ1∨− →θ2. This transition can happen if there is (q,d)∈∆1withδ/epsilon1(q) =p∨p/primefor some
+p,p/prime,q∈Q. In this case θ2is such that ∆2= (∆ 1\{(q,d)})∪A, forA={(p,d)}or
+A={(p/prime,d)}.
+Note that by (NF3) and (NF4) for every possible deﬁnition of δ/epsilon1(q)there is one transition
+that simulates it. To simulate δup, it turns out that we will need one extra /epsilon1-transition that
+makes our trees fatter. This transition assumes the same constraints as for →/epsilon1except that
+we no longer have Γ2= Γ 1. The idea is that this transition corresponds to duplicating all
+the immediate subtrees of the root. For example, if the root has t1andt2as subtrees,
+consider the operation of now having t1t2t/prime
+1t/prime
+2as subtrees, where t/prime
+1andt/prime
+2are identical to
+t1andt2except for one data value with proﬁle (S,χ)that in t/prime
+1andt/prime
+2is replaced by a fresh
+data value. Here is the deﬁnition that follows this idea in terms of our transition system.
+We say that θ1inc(S,χ )−−−−−→θ2for some pair (S,χ)∈℘(Q)×℘(S)if|(∆1⊗Γ1)−1(S,χ)|≥1and,
+eitherχ=∅or|(Γ1)−1(χ)|≥2. Thenθ2is such that data(θ2) =data(θ1)∪{e}for some
+e/negationslash∈data(θ1),(∆2⊗Γ2)(e) = (S,χ), and for all d/negationslash=e,(∆2⊗Γ2)(d) = (∆ 1⊗Γ1)(d). Observe
+thatinc(S,χ )−−−−−→does not change the truth value of any test. Indeed, any test ( /angbracketleftµ/angbracketright=,/angbracketleftµ/angbracketright=,eq,
+etc.) that is true in θ, continues to be true after ainc(S,χ )−−−−−→transition, and vice-versa.
+Wedeﬁnethetransitionsofthe wststhatcorrespondto up-transitionsintheautomaton.
+We split them into two phases: adding a new root symbol and merging the roots.
+1.θ1grow−−→θ2. Given two abstract conﬁgurations θ1andθ2as above, we say θ1grow−−→θ2if
+r1=m1=false, and for all (q,d)∈∆1,δup(q)is deﬁned and θ2is such that ∆1up∆2,
+
+--- Page 11 ---
+Diego Figueira and Luc Segouﬁn 11
+andΓ2={(µ/prime,e) : (µ,e)∈Γ1,µ/prime=h(c)·µ}∪{ (h(c),d)}, for somec∈A×Bandd∈D.
+Notice that canddare then the label and data value of θ2. As a consequence of the
+normal form (NF1) of the semigroup, this operation preserves property ( ⋆).
+2.θ1,θ2merge−−−→θ0. Given3abstractconﬁgurations θ1= (∆ 1,Γ1,r1,m1),θ2= (∆ 2,Γ2,r2,m2),
+θ0= (∆ 0,Γ0,r0,m0)we deﬁneθ1,θ2merge−−−→θ0if they all have the same label and data
+value,m1=m2=true,r1=r2=r0,∆0= ∆ 1∪∆2, and Γ0= Γ1∪Γ2. Notice that this
+operation preserves property ( ⋆).
+IRemark.inc(S,χ )−−−−−→can be seen as a kind ofmerge−−−→which preserves the truth of tests.
+We are now ready to deﬁne the transition relation over ℘<∞(AC).
+IDeﬁnition 5. We deﬁne that Θ1⇒Θ0if one the following conditions holds:
+1.There isθ1∈Θ1andθ/prime
+1∼θ1such thatθ/prime
+1→/epsilon1θ0orθ/prime
+1inc(S,χ )−−−−−→θ0orθ/prime
+1grow−−→θ0, for some
+θ0,χ, and Θ0= Θ 1∪{θ0}.
+2.There areθ1,θ2∈Θ1andθ/prime
+1∼θ1,θ/prime
+2∼θ2such thatθ/prime
+1,θ/prime
+2merge−−−→θ0for someθ0, and
+Θ0= Θ 1∪{θ0}.
+In the deﬁnition of the transition system, the mﬂag is simply used to constrain the
+transition system to have all itsmerge−−−→operations right aftergrow−−→and before any→/epsilon1. Thus,
+if we take a derivation and examine the kind of →transitions that originated each ⇒
+transition, we obtain a word described by the following regular expression
+/parenleftbig
+(→/epsilon1|inc(S,χ )−−−−−→ )∗grow−−→ (merge−−−→ )∗/parenrightbig∗(→/epsilon1|inc(S,χ )−−−−−→ )∗. (†)
+4.4 Compatibility
+We now show that all the previous deﬁnitions were chosen appropriately and that the trans-
+ition system deﬁned in Section 4.3 is compatible with the wqodeﬁned in Section 4.2. The
+proof of this result is very technical and consists in a case analysis over each possible kind of
+transition. In this proof, the operationinc(S,χ )−−−−−→becomes crucial to show that the downwards
+compatibility can always be done in a bounded amount of Nsteps. The detailed proof will
+appear in the journal version of this paper.
+IProposition 4. The transition system (℘<∞(AC),⇒)isN-downward compatible with
+respect to (℘<∞(AC),≤min), forN:= 2·(|S|·|Q|)2+ 1.
+Let≡be the equivalence relation over ℘<∞(AC)such that Θ≡Θ/primeiffΘ≤minΘ/primeand
+Θ/prime≤minΘ. Given a BUDA A, the wsts (℘<∞(AC)/≡,⇒,≤min)as built in the previous
+section is called thewstsassociated with A. From Proposition 1 and 4 we obtain:
+ICorollary 6. Given a BUDA A, it is decidable whether the wstsassociated with Acan
+reach an accepting abstract conﬁguration from its initial abstract conﬁguration.
+As shown next, this implies the decidability for the emptiness problem for BUDA.
+4.5 From BUDAto its abstract conﬁgurations
+As expected, the wstsassociated with a BUDA Areﬂects its behavior. That is, reachability
+ofonecorrespondsexactlytoaccessibilityoftheother. Onedirectioniseasyasthetransition
+system can easily simulate A. The other direction requires more care. As evidenced in ( †),
+thewstsmay perform ainc(S,χ )−−−−−→transition anytime. However, BUDAcan only make the
+tree grow in width when moving up in the tree. This issue is solved by showing that all
+other transitions commute withinc(S,χ )−−−−−→. Finally we obtain the following.
+STACS’11
+
+--- Page 12 ---
+12 REFERENCES
+IProposition 5. LetAbe a BUDA. Let Wbe the wstsassociated with A. Then Ahas
+an accepting run iff Wcan reach an accepting set of abstract conﬁgurations from the initial
+set of abstract conﬁgurations.
+Hence, combining Proposition 5 and Corollary 6 we prove Theorem 2.
+5 Concluding remarks
+We have exhibited a decidable class of automata over data trees. This automaton model is
+powerful enough to code node expressions of regXPath (V,=). Therefore, since these expres-
+sions are closed under negation, we have shown decidability of the satisﬁability, inclusion
+and equivalence problems for node expressions of regXPath (V,=).
+Notice that if our result implies also the decidability of the emptiness problem for path
+expressions of regXPath (V,=), those being not closed under complementation it is not clear
+that their inclusion or equivalence problem remains decidable.
+Our decision algorithm relies heavily on the fact that we work with unranked data
+trees. As already shown in [7] without this assumption XPath (V,=)would be undecidable.
+In particular if we further impose the presence of a DTD, XPath (V,=)becomes undecidable.
+Finally we remark that our decision algorithm is not primitive recursive. But as shown
+in [7] there cannot be a primitive recursive decision algorithm for XPath (V,=).
+References
+1Michael Benedikt, Wenfei Fan, and Floris Geerts. XPath satisﬁability in the presence of
+DTDs.Journal of the ACM , 55(2):1–79, 2008.
+2Michael Benedikt and Christoph Koch. XPath leashed. ACM Computing Surveys , 41(1),
+2008.
+3MikołajBojańczyk, AncaMuscholl, ThomasSchwentick, andLucSegouﬁn. Two-variable
+logic on data trees and XML reasoning. Journal of the ACM , 56(3):1–48, 2009.
+4Diego Figueira. Satisﬁability of downward XPath with data equality tests. In ACM
+Symposium on Principles of Database Systems (PODS’09) , 2009.
+5Diego Figueira. Forward-XPath and extended register automata on data-trees. In In-
+ternational Conference on Database Theory (ICDT’10) , 2010.
+6Diego Figueira. Reasoning on words and trees with data . PhD thesis, ÉNS de Cachan,
+2010. Available at http://www.lsv.ens-cachan.fr/~figueira/phd/ .
+7Diego Figueira and Luc Segouﬁn. Future-looking logics on data words and trees. In Intl.
+Symp. on Mathematical Foundations of Computer Science (MFCS’09) , 2009.
+8Alain Finkel and Philippe Schnoebelen. Well-structured transition systems everywhere!
+Theoretical Computer Science , 256(1-2):63–92, 2001.
+9Floris Geerts and Wenfei Fan. Satisﬁability of XPath queries with sibling axes. In Intl.
+Symp. on Database Programming Languages (DBPL’05) , 2005.
+10Georg Gottlob, Christoph Koch, and Reinhard Pichler. Eﬃcient algorithms for pro-
+cessing XPath queries. ACM Transactions on Database Systems , 30(2):444–491, 2005.
+11Petr Jančar. A note on well quasi-orderings for powersets. Information Processing
+Letters, 72(5-6):155–160, 1999.
+12Marcin Jurdziński and Ranko Lazić. Alternation-free modal mu-calculus for data trees.
+InLogic in Computer Science (LICS’07) , 2007.
+13Alberto Marcone. Foundations of bqo theory. Transactions of the American Mathemat-
+ical Society , 345:641–660, 1994.

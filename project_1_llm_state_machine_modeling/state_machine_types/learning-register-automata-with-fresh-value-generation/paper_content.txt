@@ -1,0 +1,1866 @@
+--- Page 1 ---
+Learning Register Automata with
+Fresh Value Generation?
+Fides Aarts, Paul Fiter au-Bro stean, Harco Kuppens, and Frits Vaandrager
+Institute for Computing and Information Sciences, Radboud University,
+P.O. Box 9010, 6500 GL Nijmegen, the Netherlands
+Abstract. We present a new algorithm for active learning of register
+automata. Our algorithm uses counterexample-guided abstraction rene-
+ment to automatically construct a component which maps (in a history
+dependent manner) the large set of actions of an implementation into a
+small set of actions that can be handled by a Mealy machine learner. The
+class of register automata that is handled by our algorithm extends pre-
+vious denitions since it allows for the generation of fresh output values.
+This feature is crucial in many real-world systems (e.g. servers that gen-
+erate identiers, passwords or sequence numbers). We have implemented
+our new algorithm in a tool called Tomte.
+1 Introduction
+Model checking and model learning are two core techniques in model-driven en-
+gineering. In model checking [16] one explores the state space of a given state
+transition model, whereas in model learning [32, 19, 7] the goal is to obtain such
+a model through interaction with a system by providing inputs and observing
+outputs. Both techniques face a combinatorial blow up of the state-space, com-
+monly known as the state explosion problem. In order to nd new techniques to
+combat this problem, it makes sense to follow a cyclic research methodology in
+which tools are applied to challenging applications, the experience gained during
+this work is used to generate new theory and algorithms, which in turn are used
+to further improve the tools. After consistent application of this methodology
+for 25 years model checking is now applied routinely to industrial problems [18].
+Work on the use of model learning in model-driven engineering started later [29]
+and has not yet reached the same maturity level, but in recent years there has
+been spectacular progress.
+We have seen, for instance, several convincing applications of model learning
+in the area of security and network protocols. Cho et al. [15] successfully used
+model learning to infer models of communication protocols used by botnets.
+?Fiter au-Bro stean is supported by NWO project 612.001.216: Active Learning of Se-
+curity Protocols (ALSEP). Aarts, Kuppens and Vaandrager have been supported
+by STW project 11763: Integrating Testing And Learning of Interface Automata
+(ITALIA). Some results from this paper appeared previously in the PhD thesis of
+Aarts [1]. An earlier version of this paper appeared as [6].
+
+--- Page 2 ---
+Model learning was used for ngerprinting of EMV banking cards [5]. It also
+revealed a security vulnerability in a smartcard reader for internet banking that
+was previously discovered by manual analysis, and conrmed the absence of this
+aw in an updated version of this device [14]. Fiterau et al. [17] used model
+learning to demonstrate that both Linux and Windows implementations violate
+the TCP protocol standard. Using a similar approach, Verleg [33] showed that
+implementations of the Secure Shell (SSH) protocol violate the standard. In [30],
+model learning is used to infer properties of a network router, and for testing
+the security of a web-application (the Mantis bug-tracker). Model learning has
+proven to be an extremely eective technique for spotting bugs, complementary
+to existing methods for software analysis.
+A major theoretical challenge is to lift learning algorithms for nite state
+systems to richer classes of models involving data. A breakthrough has been the
+denition of a Nerode congruence for a class of register automata [10, 11] and the
+resulting generalization of learning algorithms to this class [21, 22]. Register au-
+tomata [25, 10] are a type of extended nite state machines in which one can test
+for equality of data parameters, but no operations on data are allowed. Recently,
+the results on register automata have been generalized to even larger classes of
+models in which guards may contain arithmetic constraints and inequalities [13].
+A dierent approach for extending learning algorithms to classes of models
+involving data has been proposed in [4]. Here the idea is to place an intermediate
+mapper component in between the implementation and the learner. This map-
+per abstracts (in a history dependent manner) the large set of (parametrized)
+actions of the implementation into a small set of abstract actions that can now
+be handled by automata learning algorithms for nite state systems. In [2], we
+described an algorithm that uses counterexample-guided abstraction renement
+to automatically construct an appropriate mapper for a subclass of register au-
+tomata that may only store the rst and the last occurrence of a parameter
+value.
+Existing register automaton models [10, 11, 2] do not allow for the generation
+of fresh output values. This feature is technically challenging due to the resulting
+nondeterminism. Fresh outputs, however, are crucial in many real-world systems,
+e.g. servers that generate fresh identiers, passwords or sequence numbers. The
+main contribution of this article is an extension of the learning algorithm of [2]
+to a setting with fresh outputs.
+We have implemented the new learning algorithm in our Tomte tool, http:
+//tomte.cs.ru.nl/ . As part of the LearnLib tool [27, 31], a learning algorithm
+for register automata without fresh outputs has been implemented. In [3], we
+compared LearnLib with a previous version of Tomte (V0.3) on a common set of
+benchmarks (without fresh outputs), a comparison that turned out favorably for
+Tomte. This paper presents an experimental evaluation of the new Tomte 0.41.
+Due to evolution of the algorithm, Tomte 0.41 signicantly outperforms Tomte
+0.3. Similar to the 0.4 version introduced in [6], Tomte can learn models for new
+benchmarks involving fresh outputs, only now it can also use and benet from
+TTT [24], a state of the art Mealy Machine learning algorithm which signicantly
+2
+
+--- Page 3 ---
+reduces the number of learning queries. We compare Tomte 0.41 to RALib[12],
+the successor of LearnLib, on a series of benchmarks.
+2 Register Automata
+In this section, we dene register automata and their operational semantics in
+terms of Mealy machines. In addition, we discuss to technical concepts that
+provide insight in the behavior of register automata, and that play a key role
+in the technical development of this paper: right invariance and symmetry. For
+reasons of exposition, the notion of register automaton that we dene here is a
+simplied version of what we have implemented in our tool: Tomte also supports
+constants and actions with multiple parameters.
+2.1 Denition
+We postulate a countably innite set Vofvariables , which contains two special
+variables inand out. An atomic formula is a boolean expression of the form true,
+false,x=yorx6=y, withx;y2V. Aformula'is a conjunction of atomic
+formulas. Let XVbe a set of variables. We write (X) for the set of formulas
+with variables taken from X. Avaluation forXis a function :X!Z. We
+write Val(X) for the set of valuations for X. If'is a formula with variables from
+Xandis a valuation for X, then we write j='to denote that satises'.
+We use symbolto denote syntactic equality of formulas.
+Denition 1 (Register automaton). Aregister automaton (RA) is a tuple
+R=hI;O;L;l 0;V;iwith
+{IandOnite, disjoint sets of input andoutput symbols , respectively,
+{La nite set of locations andl02Ltheinitial location ,
+{Vis a function that assigns to each location la nite setV(l)Vnf in;outg
+ofregisters , withV(l0) =;.
+{LI(V)(V9V)OLa nite set of transitions . For
+each transitionhl;i;g;%;o;l0i2, we refer to las the source ,ias the input
+symbol,gas the guard ,%as the update ,oas the output symbol , andl0as the
+target . We require that g2(V(l)[fin;outg)and%:V(l0)!V(l)[fin;outg.
+We writeli;g;%;o!l0ifhl;i;g;%;o;l0i2.
+Example 1. As a rst running example of a register automaton we use a FIFO-
+set with capacity two, similar to the one presented in [22]. A FIFO-set is a queue
+in which only dierent values can be stored, see Figure 1. Input Push tries to add
+the value of parameter into the queue, and input Poptries to retrieve a value
+from the queue. The output in response to a Push isOKif the input value can
+be added successfully, or NOK if the input value is already in the queue or if the
+queue is full. The output in response to a PopisReturn (out), with as parameter
+the oldest value from the queue, or NOK if the queue is empty. Each input has
+parameter inand each output has parameter out. However, we omit parameters
+3
+
+--- Page 4 ---
+l0 start l1 l2Push(in)/OK
+v:=inPop/NOKin6=v
+Push(in)/OK
+w:=inin=v
+Push(in)/NOK
+out=v
+Pop/Return(out)out=v
+Pop/Return(out)
+v:=wPush/NOK
+Fig. 1: FIFO-set with a capacity of 2 modeled as a register automaton
+that do not matter and for instance write Popinstead of Pop(in) since parameter
+indoes not occur in the guard and is not touched by the update. We also do not
+list the sets of variables of locations explicitly, as they usually can be inferred
+from the context.
+2.2 Semantics
+The operational semantics of register automata is dened in terms of (innite
+state) Mealy machines.
+Denition 2 (Mealy machine). AMealy machine is dened to be a tuple
+M=hI;O;Q;q0;!i, whereIandOare disjoint sets of input and output
+actions , respectively, Qis a set of states ,q02Qis the initial state , and!
+QIOQis the transition relation . We write qi=o!q0if(q;i;o;q0)2!,
+andqi=o! if there exists a state q0such thatqi=o!q0. A Mealy machine is input
+enabled if, for each state qand inputi, there exists an output osuch thatqi=o!.
+We say that a Mealy machine is nite if the setsQ,IandOare nite.
+Apartial run ofMis a nite sequence =q0i0o0q1i1o1q2in1on1qn,
+beginning and ending with a state, such that for all j <n ,qjij=oj!qj+1. Arun
+ofMis a partial run that starts with q0. The trace of, denoted trace(), is the
+nite sequence =i0o0i1o1in1on1that is obtained by erasing all the
+states from . We say that is atrace of stateq2Qiis the trace of some
+partial run that starts in q, and we say that is a trace ofMiis a trace
+ofq0. We call two states q;q02Qequivalent , notationqq0, i they have the
+same traces. Let M1andM2be Mealy machines with the same sets of input
+actions. We say that M1andM2areequivalent , notationM1M 2, if they
+have the same traces. We say that M1implementsM2, notationM1M 2, if
+all traces ofM1are also traces of M2.
+The operational semantics of a register automaton is a Mealy machine in
+which the states are pairs of a location land a valuation of the state variables.
+A transition may re for given input and output values if its guard evaluates to
+true. In this case, a new valuation of the state variables is computed using the
+update part of the transition.
+4
+
+--- Page 5 ---
+Denition 3 (Semantics register automata). LetR=hI;O;L;l 0;V;ibe
+a RA. The operational semantics of R, denoted [ [R] ], is the Mealy machine hI
+Z;OZ;Q;q0;!i, whereQ=f(l;Val(V(l)))jl2Lg,q0= (l0;;), and relation
+!is dened inductively by the rule
+li;g;%;o!l0
+=[f(in;d);(out;e)gj=g 0=%
+(l;)i(d)=o(e)! (l0;0)(1)
+If transition (l;)i(d)=o(e)! (l0;0)can be inferred using rule (1) then we say that
+it issupported by transition li;g;%;o!l0ofR, and that transition li;g;%;o!l0res.
+We callRinput enabled if its operational semantics [ [R] ]is input enabled.
+A run or trace of Ris just a run or trace of [ [R] ], respectively. Two register
+automataR1andR2areequivalent if[ [R1] ]and[ [R2] ]are equivalent. We call R
+input deterministic if for each reachable state (l;)and input action i(d)at most
+one transition may re. An input deterministic register automaton has the nice
+property that for any trace there exists a unique run such that trace() =.
+In this paper, we present an algorithm for learning input enabled and input
+deterministic register automata. Our algorithm solves this problem by reducing it
+to the problem of learning nite deterministic Mealy machines, for which ecient
+algorithms exists. We recall the denition of a deterministic Mealy machine. We
+call a register automaton deterministic if its semantics is a deterministic Mealy
+machine.
+Denition 4 (Deterministic Mealy machine). A Mealy machine M=
+hI;O;Q;q0;!iisdeterministic if for each state qand input action ithere is
+exactly one output action oand exactly one state q0such thatqi=o!q0. A de-
+terministic Mealy machine Mcan equivalently be represented as a structure
+hI;O;Q;q0;;i, where:QI!Qand:QI!Oare dened by:
+qi=o!q0)(q;i) =q0^(q;i) =o. Update function is extended to a
+function from QI!Qby the following classical recurrence relations:
+(q;) =q;
+(q;iu ) =((q;i);u):
+Similarly, output function is extended to a function from QI!Oby
+(q;) =;
+(q;iu ) =(q;i)((q;i);u):
+Example 2. The register automaton of Figure 1 is input deterministic but not
+deterministic. For instance, as there are no constraints on the value of outfor
+Push-transitions, an input Push(1) may induce both an OK(1) and an OK(2)
+output (in fact, the output parameter can take any value). Note that for Push-
+transitions the output value does not actually matter in the sense that outoccurs
+5
+
+--- Page 6 ---
+neither in the guard nor in the range of the update function. Hence we can easily
+make the automaton of Figure 1 deterministic, for instance by strengthening the
+guards with out=infor transitions where the output value does not matter.
+Example 3. Our second running example is a register automaton, displayed in
+Figure 2, that describes a simple login procedure. If a user performs a Register -
+l0 start l1 l2Register/OK(out)
+pwd:=outin=pwd
+Login(in)/OKin6=pwd
+Login(in)/NOK
+Logout/OKChangePassword(in)/OK
+pwd:=in
+Fig. 2: A simple login procedure modeled as a register automaton
+input then the automaton produces output symbol OKtogether with a password.
+The user may then proceed by performing a Login -input together with the pass-
+word that she has just received. After login the user may either change the
+password or logout. We can easily make the automaton input enabled by adding
+self loopsi=NOK in each location, for each input symbol ithat is not enabled.
+It is not possible to model the login procedure as a deterministic register au-
+tomaton: the very essence of the protocol is that the system nondeterministically
+picks a password and gives it to the user.
+2.3 Symmetry
+A key characteristic of register automata is that they exhibit strong symmetries.
+Because no operations on data values are allowed and we can only test for equal-
+ity, bijective renaming of data values preserves behavior. The symmetries can
+be formally expressed through the notion of an automorphism. In the remainder
+of this section, we present the denition of an automorphism and explore some
+basic properties that will play a key role later on in this article.
+Denition 5. Anautomorphism is a bijection h:Z!Z.
+LetXbe a set of variables. Then we lift an automorphism hto valuations 
+forXby pointwise extension, that is, h() =h. Since formulas in (X) only
+assert that variables from Xare equal or not, satisfaction of these formulas is
+not aected when we apply an automorphism to a valuation.
+Lemma 1. Lethbe an automorphism, Xbe a set of variables, 2Val(X)and
+'2(X). Thenj='ih()j='.
+Proof. By structural induction on '.
+6
+
+--- Page 7 ---
+We also lift automorphisms to the states, actions and transitions of a register
+automatonRby pointwise extension. The transition relation of Ris preserved
+by automorphisms.
+Lemma 2. Lethbe an automorphism and let Rbe a register automaton. Then
+(l;)i(d)=o(e)! (l0;0)is a transition of Ri(l;h())i(h(d))=o(h(e))! (l0;h(0))is
+a transition ofR.
+Proof. Use Lemma 1.
+Next, we lift automorphisms to runs by pointwise extension.
+Lemma 3. Lethbe an automorphism and let Rbe a register automaton. Then
+is a (partial) run of Rih()is a (partial) run of R.
+Proof. Use Lemma 2 and the fact that htrivially preserves the initial state.
+Finally, we lift automorphisms to traces by pointwise extension.
+Lemma 4. Lethbe an automorphism, let Rbe a register automaton and let 
+be a partial run of R. Then trace(h()) =h(trace()).
+Proof. Use Lemma 3.
+Corollary 1. Lethbe an automorphism and let Rbe a register automaton.
+Thenis a trace ofRih()is a trace ofR.
+We call two states, actions, transitions, runs or traces equivalent if there
+exists an automorphism that maps one to the other.
+2.4 Constants and multiple parameters
+Tomte also supports constants and actions with multiple parameters. These fea-
+tures are convenient for modelling applications, but do not add any expressivity
+to the basic model of register automata.
+SupposeRis a register automaton in which we would like to refer to distinct
+constantsc1andc2. Then we may extend Rwith a sequence of two transitions,
+illustrated in Figure 3, starting from location l0
+0which is the initial location
+of the extended automaton. The rst transition initializes c1, which becomes a
+l0
+0 start l0
+1 l0Initialize(in)/OK
+c1:=inin6=c1
+Initialize(in)/OK
+c2:=in
+Fig. 3: Encoding of constants
+variable in our encoding, and similarly the second transition initializes c2. After
+7
+
+--- Page 8 ---
+performing the initializations we enter the initial state l0ofR. Constants c1
+andc2are added as variables to all the locations of R, and they may be tested
+in transitions. The encoding introduces an auxiliary input symbol Initialize and
+output symbol OK. If desired, the register automaton can be made input enabled
+by adding a trivial Initialize -loop to each location of R, and an Initialize -loops with
+guard in=c1tol0
+1. Note that in an actual run of the automaton, c1andc2may
+be assigned arbitrary (distinct) values, dierent from the specic values for these
+constants that we had in mind originally. However, because of the symmetries
+of register automata this does not matter, and we may always rename constants
+to their intended values via an appropriate automorphism.
+Tomte also supports multiple parameters for input and output actions, like in
+the simple login model shown in Figure 4. This model describes a system in which
+a user can register by providing a user id and a password, and then login using
+the credentials that were used for registering. What we can do here is to split
+l0 start l1 l2Register(in 1;in2)/OK
+usr:=in 1
+pwd:=in 2in1=usr
+in2=pwd
+Login(in 1;in2)/OKin16=usr_in26=pwd
+Login(in 1;in2)/NOK
+Register/NOKLogin/NOK
+Register/NOK
+Fig. 4: A simple login system with inputs that carry two parameters
+a transition with multiple input parameters into a squence of transitions with a
+single parameter. The transition from l0tol1, for instance, can be translated to
+the pattern shown in Figure 5.
+l0 start l0
+0 l1Register(in)/OK
+usr:=inRegister(in)/OK
+pwd:=in
+Fig. 5: Encoding of multiple parameters
+The implementation in Tomte involves several optimizations and does not
+use the above encodings. Nevertheless, the encoding show how constants and
+multiple parameters can be handled conceptually.
+3 Restricted Types of Register Automata
+Cassel et al [11] introduce the concept of a right invariant register automaton
+and provide a canonical automaton presentation of any language recognizable
+8
+
+--- Page 9 ---
+by a deterministic right invariant register automaton. Also in the present article
+the notion of right invariance plays an important role. In this section, we discuss
+the formal denition of right invariance and prove some key results.
+Denition 6. LetR=hI;O;L;l 0;V;ibe a register automaton. Then Ris
+right invariant if, for each transition li;g;%;o!l0in,
+1. guardgdoes not imply x=yorx6=yfor distinct x;y2V(l), and
+2. the combined eect of guard gand assignment %does not imply x=yfor
+distinctx;y2V(l0)(note that inequalities may be implied).
+Right invariance says that in guards we may compare input and output values
+with registers, but we are not allowed to test for (in)equality of distinct registers.
+Also, we are not allowed to duplicate values in assignments.
+Example 4. The FIFO-set model of Figure 1 and the login model of Figure 2
+are right invariant. Figure 6 shows an example of a register automaton that
+is not right invariant. This register automaton models a simple slot machine.
+l0 start l1 l2button/reel(out)
+v:=outbutton/reel(out)
+w:=out
+v6=w
+button/losev=w
+button/win
+Fig. 6: A simple slot machine modeled as a register automaton
+By pressing a button a user may stop a spinning reel to reveal a value. If two
+consecutive values are equal then the user wins, otherwise he loses. The model
+is not right invariant, since in location l2we test for equality of registers vand
+w.
+The next lemma provides an equivalent characterization of right invariance.
+Lemma 5.Ris right invariant i for all transitions li;g;%;o!l0:
+1. guardgis equivalent to a formula of the form gin^goutwith
+{ginin=x, withx2V(l), orginV
+x2Win6=x, withWV(l),
+{goutout=x, withx2V(l)[fing, orgoutV
+x2Wout6=x, with
+WV(l)[fing,
+(by convention the conjunction over the empty index set is true)
+2.%is injective,
+3. ifginin=xthen there are no y;z2V(l0)with%(y) =inand%(z) =x,
+9
+
+--- Page 10 ---
+4. ifgoutout=xthen there are no y;z2V(l0)with%(y) =outand%(z) =x.
+Lemma 5 implies that each outgoing transition from a location lofRis
+enabled in each state ( l;) of [ [R] ], provided we choose the right input and output
+values. This has as an important consequence that a location lis reachable inR
+i a state (l;) is reachable in [ [ R] ], for some .
+Corollary 2. LetRbe a right invariant RA with a transition li;g;%;o!l0. Let
+2Val(V(l)). Then [ [R] ]has a transition (l;)i(d)=o(e)! (l0;0)that is supported
+byli;g;%;o!l0.
+Proof. We may assume that gis of the form gin^goutdescribed in Lemma 5. If
+ginof the form in=x, for somex2V(l), then choose d=(x). Otherwise, let
+dbe equal to some arbitrary fresh value outside the range of . Similarly, pick a
+value fore. Then with =[f(in;d);(out;e)gwe havej=gby construction,
+and thus (l;) enables a transition that is supported by li;g;%;o!l0.
+Another restriction on register automata that plays an important role in our
+work is unique-valuedness . Intuitively, this means that registers are required to
+always store unique values.
+Denition 7. LetR=hI;O;L;l 0;V;ibe a register automaton. Then Ris
+unique-valued if, for each reachable state (l;)of[ [R] ], valuation is injective,
+that is, two registers can never store identical values.
+Example 5. The FIFO-set model of Figure 1 and the login model of Figure 2 are
+both unique-valued. The slot machine model of Figure 6 is not unique-valued,
+since in location l2registersvandwmay contain the same value. Figure 7
+presents a variation of the FIFO-set model that is right invariant but not unique-
+valued. This register automaton, which represents a FIFO-buer of capacity 2,
+is not unique-valued since in location l2registersvandwmay contain the same
+value.
+l0 start l1 l2Push(in)/OK
+v:=inPop/NOK Push(in)/OK
+w:=in
+out=v
+Pop/Return(out)out=v
+Pop/Return(out)
+v:=wPush/NOK
+Fig. 7: FIFO-buer with a capacity of 2 modeled as a register automaton
+10
+
+--- Page 11 ---
+Even though right invariance and unique-valuedness are strong restrictions
+it is possible to construct, for each register automaton, an equivalent register
+automaton that is both right invariant and unique valued. Figure 8, for example,
+shows a right invariant and unique-valued register automaton that is equivalent
+to the register automaton of Figure 6.
+l0 start l1 l2
+l3button/reel(out)
+v:=outout=v
+button/reel(out)
+out6=v
+button/reel(out)
+button/losebutton/win
+Fig. 8: Slot machine modeled as a right invariant register automaton
+In order to prove that such a construction is always possible, we need to
+introduce several technical denitions and lemmas concerning partitions, char-
+acteristic formulas for partitions, and bisimulations.
+Denition 8 (Partitions). ApartitionPof a setSis a set of pairwise disjoint
+non-empty subsets of Swhose union is exactly S. Elements of Pare called
+blocks . Ifs2Sthen [s]Pdenotes the unique block of Pthat contains s. We write
+(S)for the set of partitions of S. IfP2(S)andTSthenPdT2(SnT)
+denotes the partition obtained from Pby removing elements from T, that is,
+PdT=fBnTjB2PandBnT6=;g. Iff:S!S0andP2(S0)then
+f1(P)2(S)denotes the inverse image of Punderf, that is,f1(P) =
+ff1(B)jB2Pandf1(B)6=;g. Each set Sinduces a trivial partition
+Part(S) =ffsgjs2Sg, and each function f:S!S0induces a partition
+Part(f)2(S)in which two elements of Sare equivalent i fassigns the same
+value to them: Part(f) =f1(Part(S0)).
+Below we consider partitions of nite sets of variables Wthat are induced
+by valuations. Since in formulas we can only talk about equality or inequality of
+variables, valuations that induce the same partition satisfy the same formulas.
+Lemma 6. Suppose;02Val(W)with Part() =Part(0)and letg2(W).
+Thenj=g,0j=g.
+Proof. By induction on the structure of g.
+We assume some well founded ordering on the universe of variables V, providing
+us with a canonical representative min( W) in each nonempty set of variables
+11
+
+--- Page 12 ---
+WV. For convenience, we assume outis the smallest element of V, and inis
+the one but smallest element. Using representatives, we can describe partitions
+compactly using formulas. As an example, consider the following partition:
+P=ffx1g;fx2;x4g;fx3;x5;x6gg
+Formulax;Pdescribes the relations of variable xto the rest of P. Ifxis con-
+tained in a singleton block then x;Psays thatxis dierent from the represen-
+tatives of all the other blocks:
+x1;Px16=x2^x16=x3:
+Otherwisex;Passerts that xis equal to the representative of the remaining
+variables in the block:
+x2;Px2=x4:
+Now partition Pcan be described by a formula that is constructed inductively:
+we pick the minimal variable xand conjoin x;Pwith the formula for the parti-
+tion obtained by removing xfromP:
+P(x16=x2^x16=x3)^(x2=x4)^(x3=x5)^(x46=x5)^(x5=x6)^
+true^true:
+The next denition formalizes the construction and associates a characteristic
+formula to each partition.
+Denition 9 (Characteristic formula). LetWV be a nite set of vari-
+ables,2Val(W)andP2(W). Then
+Ptrue ifW=;
+min(W);P^Pdfmin(W)gotherwise
+where, forx2WandB= [x]P,
+x;PV
+C2PfBgx6= min(C)ifBis a singleton
+x= min(Bnfxg) otherwise
+Lemma 7 (Characteristic formula). LetWV be a nite set of variables,
+2Val(W)andP2(W). Thenj=P,P=Part().
+Proof. By induction on the number of elements of W.
+Below we recall the concept of a bisimulation. We will use bisimulations as
+a proof technique to prove equivalence between a register automaton and an
+associated right invariant register automaton.
+Denition 10 (Bisimulations). Consider two Mealy machines with a com-
+mon setIof input symbols,M1=hI;O 1;Q1;q0
+1;!1iandM2=hI;O 2;Q2;q0
+2;!2
+i. Then we say that M1andM2arebisimilar if there exists a bisimulation be-
+tween their sets of states, that is, a relation UQ1Q2such that (q0
+1;q0
+2)2U
+and, whenever (q1;q2)2U,
+12
+
+--- Page 13 ---
+1.q1i=o! 1q0
+1implies there exists a transition q2i=o! 2q0
+2such that (q0
+1;q0
+2)2U,
+2.q2i=o! 2q0
+2implies there exists a transition q1i=o! 1q0
+1such that (q0
+1;q0
+2)2U.
+It is easy to see that if M1andM2are bisimilar they are equivalent, that is,
+they have the same traces. Two register automata R1andR2arebisimilar if
+[ [R1] ]and[ [R2] ]are bisimilar.
+We are now prepared to prove the rst main result of this section.
+Theorem 1. For each register automaton Rthere exists a right invariant and
+unique-valued register automaton Rsuch thatRandRare bisimilar.
+Proof. LetR=hI;O;L;l 0;V;ibe a RA. We have to construct a register
+automatonRthat is bisimilar to R. The basic idea behind our construction is
+to add to each location l2La partition Pthat puts two variables of V(l) in
+the same block exactly when they have the same value. The registers of Rare
+then the minimal registers of the blocks of P. Formally,R=hI;O;L;l0;V;i,
+where
+{L=f(l;P)jl2LandP2(V(l))g,
+{l0= (l0;;),
+{V(l;P) =fmin(B)jB2Pg,
+{wheneverli;g;%;o!l0is a transition of andZ2(V(l)[fin;outg) such
+thatZimpliesg, thencontains a transition ( l;P)i;g;%;o! (l0;P0), where
+P=Zdfin;outg,
+P0=%1(Z),
+gin;Zdfoutg^out;Z, and
+forx2V(l0;P0),%(x) = min([%(x)]Z).
+(the reader may check that g2(V(l;P)) and%(x)2V(l;P)[fin;outg)
+We verify thatRis right invariant by checking the conditions of Lemma 5. By
+Denition 9, guard gis already in the restricted form of Lemma 5, so condition
+1 holds. In order to check that %is injective (condition 2), pick x;y2V(l0;P0).
+We infer
+%(x) =%(y),(denition%)
+min([%(x)]Z) = min([%(y)]Z),(representatives equal i their blocks equal)
+[%(x)]Z= [%(y)]Z,(useP0=%1(Z))
+[x]P0= [y]P0,(representatives equal i their blocks equal)
+x=y:
+For condition 3, suppose that in;Zdfoutgin=x, withx2V(l). Then, by
+Denition 9, inandxare in the same block of Z. But since %maps variables
+inV(l0;P0) to representatives of blocks of Z, this means it is impossible that %
+maps one variable in V(l0;P0) to inand another to x. Using a similar argument
+we may prove that condition 4 holds.
+13
+
+--- Page 14 ---
+LetUbe the relation between states of [ [ R] ] and [ [R] ] dened as follows:
+((l;);((l;P);))2U,(P=Part()^8x2V(l;P) :(x) =(x)):
+We claim that Uis a bisimulation relation. Since the sets of variables of the initial
+states ofRandRare empty, the initial states of [ [ R] ] and [ [R] ] are trivially related
+byU.
+For the rst bisimulation transfer property, suppose that (( l;);((l;P);))2
+Uand (l;)i(d)=o(e)! (l0;0). Then this transition is supported by a transition
+li;g;%;o!l0of. Hence, if =[f(in;d);(out;e)gthenj=gand0=%.
+LetZ=Part(). ThenP=Zdfin;outg. We claim that Zimpliesg. Because
+suppose0j=Z, for some valuation 0. Then, by Lemma 7, Z=Part(0). Since
+alsoZ=Part() andj=g, we may conclude 0j=gby Lemma 6, as required. Let
+P0=%1(Z),gin;Zdfoutg^out;Z, and, forx2V(l0;P0),%(x) = min([%(x)]Z).
+Then, by denition, contains a transition ( l;P)i;g;%;o! (l0;P0). Let=[
+f(in;d);(out;e)g. By Lemma 7, j=Z. SinceZimpliesg(here we benet
+from our assumption that outand inare minimal variables), j=g. Now observe
+thatis just the restriction of to the minimal elements of its blocks together
+withf(in;d);(out;e)g. Since these are the only variables that occur in g, we
+concludej=g. Let0=%. Then, by Denition 3, [ [ R] ] has a transition
+((l;P);)i(d)=o(e)! ((l0;P0);0). We check that (( l0;0);((l0;P0);0))2U:
+1. By the denitions of P0andZ,P0=%1(Z) =%1(Part()). By Denition 8,
+%1(Part()) =%1(1(Part(Z))) = (%)1(Part(Z)) = Part(%). By the
+denition of 0,Part(%) =Part(0), as required.
+2. Letx2V(l0;P0). Then0(x) =%(x) =(min([(x))]Z). Now the denition
+of partition Zsays that two variables in the same block are evaluated the
+same by, and it does not matter whether we take a minimal or any other
+element from the block. Thus (min([(x))]Z) =((x)). By denition of 0,
+((x)) =0(x). Thus0(x) =0(x), as required.
+For the second bisimulation transfer property, suppose (( l;);((l;P);))2U
+and ((l;P);)i(d)=o(e)! ((l0;P0);0). Then this transition is supported by some
+transition ( l;P)i;g;%;o! (l0;P0) and, with =[f(in;d);(out;e)g, we havej=g
+and0=%. By denition of R,contains a transition li;g;%;o!l0and there
+exists a partition Z2(V(l)[fin;outg) such that
+{Zimpliesg,
+{P=Zdfin;outg,
+{P0=%1(Z),
+{gin;Zdfoutg^out;Z, and
+{forx2V(l0;P0),%(x) = min([%(x)]Z).
+Since ((l;);((l;P);))2U,P=Part(). By Lemma 7, j=P. Let=
+[f(in;d);(out;e)g. Then also j=P. Since ((l;);((l;P);))2U,is an
+14
+
+--- Page 15 ---
+extension of , and thus also is an extension of . Thus, since j=galsoj=g.
+But sinceP=Zdfin;outg, we may use Zg^Pto obtainj=Z. Hence,
+sinceZimpliesg,j=g. Let0=%. Then by Denition 3, ( l;)i(d)=o(e)!
+(l0;0). We check that (( l0;0);((l0;P0);0))2U:
+1. Sincej=Z, Lemma 7 gives Z=Part(). ThusP0=%1(Z) =%1(Part()).
+By Denition 8, %1(Part()) = Part(%). By denition of 0,Part(%) =
+Part(0). ThusP0=Part(0), as required.
+2. Identical to item (2) above.
+In order to see that Ris unique-valued, suppose that (( l;P);) is a reachable
+state of [ [R] ]. SinceUis a bisimulation relation we may prove, by induction on
+the length of the path to (( l;P);), that there exists a state ( l;) of [ [R] ] such
+that ((l;);((l;P);))2U. Now suppose that x;y2V(l;P) and(x) =(y).
+Then, using the denition of U, we may infer that (x) =(y) and thusxandy
+are contained in the same block of P. But since V(l;P) consists of the minimal
+variables of all the blocks of P, this means that xandyare in fact equal. We
+conclude that is injective, as required.
+Cassel et al [11] established that right invariant register automata can be
+exponentially more succinct than unique-valued register automata. The second
+main result of this section is that (arbitrary) register automata in turn can be
+exponentially more succinct than right invariant register automata.
+Theorem 2. There exists a sequence of register automata R1,R2,.. such that
+the number of locations of RnisO(n), but the minimal number of locations of
+a right invariant register automaton that is equivalent to Rnis
+(2n).
+Proof. The idea is to let Rnencode a binary counter with nbits. The register
+automatonRnhas input symbols Initand Tick, output symbols OKand Overow ,
+n+2 locations l0;l1;c1;:::;cn, andn+2 registers zero;one;xn;:::;x 1. Figure 9
+shows the transitions of Rn. We view Tick as the default input symbol, OKas the
+default output symbol, and do not display these default symbols in the diagram.
+Mealy machine [ [ Rn] ] has runs in which repeatedly location c1is visited.
+The rst time all the variables xn;:::;x 1equal zero, which encodes a binary
+counter with value 0, with x1representing the least signicant bit. Then, for
+each subsequent visit to c1, the value of the counter is incremented by one. When
+the counter overows all the bits become zero again and an output Overow is
+generated. Since each cycle from c1to itself takes at least one transition, it takes
+at least 2ntransitions before an output Overow occurs. By Theorem 1, we know
+that there exists a right invariant register automaton that is equivalent to Rn.
+LetR0
+nbe such a right invariant register automaton with a minimal number of
+locations. ThenR0
+nhas a transition with output symbol Overow , starting from
+a locationlthat is reachable with a cycle free path of transitions in R0
+n. Due to
+Corollary 2, the number of transitions in this path is at least 2n(otherwise [ [R0
+n] ]
+would be able to produce an Overow prematurely). Hence R0
+ncontains at least
+2nlocations.
+15
+
+--- Page 16 ---
+l0 start
+l1
+c1 c2 c3 cnInit(in)
+zero;xn;:::;x 1:=in
+in6=zero
+Init(in)
+one:=in
+x1=one
+x1:=zero x1=zero
+x1:=onex2=one
+x2:=zero
+x2=zero
+x2:=onex3=zero
+x3:=onexn=one
+xn:=zero
+Overow
+xn=zero
+xn:=one
+Fig. 9: Encoding a binary counter as a register automaton
+In this article, we will present an algorithm for learning input enabled, input
+deterministic, right invariant register automata. The following lemma states that
+such automata have a very specic form:
+Lemma 8. SupposeRis an input enabled, input deterministic, right invariant
+register automaton and assume w.l.og. that the guards of Rsatisfy the restric-
+tions of Lemma 5. Suppose lis a location that is reachable in R. Then:
+1.ldoes not have two dierent outgoing transitions with ginin=x, for any
+x,
+2. iflhas two dierent outgoing transitions with ginin=xandginin=y,
+for distinct xandy, thenj=x6=y, for each reachable state (l;)of[ [R] ],
+3.lhas exactly one outgoing transition of the form ginV
+x2Win6=x, with
+x2Wilhas an outgoing transition with ginin=x.
+Proof. By input determinism and input enabledness of R.
+4 Model Learning
+Algorithms for active learning of automata have originally been developed for
+inferring nite state acceptors for unknown regular languages [7]. Since then
+these algorithms have become popular with the testing and verication commu-
+nities for inferring models of black box systems in an automated fashion. While
+the details change for concrete classes of systems, all of these algorithms follow
+16
+
+--- Page 17 ---
+basically the same pattern. They model the learning process as a game between
+a learner and a teacher. The learner has to infer an unknown automaton with
+the help of the teacher. The learner can ask three types of queries to the teacher:
+Output Queries ask for the expected output for a concrete sequence of inputs.
+In practice, output queries can be realized as simple tests.
+Reset queries prompt the teacher to return to its initial state and are typically
+asked after each output query.
+Equivalence Queries check whether a conjectured automaton produced by
+the learner is correct. In case the automaton is not correct, the teacher pro-
+vides a counterexample, a trace exposing a dierence between the conjecture
+and the expected behavior of the system to be learned. Equivalence queries
+can be approximated through (model-based) testing in black-box scenarios.
+A learning algorithm will use these three kinds of queries and produce a sequence
+of automata converging towards the correct one in a nite number of steps. We
+refer the reader to [32, 23] for introductions to active automata learning.
+4.1 The Nerode congruence
+Most of the learning algorithms that have been proposed in the literature aim to
+construct an approximation of the Nerode congruence based on a nite number
+of observations of the SUL (output queries). The famous Myhill-Nerode theorem
+[28] for Deterministic Finite Automata (DFA) provides a basis for describing (a)
+how prexes traverse states (equivalence classes), and (b) how states can be
+distinguished (by suxes). Below we present a straightforward reformulation of
+the Myhill-Nerode theorem for deterministic Mealy machines.
+Denition 11. Anobservation over a set of inputs Iand a set of outputs O
+is a nite alternating sequence i0o0in1on1of inputs and outputs that is
+either empty, or begins with an input and ends with an output. Let Sbe a set of
+observations over IandO. ThenSis
+{prex closed if i o2S=)2S,
+{behavior deterministic if i o2S^ i o02S=)o=o0, and
+{input complete if2S^i2S=) 9o2O: i o2S.
+Two observations ;02Sareequivalent forS, notationS0, i for all
+observations overIandO,2S,02S. We write []to denote the
+equivalence class of with respect toS.
+Theorem 3 (Myhill-Nerode). LetSbe a set of observations over a nite sets
+of inputsIand outputs O. ThenSis the set of traces of some nite, deterministic
+Mealy machineMiSis nonempty, prex closed, behavior deterministic, input
+complete, andShas only nitely many equivalence classes (nite index).
+17
+
+--- Page 18 ---
+Proof. \)". LetMbe a nite, deterministic Mealy machine and let Sbe its
+set of traces. Then it is immediate from the denitions that Sis a nonempty
+set of observations that is prex closed and input complete. Since each trace of
+Mleads to a unique state and Mis deterministic, it follows that Sis behavior
+deterministic. Since all observations that lead to the same state are obviously
+equivalent and since Mis nite, equivalence relation Shas nite index.
+\(". Suppose Sis nonempty, prex closed, behavior deterministic, input
+complete, andShas nite index. We dene the nite, deterministic Mealy
+machineM=hI;O;Q;q0;;ias follows:
+{Qis the set of classes of S.
+{q0is given by [ ].
+{Let2Sandi2I. Then, since Sis both input complete and behavior
+deterministic, there exists a unique o2Osuch that i o2S. We dene
+([];i) = [ i o ] and([];i) =o.
+It is straightforward to verify that Mis a well-dened nite, deterministic Mealy
+machine whose set of traces equals S.
+The equivalence relation Sinduced by the set of traces Sof a register
+automaton does not have a nite index. However, as observed by [10, 11], by
+using the inherent symmetry of register automata we may dene a slightly dif-
+ferent equivalence relation aut
+Sthat does have a nite index and that may serve
+as a basis for a Myhill-Nerode theorem for register automata. The equivalence
+relationaut
+SonSis dened by
+aut
+S0,9 automorphism h8: (2S,0h()2S)
+Proposition 1. LetRbe an input deterministic register automataton and let
+Sbe its set of traces. Then aut
+Shas a nite index.
+Proof. SinceRis input deterministic, there exists for each trace of Ra unique
+corresponding run. Let and0be traces ofRand let (l;) and (l0;0) be the
+nal states of the corresponding runs. Assume that l=l0and Part() =Part(0).
+Then there exists an automorphism hfromto0. By Lemma 3, is a partial
+run starting in ( l;) ih() is a partial run starting in ( l0;0). Moreover, by
+Lemma 4, trace(h()) =h(trace()). Hence,aut
+S0. SinceRhas a nite
+number of locations, since each location has a nite set of registers, and since
+there are only nitely many partitions of a nite set, this implies that aut
+Shas
+a nite index.
+Whereas [21, 22] presents a learning algorithm for register automata that
+is based on a variant of the Myhill-Nerode theorem for aut
+S, the idea of our
+approach is to learn register automata by constructing an abstraction of the set
+of traces that has a nite index according to the original denition of S.
+18
+
+--- Page 19 ---
+4.2 Architecture of Tomte
+Figure 10 presents the overall architecture of our learning approach, which we
+implemented in the Tomte tool. At the right we see the teacher orsystem under
+learning (SUL) , an implementation whose behavior can be described by an (un-
+known) input enabled and input deterministic register automaton. At the left we
+see the learner , which is a tool for learning nite deterministic Mealy machines.
+In our current implementation we use LearnLib [27, 31], but there are also other
+libraries like libalf [8] that implement active learning algorithms. In between the
+learner and the SUL we place three auxiliary components: the determinizer , the
+lookahead oracle , and the abstractor . First the determinizer eliminates the non-
+determinism of the SUL that is induced by fresh outputs. Then the lookahead
+oracle annotates events with information about the data values that should be
+remembered because they play a role in the future behavior of the SUL. Finally,
+the abstractor maps the large set of concrete values of the SUL to a small set of
+symbolic values that can be handled by the learner.
+The idea to use an abstractor for learning register automata originates from
+[2] (based on work of [4]). Using abstractors one can only learn restricted types
+of deterministic register automata. Therefore, [1, 3] introduced the concept of
+a lookahead oracle, which makes it possible to learn any deterministic register
+automaton. In this paper, we extend the algorithm of [1, 3] with the notion of a
+determinizer, allowing us to also learn register automata with fresh outputs.
+Learner AbstractorLookahead
+OracleDeterminizerTeacher
+(SUL)
+Fig. 10: Architecture of Tomte
+4.3 Mappers
+Below we recall relevant parts of the theory of mappers from [4]. In order to
+learn an over-approximation of a \large" Mealy machine M, we may place a
+transducer in between the teacher and the learner, which translates concrete
+inputs to abstract inputs, concrete outputs to abstract outputs, and vice versa.
+This allows us to reduce the task of the learner to inferring a \small" Mealy
+machine with an abstract alphabet. As we will see, the determinizer and the
+abstractor of Figure 10 are examples of such transducers.
+The behavior of a transducer is fully specied by a mapper , a deterministic
+Mealy machine in which concrete actions are inputs and abstract actions are
+outputs.
+Denition 12 (Mapper). Amapper is a deterministic Mealy machine A=
+hI[O;X[Y;R;r 0;;i, where
+19
+
+--- Page 20 ---
+{IandOare disjoint sets of concrete input and output actions ,
+{XandYare disjoint sets of abstract input and output actions , and
+{:R(I[O)!(X[Y), referred to as the abstraction function , respects
+inputs and outputs, that is, for all a2I[Oandr2R,a2I,(r;a)2X.
+A mapperAtranslates any sequence 2(I[O)of concrete actions into a
+corresponding sequence of abstract actions given by
+A() =(r0;):
+A mapper also allows us to abstract a Mealy machine with concrete actions in
+IandOinto a Mealy machine with abstract actions in XandY. Basically,
+theabstraction of Mealy machine Mvia mapperAis the Cartesian product of
+the underlying transition systems, in which the abstraction function is used to
+convert concrete actions into abstract ones.
+Denition 13 (Abstraction). LetM=hI;O;Q;q 0;!ibe a Mealy machine
+and letA=hI[O;X[Y;R;r 0;;ibe a mapper. Then A(M), the abstraction
+ofMviaA, is the Mealy machine hX;Y[f?g;QR;(q0;r0);!i, where?62Y
+is a fresh output action and !is given inductively by the rules
+qi=o!q0; ri=x!r0o=y!r00
+(q;r)x=y! (q0;r00)69i2I:ri=x!
+(q;r)x=?! (q;r)
+The rst rule says that a state ( q;r) of the abstraction has an outgoing x-
+transition for each transition qi=o!q0ofMwith(r;i) =x. In this case, there
+exist unique r0,r00andysuch thatri=x!r0andr0o=y!r00. Anx-transition in
+state (q;r) then leads to state ( q0;r00) and produces output y. The second rule in
+the denition is required to ensure that the abstraction A(M) is input enabled.
+Given a state ( q;r) of the mapper, it may occur that for some abstract input x
+there does not exist a corresponding concrete input iwith(r;i) =x. In this
+case, an input xtriggers the special \undened" output action ?and leaves the
+state unchanged.
+Lemma 9. LetAbe a mapper and let Mbe a Mealy machine with the same
+concrete input and output actions IandO. Ifis a trace ofMthenA()is
+a trace ofA(M).
+Proof. Straightforward, see also Lemma 4 of [4].
+A mapper describes the behavior of a transducer component that we can
+place in between a Learner and a Teacher. Consider a mapper A=hI[O;X[
+Y;R;r 0;;i. The transducer component that is induced by Arecords the cur-
+rent state, which initially is set to r0, and behaves as follows:
+{Whenever the transducer is in a state rand receives an abstract input x2X
+from the learner, it nondeterministically picks a concrete input i2Isuch
+that(r;i) =x, forwardsito the teacher, and jumps to state (r;i). If there
+exists no such input i, then the component returns output ?to the learner.
+20
+
+--- Page 21 ---
+{Whenever the transducer is in a state rand receives a concrete answer o
+from the teacher, it forwards (r;o) to the learner and jumps to state (r;o).
+{Whenever the transducer receives a reset query from the learner, it changes
+its current state to r0, and forwards a reset query to the teacher.
+From the perspective of a learner, a teacher for Mand a transducer for A
+together behave exactly like a teacher for A(M). (We refer to [4] for a formal-
+ization of this claim.) In [4], also a concretization operatorA(H) is dened.
+This concretization operator is the adjoint of the abstraction operator: for a
+given mapperA, the corresponding concretization operator turns any abstract
+Mealy machineHwith actions in XandYinto a concrete Mealy machine with
+actions inIandO. As shown in [4], A(M)H impliesMA(H).
+5 The Determinizer
+The login example of Figure 2 shows that input deterministic register automata
+may exhibit nondeterministic behavior: in each run the automaton may generate
+dierent output values (passwords). This is a useful feature since it allows us
+to model the actual behavior of real-world systems, but it is also problematic
+since learning tools such as LearnLib can only handle deterministic systems. In
+this section, we show how this type of nondeterminism can be eliminated by
+exploiting symmetries that are present in register automata.
+As a rst step, we show that each trace is equivalent to a `neat' trace in
+which fresh values are selected according to some xed rules.
+Denition 14 (Fresh and neat). Consider a trace of register automaton
+R:
+=i0(d0)o0(e0)i1(d1)o1(e1)in1(dn1)on1(en1) (2)
+LetSjbe the set of values that occur in before input ij, and letTjbe the
+set of values that occur before output oj, that is,S0=;,Tj=Sj[fdjgand
+Sj+1=Tj[fejg. An input value djisfresh if it has not occurred before in
+the trace, that is, dj62Sj. Similarly, an output value ejisfresh if it has not
+occurred before, that is, ej62Tj. We say that hasneat inputs if each fresh
+input value djis equal to the largest preceding value (including 0) plus one, that
+is,dj2Sj[fmax(Sj[f0g) + 1g. Similarly, hasneat outputs if each fresh
+output value is equal to the smallest preceding value (including 0) minus one,
+that is, for all j,ej2Tj[fmin(Tj[f0g)1g. A trace is neat if it has neat
+inputs and neat outputs, and a run is neat if its trace is neat.
+Observe that in a neat trace the n-th fresh input value is n, and then-th
+fresh output value is n.
+Example 6. Tracei(1)o(3)i(7)o(7)i(3)o(2) is not neat, for instance because
+the rst fresh output value 3 is not equal to 1. Also, the second input value 7
+is fresh but dierent from 4, the largest preceding value plus 1. An example of
+a neat trace is i(1)o(1)i(2)o(2)i(1)o(2).
+21
+
+--- Page 22 ---
+The next proposition implies that in order to learn the behavior of a register
+automaton it suces to study its neat traces, since any other trace is equivalent
+to a neat trace. In order to prove this result, we need the following technical
+denition, which extends any nite one-to-one relation to an automorphism.
+Denition 15. For each nite set SZ, let EnumCompl (S)be a function that
+enumerates the elements in the complement of S, that is, EnumCompl (S) :N!
+(ZnS)is a bijection. Then, for any nite one-to-one relation rZZ,^ris
+the automorphism given by:
+^r=r[f(EnumCompl (dom(r))(k);EnumCompl (ran(r))(k))jk2Ng:
+Here dom(r)denotes the domain of randran(r)denotes the range of r.
+Proposition 2. For every trace there exists a zero respecting automorphism
+hsuch thath()is neat.
+Proof. Let,SjandTj(j= 0;:::;n1) be as in Denition 14. Inductively,
+we dene relations sj;tjZZ(forj= 0;:::;n1) as follows
+s0=;
+tj=sj[f(dj;max( ran(sj)[f0g) + 1)gifdjis fresh
+sj otherwise
+sj+1=
+tj[f(ej;min( ran(tj)[f0g)1)gifejis fresh
+tj otherwise
+By induction, we can prove the following assertions, for all j: (1) dom(sj) =
+Sjand dom(tj) =Tj, (2)sjandtjare injective. By construction, tn1() is
+neat. Then h=^tn1is an automorphism such that h() is neat.
+Example 7. Consider the trace i(1)o(3)i(7)o(7)i(3)o(2) from Example 6. This
+non neat trace can be mapped to the neat trace i(1)o(1)i(2)o(2)i(1)o(2)
+by the automorphism hthat acts as the identity function except that it permutes
+some values: h(3) =1,h(1) = 7,h(7) = 2,h(2) =2, andh(2) = 3.
+Corollary 3. For every run ofRthere exists an automorphism hsuch that
+h()is neat.
+Proof. Letbe a run ofR. Then=trace() is a trace ofR. Therefore,
+by Proposition 2, there exists an automorphism hsuch thath() is neat. By
+Lemma 3,h() is a run ofRand by Lemma 4, trace(h()) =h(). Sinceh()
+is neat and a run is neat if its trace is neat, h() is neat as well.
+Whereas the learner may choose to only provide neat inputs, we usually
+have no control over the outputs generated by the SUL, so in general these
+will not be neat. In order to handle this, we place a component, called the
+determinizer , in between the SUL and the learner. The determinizer renames
+the outputs generated by the SUL and makes them neat. The behavior of the
+22
+
+--- Page 23 ---
+determinizer is specied by the mapper Ddened below. As part of its state D
+maintains a nite one-to-one relation rdescribing the current renamings, which
+grows dynamically during an execution (similar to the functions sjandtjin the
+proof of Proposition 2). We write ^ rfor an automorphism that extends r(we
+may construct ^ rusing the construction described in the proof of Proposition 2).
+Whenever the SUL generates an output nthat does not occur in dom(r), this
+output is mapped to a value mone less than the minimal value in ran(R), and
+the pair (n;m) is added to r. Whenever the learner generates an input m, the
+mapper concretizes this value to n= ^r1(m) and forwards nto the SUL. If n
+does not occur in dom(r), thenris extended with the pair ( n;m).
+Denition 16 (Determinizer). LetIandObe nite, disjoint sets of input
+and output symbols. The determinizer forIandOis the mapperD=h(IZ)[
+(OZ);(IZ)[(OZ);R;r 0;;iwhere
+{R=frZZjrnite and one-to-one g,
+{r0=;,
+{for allr2R,i2I,o2Oandn2Z,
+(r;i(n)) =i(^r(n))
+(r;o(n)) =
+o(r(n)) ifn2dom(r)
+o(min( ran(r)[f0g)1)otherwise
+(r;i(n)) =r ifn2dom(r)
+r[f(n;^r(n))gotherwise
+(r;o(n)) =r ifn2dom(r)
+r[f(n;min( ran(r)[f0g)1)gotherwise
+Proposition 3. LetRbe a register automaton with inputs Iand outputs O, let
+Dbe the determinizer for IandO, and letbe a trace of D([ [R] ]). Thenhas
+neat outputs and is equivalent to a trace of R.
+Proof. Letbe a run ofD([ [R] ]) with trace . We claim that does not contain
+any transitions with output ?, that is, transitions generated by the second rule
+in Denition 12. This because, for any state rof mapperDand any `abstract'
+inputi(d), there exists a `concrete' input i(d0) such that (r;i(d0)) =i(d). In
+fact, since ^ris an automorphism, we can just take d0= ^r1(d). Hence run 
+takes the form
+= ((l0;0);r0)i0(d0)o0(e0) ((l1;1);r1)i1(d1)o1(e1) ((l2;2);r2)
+in1(dn1)on1(en1) ((ln;n);rn):
+Since the transitions in run have been derived by repeated application of the
+rst rule in Denition 12, there exist d0
+j,e0
+jandr0
+jsuch that [ [R] ] has a run 0
+of the form
+0= (l0;0)i0(d0
+0)o0(e0
+0) (l1;1)i1(d0
+1)o1(e0
+1) (l2;2)
+23
+
+--- Page 24 ---
+in1(d0
+n1)on1(e0
+n1) (ln;n);
+andDhas a run
+r0i0(d0
+0)i0(d0)r0
+0o0(e0
+0)o0(e0)r1i1(d0
+1)i1(d1)r0
+1o1(e0
+1)o1(e1)r2
+in1(d0
+n1)in1(dn1)r0
+n1on1(e0
+n1)on1(en1)rn:
+From Denition 16 we may infer that, for all j <n , (d0
+j;dj)2r0
+j, (e0
+j;ej)2rj+1,
+rjr0
+jandr0
+jrj+1. Now leth= ^rn. Thenhis an automorphism satisfying, for
+allj <n ,h(d0
+j) =djandh(e0
+j) =ej. Let0be the trace of 0. Thenh(0) =
+and thus traces and0are equivalent.
+LetSjbe the set of values that occur in before input ij, and letTjbe the
+set of values that occur in before output oj. Then it follows by induction that
+Sj=ran(rj) andTj=ran(r0
+j). According to Denition 14, has neat outputs if
+ej2Tj[fmin(Tj[f0g)1g, that is, if ej2ran(r0
+j)[fmin( ran(r0
+j[f0g))1g.
+But this is implied by Denition 16.
+Proposition 4. Any trace ofRwith neat outputs is also a trace of D([ [R] ]).
+Proof. Letbe a run of [ [R] ] with trace . Then run takes the form
+= (l0;0)i0(d0)o0(e0) (l1;1)i1(d1)o1(e1) (l2;2)
+in1(dn1)on1(en1) (ln;n):
+D([ [R] ]) has a corresponding run 0of the form
+0= ((l0;0);r0)i0(d0
+0)o0(e0
+0) ((l1;1);r1)i1(d0
+1)o1(e0
+1) ((l2;2);r2)
+in1(d0
+n1)on1(e0
+n1) ((ln;n);rn)
+andDhas a run
+r0i0(d0)i0(d0
+0)r0
+0o0(e0)o0(e0
+0)r1i1(d1)i1(d0
+1)r0
+1o1(e1)o1(e0
+1)r2
+in1(dn1)in1(d0
+n1)r0
+n1on1(en1)on1(e0
+n1)rn:
+LetSjbe the set of values that occur in before input ij, and letTjbe the
+set of values that occur in before output oj. Then it follows by induction that
+Sj=dom(rj) andTj=dom(r0
+j). Sincehas neat outputs, ej2dom(r0
+j)[
+fmin( dom(r0
+j)[f0g)1g. Let Iddenote the identity function on Z, that is,
+Id=f(n;n)jn2Zg. Observe that for any nite one-to-one relation rId,
+^r=Id. By induction on j, we may now prove that rj;r0
+jId. It follows that
+dj=d0
+jandej=e0
+j, for allj. Thusis a trace of D([ [R] ]), as required.
+Corollary 4.RandD([ [R] ])have equivalent traces.
+Proof. Immediate from Propositions 2, 3 and 4.
+24
+
+--- Page 25 ---
+Example 8. The determinizer does not remove all sources of nondeterminism.
+The login model of Figure 2, for instance, is not behavior deterministic, even
+when we only consider neat traces, because of neat traces Register (1)OK(1) and
+Register (1)OK(1). This nondeterminism may be considered `harmless' since the
+parameter value of the OK-output is not stored and the behavior after the dier-
+ent outputs is the same. The slot machine model of Figure 6, however, has nonde-
+terminism that is real in the sense that traces button (1)reel(1)button (1)reel(2)
+and button (1)reel(1)button (1)reel(1) lead to states with distinct output
+symbols in the outgoing transitions.
+The slot machine of Example 8 nondeterministically select an output which
+`accidentally' may be equal to a previous value. We call this a collision .
+Denition 17. Letbe a trace of register automaton R. Thenends with a
+collision if (a) the last output value is not fresh, and (b) the sequence obtained
+by replacing this value by some other value is also a trace of R. We say that 
+has a collision if it has a prex that ends with a collision.
+Example 9. Trace button (3) reel(137) button (8) reel(137) of the slot machine
+model of Figure 6 has a collision, because the last output value 137 is not fresh,
+and if we replace it by 138 the result is again a trace.
+In many protocols, fresh output values are selected from a nite but large
+domain. TCP sequence and acknowledgement numbers, for instance, comprise 32
+bits. The traces generated during learning are usually not so long and typically
+contain only a few fresh outputs. As a result, chances that collisions occur during
+learning are typically negligible. For these reasons, we have decided to consider
+only observations without collisions. Under the assumption that the SUL will
+not repeatedly pick the same fresh value, we can detect whether an observation
+contains a collision by simply repeating experiments a few times: if, after the
+renaming performed by the determinizer, we still observe nondeterminism then
+a collision has occurred. By ignoring traces with collisions, it may occur that the
+models that we learn incorrectly describe the behavior of the SUL in the case
+of collisions. We will, for instance, miss the win-transition in the slot machine
+of Figure 6. But if collisions are rare then it is extremely dicult to learn those
+types of behavior anyway. In applications with many collisions (for instance when
+fresh outputs are selected randomly from a small domain) one should not use the
+approach in this article, but rather an algorithm for learning nondeterministic
+automata such as the one presented in [34].
+Our approach for learning register automata with fresh outputs relies on the
+following proposition.
+Proposition 5. The setSof collision free neat traces of an input deterministic
+register automaton Ris behavior deterministic.
+Proof. LetR=hI;O;L;l 0;V;ibe an input deterministic register automaton
+and letSbe the set of collision free neat traces of R. Suppose that  i(d)o(e)
+and i(d)o0(e0) are traces in S. Our task is to prove that o(e) =o0(e0). Since
+25
+
+--- Page 26 ---
+Ris input deterministic, there is a unique run of [ [R] ] with trace . Let (l;)
+be the last state of this run. Since  i(d)o(e) and i(d)o0(e0) are traces ofR,
+[ [R] ] has transitions ( l;)i(d)=o(e)! (l1;1) and (l;)i(d)=o0(e0)! (l0
+1;0
+1). SinceRis
+input deterministic, there is a unique transition that supports both transitions
+of [ [R] ] and thus o=o0. We consider two cases. If both values eande0are fresh
+then, since traces  i(d)o(e) and i(d)o0(e0) are neat, eande0are both equal
+to the smallest preceding value minus one and thus e=e0. Now assume that at
+least one value, say e, is not fresh. Then, since  i(d)o(e) is collision free, no
+sequence obtained from  i(d)o(e) by replacing eby some other value can be a
+trace ofR. Thuse=e0also in this case. We conclude o(e) =o0(e0), as required.
+Our learning approach works for those register automata in which, when a
+fresh output is generated, it does not matter for the future behavior whether or
+not this fresh output equals some value that occurred previously. This is typically
+the case for real-world systems such as servers that generate fresh identiers,
+passwords or sequence numbers. The slot machine example of Figure 6 is an
+example of a register automaton that we cannot learn.
+Proposition 6. LetR1andR2be two input deterministic right invariant reg-
+ister automata in which outdoes not occur negatively in guards. Then R1and
+R2are equivalent i they have the same sets of collision free traces.
+6 The Lookahead Oracle
+The main task of the lookahead oracle is to compute for each trace of the SUL
+a set of values that are memorable after occurrence of this trace. Intuitively, a
+valuedis memorable if it has an impact on the future behavior of the SUL:
+eitherdoccurs in a future output, or a future output depends on the equality
+ofdand a future input.
+Denition 18. LetRbe a register automaton, let be a trace ofR, and let
+d2Zbe a parameter value that occurs in . Thendismemorable after i
+there exists a witness ford, that is, a sequence 0such that 0is a trace ofR
+and if we replace each occurrence of din0by a fresh value fthen the resulting
+sequence(0[f=d])is not a trace ofRanymore.
+Example 10. In the example of Figure 1, the set of memorable values after trace
+=Push(1)OK Push (2)OK Push (3)NOK isf1;2g. Values 1 and 2 are memo-
+rable, because of the witness 0=Pop Return (1)Pop Return (2). Sequence  0
+is a trace of the model, but if we rename either the 1 or the 2 in 0into a fresh
+value, then this is no longer the case. In the example of Figure 2, value 2207 is
+memorable after Register OK (2207) because Register OK (2207) Login (2207) OK
+is a trace of the automaton, but Register OK (2207) Login (1)OKis not.
+The next theorem gives a state based characterization of memorable values: a
+valuedis memorable after a run of a deterministic register automaton i the nal
+26
+
+--- Page 27 ---
+state of that run is inequivalent to the state obtained by replacing all occurrences
+offby a fresh value. Thus we can also say that a value dis memorable in a
+state of a register automaton.
+Theorem 4. LetRbe a deterministic register automaton, let be a run ofM
+with trace() =, let (l;)be the last state of , letd2Z, and letf6=dbe a
+fresh value that does not occur in . Let swapd;fbe the automorphism that maps
+dtof,ftod, and acts as identity for all other values. Then dis memorable
+afteri(l;)6(l;swapd;f()).
+Proof. Supposedis memorable after . Then there exists a witness for d, that is,
+a sequence0such that 0is a trace ofRandswapd;f(0) is not a trace of R.
+SinceRis deterministic, is the unique run of Mwith trace() =. Therefore,
+since 0is a trace ofR, there exists a partial run 0that starts in ( l;) such
+that trace(0) =0. Moreover, since swapd;f(0) is not a trace ofR,swapd;f(0)
+is not a trace of ( l;). By Lemma 3, swapd;f(0) is a partial run of Rthat starts in
+(l;swapd;f()). By Lemma 4, trace(swapd;f(0)) = swapd;f(0). Thus swapd;f(0)
+is a trace of ( l;swapd;f()), which in turn implies ( l;)6(l;swapd;f()).
+For the other direction, suppose ( l;)6(l;swapd;f()). Then there exists a
+sequence0that is a trace of ( l;) but not of ( l;swapd;f()). We claim that 0
+is a witness for d. Clearly, 0is a trace ofR. Now suppose swapd;f(0) is
+a trace ofR. Then, sinceRis deterministic, swapd;f(0) is a trace of ( l;). By
+Lemmas 3 and 4, swapd;f(swapd;f(0)) is a trace of ( l;swapd;f()). Therefore,
+since swapd;fis its own inverse, 0is a trace of ( l;swapd;f()), and we have
+derived a contradication. Thus our assumption was wrong and swapd;f(0) is
+not a trace ofR.
+The above theorem reduces the problem of deciding whether a value is mem-
+orable to the problem of deciding equivalence of two states in a register automa-
+ton. It is not hard to see that conversely the problem of deciding equivalence of
+states can be reduced to the problem of deciding whether a value is memorable.
+The problem of nding a witness for a memorable value is thus equivalent to the
+problem of nding a distinguishing trace between two states.
+Consider the architecture of Figure 10. Whenever the Lookahead Oracle re-
+ceives an input from the Abstractor, this is just forwarded to the Determinizer.
+However, when the Lookahead Oracle receives a concrete output ofrom the
+Determinizer, then it forwards oto the Abstractor, together with a list of the
+memorable values after the occurrence of o. The ordering of the memorable val-
+ues in the list determines in which registers the values will be stored by the
+Abstractor. Dierent orderings are possible, and the choice of the ordering af-
+fects the size of the register automaton that we will learn (similar to the way in
+which the variable ordering aects the size of a Binary Decision Diagram [9]).
+Within the Tomte tool we have experimented with dierent orderings. A simple
+way to order the values, for instance, is to sort them in ascending order. An
+ordering that works rather well in practice, and on which we elaborate below, is
+the order in which the values occur in the run.
+27
+
+--- Page 28 ---
+LetRbe the input deterministic register automaton that we want to learn,
+and letbe a trace ofR. Then, sinceRis input deterministic, it has a unique
+run
+= (l0;0)i0(d0)o0(e0) (l1;1)i1(d1)o1(e1) (l2;2)
+in1(dn1)on1(en1) (ln;n):
+such that trace() =. Forjn, we dene rj2Zinductively as follows:
+r0=and, forj >0,rjis obtained from rj1by rst appending dj1and/or
+ej1in case these values do not occur in the sequence yet, and then erasing all
+values that are not memorable in state ( lj;j). Then the task of the Lookahead
+Oracle is to annotate each output action of with the list of memorable values
+of the state reached by doing this output:
+OracleR() =i0(d0)o0(e0r1)i1(d1)o1(e1r2)in1(dn1)on1(en1rn):
+In order to accomplish its task, the Lookahead Oracle stores all the traces of
+the SUL observed during learning in an observation tree .
+Denition 19. Anobservation tree is a pair (N;MemV ), whereNis a nite,
+nonempty, prex-closed set of collision free, neat traces, and function MemV :
+N !Zassociates to each trace a nite sequence of distinct values which are
+memorable after running this trace.
+In practice, observation trees are also useful as a cache for repeated queries on
+the SUL. Figure 11 shows two observation trees for our FIFO-set example. For
+each traceja list of memorable values is given.
+0
+hi
+1
+hi
+3
+hiPush(2)/ OK
+4
+hiPop/Return (1)Push(1)/ OK
+2
+hi
+...Pop/NOK0
+hi
+1
+h1i
+3
+hiPush(2)/ OK
+4
+hiPop/Return (1)Push(1)/ OK
+2
+hi
+...Pop/NOK
+Fig. 11: Observation trees for FIFO-set without and with Poplookahead trace
+Whenever a new trace is added to the tree, the oracle computes a list
+of memorable values for it. For this purpose, the oracle maintains a list L=
+h1;:::;kioflookahead traces . These lookahead traces are run in sequence
+afterto explore the future of and to discover its memorable values.
+28
+
+--- Page 29 ---
+Denition 20. Alookahead trace is a sequence of symbolic input actions of the
+formi(v)withi2Iandv2fp1;p2;:::g[fn1;n2;:::g[ff1;f2;:::g.
+Intuitively, a lookahead trace is a symbolic trace, where each parameter refers to
+either a previous value ( pj), or to a fresh input value ( nj), or to a fresh output
+value (fj). Within lookahead traces, parameter p1plays a special role as the
+parameter that is replaced by a fresh value. Let be a lookahead trace in which
+parameters Prefer to previous values, and let be a valuation for P. Then
+can be converted into a concrete trace on the y, by replacing each variable
+pj2Pby(pj), picking a fresh value for each variable njwhenever needed, and
+assigning to fjthej-th fresh output value. If trace is a possible outcome of
+converting lookahead trace , starting from a state ( l;) with valuation , then
+we say that is aconcretization of.
+The following lemma implies that a nite number of lookahead traces will
+suce to discover all memorable values of all states in an observation tree. The
+idea is that if a concretization of a lookahead trace is a witness that a value is
+memorable in some state, the same lookahead trace can also be used to discover
+that a corresponding value is memorable in any symmetric state.
+Lemma 10. LetRbe a register automaton and let (l;)be a state of [ [R] ]. Let
+be a lookahead trace in which parameters P=fp1;:::;plgrefer to previous
+values, and let be a valuation that assigns to each parameter in Pa distinct
+memorable value of (l;). Supposeis a concretization of starting from (l;)
+with valuation , and suppose is also a witness showing that (p1)is memorable
+in state (l;). Lethbe an automorphism and suppose 0is a concretization of
+starting from state h(l;)with valuation h. Then0is a witness showing
+thath((p1))is memorable in state h(l;).
+IfMis an overapproximation of the set of memorable values after some state
+(l0;0) then, by concretizing lookahead trace for each injective valuation in
+P!M, Lemma 10 guarantees that we will nd a witness in case there exists
+an automorphism hfrom (l;) to (l0;0).
+Instances of all lookahead traces are run in each new node to compute mem-
+orable values. At any point in time, the set of values that occur in MemV () is
+a subset of the full set of memorable values of node . Whenever a memorable
+value has been added to the observation tree, we require the tree to be lookahead
+complete . This means every memorable value has to have an origin, that is, it
+has to stem from either the memorable values of the parent node or the values
+in the preceding transition:
+0= i(d)o(e))values (MemV (0))values (MemV ())[fd;eg;
+where function values returns the set of elements that occur in a list. We em-
+ploy a similar restriction on any non-fresh output parameters contained in the
+transition leading up to a node. These too have to originate from either the
+memorable values of the parent, or the input parameter in the transition. Herein
+we dierentiate from the algorithm in [1] which only enforced this restriction on
+memorable values at the expense of running additional lookahead traces.
+29
+
+--- Page 30 ---
+The observation tree at the left of Figure 11 is not lookahead complete since
+output value 1 of action Return (1) is neither part of the memorable values of the
+node1nor is it an input in Pop. Whenever we detect such an incompleteness,
+we add a new lookahead trace (in this case Pop) and restart the entire learning
+process with the updated set of lookahead traces to retrieve a lookahead complete
+observation tree. The observation tree at the right is constructed after adding
+the lookahead trace Pop. This trace is executed for every node constructed, as
+highlighted by the dashed edges. The output values it generates are then tested
+if they are memorable and if so, stored in the MemV set of the node. When
+constructing node 1, the lookahead trace Popgathers the output 1. This output
+is veried to be memorable and then stored in MemV (1). We refer to [1] for
+more details about algorithms for the lookahead oracle.
+7 The Abstractor
+The task of the abstractor is to rename the large set of concrete values of the
+SUL to a small set of symbolic values that can be handled by the learner.
+Letw0;w1;:::be an enumeration of the set Vnf in;outg. If the SUL can
+be described by a register automaton in which each location has at most n
+variables, then the abstract values used by the abstractor will be contained in
+fw0;:::;wn1;?g. We dene a family of mappers AF, which are parametrized
+by a function Fthat assigns to each input symbol a nite set of variables
+fromVnf in;outg. Intuitively, w2F(i) indicates that it is relevant whether
+the parameter of input symbol iis equal to wor not. The initial mapper is
+parametrized by function F;that assigns to each input symbol the empty set.
+Using counterexample-guided abstraction renement, the sets F(i) are subse-
+quently extended.
+The states ofAFare injective sequences of values (that is, sequences in
+which each value occurs at most once), with the initial state being equal to the
+empty sequence. A sequence r=d0:::dn12Zrepresents the valuation rfor
+fw0;:::;wn1ggiven byr(wj) =dj, for allj. Note that ris injective i ris
+injective. The abstraction function of mapper AFleaves the input and output
+symbols unchanged, but modies the parameter values. The actual value of an
+input parameter is replaced by the variable in F(i) that has the same value, or by
+?in case there is no such variable. Thus the abstract domain of the parameter
+ofiis the nite set F(i)[f?g . Likewise, the actual value of an output parameter
+is not preserved, but only the name of the variable that has the same value, or
+?if there is no such variable. The (injective) sequence r0of memorable values
+that has been added as an annotation by the lookahead oracle describes the new
+state of the mapper after an output action. The abstraction function replaces
+r0by an update function %that species how r0can be computed from the old
+staterand the input and output values that have been received. Upon receipt
+of a concrete output o(er0) from the lookahead oracle, the abstraction function
+replaceseby a variable that is equal to e, or to?if no such variable exists.
+Denition 21. We deneAF=hI0[O0;X[Y;R;r 0;;iwhere
+30
+
+--- Page 31 ---
+{I0=IZ,
+{O0=fo(d r)jo2O^d2Z^r2Zinjectiveg,
+{X=fi(a)ji2I^a2F(i)[f?gg ,
+{Y=fo(a;%)jo2O^a2V[f?g^ %2V9Vinjective with nite domain g,
+{R=fr2Zjrinjectiveg,
+{r0=,
+{(r;i(d)) =d r,
+{(r;o(e r0)) =r0,
+{Letr2Randi(d)2I0. Then
+(r;i(d)) =
+i(1
+r(d))ifd2ran(r)and1
+r(d)2F(i)
+i(?) otherwise
+Letr=d s2Rando(e r0)2O0. Letibe the valuation that is equal to s
+ifd2ran(s)and equal to s[f(in;d)gotherwise. Similarly, let iobe the
+valuation equal to iife2ran(i)and equal to i[f(out;e)gotherwise. Then
+iois injective and ran(io) =ran(r)[feg. Suppose ran(r0)ran(r)[feg.
+Then%=1
+ior0is well-dened and injective, and
+(r;o(e r0)) =
+(o(1
+i(e));%)ife2ran(i)
+(o(?);%) otherwise
+In the degenerate case r=orran(r0)6ran(r)[feg, we dene(r;o(er0)) =
+(o(?);;).
+Example 11. Consider an SUL that behaves as the FIFO-set model of Figure 1.
+As a result of interaction with mapper AF;, the learner may succeed to construct
+the abstract hypothesis shown in Figure 12. This rst hypothesis is incorrect
+l0 start l1 l2Push(?)/OK
+w1:=inPop/NOKPush(?)/OK
+w2:=in
+Pop/Return( w1) Pop/Return( w1)
+w1:=w2Push(?)/NOK
+Fig. 12: First hypothesis for FIFO-set
+since it does not check if the same value is inserted twice. This is because the
+Abstractor only generates fresh values during the learning phase. Based on the
+analysis of a counterexample (to be discussed in the next section), Tomte will
+discover that it is relevant whether or not the parameter of Push is equal to
+the value of w1. Consequently F(Push) is set tofw1gand Tomte constructs a
+next hypothesis, for instance the one shown in Figure 13. Note that, as the list
+31
+
+--- Page 32 ---
+l0 start l1 l2Push(?)/OK
+w1:=inPop/NOK
+Push(w1)/?Push(?)/OK
+w2:=in
+Pop/Return( w1)Push(w1)/NOKPop/Return( w1)
+w1:=w2Push(w1)/NOKPush(?)/NOK
+Fig. 13: Second hypothesis for FIFO-set
+of memorable values in the initial state is empty, there is no concrete action
+Push(d) that is abstracted to action Push(w1) inl0. By the second rule from
+Denition 13, an abstract output ?is generated in this case.
+Theorem 5. LetRbe an input deterministic register automaton with input
+symbolsIand output symbols Osuch that each location has at most nregisters.
+LetSbe the set of collision free neat traces of R, and letT=fOracleR()j2
+Sg, that is the set of traces from Sin which each output action is annotated with
+a list of memorable values of the corresponding target state. Let Fbe a function
+that assigns to each input symbol a subset of fw0;:::;wn1g. ThenU=AF(T)
+is nonempty, prex closed, input complete and Uhas nite index. If moreover
+F(i) =fw0;:::;wn1g, for alli2I, thenUis behavior deterministic.
+In order to show that an hypothesis is incorrect, we rst need to concretize
+it. Using the theory of [4] we get a concretization operator for free, but this
+concretization operator produces unique-valued register automata in which each
+output is annotated with the list of memorable values in the target state. Since
+unique-valuedness leads to a loss of succinctness (and we no longer need the list
+of memorable values), we have implemented in Tomte an alternative procedure
+to concretize an abstract deterministic Mealy machine model to a right invariant
+register automaton:
+1. Omit all transitions with output ?(e.g. the Push(w1)-loop in location l0of
+Figure 13).
+2. Whenever, for some location land input symbol i, there are transitions
+li(?)=o(d);%! l0andli(wj)=o(d);%! l0, then omit the i(wj)-transition (e.g. the
+Push(w1)-loop in location l2of Figure 13; apparently it does not matter
+whether or not the parameter of Push is equal to the value of w1).
+3. If, for some location land input symbol i, there are outgoing i(w)-transitions
+for eachw2Wthen add input guardV
+w2Win6=wto thei(?) transition.
+4. If a transition has input label i(wj) then add input guard in=wj.
+5. If a transition has output label o(?) then add output guard true.
+6. If a transition has output label o(wj) then add output guard out=wj.
+7. Replace input labels i(d) byi, output labels o(d) byo, and leave all the
+updates%unchanged.
+32
+
+--- Page 33 ---
+Example 12. If we apply the above procedure to the Mealy machine of Figure 12,
+then we obtain the register automaton of Figure 7 (modulo variable renaming),
+and if we apply it to the Mealy machine of Figure 13, then we obtain the register
+automaton of Figure 1 (again modulo variable renaming).
+In case function Fassigns the maximal number of abstract values to each
+input, the above concretization operator will produce a unique-valued register
+automaton that is equivalent to the register automaton produced by the con-
+cretization operator of [4] (if we forget the lists of memorable values in output
+actions). In cases where Fis not maximal, our concretization operator will typ-
+ically produce register automata that are not unique-valued. In the next section
+we will show how, when a aw in the hypothesis is detected during the hypoth-
+esis verication phase, the resulting counterexample can be used for abstraction
+renement.
+8 The Analyzer
+During equivalence testing, a test generation component uses the abstract hy-
+pothesis to generate abstract test input sequences. This approach allows us to
+use standard algorithms for FSM conformance testing such as Random Walk or
+a variation of the W-Method [26]. These test sequences are then concretized,
+run on both the SUL and the concretized hypothesis, and the resulting outputs
+are compared. The result is either a concrete counterexample or or increased
+condence that the hypothesis model conforms to the SUL.
+Parameter values in the abstract model can either be ?or a variable name.
+If an abstract value is a variable name then the corresponding concrete value is
+uniquely determined. In contrast, an abstract value ?allows for innitely many
+concretizations and suggests that the SUL behaviour is independent of the value
+picked. By testing we can verify that this is the case. If testing produces a
+counterexample then this may be used to rene the abstraction and introduce
+additional abstract values. To more quickly discover such renements, we test
+by concretizing?to dierent memorable values.
+As example, consider the login model of Figure 4. Figure 14 depicts the hy-
+pothesis built after the rst iteration of learning this system. Using the testing
+l0 start l1Register(?,?)/OKLogin(?,?)/NOK
+Register(?,?)/NOKLogin(?,?)/NOK
+Fig. 14: Initial abstract hypothesis for login system
+approach described, Tomte will eventually nd a concrete counterexample trace,
+sayLogin (9,9) NOK Register (9,9) OK Register (12,12) NOK Login (9,9) OK. This
+33
+
+--- Page 34 ---
+sequence is a valid trace of the SUL but not of the hypothesis, since according
+to the hypothesis the last output should be NOK . Tomte applies heuristics to
+reduce the length of the counterexample, in order to simplify subsequent analysis
+and thus to improve scalability. Two reduction strategies are used: (1) remov-
+ing loops, and (2) removing single transitions. The rst strategy tries to remove
+parts of the trace that form loops in the hypothesis. These may also form loops
+in the system and thus not eect the counterexample. The second strategy tries
+to remove single transitions from the counterexample. The idea behind this is
+that often dierent parts of the system are independent of each other, so tran-
+sitions from the part not causing the counterexample can be removed. Applied
+to the login case, Tomte rst removes loops from the concrete counterexample,
+which results in the reduced counterexample Register (9,9) OK Login (9,9) OK.
+Tomte then tries to eliminate each transition, but as the resulting traces do not
+form counterexamples, this heuristics fails. As a nal processing step, the coun-
+terexample is made neat, thus becoming Register (0,0) OK Login (0,0) OK. This
+is done solely to improve the counterexample's readability.
+disambiguate CE
+find missing mem . values
+refine abstractionsreduced CE
+disambiguated CE
+decorated CE
+with all mem .
+succ . = newAbs.notEmpty () or 
+newLts.notEmpty ()new ltsAbstraction Refinement
+succ .
+yes/nonoform abstract CEabstract CEgive CE to 
+learner
+yesrestartnew 
+abstractions
+Fig. 15: Counterexample analysis in Tomte
+The reduced counterexample is then analyzed by the process depicted in
+Figure 15. The counterexample is rst resolved by abstraction renement. If
+no renement can be done, then an abstracted form of the counterexample is
+34
+
+--- Page 35 ---
+sent to the Mealy Machine learner, which uses it to further rene the abstract
+hypothesis.
+Abstraction renement means nding the concrete input parameters that are
+abstracted to?but nevertheless form 'relevant' relations with previous parame-
+ters. We say that a relation between two parameters is relevant if breaking it also
+breaks the counterexample. Consequently, the concrete value of these parameters
+no longer ts?, as they can only take a specic value for the counterexample to
+hold. Based on relevant relations, we then update the lookahead oracle and con-
+struct rened abstractions, that would better t these parameters. Initially, all
+parameters values are abstracted to ?. This changes as more rened abstractions
+are created.
+A rst step to rening is disambiguation, by which any relations between two
+parameters present that are not relevant for the counterexample, are broken by
+replacing the latter parameter of the relation with a fresh value. In our running
+example the trace Register (0,0) OK Login (0,0) OK is changed to Register (0,1)
+OK Login (0,1) OK, by virtue of the irrelevant equality between the username
+and password. Breaking relations further would change the observed behavior
+into one with which the concrete hypothesis would agree.
+The disambiguated trace is then sent to the next process, which looks for
+any missing memorable values and adapts the lookahead oracle so these can
+all be discovered. The current memorable values are obtained by running the
+counterexample through the lookahead oracle, which then decorates the trace
+by placing memorable value lists at the start and after each transition. Such a
+trace for the login case would be Register (0;1)OKLogin (0;1)OK. Notice
+that all the sequences are empty, since initially the lookahead oracle does not
+nd any memorable values. For the last output to be OK, the SUL requires that
+values 0 and 1 are reused in the Login -input, meaning that the SUL should have
+remembered them, hence these values should have been found memorable by the
+lookahead oracle. We say that the lookahead oracle `misses' these values. In more
+concrete terms, we say that a parameter value is missing if it is equal to a value
+from a previous transition, but not contained in the list of memorable values
+that directly precedes the transition. For the login example, we notice that both
+0 and 1 appear as missing values in Login (0,1), since they rst emerged in the
+Register action but they were not included in the memorable set before Login .
+The process iterates over the input actions of the decorated trace. Once it
+passes by an input parameter whose value is judged to be missing, it builds a
+symbolic lookahead trace that would allow the lookahead oracle to uncover this
+value. The counterexample is then re-decorated through the augmented looka-
+head oracle and iteration continues with the next parameter. The end result is
+a decorated trace which contains no missing values. For the login case, the pro-
+cess updates the lookahead oracle and re-decorates the trace for each of Login 's
+parameters. The end result is the decorated trace where both 0 and 1 are no
+longer missing: Register (0;1)OK[0;1]Login (0;1)OK.
+A trace decorated with all memorable values is then sent to the next process,
+which further decorates the trace so that each concrete value is paired with its
+35
+
+--- Page 36 ---
+corresponding abstract value. This is achieved by running the counterexample
+through both the mapper (which adds the abstractions) and the lookahead oracle
+(which adds the memorable values). In the login example, as initially ?is the
+only abstract value available, decoration results in the trace Register (0 :?;1 :?
+)OK[0;1]Login (0 :?;1 :?)OK. This trace is then iterated and whenever
+(1) a concrete value is equal to a memorable value, and (2) the corresponding
+abstraction is?, a new abstract value is created for the corresponding input
+symbol and the mapper is updated accordingly. Equality with a memorable value
+results in an abstraction which simply points to an index in the memorable value
+list after the previous transition. In the login example, the new abstraction values
+for the Login -action arew1for the rst parameter, respectively w2for the second,
+transforming the decorated trace into Register (0 :?;1 :?)OK[0;1]Login (0 :
+w1;1 :w2)OK.
+The mechanisms of uncovering missing memorable values and new abstrac-
+tions are closely tied to proper disambiguation of the counterexample. Both
+these steps consider any equalities between two parameters as relevant to the
+counterexample. Applying the same process on an ambiguous counterexample
+might result in resolution of false relations or missing relations which are con-
+founded as was in the login case. Without disambiguation, the counterexample
+Register (0;0)OK Login (0;0)OKwould have yielded only one missing value in
+0, which would have lead to dierent rened abstractions. One such abstraction
+would imply that it is relevant if the second Register parameter is equal to the
+rst, which is clearly not the case.
+The nal step of the counterexample analysis is a simple check if new looka-
+head traces or new abstract values have been discovered during the last pass.
+If so, learning is restarted from scratch. Note that memorable values discovered
+by newly added lookahead traces can have corresponding abstract values which
+have already been created as a result of a previous renements. Or the abstract
+values found might expose relations with previous input values. Similarly, it may
+happen that the lookahead oracle has already discovered all memorable values,
+yet for some of these values new abstract values are dened. Learning needs to
+be restarted as LearnLib currently does not accept on the y changes to the in-
+put alphabet. Moreover, some of the answers to queries from the learning phase
+might be invalidated by the discovery of new memorable values.
+If no new lookahead traces or abstract values have been discovered during a
+pass, then an abstract version of the counterexample is forwarded to the Mealy
+machine learner. Obtaining an abstract counterexample involves just running the
+counterexample through the mapper and lookahead oracle and only collecting
+the abstracted messages. As an optimization, we also perform this step before
+abstraction renement, as it is a considerably cheaper yet just as likely.
+According to Figure 15, counterexample analysis in Tomte has three possible
+outcomes: (1) a new lookahead trace is forwarded to the Lookahead Oracle and
+learning is restarted, (2) a new abstract value is forwarded to the Abstractor
+and learning is restarted, or (3) a counterexample is forwarded to the learner.
+By Lemma 10, step (1) may only occur a nite number of times. Since the
+36
+
+--- Page 37 ---
+number of input symbols and the number of abstract values are both nite, also
+step (2) may only occur a nite number of times. If there are no more steps of
+type (1) or type (2) then, by Theorem 5 and Theorem 3, the set of abstract
+traces that can be observed by the learner equals the set of traces of some nite,
+deterministic Mealy machine. By correctness of the Mealy machine learner, the
+learner will produce a correct hypothesis after a nite number of queries. Thus
+we may conclude that our algorithm for learning register automata terminates.
+9 Evaluation and Comparison
+In this section, we compare Tomte 0.41 to other learning tools on a series of
+benchmarks including the Session Initiation Protocol (SIP), the Alternating Bit
+Protocol, the Biometric Passport, FIFO-Sets, and a multi-Login system. Apart
+from the last one, all these benchmarks have already been used in [3] for the
+comparision of Tomte 0.3, a previous version of Tomte, and LearnLibRA. In [6],
+we compared Tomte 0.4 with LearnLibRAand Tomte 0.3, concluding that Tomte
+0.4 performed best in all but two benchmarks. Since then, RALib[12] has been
+released, a learner building LearnLibRA, adding several optimizations as well as
+enabling support for theories other than equality. This made RALib a strong
+competitor, reporting better numbers for a number of benchmarks. Tomte itself
+was also improved and can now work with TTT [24], a new and fast algorithm
+for learning Mealy Machines. We focus our evaluation eorts on the more novel
+Tomte 0.41 and RALib. Readers are referred to [3] and [6] for benchmarking
+of the 0.3 and 0.4 versions of Tomte and LearnLibRA. Tomte 0.41 generally
+replicates the numbers obtained by version 0.4 in those benchmarks.
+Each experiment consists of learning a simulation of a model implementing
+a benchmark system or, as in the case of the multi-login system, learning of
+an actual implementation. Whenever possible we veried the learned model by
+performing an equivalence check against the simulated model. For the multi-
+login system we ran a thorough suite of tests. For the FIFO-Set models, we
+checked the models manually by analyzing the number of states and guards in
+the learned model.
+Tomte 0.41 can now be congured to work with dierent Mealy Machine
+learners. Traditionally, we have used the Observation Pack algorithm [20], which
+is enabled in all versions of Tomte. Recently, we have adapted Tomte 0.41 to
+support the new TTT algorithm [24]. Similarly, RALib adopts a series of op-
+timizations. We enable all these optimizations apart from the one exploiting
+parameter typing (unlike in [12]), since all benchmarks used are not typed.
+Table 1 provides benchmarks for Tomte 0.41 using each of TTT and Ob-
+servation Pack, and RALib with the optimizations mentioned. Results for each
+model are obtained by running each learner conguration 10 times with 10 dif-
+ferent seeds. Over these runs we collect the average and standard deviation for
+number of reset queries and inputs applied during learning (denoted learn res
+andlearn inp ), counterexample analysis (denoted ana res andana inp ) and
+testing (denoted test res andtest inp ). The numbers for testing do not include
+37
+
+--- Page 38 ---
+Tomte 0.4 TTT Tomte 0.4 OP RALib
+learn learn test test ana ana learn learn test test ana ana succ learn learn test test
+res inp res inp res inp res inp res inp res inp res inp res inp
+Alternating Bit Protocol Sender
+avg 40 139 24 131 59 172 65 225 8 40 15 29 10/10 824 4621 348 3537
+stddev 2 6 6 33 12 57 1 2 3 23 2 4 630 4364 420 4285
+Biometric Passport
+avg 225 924 3156 31304 156 534 729 2883 1791 17899 31 123 0/10 unsuccessful
+stddev 15 70 1927 19354 15 76 1 2 2022 20139 4 28 unsuccessful
+Alternating Bit Protocol Channel
+avg 20 50 4 12 11 17 37 102 0 0 0 0 10/10 14 25 2 7
+stddev 0 1 1 6 3 7 0 0 0 0 0 0 0 1 1 5
+Repdigit Palindrome Checker
+avg 16 15 18 73 29 27 414 815 18 73 30 27 10/10 1172 2301 2200 21814
+stddev 0 0 3 38 1 1 0 0 3 38 1 1 113 226 1679 16618
+Session Initiation Protocol
+avg 1619 8757 258 2024 322 1196 2526 13918 115 1083 134 573 10/10 883 4868 40 322
+stddev 64 388 77 668 42 178 94 555 41 434 20 98 841 6204 11 112
+FIFO-Set(2)
+avg 37 141 7 17 14 23 53 221 3 14 10 14 10/10 119 719 14 107
+stddev 11 49 2 8 1 3 0 0 2 11 0 1 180 1594 7 64
+FIFO-Set(7)
+avg 520 4651 109 983 155 1077 1803 19291 106 1016 139 1018 10/10 435 3112 22 174
+stddev 190 1511 30 319 45 422 5 35 38 402 49 577 47 434 24 214
+FIFO-Set(14)
+avg 3214 50924 335 15126 1312 24085 19936 388353 307 14995 974 18978 9/10 2212 27686 6 98
+stddev 1189 15714 119 5844 774 17365 25 363 119 5825 520 13317 687 8769 3 110
+FIFO-Set(30)
+avg 25417 815643 96773 9670989 21245 1618024 336175 13276178 96712 9670804 18188 1528670 0/10 unsuccessful
+stddev 10229 257573 48456 4838335 10719 1148441 68 2144 48454 4838462 9051 1103288 unsuccessful
+Multi-Login(1)
+avg 927 3940 216 1987 203 730 4380 20800 210 2078 125 490 8/10 441371 4398178 170 1719
+stddev 42 183 171 1737 19 102 3 15 173 1698 11 69 632641 7740248 131 1376
+Multi-Login(2)
+avg 16756 96291 414 3782 1730 8509 116153 724434 460 4531 891 4503 0/10 unsuccessful
+stddev 3117 19032 145 1447 551 3217 14028 86833 201 1961 211 1338 unsuccessful
+Multi-Login(3)
+avg 1248119 10371807 134359 1341421 14524 98032 6131225 51443730 9945 99566 2751 17592 0/10 unsuccessful
+stddev 284200 2065284 48533 484092 1820 11391 1064404 9337282 8562 85479 961 7681 unsuccessful
+Table 1: Comparison of Tomte 0.41 using Observation Pack and TTT, and RALib
+queries run on the nal hypothesis. As RALib does not distinguish counterex-
+ample analysis from learning and testing, we exclude statistics for this phase. A
+nal statistic is success ( succ ), denoting for each model the number of successful
+experiments, that is, experiments which ended with the correct model learned.
+Since Tomte 0.41 is always successful, we exclude this statistic from its columns.
+For consistency, we use the same equivalence oracle across all learners, namely,
+a random walk oracle congured with a maximum test query length of 100 and
+an average length of 10, with a maximum of 1000000 tests per equivalence query.
+The probability of selecting a fresh value is set to 0.1 . We opted for this algo-
+rithm, since it was the only algorithm supported RALib. In contrast, Tomte 0.41
+can also use more advanced testing algorithms. When learning FIFO-Set 30 we
+increase the average query length to 100, otherwise testing would most likely fail
+to nd all counterexamples. Similarly, for FIFO-Set 14 we increase it to 50.
+We omit running times, as we consider the number of queries to be a su-
+perior metric of measuring eciency, but the reader may nd them at http:
+//automatalearning.cs.ru.nl/ . All models apart from the multi-logins and
+large FIFO-Set models are learned in less than one minute. We limit learning
+time to 20 minutes.
+Results show that TTT signicantly brings down the number of learning
+queries needed by Tomte 0.41, at the cost of more test and counterexample
+analysis queries. This cost is oset for all but the rst model benchmarked. The
+extent of improvement when we consider the sum of all inputs varies from roughly
+a 23 % reduction for the SIP model to a factor of 8 reduction for the Palindrome
+38
+
+--- Page 39 ---
+Checker. We also notice that the gap widens with the growing complexity of the
+models. Furthermore, improvement would likely have been greater had a smarter
+testing algorithm been used.
+RALib beats Tomte 0.41 on several models, particularly SIP and FIFO-Set 7.
+Unfortunately, its performance is highly erratic, as shown by the high standard
+deviation. Moreover, RALib is only partially successful at learning some models,
+while failing completely to learn others. Ultimately, RALib shows promising
+numbers for some experiments, while for others it seems to suer a blow up in its
+algorithm. For the larger models, like the FIFO-Set 30, RALib fails completely.
+The multi-login system benchmark can only be properly handled by Tomte
+0.41. The benchmark generalizes the example of Figure 2 to multiple users, while
+adding an additional user ID parameter when logging in and registering. A con-
+gurable number of users may register, enabling simultaneous login sessions for
+dierent registered users. Tomte 0.41 was able to successfully learn instantiations
+of multi-login systems for 1, 2 and 3 users. RALib struggled to learn congura-
+tions with 1 user, while completely failing for those with more users.
+That said, Tomte 0.41's learning algorithm also does not perform nor scale
+well for higher numbers of users. This can be ascribed to the high number of
+global abstractions. Such a number is owing to not only the large number of
+registers, but also to the varying order in which memorable values are found per
+state.
+A memorable value, be it login id or password, can take one index in one
+state, but another index in a dierent state. As we use global abstractions, the
+memorable value would require two distinct abstractions, even though only one
+is useful in each state. This leads to a large number of abstractions required to
+cover all indexes memorable values can take.
+10 Conclusions and Future Work
+We have presented a mapper-based algorithm for active learning of register au-
+tomata that may generate fresh output values. This class is more general than
+the one studied in previous work [10, 11, 2, 1, 3]. We have implemented our ac-
+tive learning algorithm in the Tomte tool and have compared the performance
+of Tomte using each of the Observation Pack or the novel TTT algorithms, to
+that of RALib on a large set of benchmarks. We measured the total number
+of inputs required for learning, testing and counterexample analysis. For a set
+of common benchmarks, TTT helps in signicantly bringing down the number
+of queries used overall. RALib proves competitive but cannot reliably learn all
+models. In particular, RALib struggles to learn login systems generating fresh
+passwords. In contrast, Tomte is able to learn models of register automata with
+fresh outputs, including these systems. Our method for handling fresh outputs
+is highly ecient and the computational cost of the determinizer is negligible in
+comparison with the resources needed by the lookahead oracle and the abstrac-
+tor. Our next step will be an extension of Tomte to a class of models with simple
+operations on data.
+39
+
+--- Page 40 ---
+References
+1. F. Aarts. Tomte: Bridging the Gap between Active Learning and Real-World Sys-
+tems. PhD thesis, Radboud University Nijmegen, October 2014.
+2. F. Aarts, F. Heidarian, H. Kuppens, P. Olsen, and F.W. Vaandrager. Automata
+learning through counterexample-guided abstraction renement. In D. Gian-
+nakopoulou and D. M ery, editors, 18th International Symposium on Formal Meth-
+ods (FM 2012), Paris, France, August 27-31, 2012. Proceedings , volume 7436 of
+Lecture Notes in Computer Science , pages 10{27. Springer, August 2012.
+3. F. Aarts, F. Howar, H. Kuppens, and F.W. Vaandrager. Algorithms for inferring
+register automata - A comparison of existing approaches. In T. Margaria and
+B. Steen, editors, Leveraging Applications of Formal Methods, Verication and
+Validation. Technologies for Mastering Change - 6th International Symposium,
+ISoLA 2014, Imperial, Corfu, Greece, October 8-11, 2014, Proceedings, Part I ,
+volume 8802 of Lecture Notes in Computer Science , pages 202{219. Springer, 2014.
+4. F. Aarts, B. Jonsson, J. Uijen, and F.W. Vaandrager. Generating models of innite-
+state communication protocols using regular inference with abstraction. Formal
+Methods in System Design , 46(1):1{41, 2015.
+5. F. Aarts, J. de Ruiter, and E. Poll. Formal models of bank cards for free. In
+Software Testing Verication and Validation Workshop, IEEE International Con-
+ference on , pages 461{468, Los Alamitos, CA, USA, 2013. IEEE Computer Society.
+6. Fides Aarts, Paul Fiter au-Bro stean, Harco Kuppens, and Frits W. Vaandrager.
+Learning register automata with fresh value generation. In Martin Leucker, Camilo
+Rueda, and Frank D. Valencia, editors, Theoretical Aspects of Computing - IC-
+TAC 2015 - 12th International Colloquium Cali, Colombia, October 29-31, 2015,
+Proceedings , volume 9399 of Lecture Notes in Computer Science , pages 165{183.
+Springer, 2015.
+7. D. Angluin. Learning regular sets from queries and counterexamples. Inf. Comput. ,
+75(2):87{106, 1987.
+8. B. Bollig, J.-P. Katoen, C. Kern, M. Leucker, D. Neider, and D. Piegdon. libalf:
+The automata learning framework. In T. Touili, B. Cook, and P. Jackson, editors,
+Computer Aided Verication , volume 6174 of Lecture Notes in Computer Science ,
+pages 360{364. Springer Berlin Heidelberg, 2010.
+9. R.E. Bryant. Graph-based algorithms for boolean function manipulation. IEEE
+Transactions on Computers , C-35(8):677{691, August 1986.
+10. S. Cassel, F. Howar, B. Jonsson, M. Merten, and B. Steen. A succinct canonical
+register automaton model. In Tevk Bultan and Pao-Ann Hsiung, editors, Au-
+tomated Technology for Verication and Analysis, 9th International Symposium,
+ATVA 2011, Taipei, Taiwan, October 11-14, 2011. Proceedings , volume 6996 of
+Lecture Notes in Computer Science , pages 366{380. Springer, 2011.
+11. S. Cassel, F. Howar, B. Jonsson, M. Merten, and B. Steen. A succinct canonical
+register automaton model. J. Log. Algebr. Meth. Program. , 84(1):54{66, 2015.
+12. Soa Cassel, Howar Falk, and Bengt Jonsson. RALib : A LearnLib extension for
+inferring EFSMs. In Proceedings International Workshop on Design and Imple-
+mentation of Formal Tools and Systems, Austin, Texas USA, September 26-27,
+2015.
+13. Soa Cassel, Falk Howar, Bengt Jonsson, and Bernhard Steen. Active learning
+for extended nite state machines. Formal Asp. Comput. , 28(2):233{263, 2016.
+14. G. Chalupar, S. Peherstorfer, E. Poll, and J. de Ruiter. Automated reverse engi-
+neering using Lego. In Proceedings 8th USENIX Workshop on Oensive Technolo-
+40
+
+--- Page 41 ---
+gies (WOOT'14), San Diego, California, Los Alamitos, CA, USA, August 2014.
+IEEE Computer Society.
+15. Chia Yuan Cho, Domagoj Babic, Eui Chul Richard Shin, and Dawn Song. Inference
+and analysis of formal models of botnet command and control protocols. In E. Al-
+Shaer, A.D. Keromytis, and V. Shmatikov, editors, ACM Conference on Computer
+and Communications Security , pages 426{439. ACM, 2010.
+16. E.M. Clarke, O. Grumberg, and D. Peled. Model Checking . MIT Press, Cambridge,
+Massachusetts, 1999.
+17. P. Fiter au-Bro stean, R. Janssen, and F.W. Vaandrager. Learning fragments of
+the TCP network protocol. In Fr ed eric Lang and Francesco Flammini, editors,
+Proceedings 19th International Workshop on Formal Methods for Industrial Critical
+Systems (FMICS'14), Florence, Italy, volume 8718 of Lecture Notes in Computer
+Science , pages 78{93. Springer, September 2014.
+18. O. Grumberg and H. Veith, editors. 25 Years of Model Checking: History, Achieve-
+ments, Perspectives , volume 5000 of Lecture Notes in Computer Science . Springer,
+2008.
+19. C. de la Higuera. Grammatical Inference: Learning Automata and Grammars .
+Cambridge University Press, April 2010.
+20. F. Howar. Active learning of interface programs . PhD thesis, University of Dort-
+mund, June 2012.
+21. F. Howar, B. Steen, B. Jonsson, and S. Cassel. Inferring canonical register au-
+tomata. In Viktor Kuncak and Andrey Rybalchenko, editors, Verication, Model
+Checking, and Abstract Interpretation , volume 7148 of Lecture Notes in Computer
+Science , pages 251{266. Springer Berlin Heidelberg, 2012.
+22. Falk Howar, Malte Isberner, Bernhard Steen, Oliver Bauer, and Bengt Jonsson.
+Inferring semantic interfaces of data structures. In Tiziana Margaria and Bern-
+hard Steen, editors, Leveraging Applications of Formal Methods, Verication and
+Validation. Technologies for Mastering Change , volume 7609 of Lecture Notes in
+Computer Science , pages 554{571. Springer Berlin Heidelberg, 2012.
+23. Malte Isberner, Falk Howar, and Bernhard Steen. Learning register automata:
+from languages to program structures. Machine Learning , 96(1-2):65{98, 2014.
+24. Malte Isberner, Falk Howar, and Bernhard Steen. The ttt algorithm: A
+redundancy-free approach to active automata learning. In Borzoo Bonakdarpour
+and Scott A. Smolka, editors, Runtime Verication: 5th International Conference,
+RV 2014, Toronto, ON, Canada, September 22-25, 2014. Proceedings , pages 307{
+322, Cham, 2014. Springer International Publishing.
+25. Michael Kaminski and Nissim Francez. Finite-memory automata. Theor. Comput.
+Sci., 134(2):329{363, 1994.
+26. D. Lee and M. Yannakakis. Principles and methods of testing nite state machines
+| a survey. Proceedings of the IEEE , 84(8):1090{1123, 1996.
+27. M. Merten, B. Steen, F. Howar, and T. Margaria. Next generation LearnLib. In
+P.A. Abdulla and K.R.M. Leino, editors, TACAS , volume 6605 of Lecture Notes
+in Computer Science , pages 220{223. Springer, 2011.
+28. A. Nerode. Linear automaton transformations. Proceedings of the American Math-
+ematical Society , 9(4):541{544, 1958.
+29. Doron Peled, Moshe Y. Vardi, and Mihalis Yannakakis. Black box checking. In
+Jianping Wu, Samuel T. Chanson, and Qiang Gao, editors, Proceedings FORTE ,
+volume 156 of IFIP Conference Proceedings , pages 225{240. Kluwer, 1999.
+30. H. Raelt, M. Merten, B. Steen, and T. Margaria. Dynamic testing via automata
+learning. STTT , 11(4):307{324, 2009.
+41
+
+--- Page 42 ---
+31. H. Raelt, B. Steen, T. Berg, and T. Margaria. LearnLib: a framework for ex-
+trapolating behavioral models. STTT , 11(5):393{407, 2009.
+32. B. Steen, F. Howar, and M. Merten. Introduction to active automata learning
+from a practical perspective. In M. Bernardo and V. Issarny, editors, Formal
+Methods for Eternal Networked Software Systems , volume 6659 of Lecture Notes in
+Computer Science , pages 256{296. Springer, 2011.
+33. P. Verleg. Inferring SSH state machines using protocol state fuzzing . Master thesis,
+Radboud University, 2016.
+34. Michele Volpato and Jan Tretmans. Approximate active learning of nondetermin-
+istic input output transition systems. ECEASST , 72, 2015.
+42

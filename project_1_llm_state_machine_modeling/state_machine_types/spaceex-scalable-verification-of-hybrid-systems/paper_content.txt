@@ -1,0 +1,731 @@
+--- Page 1 ---
+SpaceEx:
+Scalable Veriﬁcation of Hybrid Systems
+Goran Frehse1, Colas Le Guernic2, Alexandre Donz´ e1, Scott Cotton1,
+Rajarshi Ray1, Olivier Lebeltel1, Rodolfo Ripado1, Antoine Girard3,
+Thao Dang1,a n dO d e dM a l e r1
+1Verimag, CNRS / Universit´ e Grenoble 1 Joseph Fourier, 38610 Gi` eres, France
+2New York University CIMS, New York, NY 10012, USA
+3Laboratoire Jean Kuntzmann, Universit´ e de Grenoble
+goran.frehse@imag.fr
+Abstract. We present a scalable reachability algorithm for hybrid sys-
+tems with piecewise aﬃne, non-deterministic dynamics. It combines poly-
+hedra and support function representations of continuous sets to computean over-approximation of the reachable states. The algorithm improves
+over previous work by using variable time steps to guarantee a given
+local error bound. In addition, we propose an improved approximationmodel, which drastically improves the accuracy of the algorithm. The al-
+gorithm is implemented as part of SpaceEx, a new veriﬁcation platform
+for hybrid systems, available at spaceex.imag.fr . Experimental results
+of full ﬁxed-point computations with hybrid systems with more than 100variables illustrate the scalability of the approach.
+1 Introduction
+Hybrid systems are a class of mathematical models of dynamical systems admit-
+ting both discrete-event (logical) and continuous (numerical) dynamics. They
+consist of a transition system, augmented with real-valued state variables thatevolve according to a particular diﬀerential equation in every discrete state
+(mode). Conditions on the values of thes e variables may trigger discrete tran-
+sitions (mode switching). Naturally, the veriﬁcation of hybrid systems requiresingredients taken from the classical veriﬁcation of transition systems, augmented
+with new special techniques for doing veriﬁcation-like operations (successor com-
+putation) on the continuous dynamics. Early tools [11,1] focused on relativelysimple continuous dynamics in each discrete state, where the derivative of the
+continuous variables does not depend on their values. For such “linear” hybrid
+automata, the computation of successors in the continuous domain can be real-
+ized by linear algebra. Nevertheless, it turned out that switching between such
+simple continuous modes one can easily construct undecidability gadgets andhence the exact veriﬁcation of hybrid systems turned out to be a dead end.
+The second wave of hybrid veriﬁcation tools [6,3,12] indeed abandoned exact
+computations and focused more on computing approximations of the reachable
+states for systems admitting less trivial continuous dynamics. Such techniques
+G. Gopalakrishnan and S. Qadeer (Eds.): CAV 2011, LNCS 6806, pp. 379–395, 2011.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2011
+
+--- Page 2 ---
+380 G. Frehse et al.
+and tools could handle hybrid systems with continuous dynamics deﬁned by lin-
+ear diﬀerential equations with inputs. However, the size of systems that couldbe handled was modest, typically very few continuous state variables. Another
+thread in hybrid veriﬁcation focuses on systems with a very large discrete state-
+space with very few continuous variables. Typically such models are aimed toverify the code of computerized contro l systems, with a very modest modeling
+of the external environment. The major preoccupation in these eﬀorts is in com-
+bining the continuous part with techniques, such as BDD or SAT, for handling
+large discrete sta te-spaces [7,16].
+In the last couple of years, an important breakthrough has been achieved in
+the reachability computation of the continuous part. A new algorithm based
+on a “lazy” representation of the reachable sets, ﬁrst developed for the spe-
+cial case where reachable states are represented by Zonotopes [10] and then
+extended and crystalized using the more general representation via support func-
+tions [14,13,15], has dramatically increased the scope of linear systems that can
+be veriﬁed to several hundreds of state variables. Similar scale improvementshave been reported recently on complem entary approaches for handling linear
+systems [4]. Moreover, signiﬁcant adva nces have been made on applying these
+linear techniques to nonlinear systems via “hybridization” (approximating a non-
+linear system by a piecewise-aﬃne one) [2 ], which have led to the veriﬁcation of
+non-trivial nonlinear systems with about a dozen of state variables [8].
+This paper is concerned with the transfer of such research achievements, typ-
+ically obtained as theoreti cal results accompanied by a thesis-related prototype,
+into a robust and user-friendly tools et. It describes SpaceEx, a new extensi-
+ble veriﬁcation platform for hybrid syste ms, developed with systematic software
+engineering [9], implementing many of t he above-mentioned developments, and
+featuring a web-based graphical user int erface. As the reader will see, this trans-
+fer is not only about software engineering, modularity and user interface: it
+consists in improving and ﬁne-tuning the algorithms to make them applicableto real-world problems. SpaceEx consists of three components:
+–The analysis core is a command line program that takes a model ﬁle, a con-
+ﬁguration ﬁle that speciﬁes the initial states, the scenario and other options,and then analyzes the system and produces a series of output ﬁles.
+–The web interface , shown in Fig. 1(a), is a graphical user interface with which
+one can comfortably specify initial states and other analysis parameters, run
+the analysis core, and visualize the output graphically. The web interface is
+browser-based, and accesses the analysis core via a web server, which may
+be running remotely or locally on a virtual machine.
+–The model editor , shown in Fig. 1(b), is a graphical editor for creating models
+of complex hybrid systems out of nested components.
+In this paper, we describe an eﬃcient and scalable reachability algorithm,
+which builds on the one in [15], adapted speciﬁcally for maximum scalability.
+We present its extension to variable time steps, and propose an improved ap-
+proximation model, which drastically improves the accuracy of the algorithm.
+
+--- Page 3 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 381
+(a) Web interface
+ (b) Model editor
+Fig. 1. Graphical user interfaces of the SpaceEx platform
+Experimental results demonstrate the scalability of the algorithm and the per-
+formance of the tool. Unlike in classical v eriﬁcation there a re no established
+benchmarks and reference tools for comparing high-dimensional hybrid reach-ability. We know of no tool that has been reported to treat systems of the
+dimensions in this paper. The examples used in this paper as well as the tool
+itself are available at http://spaceex.imag.fr .
+The paper is structured as follows. S ection 2 recalls hybrid automata, the
+basic reachability algorithm and data structures used in SpaceEx. Section 3
+describes the variable time step algorithm and the new approximation model
+used to compute time elapse successor states. The computation of successor
+states of discrete transitions is present ed in Sect. 4. Experimental results based
+on our implementation in SpaceEx are provided in Sect. 5, followed by some
+conclusions in Sect. 6. The proofs for this paper are available as an appendix at
+http://www-verimag.imag.fr/ ~frehse/cav2011_appendix.pdf .
+2 Reachability of Hybrid Systems
+2.1 Hybrid Automata
+We model the interaction of discrete events and continuous, time-driven dynam-
+ics with a hybrid automaton [1]. A hybrid automaton H=(Loc,Var,Lab,Inv,
+Flow,Trans ,Init) consists of a labeled graph that encodes the nondeterministic
+evolution of a ﬁnite set of continuous variables Var over time. In this paper, we
+associate each of the nvariables with a dimension in Rn.Av e r t e x l∈Locof
+the graph is called a location .A stateis a pair ( l,x)∈Loc×Rn.I ne v e r ys t a t e
+(l,x), the time-driven evolution of the continuous variables is given by the set
+of derivatives Flow(l,x)⊆Rn. The edges of the graph are called discrete tran-
+sitions . A transition ( l,α, Guard ,Asgn,l/prime)∈Trans ,w i t hl a b e l α∈Laballows
+the system to jump from location lto location l/prime, instantaneously modifying
+the values of the variables. A state ( l,x)c a nj u m pt o( l/prime,x/prime) according to the
+
+--- Page 4 ---
+382 G. Frehse et al.
+guard Guard ⊆ Rnand the assignment Asgn (x)⊆ Rn, i.e., if x∈Guard and
+x/prime∈Asgn(x). The system may only remain in a location las long as the state is
+inside the invariant Inv (l)⊆Rn. All behaviors originate from the initial states
+Init⊆Loc×Rn. In this paper, we consider Flow(l) to be a continuous dynamics
+of the form
+˙x(t)=Ax(t)+u(t),u (t)∈U, (1)
+where x(t)∈Rn,Ais a real-valued n×nmatrix and U⊆ Rnis a closed and
+bounded convex set. Transition assignments Asgn are of the form
+x/prime=Rx+w, w ∈W, (2)
+where Ris a real-valued n×nmatrix, and W⊆ Rnis a closed and bounded
+convex set of non-deterministic inputs.
+Anexecution of the automaton is a sequence o f discrete jumps and pieces of
+continuous trajectories a ccording to its dynamics, and originates in one of the
+initial states. A state is reachable if an execution leads to it. We are concerned
+with computing the set of states that are reachable.
+2.2 High-Level Reachability Algorithm
+Our reachability algorithm is a classical ﬁxed-point computation that operates
+onsymbolic states . A symbolic state is a pair ( l,Ω), where lis a location and Ω
+is a convex continuous set. For a set of symbolic states R,l e tt h e discrete post-
+operator postd(R) be the set of states reachable by a discrete transition from R,
+and the continuous post-operator postc(R)b et h es e to fs t a t e sr e a c h a b l ef r o m
+Rby letting an arbitrary amount of time elapse. The set of reachable states is
+the ﬁxed-point of the sequence R0=p o s tc(Init),
+Rk+1:=Rk∪postc(postd(Rk)). (3)
+In the following section we present ho w we represent convex continuous sets
+such that the post operators can be com puted eﬃciently. The post operators
+themselves are presented in Sect. 3 and Sect. 4.
+2.3 Support Functions and Template Polyhedra
+Computing the image of the reachability post-operators for continuous sets is
+hard, in particular for the time elapse operator postc. In [15], an eﬃcient algo-
+rithm was proposed that uses support functions to represent convex continuous
+sets. The support function [5] of a closed and bounded continuous set S⊆ Rn
+assigns to any direction vector /lscript∈Rnthe value
+ρ(/lscript,S)=m a x
+x∈S/lscript·x.
+The support function of a convex set Sis an exact representation of the set,
+which is illustrated by the fact that S=/intersectiontext
+/lscript∈Rn{x|/lscript·x≤ρ(/lscript,S)}.Representing
+a convex set by its support function has the beneﬁt that the majority of the setoperations used in our algorithm ca n be implemented very eﬃciently:
+
+--- Page 5 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 383
+–linear map : For a map M∈Rn×Rn,ρ(/lscript,MS)=ρ(M/latticetop/lscript,S).
+–Minkowski sum :F o rs e t s S1,S2,ρ(/lscript,S1⊕S 2)=ρ(/lscript,S1)+ρ(/lscript,S2).
+–convex hull :F o rs e t s S1,S2,ρ(/lscript,CH(S1,S2)) = max( ρ(/lscript,S1),ρ(/lscript,S2)).
+However, our algorithm requires two more operations, for which support func-
+tions are not eﬃcient: intersection and deciding containment. For these opera-
+tions, we use another set representation, template polyhedra , which are polyhedra
+with facets whose normal vector s are given a priori. Given a set D={/lscript1,...,/lscript m}
+of vectors in Rncalled template directions , a template polyhedron PD⊆Rnis
+a polyhedron for which there exist coeﬃcients b1,...,b m∈Rsuch that
+PD=/braceleftbig
+x∈Rn|/logicalanddisplay
+/lscripti∈D/lscripti·x≤bi/bracerightbig
+.
+A template polyhedron can be re presented by its coeﬃcients bi, which is partic-
+ularly useful when working with sets of t emplate polyhedra. In order to go from
+a support function representation of a set Sto a template polyhedron, we use its
+template hull THD(S), which is the template polyhedron deﬁned by coeﬃcients
+bi=ρ(/lscripti,S). The support function of a polyhed ron can be computed eﬃciently
+for a given direction /lscriptusing linear programming. In this paper, we consider:
+–2nboxdirections: xi=±1,xk=0f o r k/negationslash=i;
+–2n2octagonal directions: xi=±1,xj=±1,xk=0f o r k/negationslash=iandk/negationslash=j;
+–muniform directions (as evenly as possible distributed over the unit sphere).
+However, the algorithm supports a more general choice of directions, which re-
+mains to be investigated.
+The use of both support functions and template hulls is justiﬁed by the fact
+that they are eﬃcient for diﬀerent opera tions, and both set representations are
+present in our implementation. Support functions are an exact and complete
+representation of convex sets – impleme nted as function objects, they can com-
+pute values for any direction. With template hulls, the directions Dare ﬁxed
+once and for all at the time of construction, and information for other directions
+is lost. By switching representations only when necessary (data-dependently) we
+remain as precise as possible.
+3 Variable Time-Step Flowpipe Computation
+We consider the aﬃne continuous dynamics in (1), ˙ x(t)=Ax(t)+u(t),u(t)∈
+U,w h e r e x(0)∈X 0,a n d U⊆ Rnis a set of nondeterministic inputs. Let
+Reach t1,t2(X) denote the reachable states starting from the set Xwith input
+setUin the time interval [ t1,t2],
+Reach t1,t2(X)={x(τ)|t1≤τ≤t2,x(0)∈X,x(t) satisﬁes (1) }.(4)
+We compute a ﬂowpipe , a sequence of continuous sets Ω0,...,Ω N−1that covers
+the reachable states up to time T(Ndepends on the chosen time steps).
+
+--- Page 6 ---
+384 G. Frehse et al.
+Before we present the actual algorithm, we discuss how we take into account
+the invariant of the corresponding location of the hybrid automaton. In ourimplementation, we test at the k-th step whether Ω
+kis entirely outside of the
+invariant, and stop the sequence once this is the case. Then we intersect the
+invariant with the computed Ωk(see Sect. 4 for a discussi on of the intersection
+operation). Note that this procedure may produce an over-approximation, as
+the invariant may block some of the trajectories starting in X0without blocking
+them all. We include the invariant facet normals automatically in the template
+directions, so the result is usually of satisfactory precision. A variation of this
+algorithm with proper handling of invariants is presented in [14].
+We now describe the variable time step algorithm. Given arbitrary time steps
+δ0,δ1,..., we construct the sequence Ωkthat covers the set of reachable states.
+As we will show, each set Ωkcovers the reachable states in the time interval
+[tk,tk+1], where tk=/summationtextk−1
+i=0δi. The algorithm is based on two functions Ω[0,δ]and
+Ψδ, called approximation models . They over-approximate the reachable states
+over a time interval [0 ,δ] as a function of δ,X0,andU:
+Reach 0,δ(X0)⊆Ω[0,δ](X0,U),Reach δ,δ({0})⊆Ψδ(U). (5)
+Each Ωkis constructed by computing Ω[0,δk],w h i c hc o v e r sR e a c h 0,δk(X0), and
+then shifting this set forward in time so that it covers Reach tk,tk+δk(X0). This
+is possible due to the following well-known property:
+Lemma 1. Reach tk,tk+δk(X)=eAtkReach 0,δk(X)⊕Reach tk,tk({0}).
+It therefore suﬃces to apply the linear map eAtk(a constant matrix) to Ω[0,δk],
+a n dt h e nt oa d dR e a c h tk,tk({0}), which captures the inﬂuence of the inputs U
+up to time tk. We over-approximate this summand with a sequence Ψkdeﬁned
+below:
+Reach tk,tk({0})⊆Ψk.
+Given approximation models Ω[0,δ]andΨδ, we compute the sequence Ωkas
+follows, with Ψ0={0}:
+Ψk+1=Ψk⊕eAtkΨδk(U),
+Ωk=eAtkΩ[0,δk](X0,U)⊕Ψk(6)
+Now we formally state the main result of this section: Given the approximation
+models, which we will deﬁne in the next section, the sequence Ωkcovers the
+reachable set.
+Proposition 1. Given a sequence of time steps δ0,...,δ N−1with/summationtextN−1
+i=0δi=T,
+the sequence Ωkdeﬁned by (6) satisﬁes
+Reach 0,T(X0)⊆N−1/uniondisplay
+k=0Ωk. (7)
+Representing the sets ΨkandΩkby their support function, the operators used in
+(6) – linear map and Minkowski sum – ca n be computed eﬃciently as discussed
+in Sect. 2.3.
+
+--- Page 7 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 385
+(a)eAδX0
+X0(c)
+(b)
+-0.4 -0.2 0.0 0.2 0.4 0.60.80.91.01.11.2
+xy
+Fig. 2. Diﬀerent approximation models for a segment of a circular trajectory, computed
+by SpaceEx: (a) using a ﬁrst-order approximation of the ODE [15], (b) using a ﬁrst-
+order approximation of the error of the linear interpolation between the states at time
+t=0a n da t t=δ[13], (c) the new model, which intersects a ﬁrst-order approximation
+of the interpolation error going forward in time from t= 0 with one that goes backward
+fromt=δ.
+In the next section, we present the new approximation model which we use
+to compute Ωkas in (6). In Sect 3.2, we provide direction-wise error bounds on
+this computation, and discuss how to adapt the time steps in order to guarantee
+given error bounds.
+3.1 Approximation Model
+The approximation quality of the sequence Ωkevidently hinges on the quality
+of the approximation model. In [15], an approximation model was proposed that
+uses the norms of A,X0andUto bound the error of a ﬁrst-order approximation
+of the solution of the state equations, see Fig. 2 for an illustration. If this allows
+one to establish an asymptotically optimal error over a given time interval, it
+is sometimes overly conservative in practice. In this section, we propose a new
+model, which is a strict improvement over the method in [15] if the norm used
+is the inﬁnity norm. For other norms, it is possible to ﬁnd cases for which the
+resulting sets are incomparable, but we have yet to ﬁnd a pratical case where
+our approximation is worse. Similar to a model proposed in [13], it is based on
+a ﬁrst-order approximation of the interpolation error between the reachable set
+at time 0 and at time δ. On top of that, it combines an approximation that goes
+forward in time with one that goes backward in time in order to further improve
+the accuracy.
+Before presenting the model, we introduce the following notations. The sym-
+metric interval hull of a set S, denoted /squaredot(S), is/squaredot(S)=[−
+|x1|;
+|x1|]×...×
+[−
+|xd|;
+|xd|]w h e r ef o ra l l i,
+|xi|=s u p {|xi||x∈S}.L e tM=(mi,j)b eam a t r i x ,
+andv=(vi) a vector. We deﬁne as |M|and|v|the absolute values of Mandv
+respectively, i.e., |M|=(|mi,j|)a n d |v|=(|vi|).These absolute values allow us
+to bound matrix-vector operations (component wise) without taking their norm.
+
+--- Page 8 ---
+386 G. Frehse et al.
+The approximation model uses the following transformation matrices:
+Φ1(A, δ)=∞/summationdisplay
+i=0δi+1
+(i+1 ) !Ai,Φ 2(A, δ)=∞/summationdisplay
+i=0δi+2
+(i+2 ) !Ai. (8)
+IfAis invertible, Φ1andΦ2can be computed as Φ1(A, δ)=A−1/parenleftbig
+eδA−I/parenrightbig
+,
+Φ2(A, δ)=A−2/parenleftbig
+eδA−I−δA/parenrightbig
+. Otherwise, they can be computed as submatri-
+ces of the block matrix
+⎛
+⎝eAδΦ1(A, δ)Φ2(A, δ)
+0 II δ
+00 I⎞
+⎠=e x p⎛
+⎝Aδ Iδ 0
+00Iδ
+000⎞
+⎠.
+We can now use these operators to obtain a precise over-approximation of
+Reach 0,δ(X0)a n dR e a c h δ,δ({0}). We start with a ﬁrst-order approximation of
+the latter :
+Lemma 2. LetΨδ(U)be the set deﬁned by
+Ψδ(U)=δU⊕E Ψ(U,δ), (9)
+EΨ(U,δ)=/squaredot/parenleftbig
+Φ2(|A|,δ)/squaredot(AU)/parenrightbig
+. (10)
+Then, Reach δ,δ(0)⊆Ψδ(U).
+We now have discretized the diﬀerenti al equation, but we still have to over-
+approximate Reach 0,δ(X0) with a function Ω[0,δ](X0,U). Our starting point is a
+linear interpolation between Reach 0,0and Reach δ,δusing a parameter λ=t/δ
+representing normalized ti me. For each point in time t,R e a c h t,t=R e a c h λδ,λδ
+is a convex set, for which we construct an over-approximation Ωλ.O u ro v e r -
+approximation for the time interval [0 ,δ] is then the convex hull of all Ωλover
+λ∈[0,1]. Using a forward, respectively backward, interpolation leads to an error
+term proportional to λ, respectively 1 −λ. Intersecting both approximations gives
+the following result:
+Lemma 3. Letλ∈[0,1],a n dl e t Ωλ(X0,U,δ)be the convex set deﬁned by:
+Ωλ(X0,U,δ)=( 1 −λ)X0⊕λeδAX0⊕λδU
+⊕/parenleftbig
+λE+
+Ω(X0,δ)∩(1−λ)E−
+Ω(X0,δ)/parenrightbig
+⊕λ2EΨ(U,δ),with
+E+
+Ω(X0,δ)=/squaredot/parenleftbig
+Φ2(|A|,δ)/squaredot/parenleftbig
+A2X0/parenrightbig/parenrightbig
+,
+E−
+Ω(X0,δ)=/squaredot/parenleftbig
+Φ2(|A|,δ)/squaredot/parenleftbig
+A2eδAX0/parenrightbig/parenrightbig
+,
+EΨ(U,δ)=/squaredot(Φ2(|A|,δ)/squaredot(AU)).
+Then Reach λδ,λδ(X0)⊆Ωλ(X0,U,δ). If we deﬁne Ω[0,δ](X0,U)as:
+Ω[0,δ](X0,U)=C H/parenleftbig/uniondisplay
+λ∈[0,1]Ωλ(X0,U,δ)/parenrightbig
+, (11)
+thenReach 0,δ(X0)⊆Ω[0,δ](X0,U).
+
+--- Page 9 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 387
+Ω[0,δ](X0,U), as deﬁned above, might seem hard to represent. In fact, its support
+function is not much harder to compute than the one of X0andU.L e t
+ω(X0,U,δ ,λ)=( 1 −λ)ρ(/lscript,X0)+λρ((eδA)/latticetop/lscript,X0)+λδρ(/lscript,U)
++ρ/parenleftbig
+/lscript,λE+
+Ω∩(1−λ)E−
+Ω/parenrightbig
++λ2ρ(/lscript,EΨ).(12)
+Since the signs of λ,( 1−λ), and λ2do not change on [0 ,1], we have:
+ρ(/lscript,Ω [0,δ](X0,U)) = max
+λ∈[0,1]ω(X0,U,δ ,λ). (13)
+The support function of λE+
+Ω∩(1−λ)E−
+Ωcan easily be expressed as a piecewise
+linear function of λ. For any λ, this set is a centrally symmetric box and its
+support function is:
+ρ(/lscript,λE+
+Ω∩(1−λ)E−
+Ω)=d/summationdisplay
+i=1min(λe+
+i,(1−λ)e−
+i)|li|,
+where e+ande−are such that ρ(/lscript,E+
+Ω)=e+·|l|andρ(/lscript,E−
+Ω)=e−·|l|.T h u s
+we only have to maximize a piecewise qua dratic function in one variable on [0 ,1]
+after the evaluation of the support function of the sets involved.
+3.2 Time Step Adaptation with Error Bounds
+Time steps are generally hard to choose, and their value is rarely chosen in
+itself, but according to an expected preci sion. In order to eﬃciently choose our
+variable time step, we must be able to evaluate the error introduced by time
+discretization. In our error calculation, we do not bound the error introducedat each step, but the overall error introduced since the beginning of the current
+continuous evolution. We must take into account the accumulation of errors,
+not done carefully we might exhaust our error tolerance before the end of the
+computation and become unable to advance in time without exceeding it.
+Our choice of error bound ε(/lscript) is the diﬀerence between the computed support
+function and the support function of the reachable set at time t.F o re a c hs e t
+Ω
+kwe deﬁne
+εΩk(/lscript)=ρ(/lscript,Ωk)−ρ/parenleftbig
+/lscript,Reach tk,tk+1(X0)/parenrightbig
+(14)
+The total approximation error is then
+ε(/lscript)= m a x
+k∈0,...,N−1εΩk(/lscript).
+Note that Reach tk,tk+1(X0) is generally not a convex set, and by over-
+approximating it with the convex set Ωkwe incur an additional error that is
+not captured by εΩk(/lscript). The bound ε(/lscript) allows us to decide whether or not the
+reachable set satisﬁes a linear constraint /lscript·x≤b(e.g., whether the states surpass
+a certain threshold) with an uncertainty margin of ε(/lscript).
+
+--- Page 10 ---
+388 G. Frehse et al.
+To compute εΩk(/lscript), we must take into account the error for Ψδ(U) deﬁned as
+i nL e m m a2a n d Ω[0,δ](X0,U)d e ﬁ n e da si nL e m m a3 .L e t
+εΨδ(U)(/lscript)=ρ(/lscript,Ψδ(U))−ρ(/lscript,Reach δ,δ({0})), (15)
+εΩ[0,δ](X0,U)(/lscript)=ρ(l,Ω [0,δ](X0,U))−ρ(l,Reach 0,δ(X0)). (16)
+Lemma 4. For any /lscriptin Rn:
+εΨδ(U)(/lscript)≤ρ(/lscript,EΨ(U,δ)) +ρ(/lscript,−AΦ2(A, δ)U) (17)
+εΩ[0,δ](X0,U)(/lscript)≤max
+λ∈[0,1]/braceleftBig
+ρ/parenleftBig
+l,/parenleftbig
+λE+
+Ω(X0,δ)∩(1−λ)E−
+Ω(X0,δ)/parenrightbig/parenrightBig
++λ2ρ(l,EΨ(U,δ)) +λρ(/lscript,−AΦ2(A, δ)U)/bracerightBig
+.(18)
+Computing the support function of Ωkas deﬁned by (6) and applying the
+a b o v el e m m a sa sw e l la sL e m m a1 ,w eo b t a i n εΩk(/lscript) as follows.
+εΨk+1(/lscript)=εΨk(/lscript)+εΨδk(U)(eAtk/latticetop/lscript),
+εΩk(/lscript)=εΩ[0,δk](X0,U)(eAtk/latticetop/lscript)+εΨk(/lscript).(19)
+Given the above error bounds, one can adapt the time steps during the com-
+putation of the sequence such that ε(/lscript) is kept arbitrarily small. The problem
+lies in the error εΨk(/lscript), which accumulates with k, so that an a-posteriori re-
+ﬁnement would require the whole squence to be recomputed. We therefore use
+the following simple heuristic to compute the sequence of ρ(/lscript,Ωk)f o rag i v e n
+template direction /lscriptsuch that ε(/lscript)≤ˆεfor a given error bound ˆ ε∈R>0.I n s t e a d
+of computing ρ(/lscript,Ωk) directly, we ﬁrst compute the whole sequence ρ(/lscript,Ψk),
+then the sequence ρ(eAtk/latticetop/lscript,Ω [0,δk](X0,U)), and only then combine them to get
+the sequence ρ(/lscript,Ωk). This separation allows us to choose a separate time step
+for each sequence, adapting the error as necessary. Additionally, by computing
+the sequences one after another, the last one can pick up the slack in the error
+bound of the ﬁrst sequence.
+In the following we suppose that ˆ εis distributed a-priori on both sequences,
+so that we have ˆ εΩand ˆεΨin R>0with ˆε=ˆεΩ+ˆεΨ. This distribution can be
+established, e.g., by a prior coarse-grained run with a large error bound, or by a
+run with large ﬁxed time steps. Because the error of Ψkaccumulates with k,i ti s
+chosen (somewhat arbitrarily) to remain below a linearly increasing bound. The
+error of eAtkΩ[0,δk](X0,U) does not depend on previous computation steps, so it
+can be adapted on the ﬂy to meet the required bound. We proceed as follows:
+1. Compute ρ(/lscript,Ψk(U)) such that εΨk(/lscript)≤tΨ
+k
+TˆεΨ.A te a c hs t e p k, we must ﬁnd
+aδΨ
+k, ideally the biggest, such that:
+εΨk(/lscript)+εΨδΨ
+k(U)(eAtΨ
+k/latticetop
+/lscript)≤tΨ
+k+δΨ
+k
+TˆεΨ
+
+--- Page 11 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 389
+Finding δΨ
+kis possible because εΨδ(U)(eAt/latticetop/lscript)=O(δ2). First, we ﬁx an initial
+time step δΨ
+−1. Then, at each step k, we start a dichotomic search from δΨ
+k−1
+along the δfor which sets and matrices involved in the computation of Ψδ(U)
+have already been evaluated, trying new values only when necessary.
+2. Compute ρ(eAtΩ
+k/latticetop/lscript,Ω[0,δΩ
+k](X0,U)) such that
+εΩ[0,δΩ
+k](X0,U)(eAtΩ
+k/latticetop
+/lscript)+εΨi(k)(/lscript)=εΩk(/lscript)≤ˆε
+where i(k) is such that tΨ
+i(k)−1<tΩ
+k≤tΨ
+i(k). This can be done with a di-
+chotomic search over the sequence of tΨ
+kalready computed for ρ(/lscript,Ψk(U)).
+If there is a ksuch that δΨ
+i(k)must be further reﬁned, then for the newly
+introduced indices kj,w eh a v e i(kj)=i(k).
+To combine the above two sequences into ρ(/lscript,Ωk), we use the sequence of time
+stepsδΩ
+k. If this introduces new times tΩ
+kin the sequence of tΨ
+k, we can compute
+the missing values for ρ(/lscript,Ψk(U)) by starting from tΨ
+i(k)−1. This does not trigger
+the recomputation of ρ(/lscript,Ψk(U)) for other time points since the sequence εΨk(/lscript)
+is increasing.
+4 Computing Transition Successors
+Each ﬂow-pipe that is created by the time elapse step is passed to the compu-tation of transition successors. States that take the transition must satisfy the
+guard, are then mapped according to the assignment and the result must satisfy
+the invariant of the target location. Consider a transition Twith guard G, assign-
+ment Asgn, and whose target location has the invariant I
++.L e t Post Asgn(X)
+be the set of states that result from mapping a continuous set Xaccording to
+Asgn. Then for a set of states X, the set of successor states is given by
+postd(T,X)= Post Asgn(X∩G )∩I+.
+We now discuss how the operations for this image computation, intersection and
+assignment, can be carried out eﬃcient ly. Then we present a method to decrease
+the number of convex sets produced by the successor computation so that an
+exponential blowup in the number of sets can be avoided.
+Intersection. Since intersection with support functions is hard, we compute in-
+tersection on the template hull, say PD=T H D(X). IfXis a set of convex sets,
+the intersection is performed se parately on each convex set. If Gis a polyhe-
+dron in constraint form whose constraint normals are template directions, then
+this operation can be carried out very eﬃciently by taking the minimum of the
+template coeﬃcients:
+PD∩G=/braceleftbig
+x∈Rn|/logicalanddisplay
+/lscripti∈D/lscripti·x≤min(bX
+i,bG
+i)/bracerightbig
+.
+
+--- Page 12 ---
+390 G. Frehse et al.
+Assignment. Recall that according to (2) transition assignments are of the form
+x/prime=Rx+w,w∈W,where W⊆ Rnis a convex set of non-deterministic inputs.
+In the general case, the assignment operator is therefore
+Post Asgn(X)=RX⊕W ,
+and can be computed eﬃciently using support functions. If the assignment is
+invertible and deterministic, i.e., Ris invertible and W={w0}for some constant
+vector w0, the exact image can be computed eﬃciently on the polyhedron.
+Clustering. Each ﬂow-pipe consists of a possibly large number of convex sets
+that cover the actual trajectories. Wh en we compute the successor states for a
+transition, each of these convex sets spawns its own ﬂow-pipe in the next timeelapse computation. This may multiply the number of sets with each iteration,
+leading to an explosion in the number of sets and slowing the analysis down
+to a stall. To avoid this eﬀect and speed up the analysis, we apply what wecall clustering . Given a hull operator, clustering reduces the number of sets by
+replacing groups of these sets with a single convex set, their hull. We use the
+following clustering algorithm for a given hull operator HULL .L e tt h e width of
+P
+1,...,Pzwith respect to a direction /lscript∈Dbe
+δP1,...,Pz(/lscript)=m a x
+i=1..zρ(/lscript,Pi)−min
+i=1..zρ(/lscript,Pi). (20)
+Given P1,...,Pzand a clustering factor of 0≤c≤1, the clustering algorithm
+produces a set of polyhedra Q1,...,Q r,r≤z, as follows:
+1. Let i=1 ,r=1 ,Qr:=Pi.
+2. While i≤zand∀/lscript∈D:δQr,Pi(/lscript)≤cδP1,...,Pz(/lscript),
+Qr:=HULL (Qr,Pi),i:=i+1 .
+3. Ifi≤z,l e tr:=r+1 ,Qr:=Pi. Otherwise, stop.
+We consider two hull operators: template hull, which is fast but very over-
+approximative, and convex hull, which is precise but slower. It can be advata-
+geous to combine both, as illustrated by the following example:
+Example 1. Consider the 8-variable ﬁltered oscillator presented in Sect. 5.1. At
+the ﬁrst discrete state change alone, 57 convex sets can take the transition.
+Without clustering, the computation is not feasible, as these sets would spawn
+57 new ﬂowpipes, and similarly for their successors. Template hull clustering
+withcTH=0.3 produces three sets and results in a total runtime of 11.5s.
+With cTH= 1 it produces a single set and takes 3.36s, but with a large over-
+approximation. Convex hull clustering by itself with cCH= 1 is very precise but
+takes 8.19s. Combining both with cTH=0.3,cCH= 1 takes 3.64s without a
+noticeable loss in accuracy.
+5 Experimental Results
+To demonstrate the scalability of our algorithm and the performance of thetool SpaceEx, we present the following experiments. The ﬁrst system is a simple
+
+--- Page 13 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 391
+Table 1. Performance results for the ﬁltered oscillator benchmark, varying the number
+of variables in the system. The time step is δ=0.05, applying template hull clustering
+withcTH=0.3 followed by convex hull clustering with cCH= 1. Indicated are the
+runtime, memory and iterations required to compute a ﬁxed-point, and the largest
+error for any of the directions in any of the time steps
+Variables Time [s] Mem. [MB] Iter. Error
+18 2,0 9,3 9 0,010
+34 9,1 20,2 13 0,010
+66 77,3 50,3 23 0,013
+130 1185,6 194,3 39 0,030
+198 7822,5 511,0 57 0,074
+Box constraints
+Variables Time [s] Mem. [MB] Iter. Error
+2 0,7 11,8 6 0.009
+4 1,4 11,8 6 0.025
+6 4,7 13,3 6 0.025
+10 33,0 23,0 7 0.025
+18 538,4 67,9 10 0.025
+Octagonal constraints
+parameterized system which we use to empi rically measure the complexity of our
+algorithm. The second system is a multivariable continuous control system with
+complex, tightly coupled dynamics. It illustrates the faithfulness and accuracy
+of the continuous part of the algorithm. For lack of space we do not present the
+model equations, but instead refer the reader to the SpaceEx model ﬁles, which
+are available at http://spaceex.imag.fr .
+5.1 Filtered Oscillator Benchmark
+To measure the performance of our approach, we use a simple parameterized
+switched oscillator system whose complexity is increased by adding a series of
+ﬁrst-order ﬁlters to the output xof the oscillator. The ﬁlters smooth x,p r o -
+ducing a signal zwhose amplitude diminishes as the number of ﬁlters increases.
+Note that the dynamics are rather simple, as the ﬁlter variables are only weakly
+coupled with one another. The oscillator is an aﬃne system with variables x,y
+that switches between two equilibria in order to maintain a stable oscillation,
+which together with kﬁlters yields a parameterized system with k+2 continuous
+variables and two locations. One location has the invariant x≥−1.4y, the other
+x≤−1.4y, and the guards consist of the boundaries of the invariants.
+To empirically measure how the complexity depends on the nvariables of the
+system and the mtemplate directions, we run experiments varying just n,j u s t
+m,a n db o t h . Fixed n:The average time for a successor computation (discrete
+followed by continuous) for the 6-variable system over muniform directions,
+m=8,...,256, shows a root mean square (RMS) tendency of O(m1.7).Fixed
+m:The average time for a successor computation with 200 uniform directions
+withn=6,...,16 shows an RMS tendency of O(n). Table 1 shows the complete
+runtime of a ﬁxed-point computation for box and uniform directions for the
+system with up to 198 variables. The RMS tendency is O(n2.7) for box directions
+andO(n4.7) for octagonal directions, which conﬁrms the results for ﬁxed nand
+ﬁxedm.
+
+--- Page 14 ---
+392 G. Frehse et al.
+(a)δt=0.05 for both
+ (b) forw: δt=0.005, interpfb: δt=0.05
+Fig. 3. The reachable states of the 28-variable controlled helicopter system in the
+plane ( x2,x3) (corresponding to roll attitude and roll rate), computed with octagonal
+constraints. We compare the new error scheme (interfb), shown in dark blue, with that
+of [13] (a) and of [15] (b), shown in bright red.
+Table 2. Error models comparison with ﬁxed step. The error model introduced
+in this paper (interpfb) clearly outperforms that proposed in [15] (forward) and the
+one proposed in [13] (interp). Memory is indicated in MBs.
+forward interp interpfb
+δtMem. Time [s] Error Mem. Time [s] Error Mem. Time [s] Error
+0.05 9.44 1.48 9.67e+22 9.61 1.60 16.1 9.59 1.65 2.95
+0.01 10.5 7.09 3.85e+5 10.5 7.60 0.191 10.5 8.16 0.178
+5e-3 10.3 14.1 2.47e+3 10.2 15.2 4.37e-2 12.6 15.8 2.82e-2
+1e-3 23.1 71.1 12.4 18.4 76.7 1.59e-3 18.5 78.7 1.07e-3
+5e-4 27.9 142 2.56 27.9 155 3.89e-4 28.2 157 2.66e-4
+5.2 Helicopter Controller
+To measure the performance of our algorithm for complex dynamics, we an-
+alyze the helicopter controller from [17]. We analyze the controlled plant, a
+28-dimensional continuous linear time-invariant (LTI) system. The plant is a
+small disturbance model of a helicopter, given as an 8-dimensional LTI system.
+The controller we examine is an H∞mixed-sensitivity design for rejecting at-
+mospheric turbulence, given as a 20-dimensional LTI system. Figure 3 shows the
+increased accuracy of our new approxim ation model with respect to previous
+models. Tables 2 and 3 show the performance results with ﬁxed time steps and
+with variable time steps, each for the diﬀerent error models.
+In [17], two diﬀerent controllers are designed for the helicopter, one of which
+is speciﬁcally tuned for disturbance rejection. Letting the rotor collective be a
+nondeterministic input in the interval [ −1,1], we compute the reachable states
+in 5s for one controller and in 14s for the other, as shown in Fig. 4.
+
+--- Page 15 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 393
+(a) Comparison of roll stabilization
+ (b) Comparison of pitch stabilization
+Fig. 4. Comparison of two disturbance rejection models. Reachable sets with
+nondeterministic inputs for the helicopter example for the two disturbance rejection
+models compared in [17] ( T= 20, method interfb and error tolerance of 0.1 for both).
+This conﬁrms that the better disturbance re jection model proposed (in blue) actually
+stabilizes the system faster. However, in [17], this analysis was based only on several
+simulations.
+Table 3. Variable step performance. The variable step implementation outper-
+forms a ﬁxed step scheme even in the ideal case , i.e., with the best error model and
+assuming we know in advance the optimal time step δtto satisfy the error bound. This
+is always true for the number of steps taken and the slightly higher computational time
+for some case is explained by frequent changes in choice of the time step.
+Ideal ﬁxed step (interpfb) var step (interp) var step (interpfb)
+Err. req. nb steps δtused Time [s] nb steps Time [s] nb steps time
+1 1500 0.02 11.68 1475 12.0 974 8.359
+0.1 3418 8.78e-3 26.6 4334 33.9 2943 31.2
+0.01 11539 2.6e-3 90.3 14070 108 9785 77.9
+1e-3 44978 6.67e-4 351 39152 301 27855 234
+1e-4 101352 2.96e-4 902 85953 688 64315 811
+6 Conclusions
+The reachability of hybrid systems is recognized as be a hard problem, and re-
+search eﬀorts to ﬁnd a scalable approach have been going on for more than two
+decades. In this paper, we presented a vari able time-step extension of a scalable
+time-elapse algorithm and proposed an improved, highly accurate approxima-
+tion model for it. Together with techniques to eﬃciently compute transition
+successors that avoid the well-known problem of an explosion in the number of
+sets that the algorithm needs to propagate, we have implemented the algorithm
+in a new tool called SpaceEx. In our exp eriments, SpaceEx can handle hybrid
+systems with aﬃne dynamics and nondeterministic inputs with more than 100
+
+--- Page 16 ---
+394 G. Frehse et al.
+variables. Further research is needed to automatically ﬁnd suitable template di-
+rections to increa se the accuracy of the approach. SpaceEx and the examples
+from this paper are available at http://spaceex.imag.fr .
+Acknowledgments. This research was supported by the European Commission
+under grant INFSO-ICT- 224249, the U.S. National S cience Foundation under
+grant number CCF-0926181, an d the French National Research Agency under
+grant for the Syne2Arti project.
+References
+1. Alur, R., Courcoubetis, C., Halbwachs, N., Henzinger, T.A., Ho, P.-H., Nicollin,
+X., Olivero, A., Sifakis, J., Yovine, S.: The algorithmic analysis of hybrid systems.Theoretical Computer Science 138(1), 3–34 (1995)
+2. Asarin, E., Dang, T., Girard, A.: Hybridization methods for the analysis of non-
+linear systems. Acta Inf. 43(7), 451–476 (2007)
+3. Asarin, E., Bournez, O., Dang, T., Maler, O.: Approximate reachability analysis
+of piecewise-linear dynamical systems. In: Lynch, N.A., Krogh, B.H. (eds.) HSCC
+2000. LNCS, vol. 1790, p. 20. Springer, Heidelberg (2000)
+4. Asarin, E., Dang, T., Maler, O., Testylier, R.: Using redundant constraints for
+reﬁnement. In: Bouajjani, A., Chin, W.-N. (eds.) ATVA 2010. LNCS, vol. 6252,
+pp. 37–51. Springer, Heidelberg (2010)
+5. Bertsekas, D.P., Nedic, A., Ozdaglar, A.E.: Convex Analysis and Optimization.
+Athena Scientiﬁc, Belmont (2003)
+6. Chutinan, A., Krogh, B.H.: Veriﬁcation of polyhedral-invariant hybrid automata
+using polygonal ﬂow pipe approximations. In: Vaandrager, F.W., van Schuppen,
+J.H. (eds.) HSCC 1999. LNCS, vol. 1569, pp. 76–90. Springer, Heidelberg (1999)
+7. Damm, W., Disch, S., Hungar, H., Jacobs, S., Pang, J., Pigorsch, F., Scholl, C.,
+Waldmann, U., Wirtz, B.: Exact state set representations in the veriﬁcation oflinear hybrid systems with large discrete state space. In: Namjoshi, K.S., Yoneda,
+T., Higashino, T., Okamura, Y. (eds.) ATVA 2007. LNCS, vol. 4762, pp. 425–440.
+Springer, Heidelberg (2007)
+8. Dang, T., Le Guernic, C., Maler, O.: Computing reachable states for nonlinear
+biological models. In: Degano, P., Gorrieri, R. (eds.) CMSB 2009. LNCS, vol. 5688,
+pp. 126–141. Springer, Heidelberg (2009)
+9. Frehse, G., Ray, R.: Design principles for an extendable veriﬁcation tool for hybrid
+systems. In: ADHS (2009)
+10. Girard, A., Le Guernic, C., Maler, O.: Eﬃcient computation of reachable sets of
+linear time-invariant systems with inputs. In: Hespanha, J.P., Tiwari, A. (eds.)
+HSCC 2006. LNCS, vol. 3927, pp. 257–271. Springer, Heidelberg (2006)
+11. Henzinger, T., Ho, P.-H., Wong-Toi, H.: HyTech: A model checker for hybrid sys-
+tems. Software Tools for Technology Transfer 1, 110–122 (1997)
+12. Kurzhanski, A., Varaiya, P.: Reachability analysis for uncertain systems—the ellip-
+soidal technique. Dynamics of Continuous, Discrete and Impulsive Systems SeriesB: Applications and Algorithms 9(3b), 347–367 (2002)
+13. Le Guernic, C.: Reachability analysis of hybrid systems with linear continuous
+dynamics. PhD thesis, Universit´ e Grenoble 1 - Joseph Fourier (2009)
+
+--- Page 17 ---
+SpaceEx: Scalable Veriﬁcation of Hybrid Systems 395
+14. Le Guernic, C., Girard, A.: Reachability analysis of hybrid systems using support
+functions. In: Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS, vol. 5643, pp.
+540–554. Springer, Heidelberg (2009)
+15. Le Guernic, C., Girard, A.: Reachability analysis of linear systems using support
+functions. Nonlinear Analysis: Hybrid Systems 4(2), 250–262 (2010)
+16. Scholl, C., Disch, S., Pigorsch, F., Kupferschmid, S.: Computing optimized repre-
+sentations for non-convex polyhedra by detection and removal of redundant linear
+constraints. In: Kowalewski, S., Philippou, A. (eds.) TACAS 2009. LNCS, vol. 5505,
+pp. 383–397. Springer, Heidelberg (2009)
+17. Skogestad, S., Postlethwaite, I.: Multivariable Feedback Control: Analysis and De-
+sign. John Wiley & Sons, Chichester (2005)

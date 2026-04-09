@@ -1,0 +1,623 @@
+--- Page 1 ---
+Modular Strategies for Inﬁnite Games on
+Recursive Graphs⋆
+Rajeev Alur1, Salvatore La Torre2, and P. Madhusudan1
+1University of Pennsylvania
+2Universit` a degli Studi di Salerno
+Abstract. In this paper, we focus on solving games in recursive game
+graphs that can model the control ﬂow of sequential programs with recur-
+sive procedure calls. The winning condition is given as an ω-regular speci-
+ﬁcation over the observable, and, unlike traditional pushdown games, the
+strategy is required to be modular : resolution of choices within a com-
+ponent should not depend on the context in which the component is
+invoked, but only on the history within the current invocation of the
+component. We ﬁrst consider the case when the speciﬁcation is given
+as a deterministic B¨ uchi automaton. We show the problem to be decid-
+able, and present a solution based on two-way alternating tree automata
+with time complexity that is polynomial in the number of internal nodes,
+exponential in the speciﬁcation and exponential in the number of exits
+of the components. We show that the problem is Exptime -complete in
+general, and Np-complete for ﬁxed-size speciﬁcations. Then, we show
+that the same complexity bounds apply if the speciﬁcation is given as a
+universal co-B¨uchi automaton. Finally, for speciﬁcations given as formu-
+las of linear temporal logic Ltl, we obtain a synthesis algorithm that is
+doubly-exponential in the formula and singly exponential in the number
+of exits of components.
+1 Introduction
+An interesting class of inﬁnite-state systems that permits algorithmic veriﬁcation
+ispushdown systems . Pushdown systems can model the control ﬂow in sequential
+imperative programming languages with recursive procedure calls. Their analy-
+sis has been well studied theoretically [6 ,20], and forms the basis of recent tools
+for software veriﬁcation [4,11,12]. In this paper, we focus on solving games over
+such models. The original motivation for studying games in the context of formal
+analysis of systems comes from the controller synthesis problem [7,16,17]: given
+a model of the system where some of the choices depend upon the controllable
+inputs and some of the choices represent uncontrollable nondeterminism, synthe-
+sizing a controller that supplies inputs to the system so that the product of the
+⋆This research was supported in part by ARO URI award DAAD19-01-1-0473, NSF
+award CCR99-70925, and NSF award ITR/SY 0121431. The second author was
+also supported by the MIUR in the framework of project “Metodi Formali per la
+Sicurezza e il Tempo” (MEFISTO) and MIUR grant 60% 2002.
+W.A. Hunt, Jr. and F. Somenzi (Eds.): CAV 2003, LNCS 2725, pp. 67–79, 2003.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2003
+
+--- Page 2 ---
+68 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+controller and the system satisﬁes the correctness speciﬁcation corresponds to
+computing winning strategies in two-pl ayer games. Besides the long-term dream
+of synthesizing correct programs from formal speciﬁcations, games are relevant
+for modular veriﬁcation of open systems. For instance, Alternating Temporal
+Logic allows speciﬁcation of requirements such as “module A can ensure deliv-
+ery of the message no matter how module B behaves” [2]; module checking deals
+with the problem of checking whether a module behaves correctly no matter in
+which environment it is placed [14]; and the framework of interface automata
+allows assumptions about the usage of a component to be built into the speciﬁca-
+tion of the interface of the component, and formulates compatibility of interfaces
+using games [10].
+Among the many roughly equivalent formulations of pushdown systems, we
+use the model of recursive state machines (RSMs) [1,5]. A recursive state ma-
+chine consists of a set of component machines called modules . Each module has
+as e to f nodes (atomic states) and boxes (each of which is mapped to a module),
+a well-deﬁned interface consisting of entry andexitnodes, and edges connecting
+nodes/boxes. An edge entering a box models the invocation of the module as-
+sociated with the box, and an edge leaving a box corresponds to a return from
+that module. To deﬁne two-player games on recursive state machines, the nodes
+are partitioned into two sets such that a player gets to choose the transition
+when the current node belongs to its own partition. While the complexity of
+pushdown games has already been studied [8,20], existing algorithms for solving
+pushdown games assume that each player ha s access to the entire global history
+which includes the information of the play in all modules. In a recent paper, we
+introduced the notion of modular strategies for games on RSMs [3]. A modular
+strategy is a strategy that has only local memory, and thus, resolution of choices
+within a module does not depend on the context in which the module is invoked,
+but only on the history within the current invocation of the module. This permits
+a natural deﬁnition of synthesis of recursive controllers: a controller for a module
+can be plugged into any context where the module is invoked. Recent work on
+the interface compatibility checking for software modules implements the global
+games on pushdown systems [10], but we believe that checking for existence of
+modular strategies matches better with the intuition for compatibility.
+In [3], we showed that solving modular reachability games is Np-complete.
+In this paper, we consider the general case where the winning condition is spec-
+iﬁed as an ω-regular language over the observable, using B¨ uchi automata or
+linear temporal logic formulas. Compared to reachability games, there are two
+additional technical hurdles now. First, the winning strategy needs to produce
+accepting cycles. Second, the speciﬁcat ion is external, and we require the same
+strategy to be used every time a module is invoked. Consequently, if we take the
+product of the game graph and the speciﬁcation automaton, as is done typically,
+we need to ﬁnd a winning strategy over the product graph that is modular as
+well as oblivious to the state of the speciﬁcation.
+Our ﬁrst result is that for a speciﬁc ation given as a deterministic B¨ uchi au-
+tomaton B, the problem of deciding whether there exists a modular strategy
+
+--- Page 3 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 69
+so that the resulting plays are guaranteed to be accepted by BisExptime -
+complete. The upper bound is established using an automata-theoretic solution.
+We ﬁrst deﬁne strategy trees that encode modular strategies in the recursive
+game graph Ain a particular way. The strategy tree contains a subtree corre-
+sponding to each module. The subtree corresponding to a module Amspeciﬁes
+the choice at every existential node of Am, and when it enters a box bcorre-
+sponding to an invocation of another module Am/prime, it just speciﬁes the exit nodes
+ofAm/primethat are guaranteed to be avoided by the strategy for Am/prime. The next step
+is to deﬁne a two-way alternating tree automaton Tthat accepts the winning
+strategy trees. An important task of this automaton is to check the consistency
+of the input tree with respect to the exits to be avoided in each module. The
+alternating nature allows sending of multiple copies, and the two-way nature is
+exploited to move up and down the tree, rereading strategies of modules as and
+when needed, and thereby making sure that only one strategy for each module is
+used. Using the exponential translation from two-way alternating tree automata
+to nondeterministic tree automata [18], and then, employing the polynomial-time
+algorithm for checking emptiness of nondeterministic tree automata, we get a
+complexity bound that is polynomial in the number of internal nodes of A,e x -
+ponential in the speciﬁcation automaton B, and exponential in the total number
+of exit nodes in A. The exponential dependence on the number of exits seems
+unavoidable as even reachability games are Np-hard [3]. We show that the Np
+upper bound applies for ﬁxed-size speciﬁcations given by B¨ uchi automata.
+Our second result is that given a recursive game graph Awhose nodes are
+labeled with atomic propositions, and a formula ϕof linear temporal logic Ltl,
+the problem of deciding whether there exists a modular strategy in Aso that
+the resulting paths are guaranteed to satisfy ϕ,i s 2Exptime -complete. The
+hardness holds even for ordinary game graphs [16]. Since translation from Ltl
+to deterministic parity automata is doubl y-exponential, using our construction
+for deterministic speciﬁcations would lead to a 3Exptime upper bound. We show
+that the construction for deterministic B¨ uchi speciﬁcations can be modiﬁed to
+universal B¨uchi as well as co-B¨ uchi speciﬁcations with the same complexity.
+Unlike a nondeterministic automaton, a universal automaton accepts a word if
+all runs over that word are accepting. Since the set of models of an Ltlformula
+can be characterized by a universal co-B¨ uchi automaton that is only exponential
+in the formula, we get a 2Exptime bound for Ltlgames.
+We recall that two-way alternating tr ee automata have been used to solve
+synthesis problems for pushdown systems with respect to speciﬁcations given by
+µ-calculus formulas [13] and parity pushdown games [9]. Apart from the fact
+that these papers only solve for global strategies and not modular ones, the
+encodings of strategies are diﬀerent. While in their encodings, paths to nodes of
+the tree represent the stack content and the two-way nature is used to push and
+pop elements, in our setup paths to nod es represent the local history and the
+two-way nature is used to re-read strategies for a module.
+Due to the lack of space we omit some details in this version and refer the
+interested reader to the full paper.
+
+--- Page 4 ---
+70 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+2 Games on Recursive Graphs
+Let us ﬁx a ﬁnite alphabet Σ.L e t Σ∗denote the ﬁnite words and Σωdenote
+the set of ω-words over Σ. For any n∈N,l e t[n]d e n o t et h es e t {1,...,n }.
+Deﬁnition 1. Arecursive game graph A(for short RGG) over Σis a tuple
+(M,m in,{Am}m∈M),w h e r e Mis a ﬁnite set of module names, min∈Mis
+the name of the initial module and for every m∈M,Amis agame module
+(Nm,Bm,Ym,Enm,Exm,P0
+m,P1
+m,δm,ηm)that consists of:
+−A ﬁnite set of nodes Nmand a ﬁnite set of boxes Bm.
+−A nonempty set of entry nodes En m⊆Nmand a nonempty set of exit
+nodes Ex m⊆Nm.
+−Al a b e l i n g Ym:Bm→Mthat assigns a module to every box.
+−Let Calls m={(b,e)|b∈Bm,e∈EnYm(b)}denote the set of callsofmand
+let Retns m={(b,x)|b∈Bm,x∈ExYm(b)}denote the set of returns inm.
+Then, δm:Nm∪Retns m→2Nm∪Callsmis atransition function .
+−P0
+mandP1
+mform a partition of Nm∪Bminto the set of positions of player
+0 and player 1, respectively.
+−ηmis a labeling function ηm:Nm→Σthat associates a letter in Σwith
+each node.
+We assume that all the sets NmandBm(m∈M) are disjoint. Also, we let
+N=/uniontext
+mNm,B=/uniontext
+mBm,Calls =/uniontext
+mCalls mandRetns =/uniontext
+mRetns mdenote
+the set of all nodes, boxes, calls and ret urns, respectively. Similarly, let En=/uniontext
+m∈MEnm,Ex=/uniontext
+m∈MExm,P/lscript=/uniontext
+m∈MP/lscript
+m,f o r/lscript∈{0,1}.W e e x t e n d t h e
+functions Ymto a single function Y:B→Mby deﬁning Y(b)=Ym(b), where
+b∈Bm. Similarly, we extend the functions ηmto a single function η:N→Σ.
+An element in Calls mof the form ( b,e) represents a call from mto the module
+m/prime,w h e r e Ym(b)=m/primeandeis an entry of Am/prime. An element in Retns mof the
+form ( b,x) corresponds to the associated return of control from m/primetomwhen
+the call exits from m/primeat exit x. The transition function hence deﬁnes moves
+from nodes and returns to a set of nodes and calls.
+We denote the set of vertices ofmasVm=Nm∪Calls m∪Retns m.V i e w e d
+in terms of vertices, each Amdeﬁnes a graph over the set of vertices Vm.L e t
+V/lscript
+m=(Nm∩P/lscript
+m)∪{(b,x)∈Retns m|b∈P/lscript
+m}denote the set of vertices of
+player /lscript. Note that returns are identiﬁed as belonging to player /lscriptif the box
+corresponding to it belongs to player /lscript. The vertices in Calls mare not assigned
+to any player. (One can assign nodes to players in various ways; we have just
+chosen one such way, without any real loss in generality.)
+Without loss of generality, we make some assumptions of these graphs in the
+sequel that enable a more readable presentation:
+−There is only oneentry point to every module, i.e. |Em|=1f o re v e r y m.W e
+refer to this unique entry point of Amasem. One can reduce a game-graph
+module with multiple entries to this setting by making copies of this module,
+one for each entry point, and changing the calls and returns appropriately.
+This causes only a cubic blow-up (see [3] where this is done for reachability
+speciﬁcations).
+
+--- Page 5 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 71
+A1
+x2n1 x1
+e1
+b2A2
+x4n2 x3
+b1e2n3
+Fig. 1. An example of a recursive game graph.
+−For every u∈Nm,em/negationslash∈δm(u) holds, and for every x∈Exm,δm(x)i se m p t y .
+That is, within a module there are no transitions to its entry point and no
+transitions from its exits.
+−A module is not called immediately after a return from another module. That
+is, for any m,δm(Retns m)⊆Nm.
+As an example of a recursive game graph consider the graph in Figure 1. There
+are two modules A1andA2,a n dA1is the initial module. We denote by squares
+the nodes of player 1 and by circles those of player 0. The rectangles with curved
+corners denote the boxes of player 0. Box b1is mapped by Yto module A1and
+b2is mapped to A2. In this recursive game graph, all boxes belong to player 0.
+Astateof the game is an element in ( γ,u)∈B∗×Nsuch that either
+−γ=/epsilon1andu∈Nmin,o r ,
+−γ=b1...b k,b1∈Bminand for each i∈[1,k−1], if Y(bi)=m,t h e n
+bi+1∈Bm,a n d u∈Nm/primewhere Y(bk)=m/prime.
+Intuitively a state of the form ( b1b2,u) represents the global state of the system
+where, if Y(b1)=mandY(b2)=m/prime, then the module Aminhas called module
+Amby box b1, which in turn has called module m/primeby box b2and the current
+node inside m/primeisu. Hence, in a state ( γ,u),γdenotes the stack of calls and u
+denotes the current node in the last invoked module.
+The following then deﬁnes the natural notion of a run of an RGG. A runof
+an RGG Ais a ﬁnite or inﬁnite non-null sequence of states, s0s1...such that:
+1.s0=(/epsilon1,e0)
+2. Ifsj=(γ,u),u∈Nm,a n d sj+1=(γ/prime,u/prime), then one of the following holds:
+Internal move: u∈Nm\Exm,u/prime∈δm(u)a n d γ/prime=γ.
+Call a module: u∈Nm\Exm,(b,em/prime)∈δm(u),u/prime=em/primeandγ/prime=γ.b.
+Return from a call: u∈Exm,γ=γ/prime.b,u/prime∈δm/prime((b,u)), where b∈Bm/prime.
+The ﬁrst case above is when the control stays within module m, the second case
+is when a new module m/primeis entered via a box of m(and we “push” the box
+name bonto the stack) and the third is when the control exits mand returns to
+m/prime(and we “pop” the box name bfrom the stack). A playinAis a run of A.W e
+denote by ΠfandΠωthe set of all ﬁnite and inﬁnite plays of A, respectively.
+For a state s=(γ,u), letV(s) denote the vertex corresponding to the state:
+V(s)=uifγ=/epsilon1oru∈Nm\Exm;o t h e r w i s e V(s)=(b,u)w h e r e γ=γ/prime.b.
+Thenctr:Πf→Midentiﬁes the module where the control is after any ﬁnite
+run and is deﬁned as follows: for any π.s∈Πf,ctr(π.s)=m,w h e r e V(s)∈Vm.
+
+--- Page 6 ---
+72 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+We can now deﬁne local histories that describe, for every ﬁnite play πsuch
+thatctr(π)=m, the history of the play within msince the current invocation
+of the module m. For a state s=(b1...b r,u), ans-history is/angbracketleftβ1,β2,...,β r/angbracketright,
+where for each i∈[r],βi∈V∗
+mwhere bi∈Bm. In other words, each βiis a
+sequence of vertices of the module bibelongs to. We deﬁne a history function
+Hstthat associates with every ﬁnite play π.sans-history Hst(π.s) as follows.
+−Ifπ=s0=(/epsilon1,emin), then Hst(π)=/angbracketleftemin/angbracketright.
+−Letπ=π/prime.(γ/prime,u/prime)w h e r e π/prime=π/prime/prime.(γ,u), and let Hst(π/prime)=/angbracketleftβ1,...,β r/angbracketright. Then:
+Internal move: Ifγ/prime=γ,t h e n Hst(π)=/angbracketleftβ1,...,β r−1,βr.u/prime/angbracketright.
+Call: Ifγ/prime=γ.bwithY(b)=m/prime,t h e n Hst(π)=/angbracketleftβ1,...,β r,em/prime/angbracketright.
+Return: Ifγ=γ/prime.b,t h e n Hst(π)=/angbracketleftβ1,...,β r−1/angbracketright.
+Intuitively, in the beginning of the run, when the control is at min, the history is
+a single string ein. On an internal move, the last element in the history tuple gets
+updated, while the other tuples remain unchanged. On a call, the last element
+in the history tuple also freezes, and a new entry is created and initialized to the
+entry corresponding to the called module. When the call returns, the last tuple
+in the history gets erased. The history function hence keeps a stack of histories:
+for each module in the stack of calls, there is a record of the moves that have
+happened in that module during the play thus far.
+We now deﬁne the local history ,µ, after a ﬁnite play π. For any play π,µ(π)=
+βkwhere Hst(π)=/angbracketleftβ1,...,β k/angbracketright. In other words, the local history is the fragment
+of the play inside the current module m=ctr(π) since the corresponding entry
+intom. Note that the local history is a seq uence of vertices that correspond to
+internal nodes, calls or returns of the module m.
+Amodular strategy is intuitively a set of functions, one for each module, that
+encodes how player 0 must play in the game. However, which move to make at a
+state can depend only on the local history of the play so far in the current module.
+Formally, a modular strategy is a set of functions, f={fm}m∈M,o n ef o re a c h
+module, where for every m,fm:V∗
+m.V0
+m→Vmsuch that fm(πv)∈δm(v), for
+every π∈V∗
+m,v∈V0
+m.
+AplayπinAaccording to a modular strategy fis a run s0s1...such that for
+every i<|π|,i fctr(s0...s i)=mandV(si)∈V0
+m,t h e n si+1=(γ/prime,u/prime), where
+fm(µ(s0...s i)) is either u/primeor (b,u/prime), for some b∈B. In other words, if a preﬁx
+of the play ends in a player 0 vertex, the move recommended by ffor the local
+memory in the current module must be taken.
+Winning conditions. Awinning set over Σis aregular ω-language over Σ,
+i.e. a regular language L⊆Σω.Arecursive game is a pair ( A,L)w h e r e Ais
+a recursive game graph and Lis a winning set, both over Σ. Let us extend η
+to states by deﬁning η((γ,u)) =η(u). This then extends to plays: η(s0s1...)=
+η(s0)η(s1)....Ap l a y πis said to be winning ifη(π)∈L, the winning set. A
+modular strategy is winning if every play according to it is winning. We consider
+the following decision problem:
+“Given a recursive game ( A,L) is there a modular winning strategy for the
+protagonist?”
+In this paper we solve this problem for Lgiven by safety anddeterminis-
+tic/universal B¨ uchi/co-B¨ uchiautomata, and by Ltlformulas.
+
+--- Page 7 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 73
+3 Automata for Winning Strategies
+3.1 Background: Words, Trees and Automata
+An automaton on ω-words over ΣisA=(Q,q1,δ ,W)w h e r e Qis a ﬁnite set of
+states, q1∈Qis the initial state, δ:Q×Σ→2Qis a transition function and W
+is awinning condition . Depending on the winning condition we have a B¨ uchi,
+co-B¨uchi, or a parity automaton. A B¨uchi(resp. co-B¨uchi) winning condition
+isW⊆Qand requires that a state from Wrepeats inﬁnitely often (resp. only
+ﬁnitely often). A parity condition is a function W:Q→[c], for some c∈N,
+that associates a colou r to every element in Q. It requires that the minimal
+colour seen inﬁnitely often is even. A run of Aover a word σ0σ1...∈Σωis
+anω-sequence of states p0p1...such that p0=q1and∀i∈N,pi+1∈δ(pi,σi).
+A run is accepting if it satisﬁes the winning condition W. An automaton is
+deterministic if|δ(q,σ)|≤1 for every q∈Q,σ∈Σ. For either deterministic or
+nondeterministic automata a word α∈Σωis accepted if there exists an accepting
+run on it. For universal automata αis accepted if allruns on it are accepting.
+Asafety automaton is a deterministic B¨ uchi automaton A=(Q,q1,δ ,W)w h e r e
+W=Q. In other words, it accepts a word as long as it has a run over the word,
+thus we omit mentioning the winning condition.
+Letk∈Nand∆be a ﬁnite alphabet. A ∆-labelled k-tree is ( Tk,ν)w h e r e
+Tk=(Z,E) is a tree with Z=[k]∗andE={(y,y.d)|y∈[k]∗,d∈[k]},a n d
+ν:Z→∆is a labelling function that labels every vertex of the tree with a letter
+in∆. To distinguish vertices of trees and v ertices of recursive game graphs, we
+refer to the former as tree-vertices . The tree-vertex /epsilon1is the rootof the tree Tk,
+and for every y∈Z, tree-vertex y.dis the dthchild of y. For any set X,
+letB+(X) denote the set of boolean formulae over Xusing conjunctions and
+disjunctions only (negation is not allowed). For any subset FofX,w es a yt h a t
+Fsatisﬁes af o r m u l a ϕ∈B+(X)i fϕevaluates to true assigning the elements
+inFtotrueand the other elements in Xtofalse.
+Atwo-way alternating parity tree automaton (see [18]) over ∆-labelled k-
+trees is A=(Q,q1,δ ,W), where Qis a ﬁnite set of states, q1∈Qis the initial
+state, Wis a parity condition on Qandδ:Q×∆→B+(({−1,0,1,...,k )×Q).
+Intuitively, {−1,0,...,k }code the directions from a tree-vertex, where {1,...,k }
+stand for the kchildren of the tree vertex, −1 stands for the parent of the
+tree vertex, and 0 stands for the current tree-vertex itself. Let us extend the
+deﬁnition of concatenation of words over [ k]∗as follows: ( xi.(−1)) = xand
+x.0=x, for any x∈[k]∗,i∈[k], i.e. when a word is concatenated with −1,
+it removes the last letter and concatenating with 0 is the identity function. A
+one-way nondeterministic tree automaton can be seen as a two-way alternating
+tree automaton where the transition function is always a disjunction of formulas
+of the kind/logicalandtextk
+j=1(j, qj), i.e. the automaton guesses nondeterministically to send
+exactly onecopy of itself in each forward direction.
+Ar u no f Aover a ∆-labelled k-tree ( Tk,ν), where Tk=(Z,E), is a labelled
+treeTρ=(Rρ,Eρ) where each tree-vertex in Rρis labelled with a pair ( x, q)
+where x∈Zis a tree-vertex of the input tree and q∈Qis a state of the automa-
+
+--- Page 8 ---
+74 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+tonA, such that: (a) the root of Tρis labelled ( /epsilon1,q1), and (b) if a tree-vertex yof
+Tρis labelled ( x, q), then we require that there is a set F⊆{ −1,0,1,...,k }×Q
+such that Fsatisﬁes δ(q,ν(x)) and for each ( i,q/prime)∈F,yhas a child labelled
+(x.i, q/prime). A run is accepting , if for every inﬁnite path in the run tree, if one
+projects the second component of the labels along the path, then it is a sequence
+of states in Qthat satisﬁes the winning condition of A. Note that there is no
+condition for ﬁnite paths of the run tree. An automaton Aaccepts a ∆-labelled
+k-treeTiﬀ there is an accepting run of AonT; the language of A, denoted
+L(A), is the set of all ∆-labelled k-trees that Aaccepts.
+Proposition 1.
+−LetAbe a two-way alternating parity tree automaton. Then there is a one-
+way nondeterministic parity tree automaton A/primesuch that L(A)=L(A/prime),t h e
+number of states in A/primeis exponential in the number of states in A,a n dt h e
+number of colours in the parity condition of A/primeis linear in the number of
+colours in the parity condition of A[18].
+−The emptiness of one-way parity tree automata can be checked in time that is
+polynomial in the number of states and exponential in the number of colours
+in the parity condition (see [17]).
+3.2 Strategy Trees
+L e tu sﬁ xas e to f hmodules M={m1,...,m h}, which is ordered, and a
+ﬁnite alphabet Σfor this section. Let us ﬁx a recursive game graph over Σ,
+A=(M,m 1,{Am}m∈M), where each Am=(Nm,Bm,Ym,Enm,Exm,δm). By
+∆Awe denote the set of labels {root,dummy }∪(V×{ /latticetop,⊥}).
+Astrategy tree is a∆A-labelled k-tree and is intended to encode a modular
+strategy in the following way. First, we have the special symbol rootlabelling
+the root of the tree. The subtree rooted at the ithchild of the root will encode
+the modular strategy for mi. The root of the subtree for mis labelled by the
+entry point of mand tagged with /latticetop. (The other children of the root, if any, are
+marked to be dummy tree-vertices and will not encode any information). No
+other tree-vertices are labelled from the set En×{ /latticetop,⊥}.
+The subtree for a module mencodes the strategy for the module mby un-
+ravelling the graph Amand annotating each tr ee-vertex with either /latticetopor⊥,w i t h
+/latticetopintuitively encoding that a move to the corresponding node is possible while
+a⊥-tag signiﬁes that the strategy will not allow a play to visit this node.
+If a tree-vertex vof the subtree for mis labelled ( p,/latticetop), then:
+−When p∈(Nm\Exm)∪Retns m, the children of vare labelled by the successors
+ofpalong with a /latticetop/⊥annotation. Further, if pis a player 0 vertex, then the
+strategy must choose exactly one successor of p, and thus exactly one of the
+annotations of the children is /latticetop.I fpis a player 1 vertex, then allmoves of
+player 1 need to be accounted for, hence all children are tagged with /latticetop.
+−When p∈Calls m,w edo not encode calling the other module; we instead
+simply have children corresponding to the returns from the called module,
+with any /latticetop/⊥annotation. This hence encodes an assumption that the call to
+
+--- Page 9 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 75
+((b1,x1),/latticetop)(e2,/latticetop)
+((b1,e1),/latticetop)
+((b1,x2),⊥)(n2,/latticetop)
+((b1,e1),⊥)(n3,⊥)(x3,/latticetop)root
+((b2,e2),/latticetop)(e1,/latticetop)
+((b2,x3),/latticetop)( ( b2,x4),⊥)
+(n1,/latticetop)dummy
+Fig. 2. A fragment of a strategy tree.
+the other module will deﬁnitely not end in any return which is tagged with
+⊥, no matter how player 1 plays. Note that we do not put any constraints
+at this point that this assumption is indeed true—we take care of this later
+when we check these trees using automata.
+If a tree-vertex of the subtree for mis labelled ( p,⊥), this denotes a move
+disabled by the strategy and we do not continue to deﬁne the strategy from it;
+we hence label the entire subtree under it as dummy . Similarly, if a tree-vertex
+is labelled ( p,ζ)w h e r e p∈Exm, then this signiﬁes reaching an exit node of the
+module and again we do not encode the strategy after this point.
+For example, consider the recursive game graph in Figure 1, and a modular
+strategy such that the choices fo r player 0 are resolved selecting ( b2,e2)f r o m
+n1andx3fromn2. A fragment of the corresponding strategy tree is shown in
+Figure 2. Note that the subtree encoding the strategy for module A1assumes
+that when A2is called, it will not exit at x4, and the subtree for A2assumes
+that when A1is called, it will not exit at x2. In this example, the strategy does
+indeed guarantee these assumptions. It is easy to see that:
+Proposition 2. There exists an eﬀectively constructible one-way nondetermin-
+istic tree automaton Astrof size O(|A|)that accepts a ∆-labelled k-tree if and
+only if it is a strategy tree.
+3.3 Automata Accepting Winning Strategy Trees
+In this section we sketch the construction of an automaton Awinthat accepts a
+strategy tree iﬀ it represents a winning strategy with respect to a speciﬁcation
+given as a safety automaton B=(Q,q1,δB). In this construction it is crucial the
+use of an avoid component in states of Awin. An avoid component ( x, q)∈Ex×Q
+corresponds to the assumption that a play must not end at the exit xwith the
+speciﬁcation state q. There is also another type of avoid component denoted
+$mthat is used instead for the assumption that the play must not exit at all
+the current invocation of the module m. We will return to the avoid component
+later.
+
+--- Page 10 ---
+76 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+Automaton Awinis a two-way alternating tree automaton that performs
+three main tasks. The ﬁrst task is to simulate Bso that we ensure the satisfac-
+tion of the speciﬁcation on an accepted str ategy tree. This is achieved basically
+simulating the transitions from δB, whenever a node is read. On reading an exit
+node the automaton also checks that the assumption of the avoid component is
+fulﬁlled.
+The second task is to ensure that plays are generated from the entry point of
+the initial module minstarting with the initial state of the speciﬁcation, and that
+this invocation of mindoes not exit. If this call exits then this would mean that
+there are ﬁnite maximal plays according to the strategy, which are by deﬁnition
+losing for player 0. Hence, the ﬁrst trans ition sets the avoid component to every
+possible pair ( x, q)∈Exmin×Q.
+The last task is to ensure that when a return of the input tree is tagged with
+⊥, no matter how player 1 plays, the call to the other module will deﬁnitely not
+end in such a return (see Section 3.2). Assuming that this return is from a module
+mat exit x, the above requirement is checked sending a copy of the automaton
+to the root of the subtree corresponding to mforevery avoid component of the
+form ( x, q).
+The winning condition we choose for Awinis trivial: we just map every state
+to the colour 0; hence the winning condition simply requires that there be a
+run over the tree. There is a trick tha t is needed in the construction to keep
+the size of Awinsmall. When reading a /latticetop-tagged return ( b,x)(x∈Exm/prime),
+the strategy encodes the assumption that when m/primeis called, it may return at
+exitx, but it does not contain information on what the speciﬁcation state can
+be when it returns. The automaton hence will guess what the set of possible
+speciﬁcation states can be when the call r eturns. Since we would like to keep the
+size of the transition function polynomial, we let the automaton step through
+the speciﬁcation states qone by one, but staying at the same tree vertex, and
+guess whether the current speciﬁcation state qis a possibility as the state on a
+return. We omit further details here. Thus, we have the following.
+Lemma 1. Awinis a two-way alternating tree automaton that accepts a strategy
+tree iﬀ it corresponds to a winning strategy. Further, the size of AwinisO(|Q|2·
+|Ex|)where Qis the set of states in the speciﬁcation automaton and Ex is the
+set of all exits in the recursive game graph.
+We now convert Awinto a one-way nondeterministic tree automaton and
+take its intersection with the automaton Astrthat accepts strategy trees, to get
+a one-way nondeterministic automaton A/primewhich accepts a tree iﬀ it corresponds
+to a winning strategy tree. Since we can prove Exptime -hardness, via a direct
+reduction from linear-space Turing machines, and using Proposition 1, we have:
+Theorem 1. For a recursive game graph Aand a speciﬁcation safety automa-
+tonB, the problem whether there is a winning modular strategy for player 0 is
+Exptime -complete, and can be decided in time O(|A|·exp(|Ex|·| B |)).1
+1exp(x) stands for 2x.
+
+--- Page 11 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 77
+4 Complexity of Modular Games
+4.1 Handling Other ω-Regular Speciﬁcations
+The construction given in Section 3.3 can be extended to games with speciﬁca-
+tions given as deterministic B¨ uchi or co-B¨ uchi automata on words. We consider
+here only the case of B¨ uchi automata; the case for co-B¨ uchi automata is dual.
+LetB=(Q,q1,δB,W) be a deterministic B¨ uchi automaton on words, and A
+be a recursive game graph. We can extend the automaton Awinof Section 3.3
+to a two-way alternating tree automaton A/prime
+winthat accepts strategy trees cor-
+responding to winning strategies in this game.
+The main modiﬁcations are as follows. When the automaton reads a call in
+the subtree for a module m, recall that we guessed for every return labelled /latticetop,
+the set of speciﬁcation states the play could be at when it exits from the called
+module. In the case of B¨ uchi speciﬁcations, we need to guess more about what
+happened during the call. More pr ecisely, we need to know whether allpossible
+sub-plays that return at this exit and speciﬁcation state would have deﬁnitely
+met a state in Wor not. If the automaton guesses that this is so, it must send a
+copy to the called module to check this, and also signal a B¨ uchi ﬁnal state (for
+the tree automaton) before continuing the play in the current module.
+Again, by Proposition 1, and the lower bound given in Theorem 1, we have.
+Theorem 2. Deciding recursive game graphs with deterministic B¨ uchi (or co-
+B¨uchi) automaton speciﬁcations is Exptime -complete.
+We can also extend the tr ee automaton from Sectio n 3.3 to handle speciﬁca-
+tions given as universal B¨uchi (or co-B¨ uchi) speciﬁcations. In the construction
+of the automaton, whenever we were updating the speciﬁcation state, we now
+need to create a copy for each possible update of the speciﬁcation state.
+Theorem 3. Deciding recursive game graphs with universal B¨ uchi(or co-B¨ uchi)
+automaton speciﬁcations is Exptime -complete.
+The above theorem in fact shows that we can solve games for any ω-regular
+speciﬁcation. If Lis any ω-regular language, then its complement, ¯Lis also ω-
+regular and can be accepted by some nondeterministic B¨ uchi automaton B/prime.I ti s
+easy to see that if B/primeis viewed as a universal co-B¨ uchi automaton B(we keep the
+same states and the same transitions but interpret the automaton as universal
+and co-B¨ uchi), then Baccepts a word αiﬀB/primerejects α. Hence Baccepts Land
+we can solve games against this automaton.
+We can also deal with Ltl-speciﬁcations ([15]) over a set of propositions P,
+assuming the nodes in the game graph are labelled over Σ=2P.G i v e na n Ltl
+formula φ, we can construct a nondeterministic B¨ uchi automaton B¬φover 2P
+that accepts a word iﬀ it satisﬁes ¬φ[19]. Moreover, the size of this automaton
+is exponential in |φ|. By the previous observation, this automaton when viewed
+as a universal co-B¨ uchi automaton accepts the models of φ.I no t h e rw o r d s ,
+for any Ltlformula, we can construct an expo nential sized universal co-B¨ uchi
+automaton accepting its models. Invoki ng Theorem 3 and using the fact that
+Ltl-games are 2Exptime -hard [16] even for normal graphs, we have:
+
+--- Page 12 ---
+78 Rajeev Alur, Salvatore La Torre, and P. Madhusudan
+Theorem 4. Deciding Ltlrecursive game graphs is 2Exptime -complete.
+4.2 Structure Complexity
+Our algorithm for deterministic automata speciﬁcations works in time exponen-
+tial in the number of exits in the recursive game graph. We could ask whether this
+exponential is necessary by asking for the structural complexity of the problem,
+i.e. what is the complexity for ﬁxed ω-regular speciﬁcations. Since a reachability
+game on a recursive game graph can be formulated by a simple ﬁxed automaton
+speciﬁcation, and since reachability games in recursive game graphs are Np-hard
+[3], we cannot hope to do polynomial in the game graph. However, we can show
+that for ﬁxed speciﬁcations, the problem is in Np.
+The Npupper bound can be shown by direct means, not involving automata.
+Let us sketch the proof for deterministic safety automata. When a module m
+invokes a module m/primeat a speciﬁcation state q, the only relevant information
+t h a ti tn e e d si st h es e to fe x i t s m/primec o u l dr e t u r na t ,a n da te a c ho ft h e s ee x i t s ,
+the possible states the speciﬁcation automaton can be in. This is a polynomial-
+sized information that we can guess. For each module mand speciﬁcation state
+q, we build a graph Gm,qwhich is a product of the game module for mand
+the speciﬁcation automaton starting at state q. The problem then boils down to
+ﬁnding whether, for every module m, there is a strategy for the game module
+formsuch that, when this strategy is played on Gm,q, for every q∈Q(in the
+obvious way), the strategy meets the assumption pertaining to how module m
+should behave when invoked at q. In doing this, whenever we call another module
+inGm,q, we can “plug-in” a graph that captures the assumption on how the other
+modules will behave. For any m, solving the game graphs Gm,qsimultaneously is
+akin to solving partial information games, which causes an exponential blow-up
+only in the size of the speciﬁcation state space Q, which is a constant. Hence
+the problem can be solved in Np. The procedure extends to universal B¨ uchi and
+co-B¨uchi automata with some eﬀort.
+Theorem 5. Deciding recursive game graphs for ﬁxed ω-regular speciﬁcations
+isNp-complete.
+5 Conclusions
+In this paper, we have solved the problem of deciding the existence of modular
+strategies in inﬁnite games over recursive structures for winning conditions spec-
+iﬁed using ω-automata or linear temporal logic. We have argued that the notion
+of modular strategies, compared to the traditional deﬁnition of global strategies,
+is more appropriate for designing modules that can be plugged in any context.
+Our solution is automata theoretic, and can be generalized to allow other types
+of speciﬁcations such as branching time logics. In terms of future work, we are
+exploring the application of games to generate interface abstractions, and eﬃ-
+cient implementations using a combination of BDD-based symbolic techniques
+and SAT solvers.
+
+--- Page 13 ---
+Modular Strategies for Inﬁnite Games on Recursive Graphs 79
+References
+1. R. Alur, K. Etessami, and M. Yannakakis. Analysis of recursive state machines.
+InProc. 13th Intern. Conf. on Computer Aided Veriﬁcation, CAV’01 , LNCS 2102,
+p. 207–220. Springer, 2001.
+2. R. Alur, T. Henzinger, and O. Kupferman. Alternating-time temporal logic. Jour-
+nal of the ACM , 49(5):1–42, 2002.
+3. R. Alur, S. La Torre, and P. Madhusudan. Modular strategies for recursive game
+graphs. In Proc. 9th Intern. Conf. on Tools and Algorithms for the Construction
+and the Analysis of Systems, TACAS’03 , LNCS 2619, p. 363–378. Springer, 2003.
+4. T. Ball and S. Rajamani. The SLAM toolkit. In Proc. 13th Intern. Conf. on
+Computer Aided Veriﬁcation, CAV’01 , p. 260–264, 2001.
+5. M. Benedikt, P. Godefroid, and T. W. Reps. Model checking of unrestricted hier-
+archical state machines. In Proc. 28th Intern. Coll. on Automata, Languages and
+Programming, ICALP’01 , LNCS 2076, p. 652–666. Springer, 2001.
+6. A. Bouajjani, J. Esparza, and O. Maler. Reachability analysis of pushdown au-
+tomata: Application to model-checking. In Proc. 8th Conference on Concurrency
+Theory, CONCUR’97 , LNCS 1243, p. 135–150, 1997. Springer, 1997.
+7. J. B¨ uchi and L. Landweber. Solving sequential conditions by ﬁnite-state strategies.
+Trans. Amer. Math. Soc. , 138:295 – 311, 1969.
+8. T. Cachat. Symbolic strategy synthesis for games on pushdown graphs. In Proc.
+29th Intern. Coll. on Automata, Languages and Programming, ICALP’02 ,L N C S
+2380, p. 704–715. Springer, 2002.
+9. T. Cachat. Two-Way Tree Automata Solving Pushdown Games , p. 303–317. LNCS
+2500. Springer, 2002.
+10. A. Chakrabarti, L. de Alfaro, T. Henzinger, M. Jurdzinski, and F. Mang. Inter-
+face compatibility checking for software modules. In Proc. 14th Intern. Conf. on
+Computer Aided Veriﬁcation, CAV ’02 , LNCS 2404, p. 428–441. Springer, 2002.
+11. H. Chen and D. Wagner. MOPS: an infrastructure for examining security proper-
+ties of software. In Proc. 9th ACM Conf. on Comp. and Comm. Security , 2002.
+12. J. Esparza, D. Hansel, P. Rossmanith, and S. Schwoon. Eﬃcient algorithms for
+model checking pushdown systems. In Proc. 12th Intern. Conf. on Computer Aided
+Veriﬁcation, CAV ’00 , LNCS 1855, p. 232–247. Springer, 2000.
+13. O. Kupferman and M. Vardi. An automata-theoretic approach to reasoning about
+inﬁnite-state systems. In Proc. 12th Intern. Conf. on Computer Aided Veriﬁcation,
+CAV ’00 , LNCS 1855, p. 36–52. Springer, 2000.
+14. O. Kupferman, M. Vardi, and P. Wolper. Module checking. Information and
+Computation , 164(2):322–344, 2001.
+15. A. Pnueli. The temporal logic of programs. In Proc. of the 18th IEEE Symposium
+on Foundations of Computer Science , p. 46 – 77, 1977.
+16. A. Pnueli and R. Rosner. On the synthesis of a reactive module. In Proc. 16th
+ACM Symposium on Principles of Programming Languages , 1989.
+17. W. Thomas. Inﬁnite games and veriﬁcation. In Proc. 14th Intern. Conf. on Com-
+puter Aided Veriﬁcation, CAV’02 , LNCS 2404, p. 58–64. Springer, 2002.
+18. M. Vardi. Reasoning about the past with two-way automata. In Proc. 25th Intern.
+Coll. on Automata, Languages, and Programming, ICALP’98 , LNCS 1443, p. 628–
+641. Springer, 1998.
+19. M. Vardi and P. Wolper. Reasoning about inﬁnite computations. Information and
+Computation , 115:1 – 37, 1994.
+20. I. Walukiewicz. Pushdown processes: Games and model-checking. Information and
+Computation , 164(2):234–263, January 2001.

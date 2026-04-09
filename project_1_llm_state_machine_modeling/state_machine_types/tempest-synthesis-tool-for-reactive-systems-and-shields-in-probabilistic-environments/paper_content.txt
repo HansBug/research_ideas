@@ -1,0 +1,270 @@
+--- Page 1 ---
+TEMPEST - Synthesis Tool for Reactive Systems and
+Shields in Probabilistic Environments
+Stefan Pranger1, Bettina K ¨onighofer1,2, Lukas Posch1, and Roderick Bloem1,2
+1Graz University of Technology, Institute IAIK, Austria
+2Silicon Austria Labs, TU Graz SAL-DES Lab, Austria
+Abstract. We present Tempest , a synthesis tool to automatically create
+correct-by-construction reactive systems and shields from qualitative or
+quantitative speciﬁcations in probabilistic environments. A shield is a spe-
+cial type of reactive system used for run-time enforcement; i.e., a shield
+enforces a given qualitative or quantitative speciﬁcation of a running sys-
+tem while interfering with its operation as little as possible. Shields that
+enforce a qualitative or quantitative speciﬁcation are called safety-shields
+or optimal-shields, respectively. Safety-shields can be implemented as
+pre-shields or as post-shields, optimal-shields are implemented as post-
+shields. Pre-shields are placed before the system and restrict the choices
+of the system. Post-shields are implemented after the system and are able
+to overwrite the system’s output. Tempest is based on the probabilistic
+model checker Storm , adding model checking algorithms for stochastic
+games with safety and mean-payo objectives. To the best of our knowl-
+edge, Tempest is the only synthesis tool able to solve 21=2-player games
+with mean-payo objectives without restrictions on the state space. Fur-
+thermore, Tempest adds the functionality to synthesize safe and optimal
+strategies that implement reactive systems and shields.
+1 Introduction
+Reactive synthesis aims to automatically construct correct and e cient systems
+w.r.t. a formal speciﬁcation and has been increasingly used in a wide range of
+safety-critical applications. A natural model for reactive synthesis is to model
+some inputs from the environment probabilistically and some adverserially.
+For adverserial inputs, the synthesized system assumes the worst case, for
+probabilistic inputs the average case. The corresponding synthesis problem is
+mapped to solving a competitive stochastic turn-based game , i.e., a 21=2-player game.
+Qualitative speciﬁcations specify the functional requirements of reactive systems.
+With a quantitative speciﬁcation such as mean-payo objectives , we can measure
+how well a system satisﬁes the speciﬁcation.
+Shield synthesis deﬁnes a synthesis framework to construct run-time enforce-
+ment modules called shields to guarantee the correctness of running systems.
+This project has received funding from the European Union’s Horizon 2020 research
+and innovation programme under grant agreement N° 956123 - FOCETA.arXiv:2105.12588v1  [cs.LO]  26 May 2021
+
+--- Page 2 ---
+2
+Environment
+ Systeminput
+factionsg
+actionShEnvironment System
+action’actioninput
+Sh
+Fig. 1: Left: Pre-shielding. Right: Post-shielding.
+The concept of shielding is very general. Shields that enforce qualitative objec-
+tives are so-called safety-shields [1]. For safety-shields, we distinguish between
+pre-shielding and post-shielding as depicted in Fig. 1. In pre-shielding the shield
+is implemented before the system and restricts the choices for the system to a
+list of correct actions. Pre-shielding is becoming increasingly important in the
+setting of safe reinforcement learning [9]. In post-shielding , the shield monitors
+the actions selected by the system and corrects them if the chosen action could
+lead to a speciﬁcation violation. Shields that enforce quantitative measures are
+called optimal-shields [2] and are implemented as post-shields. Tempest is able
+to synthesize optimal-shields that enforce a mean-payo objective. Optimal-
+shields that enforce multiple quantitative objectives can be obtained via a linear
+combination to give an approximate solution of a single mean-payo objective.
+For instance, the decision whether an optimal-shield should interfere could be
+based on ﬁrst, a performance objective to be minimized by the shield, and second,
+aninterference cost for changing the output of the system. An optimal-shield can
+then be computed by minimizing a single mean-payo objective obtained by com-
+bining both measures, thus guaranteeing maximal performance with minimal
+interference.
+Tempest capabilities. The core functionality of Tempest is the synthesis of
+reactive systems and shields in environments that incorporate uncertainty. To
+the best of our knowledge, Tempest is the only tool able to solve 21=2-player
+games with mean-payo objectives and qualitative objectives given in proba-
+bilistic temporal logics, without any restrictions on the state space. Furthermore,
+Tempest is designed as synthesis tool. Therefore, the computed strategies can
+intuitively be used as the synthesized system, which is not the case for many
+game-solving tools. Tempest is the ﬁrst tool available for the synthesis of shields
+and is able to synthesize pre-safety and post-safety-shields, and optimal-shields.
+Implementation and availability. The tool is written in C ++and builds
+upon the code-base of the model checker Storm [8], extending existing features
+to provide the capability of solving stochastic games. Tempest is available under
+the GPL-3 open source license. The tool and its source code, along with a docker
+image and several examples, are available from the Tempest web page3.
+3http://www.tempest-shielding.xyz
+
+--- Page 3 ---
+3
+Connections to other tools. Probabilistic model checking tools like PRISM [10]
+andStorm [8] provide veriﬁcation of quantitative reward-based properties and
+qualitative properties in probabilistic temporal logics. Many synthesis tools
+based on games are available and widely used, for example, UPPAAL-Tiga [3]
+is able to solve qualitative timed games, GIST [4] solves qualitative stochastic
+games, and QUASY [5] solves mean-payo 2-player games. PRISM-games 3.0 [7] is
+able to solve turn-based stochastic multi-player games under a variety of prop-
+erties including long-run average [6]. However, for solving long-run average
+objectives, PRISM-games needs the game to be a controllable multi-chain , i.e., one
+of the players needs to be able to reach every end-component from any state
+with probability one. This is a strong assumption on the structure of the game graph,
+which many models used in synthesis do not fulﬁll. In contrast, Tempest does not
+rely on any assumptions on the structure of the game graph.
+Acknowledgements. We would like to thank both Tim Quatmann and Joost-
+Pieter Katoen for their continuous help on getting acquainted with the source
+code of Storm .
+2 Model and Property Speciﬁcation
+Tempest Model Speciﬁcation. Tempest supports turn-based stochastic multi-
+player games (SMGs) and uses PRISM-games’s modelling language to describe
+the game [7]. The players are divided in two competing coalitions, where the
+ﬁrst team is working together to satisfy or maximize /minimize a property given
+in rPATL [6]. In each state, exactly one player chooses an available probabilistic
+transition to determine the next state. A strategy for a player determines the
+choices of transitions made by the player.
+Tempest Property Speciﬁcation. For the synthesis of reactive systems ,Tempest
+uses the property speciﬁcation language of PRISM-games to express properties
+in rPATL [6]. We give a few examples that can be used in Tempest :
+–hh1, 2iiPmax=?[F target ]: Using the operator Pmax=?,Tempest computes a strat-
+egy for the player coalition of player 1 and 2 that guarantees to reach target
+with the largest probability.
+–hh1, 2iiRr
+max=?[S]: Using the operators RandS,Tempest synthesizes a strategy
+that maximizes the expected averaged reward rin the long-run .
+Synthesis of safety-shields. For the synthesis of shields, Tempest extends
+the property speciﬁcation language. Let the safety-value of an action in a certain
+state be the maximal probability to stay safe within the next ksteps when
+executing this action. A safety-shield decides whether an action is blocked in a
+certain state based on either an absolute threshold, or a relative threshold . A
+shield using an absolute threshold blocks all actions with a safety-value smaller
+than. By using a relative threshold, actions are blocked with a safety-value
+smaller than the best safety-value of an action in the current state times . The
+syntax for safety-shielding requires to specify the type of shielding using the
+keywords PreSafety and PostSafety , and to deﬁne the used threshold. We
+give the following examples:
+
+--- Page 4 ---
+4
+–hPreSafety,=0.9ihhshieldiiPmax=?[G<=14!crash ]: Using this property, Tempest
+synthesizes a pre-safety-shield that allows all actions that do not cause a
+crash with a maximal probability of 0.9 within the next 14 time steps.
+–hPostSafety,=0.95ihhshieldiiPmax=?[G<=14!crash ]:Tempest synthesizes a
+post-safety-shield that blocks all actions using the relative threshold .
+Synthesis of optimal-shields. The property starts with the keyword Optimal
+followed by the expression used to compute the long run average. For example:
+–hOptimalihhshieldiiRr
+min=?[S]:Tempest computes an optimal shield that guar-
+antees the long-run average reward of r.
+3Tempest Synthesis of Strategies
+Tempest computes a memoryless deterministic strategy, implementing a reac-
+tive system or a shield, under which the speciﬁed property can be guaranteed.
+The strategy is computed using value iteration to solve the coalition game. Fig. 2
+shows sample outputs of the strategies of the ﬁrst experiment given in Section 4,
+implementing pre-safety and post-safety-shields. In the pre-shielding case, the
+strategy provides for any state a list of allowed actions with its correspond-
+ing safety-value. The strategy for post-shielding deﬁnes for every state and
+available action, the action to be forwarded by the shield.
+1Pre-Safety-Shield with absolute comparison (gamma = 0.8):
+2state id [label]: 'allowed actions' [<value>: (<action id label)>]:
+3
+40 [move=0 & x1=0 & y1=0 & x2=4 & y2=4]: 1.0:(0 {e}); 1:(1 {s})
+53 [move=0 & x1=1 & y1=0 & x2=3 & y2=4]: 0.9:(0 {e}); 1:(2 {w})
+64 [move=0 & x1=1 & y1=0 & x2=4 & y2=4]: 0.9:(1 {s}); 1:(3 {n})
+7 .....
+1Post-Safety-Shield with relative comparison (lambda = 0.95):
+2state id [label]: 'forwarded actions' [<action id> label: <forwarded action id> label]:
+3
+40 [move=0 & x1=0 & y1=0 & x2=4 & y2=4]: 0{e}:0{e}; 1{s}:1{s}
+53 [move=0 & x1=1 & y1=0 & x2=3 & y2=4]: 0{e}:2{w}; 2{w}:2{w}
+64 [move=0 & x1=1 & y1=0 & x2=4 & y2=4]: 1{s}:3{n}; 3{n}:3{n}
+7 .....
+Fig. 2: Synthesized strategies implementing a pre-safety-shield ( top) and a post-
+safety-shield ( bottom ).
+4Tempest in Action
+High-Level Planning in Robotics. A classical application of reactive synthesis
+is the domain of automated high-level planning in robotics. We consider a
+warehouse ﬂoor plan with several shelves, see Fig. 3 (left). To parametrise the
+experiment, we consider ﬂoor plans with n3 shelves with 2n20. A robot
+operates together among other robots within the warehouse. Tempest can be
+used in this setting to synthesize controllers for the robot that perform certain
+tasks, as well as shields used to ensure safe operation of the robot, or to guarantee
+
+--- Page 5 ---
+5
+24681012141618200246810
+w, the width of the gridTime in seconds
+020406080
+Optimal Controller
+Safety Shield
+Safety Synthesis in PRISM
+Optimal Shield
+Fig. 3: Left: Warehouse ﬂoor plan with 6 3 shelves. Right: Synthesis-times for
+controller synthesis, safety-shield synthesis and optimal-shield synthesis.
+3 5 7 911 130200400600
+Size of k, the cuto parameterRuntime in secondsAvni et al.
+TEMPEST
+Fig. 4: Left: Synthesis times for safety-shield. Right: Comparison of synthesis
+times for optimal-shields: Tempest vs Avni et.al.’s implementation [2].
+performance. Controller synthesis: Using Tempest , we synthesize a controller
+for the robot that repeatedly picks up packages from one of the entrances and
+delivers them to the exits. We use the mean-payo criterion to specify that the
+stochastic shortest paths should be taken. Safety-shield synthesis: A safety-
+shield can be synthesized to enforce collision avoidance with other robots. In
+the experiments, we used a ﬁnite horizon of 14 steps and a relative threshold
+of=0.9. Optimal-shield synthesis: During operation, a corridor may be
+blocked. A robot should not unnecessarily wait for the corridor to be traversable
+when alternative paths exist. We synthesize an optimal-shield that penalizes
+’waiting’ and is able to enforce a detour when waiting gets too expensive.
+Results. The models, parameters, and properties used for all experiments can
+be found on the Tempest website. The results for the synthesis-times are depicted
+in Fig. 3 (right). The sizes of state space of the game graphs range from 5184
+states for n=2 to 186624 states for n=20. The results for optimal-shields use the
+axis on the right hand-side. The times for creating pre-safety and post-safety-
+shields are identical. To compare our results, we tried to compute a strategy for
+the optimal controller in PRISM-games 3.0 which resulted in an error. By proper
+modelling, we were able to synthesize safe controllers comparable to the safety-
+shield using PRISM-games , resulting in better synthesis-times for Tempest .
+
+--- Page 6 ---
+6
+Optimal-Shielding in Urban Tra c Control. Avni et al. [2] synthesize optimal-
+shields that overwrite the commands of a tra c-light controller modeled in the
+trac simulator SUMO. The optimal-shield needs to balance the number of
+waiting cars per incoming road with the cost for interfering with the tra c light
+controller. The example is parametrised with the cut-o parameter kthat deﬁnes
+the maximal modelled number of waiting cars per road. The comparison of the
+synthesis-times from Avni et.al.’s implementation and Tempest are shown in
+Fig. 4 (right), showing a di erence by orders of magnitudes in favor of Tempest .
+5 Conclusion and Future Work
+We have introduced Tempest , a tool for the synthesis of reactive systems and
+shields with properties given in rPATL capturing qualitative and quantitative
+objectives with probabilities. Currently, Tempest supports perfect-information
+SMGs with full information. In future work, we will investigate in e cient tech-
+niques to deal with partial information. Furthermore, we will extend Tempest ’s
+synthesis algorithm to support strategies with ﬁnite memory with deterministic
+and stochastic-updates.
+References
+1. M. Alshiekh, R. Bloem, R. Ehlers, B. K ¨onighofer, S. Niekum, and U. Topcu. Safe rein-
+forcement learning via shielding. In Proceedings of the Thirty-Second AAAI Conference
+on Artiﬁcial Intelligence, (AAAI-18), New Orleans, Louisiana, USA, February 2-7, 2018 ,
+pages 2669–2678. AAAI Press, 2018.
+2. G. Avni, R. Bloem, K. Chatterjee, T. A. Henzinger, B. K ¨onighofer, and S. Pranger. Run-
+time optimization for learned controllers through quantitative games. In Computer
+Aided Veriﬁcation - 31st Int. Conference, CAV 2019, New York City, NY, USA, July 15-18,
+2019 , Lecture Notes in Computer Science, pages 630–649. Springer, 2019.
+3. G. Behrmann, A. Cougnard, A. David, E. Fleury, K. G. Larsen, and D. Lime. Uppaal-
+tiga: Time for playing games! In W. Damm and H. Hermanns, editors, Computer Aided
+Veriﬁcation, 19th Int. Conference, CAV 2007, Berlin, Germany, July 3-7, 2007, Proceedings ,
+volume 4590 of Lecture Notes in Computer Science , pages 121–125. Springer, 2007.
+4. K. Chatterjee, T. A. Henzinger, B. Jobstmann, and A. Radhakrishna. Gist: A solver
+for probabilistic games. In T. Touili, B. Cook, and P . Jackson, editors, Computer Aided
+Veriﬁcation , pages 665–669. Springer Berlin Heidelberg, 2010.
+5. K. Chatterjee, T. A. Henzinger, B. Jobstmann, and R. Singh. Quasy: Quantitative
+synthesis tool. In P . A. Abdulla and K. R. M. Leino, editors, Tools and Algorithms
+for the Construction and Analysis of Systems , pages 267–271, Berlin, Heidelberg, 2011.
+Springer Berlin Heidelberg.
+6. T. Chen, V . Forejt, M. Z. Kwiatkowska, D. Parker, and A. Simaitis. Automatic veriﬁ-
+cation of competitive stochastic systems. Formal Methods Syst. Des. , (1):61–92, 2013.
+7. T. Chen, V . Forejt, M. Z. Kwiatkowska, D. Parker, and A. Simaitis. Prism-games:
+A model checker for stochastic multi-player games. In Tools and Algorithms for the
+Construction and Analysis of Systems - 19th Int. Conference, TACAS 2013, Rome, Italy,
+March 16-24, 2013. Proceedings , Lecture Notes in Computer Science, pages 185–191.
+Springer, 2013.
+
+--- Page 7 ---
+7
+8. C. Dehnert, S. Junges, J. Katoen, and M. Volk. A storm is coming: A modern proba-
+bilistic model checker. In CAV (2) , LNCS, pages 592–600. Springer, 2017.
+9. N. Jansen, B. K ¨onighofer, S. Junges, A. Serban, and R. Bloem. Safe reinforcement
+learning using probabilistic shields (invited paper). In 31st Int. Conference on Concur-
+rency Theory, CONCUR 2020, September 1-4, 2020, Vienna, Austria (Virtual Conference) ,
+LIPIcs, pages 3:1–3:16. Schloss Dagstuhl - Leibniz-Zentrum f ¨ur Informatik, 2020.
+10. M. Z. Kwiatkowska, G. Norman, and D. Parker. PRISM 4.0: Veriﬁcation of prob-
+abilistic real-time systems. In G. Gopalakrishnan and S. Qadeer, editors, Computer
+Aided Veriﬁcation - 23rd Int. Conference, CAV 2011, Snowbird, UT, USA, July 14-20, 2011.
+Proceedings , Lecture Notes in Computer Science, pages 585–591. Springer, 2011.

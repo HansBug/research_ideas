@@ -1,0 +1,1356 @@
+--- Page 1 ---
+Analysis of Recursive State Machines
+RAJEEV ALUR
+University of PennsylvaniaMICHAEL BENEDIKTBell LaboratoriesKOUSHA ETESSAMI
+University of EdinburghPATRICE GODEFROID
+Bell LaboratoriesTHOMAS REPSUniversity of WisconsinandMIHALIS Y ANNAKAKISColumbia University
+Recursive state machines (RSMs) enhance the power of ordinary state machines by allowing ver-
+tices to correspond either to ordinary states or to potentially recursive invocations of other statemachines. RSMs can model the control ﬂow in sequential imperative programs containing recursiveprocedure calls. They can be viewed as a visual notation extending Statecharts-like hierarchicalstate machines, where concurrency is disallowed but recursion is allowed. They are also related tovarious models of pushdown systems studied in the veriﬁcation and program analysis communities.
+After introducing RSMs and comparing their expressiveness with other models, we focus on
+whether veriﬁcation can be efﬁciently performed for RSMs. Our ﬁrst goal is to examine the
+This research was partially supported by NSF Grants CCR-9619219, CCR97-34115, CCR99-70925,CCR-0341658, CCR-9986308, ONR contract N00014-01-1-0796, the A. von Humboldt Foundation,SRC award 99-TJ-688, and a Sloan Faculty Fellowship.Authors’ addresses: R. Alur, Department of Computer and Information Science, Universityof Pennsylvania, 3330 Walnut Street, Philadelphia, PA 19104; email: alur@cis.upenn.edu; M.Benedikt, Bell Laboratories, Lucent Technologies, 2701 Lucent Lane, Lisle, IL 60532; email:benedikt@bell-labs.com; K. Etessami, Laboratory for Foundations of Computer Science, Universityof Edinburgh, The King’s Buildings, Mayﬁeld Road, Edinburgh EH9 3JZ, Scotland, UK; email:kousha@inf.ed.ac.uk; P. Godefroid, Bell Laboratories, Lucent Technologies, 2701 Lucent Lane,Lisle, IL 60532; email: god@bell-labs.com; T. Reps, Computer Science Department, University ofWisconsin-Madison, 1210 West Dayton Street, Madison, WI 53706-1685; email: reps@cs.wisc.edu;
+M. Yannakakis, Department of Computer Science, Columbia University, 455 Computer Sci-ence Building, 1214 Amsterdam Avenue, Mail Code 0401, New York, NY 10027; email:mihali@cs.columbia.edu.Permission to make digital or hard copies of part or all of this work for personal or classroom use is
+granted without fee provided that copies are not made or distributed for proﬁt or direct commercialadvantage and that copies show this notice on the ﬁrst page or initial screen of a display alongwith the full citation. Copyrights for components of this work owned by others than ACM must behonored. Abstracting with credit is permitted. To copy otherwise, to republish, to post on servers,to redistribute to lists, or to use any component of this work in other works requires prior speciﬁcpermission and/or a fee. Permissions may be requested from Publications Dept., ACM, Inc., 1515Broadway, New York, NY 10036 USA, fax: +1(212) 869-0481, or permissions@acm.org.
+C/circlecopyrt2005 ACM 0164-0925/05/0700-0786 $5.00
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005, Pages 786–818.
+
+--- Page 2 ---
+Analysis of Recursive State Machines • 787
+veriﬁcation of linear time properties of RSMs. We begin this study by dealing with two key compo-
+nents for algorithmic analysis and model checking, namely, reachability (Is a target state reachablefrom initial states?) and cycle detection (Is there a reachable cycle containing an accepting state?).Weshow that both these problems can be solved in time O(nθ
+2)and space O(nθ), where nis the
+size of the recursive machine and θis the maximum, over all component state machines, of the
+minimum of the number of entries and the number of exits of each component. From this, we easilyderive algorithms for linear time temporal logic model checking with the same complexity in themodel. We then turn to properties in the branching time logic CTL
+∗,and again demonstrate a
+bound linear in the size of the state machine, but only for the case of RSMs with a single exit node.
+Categories and Subject Descriptors: D.2.2 [ Software Engineering ]: Design Tools and Tech-
+niques— State diagrams ;D.2.4 [ Software Engineering ]: Software/Program Veriﬁcation— Formal
+methods ;F.1.1 [ Computation by Abstract Devices ]: Models of Computation— Automata ;F.3.1
+[Logics and Meanings of Programs ]: Specifying and Verifying and Reasoning about Programs
+General Terms: Veriﬁcation, AlgorithmsAdditional Key Words and Phrases: Software veriﬁcation, recursive state machines, pushdown
+automata, context-free languages, model checking, temporal logic, program analysis
+1. INTRODUCTION
+In traditional model checking, the model is a ﬁnite state machine whose vertices
+correspond to system states and whose edges correspond to system transitions.In this article we consider the analysis of recursive state machines (RSMs), in
+which vertices can either be ordinary states or can correspond to invocations ofother state machines in a potentially recursive manner. RSMs can model con-trol ﬂow in typical sequential imperative programming languages with recur-sive procedure calls. Alternatively, RSMs can be viewed as a variant of visualnotations for hierarchical state machines, such as Statecharts [Harel 1987]and UML [Booch et al. 1997], where concurrency is disallowed but recursion isallowed.
+More precisely, a recursive state machine consists of a set of component
+machines. Each component has a set of nodes (atomic states) and boxes (each of
+which is mapped to a component), a well-deﬁned interface consisting of entry
+andexitnodes, and edges connecting nodes/boxes. An edge entering a box mod-
+els the invocation of the component associated with the box, and an edge leavingabox corresponds to a return from that component. Due to recursion, the under-
+lying global state-space is inﬁnite and behaves like a pushdown system. While
+RSMs are closely related to pushdown systems, which are studied in veriﬁca-tion and program analysis in many disguises [Reps et al. 1995; Bouajjani et al.1997], RSMs appear to be the appropriate deﬁnition for visual modeling andallow tighter analysis. The relationship between RSMs and these other modelsis studied in detail in Section 3.
+The goal of this article is to study veriﬁcation problems for RSMs. The two
+most fundamental questions for model checking of safety and liveness proper-ties, respectively are (1) reachability :Given sets of initial and target nodes,
+is some target node reachable from an initial one? and (2) cycle detection :
+Given sets of initial and target nodes, is there a cycle containing a target nodereachable from an initial node? This analysis also forms the basis for modelchecking more complex properties in linear-time temporal logic. For cycle
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 3 ---
+788 • R. Alur et al.
+detection, there are two natural variants depending on whether or not one
+requires the recursion depth to be bounded in inﬁnite computations. We showthat all these problems can be solved in time O(nθ
+2), where nis the size of
+the RSM, and θis a parameter depending only on the number of entries and
+exits in each component. The number of entry points corresponds to the pa-rameters passed to a component, while the number of exit points correspondsto the values returned. More precisely, for each component A
+i,letdibe the
+minimum of the number of entries and the number of exits of that component.Then θ=max
+i(di). Thus, if every component has either a “small” number of
+entry points, or a “small” number of exit points, then θwill be “small.” The space
+complexity of the algorithms is O(nθ).
+The ﬁrst, and key, computational step in the analysis of RSMs involves
+determining reachability relationships among entry and exit points of eachcomponent. We show how the information required for this computation canbe encoded as recursive Datalog-like rules of a special form. To enable efﬁcientanalysis, our rules will capture forward reachability from entry points for com-
+ponents with a small number of entries, and backward reachability from exit
+points for the other components. The solution to the rules can then be reducedto alternating reachability for AND-OR (game) graphs. In the second step ofour algorithm, we reduce the problems of reachability and cycle detection withbounded/unbounded recursion depth to traditional graph-theoretic analysis onappropriately constructed graphs based on the information computed in theﬁrst step.
+Our algorithms for cycle detection lead immediately to algorithms for
+model checking linear-time requirements expressed as LTL formulas or B ¨uchi
+automata, via a product construction for B ¨uchi automata with RSMs.
+The above analysis, found in Section 4, completes the picture for veriﬁca-
+tion of linear-time properties of RSMs. In Section 5 we extend this analysis tobranching time, focusing on the standard branching-time logic CTL
+∗.Known
+bounds on the model checking of pushdown processes imply that we cannot getalgorithms that are linear in the size of the machine for branching-time (seeSection 3). However, we show that the data complexity is linear for single-exitRSMs. These results generalize bounds in Alur and Yannakakis [2001] for therestricted case of RSMs whose call graph is acyclic, while improving the boundsthat can be derived from the literature on pushdown and context-free processes.In particular, our results show that CTL
+∗model checking for context-free pro-
+cesses can be done in linear time, in the size of the model.
+Organization. In Section 2 we give the formal deﬁnition of RSMs. In Section 3
+we compare their expressiveness to existing models. Section 4 investigatesstate-space analysis and the veriﬁcation of linear time properties, whileSection 5 deals with branching time. Section 6 summarizes and discusses openissues.
+Related work. Our deﬁnition of recursive state machines naturally general-
+izes the deﬁnition of hierarchical state machines of Alur and Yannakakis [2001].Forhierarchical state machines, the underlying state-space is guaranteed to be
+ﬁnite, but can be exponential in the size of the original machine. Algorithms for
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 4 ---
+Analysis of Recursive State Machines • 789
+analysis of hierarchical state machines [Alur and Yannakakis 2001] are adap-
+tations of traditional search algorithms to avoid searching the same componentrepeatedly, and have the same time complexity as the algorithms of this article.However, the “bottom-up” algorithms used in [Alur and Yannakakis 2001] forhierarchical machines cannot be applied to RSMs.
+RSMs are closely related to pushdown systems .Model checking of pushdown
+systems has been studied extensively for both linear and branching time re-quirements [Bouajjani et al. 1997; Burkart and Steffen 1999; Esparza et al.2000; Finkel et al. 1997]. These algorithms are based on an automata-theoreticapproach. Each conﬁguration is viewed as a string over stack symbols, and thereachable conﬁgurations are shown to be a regular set that can be computed byaﬁxpoint computation. Esparza et al [2000] do a careful analysis of the time
+and space requirements for various problems, including reachability and cy-cledetection. The resulting worst-case complexity is cubic, and thus, matches
+our worst case when θ=O(n). Their approach also leads, under more reﬁned
+analysis, to the bound O(nk
+2)Esparza et al. [2000], where nis the size of the
+pushdown system and kis its number of control states .Wewill see that the
+number of control states of a pushdown system is related to the number of exitnodes in RSMs, but that by working with RSMs directly we can achieve betterbounds in terms of θ.
+Ball and Rajamani [2000] consider the model of Boolean programs, which
+can be viewed as RSMs extended with Boolean variables. They have imple-mented a BDD-based symbolic model checker that solves the reachability prob-lem for Boolean programs. The main technique is to compute the summary of
+the input-output relations of a procedure. This in turn is based on algorithms forinterprocedural dataﬂow analysis [Reps et al. 1995], which are generally cubic.As described in Section 6, when translating Boolean programs to RSMs, onemust pay the standard exponential price to account for different combinationsof values of the variables, but the price of analysis need not be cubic in the ex-panded state-space by making a careful distinction between local, read-global,and write-global variables.
+Also worth mentioning is some early work in the 1970s within the natural
+language processing community [Woods 1970] where Woods and his associatesconsidered “recursive transition networks” for modeling the grammatical struc-ture of natural languages. These models are closely related to single-exit RSMs,although they were presented in a somewhat different way.
+In the context of this rich history of research, the current article has ﬁve main
+contributions. First, while equivalent to pushdown systems and Boolean pro-grams in theory, recursive state machines are a more direct, visual, state-basedmodel of recursive control ﬂow. Second, we give algorithms with time and spacebounds of O(nθ
+2)and O(nθ), respectively, and thus our solution for analysis
+is more efﬁcient than the generally cubic algorithms for related models, evenwhen these were geared speciﬁcally to solve ﬂow problems in control graphsof sequential programs. Third, our algorithmic technique for both reachabilityanalysis and cycle detection, which combines a mutually dependent forwardand backward reachability analyses using a natural Datalog formulation andAND-OR graph accessibility, along with the analysis of an augmented ordinary
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 5 ---
+790 • R. Alur et al.
+graph, is new and potentially useful for solving related problems in program
+analysis to mitigate similar cubic bottlenecks. We also anticipate that it is moresuitable for on-the-ﬂy model checking and early error detection than the priorautomata-theoretic solutions for analysis of pushdown systems. Fourth, we giveresults in the branching time setting that have no counterpart in the priorliterature—indeed, using the translations in Section 3, a new bound on modelchecking of CTL
+∗formulas for context-free processes can be derived. Finally,
+using our RSM model, one is able, at no extra cost in complexity, to distinguishbetween inﬁnite accepting executions that require a “bounded call stack” or“unbounded call stack.” This distinction had not been considered in all previ-ous papers.
+Preliminary versions of this material appeared independently in Alur et al.
+[2001] and Benedikt et al. [2001]. Since the publication of these conferencepapers a number of subsequent papers have built upon and extended our work,including Alur et al. [2003a,b], Etessami [2004], Alur et al. [2004].
+2. RECURSIVE STATE MACHINES
+Syntax. Arecursive state machine (RSM) A over a ﬁnite alphabet /Sigma1is given
+by a tuple /angbracketleftA
+1,...,Ak/angbracketright,where each component state machine A i=(Ni∪
+Bi,Yi,Eni,Exi,δi)consists of the following pieces:
+rAsetNiofnodes and a (disjoint) set Biofboxes .
+rAlabeling Yi:Bi/mapsto→{1,...,k}that assigns to every box an index of one of
+the component machines, A1,...,Ak.
+rAset of entry nodes Eni⊆Ni,a n da set of exitnodes Exi⊆Ni.
+rAtransition relation δi,where transitions are of the form ( u,σ,v)where (1)
+the source uis either a node of Ni,orapair ( b,x), where bis a box in Bi
+andxis an exit node in Exjforj=Yi(b); (2) the label σis in/Sigma1;and (3) the
+destination vis either a node in Nior a pair ( b,e), where bis a box in Biand
+eis an entry node in En jforj=Yi(b).
+Wewill often (outside of Section 3) assume further that for every u,vthere
+is at most one σsuch that δi(u,σ,v). This assumption makes for some simpliﬁ-
+cations in the notation, but is not critical to the results in the article.
+Wewill use the term ports to refer collectively to pairs consisting of a box bof
+amachine Aiand corresponding entry and exit nodes of the machine Ajcalled
+byb.Wewill use the term vertices ofAito refer to its nodes and the ports of its
+boxes that participate in some transition. That is, the transition relation δiis
+aset of labelled directed edges on the set Viof vertices of the machine Ai.W e
+letEibe the set of underlying edges of δi,ignoring labels, and for ( u,v)∈Eiwe
+let/Sigma1(u,v)bethe unique σsuch that δi(u,σ,v). We will often refer to a vertex
+(b,e)a sa call vertex and ( b,x)a sa return vertex .
+Figure 1 illustrates the deﬁnition. The sample RSM has three components.
+The component A1has 4 nodes, of which u1andu2are entry nodes and u4i s
+the exit node, and two boxes, of which b1ismapped to component A2andb2i s
+mapped to A3.The entry and exit nodes are the control interface of a component
+by which it can communicate with the other components. Intuitively, think of
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 6 ---
+Analysis of Recursive State Machines • 791
+Fig.1. A sample recursive state machine.
+component state machines as procedures, and an edge entering a box at a given
+entry as invoking the procedure associated with the box with given argumentvalues. Entry-nodes are analogous to arguments while exit-nodes model valuesreturned.
+Semantics. Todeﬁne the executions of RSMs, we ﬁrst deﬁne the global
+states and transitions associated with an RSM. A (global) state of an RSM
+A=/angbracketleftA
+1,...Ak/angbracketrightis a tuple /angbracketleftb1,...,br,u/angbracketrightwhere b1,...,brare boxes and uis
+anode. Equivalently, a state can be viewed as a string, and the set Qof
+global states of AisB∗N,where B=∪ iBiand N=∪ iNi.Consider a state
+/angbracketleftb1,...,br,u/angbracketrightsuch that bi∈Bjifor 1 ≤i≤rand u∈Nj.Such a state is
+well-formed ifYji(bi)=ji+1for 1≤i<randYjr(br)=j.Awell-formed state
+of this form corresponds to the case when the control is inside the component
+Aj,which was entered via box brof component Ajr(the box br−1gives the con-
+text in which Ajrwasentered, and so on). Henceforth, we assume states to be
+well-formed.
+Wedeﬁne a (global) transition relation δ.Lets=/angbracketleftb1,...,br,u/angbracketrightbe a state
+with u∈Njandbr∈Bm.Then, ( s,σ,s/prime)∈δif and only if one of the following
+holds:
+1. (u,σ,u/prime)∈δjfor a node u/primeofAj,ands/prime=/angbracketleftb1,...,br,u/prime/angbracketright.
+2. (u,σ,(b/prime,e))∈δjfor a box b/primeofAj,ands/prime=/angbracketleftb1,...,br,b/prime,e/angbracketright.
+3.uis an exit-node of Aj,( (br,u),σ,u/prime)∈δmfor a node u/primeofAm,and s/prime=
+/angbracketleftb1,...,br−1,u/prime/angbracketright.
+4.uis an exit-node of Aj,( (br,u),σ,(b/prime,e))∈δmfor a box b/primeofAm,and s/prime=
+/angbracketleftb1,...,br−1,b/prime,e/angbracketright.
+Case 1 is when the control stays within the component Aj,case 2 is when a new
+component is entered via a box of Aj,case 3 is when the control exits Ajand
+returns back to Am,and case 4 is when the control exits Ajand enters a new
+component via a box of Am.TheLabeled Transition System (LTS) T A=(Q,/Sigma1,δ)
+is called the “unfolding” of A .
+When comparing expressiveness of labeled transition systems , we make use
+of the standard notion of bisimulation .Abisimulation between LTS T1andT2
+with the same alphabet /Sigma1is a binary relation Brelating states of T1and states
+ofT2,with the property that B(x,y)implies that: 1) if ( x,σ,x/prime)∈T1,then there
+isy/prime∈T2with ( y,σ,y/prime)and B(x/prime,y/prime)and 2) if ( y,σ,y/prime)∈T2,then there is
+x/prime∈T1with ( x,σ,x/prime)andB(x/prime,y/prime).T1andT2are said to be bisimilar if there is
+abisimulation between them.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 7 ---
+792 • R. Alur et al.
+Fortwo labeled transition systems T1andT2over alphabets consisting of /Sigma1
+plus a distinguished letter τ,wesaythey are weakly bisimilar if there is a B
+such that B(x,y)implies that 1) and 2) above hold for every σ∈/Sigma1,and also
+that 3) if ( x,τ,x/prime)∈T1,then B(x/prime,y)and 4) if ( y,τ,y/prime)∈T2,then B(x,y/prime).
+Wewish to consider recursive automata as generators of ω-languages as well
+as labeled transition systems. For the linear-time setting ,weaugment RSMs
+with a designated set of initial nodes, and with B ¨uchi acceptance conditions.
+Arecursive B ¨ uchi automaton (RBA) over a ﬁnite alphabet /Sigma1consists of an
+RSM Aover/Sigma1,asetInit⊆∪k
+i=1Eniof initial nodes and a set F⊆∪k
+i=1Niof
+repeating (accepting) nodes. (If Fis not given, by default we assume F=∪k
+i=1Ni
+to associate a language L(A)with RSM Aand its Init set). Given an RBA,
+(A,Init,F), we obtain an (inﬁnite) global B ¨uchi automaton BA=(TA,Init⋆,F⋆),
+where the initial states Init⋆are states /angbracketlefte/angbracketrightwhere e∈Init,and where a state
+/angbracketleftb1,...br,v/angbracketrightis in F⋆ifvis in F.For an inﬁnite word w=w0w1...over/Sigma1,a
+runπofBAover wis a sequence s0σ0−→s1σ1−→s2···of states siand symbols /Sigma1
+such that (1) s0∈Init⋆,(2) (si,σi,si+1)∈δfor all i,and (3) the word wequals
+σ0σ1σ2···Arunπisaccepting if for inﬁnitely many i,si∈F⋆.
+Wecall a run πbounded if there is an integer msuch that for all i,the length
+of the tuple siis bounded by m.I ti s unbounded otherwise. In other words, in
+abounded (inﬁnite) run the stack-length (number of boxes in context) always
+stays bounded. A word w∈/Sigma1ωis(boundedly/unboundedly) accepted by the
+RBA Aif there is an accepting (bounded/unbounded) run of BAonw.Note, w
+is boundedly accepted if and only if for some s∈F⋆there is a run πonwfor
+which si=sinﬁnitely often. This is not so for unbounded accepting runs.
+WeletL(A),Lb(A)andLu(A)denote the set of words accepted, boundedly ac-
+cepted, and unboundedly accepted by A,respectively. Clearly, Lb(A)∪Lu(A)=
+L(A), but Lb(A)andLu(A)need not be disjoint. Given RBA A,wewill be inter-
+ested in the following algorithmic problems:
+1.Reachability: Given A,for nodes uandvofA,letu⇒vdenote that some
+global state /angbracketleftb1,...br,v/angbracketright,whose node is v,isreachable from the global state
+/angbracketleftu/angbracketrightin the global transition system TA.Extending the notation, let Init⇒v
+denote that for some u∈Init,u⇒v.Our goal in simple reachability analysis
+is to compute the set {v|Init⇒v}of reachable vertices.
+2.Language emptiness: Wewant to determine if L(A),Lb(A)and Lu(A)are
+empty or not. We obtain thereby algorithms for model checking RSMs.
+3.LTLmodel-checking: Given a formula φin linear time temporal logic, we
+want to check if ∀ω∈L(A)ω|=φ,and similarly for LbandLu.
+In the branching-time setting, we will consider the problem of checking a
+formula in the logic CTL∗over an RSM Awith a given initial global state s.
+CTL∗uses the temporal operators U(until), X(nexttime) and the existential
+path quantiﬁer E,inaddition to the operators ¬(not) and ∨(or). We will give
+aslight variant of CTL∗appropriate for labeled transition systems. Two types
+of CTL∗formulas, path formulas and state formulas, are deﬁned by mutual in-
+duction. In our case, a state formula is satisﬁed by a particular state in the LTS,while a path formula is satisﬁed by a sequence of labeled edges p=a
+1...an....
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 8 ---
+Analysis of Recursive State Machines • 793
+An edge label a∈/Sigma1is a basic path formula, and it is satisﬁed by pas above if
+and only if a1=a.Every state formula φis a path formula, and it is satisﬁed by
+pif and only if it is satisﬁed by the source of the edge a1.I fp,qare both state
+formulas (respectively, both path formulas) then p∨qand¬pare also state
+formulas (respectively, path formulas). If pandqare path formulas, then pU q
+andXpare also path formulas while Epis a state formula. We use the stan-
+dard abbreviation FpfortrueUp andGpfor¬F¬p.Wewill use the fact that
+CTL∗state formula can be viewed as a Boolean combination of existential for-
+mulas, where an existential formula is either an atomic proposition or a CTL∗
+state formula of the form Eρ(p(γ1)←γ1,...,p(γn)←γn), where ρis an LTL
+formula over propositions p(γ1),...,p(γn)and the γiare CTL∗state formulas.
+More information on CTL∗can be found in Emerson [1990]. In particular, it is
+well-known that if Bis a bisimulation of T1andT2and B(x,y)holds for some
+states x,yofT1,T2(respectively) then every CTL∗formula satisﬁed by T1at
+xis also satisﬁed by T2aty.
+Notation. Weuse the following notation. Let vibe the number of vertices and
+eithe number of transitions (edges) of each component Ai,and let v=/Sigma1ivi,
+e=/Sigma1ieibe the total number of vertices and edges. The size|A|of an RSM A
+is the space needed to write down its components. Assuming, without loss ofgenerality, that each node and each box of each component is involved in at leastone transition, v≤2e,and the size of Ais proportional to its number of edges e.
+The other parameter that enters in the complexity is θ,abound on the number of
+entries or exits of the components. Let en
+i=|Eni|andexi=|Exi|,bethe number
+of entries and exits in the i’th component, Ai.Then θ=max i∈{1,...,k}min( eni,exi).
+That is, every component has either no more than θentries or no more than θ
+exits. There may be some components of each kind; we call components of theﬁrst kind entry-bound and the others exit-bound .
+3. RELATION TO PUSHDOWN AND CONTEXT-FREE SYSTEMS
+In this section we explore the relationship between recursive automata and a
+variant of pushdown automata. We then see what these results, together withthe results of Alur and Yannakakis [2001] on RSMs without recursion, tell usabout the complexity of model checking.
+3.1 Expressiveness of RSMs Versus other Models
+Forpurposes of comparison with RSMs, we consider a pushdown system (PDS)
+given by P=(Q
+P,/Gamma1,/Delta1)over an alphabet /Sigma1consisting of a set of control states
+QP,astack alphabet /Gamma1,and a transition relation /Delta1⊆(QP×/Gamma1)×/Sigma1×(QP×
+{swap (/Gamma1),swap −and−push (/Gamma1×/Gamma1),pop}). That is, based on the control state
+and the symbol on top of the stack, the machine can update the control stateand either swap the top-of-the-stack with a new symbol, simultaneously swapthe top-of-the-stack with a new symbol and then push a second new symbol, orpop the stack. A PDS is a context-free system if it has only one control state.
+Note that the standard “push” operation can be simulated using swap-and-
+push. Also note that a push of several stack elements on the stack in one stepcan be simulated (for both PDS and context-free systems) by expanding the
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 9 ---
+794 • R. Alur et al.
+stack alphabet (e.g., given a machine pushing in one step the sequence a1a2of
+two symbols with a1,a2∈/Gamma1,weuse a machine whose stack is /Gamma1∪/Gamma12and where
+pushing a1a2on the stack is done by pushing the single stack element ( a1,a2)
+on the stack). A stack with letter γat the top and remaining content ω∈/Gamma1∗
+(running from bottom to top) will be written ωγ.The semantics of a PDS is
+given in terms of an LTS over /Sigma1in the obvious way: a state is a pair ( w,q)with
+q∈QPandw∈/Gamma1∗,and, for example, PDS transition (( q,γ),σ,(q/prime,swap (γ/prime)))
+leads to a transition (( wγ,q),σ,(wγ/prime,q/prime)) in the LTS.
+Wenow compare the expressiveness of PDS with RSM. In what follows,
+we say that a PDS is bisimilar to an RSM when the corresponding LTSs arebisimilar.
+T
+HEOREM 1.Every PDS is bisimilar to a RSM, and vice versa. Moreover,
+every context-free system is bisimilar to a single-exit RSM, and vice versa.
+PROOF.Given a PDS P,webuild a recursive automaton A(P)that is bisim-
+ilar to it. Our construction is done in two steps: ﬁrst, we build an RSM As(P)
+withτtransitions that is weakly bisimilar to P,and then we eliminate the τ
+transitions in As(P)toobtain A(P)while preserving weak bisimulation.
+As(P)has only one component, A1.A1has an entry en(q,γ)for every pair
+(q,γ)with qinQPandγin/Gamma1.Ithas one exit exqfor every q∈QP.Italso has
+one box bγassociated with each stack symbol γ∈/Gamma1that plays a role in some
+transition of P.All boxes are, obviously, mapped to A1.The transitions of A1
+are as follows:
+1. For every transition (( q,γ),σ,(q/prime,pop)) in /Delta1,there is a transition
+(en(q,γ),σ,exq/prime)i nδ1.
+2. For every transition (( q,γ),σ,(q/prime,swap (γ/prime))) in /Delta1,there is a transition
+(en(q,γ),σ,en(q/prime,γ/prime))i nδ1.
+3. For every transition (( q,γ),σ,(q/prime,swap −and−push (γ1,γ2))) in/Delta1,there is
+(en(q,γ),σ,(bγ1,en(q/prime,γ2))) inδ1.
+4. For every box exit ( bγ,exq)o f each box bγ,there is a τ-transition
+((bγ,exq),τ,en(q,γ))i nδ1.
+The intuition behind this construction should be clear: each entry node en(q,γ)
+ofA1corresponds to the conﬁguration of Pwith control state qand top-of-
+stack γ.The remainder of the content of the pushdown stack of P(with the
+top element excluded) is coded in the call stack of As(P), with box bγon the
+call stack acting like γon the pushdown stack. The size |As(P)|isO(|P|), and
+the number of exits of A1is|QP|.The translation preserves boundedness, and
+indeed stack/call depth, so that runs of Pthat require bounded (unbounded)
+stack depth correspond to runs of As(P)that are bounded (unbounded).
+It is easy to prove that the unfolding of As(P)isweakly bisimilar to the un-
+folding of P.This is done by taking as bisimulation relation Bthe mapping that
+relates every global state /angbracketleftγ1...γ n,q/angbracketrightofPto the global states /angbracketleftbγ1...bγn,exq/angbracketright
+and/angbracketleftbγ1...bγn−1,en(q,γn)/angbracketrightofAs(P).
+Theτtransitions in As(P)can be eliminated as follows: remove all the τ
+transitions, and for each transition ( en(q,γ),σ,x)out of en(q,γ),add a transition
+((bγ,exq),σ,x). Let A(P)bethe resulting RSM. It is easy to check that the
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 10 ---
+Analysis of Recursive State Machines • 795
+unfolding of A(P)isweakly bisimilar to the unfolding of As(P). This in turn
+implies that the unfolding of A(P)isbisimilar to P,since neither of them have τ-
+transitions. Note that the size of A(P)islinear in the size of P.Finally, note that,
+given a PDS with a single state, our translation generates a single-exit RSM.
+In the other direction, given an RSM A,wenow describe how to build a PDS
+P(A)that is bisimilar to A.Weproceed in two stages again: ﬁrst, we build a PDS
+Ps(A)withτtransitions that is weakly bisimilar to A,and then we eliminate
+theτtransitions in Ps(A)toobtain P(A)while preserving weak bisimulation.
+Webegin with the construction of Ps(A). The stack symbols /Gamma1ofPs(A)
+correspond to all possible “locations” ( j,v)inthe recursive automaton: jgives
+the index of the component, and vis either a node of Ajor a box bofAj.The
+control states QofPs(A)are{1...ex},where exis the maximum number of
+exit nodes of any component. For every transition ( v,σ,v/prime)between vertices v
+andv/primeof a component Ajwhere vis not of the form ( b,x)andv/primeis not of the
+form ( b/prime,e), there is a transition ((1, ( j,v)),σ,(1,swap (j,v/prime))) in Ps(A). For every
+transition ( v,σ,(b,e)) within a component Ajwhere vis not of the form ( b/prime,x)
+and where bis a box of Ajmapped to component Aj/primeand eis an entry node
+ofAj/prime,there is a transition ((1, ( j,v)),σ,(1,swap−and−push ((j,b), (j/prime,e)))) in
+Ps(A). For every exit node xiof component Aj(where xiis the ith exit of Aj),
+there is a transition ((1, ( j,xi)),τ,(i,pop)). For every box bofAjmapped to
+component Aj/prime,for every exit xiofAj/primeand every transition (( b,xi),σ,v/prime)with
+v/primenot of the form ( b/prime,e), there is a transition (( i,(j,b)),σ,(1,swap (j,v/prime))) in
+Ps(A). Finally, for every box bofAjmapped to component Aj/prime,for every exit xi
+ofAj/primeand every transition (( b,xi),σ,(b/prime,e)) with ean entry node of Ak,there is
+atransition (( i,(j,b)),σ,(1,swap−and−push ((j,b/prime), (k,e)))) in Ps(A).
+The size of Ps(A)islinear in the size of recursive automaton A.Note that
+in the case where Ais single-exit, Ps(A)iscontext-free. This translation also
+preserves call/stack depth, and thus boundedness.
+Wenow deﬁne P(A)byeliminating the τtransitions in Ps(A)asfollows:
+remove all the τtransitions; for every transition ( n,σ,xi)toanexit node
+xiof a component Aj(where xiis the ith exit of Aj), add a transition
+((1, ( j,n)),σ,(i,pop)) (note that stack elements of the form ( j,xi)are never
+used in the deﬁnition of P(A)); for every transition ( xi,σ,n)from an exit node
+xiof a component Aj(where xiis the ith exit of Aj)toanode n∈Nj,add a
+transition (( i,−),σ,(1,push (j,n))) (where −indicates any stack element); for
+every transition ( xi,σ,xj)from an exit node xiof a component Aj(where xiis
+theith exit of Aj)toanexit node xj,add a transition (( i,−),σ,(j,−)) (meaning
+the stack is left unchanged); for every transition ( xi,σ,(b,e)) from an exit node
+xiof a component Aj(where xiis the ith exit of Aj)toacall node ( b,e)calling
+machine Ak,add a transition (( i,−),σ,(1,double-push ((j,b), (k,e)))) (where −
+indicates any stack element and double-push is syntactic sugaring for pushing
+apair of values on the stack as explained earlier).
+It is easy to check that the unfolding of P(A)isbisimilar to the unfolding of
+A,bytaking as bisimulation relation Bthe following mapping: for every global
+state g=/angbracketleftb1...bn,v/angbracketrightofAwhere vis not an exit node, gis mapped to the global
+state /angbracketleftγ1...γ n+1,1/angbracketrightofP(A)with for all i≤n,γi=(ji,bi)(where biis a box of
+component Aji), and γn+1=(jn+1,v)with jn+1being the index of the machine
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 11 ---
+796 • R. Alur et al.
+called by box bn;for every global state g=/angbracketleftb1...bn,xi/angbracketrightofAwhere xiis the ith
+exit node of of a component Ajcalled by box bn,gis mapped to the global state
+/angbracketleftγ1...γ n,i/angbracketrightofP(A)with for all i≤n,γi=(ji,bi)(where biis a box of component
+Aji). Finally, note that, given a single-exit RSM A,our translation generates
+aPDS P(A)with a single state. This concludes the proof of Theorem 1.
+Since it is known [Caucal and Monfort 1990] that there exist pushdown sys-
+tems that are not bisimilar to any context-free systems, we obtain the followingresult from the previous theorem.
+C
+OROLLARY 2.There exist multiple-exit RSMs R for which the unfolding T R
+is not bisimilar to the unfolding of any single-exit RSM.
+Wenow ﬁnd that the relationships are also tight if we consider the complexity
+of model checking, rather than expressiveness.
+THEOREM 3.
+rTheLTL model checking problem for RSMs and for pushdown systems are
+inter-reducible in linear time and logarithmic space, and similarly for CTLand CTL
+∗.
+rTheLTL model checking problem for single-exit RSMs and for context-free
+systems are inter-reducible in linear time and logarithmic space, and similarlyforCTL and CTL
+∗.
+PROOF.The reduction from PDS model checking to RSM model checking
+follows from the linear translation from a PDS Pto an RSM A(P)given in
+the proof of Theorem 1 since Pand A(P)are bisimilar and since bisimulation
+preserves all the logics we consider here.
+Conversely, we note that the translation from AtoP(A)given in the proof of
+Theorem 1 is not linear, so the proof is not as direct. However, the translationfrom AtoP
+s(A)islinear, so we proceed by reducing a RSM model-checking
+problem ( A,φ)toaPDS model-checking problem ( Ps(A),φ/prime)where Ps(A)i sa
+PDS over alphabet /Sigma1+=/Sigma1∪{τ}andφ/primeis a formula of the same logic as φbut
+over/Sigma1+.
+Formula φ/primeis deﬁned by translating formula φas follows. We start by deﬁning
+how to translate LTL (i.e., path) formulas:
+rT(a)=a∨(τ∧Xa)fora∈/Sigma1,
+rT(Xρ)=(¬τ∧XT(ρ))∨(τ∧XXT (ρ)),
+rT(Fρ)=FT(ρ),
+rT(¬ρ)=¬T(ρ),
+rT(τUρ)=T(τ)UT(ρ).
+Tosee that T(φ)isthe desired formula, note that in the unfolding of Ps(A),
+every τ-move always leads to a vertex from which no τmove is possible. Hence
+any inﬁnite run through Ps(A)has no two consecutive τtransitions in it. Given
+aword ωwith no consecutive occurrences of τ,letC(ω)bethe word formed by
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 12 ---
+Analysis of Recursive State Machines • 797
+removing each τ.The correctness of T(φ)now follows from the following claim:
+ω|=T(φ)⇔C(ω)|=φ.
+The proof of the claim is by induction on the length of the formula. For a
+string ωwe let ω(i)bethe ith letter and ωibe the sufﬁx of ωstarting after the
+ith letter. In the base case, the result follows since the initial letter of C(ω)i s
+either the same ω(1) ifω(1)/negationslash=τ,o ri s ω(2) otherwise.
+Forthe case of the next operator, note that C(ω)|=Xρholds if and only if
+(ω(1)/negationslash=τand C(ω1)|=ρ)o r(ω(1)=τand C(ω1)|=Xρ). In the latter case,
+since ω(2)/negationslash=τwe know that C(ω1)|=Xρif and only if C(ω2)|=ρ.Hence
+C(ω)|=Xρis equivalent to ω(1)/negationslash=τandC(ω1)|=ρorω(1)=τandC(ω2)|=ρ,
+and by induction this is the same as ω(1)/negationslash=τandω1|=T(ρ)o rω(1)=τand
+ω2|=T(ρ).
+Forthe eventually operator, we have C(ω)|=Fρif and only if ∃nC(ω)n|=ρ
+if and only if ∃iC(ωi)|=ρif and only if ∃iωi|=T(ρ)ifand only if ω|=FT(ρ).
+The second equivalence holds since every sufﬁx of C(ω)isasufﬁx of C(ωi)for
+some i.
+Forthe until case, suppose C(ω)|=τUρ.Weshow ω|=T(τ)UT(ρ). We know
+that either C(ω)|=Gτ∧¬ρor for some nC(ω)n|=ρand∀i<nC(ω)i|=τ∧¬ρ.
+IfC(ω)|=Gτ∧¬ρthen by the deﬁnition of G,∀nC(ω)n|=τ∧¬ρ.Therefore
+∀mC(ωm)|=τ∧¬ρ,since C(ωm)=C(ω)nfor some n.Hence by induction we
+have ∀mωm|=T(τ∧¬ρ)=T(τ)∧¬T(ρ). Soω|=GT(τ)∧¬T(ρ), therefore
+ω|=(T(τ)∧¬T(ρ))UT(ρ)asrequired. Now assume that we have nsuch that
+C(ω)n|=ρand∀i<nC(ω)i|=τ∧¬ρ.Arguing as before we see that there
+ismsuch that C(ωm)|=ρand∀i<mC(ωi)|=τ∧¬ρ.Then by induction we
+have ωm|=T(ρ)and∀i<mωi|=T(τ)∧¬T(ρ), and from this we see that
+ω|=T(τ)UT(ρ).
+Now suppose ω|=T(τ)UT(ρ). Suppose that there is mwithωm|=T(ρ)and
+∀i<mωi|=T(τ)∧¬T(ρ). By induction, C(ωm)|=ρand∀i<mC(ωi)|=τ∧¬ρ.
+Choosing nsuch that C(ω)n=C(ωm)w es e e C(ω)n|=ρand∀i<nC(ω)i|=τ∧¬ρ,
+but then C(ω)|=τUρ.The case where ω|=GT(ρ)issimilar. This completes
+the proof of the claim.
+Totranslate a CTL∗formula, we add the rule T(Eρ)=ET (ρ). Since
+Aand Ps(A)are weakly bisimilar and the above claim, the reduction from
+the RSM model-checking problem ( A,φ)tothe PDS model-checking problem
+(Ps(A),T(φ)) sufﬁces to prove the other half of Theorem 3.
+Finally, we have shown above that a PDS with a single state can be translated
+to a single-exit RSM, and vice versa. Therefore, model checking for context-freesystems and single-exit RSM are inter-reducible.
+3.2 Consequences for Model Checking Problems
+Wenow review what the expressive results above tell us about model checking.
+Since the hierarchical state machines of Alur and Yannakakis [2001] are
+special cases of RSMs, it is worth reviewing some of the results presented in Alurand Yannakakis [2001] for this restricted case. The following table summarizesthe results of Alur and Yannakakis [2001] concerning the complexity in the
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 13 ---
+798 • R. Alur et al.
+Table I. Known Results for RSMs Without Recursion
+Class of RSM Reachability Cycle Detection LTL CTL
+Restricted Single-exit Linear Linear Linear Linear
+Restricted Multiple-exit Linear Linear Linear PSPACE
+size of the RSM for RSMs without recursion. It deals with each of the major
+veriﬁcation problems we consider here, except CTL∗model checking, which was
+not discussed in Alur and Yannakakis [2001]. For the model checking problems,the complexity below means the size of the formula is ﬁxed. Note that Alurand Yannakakis [2001] also showed that CTL model checking is also PSPACE-complete in the size of the formula for any ﬁxed restricted RSM.
+Thanks to the correspondence theorems established in the previous section,
+we can obtain algorithms and complexity bounds for the veriﬁcation of RSMsfrom previously existing algorithms and bounds for the veriﬁcation of context-free and pushdown systems.
+Consider the case of single-exit RSMs. By Theorem 3, model checking for
+single-exit RSMs can be reduced to model checking for context-free systems.Since LTL model checking for context-free systems can be solved in time linearin the size of the pushdown automaton [Finkel et al. 1997], LTL model check-ing for single-exit RSMs can be solved in time linear in the size of the RSM.This also implies a linear-time algorithm for the reachability and cycle detec-tion problems. A linear-time algorithm for CTL model checking for single-exitRSMs can be derived from the CTL model checking algorithm for context-freesystems given in Burkart and Steffen [1992]. Finally, since the µ-calculus model
+checking algorithm of Burkart and Steffen [1999] for context-free systems runs
+in quadratic time for formulae in the second level of the µ-calculus alterna-
+tion hierarchy, which is known to contain CTL
+∗[Emerson and Lei 1986], CTL∗
+model checking for single-exit RSMs can be solved in time quadratic in the size
+of the RSM.
+Let us turn to the case of multiple-exit RSMs. By Theorem 3, we know that
+model checking for multiple-exit RSMs can be reduced to model checking forpushdown systems. Since LTL model checking for pushdown automata can besolved in time cubic in the size of the pushdown automaton [Finkel et al. 1997;Esparza et al. 2000], LTL model checking for multiple-exit RSMs can be solvedin time cubic in the size of the RSM. Moreover, a cubic-time algorithm for thereachability and cycle detection problems can easily be derived from this LTLmodel checking algorithm. Since we know that the model checking problemfor pushdown systems and the alternation-free µ-calculus is EXPTIME-hard
+[Walukiewicz 2001] and that an exponential-time algorithm for solving thisproblem is presented in Bouajjani et al. [1997], and since CTL is contained inthe alternation-free µ-calculus, we can deduce that the CTL model checking
+problem for multiple-exit RSMs is EXPTIME-complete in the size of the RSM.Similarly, the exponential-time model-checking algorithm given in Burkart andSteffen [1999] for pushdown systems and the full µ-calculus, which contains
+CTL
+∗,and the EXPTIME-hardness result of [Walukiewicz 2001] imply that
+the CTL∗model checking problem for multiple-exit RSMs is also EXPTIME-
+complete in the size of the RSM.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 14 ---
+Analysis of Recursive State Machines • 799
+Table II. Algorithms and Complexity Bounds for RSMs
+Class of RSM Reachability Cycle Detection LTL CTL CTL∗
+Single-exit Linear Linear Linear Linear Quadratic
+Multiple-exit Cubic Cubic Cubic EXPTIME EXPTIME
+Table III. Improved Algorithms for RSMs
+Class of RSM Reachability Cycle Detection LTL CTL CTL∗
+Single-exit Linear Linear Linear Linear Linear
+Single-entry Multiple-exit Linear Linear Linear EXPTIME EXPTIME
+Multiple-entry Multiple-Exit Cubic Cubic Cubic EXPTIME EXPTIME
+The following table summarizes the results we have obtained in the previous
+discussion. Complexity bounds are given in the size of the RSM.
+In the remainder of this article, we present two improvements to the results of
+Table II. First, in the next section, we present an LTL model checking algorithm
+for RSMs and deﬁne precisely the complexity of this algorithm. We then showthat LTL model checking for single-entry multiple-exit RSMs can be solved withthis algorithm in time linear in the size of the RSM, instead of cubic time (see
+Table II). This implies that the reachability and cycle detection problems can
+also be solved in linear-time for single-entry RSMs. Second, in Section 5, wepresent a new CTL
+∗algorithm for single-exit RSMs that runs in time linear in
+the size of the RSM, instead of quadratic time (see Table II).
+After taking into account these two new results, the complexity of the ﬁve
+veriﬁcation problems for RSMs is summarized in Table III. (Improvementsintroduced in the two next sections are highlighted in italic.)
+4. LINEAR-TIME PROPERTIES
+Given a recursive automaton, A,our ultimate goal in this section is to show
+how one can verify any properties in linear time temporal logic. We begin byshowing that two key analysis problems, reachability and language emptiness,can be solved in time O(|A|θ
+2); more precisely, in time O(eθ+vθ2)and space
+O(e+vθ). For notational convenience, we will assume without loss of generality
+that all entry nodes of the machines have no incoming edges and all exit nodeshave no outgoing edges.
+Wewill then show how these results immediately imply bounds on model-
+checking of properties given as B ¨uchi automata or LTL formulas.
+4.1 Reachability
+Given A,wewish to compute the set {v|Init⇒v}.For clarity, we present our
+algorithm in two stages. First, we deﬁne a set of Datalog rules and construct anassociated AND-OR graph G
+A,which can be used to compute information about
+reachability within each component automaton. Next, we use this informationto obtain an ordinary graph H
+A,such that we can compute the set {v|Init⇒v}
+by simple reachability analysis on HA.
+Step 1: The Rules and the AND-OR graph construction. As a ﬁrst step
+we will compute, for each component Ai,apredicate (relation) Ri(x,y). IfAiis
+entry-bound, then the variable xranges over all entry nodes of Aiand yranges
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 15 ---
+800 • R. Alur et al.
+over all vertices of Ai.I fAiis exit-bound, then xranges over all vertices of Ai
+and yranges over all exit nodes of Ai.The meaning of the predicate is deﬁned
+as follows: Ri(x,y)holds if and only if there is a path in TAfrom/angbracketleftx/angbracketrightto/angbracketlefty/angbracketright.
+The predicates Ri(x,y)are determined by a series of simple recursive rela-
+tionships that we will write in the style of Datalog rules [Ullman 1988]. Recallsome terminology. An atom is a term P(τ)where Pis a predicate (relation) sym-
+bol and τis a tuple of appropriate arity consisting of variables and constants
+from appropriate domains. A ground atom has only constants. A Datalog rule
+has the form head ←body ,where head is an atom and body is a conjunction
+of atoms. The meaning of a rule is that if for some instantiation σ,mapping
+variables of a rule to constants, all the (instantiated) conjuncts in the body ofthe rule σ(body )are true, then the instantiated head σ(head )must also be true.
+Forreadability, we deviate slightly from this notation and write the rules as
+“head ←body ,under constraint C,”where body includes only recursive pred-
+icates, and nonrecursive constraints are in C.Wenow list the rules for the
+predicates R
+i.Wedistinguish two cases, depending on whether the component
+Aihas more entries or exits. Suppose ﬁrst that Aiis entry-bound. Then, we
+have the following three rules. (Technically, there is one instance of rule 3 foreach box bofA
+i.)
+1.Ri(x,x), x∈Eni
+2.Ri(x,w) ←Ri(x,u), x∈Eni,(u,w)∈Ei
+3.Ri(x,(b,w))←Ri(x,(b,u))∧Rj(u,w),x∈Eni,b∈Bi,Yi(b)
+=j,u∈En j,w∈Exj.
+Rule 1 says every entry node xcan reach itself. Rule 2 says if an entry xcan
+reach vertex u,which has an edge to vertex w,then xcan reach w.Rule 3 says
+if entry xofAican reach an entry port ( b,u)o fab o x b,mapped say to the j’th
+component Aj,and the entry uofAjcan reach its exit w,then xcan reach the
+exit port ( b,w)o fb o x b;wefurther restrict the domain to only apply this rule
+for ports of bthat are vertices (i.e., ( b,u), (b,w)are incident to some edges of
+Ai). Rules for exit-bound component machines Aiare similar.
+1.Ri(x,x), x∈Exi
+2.Ri(u,x) ←Ri(w,x), x∈Exi,(u,w)∈Ei
+3.Ri((b,u),x)←Ri((b,w),x)∧Rj(u,w),x∈Exi,b∈Bi,Yi(b)
+=j,u∈En j,w∈Exj.
+The Datalog program can be evaluated incrementally by initializing the rela-
+tions with all ground atoms corresponding to instantiations of heads of ruleswith empty body (i.e., the atoms R
+i(x,x)for all entries/exits xofAi), and then
+using the rules repeatedly to derive new ground atoms that are heads of in-stantiations of rules whose bodies contain only atoms that have been alreadyderived. As we’ll see below, if implemented properly, the time complexity isbounded by the number of possible instantiated rules and the space is boundedby the number of possible ground atoms. The number of possible ground atomsof the form R
+i(x,y)isatmost viθ,and thus the total number of ground atoms
+is at most vθ.The number of instantiated rules of type 1 is bounded by the
+number of nodes, and the number of rules of type 2 is at most eθ.The number
+of instantiated rules of type 3 is at most vθ2.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 16 ---
+Analysis of Recursive State Machines • 801
+The evaluation of the Datalog program can be seen equivalently as
+the evaluation (reachability analysis) of a corresponding AND-OR graph
+GA=(V,E,Start ). Recall that an AND-OR graph is a directed graph ( V,E)
+whose vertices V=V∨∪V∧consist of a disjoint union of andvertices, V∧,and
+orvertices, V∨,and a subset of vertices Start is given as the initial set. Reacha-
+bility is deﬁned inductively: a vertex pisreachable if:(a)p∈Start ,o r(b)pis
+a∨-vertex and ∃p/primesuch that ( p/prime,p)∈Eand such that p/primeis reachable, or (c)p
+is a∧-vertex and for ∀p/primesuch that ( p/prime,p)∈E,p/primeis reachable. It is well-known
+that reachability in AND-OR graphs can be computed in linear time (see, e.g.,Anderson [1994]).
+Wecan deﬁne from the rules an AND-OR graph G
+Awith one ∨-vertex for
+each ground atom Ri(x,y)and one ∧-vertex for each instantiated body of a rule
+with two conjuncts (rule of type 3). The set Start of initial vertices is the set
+of ground atoms resulting from the instantiations of rules 1 that have emptybodies. Each instantiated rule of type 2 and 3 introduces the following edges:Forarule of type 2 (one conjunct in the body) we have an edge from the ( ∨-
+vertex corresponding to the ground) atom in the body of the rule to the atom inthe head. For an instantiated rule of type 3, we have edges from the ∨-vertices
+corresponding to the ground atoms in the body to the ∧-vertex corresponding
+to the body, and from the ∧-vertex to the ∨-vertex corresponding to the head. It
+can be shown that the reachable ∨-vertices in the AND-OR graph correspond
+precisely to the ground atoms that are derived by the Datalog program.
+The AND-OR graph has O(vθ)∨-vertices, O(vθ
+2)∧-vertices and O(eθ+vθ2)
+edges and can be constructed in a straightforward way and evaluated in thisamount of time. However, it is not necessary to construct the graph explicitly.Note that the ∧-vertices have only one outgoing edge, so there is no reason to
+store them: once a ∧-vertex is reached, it can be used to reach the successor ∨-
+vertex and there is no need to remember it any more. Indeed, evaluation meth-ods for Datalog programs maintain only the relations of the program recordingthe tuples (ground atoms) that are derived. We describe now how to evaluatethe program within the stated time and space bounds.
+Process the edges of the components A
+ito compute the set of vertices and
+record the following information: If Aiis entry-bound (respectively, exit-bound)
+create the successor list (respectively predecessor list) for each vertex. For eachbox, create a list of its entries and exits that are vertices (have some incidentedges). For each component A
+iand each of its ports ucreate a list of all boxes b
+in all the machines of the RSM Athat are mapped to Aiin which the port uof
+bhas an incident edge (is a vertex). The reason for the last two data structures
+is that it is possible that many of the ports of the boxes have no incident edges,and we do not want to waste time looking at them, since our claimed complexitybounds charge only for ports that have incident edges. It is straightforward tocompute the above information from a linear scan of the edges of the RSM A.
+Each predicate (relation) R
+ican be stored using either a dense or a sparse
+representation. For example, a dense representation is a bit-array indexed bythe domain (possible tuples) of the relation: En
+i×ViorVi×Exi.Initially all the
+bits are 0, and they are turned to 1 as new tuples (ground atoms) are derived.Wemaintain a list Sof tuples that have been derived but not processed. The
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 17 ---
+802 • R. Alur et al.
+processing order (e.g., FIFO or LIFO or any other) is not important. Initially, we
+insert into S(and set their corresponding bits) all the ground atoms from rule
+1: atoms of the form Ri(x,x)for all entries xof entry-bound machines Aiand
+exits of exit-bound machines Ai.Inthe iterative step, as long as Sis not empty,
+we remove an atom Ri(x,y)from Sand process it. Suppose that Aiis entry-
+bound (the exit-bound case is similar). Then we do the following. For every edge(y,z)∈E
+iout of y,w ec h e c ki f Ri(x,z)has been already derived (its bit is 1)
+and if not, then we set its bit to 1 and insert Ri(x,z)into S.I fy=(b,u)i sa n
+entry node of a box b,where say bis mapped to Aj,then for every exit vertex
+(b,w)o fbwe check if Rj(u,w)holds; if it does and if Ri(x,(b,w)) has not been
+derived, we set its bit and insert Ri(x,(b,w)) into S.I fyis an exit of Ri,then
+for every box bthat is mapped to Aiand in which the corresponding port ( b,y)
+is a vertex we do the following. Let Akbe the machine that contains the box b.
+If (b,x)isnot a vertex of Aknothing needs to be done. Otherwise, if Akis entry-
+bound (respectively, exit-bound), we check for every entry (respectively, exit) z
+ofAkwhether the corresponding rule 3 can be ﬁred, that is, whether Rk(z,(b,x))
+holds but Rk(z,(b,y)) does not (respectively, Rk((b,y),z)holds but Rk((b,x),z)
+does not). If so, we set the bit of Rk(z,(b,y)) (respectively, Rk((b,x),z)) and
+insert the atom into S.Correctness follows from the following lemma.
+LEMMA 4.Let(x,y)be a tuple such that x and y are vertices of A i,and if A i
+is entry-bound then x ∈Eni,and if A iis exit-bound then y ∈Exi.Then(x,y)
+is added to the predicate R iif and only if /angbracketleftx/angbracketrightcan reach /angbracketlefty/angbracketrightin the transition
+system T A.
+PROOF.Anobservation we use is that /angbracketleftx/angbracketrightcan reach /angbracketlefty/angbracketrightif and only if for
+any global state /angbracketleft¯b,x/angbracketright,there is a path from /angbracketleft¯b,x/angbracketrightto/angbracketleft¯b,y/angbracketrightsuch that every state
+along this path has a preﬁx ¯b.This follows easily from the structure of RSMs.
+Forthe forward direction, if ( x,y)isadded to Ri,all that needs to be observed
+is that all the “rules” encoded in GAare sound, and if they can be used to derive
+Ri(x,y), then /angbracketlefty/angbracketrightmust be reachable from /angbracketleftx/angbracketrightinTA.
+Forthe other direction, suppose there is a path πfrom/angbracketleftx/angbracketrightto/angbracketlefty/angbracketright.Weprove
+by induction on the length of πthat tuple ( x,y)isadded to Riby the rules.
+If|π|=1, then x=y,and since Ri(x,x)←true,isarule, ( x,x)isadded to
+Ri.Suppose |π|=n+1, with the last transition being σn→/angbracketlefty/angbracketright.Either σn
+has the form /angbracketleftx/prime/angbracketright,orthe form /angbracketleftb,x/angbracketright.inwhich case we know there is a rule
+Ri(x)←Ri(x/prime). Thus, there is a corresponding edge ( px/prime,px)i nGA,and since
+by the induction hypothesis x/primeis reachable, so is x.Otherwise, σnhas the form
+/angbracketleftb,x/angbracketright,and by the fact that /angbracketleftb,x/angbracketright→/angbracketleft x/angbracketright,itmust be the case that x=excfor
+some exit excof the component Aj,where Yi(b)=j.Inthis case, consider
+thelongest sufﬁx π/primeof the path π,such that each state in π/prime,except the last
+state /angbracketleftexc/angbracketright,has a preﬁx b.Clearly, such a sufﬁx π/primemust begin with a state
+/angbracketleftb,enk/angbracketright.Then by the alternative characterization of Ri,and by the induction
+hypothesis, it must be the case that there is a path from /angbracketleftenk/angbracketrightto/angbracketleftexc/angbracketright,and hence
+(assuming, w.l.o.g., that Ajis single-exit) that Rj(enk)holds. Thus, by the rule
+Ri(b,exc)←Ri(b,enk)∧Rj(enk), (and the corresponding edge in GA),p(b,exc)is
+reachable in GA.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 18 ---
+Analysis of Recursive State Machines • 803
+THEOREM 5.Given RSM A, all predicates R ican be computed in time
+O(|A|θ2)and space O (|A|θ).(More precisely, time O (eθ+vθ2)and space
+O(e+vθ).)
+Step 2: The augmented graph HA.Having computed the predicates Ri,for
+each component, we know the reachability among its entry and exit nodes. Weneed to determine the set of nodes reachable from the initial set Initin a global
+manner. For this, we build an ordinary graph H
+Aas follows. The set of vertices
+ofHAisV=∪Vi,the set of vertices of all the components. The set of edges
+ofHAconsists of all the edges of the components, and the following additional
+edges. For every box bofAi,s a y bis mapped to Aj,include edges from the entry
+vertices ( b,u)o fbto the exit vertices ( b,w)such that Rj(u,w)holds. Last, add
+an edge from each entry vertex ( b,u)ofabox to the corresponding entry node
+uof the component Ajto which bis mapped. The main claim about HAis:
+LEMMA 6.u⇒vinRSM A if and only if v is reachable from u in H A.
+Thus, to compute {v|Init⇒v},all we need to do is a linear-time depth ﬁrst
+search in HA.Clearly, HAhasvvertices and e+vθedges. Thus we have:
+THEOREM 7.Given an RSM A, the set {v|Init⇒v}of reachable nodes can
+be computed in time O (|A|θ2)and space O (|A|θ).
+In invariant veriﬁcation we are given RSM A,and a set Tof target nodes,
+and want to determine if Init⇒vfor some v∈T.This problem can be solved
+as above in the given complexity. Note that, unlike reachability in FSMs, thisproblem is PTIME-complete even for single-entry, non-recursive, RSMs [Alurand Yannakakis 2001].
+Forconceptual clarity, we have presented the reachability algorithm as a
+two-stage process. However, the two stages can be combined and carried outsimultaneously, and this is what one would do in practice. In fact, we can dothis on-the-ﬂy ,and have the reachability process drive the computation and
+trigger the rules; that is, we derive tuples involving vertices only when theyare reached by the search procedure. This is especially important if the RSM
+Ais not given explicitly but has to be generated from an implicit description
+dynamically on-the-ﬂy. We defer further elaboration to the full article.
+4.2 Checking Language Emptiness
+Given an RBA A=(/angbracketleftA
+1,...,Ak/angbracketright,Init,F), we wish to determine whether L(A),
+Lb(A), and Lu(A)are empty. Since Lb(A)∪Lu(A)=L(A), it sufﬁces to determine
+emptiness for Lb(A)andLu(A). We need to check whether there are any bounded
+or unbounded accepting runs in BA=(TA,Init⋆,F⋆). Our algorithm proceeds
+in the same two stage fashion as our algorithm for reachability. Instead ofcomputing predicates R
+i(x,y), we compute a different predicate Zi(x,y)with
+the same domain Eni×ViorVi×Exi,depending on whether Aiis entry- or exit-
+bound. Ziis deﬁned as follows: Zi(x,y)holds if and only if there is a path in
+BAfrom/angbracketleftx/angbracketrightto/angbracketlefty/angbracketrightthat passes through an accept state in F⋆.Wecan compute
+Zisbyrules analogous to those for Ris.In fact, having previously computed
+theRis,we can use that information to greatly simplify the rules governing
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 19 ---
+804 • R. Alur et al.
+Zis,so that the corresponding rules are linear and can be evaluated by doing
+reachability in an ordinary graph (instead of an AND-OR graph). The rules foran entry-bound machine A
+iare as follows.
+1.Zi(x,y), i f Ri(x,y), and xory∈F⋆,x∈Eni,y∈Vi
+2.Zi(x,w) ←Zi(x,u), forx∈Eni,(u,w)∈Ei
+3a.Zi(x,(b,w))←Zi(x,(b,u)) , if Rj(u,w),x∈Eni,b∈Bi,Yi(b)
+=j,u∈En j,w∈Exj
+3b.Zi(x,(b,w))←Zj(u,w)) , if Ri(x,(b,u)),x∈Eni,b∈Bi,Yi(b)
+=j,u∈En j,w∈Exj
+The rules for exit-bound components Aiare similar. Let G/prime
+Abe an ordinary
+graph whose vertices are the possible ground atoms Zi(x,y)and with edges
+(t1,t2)for each instantiated rule t2←t1.The set Start of initial vertices is the
+ground atoms from rule 1. Then the reachable vertices are precisely the setof true ground atoms Z
+i(x,y).G/prime
+AhasO(vθ)vertices and O(eθ+vθ2)edges.
+Again we do not need to construct it explicitly, but can store only its verticesand generate its edges as needed from the rules.
+L
+EMMA 8.All predicates Z ican be computed in time O (|A|θ2)and space
+O(|A|θ).
+Having computed Zis,we can analyze the graph HAfor cycle detection. Let Fa
+be the set of edges of HAof the form (( b,x), (b,y)), connecting an entry vertex
+to an exit vertex of a box b,mapped say to Aj,and for which Zj(x,y)holds. Let
+Fube the set of edges of the form (( b,x),x)where ( b,x)isavertex and xis an
+entry of the component to which box bis mapped (i.e., the edges that correspond
+to recursive invocations).
+LEMMA 9.Thelanguage L u(A)is nonempty if and only if there is a cycle in
+HAreachable from some vertex in Init, such that the cycle contains both: (1)an
+edge in F aor a vertex in F, and (2)an edge in F u.
+Weneed a modiﬁed version H/prime
+AofHAin order to determine emptiness of
+Lb(A)efﬁciently. The graph H/prime
+Ais the same as HAexcept the invocation edges
+inFuare removed. Also, the set of initial vertices need to be modiﬁed: let En/prime
+denote the vertices enofHA,where enis an entry node of some component in
+A,andenis reachable from some vertex in InitinHA.
+LEMMA 10. Lb(A)is nonempty if and only if there is a cycle in H/prime
+Areachable
+from some vertex in En/prime,such that the cycle contains an edge in F aor a vertex
+in F.
+Both HAand H/prime
+Ahave vvertices and O(e+vθ)edges. We can check the
+conditions in the two lemmas in linear time in the graph size, using standardcycle detection algorithms.
+T
+HEOREM 11. Given RBA A, we can check emptiness of L (A),L b(A)and
+Lu(A)in time O (|A|θ2)and space O (|A|θ).
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 20 ---
+Analysis of Recursive State Machines • 805
+4.3 Model Checking of LTL Properties and B¨ uchi Automata
+Following the automata-theoretic approach to model-checking [Vardi and
+Wolper 1986], a model-checking procedure for a formula φof linear-time
+temporal logic can be obtained by (1) building a ﬁnite-state B ¨uchi automaton
+A¬φthat accepts exactly all the inﬁnite words satisfying the formula ¬φ,(2)
+computing the product of A¬φwith the system to be veriﬁed, and (3) checking
+if this product is nonempty. Hence to be able to check LTL properties, it suf-ﬁces to be able to check properties given as a B ¨uchi automaton, and any bound
+on the model checking of the latter in terms of the size of the RSM will applyto the former.
+Thus we focus on the automata-based model checking problem whose input
+consists of an RSM Aover/Sigma1and an ordinary B ¨uchi automaton Bover/Sigma1.The
+model checking problem is to determine, whether the intersection L(A)∩L(B)
+is empty, or whether L
+b(A)∩L(B)(Lu(A)∩L(B)) is empty if we wish to re-
+strict to bounded (unbounded) runs. Having given algorithms for determin-ing emptiness of L(A),L
+b(A), and Lu(A)for RBAs, what model checking re-
+quires is a product construction, which given a B ¨uchi automaton Band RSM
+A,constructs an RBA that accepts the intersection of the languages of the
+two.
+The product RBA A/prime=A⊗BofAand Bis deﬁned as follows. A/primehas the
+same number of components as A.For every component AiofA,the entry-nodes
+En/prime
+iofA/prime
+iareEni×QB,and the exit-nodes Ex/prime
+iofA/prime
+iareExi×QB.The nodes
+N/prime
+iofA/prime
+iareNi×QBwhile the boxes B/prime
+iare the same as Biwith the same
+label (that is, a box mapped to Ajis mapped to A/prime
+j). Transitions δ/prime
+iwithin each
+A/prime
+iare deﬁned as follows. Consider a transition ( v,σ,v/prime)i nδi.Suppose v∈Ni.
+Then for every transition ( q,σ,q/prime)o fB/prime,A/prime
+ihas a transition (( v,q),σ,(v/prime,q/prime)) if
+v/primeis a node, and a transition (( v,q),σ,(b,(e,q/prime))) if v/prime=(b,e). The case when
+v=(b,x)ishandled similarly. Repeating nodes of A/primeare nodes of the form ( v,q)
+with q∈FB.The construction guarantees that L(A⊗B)=L(A)∩L(B)(and
+Lb(A⊗B)=Lb(A)∩L(B)and Lu(A⊗B)=Lu(A)∩L(B)). Analyzing the cost
+of the product, we get the following theorem:
+THEOREM 12. Let A be an RSM of size n with θas the maximum of minimum
+of entry-nodes and exit-nodes per component, and let B be a B ¨ uchi automaton
+of size m with a states. Then, checking emptiness of L (A)∩L(B)and of L b,u(A)∩
+L(B),can be solved in time O (n·m·a2·θ2)and space O (n·m·a·θ).F o r an LTL
+formula φ,checking whether all paths through A satisfy φcan be solved in time
+and space given the above, where now m =2|φ|.
+5. BRANCHING TIME MODEL CHECKING FOR SINGLE-EXIT RSM S
+In this section, we extend the results on linear-time model-checking to the
+branching time logic CTL∗,bypresenting an algorithm for single-exit RSMs
+that runs in time linear in the size of the RSM. The algorithm is presentedin the next subsection, while the remainder of the section is devoted to itscorrectness proof.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 21 ---
+806 • R. Alur et al.
+function DECOMP( φ:LTL formula ) returns Set of pairs ( β∈LTL+,δ∈LTL)
+[1]if(φ=P)then return ({(P,true)})
+[2]if(φ=φ1∨φ2)then return (DECOMP( φ1)∪DECOMP( φ2))
+[3]if(φ=¬φ1)then return (/uniontext
+A⊆DECOMP (φ1)(/logicalandtext
+(β,δ)∈A¬β,/logicalandtext
+(β,δ)∈DECOMP (φ1)−A¬δ))
+[4]if(φ=Xφ1)then return (/uniontext
+(β,δ)∈DECOMP (φ1)(Xβ,δ)∪{(exit,φ1)})
+[5]if(φ=φ1Uφ2)then return (/uniontext
+∅/negationslash=A⊆DECOMP (φ1)(G/logicalortext
+(β,δ)∈Aβ,/logicalandtext
+(β,δ)∈Aδ∧φ1Uφ2)
+∪/uniontext
+∅/negationslash=A⊆DECOMP (φ1)/uniontext
+(β/prime,δ/prime)∈DECOMP (φ2)(/logicalortext
+(β,δ)∈AβUβ/prime,δ/prime∧/logicalandtext
+(β,δ)∈Aδ))}
+Fig.2. The function DECOMP.
+5.1 The Branching-Time Algorithm
+Akey technical challenge is that the truth value of a temporal-logic formula in
+any state /angbracketleft/vectorb,u/angbracketrightof the enfolding TAof an RSM may not only depend on the node
+ubut also on the stack contents /vectorb.Fortunately, it is sufﬁcient to consider only
+ﬁnitely many equivalence classes of possible stack contents, each equivalenceclass being represented by a context ,asalready observed in Burkart and Steffen
+[1992, 1999]; Alur and Yannakakis [2001]. A context is a set of (here CTL
+∗)
+formulas whose truth value at the exit node of a machine Aidetermine the
+truth value of a formula φat the root. The notion of context makes it possible
+to reason compositionally about RSMs.
+Our algorithm exploits this idea and reduces the evaluation of a path formula
+φon a sequence w;w/primeof states, where wis ﬁnite while w/primeis inﬁnite, to the
+evaluation of some formulas βandδon the sequences wandw/prime,respectively.
+Weintroduce a special atomic proposition exit,which holds only at the ﬁnal
+state of a ﬁnite sequence w,and denote by LTL+the set of LTL formulas that
+can be expressed using this extended set of atomic propositions. The functionDECOMP given in Figure 2 speciﬁes how the evaluation of an LTL formulaφcan be decomposed as described above. (A conjunction over an empty set of
+formulas is deﬁned to have the value true.) For instance, w;w
+/prime|=Xpcan be
+decomposed either into w|=Xpandw/prime|=true (for the case where |w|>1), or
+into w|=exit andw/prime|=p(for the case where |w|=1).
+Given a set Fof CTL∗state formulas, let exists( F)denote the set of ex-
+istential formulas that are elements or subformulas of elements of F.A
+setFof existential CTL∗formulas is closed if, for every γ=Eρ(p(γ1)←
+γ1,...,p(γn)←γn)∈exists( F), for every δsuch that ( β,δ)∈DECOMP( ρ),
+Eδ(p(γ1)←γ1,...,p(γn)←γn)isalso in F.Theclosure cl(φ)o faC T L∗formula
+φis the smallest closed set containing exists( {φ}). One can show, using proper-
+ties of DECOMP, that cl( φ)isalways ﬁnite for any CTL∗formula φ.Let pd( φ)
+be the maximal nesting of path quantiﬁers ( E)i naC T L∗formula φ.Given a
+setFof CTL∗formulas, let pd( F)=max γ∈F(pd(γ)). For φwith pd( φ)≥j,let
+cl≤j(φ)bethe elements of cl( φ)with at most jnested path quantiﬁers. Clearly,
+cl≤j(φ)isaclosed set and pd(cl≤j(φ))=j.
+Forany closed set F,a n F-context is any assignment of truth values to all
+elements of F.Wesaythat a labeled transition system Kwith a ﬁxed initial
+state s0satisﬁes an F-context C ,written K|=C,i f ,for all γ∈F,(K,s0)|=γ
+if and only if C(γ)=true.A n F-context is consistent if it is satisﬁed by some
+structure. All the F-contexts generated by our model-checking algorithm will
+be consistent by construction. We often identify an F-context with the elements
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 22 ---
+Analysis of Recursive State Machines • 807
+Fig.3. Construction of the context-dependent RSM.
+set to true by it. For an RSM A,anode v∈A,a n F-context C,and a formula
+γ∈F,w es a y( A,v)satisﬁes γin context C ,written ( A,v)|=Cγ,i f ,for all K,
+K|=C⇒((TA;K),v)|=γ,where TA;Kis the labeled transition system ob-
+tained from TAby identifying the top-level exit node of TAwith the initial state
+ofK.
+Given a closed set Fof existential formulas, an RSM Awhose nodes are la-
+beled with formulas in {γ∈F|pd(γ)<pd(F)},and an F-context C,the function
+CONT presented in Figure 3 constructs a new RSM A∗from multiple copies of
+A,each of which is indexed by an F-context c.The edges of A∗in copy (A j,c)
+are supplementarily labeled by state formulas γ∈Frepresenting the truth
+value of γin the corresponding node of A in the context c.Itwill be shown
+below that an edge of the form (( u,c), (v,c)) in A∗is labeled with γ∈Fif and
+only if ( M,u)|=cγ(hence, in particular, for labels other than the atomic action
+symbols, the label of an edge will depend only on the source of the edge).
+In algorithm CONT, we will abuse notation somewhat by having the function
+Yiin input and output map a box to a component, rather than its index.
+CONT uses a variant of the LTL model-checking algorithm from Section 4,
+called LTLALG. Given a formula of the form Eρ(p(γ1,)...,p(γn)) where ρis
+an LTL+formula over atomic propositions including p(γ1,)...,p(γn), and an
+RSM Awhose edges are also labeled with propositions in p(γ1,)...,p(γn),
+LTLALG( Eρ,A)returns the set of nodes vofAsuch that ( v,/epsilon1)|=Eρ.This
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 23 ---
+808 • R. Alur et al.
+Fig.4. CTL∗model-checking algorithm.
+is done exactly as described in Section 4, except for the following three mod-
+iﬁcations. First, LTLALG evaluates formulas of the form Eρinstead of Aρ.
+Second, we still need to deﬁne how formulas of LTL+are evaluated on A:w e
+say that a formula Eρwhere ρis in LTL+is satisﬁed in a node vof a machine
+Aiif there is a path wfrom ( v,/epsilon1)that satisﬁes ρ,such that either wis inﬁnite
+orwterminates at ( x,/epsilon1), where xis the exit node of Ai.Third, we also extend
+the evaluation of formulas to include “return vertices” (pairs ( b,x)). We say that
+the return vertex ( b,x)satisﬁes a formula Eρif and only if the exit node xof
+boxbsatisﬁes Eρwhen bis the only element of the stack; in other words, we
+deﬁne /angbracketleft/epsilon1,(b,x)/angbracketright| = Eρif and only if /angbracketleftb,x/angbracketright| = Eρ.Itiseasy to extend the LTL
+model-checking algorithm of Section 4 to meet these additional requirements.
+By repeatedly invoking CONT with cl≤j(φ)for increasing values of j,1≤j≤
+pd(φ)—larger and larger subsets of cl( φ)—one can thus evaluate CTL∗formulas
+in a bottom-up manner. This is what is done in function CHECK presented inFigure 4. Since any CTL
+∗formula φis a Boolean combination of existential for-
+mulas φi,ﬁnding the vertices of a component Ajof an RSM Asatisfying φcan be
+reduced to ﬁnding the vertices of Ajsatisfying each φi.This is done by comput-
+ing CHECK( φi,A,C∅)where C∅is the set of formulas γin cl(φi)that evaluate
+to true at a single node with a self-loop. Since C∅is consistent, all subcontexts
+derived from it during the execution of the algorithm are also consistent. Thecorrectness of the algorithm is established by the following theorem, provedlater on in this section.
+T
+HEOREM 13. Given a single-exit RSM A, a node v of some machine A j,and
+an existential CTL∗formula φi,(v,/epsilon1)satisﬁes φiif and only if v is included in
+the set of nodes returned by CHECK (φi,A,C∅).
+An analysis of the overall complexity of CHECK reveals that the number
+of contexts over F=cl(φ)and the number of pairs of formulas returned by
+DECOMP on these formulas depends only on φ.This implies that the size of each
+Ajin Figure 4 is linear in Afor any ﬁxed φ.Moreover, the number of formulas
+on which the LTL algorithm is invoked in CONT is bounded independently ofthe size of A.Hence, the run-time complexity of the function CONT and the size
+of the returned RSM A
+∗are linear in the input RSM Afor any ﬁxed formula φ
+and closed set F.Therefore, the CTL∗model-checking problem for a single-exit
+RSM A can be solved in time linear in the size of A .
+5.2 Correctness Proofs
+5.2.1 Proof of Correctness of Algorithm DECOMP. The following theorem
+summarizes the property we need of algorithm DECOMP:
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 24 ---
+Analysis of Recursive State Machines • 809
+THEOREM 14. Foranyφ∈LTL f or any ω-string ρ,for any ﬁnite nonempty
+pathπand inﬁnite path γ,π.γ|=φif and only if there are (β,δ)∈DECOMP (φ),
+such that π|=βandγ|=δ.
+PROOF.Byinduction on the structure of φ.For atomic Pit is clear that π.γ|=
+Pif and only if π|=Pforπnonempty. The disjunction case is routine. For the
+negation case,we have π.γ|= ¬φif and only if there is no ( β,δ)∈DECOMP (φ)
+such that π|=βandγ|=δ.This is a Boolean combination of statements
+about πandγ,and putting this into disjunctive normal form, one arrives at
+the expression in line [3] of DECOMP .F o r theXcase, we have π.γ|=Xφ1if
+and only if one of the following holds: either π=a.π/primewith|dom(a)|=1and
+π/prime.γ|=φ1,o r|π|=1andγ|=φ1.From this and induction, we get equality with
+line [4] of DECOMP .
+Forthe until case, suppose we have π.γ|=φ1Uφ2.Weﬁrst show that this
+implies that πandγsatisfy one of the “disjuncts” (the two sets being unioned)
+of line [5] of DECOMP . For every n<|π|,letπnbe the sufﬁx of πstarting at n.
+Case 1: Suppose that there is nsuch that ∀i<nπi.γ|=φ1andπn.γ|=φ2.
+By induction, for each ithere is ( βi,δi)∈DECOMP (φ1)such that πi|=βiand
+γ|=δi.Likewise, there is ( β/prime,δ/prime)∈DECOMP (φ2)such that πn|=β/primeandγ|=δ/prime.
+LetA={(βi,δi):i<n},wesee that the second disjunct in line [5] is satisﬁed.
+Case 2: If not case 1, then it must be that ∀iπi.γ|=φ1andγ|=φ1Uφ2.B y
+induction, choose ( βi,δi)∈DECOMP (φ1)such that πi|=βiandγ|=δi.Setting
+A={(βi,δi):i<n}we have a witness for the ﬁrst disjunct in line [5].
+Conversely, we prove that if π.γsatisﬁes either of the disjuncts in line
+[5] then it satisﬁes φ1Uφ2.Ifitsatisﬁes the ﬁrst disjunct, let nonempty
+A⊂DECOMP (φ1)witness this. Clearly, we have γ|=φ1Uφ2.Letπnbe as
+above. We claim that ∀nπn.γ|=φ1,which would sufﬁce to prove the con-
+clusion, since this says π.γsatisﬁes φ1at all times up to |π|and afterwards
+π.γsatisﬁes φ1Uφ2.But this claim follows by induction, because for some
+(β,δ)∈DECOMP (φ1)πn|=βandγ|=δ.Now suppose π.γsatisﬁes the second
+disjunct, and let ∅/negationslash=A⊂DECOMP (φ1)and (β/prime,δ/prime)∈DECOMP (φ2)witness
+this. Choose ( β1,δ1)∈Asuch that π|=β1Uβ/prime.Letπnbe as above, and consider
+anynsuch that πnsatisﬁes β1.Since γ|=δ1(by induction, since it satisﬁes ev-
+ery (β,δ)∈A), we have πn.γ|=φ1.F o r anyπnsatisfying β/prime,w eh a v e πn.γ|=φ2,
+since γ|=δ/prime.Sousing π|=β1Uβ/primewe conclude π.γ|=φ2.This completes the
+proof of Theorem 14.
+5.2.2 Correctness Statement for CHECK and Preliminaries. Recall that in
+the machine Akedges are labeled with collections of state formula (in addition
+to their action labels). For these new labels, the value of the label depends onlyon the source of the edge, hence we will talk equivalently about the label of avertex in A
+k.The main correctness result for branching time is the following:
+THEOREM 15.∀(n,C)∈Ak,∀φ∈F:(n,C)is labeled with φif and only if
+(A,v)|=Cφ.
+This theorem says that we can read off the result of any context-dependent
+model-checking problem by just looking at labels in Ak.Before we start the
+proof, we will need to build up some facts about the construction in algorithms
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 25 ---
+810 • R. Alur et al.
+CONT and CHECK used in the proof. We will ﬁrst get a nice representation of
+vertices and component machines in the context-dependent RSM Akproduced
+by CHECK . We will then get information on the labeling of edges in Ak.
+First notice (line [27] of CONT) that the RSM A∗=CONT (A) has component
+machines of the form ( Ai,C)where Cis ak-context and Aiis a component of
+the initial machine A,with each ( Ai,C)being a copy of Ai,with vertices of the
+form ( n,C)forn∈Ai.When we iterate this process to get Ak,this will result in
+components of the form (( ...(((Ai,C1),C2),C3)...,Ck)) and vertices of the form
+nk=((((...(((n,C1),C2),C3)...,Ck)) for n∈A.Given j<kwe let πkjbe the
+projection map taking nkof the above form to (((( ...(((n,C1),C2),C3)...,Cj).
+The following observation will show that we do not actually have to deal withsuch a messy representation:
+C
+LAIM 1.Forany component of the above form occurring in Ak,the C imust
+be consistent, in the sense that C j|dom (Ci)=Ci.Furthermore, the map πkj
+preserves labels, in the sense that if a node nkis labeled with φin Akand
+pd(φ)<k,thenπkj(nk)is labeled with φas well.
+This claim implies that the components of lower index than kare deter-
+mined by the component Ck,hence we can without loss of generality treat
+acomponent machine in Akas being of the form ( Ai,Ck)with Ckak-
+context and Aiacomponent of the original machine. Recalling that nodes
+vkofAkhave the form (( ...(((n,C1),C2),C3)...,Ck)), for n∈Aiwhere vk∈
+((...(((Ai,C1),C2),C3)...,Ck)) it also follows from the claim that we can sim-
+plify the representation of nodes in Ak:they can be taken to be of the form
+(n,Ck)where n∈A.
+Claim 1 is in turn implied by applying inductively the following two facts
+about the CONT algorithm:
+rForFandAas in CONT, for any node ( m,C)∈M∗andφwith pd(φ)<pd(F),
+ifmis labeled with φinAthen ( m,C)islabeled with φinA∗(assignments
+are consistent).
+rSuppose we have a call vertex ( c,C)o n box ( b,C)incomponent machine
+(Ai,C)∈M∗,calling machine ( Aj,D)∈M∗.Then ccalls Ajfrom AiinA,
+and Dis exactly the label of (( b,x),C)i nA∗.
+Note that the ﬁrst item shows that the labeling is consistent, and the second
+shows that every context used in A∗corresponds to some labeling in A∗,hence
+the claim follows from these two items. The ﬁrst item follows by tracing backwhat happens to a simple formula γ=EP(γ
+1)with pd(γ1)<pd(F)inlines
+[2]–[8] (in CONT, as always when we give line numbers in this subsection): wehave N(γ)isjust{n∈M:nis labeled with P(γ
+1)},andNodes 1(Ai,γ)isjust the
+above set intersected with Ni.From this it follows that at line [17], Sat(Ai,c,γ)
+will again be just the nodes labeled with P(γ1). Now at line [30], we see that a
+node ( m,c)islabeled with γof the form above if and only if mis labeled with
+P(γ1).
+The second item above follows from comparing line [30] (referring back to
+[19]) and line [28] for the case where vis an exit node. Line [30] says that
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 26 ---
+Analysis of Recursive State Machines • 811
+((b,x),C)islabeled with {γ:(b,x)∈Sat(Ai,C,γ)},and line [28] combined
+with [19] says that ( b,C)calls ( Ak,C/prime)with C/prime={γ:(b,x)∈Sat(Ai,C,γ)}.
+This completes the proof of Claim 1.So given the now simpliﬁed form of the elements of A
+kas (m,C), we let ηbe
+the projection map taking a node ( m,C)i nAkto the node m∈A.The mapping
+ηmaps nodes in Akback to nodes in A,while conversely if we are given a
+path πstarting at some node ninAand an initial context C,w ec a n get a
+path through Akthat starts at ( n,C). Formally, for every k-context Cthere is
+aunique mapping taking a ﬁnite path πinTAto a path πk,CinAksuch that:
+π(0)∈Ai↔πk,C(0)∈(Ai,C)andη(πk,C(n))=π(n).
+Recall that nodes in Akare labeled with formulas φ.Wegive two conditions
+(C1) and(C2) below that characterize how the labeling of formulae Eρ(p(λ1)←
+λ1,...p(λq)←λq)relates to the labeling by λiinAk.
+LEMMA 16. Letφ=Eρ(p(λ1)←λ1,...p(λq)←λq)where ρis in LTL with
+qpropositional variables and pd (λi)≤k−1,and let (n,C)be a node in machine
+(M,C)∈Mk.Then(n,C)is labeled by φin Akif and only if one of the following
+holds:
+rThere is an inﬁnite path πfrom (n,C)through Akwhose labels satisfy ρ(C1)
+rThere is a ﬁnite path π0from (n,C)leading to the exit node of (M,C)with
+empty stack, and formulae (β,δ)∈DECOMP( ρ)such that π0satisﬁes βand
+Eδ(p(λ1)←λ1,...p(λq)←λq)∈C(C2)
+PROOF.Tosee that nodes satisfying condition (C1) are labeled with φ,ob-
+serve that the construction lines [2],[6],[17] includes in Sat(Ai,c,γ)all nodes
+that satisfy LT LALG (ρ). So by correctness of the LTL algorithm, and the
+way Satdetermines the labeling in [30], we see that nodes with paths sat-
+isfying the ﬁrst item above are included in the label. Similarly, lines [3]-[4],[7]-[8] and [17] guarantee that Sat(A
+i,C,γ)includes all nodes that satisfy
+LTLALG (E(β∧Fexit)) for ( β,δ)∈DECOMP( ρ)with EδinC.The fact that
+the nodes satisfying condition (C2) are labeled with φnow follows from the cor-
+rectness of the LTL algorithm. It is also easy to check that every node labeledwithφsatisﬁes (C1) or(C2) .
+Wegive one ﬁnal fact about the A
+kwhich follows from the argument in
+Claim 1, which we will use implicitly in the sequel:
+PROPOSITION 17. Acall vertex (Ai,c)from machine (Ai,C)in Akgoes to
+(Aj,D)if and only if c goes from A ito A jin A and the return vertex (r,C)
+of(Ai,C)is labeled with (exactly) the formulas in D in (Ai,C)(P3)
+5.2.3 Proof of Theorem 15. Wewill now prove the following result π(k), by
+induction on k:
+CLAIM 2.∀C∈Context (k)∀n∀φwith pd (φ)≤k∀pathπwithπ(0)∈Ai,
+and∀Kwith K |=C,suppose that D and j are such that πk,C(n)∈(Aj,D),and
+let s be the stack at πk,C(n).Then:
+Forall m ∈Aj(TA;K,/angbracketlefts,m/angbracketright)|=φif and only if (m,D)is labeled with φin
+Ak.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 27 ---
+812 • R. Alur et al.
+Fig.5. The situation of Claim 2.
+Figure 5 shows a simpliﬁed version of the situation we are in here: we have
+apathπgoing through the inﬁnite LTS TA;K,where Ksatisﬁes the context
+C.This path may go through a call vertex c(or several) and π(n)m a y ar-
+rive in another machine Ajwith con the stack. The original path in TA;Kis
+shown above the line in the picture, while the corresponding path through Ak
+is shown below the line. The lifted path πk,Cmust go through calls every time
+πdoes, going through ( c,C)toget to machine ( Aj,D)and arriving at time nat
+(v,D)for some other context D.Atthis point we compare the formulae satisﬁed
+by the node /angbracketleftc,v/angbracketright(in the general setting /angbracketleftc1...cn,v/angbracketright)inthe unfolding TA;Kwith
+the labels on ( v,D)i nAk.The Claim asserts that these two sets of formulae are
+the same.
+Tosee how this claim proves Theorem 15, ﬁx φandC,and for any node m
+consider a path with π(0)=m.Then we have have for all Kwith K|=C,
+(TA;K,/angbracketleft∅,m/angbracketright)|=φif and only if ( m,C)islabeled with φinAk.Hence ( m,C)i s
+labeled with φinAkif and only if A,m|=Cφ.
+Tostart the inductive proof, assume that the above holds for k.Weprove the
+same result for k+1. This we prove by a nested induction, on the stack depth
+lofπ(n)(the height of the stack at π(n)) . Suppose we have this up to land
+letnbe minimal such that π(n)has nesting depth l+1but the result doesn’t
+hold. Fix C,Kφandπthat witness this. Let sbe the stack at π(n). So we have
+π(n)∈Ajwith ( TA;K,/angbracketlefts,π(n)/angbracketright)|=φbutπk,C(n)isnot labeled with φinAk.
+π(n)must be the start node s0of machine Ajcalled from a call vertex cin a
+machine Ai(since otherwise π(n−1) would be the minimal counterexample,
+since the statement refers to all nodes in the same machine). Hence s=s/prime.c,
+andπ(n−1) must be the predecessor of a call ctoAj,with return vertex r.S o
+πk,C(n)isinsome machine ( Aj,D)∈Mkwhile πk,C(n−1) is in ( Ai,E). Since
+π(n−1) has stack depth k,weknow by the inner induction that for all ρwith
+pd(ρ)≤k∀r∈Ai(r,E)islabeled with ρif and only if ( TA;K,/angbracketlefts/prime,r/angbracketright)|=φ.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 28 ---
+Analysis of Recursive State Machines • 813
+Fig.6. The induction step of Claim 2.
+Applying this to the return vertex rand noting that ( r,E)isthe return vertex
+for (c,D)i nAk,the node linked to by πk,C(n−1), we see by the construction of
+Ak(see comments at beginning of previous subsection) that ( r,E)isthe return
+vertex for πk,C(n). This in turn implies by (P3) that D={ρ:(r,E)islabeled
+withρ}.Putting these facts together we have D={ρ:(TA;K,/angbracketlefts/prime,r/angbracketright)|=φ}.The
+situation is now illustrated by Figure 6.
+Checking back what it means for π(n)tobeacounterexample, we know that
+there is a node m∈Aj,such that ( TA;K,/angbracketlefts,m/angbracketright)|=φbut ( m,D)isnot labeled
+withφ.Note that ( TA;K,/angbracketlefts,m/angbracketright)|=φif and only if ( TA;K/prime,/angbracketleft∅,m/angbracketright)|=φ,where
+K/primeis the machine TA;Kinitialized at /angbracketlefts/prime,r/angbracketright.Bythe last paragraph we know
+that the formulae of pd(k+1) satisﬁed by K/primeare exactly D.
+Write φasEρ(p(λ1)←λ1,...p(λq)←λq)where ρis in LTL and pd(λi)≤k.
+By assumption, we know ( TA;K,/angbracketlefts,m/angbracketright)|=φ,sothere is a path πthat witnesses
+this. We now divide up into cases depending on whether πleaves TAor not.
+Case 1: The stack on πnever shrinks below s(i.e.πnever emerges back
+through r).
+Forallv∈N(TA;K/prime,/angbracketleft∅,π(v)/angbracketright)|=λiif and only if in AkπD,k(v)) is labeled
+withλi,bythe outer induction, the fact that all the nodes lie in TA,the fact
+that K/prime|=D,and the equivalence of ( TA;K,/angbracketlefts,m/angbracketright)and ( TA;K/prime,/angbracketleft∅,m/angbracketright). Hence
+if we consider πD,k,itisapath starting at ( m,D)whose labels satisfy ρin
+Ak.But then, using the condition (C1) in Lemma 16 above, mis labeled with
+Eρ(p(λ1)←λ1,...p(λq)←λq)i nAk,which is what we wanted.
+Case 2: πexits ( Aj,D)through r.
+Letπ0be the part of πbefore the exit, and γ0be the (inﬁnite) sufﬁx of π0in
+π,considered as a path. By the deﬁnition of DECOMPand Theorem 14, there
+is (β,δ)∈DECOMP (ρ)such that π0witnesses ( TA;K,/angbracketlefts,m/angbracketright)|=Eβ(p(λ1)←
+λ1,...)andγ0witnesses ( TA;K,/angbracketlefts/prime,r/angbracketright)|=Eδ(p(λ1)←λ1,...).
+Wenow know from the above that Dcontains Eδ(p(λ1)←λ1,...).
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 29 ---
+814 • R. Alur et al.
+As above, we can argue that for all v<|π0|(TA;K/prime,/angbracketleft∅,π(v)/angbracketright)|=λiif and
+only if in AkπD,k
+0(v)) is labeled with λi.Hence if we consider πD,k
+0,i ti sa
+path starting at ( m,D)whose labels satisfy β(p(λ1)←λ1...)i nAk.But then,
+by the property (C1) of the construction listed above, ( m,D)islabeled with
+Eβ(p(λ1)←λ1,...p(λq)←λq)i nAk.Using the fact that ( β,δ)∈DECOMP( ρ)
+and condition (C2) from Lemma 16, we have that ( m,D)islabeled with
+Eρ(p(λ1)←λ1,...p(λq)←λq), which is what we needed.
+This completes the proof of Theorem 15.
+6. DISCUSSION
+Efﬁciency and Context-Free Reachability: Given a recursive state ma-
+chine of size nwithθmaximum entry/exit-nodes per component, our reacha-
+bility algorithm takes time O(n·θ2)and space O(nθ). It is unlikely that our
+complexity can be substantially improved. Consider the standard parsing prob-lem of testing CFL-membership: for a ﬁxed context-free grammar G,and given
+astring wof length n,wewish to determine if Gcan generate w.The classic
+C-K-Y algorithm for this problem requires O(n
+3)time. Using fast matrix mul-
+tiplication, Valiant [1975] was able to slightly improve the asymptotic bound,but his algorithm is highly impractical. A related problem is CFL-reachability[Yannakakis 1990; Reps 1998], where for a ﬁxed grammar G,weare given a di-
+rected, edge-labeled, graph H,having size n,with designated source and target
+nodes sandt,and we wish to determine whether scan reach tinHvia a path
+labeled by a string in L(G). CFL-membership is the special case of this problem
+where His just a simple chain graph whose edges are labeled by the symbols
+ofw.Unlike CFL-membership, CFL-reachability is P-complete, and the best
+known algorithms require /Omega1(n
+3)time [Yannakakis 1990]. Using the close corre-
+spondence between recursive machines and context-free grammars, a grammar
+Gcan be translated to a recursive state machine AG.Totest CFL-reachability,
+we can take the product of AGwith H,and check for reachability. The product
+has size O(n), with O(n)entry-nodes per component, and O(n)exit-nodes per
+component. Thus, since our reachability algorithm runs in time O(n3)inthis
+case, better bounds on reachability for recursive state machines would lead tobetter-than-cubic bounds for parsing a string and for CFL-reachability, as wellas for a variety of other automaton problems and program-analysis problems[Heintze and McAllester 1987; Melski and Reps 2000; Reps 1998].
+Section 4 presented a method based on AND-OR graphs to check properties of
+recursive state machines when properties are expressed in linear-time temporallogic. An alternative method, based directly on CFL-reachability, was given byBenedikt, Godefroid, and Reps [Benedikt et al. 2001] their LTL model-checkingalgorithm makes use of a method for detecting cyclic paths that meet a CFLcondition.
+Extended Recursive State Machines: In the presence of variables, our algo-
+rithms can be adopted in a natural way by augmenting nodes with the values ofthe variables. Suppose that we have an extended recursive state machine Awith
+Boolean variables (similar observations apply to more general ﬁnite domains),and the edges have guards and assignments that read/write these variables.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 30 ---
+Analysis of Recursive State Machines • 815
+Suppose each component refers to at most kvariables (local or global), and that
+it has at most either dinput variables or doutput variables (i.e., global vari-
+ables that it reads or writes, or parameters passed to and from it). Then, we canconstruct a recursive state machine of size at most 2
+k·|A|with the same num-
+ber of components. The derived state machine has θ=2d.Thus, reachability
+problems for such an extended recursive state machine can be solved in time
+O(2k+2d·|A|). Note that such extended recursive state machines are basically
+the same as the Boolean programs of Ball and Rajamani [2000].
+Concurrency: Wehave considered only sequential recursive state machines.
+Recursive state machines deﬁne context-free languages. Consequently, it is easyto establish that typical reachability analysis problems for a system of commu-nicating recursive state machines are undecidable. Our algorithms can howeverbe used in the case when only one of the processes is a recursive state machineand the rest are ordinary state machines. To analyze a system with two re-cursive processes M
+1and M2,one can possibly use abstraction and assume-
+guarantee reasoning: the user constructs ﬁnite-state abstractions P1and P2of
+M1andM2,respectively, and we algorithmically verify that (1) the system with
+P1and P2satisﬁes the correctness requirement, (2) the system with M1and
+P2is a reﬁnement of P1,and (3) the system with P1and M2is a reﬁnement of
+P2.
+Other Related Work: Systems of hierarchically structured equations were
+used by Cousot and Cousot [1978] and Sharir and Pnueli [1981] to specify andsolve interprocedural dataﬂow-analysis problems. Although these algorithmsare not based on graph reachability, Sharir and Pnueli used an explicit, hier-archically structured, single-entry/single-exit graph to represent the program,and introduced a context-free language constraint to specify that the contribu-tions of certain kinds of infeasible execution paths were to be ﬁltered out.
+CFL-reachability in multi-entry/multi-exit graphs has been used to give
+algorithms for context-sensitive interprocedural slicing [Horwitz et al. 1990,1994] as well as for certain kinds of context-sensitive interprocedural dataﬂow-analysis problems [Reps et al. 1995]. Similar techniques—but ones that go be-yond pure CFL-reachability—have been used to give cubic-time algorithms foralarger class of context-sensitive interprocedural dataﬂow-analysis problems
+[Sagiv et al. 1996]. The latter work deals with multi-entry/multi-exit graphslabeled with (function-valued) weights on the edges.
+Methods for counting various quantities in hierarchically structured graphs
+are used in Melski and Reps [2000] and Chatterjee et al. [2003]. In this work, itis possible to perform arithmetic operations because the graphs are restricted sothat the number of paths that meet a certain CFL condition is ﬁnite. Techniquesgiven in Chatterjee et al. [2003] provide an alternative approach to the problemof testing a bounded-acceptance condition, and have been applied to stack-sizeanalysis in embedded-systems code.
+PDSs have also been extended with weights: weighted PDSs have weighted
+transition rules, where the weights are either drawn from a closed semiring[Bouajjani et al. 2003] or a meet semi-lattice [Schwoon et al. 2003; Reps et al.2003].
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 31 ---
+816 • R. Alur et al.
+Systems: Several systems exist that implement ideas related to the ones dis-
+cussed in this article:
+rThe Wisconsin Program-Slicing Tool [Horwitz et al. 1997] supported context-
+sensitive interprocedural program slicing of ANSI C programs. In this case,the hierarchically structured graphs of interest were “system dependencegraphs” [Horwitz et al. 1990, 1994], which capture a program’s control anddata dependences.
+This system became the basis for a commercial product, CodeSurfer
+®
+[Gamma Tech, Inc. 2000], a tool for code understanding and code inspectionthat supports browsing (“surﬁng”) of an ANSI C program’s system depen-dence graph, as well as a variety of operations for making queries about thedependence graph, such as slicing and chopping [Reps and Rosay 1995]. Re-cently, an experimental version of CodeSurfer has been created that buildssystem dependence graphs for x86 executables [Balakrishnan and Reps2004].
+rSlam [Ball and Rajamani 2000] performs reachability in a Boolean program
+(which models a C program of interest) to identify violations of temporalsafety properties. Slam’s intended domain of application is the veriﬁcationof properties of device drivers. In addition to reachability, Slam uses de-cision procedures to determine whether potential error paths are actuallyinfeasible—and hence represent false alarms—in the program being mod-eled. Information gathered during this process is used to iteratively reﬁnethe Boolean program that models the program’s semantics.
+rMoped [Schwoon 2002] is a model checker for pushdown systems. It supports
+pre* and post* queries, LTL model checking, and reachability analysis inBoolean programs.
+rMOPS is a tool based on the theory of pushdown systems that performs
+context-sensitive exploration of interprocedural control-ﬂow graphs to iden-tify security vulnerabilities in C programs [Chen and Wagnet 2002].
+rThe Weighted PDS Library [Schwoon et al. 2003] provides a C library that al-
+lows client applications to instantiate weighted PDSs and stack-conﬁgurationautomata, to invoke pre* and post* queries, and to read out answers from theweighted automata returned as results. WPDS++ [2004] is a similar libraryimplemented in C++.
+ACKNOWLEDGMENTS
+Wethank Tom Ball, Glenn Bruns, Javier Esparza, and Sriram Rajamani for
+useful discussions.
+REFERENCES
+ALUR,R., E TESSAMI ,K., ANDMADHUSUDAN ,P.2004. A temporal logic of nested calls and returns. In
+Proceedings of the 10th International Conference on Tools and Algorithms for the Constructionand Analysis of Systems (TACAS’04) ,volume 2988 of LNCS ,pages 467–481. Springer.
+A
+LUR,R., E TESSAMI ,K., ANDYANNAKAKIS ,M.2001. Analysis of recursive state machines. In CAV
+2001 ,pages 207–220.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 32 ---
+Analysis of Recursive State Machines • 817
+ALUR,R., T ORRE,S .L . , ANDMADHUSUDAN ,P.2003a. Modular strategies for recursive game graphs.
+InProceedings of TACAS ,volume 2619 of LNCS ,pages 363–378.
+ALUR,R., T ORRE,S .L., ANDMADHUSUDAN ,P.2003b. Modular strategies for inﬁnite games on re-
+cursive graphs. In Proceedings of CAV’03 ,volume 2725 of LNCS ,pages 67–79.
+ALUR,R . ANDYANNAKAKIS ,M.2001. Model checking of hierarchical state machines. ACMTrans.
+Prog. Lang. Syst. 23 ,3,pages 273–303.
+ANDERSEN ,H.1994. Model checking and boolean graphs. Theoret. Comput. Sci.126 ,1 ,3 –
+30.
+BALL,T . ANDRAJAMANI ,S.2000. Bebop: A symbolic model checker for boolean programs. In SPIN
+’2000 ,volume 1885 of LNCS ,pages 113–130.
+BENEDIKT ,M., G ODEFROID ,P . , ANDREPS,T.2001. Model checking of unrestricted hierarchical state
+machines. In ICALP’2001 ,pages 652–666.
+BOOCH ,G . , JACOBSON ,J . , ANDRUMBAUGH ,J.1997. TheUniﬁed Modeling Language User Guide .
+Addison Wesley.
+BOUAJJANI ,A., E SPARZA ,J . , ANDMALER,O.1997. Reachability analysis of pushdown automata:
+Applications to model checking. In CONCUR’97 ,pages 135–150.
+BOUAJJANI ,A., E SPARZA ,J . , ANDTOUILI ,T.2003. A generic approach to the static analysis of con-
+current programs with procedures. In POPL ’03 ,pages 62–73.
+BALAKRISHNAN ,G . ANDREPS,T.2004. Analyzing memory accesses in x86 executables. In Proceed-
+ings of the International Conference on Compiler Construction (CC’04) ,volume 2985 of LNCS ,
+pages 5–23. Springer.
+BURKART ,O . ANDSTEFFEN ,B.1992. Model checking and context-free processes. In CONCUR ’92 ,
+pages 122–137.
+BURKART ,O . ANDSTEFFEN ,B.1999. Model checking the full modal mu-calculus for inﬁnite sequen-
+tial processes. Theoret. Comput. Sci. 221 ,251–270.
+CHATTERJEE ,K., M A,D . ,MAJUMDAR ,R., Z HAO,T . ,HENZINGER ,T .A . , ANDPALSBERG ,J.2003. Stack size
+analysis for interrupt-driven programs. In Proceedings of the 10th Static Analysis Symposium ,
+pages 109–126.
+CHEN,H . ANDWAGNER ,D.2002. MOPS: An infrastructure for examining security properties of
+software. In Proceedings of the Conference on Computer and Communication Section .
+COUSOT ,P . ANDCOUSOT ,R.1977. Static determination of dynamic properties of recursive proce-
+dures. In IFIP Conference on Formal Description of Programming Concepts, St-Andrews, N.B.,
+CA,E.J. Neuhold (Ed.), pages 237–277, St-Andrews, N.B., Canada.
+CAUCAL ,B . ANDMONFORT ,R.1990. On the transition graphs of automata and grammars. In Graph
+Theoretic Concepts in Computer Science ,Springer LNCS 484, pages 311–337.
+EMERSON ,A.1990. Modal and temporal logic. In Handbook of Theoretical Computer Science,
+Volume B ,pages 995–1072, MIT Press.
+EMERSON ,A . ANDLEI,C.1986. Efﬁcient model-checking in fragments of the propositional mu-
+calculus. In LICS 98 ,pages 267–278.
+ESPARZA ,J . , HANSEL ,D . , ROSSMANITH ,P . , ANDSCHWOON ,S.2000. Efﬁcient algorithms for model
+checking pushdown systems. In Computer Aided Veriﬁcation, 12th International Conference ,
+volume 1855 of LNCS ,pages 232–247. Springer.
+ETESSAMI ,K.2004. Analysis of recursive game graphs using data ﬂow equations. In 5th Interna-
+tional Conference on Veriﬁcation, Model Checking, and Abstract Interpretation ,volume 2937 of
+LNCS ,pages 282–296. Springer.
+FINKEL ,A., W ILLEMS ,B . , ANDWOLPER ,P.1997. A direct symbolic approach to model checking
+pushdown systems. In Inﬁnity’97 Workshop ,volume 9 of Electronic Notes in Theoretical Computer
+Science .
+GRAMMA TECH,I NC.2000. CodeSurfer System. “ http://www.grammatech.com/products/
+codesurfer/ ”.
+HAREL,D.1987. Statecharts: A visual formalism for complex systems. Sci. Comput. Prog. 8 ,
+231–274.
+HEINTZE ,N . ANDMCALLESTER ,D.A.1997. On the cubic bottleneck in subtyping and ﬂow analysis.
+InProceedings of Logic in Computer Science ,pages 342–351.
+HORWITZ ,S . ,REPS,T . , ANDBINKLEY ,D.1990. Interprocedural slicing using dependence graphs. In
+Trans. Prog. Lang. Syst. 12 ,1,26–60.
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.
+
+--- Page 33 ---
+818 • R. Alur et al.
+HORWITZ ,S . , REPS,T . , BRICKER ,T . , AND ROSAY,G.1997. Wisconsin Program-Slicing Tool.
+“http://www.cs.wisc.edu/wpis/slicing tool/ ”.
+HORWITZ ,S . , REPS,T . ,SAGIV,M., ANDROSAY,G.1994. Speeding up slicing. In Proceedings of the
+2nd ACM Symposium on Foundation of Software Engineering ,pages 11–20.
+MELSKI ,D . ANDREPS,T.1999. Interprocedural path proﬁling. In Proceedings of the 8th Internati-
+nal Conference on Compiler Construction ,pages 47–62.
+MELSKI ,D . ANDREPS,T.2000. Interconvertibility of a class of set constraints and context-free-
+language reachability. Theoret. Comput. Sci. ,248(1–2), 29–98.
+REPS,T.1998. Program analysis via graph reachability. Info. Soft. Tech. 40 (11–12), 701–726.
+REPS,T . , HORWITZ ,S . , ANDSAGIV,S.1995. Precise interprocedural dataﬂow analysis via graph
+reachability. In POPL ,pages 49–61.
+REPS,T . ANDROSAY,G.1995. Precise interprocedural chopping. In Proceedings of the 3rd ACM
+Symposium on Foundation of Software Engineering ,pages 41–52.
+REPS,T . , SCHWOON ,S . , ANDJHA,S.2003. Weighted pushdown systems and their application to
+interprocedural dataﬂow analysis. In Proceedings of the 10th Static Analysis Symposium ,pages
+189–213.
+SAGIV,M., R EPS,T . , ANDHORWITZ ,S.1996. Precise interprocedural dataﬂow analysis with appli-
+cations to constant propagation. Theoret. Comput. Sci. 167 (1–2), 131–170.
+SCHWOON ,S.2002. Moped System. “ http://www.fmi.uni-stuttgart.de/szs/tools/moped/ ”.
+SCHWOON ,S . , REPS,T . , AND JHA,S.2003. Weighted PDS Library. “ http://www.fmi.
+uni-stuttgart.de/szs/tools/wpds/ ”.
+SCHWOON ,S . ,JHA,S . ,REPS,T . , ANDSTUBBLEBINE ,S.2003. On generalized authorization problems.
+InProceedings of the 16th Computer Section Foundations Workshop ,pages 202–218.
+BALL,T . ANDRAJAMANI ,S.2000. SLAM Toolkit. “ http://research.microsoft.com/slam/ ”.
+SHARIR ,M . ANDPNUELI ,A.1981. Two approaches to interprocedural data ﬂow analysis. In Pro-
+gram Flow Analysis: Theory and Applications ,S.S. Muchnick and N.D. Jones (eds.), Prentice-Hall,
+Englewood Cliffs, NJ, pages 189–234.
+ULLMAN ,J.D.1988. Principles of Database and Knowledge-base systems .Computer Science Press.
+VALIANT ,L.G.1975. General context-free recognition in less than cubic time. J.Comput. Syst.
+Sci. 10 ,308–315.
+VARDI,M . ANDWOLPER ,P.1986. Automata-theoretic techniques for modal logics of programs. J.
+Comput. Syst. Softw. 32 ,2,183–221.
+WALUKIEWICZ ,I.2001. Pushdown processes: Games and model-checking. Information and Com-
+putation 164 ,2,234–263.
+YANNAKAKIS ,M.1990. Graph-theoretic methods in database theory. In Proceedings of the 9th
+ACMSymposium on Principles of Database Systems ,pages 230–242.
+WOODS,W.A.1970. Transition network grammars for natural language analysis. Commun. ACM
+13,10, 591–606.
+WPDS++: 2004. A C++ Library for Weighted Pushdown Systems, University of Wisconsin.
+Received September 2003; accepted February 2004
+ACM Transactions on Programming Languages and Systems, Vol. 27, No. 4, July 2005.

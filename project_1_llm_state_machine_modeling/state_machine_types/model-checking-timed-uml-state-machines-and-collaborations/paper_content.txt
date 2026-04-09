@@ -1,0 +1,879 @@
+--- Page 1 ---
+Model checking timed UML state machines and
+collaborations
+Alexander Knapp, Stephan Merz, Christopher Rauh
+Angaben zur Veröffentlichung / Publication details:
+Knapp, Alexander, Stephan Merz, and Christopher Rauh. 2002. “Model checking
+timed UML state machines and collaborations.” Lecture Notes in Computer
+Science 2469: 395–414. https://doi.org/10.1007/3-540-45739-9_23 .
+Nutzungsbedingungen / Terms of use:
+Dieses Dokument wird unter folgenden Bedingungen zur Verfügung gestellt: / This document is made available under these
+conditions:
+Deutsches Urheberrecht
+Weitere Informationen finden Sie unter: / For more information see:
+https://www.uni-augsburg.de/de/organisation/bibliothek/publizieren-zitieren-archivieren/publiz/licgercopyright
+
+
+--- Page 2 ---
+ModelChecking
+TimedUMLStateMachinesandCollaborations
+AlexanderKnapp1,StephanMerz1,andChristopherRauh2
+http://www.pst.informatik.uni-muenchen.de/projekte/hugo/
+1Institutf¨urInformatik,Ludwig-Maximilians-Universit¨atM¨unchen
+{knapp,merz}@informatik.uni-muenchen.de
+2Institutf¨urInformatik,TechnischeUniversit¨atM¨unchen
+rauh@in.tum.de
+Abstract.Wedescribeaprototypetool,hugo/RT,thatisdesignedto
+automaticallyverifywhetherthetimedstatemachinesinaUMLmodel
+interactaccordingtoscenariosspeciﬁedbytime-annotatedUMLcollabo-
+rations.Timedstatemachinesarecompiledintotimedautomatathatex-
+changesignalsandoperationsviaanetworkautomaton.Acollaboration
+withtimeconstraintsistranslatedintoanobservertimedautomaton.
+Themodelcheckeruppaaliscalledupontoverifythetimedautomata
+representingthemodelagainsttheobservertimedautomaton.
+1Introduction
+Object-orientedmethodsarewidelyacceptedforsoftwaredevelopmentinthe
+businessapplicationdomainandhavealsobeenadvertisedforthedesignof
+embeddedandreal-timesystems[20].Thestandardobject-orientedsoftware
+modellinglanguageUML(UniﬁedModelingLanguage[3])accountsforthede-
+scriptionofreal-timesystemsbyincludingtimedversionsofthediagramsused
+tospecifydynamicbehaviour[7,2].Moreover,specialised,UMLbasedreal-time
+modellingtoolslikeRoseRealTimeTMorRhapsodyTMprovidetestingandcode
+generationfacilitiestosupportthedevelopmentprocessofobject-orientedreal-
+timesystems,buttheylacksupportforveriﬁcation.
+TheUMLoﬀersmainlytwocomplementarynotationsforthespeciﬁcationof
+dynamicsystembehaviour:thestate/transition-basednotionofstatemachines,
+andthenotionofcollaborationsthatisbasedontheexchangeofmessages.In
+practise,collaborationsdescribescenariosofdesiredorunwantedsystembe-
+haviourandareusedintheearlyphasesofsoftwaredevelopment.Thedetailed
+designislaterdescribedbystatemachines.Itshouldthereforebeensuredthat
+thesetwoviewsofasystemareindeedconsistentbyverifyingthatthestate
+machinesmayexchangemessagesaccordingtothetestscenarios.
+Severaltoolsprovideveriﬁcationsupportforthestatemachineviewofan
+untimedUMLmodelviatranslationintotheinputlanguagesofmodelcheck-
+ers[14,16].Inpreviouswork[19],wehavereportedonatoolthatadditionally
+addressestheproblemofconsistencybetweenthestatemachineviewandthe
+collaborationviewintheuntimedfragmentofUML.
+                                                                
+                                     
+
+--- Page 3 ---
+396                                              
+Thispaperdescribesaprototypetool,hugo/RT,thatisdesignedtoau-
+tomaticallyverifywhetherscenariosspeciﬁedbyUMLcollaborationswithtime
+constraintsareindeedrealisedbyasetoftimedUMLstatemachines.Thetimed
+statemachinesofaUMLmodelarecompiledintotimedautomata,asusedby
+themodelcheckeruppaal[13].Atime-annotatedcollaborationistranslatedinto
+anobserveruppaaltimedautomatonusingbasicallythesametechniquesasde-
+scribedbyFirleyetal.[8].Themodelcheckeruppaaliscalledupontoverify
+thetimedautomatarepresentingthemodelagainsttheobservertimedautoma-
+ton.Weillustratethetranslationandveriﬁcationprocedurebyabenchmarkcase
+studyinreal-timesystems,the“GeneralisedRailroadCrossing”(GRC)problem
+introducedbyHeitmeyeretal.[12].Althoughourtranslationisnotbasedona
+formalsemanticsfortimedUMLstatemachines,weattempttobefaithfulto
+theinformalspeciﬁcationoftheUML[18]byfollowingitssemanticrequirements
+ascloselyaspossible.
+Relatedwork.ThesemanticsoftimedHarel-Statecharts,themainbasisforUML
+statemachines,hasbeeninvestigatedindetailbyDammetal.[5].Inthecontext
+ofUML,Lavazza,Quaroni,andVenturelli[15]proposeatranslationoftimed
+statemachinesintothereal-timespeciﬁcationlanguageTRIO,which,however,
+isnotdirectlymodelcheckable.Thetranslationprocedureisdemonstratedfor
+theGRCproblem,usingsomeextensionsoftheUMLfortestingtheabsence
+orpresenceofevents,asispossibleinHarel-Statecharts.However,compliance
+oftheirtranslationwiththeUMLsemanticsforstatemachines,inparticular
+regardingrun-to-completionsteps,isnotobvious.Muthiayen[17]describesthe
+veriﬁcationoftimedUMLstatemachineswiththetheoremproverPVS.Again,
+theGRCproblemservesasacasestudy.AtranslationofUMLcollaborations
+withtime-constraintsintouppaaltimedautomatahasbeenpresentedbyFirley
+etal.[8],thoughnoimplementationseemstobeavailable.Alsorelatedisthe
+translationofhierarchicaltimedautomataintoﬂatuppaaltimedautomataby
+DavidandM¨oller[6].ThedirectuseofthisapproachforthecompilationofUML
+statemachinesislimitedbytheratherdiﬀerentnotionsofrun-to-completion
+step.
+Overview.Theremainderofthispaperisstructuredasfollows:InSect.2we
+brieﬂyreviewthenotationandsemanticsoftimedautomataasusedbythe
+modelcheckeruppaal.InSect.3wedescribeacasestudy,theGRCproblem,
+andprovideaUMLsolution,inpassingexplainingtheUMLnotationandin-
+formalmeaningofstaticstructures,timedstatemachines,andcollaborations
+withtimeconstraints.AmoredetailedaccountofthesemanticsoftimedUML
+statemachinesand,inparticular,ofourassumptionsonthetimingbehaviour
+isgiveninSect.4.ThetranslationoftimedUMLstatemachinesintouppaal
+timedautomataisexplainedinSect.5,thetranslationofUMLcollaborations
+withtimeconstraintsintoobserveruppaaltimedautomataisrecapitulatedin
+Sect.6.WereportontheveriﬁcationresultsfortheGRCcasestudyinSect.7.
+Weconcludewithadiscussionofsomelooseendsandoffuturedevelopments.
+
+--- Page 4 ---
+                                                    397
+2TimedAutomata
+TheframeworkoftimedautomatawasoriginallydeﬁnedbyAlurandDill[1].
+Themodelcheckeruppaalthatservesasthebackendforhugo/RTexpects
+modelstobedescribedassystemsoftimedautomata,extendedbyprimitivesfor
+two-waysynchronization.Webrieﬂyrecallthemainconceptsofuppaaltimed
+automata.
+Atimedautomatonisanon-deterministicﬁnitestatemachine,extendedby
+ﬁnitelymanyreal-valuedclocks.Statesmaybeassociatedwithinvariantsof
+theformx∼cwherexisaclock,cisanintegerconstant,and∼∈{<,≤}.
+Transitionsbetweenstatesarelabelledwithtriples(gd,sy,ac)where
+–gdrepresentstheguardofthetransition,expressedasaconjunctionoftiming
+constraintsx∼corx−y∼cwherexandyareclocks,cisaninteger
+constant,and∼∈{<,≤,=,≥,>}isabinaryrelation,
+–syisa(possiblyvoid)synchronizationannotationoftheforma!ora?that
+denotesanoﬀeroranacceptancetosynchronizeoverthechannela,and
+–acisasetofresetoperationsx:=conclocks.
+Moreover,uppaalallowsintegervariablesaswellasone-dimensionalinteger
+arraystobedeclaredlocally(i.e.,forasingleautomaton)orglobally.Transition
+labelsmayincludeconstraintsonintegervariablesandarraycomponentsintheir
+guards,similartotimingconstraints,andmayspecifyassignmentstovariables
+intheiractions,whichareexecutedsequentially.However,clocksandinteger
+variablesrepresentdiﬀerent,incomparabletypes.Inparticular,itisnotpossible
+tocomparethevaluesofaclockandanintegervariable,ortoassignaninteger
+variabletoaclockorviceversa.
+Thestateofasystemoftimedautomataconsistsofthecontrolstatefor
+eachautomaton,plusavaluationνoftheclocksandvariables.Runsoftimed
+automataareinﬁnitesequencesofsystemstatesthatsatisfytheinvariants,sepa-
+ratedbyactionsthatrepresenteitherthepassageoftimeorthe(instantaneous)
+executionoftransitions.Atransitioncanbetakenonlyifitsguardevaluates
+totrueinthecurrentsystemstate.Ifthetransitioncarriesasynchronization
+annotationoftheforma?ora!thensomecorrespondingtransition(labelled
+bya!ora?)ofsomeothertimedautomatonhastobetakensimultaneously.
+Finally,theresultingsystemstateisobtainedbyupdatingthecontrolstates
+ofthetimedautomatainvolvedinthetransition,andbyupdatingthevalua-
+tionνaccordingtotheactionpartofthetransitionlabel(s),i.e.byresetting
+clocksandassigningvaluestovariables.Notethatthetransitionisnotallowed
+tooccuriftheresultingsystemstatewouldviolatetheinvariantassociatedwith
+thetargetlocation(s).Inthecaseofasynchronizationaction,theassignments
+speciﬁedbythe“sending”automaton(whosetransitionislabelledbya!)are
+performedbeforethoseofthe“receiving”automaton.Thisallowssynchronous
+binarycommunicationtobemodelledwiththehelpofglobalvariables.Time
+passageactionsdonotaﬀectthecontrolstateorthevaluesofthevariables,but
+increasethevaluationofallclocksbythesameamount,reﬂectingtheassump-
+tionofperfectclocks.Again,theresultingsystemstateisrequiredtosatisfy
+
+--- Page 5 ---
+398                                              
+allrelevantstateinvariants.Inparticular,time-outscanbemodelledbystate
+invariantsthatdisallowpassageoftimebeyondthespeciﬁeddeadline.
+Asanadditionalmodellingelement,automatalocationsmaybeclassiﬁedas
+eithercommittedorurgent.Bothoftheseannotationsdisallowthepassageof
+timewhilethelocationisactive.Additionally,committedlocationsrequirethe
+nextsystemactiontoinvolveatransitionwhosesourcestateisthecommit-
+tedlocation.Inthisway,atomictransactionsthatinvolvemorethanasingle
+transitioncanbemodelledbylabellingtheintermediatelocationsasbeingcom-
+mitted.Inparticular,multiwaysynchronizationcanbemodelledwiththehelp
+ofanatomicsequenceofbinarysynchronizations.Achannelcanbedeclaredur-
+genttodisallowthepassageoftimeassoonassynchronizationoverthechannel
+isenabled.
+3GRCCaseStudy
+WeillustrateourtranslationofUMLstatemachinesandcollaborationsinto
+uppaaltimedautomatabymeansofaUMLmodelforthe“GeneralisedRailroad
+Crossing”(GRC)casestudy[12].
+TheGRCproblemasksforasystemoperatingagateatarailroadcrossing:A
+gateforseveralrailroadtracksliesinacriticalsectionofthetracks,seeFig.1(a).
+Alltrainspassthecriticalsectioninthesamedirection.Thecriticalsectionis
+guardedbytwosensorsforeachtrackindicatingwhetheratrainisenteringor
+exitingthecriticalsection.Foreverytrackatmostonetrainpassesthecritical
+section,buttrainsondiﬀerenttracksmaypassatdiﬀerentspeedsandovertake
+eachother.Wheneverthegateisoccupied,i.e.,sometrainispassingthegate,
+thegatemustbeclosed(safetyproperty).Autilitypropertyspeciﬁesthatwithin
+certaintoleranceintervals,priorandpastbeingoccupiedthegatemustbeopen;
+moreover,whenthegateinitiatesopening,itmustbecomefullyopenandmust
+stayopenforacertainperiod.
+Timingannotations.Wemoreconcretelyassume,seeFig.1(b),thattheminimal
+resp.maximaltimeatrainmaytaketopassthedistancebetweenenteringthe
+criticalsectionatA(thepositionoftheentrysensor)andarrivingatthegateat
+gatetracks
+critical section
+(a)Railroadcrossingta tg
+gd+gu+
+E A
+gateD B
+critical sectionC
+(b)Timingannotations
+Fig.1.“GeneralisedRailroadCrossing”problem
+
+--- Page 6 ---
+                                                    399
+Track
+−num : intGate
++«signal» open
++«signal» closeControl
++«signal» enter(i : int)
++«signal» exit(i : int)−trains: int
+−«signal» doOpen
+−«signal» doClose1ctl
+k1 1gate
+(a)ClassdiagramOpen Closing
+Closed Openinggdafter() guafter()
+openclose
+(b)Gatestatemachine
+NoTrain/ ^ctl.enter(num)
+Approach Approach2
+after(    −   )ta Ta
+Crossing
+tg after(   )ta after(   )
+after(    −   )tggT / ^ctl.exit(num)/ ^ctl.exit(num)
+Crossing2
+(c)Trackstatemachine
+Open Closed
+/ ^gate.closedoClose doOpen
+[else]/ ^gate.open
+[trains == 0]Away1 Entered1
+k Away  Entered  k Nearby  k Critical  kafter(    +    ) gu og k enter(  )Nearby1 Critical1after(    +    ) gu og
+atgd+gu+after(   −    −     )atgd+gu+after(   −    −     )
+... ... ...exit(1) / trains−−, ^doOpen
+enter(1)
+kexit(  ) / trains−−, ^doOpen
+/ trains++ / ^doClose/ ^doClose / trains++
+(d)Controlstatemachine
+Fig.2.UMLmodeloftheGeneralizedRailroadCrossing.
+
+--- Page 7 ---
+400                                              
+Distaresp.Ta;andthattheminimalresp.maximaltimeatrainmaytaketo
+passthegatefromDtoEistgresp.Tg.Thegatebarstakethetimegutogoup
+fromfullyclosedtofullyopen,andtakethetimegdtogofromfullyopentofully
+closed.Theminimalperiodthegatehastostayopenisdenotedbygo.Thus,
+takingintoaccountpossibledelaysincommunication,itisatg+
+d=gd+Δbefore
+thefastesttrainmayreachthegateafterenteringthecriticalsectionthatthe
+gatemustinitiateclosing,thatis,atlocationCdeterminedbyta−g+
+d.Moreover,
+inordertoavoidthegateopeningpartlyandthenclosingimmediatelyagain,
+thegatemayonlyinitiateopeningwhenatleastg+
+u=gu+go+Δtimeunits
+remainbeforethenextclosingisscheduled,thatis,whenthetrainthatisclosest
+tothegateisguaranteedtobebeforelocationBdeterminedbyta−g+
+d−g+
+u.
+WeassumethatthetherebydetermineddistancebetweenAandBmustatleast
+allowforthecommunicationdelay,i.e.ta−g+
+d−g+
+u>Δ,inordertoprevent
+prematureopenings.
+UMLmodel.OurUMLmodelfortheGRCproblemispresentedinFig.2.The
+staticstructureissetoutintheclassdiagraminFig.2(a).Every(instanceof)
+classControlreferstoasinglegateand,viceversa,everyGateiscontrolledby
+asinglecontrol.Moreover,everyControlisconnectedtokinstancesofTrack,
+eachtrackknowingitscontrolviactlandholdingitsnumberinnum.AControl
+recordsthenumberoftrainscurrentlyinthecriticalregionintheattribute
+trains.AGatereactstotwopublicsignalsopenandclosebyinitiatingopening
+andclosingofthegate.AControlreactstothepublicsignalsenter(i)andexit(i)
+foranintegerireportingatrainenteringorexitingthecriticalsectionontrack
+i,aswellastotheprivatesignalsdoOpenanddoClosethatrepresentinternal
+requeststoopenorclosethegate.
+ThedynamicsisdescribedbystatemachinesfortheclassesGate,Track,
+andControl,seeFig.2(b)–(d).Eachinstanceoftheseclassesisgovernedbya
+separateinstantiationoftherespectivestatemachine.ThestatemachineforGate
+inFig.2(b)showsaninitialstateandfoursimplestatesOpen,Closing,Closed,
+andOpening.ThetransitionfromsourcestateOpentotargetstateClosingcan
+onlybeﬁredwhenasignaleventforcloseispresentasitstrigger.Thetransition
+fromClosingtoClosedwillbeﬁredwhenatimeeventoccurs,whichisraisedafter
+gdtimeunitshaveelapsedsinceClosinghasbeenactivated.Thus,inparticular,
+closingandopeningagatetakestherequiredamountoftime.Analogously,the
+statemachineforTrackinFig.2(c)sojourns,oncehavingactivatedApproach,
+inthisstateforthetimetabeforeﬁringthetransitiontoApproach2.However,
+thestatemachinemaydwellinApproach2foruptoTa−tatimeunitsorleave
+thisstateprematurelyviathealternativetransition,triggeredbyacompletion
+eventwhichoccurswhenallactivitiesofastate,ofwhichtherearenonein
+thiscase,havebeenﬁnished.Inthesamevein,thetransitionfromNoTrainto
+ApproachmaybeﬁredimmediatelyafterNoTrainhasbeenactivated,asthere
+areagainnoactivities;butthistransitionalsoshowsaneﬀect,viz.,thatsignal
+enter(num)israisedfortheinstanceofControlreferredtoasctl.Hence,the
+statemachinesforthetrackssimulatetheenteringandexitingoftrainsinthe
+criticalsection;theminimaltimeatrainmaytakeforthisdistanceista+tg,
+
+--- Page 8 ---
+                                                    401
+track1 : Track track2 : Track ctl : Control gate : Gate
+taba{   −   <=    }
+dc{   −   <=    }enter(1)
+closeenter(2)
+b
+exit(1)
+exit(2)
+openda
+c
+(a)Sequencediagramforthesafetyproperty
+ctl : Control gate : Gate
+ba{   −   <    +    }ugogopen
+closea
+b
+(b)Sequencediagramfortheutilityproperty
+Fig.3.UMLmodeloftheGeneralizedRailroadCrossing(cont’d.).
+themaximaltimeisTa+Tg.Finally,thestatemachineforControlinFig.2(b),
+showsaconcurrentcompositestateconsistingofseveralorthogonalregionswhich
+areagaincomposite,thoughsequential,states.Theupperkorthogonalregions,
+theithregionhandlingtheenteringandexitingofatrainontheithtrack,all
+providethesamebehaviour,ensuringthatwhenatrainontrackihasentered
+thecriticalregion,aninternalsignaldoCloserequestingtheclosingofthegate
+israisedafterta−g+
+d−Δ,andthatwhenatrainontrackileavesthecritical
+regionaninternalsignaldoOpenrequestingtheopeningofthegateisraised.The
+lastorthogonalregionactuallyhandlesclosingandopeningofthegate:When
+inOpenandreceivingasignaleventfordoClose,asignaleventforclosetothe
+instanceingateissent.However,wheninClosedonlyasignaleventfordoOpen
+isreactedto—shouldasignaleventfordoClosearriveinthisstateitisdiscarded
+bythewholestatemachineasthereisnoothertransitiontakingsuchanevent
+asitstrigger.ThetransitionﬁredbyasignaleventfordoOpenhastwopossible
+targetstates,linkedbyajunctionpseudo-state:Iftheguardtrains==0istrue
+onﬁringthetransitionindeedasignaleventforopenongateisraisedandOpen
+isactivated;otherwisetheotherbranchistaken:Closedisﬁrstdeactivatedbut
+becomesactivatedimmediatelyagain.
+Finally,twotestcasesforthesystembehaviouraredepictedinthecollabo-
+rations,shownassequencediagrams,inFig.3thatpartiallydescribethesafety
+andutilitypropertiesfortheUMLmodel.
+
+--- Page 9 ---
+402                                              
+ThesequencediagraminFig.3(a)describesasafebehaviour.Thediagram
+speciﬁesthat,giventwotrackstrack1andtrack2foracontrolctlsurveyingthe
+gategate,whenastimulusfortheﬁrstmessage,carryinganenter(1)signal,is
+receivedbyctlfromtrack1attimepointaitispossiblethatthegatereceives
+astimulusforthethirdmessage,carryingsignalclose,attimepointbwithin
+ta,independentlyofwhenasignalenter(2)issentfromtrack2toctlin-between.
+Analogously,afterthelasttrainexitedthegate,asindicatedbyctlreceivinga
+signalexit(2)fromtrack2attimepointc,thegatemayreceiveasignalopenfrom
+ctlattimepointdsuchthatatmostthecommunicationdelayΔhaselapsed
+afterc.
+ThesequencediagraminFig.3(b)describesabehaviourthatisnotallowed
+tooccur:itmustbeimpossiblethatafterthegatereceivedanopensignal,aclose
+signalarrivesbeforeatleasttimegu+gohaselapsed,asthiswouldcontradict
+thesecondpartoftheutilityproperty.
+4ModelofComputation
+TheUMLspeciﬁcationofthesemanticsofstatemachines[18,Ch.2.12]can
+besummarizedasfollows:Theactualstateofastatemachineisgivenbyits
+activestateconﬁgurationandbythecontentsofitseventqueue.Theactive
+stateconﬁgurationisthetreeofactivestates;inparticular,foreveryconcurrent
+compositestateeachofitsorthogonalregionsisactive.Theeventqueueholds
+theeventsthathavenotyetbeenhandledbythemachine.Theeventdispatcher
+dequeuestheﬁrsteventfromthequeue;theeventisthenprocessedinarun-
+to-completion(RTC)step.First,amaximalconsistentsetofenabledtransitions
+ischosen:atransitionisenabledifallofitssourcestatesarecontainedinthe
+activestateconﬁguration,ifitstriggerismatchedbythecurrentevent,andif
+itsguardistrue;twoenabledtransitionsareconsistentiftheydonotsharea
+sourcestate.Foreachtransitionintheset,itsleastcommonancestor(LCA)
+isdetermined,i.e.thelowestcompositestatethatcontainsallthetransition’s
+sourceandtargetstates;thetransition’smainsourcestate,thatisthedirect
+substateoftheLCAcontainingthesourcestates,isdeactivated,thetransition’s
+actionsareexecuted,anditstargetstatesareactivated.
+TheUMLsemanticsdeliberatelydoesnotprescribethetimingassumptions
+thatunderlythecomputationoftimedstatemachines.Forexample,itisleftun-
+speciﬁedwhetherstatetransitionsareinstantaneousordurative,althoughthe
+zero-timeassumptionadoptedforHarel-Statecharts[10,11]isexplicitlymen-
+tionedasapossiblemodel[18,p.2-161].Similarly,arbitraryqueueingdelaysare
+allowedtooccurbetweenthetimeaneventisreceivedbyastatemachineand
+thetimeitisdispatchedforprocessing.
+BecauseweareinterestedinapreciseanalysisoftimedUMLstatemachines,
+wehavetoassumeaspeciﬁccomputationalmodel.Followingideasfromtimed
+automataandsynchronouslanguages,ourbasicassumptionisthatnoticeable
+delaysareonlyduetocommunicationbetweenobjectswhereaslocalcomputa-
+tionis(inﬁnitely)fast.Formally,wemakethefollowingassumptions:
+
+--- Page 10 ---
+                                                    403
+1.Therun-to-completion(RTC)stepperformedlocallybyastatemachine
+takesnotime.Similarly,theeventqueueiseagertodispatcheventsithas
+received.
+2.Thedelaybetweenthesendingofaneventanditsreceptionatthetarget
+objectisboundedbyaconstantΔ.
+3.Astatemachinemaydelayarbitrarilybeforegeneratingcompletionevents,
+unlessthatdelayisrestrictedbyanexplicitconstraint.
+Ourbasictenetisthatthespeciﬁershouldhavecompletecontroloverthe
+behaviorofthemodel.Forexample,theeventqueueisanimplicitpartofevery
+statemachineandisoutsidethecontrolofthespeciﬁer.Ifweallowedtheevent
+queuetointroducearbitrarydelaysitwouldobviouslybeimpossibletoguarantee
+anylowerboundsontheresponsetime.Wehavethereforechosentoimposea
+zero-timeassumptiononthebehaviorofthequeue.Shouldthespeciﬁerwishto
+allowfordelays,thesecanalwaysbemodelledexplicitly.
+Assumingzero-timebehavioroftheeventqueueandtheRTCstepimplies
+thatusually,thetimesofreception,dispatch,andconsumptionofaneventare
+thesame.However,aftersendingasynchronouscalleventtoanotherobject,a
+statemachinewillbeblockeduntilthenotiﬁcationaboutthedispatchofthe
+eventatthereceivermachinehasarrivedatthesender.Duringthisperiod,
+eventsmaybereceivedbytheeventqueue,buttheywillbedispatchedonly
+afterthesynchronouscalleventhasbeenhandled.
+Oursecondassumptionissimilarinspiritbecause,again,themechanism
+forinter-objectcommunicationisanimplicitpartofthemodelandcannotbe
+controlledbythespeciﬁer.Althoughwemodelinter-objectcommunicationas
+beingtime-consuming,weintroduceauser-deﬁnableconstantΔtorepresentthe
+maximumnetworklatency.Weassume,however,thatmessagesthatrepresent
+internalsignalsoroperationsarenotsentoverthenetwork,andthereforedo
+notincuranycommunicationdelay.Obviously,thismodelofcommunication
+couldbereﬁned,forexamplebyimposingaminimumcommunicationdelayor
+bydistinguishingseveraldegreesof“remoteness”(e.g.,fastercommunication
+withinasinglepackageetc.).
+Finally,wedonotrestrictthedelaybeforeraisingcompletioneventsbecause
+theseconcernapartofthemodelthatisunderthecontrolofthemodeller,using
+eithertimeeventsorclockconstraints.Forexample,thetransitionfromNoTrain
+toApproachinthetrackstatemachineofFig.2(c)canbedelayedarbitrarily.
+Ontheotherhand,oncethecompletioneventhasbeenraised,itwillbeinserted
+intotheeventqueuewithoutanyfurtherdelay.
+5RepresentationofUMLStateMachinesinuppaal
+WenowdescribeindetailourapproachtocompilingasystemofUMLstatema-
+chinesintoasetofuppaaltimedautomata.Forsimplicity,thecurrentversion
+ofhugo/RTassumesthatthereisonlyasingleinstanceofanyclassdeclaredin
+theUMLmodel,thatthenamesofoperationsandsignalsaredistinct,andthat
+
+--- Page 11 ---
+404                                              
+eventsdonotcarryparameters.Theseassumptionscouldbeeasilyremovedat
+theexpenseofaslightlymoreelaboratenamingscheme.
+5.1StateConﬁgurationsandTransitions
+AlthoughbothUMLstatemachinesandtimedautomatadescribestatetransi-
+tionsystems,thehierarchicalstateconﬁgurationsofUMLstatemachineshave
+tobeencodedasstatesof“ﬂat”timedautomata.Theoriginalimplementation
+ofhugodescribedin[19]wasbasedonatranslationofuntimedUMLstate
+machinestopromela,theinputlanguageofthespinLTLmodelchecker,that
+representedeachsubstateofaUMLstatemachinebyaseparateprocess.The
+mainbeneﬁtofthatstrategywasahighdegreeofmodularityandﬂexibility,
+atthecostofanineﬃcientstaterepresentation,whichwaslargelyoﬀsetby
+thestate-spacecompressiontechniquesavailableinspin.Becauseuppaaloﬀers
+neithercompressionnorstructureddatatypesbeyondone-dimensionalinteger
+arrays,wedecidedtoﬂattenthestateconﬁgurationsandtocompileeachUML
+statemachineintoonlytwotimedautomatathatrepresent,respectively,the
+transitionsofthestatemachineanditsassociatedeventqueue.Astateconﬁgu-
+rationoftheUMLstatemachine,describedasatreeofstates,isencodedbya
+singlelocationoftheﬁrsttimedautomaton,andanyattributesthataredeclared
+intheUMLclassdiagramaretranslatedintolocalvariablesoftheuppaaltimed
+automaton.
+PossibletransitionsoftheUMLstatemachinearerepresentedintheuppaal
+modelassequencesoftransitions.Givenalocationofatimedautomatonthat
+representsaconﬁgurationtreeoftheUMLstatemachine,weﬁrstdetermine
+thesetofevents(includingtimeandcompletionevents)thatmaytriggera
+transition,startingattheleavesoftheconﬁgurationtree.Wheneverahigher-
+levelstatemayreacttothesameeventasalower-levelstate,thenegationof
+theguardassociatedwiththelower-leveltransitionisaddedtotheguardofthe
+higher-leveltransition.Thisensuresthattransitionsoriginatingfrominnerstates
+takepriorityoveroutermosttransitions,asprescribedbytheUMLsemantics.
+Foreachevente,wecomputethesetsoftransitionsthatmaybetriggered
+byeandsuccessorconﬁgurations,bycalculatingthetransition’smainsource
+andtargetstates.Inparticular,wemustconsiderthecasethatthesameevent
+isconsumedbystatesinseveralorthogonalregions.Allpertinentguardsare
+copiedtotheﬁrsttransitionoftheuppaalmodel,asisasynchronizationthat
+indicatesconsumptionoftheevent.
+WethenconsidertheeﬀectsoftheUMLtransition.First,wemodelthe
+deactivationofstates,beginningattheleafstatesofthesourceconﬁguration
+tree,andworkingupwardstowardsthemainsourcestate.Updatestoinstance
+variablesareagaincopiedverbatimasassignmentstothecorrespondinglocal
+variablesoftheuppaalmodel.ForeverysignalsentintheUMLmodel,we
+generateanintermediatecommittedstatetolettheuppaalmodelsynchronize
+overanappropriatechannel(observethatuppaaltransitionsmaycarryatmost
+onesynchronizationannotation).Next,wetranslatetheeﬀectsthatareexplicitly
+givenbytheUMLtransitioninasimilarway.Ifthetransitiongeneratesa
+
+--- Page 12 ---
+                                                    405
+F
+E A B
+C DGa
+b
+[x>0]a /
+a /
+x:=x+1bo^b
+(a)UMLstatemachine
+GACF
+BDbAck? x:=x+1 bToNet!
+c c ECaDispatch?
+bDispatch?
+x<=0x>0aDispatch? bDispatch?
+(b)uppaaltimedautomaton(fragment)
+Fig.4.TranslationofUMLtransitions.
+synchronouscalltheuppaalmodelentersanon-committedintermediatestate,
+awaitingthenotiﬁcationofdispatchtoarrivefromthereceivingmachine.Our
+currentprototypedoesnotallowsequencesofcallactionstooccurinatransition.
+Finally,targetstatesarebeingactivated,andanyentryactionsaretranslated
+tocorrespondingactionsintheuppaalmodel.Thispartofthetranslationis
+symmetrictodeactivation,butstartingatthemaintargetstateandworking
+downwardstowardstheleaves.Thecurrentversionofhugo/RT,unlikethe
+untimedversion,doesnotsupport“do”activitiesassociatedwithstates;thisis
+partlyoﬀsetbythepossibilitytodelay,abstractingfromchangesofattribute
+values.
+Finally,weaddloopsforalleventsthatoccurasinputeventsofthestate
+machinebutdonottriggeratransitionfromthecurrentstateconﬁguration.
+Thesetransitionscorrespondtosituationswherethecurrentstateconﬁguration
+doesnotreacttothecurrentevent;theUMLsemanticsprescribesthattheevent
+shouldthenbediscarded.hugo/RTdoesnotcurrentlyhandledeferredevents.
+Figures4(a)and4(b)showanexcerptofthetranslationofahypothetical
+UMLstatemachineintothecorrespondinguppaaltimedautomatonthatex-
+hibitssomeofthediﬃcultiesthatcanarise.Inparticular,eventamaytrigger
+twodiﬀerenttransitionsinthestateconﬁgurationthatconsistsofthestatesA
+
+--- Page 13 ---
+406                                              
+andCthatlead,respectively,tothetargetconﬁgurationsBDandF.Theﬁrst
+ofthesetransitionsisrepresentedbyasequenceoftransitionsintheuppaal
+modelthatinvolveconsumptionofthetriggerevent,updatesoflocalvariables,
+andnetworkcommunication.Forthisexample,wehaveassumedthatbisacall
+eventthatshouldbesenttotheobjecto.Aftersendingtheeventoverthenet-
+work(cf.Sect.5.3),thetimedautomatonwaitsinanon-committedintermediate
+stateforthecorrespondingacknowledgementtoarrive.
+ThesamestateconﬁgurationACmayreactintwodiﬀerentwaystoeventb.
+Theinnermosttransition(resultinginconﬁgurationEC)isprioritized;therefore,
+theoutermosttransitioncanbetakenonlyiftheguardx>0isfalse.
+Completionevents.TransitionsofaUMLstatemachineforwhichnotrigger
+eventisshownaretriggeredbyanimplicitcompletionevent.Simplestatesraise
+acompletioneventafterallinternalactivityhasterminated.Compositestates
+raiseacompletioneventwhenallorthogonalregionshavereachedadesignated
+ﬁnalstate.
+Sincehugo/RTdoesnotconsider“do”activitiesornon-atomicentryac-
+tions,wegenerateacompletioneventforanysimplestatewithoutgoingcom-
+pletiontransitionsviaatransitiontoanintermediate“completion”state1.Sim-
+ilarly,acompletioneventforacompositestatewithoutgoingcompletiontransi-
+tionsisgeneratedwheneverallitsorthogonalregionshavereachedﬁnalstates;
+thiscanbereadilyseenfromtheconﬁguration.Consumptionofcompletion
+eventsissimilartotheconsumptionofregulareventsdiscussedabove,exceptof
+coursethatthesamecompletioneventcannotbeconsumedbydiﬀerentstates.
+Completioneventsarediscardedifthestatetowhichitcorrespondsisnolonger
+active;thismayoccurifanother(completion)eventhascausedsomecontaining
+compositestatetobedeactivated.AsexplainedinSect.5.2,theimplementation
+ofeventqueuesensuresthatcompletioneventstakepriorityoversignalandcall
+events.
+Compoundtransitions.TheUMLallowsseveraltransitionstobeconnectedby
+pseudo-states;inparticular,theresultingcompoundtransitionmayhaveseveral
+sourceortargetstates.Thetranslationofforkandjunctiontransitionsposesno
+particularproblems.JointransitionsarerequiredbytheUMLtobetriggeredby
+completiontransitionsfromallofitssourcestates.Ouruppaaltranslationuses
+asimilartechniqueasforthecompletionofcompositestates:foreachsource
+statesofajointransition,weaddanauxiliarystatethatindicatesthatshas
+completed;completionofthelastsourcestate,whichisagainevidentfromthe
+activestateconﬁguration,ﬁresthejointransition.
+Timeevents.TransitionsoftimedUMLstatemachinesmaybetriggeredby
+theelapseoftime,indicatedbyanannotationoftheformafter(d)wheredis
+1Onemaybetemptedtosuppressthecompletioneventaltogetherinsuchasimpliﬁed
+model,butnotethatacompletioneventshouldneverthelessbehandledinaseparate
+RTCstep.
+
+--- Page 14 ---
+                                                    407
+c <= c <= NoTrain/ ^ctl.enter(num)
+Approach Crossingta c >=   tgc >=     / ^ctl.exit(num)
+Tg Tac := 0 c := 0
+Fig.5.Trackstatemachinewithclock.
+anon-negativeintegerconstant.hugo/RTdeﬁnesaclockcsforeverystates
+withanoutgoingtimetransition.Everylocationofthetimedautomatonthat
+correspondstoastateconﬁgurationcontainingsisrequiredtosatisfytheinvari-
+antcs≤d;incomingtransitionstoanysuchlocationsresetcsto0.Atimeevent
+israisedduringatransitionfromstoanintermediatestate,guardedbythe
+conditioncs=d.Consumptionoftimeeventsisanalogoustothatofcompletion
+events.
+ThesupportUMLoﬀersfortimeannotationsinstatemachinesisratherlim-
+ited,anditcanbecumbersometomodelreal-timesystemsusingonlybasictime
+eventsoftheformafter(d),whichrepresentprecisedeadlines.Forexample,the
+trackstatemachineshowninFig.2(c)combinestimetransitionsandcompletion
+transitionstospecifyupperboundsontheoccurrenceoftransitions,andintro-
+ducesauxiliarystatestospecifylowerbounds.WethereforeextendtheUML
+notationbyallowingclockstobedeclaredexplicitlyinaUMLclassdiagram.
+Theseclockscanbetestedforintransitionguards,andcanberesetastheeﬀect
+oftransitions,inthesamewayasthisispossibleinuppaaltimedautomata.
+Similarly,clockinvariantsmaybeassociatedwiththestatesofaUMLstatema-
+chinetomodeltimeouts.Forexample,Fig.5showsanalternativepresentation
+ofthetrackstatemachineusinganexplicitclockc.Thismodestadditionmakes
+thenotationmoreexpressivebecausestrictcomparisonssuchasx<ccannot
+beexpressedusingtriggersoftheformafter(d).Besides,timeconstraintsbecome
+morelocalized,whichshouldmakethemodelseasiertounderstand.
+5.2RepresentingtheEventQueue
+Thesecondtimedautomatonthatisgeneratedforeverystatemachineofthe
+UMLmodelrepresentsitsassociatedeventqueue.Alocalarrayvariableofuser-
+deﬁnablecapacityholdsthecurrentcontentsofthequeuesuchthattheﬁrst
+arrayelementrepresentstheheadofthequeue(eventtypesareencodedas
+integerconstants).Alocalintegervariableindicatesthenumberofeventsin
+thequeue.Thequeuereactstoincomingeventsbysynchronizingonitsinput
+channelandappendingthetransmittedeventtothecurrentcontentsofqueue.A
+possibleoverﬂowisindicatedbymovingtoadistinguishedoverﬂow(sink)state.
+Completioneventsareenqueuedsimilarly,butareprependedtothecontents
+ofthequeue,shiftingallarrayelementsbyonepositiontowardstheend.This
+
+--- Page 15 ---
+408                                              
+Idle c Overflowqueue[1] := queue[2],
+queue[2] := 0,
+tail := tail−1queue[0] := queue[1],e1Dispatch!queue[0] == e1
+queue[0] == e2
+e2Dispatch!
+queue[0] := queue[1],
+queue[1] := queue[2],
+queue[2] := 0,
+tail := tail−1tail <= 2 tail <= 2tail := tail+1, queue[tail] := e1e1FromNet?
+tail := tail+1, queue[tail] := e2e2FromNet?
+Fig.6.Eventqueuewithcapacitytwofortwoevents.
+ensuresthatcompletioneventstakeprecedenceoverregularevents,asprescribed
+bytheUMLsemantics.Observethattheeventqueueisalwaysreadytoaccept
+aneweventunlessanoverﬂowhasoccurred.
+Foreveryinputeventofthestatemachine,theuppaalmodeldeclaresan
+urgentchannelsharedbytheautomatarepresentingtheeventqueueandthe
+properstatemachine.Thequeuecommunicatestheeventattheheadofthe
+queuetotheassociatedstatemachinebyoﬀeringasynchronizationontheas-
+sociatedchannel.Theeventisthendequeuedbyshiftingallarrayelementsone
+positiontowardstheheadofthequeue,decrementingthelengthofthequeue,
+andassigninganullvaluetothelastarrayposition.Becausethechannelsrep-
+resentinginputeventsaredeclaredurgentandthestatemachineacceptssyn-
+chronizationonallthesechannelsineverylocationwhereanRTCstepcanbe
+started,notimeisallowedtoelapsewheneveranRTCstepisenabled.Figure6
+showsasampleeventqueueautomatonwithcapacitytwothatcanholdtwo
+typesofevents.
+Ourstyleofimplementationoftheeventqueue,whichwouldbeineﬃcient
+inaconventionalprogramminglanguage,ensuresthatidenticalconﬁgurations
+ofastatemachinearemappedtoauniquesystemstateoftheuppaalmodel,
+andthatstaterepetitionscanthereforebereliablyidentiﬁed.Ifweusedamore
+conventionalimplementationbasedontwoindexpositionscorrespondingtothe
+headandthetailofthequeue,identicalstateconﬁgurationscouldbemapped
+touppaalstatesthatdiﬀerintheparticularlayoutofthequeuearray.
+5.3RepresentingtheNetwork
+Theﬁnaladditiontocompletetheuppaalmodelassociatedwithasystemof
+statemachinesisatimedautomatonthatrepresentsmessagesintransitbetween
+diﬀerentstatemachines;recallfromSect.4thatweconsiderremotecommuni-
+cationtobetime-consuming.Thenetworkautomatonessentiallyconsistsofa
+user-deﬁnednumberofbucketsthatmayholdmessages.Foreveryeventeit
+listensonaglobalchanneleToNetforebeingsentbythestatemachinesand
+thenplaceseinthelowest-numberedunusedbucket.Witheverybucketweas-
+
+--- Page 16 ---
+                                                    409
+buffer[0] == 0, buffer[1] == 0
+eRcvd!
+eRcvd!
+buffer[0] != 0, buffer[1] == 0buffer[0] == 0, buffer[1] != 0
+eRcvd!
+buffer[0] == e
+eFromNet!
+buffer[0] := 0
+buffer[1] == e
+eFromNet!
+buffer[1] := 0oe00:
+oe01:
+oe10:
+de0:
+de1:
+buffer[1] := eeToNet?
+(clock0 <=   ) (clock0 <=   ,
+clock1 <=   )c
+de0
+de1de0oe00
+de1
+oe10oe01(clock1 <=   )
+00 01
+10 11buffer[0] := eeToNet?
+buffer[0] := eeToNet?
+FulleToNet?
+Fig.7.Networkwithcapacitytwo(transitionannotationstotheright).
+sociateaclockthatisresetwhenthebucketisﬁlled,andtimesoutafterΔtime
+unitshaveelapsed.Ifthebucketisfullitmayoﬀersynchronizationonthecor-
+respondinginputchannelofthereceivingobject’seventqueue,communicating
+theeventtothereceivingstatemachine.Notiﬁcationsofdispatchofcallevents
+arehandledslightlydiﬀerently,astheyarecommunicateddirectlytothestate
+machine,bypassingtheeventqueue.
+ForUMLmodelsthatalsospecifyacollaborationtobechecked,thenetwork
+alsoinformstheobservertimedautomatongeneratedfromthecollaboration(cf.
+Sect.6below)wheneveritcommunicatesaneventtothereceivingstatemachine
+sothattheobserverautomatonmayreactappropriately.Figure7presentsa
+networkwithcapacitytwo.
+Thenetworkdescribedaboveonlyimposesanupperboundonthecommu-
+nicationdelay,allowingmessagestobereordered.Wehavealsoexperimented
+withamoreeﬃcient,thoughperhapslessrealistic,networkmodelwhereevery
+messageisdelayedbyaﬁxedamountoftime.Becausebothimplementations
+oﬀerthesameexternalinterface,theycanbeexchangedforeachothereasily.
+6RepresentationofUMLCollaborationsinUPPAAL
+WebrieﬂydescribethetranslationofUMLcollaborationswithtimeconstraints
+intoobserveruppaaltimedautomata.Thetranslationissimilartothecon-
+structionbyFirleyetal.[8],butincludesstutteringstates,i.e.,statesthatallow
+arbitrarystimulitooccurin-betweenthestimulithatarerequiredbythemes-
+sagesoftheUMLcollaboration.FollowingtheUML,wethusviewcollaborations
+asincompletespeciﬁcationsofpossiblesystemrunswherearbitrarymessageex-
+changemayoccurbetweentheexplicitlyspeciﬁedmessages.
+Weassumeatotalorderonthemessagesinaninteraction.Eachmessagem
+isrepresentedbyanuppaalchannelmRcvdoverwhichtheobserverautomaton
+learnsofastimulusformessagembeingreceivedbyaninstance.Aconstraint
+oftheformv−u∼cwith∼∈{<,≤,≥,>}isassociatedwithaclockxvu.
+
+--- Page 17 ---
+410                                              
+x   <    +    bagugox   := 0babax   >=    +     uggo
+closeRcvd?ErrorbacloseRcvd? openRcvd?
+Final
+Fig.8.ObserveruppaaltimedautomatonforcollaborationinFig.3(b)
+Eachstateoftheobserveruppaaltimedautomatoncheckseithertheoccur-
+renceofareceptionofastimulusaccordingtotheorderofthecollaborationor
+theviolationofatimingconstraint.Theautomatonregistersthereceptionofa
+stimuluscomplyingtomessagembyatransitionacceptingcommunicationon
+channelmRcvd.Furthermore,ifthereceptionofmessagemisannotatedbyu
+foratimingconstraintv−u∼ctheclockxvuisinitialisedwhenastimulusform
+issuccessfullyregistered.Conversely,ifthereceptionofmessagemisannotated
+byvforatimingconstraintv−u∼c,therearetwotransitionsacceptingcom-
+municationonchannelmRcvd:Atransitionguardedby¬(xvu∼c)leadstoan
+errorstate,indicatingthatthetimingconstraintisviolated;anothertransition
+guardedbyxvu∼cenablestheremainingmessages.Eachstateallowsforan
+arbitrarystutteringofstimuli.Reachingtheﬁnalstateindicatesthesuccessful
+performanceofthecollaboration.
+Figure8illustratesthisconstructionfortheGRCtestcasecollaboration
+inFig.3(b)whereeachloopingtransitionabbreviatesarbitrarystuttering,i.e.,
+oﬀeringsynchronisationoneverychanneloftheformmRcvd?.
+Theregisteringprocedureforstimulithatweemployinourtranslationuses
+theassumptionthatthesenderandreceiverofastimulusareuniquelydeter-
+minedbythestimulus.Amoreelaborateschemecheckingthesenderandreceiver
+storedinadditionalglobalvariablesiseasilydevised[8].Note,however,thatFir-
+leyetal.[8]checktheoriginatorofastimulusbeforecommunicationisaccepted
+whichmaybecomeproblematicwhendiﬀerentinstancessendstimuliforthe
+samesignaltothesameinstance.
+7Veriﬁcation
+hugo/RTanalyzesamodelbycallingonuppaaltoverifythattheﬁnalstate
+oftheobservertimedautomatonisreachableinthemodelthatconsistsofthe
+timedautomatarepresentingtheUMLstatemachinesandtheobserverautoma-
+tongeneratedfromthecollaboration.Forourcasestudy,thefeasibilityofthe
+collaborationshowninFig.3(a)isconﬁrmedinafractionofasecond(alltim-
+ingsweretakenonaPentiumIIIwith768MBofmemoryrunninguppaal3.2.2
+onLinux2.2.16).
+Somecorrectnesspropertiesofsystemscanbeexpressedbyrequiringcertain
+executionstobeimpossible.Forexample,wecancheckthesecondpartofthe
+utilitypropertythatrequiresthegatenevertoopenforlessthangotimeunits
+
+--- Page 18 ---
+                                                    411
+Away1 Entered1 Nearby1 Critical1after(    +    ) gu og atgd+gu+after(   −    −     ) enter(1)
+/ ^doClose / trains++exit(1) / trains−−, ^doOpen
+enter(1) / trains−−, ^doOpen
+Fig.9.CorrectedcontrolstatemachinefortheGRCproblem(representativeregion).
+byverifyingthatthecollaborationshowninFig.3(b)isnotfeasible.Thever-
+iﬁcationofthispropertyrequiresanexhaustivesearchofthemodelandtakes
+approximately11seconds.
+However,notallinterestingpropertiesareexpressibleusingUMLcollabora-
+tionswithtimeconstraints.Inparticular,UMLcollaborationsdonotallowto
+checkfortheabsenceofsignalsascanbedone,forexample,usinglivesequence
+charts[4].Wehavethereforeresortedtomodelcheckinginvariantstoverifythe
+safetyandutilitypropertiesstatedfortheGRCcasestudy.Thebasicsafety
+propertyrequiresthegatetobedownwheneveratrainiscrossing,expressedas
+theformula
+∀2/parenleftbig
+(Track1.Crossing∨Track2.Crossing)⇒Gate.Closed/parenrightbig
+Ourﬁrstattempttoverifythisformularesultedinacounter-examplewherea
+trainwascrossingbutthegatewasclosing,withpreciselygdtimeunitselapsed
+sincetheClosingstatewasentered.Ratherthanaddingsomesafetymargins,we
+deemedthisbehavioracceptableandcheckedforaweakerinvariantthatalso
+allowedforthisboundarycase.
+Muchtooursurprise,uppaalagainproducedacounter-example:verybrieﬂy
+afteratrainhadleftthecrossing,asecondtrainenteredonthesametrack(this
+isallowedbyourmodelsinceacompletioneventfortheNoTrainstatemaybe
+generatedimmediatelyafterthestatehasbeenactivated).Becauseofvariable
+networkdelays,thecorrespondingentersignalactuallyarrivedatthecontroller
+beforetheprecedingexitsignal,thatis,whenthecorrespondingregionofctl
+wasstillinitsCriticalstate.Becausethatstatedoesnotdeﬁneatransition
+fortheentersignal,itwasdiscarded,andthegatewasopenedwhentheexit
+signalarrived,leavingthegateopenwhilethesecondtrainwasapproaching
+andcrossing.
+Thiscounter-examplerepresentsanactualerrorinourgatecontroller,which
+noneofushadrealized,andwhichwouldhavebeendiﬃculttoﬁndbysim-
+ulationalone.TheerrorcanbeﬁxedbyaddingatransitionfromtheCritical
+totheEnteredstatesofthecontrollerstatemachineofFig.2(d)thatistrig-
+geredbyanentersignal,decrementstheattributetrains,andraisesadoOpen
+signal,cf.Fig.9.(Observethatthefollowingexitsignalwillbediscardedat
+theEnteredstate.)Anothersolution,whichisnotcurrentlypossibletoanalyze
+usinghugo/RT,wouldbetomarktheentersignalasdeferredinstateCritical.
+
+--- Page 19 ---
+412                                              
+Rerunningtheveriﬁcationoverthemodiﬁedmodelestablishesthattheinvariant
+isnowsatisﬁed;theanalysistakesca.2.5seconds.
+WewouldalsoliketoverifytheﬁrstpartoftheutilitypropertyoftheGRC
+problemthatassertsthatthegateisclosedonlyifsometrainiscrossingorclose
+tothegate.Aﬁrstideawouldbetoexpressthispropertybytheformula
+∀2/parenleftbig
+Gate.Closed=⇒/logicalordisplay
+i=1,2Tracki.Crossing∨(Tracki.Approach∧Tracki.c≥ta)/parenrightbig
+intermsofthetrackstatemachineshowninFig.5.Unfortunately,thisproperty
+cannotholdbecausethegatewillstillbeclosedforashortwhileafterthetrains
+haveleft.Apossiblesolutionistoenhancethemodelbyanadditionalclock
+measuringthetimesinceatrainhasleftthegate.
+Finally,wewanttoestablishtheabsenceofdeadlocksinoursolutionofthe
+GRCproblem.uppaalprovidesadesignatedstateformuladeadlocktoidentify
+deadlockstates.Ourtranslation,however,mayintroduceextradeadlocks:a
+fullnetworkcannotacceptanyfurtherstimuli,theeventqueuesmayoverﬂow,
+andtheobserverautomatonmayrunintoanerrorstate.Inallofthesecases
+designateddeadlockstates(Full,Overﬂow,Errorvu)areentered.Infact,uppaal
+reportsthatthesearetheonlydeadlocksofthetranslatedmodel,conﬁrming
+theabsenceofdeadlocksintheUMLmodel.
+8Conclusions
+WehavedescribedproceduresfortranslatingtimedUMLstatemachinesand
+UMLcollaborationswithtimeconstraintsintouppaaltimedautomata.The
+translationhasbeenimplementedinaprototypetoolcalledhugo/RT.There-
+sultsofmodelcheckingthetranslationofscenariosgivenbyUMLcollaborations
+withtimeconstraintsagainsttimedUMLstatemachineshavebeenillustrated
+forthe“GeneralisedRailroadCrossing”casestudy.
+Thecurrentprototypeshowsseverallimitations:hugo/RTbynowonly
+handlesasubsetofthepossibilitesofUMLstatemachines.Mostprominently,
+historypseudo-statesanddeferredeventsstillneedtobeimplemented,events
+cannothaveparameters,andtherecanonlybeasingleinstanceofanygiven
+class.Someoptimizationsformoreeﬃcientanalysisshouldalsobeconsidered.
+Forexample,thenumberofclockscouldbeminimizedbyreusingclocksindif-
+ferentstates.Moreimportantly,theexpressivenessofUMLcollaborationsto
+describecorrectnesspropertiesisratherlimited.Wethereforeplantointegrate
+livesequencechartsasaspeciﬁcationformalismintohugo/RT.Forspecify-
+ingstate-basedpropertiesonthelevelofstatemachinesitwouldbeusefulto
+integrateconstraintsinUML’stextualannotationlanguageOCL.
+Evenso,hugo/RTisaﬁrststeptowardstheapplicationofmodelchecking
+techniques“behindthescenes”toreal-timeobject-orienteddesigns,evenspan-
+ningseveralphasesofsoftwaredevelopment.Boththedesignmodelandthe
+propertiesofasystemaredescribedintheunifyingframeworkoftheUML.For
+seamlessintegrationwithexistingtools,hugo/RTimportsstatemachinesand
+
+--- Page 20 ---
+                                                    413
+collaborationsfromtheXMI(XMLmetadatainterchange)outputproducedby
+standardUMLeditors.Thetimeoverheadforcompilingintouppaalmodelsis
+tolerableandthetimeforveriﬁcationisencouraging.
+References
+1.RajeevAlurandDavidL.Dill.ATheoryofTimedAutomata.Theo.Comp.Sci.,
+126:183–235,1994.
+2.RodolpheArthaud,UdoBrockmeyer,WernerDamm,BruceP.Douglass,Francois
+Terrier,andWangYi,editors.Proc.Wsh.FormalDesignTechniquesforReal-Time
+UML,York,2000.http://wooddes.intranet.gr/workshop.htm.
+3.GradyBooch,JamesRumbaugh,andIvarJacobson.TheUniﬁedModelingLan-
+guageUserGuide.Addison–Wesley,Reading,Mass.,&c.,1998.
+4.WernerDammandDavidHarel.LSCs:BreathingLifeintoMessageSequence
+Charts.FormalMethodsinSystemDesign,19(1):45–80,2001.
+5.WernerDamm,BernhardJosko,HardiHungar,andAmirPnueli.ACompositional
+Real-TimeSemanticsofSTATEMATEDesigns.InWillem-PauldeRoever,Hans
+Langmaack,andAmirPnueli,editors,Proc.Int.Symp.Compositionality(Revised
+Lectures),volume1536ofLect.NotesComp.Sci.,pages186–238.Springer,Berlin,
+1998.
+6.AlexandreDavidandM.OliverM¨oller.FromHUppaaltoUppaal—ATrans-
+lationfromHierarchicalTimedAutomatatoFlatTimedAutomata.Technical
+ReportBRICSRS-01-11,DepartmentofComputerScience,AarhusUniversitet,
+2001.
+7.BruceP.Douglass.Real-TimeUML.Addison-Wesley,Reading,Mass.,&c.,1998.
+8.ThomasFirley,MichaelaHuhn,KarstenDiethers,ThomasGehrke,andUrsula
+Goltz.TimedSequenceDiagramsandTool-BasedAnalysis—ACaseStudy.In
+FranceandRumpe[9],pages645–660.
+9.RobertB.FranceandBernhardRumpe,editors.Proc.2ndInt.Conf.UML,volume
+1723ofLect.NotesComp.Sci.Springer,Berlin,1999.
+10.DavidHarel.Statecharts:AVisualFormalismforComplexSystems.Sci.Comp.
+Program.,8(3):231–274,1987.
+11.DavidHarelandEranGrey.ExecutableObjectModelingwithStatecharts.Com-
+puter,July:31–42,1997.
+12.ConstanceL.Heitmeyer,RalphD.Jeﬀords,andBruceG.Labaw.Comparing
+DiﬀerentApproachesforSpecifyingandVerifyingReal-TimeSystems.InProc.
+10thIEEEWsh.Real-TimeOperatingSystemsandSoftware,pages122–129,New
+York,1993.
+13.KimGuldstrandLarsen,PaulPettersson,andWangYi.UPPAALinaNutshell.
+Int.J.Softw.ToolsforTechn.Transfer,1(1–2):134–152,1997.
+14.DiegoLatella,IstvanMajzik,andMiekeMassink.AutomaticVeriﬁcationofa
+BehaviouralSubsetofUMLStatechartDiagramsUsingtheSPINModel-Checker.
+FormalAspectsComp.,11(6):637–664,1999.
+15.LuigiLavazza,GabrieleQuaroni,andMatteoVenturelli.CombiningUMLand
+FormalNotationsforModellingReal-TimeSystems.In8thEurop.Conf.Software
+Engineering,Wien,2001.
+16.JohanLiliusandIv´anPorresPaltor.FormalisingUMLStateMachinesforModel
+Checking.InFranceandRumpe[9],pages430–445.
+
+--- Page 21 ---
+414                                              
+17.DarmalingumMuthiayen.Real-TimeReactiveSystemDevelopment—AFormal
+ApproachBasedonUMLandPVS.PhDthesis,ConcordiaUniversity,Montreal,
+Canada,2000.
+18.ObjectManagementGroup.UniﬁedModelingLanguageSpeciﬁcation,Version1.4.
+Speciﬁcation,OMG,2001.http://cgi.omg.org/cgi-bin/doc?formal/01-09-67.
+19.TimmSch¨afer,AlexanderKnapp,andStephanMerz.ModelCheckingUMLState
+MachinesandCollaborations.InScottStollerandWillemVisser,editors,Proc.
+Wsh.SoftwareModelChecking,volume55(3)ofElect.NotesTheo.Comp.Sci.,
+Paris,2001.13pages.
+20.BranSelic,GarthGullekson,andPaulT.Ward.Real-TimeObject-OrientedMod-
+eling.JohnWiley&Sons,NewYork,1994.

@@ -1,0 +1,777 @@
+--- Page 1 ---
+ 
+ 
+  
+ 
+  
+ 
+ 
+Copyright  © 1997, by the author(s).  
+All rights reserved.  
+ 
+Permission to make digital or hard copies of all or part of this work for personal or 
+classroom use is granted without fee provided that copies are not made or distributed 
+for profit or commercial advantage and that copies bear this  notice and the full citation 
+on the first page. To copy otherwise, to republish, to post on servers or to redistribute to 
+lists, requires prior specific permission.  
+
+--- Page 2 ---
+EVENT-CLOCK AUTOMATA: A
+DETERMINIZABLE CLASS OF
+TIMED AUTOMATA
+by
+RajeevAlur,LimorFix, and Thomas A. Henzinger
+Memorandum No.UCB/ERL M97/28
+15 April 1997
+
+--- Page 3 ---
+EVENT-CLOCK AUTOMATA: A
+DETERMINIZABLE CLASS OF
+TIMED AUTOMATA
+by
+RajeevAlur,LimorFix, and Thomas A. Henzinger
+Memorandum No.UCB/ERL M97/28
+15April1997
+ELECTRONICS RESEARCH LABORATORY
+CollegeofEngineering
+University ofCalifornia, Berkeley
+94720
+
+--- Page 4 ---
+Event-Clock Automata:
+ADeterminizable ClassofTimedAutomata*
+RajeevAlud LimorFix*ThomasA.Henzinger®
+Abstract. Weintroduce event-recording automata. Anevent-recording automaton
+is a timed automaton thatcontains, for every event a, a clock thatrecordsthetime
+of the last occurrence of a. The class of event-recording automata is, on one hand,
+expressive enough to model (finite) timed transition systems and, on theotherhand,
+determinizable and closedunder all boolean operations. As a result, the language-
+inclusion problem is decidable for event-recording automata. Wepresentatranslation
+fromtimed transition systems to event-recording automata, whichleadsto an algorithm
+for checking if two timedtransition systemshavethesamesetoftimedbehaviors.
+We also consider event-predicting automata^ whichcontainclocksthatpredictthe
+timeofthenextoccurrence of anevent.Theclassofevent-clock automata, whichcontain
+bothevent-recording andevent-predicting clocks,is a suitablespecification language for
+real-time properties. We provide an algorithm for checking ifa timed automaton meets
+aspecification thatis given as an event-clock automaton.
+1Introduction
+Finiteautomata areinstrumental forthemodeling andanalysis ofmanyphenomena withincom
+puterscience. Inparticular, automata theoryplaysanimportant role intheverification of con
+currentfinite-state systems [15, 21].In thetracemodel for concurrent computation, a system is
+identified with its behaviors. Assuming thatabehavior isrepresented as asequence ofstatesor
+events,thesetof possible behaviors of asystemis a formal language, andthesystemcan be mod
+eled as an automaton thatgenerates thelanguage (a complex system is modeled as theproductof
+automata thatmodel the component systems). Since the admissible behaviors of the system also
+constitute a formal language, therequirements specification can be given by anotherautomaton
+(the adequacy of automata as a specification formalism is justified by the fact thatcompeting for
+malismssuch as linear temporal logicare no moreexpressive). The verification problem ofchecking
+*Anabbreviated version of this paperappeared in the Proceedings of the Sixth AnnualConference on Computer-
+aided Verification, LectureNotes in Computer Science 818, Springer-Verlag, 1994,pp. 1-13.
+^Department ofElectrical Engineering andComputer Sciences,University ofCalifornia, Berkeley, CA,andBell
+Laboratories, LucentTedmologies, MurrayHill,NJ.Email:alur@research.bell-labs.com.
+^DesignTechnology, IntelCorporation, Haifa,Israel.Email:fix@iil.intel.com.
+^Department ofElectrical Engineering andComputer Sciences,University ofCalifornia, Berkeley, CA.Email:
+tah@eecs.berkeley.edu. Home page: www.eecs.berkeley.edu/'tah. Supported inpartby the Officeof Naval Research
+YoimgInvestigator awardN00014-95-1-0520, by theNational ScienceFoimdation CAREER awardCCR-9501708, by
+theNational ScienceFoundation grantCCR-9504469, by the Air Force OfficeofScientific Research contract F49620-
+93-1-0056,by the Army Research Office MURIgrantDAAH-04-96-1-0341, by the Advanced Research ProjectsAgency
+grantNAG2-892, andbytheSemiconductor Research Corporation contract 95-DC-324.036.
+
+--- Page 5 ---
+thatasystemmeetsits specification, then,reducestotestinglanguage inclusion between two au
+tomata. Thedecision procedure forlanguage inclusion typically involvesthecomplementation of
+thespecification automaton, whichin turn reliesupon determinization [14,20].
+Tocapturethebehavior ofa real-time system,themodel of computation needs to be augmented
+with a notion of time. For this purpose, timed automata [3]provide a simple, and yet powerful,
+way ofannotating state-transition graphswith timing constraints, using finitely many real-valued
+variables called clocks.With each transition, a timedautomaton may check theclock values, and
+reassign new values to some clocks.A timed automaton, then, accepts timed words—strings in
+which each symbol is paired with a real-valued time-stamp. The theory of timed automata allows
+thesolutionofcertain verification problemsforreal-timesystemswithfinitecontrol[1,3,4,6,13],
+and the solutionofcertain delayproblems [2,9].Solutions basedon this theory havebeen imple
+mentedinseveralautomatic tools,includingCospan[7],Kronos[10],andUppAal [8].However,
+thegeneralverification problem(i.e.,languageinclusion) isundecidable fortimedautomata [3].
+This isbecause, unlikein theuntimedcase, the nondeterministic variety of timed automata is
+strictlymoreexpressive than thedeterministic variety.Thenotionofnondeterminism allowedby
+timedautomata, therefore, seemstoopermissive, and wehesitateto accepttimed automata as the
+canonical modelforreal-timecomputation withfinitecontrol[5].
+Inthispaper,weobtainadeterminizable classoftimedautomataby restricting theuseofclocks.
+Theclocksofanevent-clock automaton haveafixed,predefined association withthesymbolsofthe
+inputalphabet(thealphabetsymbolstypicallyrepresentevents).Theevent-recording clockofthe
+inputsymbolaisa history variablewhosevaluealwaysequalsthe time ofthe last occurrence ofa
+relativetothecurrenttime;theevent-predicting clockofaisaprophecyvariablewhosevaluealways
+equalsthetimeofthenextoccurrence ofarelativetothecurrenttime(ifnosuchoccurrence exists,
+then the clockvalueisundefined). Thus,unlikeatimedautomaton, anevent-clock automaton
+doesnotcontrolthereassignments ofitsclocks,and,ateachinputsymbol,allclockvaluesofthe
+automatonare determined solelybythe input word.Thispropertyallowsthedeterminization of
+event-clock automata, which,inturn,leadstoacomplementation procedure. Indeed,theclassEGA
+ofevent-clock automataisclosedunderallbooleanoperations (timedautomataarenotclosedunder
+complement), andthelanguage-inclusion problemisdecidable (PsPACE-complete) forevent-clock
+automata.
+Theclassofevent-clock automata issufficiently expressive tomodelreal-timesystemswith
+finitecontrol,andtospecifycommonreal-timerequirements. Forinstance,thehardreal-time
+requirements that"everyrequestisfollowedbyaresponsewithin3seconds"andthat"every
+twoconsecutive requestsareseparated byatleast5seconds"canbeexpressed usingevent-clock
+automata. Infact,wearguethatautomatathatcontainonlyevent-recording clocks{event-recording
+automata) areasuitableabstractmodelforreal-timesystemsbyprovingthatevent-recording
+automataareas powerfulasanotherpopularmodelforreal-timecomputation, timedtransition
+systems[12].Atimedtransition systemassociates witheachtransition a lowerboundand an
+upperboundonthetimethatthetransition maybeenabledwithoutbeingtaken(manyrelated
+real-timeformalisms alsouseloweranduppertimeboundstoexpresstimingconstraints [18,19]).
+Arunofatimedtransitionsystem,then,isagainatimedword—asequenceoftime-stamped state
+changes.Weconstruct, foragiventimedtransition systemTwithafinitesetofstates,anevent-
+recordingautomaton thatacceptspreciselytherunsofT.ThisresultleadstoaPspacealgorithm
+forcheckingtheequivalence oftwofinitetimedtransition systems.
+Theremaining paperisorganized asfollows.Section2definesevent-clock automata. Section3
+provesthatforeverynondeterministic event-clock automaton, wecanconstruct anequivalent
+deterministic event-clock automaton. Section4studiesclosureproperties anddecisionproblemsof
+
+--- Page 6 ---
+event-clock automata. Section 5 relates the expressiveness of various classes of timed automata.
+Section6showshowevent-clock automata can be usedto obtain decisionprocedures for timed
+transition systems.
+2Event-clock Automata
+Timedwordsandtimedlanguages
+Westudyformallanguages oftimedwords.^Atimedwordw over an alphabet E is a finite
+sequence (cq,to)(aijfi)•••(onj^n)ofsymbols a,-€ Ethatare pairedwith nonnegative realnumbers
+ti6R-°suchthatthesequencet =toti..-tnoftime-stamps isnondecreasing (i.e.,t,-<t^+ifor
+all 0 < i < n). Withoutlossofgenerality it may be assumed thatto= 0. Sometimeswedenote the
+timed word w by the pair (a,t),where aGE*is an untimed word over E. A timed languageover
+thealphabet E is a set of timed words over E. The boolean operations of union, intersection, and
+complementoftimed languagesare definedas usual. Givena timed languageCoverthe alphabet E,
+the projection Untime{C) is the untimed language overE thatisobtained bydiscarding the time-
+stamps: Untime(C) CE"consists of all untimed words afor which thereexists a sequence t of
+time-stamps such that(a,i)€£.
+Automata withclocks
+Timedautomata arefinite-state machines whosetransitions areconstrained withtimingrequire
+ments so thatthey accept (or generate) timed words (and thusdefinetimedlanguages); they were
+proposed in [3]as anabstractmodel for real-time systems with finite control. The finite control
+ofatimedautomaton consists ofafinitesetoflocations andafinitesetofreal-valued variables
+calledclocks.Each edge between locations specifiesa set of clocks to be reset (i.e., restarted). The
+valueofa clockalwaysrecordstheamountoftimethathaselapsedsincethelasttimetheclock
+was reset: if theclock z is reset while reading the i-thsymbol of a timedinputword (a, t), then
+the valueofz whilereading the j-thsymbol,for j > i,is tj —ti(assuming thattheclockz isnot
+resetatany position between i and j).Theedges of the automaton putarithmetic constraints on
+theclock values; theautomaton controlmayproceedalongan edge only when thevalues of the
+clockssatisfythecorresponding constraints.
+Eachclock of a timedautomaton, therefore, is areal-valued variable thatrecordsthetime
+difference between thecurrentinputsymboland aprevious inputsymbol,namely,theinputsymbol
+on which theclock was lastreset.Thisassociation between clocks andinputsymbols isdetermined
+dynamically bythebehavior oftheautomaton. Anevent-clock automaton, bycontrast, employs
+clocksthathave atight,predefined association withcertainsymbols oftheinputword.Suppose
+thatwe model a real-time systemsothatthealphabet symbols represent eventsofthesystem.
+Inmostcases,itwill suffice toknow, for each event,thetimethathaselapsedsincetheprevious
+occurrence oftheevent.Forexample, tomodel a delay of 1 to2seconds between theinputand
+outputeventsof a device, it suffices touse a clock z thatrecordsthetimethathas elapsed since
+thelastinputevent,andrequiretheconstraint 1 <2< 2 when theoutputeventoccurs.This
+observation leadsustothedefinition ofclocksthathave a fixed association withinputsymbols
+andcannotberesetarbitrarily.
+'Forthe clarity ofexposition,welimit ourselves to finitewords.Our results can be extended to the framework of
+timedb;-languages.
+
+--- Page 7 ---
+Event-recording andevent-predicting clocks
+LetEbe a finite alphabet. For every symbolaGE,wewriteXatodenotetheevent-recording
+clockof a. Given a timed word w = (aoj^o)(fli)^i) the value of the clock Xaat the
+j-thposition of wis tj — where i is the largest position preceding j such thata,-equals a. If
+nooccurrence of a precedes thej-thposition ofu;,thenthevalue oftheclockXais"undefined,"
+denotedby±.Wewrite = R-°U{±}forthe set of nonnegative realnumberstogether with
+thespecialvalue X. Formally, we define for all 0 < j<n.
+ifM=tj —tiifthere exists an i such that0 <i<ianda,-= a,
+and for all k with i < A:<j,wehaveak^fl,
+X if Ok^afor all k with0 <A:<j.
+Thatis,theevent-recording clockXabehavesexactlylike anautomaton clockthatisresetevery
+timetheautomaton encounters theinputsymbol a. The value of Xa,therefore, isdetermined by
+theinputword,notbytheautomaton. Auxiliary variables thatrecordthetimesoflastoccurrences
+of events have been used extensively in real-time reasoning, for example, in thecontextof model-
+checkingfortimed Petri nets [23],and in assertionalproofmethods [16,19].
+Event-recording clocks provide timinginformation abouteventsinthepast.Thedual notion of
+event-predicting clocks provides timing information aboutfuture events. For every symbol a€ E,
+we write yatodenotethe event-predicting clock of a.At each position of the timed word uJ,the
+valueof the clockpaindicates the time difference betweenthe current input symbol and the next
+occurrence oftheinputsymbola;thespecialvalue X indicates theabsenceof afutureoccurrence
+of a. Formally, we define for all 0 < i< n,
+ti—tj ifthereexistsan i such thatj < i < n and a,-= a,
+ifiVa)=^ andforallkwithj < k<i,wehaveajt^a,
+X if Gfc^Gfor all k with j < k < n.
+Theevent-predicting clockpacanbeviewedasanautomaton clockthatisreset,everytimethe au
+tomatonencounters the input symbola, toanondeterministic negativestartingvalue,andchecked
+for 0atthesubsequent occurrence of a.
+WewriteCefortheset{xq|g€E}U{pa| gGE}ofevent-recording andevent-predicting
+clocks.ForeachpositionjofatimedwordW,theclock-valuation functionyf,then,isamapping
+fromCetoRj°.Theclockconstraints compareclockvaluestorationalconstantsortothespecial
+valueX.Letdenotethe setof nonnegative rationalnumberstogetherwithX.Formally,a
+clockconstraint over the setC of clocks is a boolean combination ofatomicformulas of theform
+z<candz>c^wherez^Candc G The clockconstraints overC areinterpreted with
+respecttoclock-valnation functions7fromC toRj°:theatomX<Xevaluatestotrue,andall
+othercomparisons thatinvolveX(e.g.,X>3)evaluatetofalse.Fortheclock-valuation function7
+andaclockconstraint wewrite7[=<^todenotethataccordingto7 theconstraint (pevaluates
+to true.Wefreelyuseabbreviations suchas < and = whenwritingclockconstraints.
+Syntaxandsemantics ofevent-clock automata
+Anevent-clock automaton isa(nondeterministic) finite-state machinewhoseedgesareannotated
+bothwithinputsymbolsandwithclockconstraints overevent-recording andevent-predicting
+clocks.^Formally, anevent-clock automaton Aconsistsof
+^Clockconstraints canbeadded,asinvariantconditions, alsotothelocationsofanevent-clock automaton [13],
+withoutinfluencing ourresults.
+
+--- Page 8 ---
+4
+Xb>2
+(Shitr®
+Figure1:Event-recording automaton A]
+•a finiteinputalphabet E,
+• a finite setL oflocations,
+• asetCXofstartlocations,
+• asetCXofaccepting locations, and
+a finite set E of edges. Each edge is a quadruple (^,a,(p)with a source location ^€X, a
+targetlocation 6X, aninputsymbol a €E,and a clock constraint povertheclocksCs-
+An (untimed) finite-state machine can be viewedas anevent-clock automaton all of whoseedges
+havethetrivialclockconstraint <rue,whichevaluates totruefor allclock-valuation functions.
+Consider the behavior of the event-clock automaton A over the timed input word w=(ao>^o)
+(ai,ti).. .(a„,t„). Startingin one of the startlocations and scanning the first inputpair(oo,to)i
+theautomaton scanstheinputword from left toright,consuming, ateachstep,aninputsymbol
+together withitstime-stamp. Inlocation iscanning thei-thinputpair theautomaton may
+proceedto location t'and the {i l)-stinputpair if there is an edge a,(p)suchthata equals
+thecurrentinputsymbola,-, andthecurrentclockvaluation satisfies theclockconstraint p.
+Formally, acomputation oftheevent-clock automaton Aoverthetimedinputwordu;is afinite
+sequence
+tt^0.0.Q^2^ nen^nto—fti—>12—>'••—rt„—yt„+i
+oflocations £,•6X and edges Ci=(A, €E suchthat€Xqand for all 0 < i< n,
+7j"Pi.Thecomputation is accepting iff £„+i€. The timed language C[A)defined by the
+event-clock automaton AconsistsofalltimedwordswsuchthatAhasanaccepting computation
+overw.WewriteECAfortheclass oftimedlanguages thataredefinable byevent-clock automata.
+Theevent-clock automaton A is an event-recording automaton iff all clock constraints ofA
+containonlyevent-recording clocks; A is an event-predicting automaton ifftheclockconstraints of
+Acontainonlyevent-predicting clocks.Theclassoftimedlanguages thatcan be defined by these
+tworestricted typesofevent-clock automata aredenoted ERAandEPA,respectively.
+Examples ofevent-clock automata
+Theevent-clock automaton AiofFigure1 uses two event-recording clocks,Xaandxi,.The location
+£oisthestartlocation of Ai,and also thesoleaccepting location. The automaton accepts timed
+
+--- Page 9 ---
+Figure2:Event-recording automaton A2andevent-predicting automaton >13
+Xfl=±VXfl> 5
+©
+Figure3:Event-recording automaton >14
+inputwordsoftheform(a,i)witha=(abed)'',forsomeA:> 0.Alledgesthat arenotlabeledby
+clockconstraints have, by default, the trivial clockconstraint true. The clockconstraint Xq< 1
+thatis associated with theedge from £2to£3ensuresthateach c occurs within 1 time unit of the
+preceding a. Asimilarmechanism forcheckingthevalueofXbwhilereadingdensuresthat the
+timedifference betweeneach band the subsequent d isalwaysgreater than 2. Thus, the timed
+language£(Ai)definedbyAiconsistsofalltimedwords(a,t)suchthatforall0< j <k,wehave
+^4j+2<t4j+1 andt4j+3>i4j+i+2.Notethat thetimedlanguageC{Ai)canalsobedefined
+usingevent-predicting clocks:requireyc<lwhilereadinga,andyd>2whilereadingb.
+Thedualityofthetwotypesofclocksisfurtherillustrated bytheautomata ofFigure2.
+Theevent-recording automaton A2acceptsalltimedwordsoftheform{ab%I)suchthatthe
+timedifference betweenthetwoextremesymbolsis1,whichisenforcedbytheevent-recording
+clockXq.Laterwewillprovethat thereisno event-predicting automaton thatdefinesthetimed
+language£(^2).Theevent-predicting automaton A3,ontheotherhand,acceptsalltimedwords
+oftheform(aa*6,f)suchthat thetimedifference betweenthetwoextremesymbolsis1;forthis
+purpose, the event-predicting clockybis used to predict the time of the first b. There is no event-
+recording automaton thatdefines£(^3).
+Theautomaton A4ofFigure3expressestherequirement thateveryrequesta isfollowedby
+aresponse6within3seconds,andtworequestsareseparated byatleast5seconds.Examples
+suchastherailroad-gate controller andtiming-based mutual-exclusion algorithms thatappearin
+theliterature onreal-timeverification (see,forinstance, [3,6,13])canallbespecifiedusingevent-
+clockautomata.
+3Deterministic Event-clock Automata
+Afinite-state machine(withasinglestartlocation)isdeterministic ifallinputsymbolsthatlabel
+edges with the same source location are pairwise distinct. For event-clock automata we consider
+thenotionofdeterminism thatwasproposedfortimedautomata [3].Theevent-clock automaton
+
+--- Page 10 ---
+A= (E, Z-,L°,E) isdeterministic iff
+1. Ahasat mostone startlocation(i.e.,|L°|< 1),and
+2. two edges withthesamesourcelocation andthesameinputsymbolhavemutually exclusive
+clockconstraints; thatis,if{£^£',a,<pi) GE and a, ^>2)€£7,then for all clock-valuation
+functions 7,7 A ^2-
+Thedeterminism condition ensures thatateachstepduring a computation, thechoiceof the next
+edge is uniquely determined by the currentlocation of the automaton, theinputword, and the
+currentposition of theautomaton alongtheinputword. It iseasy tocheckthateverydeterministic
+event-clock automaton hasatmost one computation over any given timed inputword.
+Ofourexamples fromtheprevious section,theevent-clock automata Ai,A3,andA4are de
+terministic. While the automaton A2isnondeterministic, it can be determinized withoutchanging
+itstimedlanguage, byaddingtheclockconstraint Xo<1totheself-loop atlocation £i.
+Inthetheoryoffinite-state machines, it is well-known thateverynondeterministic machine can
+bedeterminized; thatis,thedeterministic andnondeterministic varieties offinite-state machines
+define the same class of languages (the regular languages). In the case of timed automata, how
+ever, the nondeterministic variety is strictlymore expressivethan its deterministic counterpart [3].
+Wenowshowthattheevent-clock automata formasubclass oftimedautomata forwhichthe
+deterministic andnondeterministic automata are equally expressive.
+Thedeterminization followsthestandard subsetconstruction. LetA= (E, L,L°,jL-^,E) bethe
+given event-clock automaton. The determinized automaton Det{A)over the same alphabet E has
+thefollowing components.
+•Thelocations of Det{A) are the nonempty subsetsof L.
+• The only startlocation is (if is empty, then Det(A)has nostartlocation).
+• A location L' C L is an accepting location iff n L' is nonempty.
+• Consider a location L' C L of Det(A) and an input symbol a € E. Let E'CE he the set of
+all edges of A whosesource locations are in V and whose inputsymbol is a. Then, for every
+nonempty subsetE"of£?',thereis an edge from L' to L" with theinputsymbol a and the
+clockconstraint ipsuchthat
+- L" contains precisely thetargetlocations ofthe edgesin E'\and
+-(pISthe conjunction of all clock constraints of edges in E"and all negated clock con
+straintsofedgesin {E' \ E"),
+Forexample. Figure 4showsa nondeterministic event-recording automaton A5and the determinized
+automaton Det(A^),
+It is easyto checkthefollowing properties ofthe determinized automaton Z)e<(A):
+1.C(A)=C(Det(A)).
+2. Givena location V of Det(A)^an input symbol a, and a clock-valuationfunction 7, there is
+preciselyoneedge(L\L"^a^p) suchthat7|=Hence,Det(A)is deterministic.
+3.Det(A)isanevent-recording (event-predicting) automatoniffAisan event-recording (event-
+predicting) automaton.
+
+--- Page 11 ---
+Xq>1
+^0©
+Xa<2
+Figure 4: Event-recording automata's andDetlAs)
+Theorem 1(Determinization) Foreveryevent-clock (event-recording; event-predicting) automa
+ton A,thereis adeterministic event-clock (event-recording; event-predicting) automaton that de
+fines the timed languageC(A).
+Noticethatthedeterminization ofanevent-clock automaton causesanexponential blow-upinthe
+number oflocations, but changes neitherthenumberofclocks nor theconstants thatoccur in clock
+constraints.
+Thekeyfor thedeterminization ofevent-clock automata is the property thatateachstep
+during acomputation, allclockvaluesaredetermined solelyby the input word.Wetherefore
+obtaindeterminizable superclasses of event-clock automata if weaddmore clocks thatdo not
+violatethisproperty. Forexample,foreachinputsymbola andeachnaturalnumberi,wecould
+employaclockz*thatrecordsthe timesincethei-thoccurrence of a in the input word,and a
+clockzjjthatrecordsthetimesincethei-th-to-last occurrence ofa(i.e.,Xa=icj).Or,more
+ambitiously, wemightwanttouseforeachlineartemporal logicformula if}overthe inputalphabet
+aformula-recording clockthatmeasuresthe timesincethe lastpositionofthe input wordat
+whichtj)wastrue,and3,formula-predicting clockthatmeasuresthetimeuntilthe next position
+atwhich^will betrue.A formula-clock automaton^ then,is a timed automaton all of whose
+clocksare either formula-recording orformula-predicting (event-clock automata are the subclass
+offormula-clock automata for whichallformulasare atomic). Similarly toevent-clock automata,
+everyformula-clock automaton canbedeterminized.
+
+--- Page 12 ---
+4Properties ofEvent-clock Automata
+Event-clock automata aslabeledtransition systems
+Every timed automaton can be viewed as an infinite-state labeledtransition system. Given an
+event-clock automaton A= (E,L, E),wedefinethe labeledtransition system Sato capture
+the behaviorofAovertimedwords. Thelabeledtransition system Sahasthefollowing components:
+• A state of Saisa pair(^,7)thatconsistsofa location tQ.Land aclock-valuation function 7
+fromCstoRwhichdetermines the valuesofall clocks. The statespace of5^is denoted
+by(3>i.
+• ThesetQ\CQaofinitialstatesconsistsofallstates(€,7)suchthat£€andj{xa)=J-
+for allinputsymbols a6E.
+• The set C Qaoffinalstatesconsistsof all states(£,7) such that£ € and 7(1/0)=J-
+for allinputsymbols a6E.
+• For two statesq,q'€ an input symbol a€E, and a real-valued time delay 5 £R^°,let
+q-^q'iftheautomaton Amayproceedfromthestateqtothestate q'byreadingtheinput
+symbola, and let q-^q'ifAmay proceedfromqto q^byletting time Spass. Formally,
+-(£,7)A(£',7')iffthereisaclock-valuation function7"andanedge(£,£',£Esuch
+that
+* 7 =l"[ya•=0](i.e.,7 agreeswith 7"on allclocksexceptj/o,whichin 7 evaluates
+to 0),
+*t'=l"[^a0],and
+*1"h9-
+—(£,7)-4(£',7')iff£=£'andforallinputsymbols66E,
+* if7(a:t)=J.then7'(a:fe)=±,otherwise 7'(a;6)=7(2^6)+and
+*if7'(2/6)=-Lthen7(2/6)=±,otherwise 7(2/6)='y'(yh)+
+Weinductively extendthelabeledtransition relationtotimedwords:
+•q'iffthereisastateq"£Qasuchthatq^q"andq"^q'\
+•ifw=(ao,io);••(fln)^n)a^ndw'=W(an+i»^n+i))thengAg'iffthereisa state q"suchthat
+g-¥qandg q\
+Thefollowing lemmastatesthe correctness of the labeled-transition-system semantics for event-
+clockautomata.
+Lemma1 Theevent-clock automaton A acceptsthe timed wordWiffq-^q'for some initial state
+q and somefinal state q'of thelabeledtransition systemSa•
+
+--- Page 13 ---
+Theregionconstruction
+Theanalysisoftimedautomata buildsontheso-calledregionconstruction, whichtransforms a
+timedautomaton intoanuntimedfinite-state machine[3].Hereweapplytheregionconstruction
+toevent-clock automata.
+Consideranevent-clock automaton Aandthecorresponding labeledtransition systemSa-An
+equivalence relation^on thestatespaceQais a time-abstract bisimulation of Aiflffor allstates
+91)92€Qa,if9i-92then
+1.ifgiAg}forsomeinputsymbola€E,thenthereexistsastate€QawithAgjand
+qi=q2,and
+2.ifqiAq'iforsometimedelay<5€K-°,then^thereexistsastate€Qaandatimedelay
+(possiblydifferentfromwith9292and—92-
+The relation =has finite index iff thenumber of equivalence classes of =is finite. Time-abstract
+bisimulations withfiniteindexcanbeusedtosolvereachability problemsforA. One suchrelation
+istheregionequivalence =a-
+Letusassumethatallclockconstraints of Acontainonlyintegerconstants (otherwise, all
+constants need to be multiplied by the least common multiple of the denominators of all rational
+numbersthatappearinclockconstraints). Letcbethe largestintegerconstantthatappearsina
+clockconstraint ofA.Twoclock-valuation functions7andy'fromCetoRareregion-equivalent,
+written 7 =a7',iffthefollowing three conditions are satisfied:
+1. 7and7'agreeonwhichclockvaluesareundefined: forall2:€Ce,wehavey{z)=J_iff
+y'{z)=JL.
+2. 7 and y'agree on the integralpartsof all defined clock values thatareatmost c: for all
+2:6Ce,ifyiz) < cor y'{z)< c,then[7(2)]= [y'(z)\ and[7(2:)]=ly'iz)].
+3. 7 and y' agreeon theorderingofthefractional parts ofall definedclockvaluesthatare at
+mostc. Foranevent-recording clocklet<7(2^0))be7(a;a)-[7(3^0)];foranevent-predicting
+clock2/0,let(7(ya))be[7(2/0)!-7(ya).Then:forallz,z'€Ce, ify{z)< candy{z')<c,
+then(7(2:))<<7(^0>iff <ilV))'
+Twostates{£,7), y')GQaareregion-equivalent, written{£,7)=a(t,7'),iff£=£'and7=al'-
+Lemma 2 [3]Foreveryevent-clock automaton Awithintegerconstants, theregion-equivalence
+relation=aIsatime-abstract bisimulation ofA.
+Anequivalence classof=aiscalledaregionofA. The numberofregionsofAisfinite.
+Lemma 3 [3]Foreveryevent-clock automaton Awithintegerconstants, thenumberofregionsof
+A isn- wheren is thenumberoflocationsofA, m is the sizeof the input alphabet,
+and c is the largestconstant that appearsin a clockconstraint ofA.
+Giventhetime-abstract bisimulation withfiniteindex,wedefinetheregionautomaton Reg^(A)
+asa finite-state machineoverthe input alphabet E, withthe following components:
+•Thelocations of Reg^{A) aretheregions of A.
+10
+
+--- Page 14 ---
+• A region is a startlocation iffitcontains aninitialstateofSa>a-ndanaccepting location iff
+itcontains afinalstateofSa'
+• There is an edge from the regionp to the region p' labeled with the inputsymbol a £E iff
+therearetwostatesq€p and q' €p' of5^,and atimedelay(5G such thatqq'.
+PromLemma1 andthedefinition oftime-abstract bisimulations, it follows thattheregionautoma
+tonReg^(A)definesthe language Untime{C(A)).
+Theorem 2(Untiming) [3]For every event-clock automaton A, theuntimedlanguage Untime(JC(A))
+isregular.
+Closure properties
+Whiletheclassoftimedautomata isnotclosedundercomplement, andthelanguage-inclusion
+problem fortimedautomata isundecidable, thesubclass ofevent-clock automata iswell-behaved.
+Theorem 3(Closure properties) Each of the classes EGA, ERA, andEPA of timed languages
+are closed underunion,intersection, andcomplement.
+Proof.Closureunderunion istrivial,becauseevent-clock automata admitmultiplestartlocations.
+Closureunderintersection is alsostraightforward, because thestandard automata-theoretic
+productconstruction A1XA2for twogivenevent-clock (event-recording; event-predicting) automata
+AiandA2yields an event-clock (event-recording; event-predicting) automaton. Eaohlocation of
+AiXA2is apairconsisting of alocationofAiand alocation ofA2,and each a-edgee ofAixA2
+corresponds tobothano-edgeeiofAiand an a-edge of A2(theclockconstraint of e isthe
+conjunction oftheclockconstraints ofciand62).
+Closureundercomplement relies on the determinization construction: given an event-clock
+(event-recording; event-predicting) automaton A,theevent-clock (event-recording; event-predicting)
+automaton ->Det(A) thatresults from complementingthe acceptance condition of Det{A)(inter
+changetheaccepting andthenonaccepting statesof Det{A)) defines thecomplement ofthetimed
+language C(A). 
+Unlike(nondeterministic) timedautomata, however, event-clock automata are not closed under
+renaming or hiding of inputsymbols. Consider the timed language C over a unaryalphabet that
+contains all timed words w=(a,t)inwhichno two symbols occur with time difference 1 (i.e.,
+Ij~7^1forall pairs of positions i and j of u;).The timed language £cannot be definedby a
+timedautomaton [3],and hence, neither by an event-clock automaton. This fact can be used to
+prove nonclosure properties. Forinstance, consider the timed language£'thatcontains all timed
+words of the form {a*ba*ba*,t) suchthatthe time difference between the two ft-symbols is 1. The
+timed language £'isdefinable byanevent-recording or an event-predictingautomaton, and thus,
+is in ERA HEPA. If we renametheinputsymbol 6to a, theresulting timedlanguage contains all
+timedwordsw=(a,t)overthe unary alphabet {a} in whichsometwo symbolsoccurwith time
+difference 1 (i.e., tj — t,-= 1for twopositionsi and j of li;),preciselythe complementofthe timed
+language C. Since theclasses ERA and EPA are closed undercomplement, it follows thatneither
+class is closed under renaming.
+Similarly, consider the timed language C" thatcontains all timed words in Csuchthatboth
+6-symbols arefollowed bya-symbols after exactly time 0.5. The timed language C"is in ERA.
+If we hide the input symbol 6, the resulting timed language is again the complement of £,which
+impliesthatERA is not closed under hiding. An analogous argument applies to EPA.
+11
+
+--- Page 15 ---
+Decision procedures
+Thedeterminization, closureproperties, and regionconstruction can be usedtosolvedecision
+problems forevent-clock automata. To checkifthetimedlanguageofanevent-clock automaton
+Aisempty,weconstructtheregionautomaton Reg^(A)andcheckiftheuntimedlanguageofthe
+finite-state machineReg^(A)isempty.Sincethenumberofregionsisexponential, variousheuristics
+havebeenproposedtosolveemptiness (andotherreachability problems) moreefficiently. For
+instance, it is possible toconstruct thetime-abstract bisimulation of Awiththesmallest numberof
+regionsusingminimization algorithms [22],ortoincorporate theclockconstraints ofAonebyone,
+generating successive approximations to theregionautomaton Reg^(A) [6].Reachability problems
+fortimedautomata canalsobesolvedbysymbolicfixpointcomputation [11,13].
+Tocheckif the timed languageof the event-clock automaton Aiis included in the timed lan
+guageoftheevent-clock automaton ^2,wedeterminize A2,complement Det{A2)^taketheproduct
+withy4i,andcheckif thetimedlanguageoftheresultingevent-clock automaton isempty,by
+constructing thecorresponding regionautomaton.
+Theorem 4 (Language inclusion) TheproblemofcheckingifC{Ai)C£(^2)fortwoevent-
+clockautomata AiandA2isRs?ACE-complete}
+Proof.Consider two event-clock automata A\andA2suchthateachautomaton hasatmostn
+locations, andlet m be the sizeof theinputalphabet. Thefirststepinvolvesmultiplying all
+constants in the clockconstraints ofA\ and A2bythe least commonmultipleofthe denominators
+sothat the clockconstraints containonlyintegerconstants, thusobtaining A'^andA2.Letcbe
+thelargestintegerconstantthatappearsintheclockconstraints afterthisnormalization step.The
+lengthofc(i.e.,thenumberofbitsrequiredtorepresent c)isatmostquadratic inthelength
+oftheencodingoftheoriginalclockconstraints. Let-iDet(A2) thecomplement ofDet{A2).
+Theautomaton -^Det{A'^ has 2"locations, and theintegerconstantsthat appear in the clock
+constraints of-^Det(A2) areboundedbyc.LetAbetheproductofA'land(Aj).Theevent-
+clockautomaton Ahasn-2"locations, andtheintegerconstantsthat appearinthe clockconstraints
+ofAarealsoboundedbyc.ByLemma3,theregionautomaton Reg^(A)hasn•2"•
+regions;that is,the numberofregionsissinglyexponential in thelengthofthedescription ofthe
+input automata AiandA2.Checkingemptiness corresponds tosearching foraccepting pathsin
+thisexponential-sized finite-state machine. SincetherulesthatdefinetheedgesofReg^(A)canbe
+verifiedin polynomial time, it followsthatemptiness can be checkedinPsPACE.
+Ontheotherhand,theproblemofcheckingemptiness forevent-recording (orevent-predicting)
+automata isPsPACE-hard. The proofis the same as the corresponding hardness prooffor timed
+automata [3].
+Thealgorithm forlanguageinclusioncan beusedtoverifywhethera system described as a timed
+automaton satisfies a specification given as an event-clock automaton.
+5Relating Cl£issesofTimedAutomata
+Timedautomata
+Webrieflyreviewthedefinition of atimedautomaton [3].Atimedautomaton A consistsof a
+finiteinput alphabet E,afiniteset L oflocations, a set C Lofstartlocations, a setCL
+^Infact,Aimaybe any timed automaton.
+12
+
+--- Page 16 ---
+tox:=0 vyX— \
+Figure5:Timedautomaton Aq
+of accepting locations, a finite set C of clocks, and a finite set E of edges. Each edge e £E is
+a quintuple {t^t\ay(p^p) with a source location £ £L,a.targetlocationi'€L,aninputsymbol
+a€S,a clockconstraint (poverC,and a reset condition p CCthatspecifies theclocksthatare
+resetto0 whentheedge e is traversed. Aclock-valuation function 7 forthetimedautomaton A
+is a function from theclocks C to theextended reals For a timedelay S€wewrite
+7^for theclock-valuation functionthatassignsto eachclockx^C thevalue7(x)+S.For a
+setpC C ofclocks,wewrite 7'=yip:=0]for the clock-valuation function thatagrees with 7 on
+allclocksexceptthosein p,whichevaluateto 0 (i.e., 7'(a:)=7(0;)ifx^p, and7'(x)= 0ifx€ p).
+A computation of the timed automaton A over the timed inputword w = (ao,io)•• isa
+finitesequence
+(4>7o) (^1j7i) (^n)7n) (^n+l>7n+l)
+oflocations £{€i,clock-valuation functions 7,-,andedgese,-=(A,A+i?V'ijpt)€E suchthat
+1.£0€jL°andforall clocksxGC,wehave70(x)=-i-,and
+2. for all0 < i< n, wehave 7,--b(tj-t,_i)|=<ptand7,+i=(7,--}-1,--ti_i)[p,-:=0].
+The computation is accepting iffG.The timed language C(A)definedby the timed
+automaton A consists of all timed words wsuchthatA has an accepting computation over w.
+Figure 5 shows the timed automaton Ae,which uses a single clock x to accept timed words over
+the unary alphabet {a}. The timed language C(Aq)consistsofall timed wordsofthe form
+for/?> 2, such thattj —ti = l for some Q< i < j < k.
+We write NTA for the class of timed languages thatare definable by timed automata. The
+classNTAisclosedunder unionand intersection,but not under complement [3].In particular, the
+complementof the language ^(Ae),whichcontains all timed wordsin whichno twosymbolsoccur
+withtime difference 1,cannot beacceptedwith finitelymanyclocks.Checking emptinessfortimed
+automata is PsPACE-complete, whilelanguageinclusionfortimed automata cannot be decided[3].
+The definition ofdeterminism for timed automata isthe same as forevent-clock automata; that
+is,a timedautomaton isdeterministiciffit hasat mostone startlocation,and two edgeswiththe
+samesource location and thesameinputsymbol have mutually exclusive clock constraints. We
+write DTA for the class of timed languages thatare definable by deterministic timedautomata.
+SinceDTAisclosedunderallbooleanoperations, DTAisstrictly contained inNTA[3].
+Fromevent-clock automata totimedautomata
+Everyevent-clock automaton canbetranslated intoatimedautomaton thatdefinesthesametimed
+language. Translating event-recording clocksiseasy:anevent-recording clockXais reseton an
+13
+
+--- Page 17 ---
+edge€iffthe input symbolofeisa. Thistrivialtranslation preserves determinism. The translation
+ofevent-predicting clocksintroduces nondeterminism.
+Consideranevent-predicting automaton A= ,E),Anatomicclockconstraint is
+a formula of the form t/o=-1.orj/oc,where standsfor < or < or > or >.We assume that
+theclockconstraint ofecichedgeofAisaconjunction ofatomicclockconstraints; thiscanalways
+beachievedbywritingclockconstraints indisjunctive normalformandcreatingseparateedges
+foralldisjuncts. Letbethesetof atomicclockconstraints thatappearintheedgesofA.We
+construct a nondeterministic timed automaton B overthe input alphabet E as follows:
+• The locations ofB are the pairs {£,$)with€€LandI'C
+•Thelocation(£,W)is astartlocation of Biff£€and does not containaconstraint of
+theformj/ac»
+• Thelocation(£,^)isanaccepting locationofBiff^and^equals{j/a=Mo€ E}.
+• Foreveryconstraint tptheautomaton B hasaclock2^.
+• Theautomaton B hasan edgefromthesourcelocation(£,to the target location(£',
+withthe input symbola, theclockconstraint yj,and theresetcondition p iffthefollowing
+sevenconditions are met. Intuitively, a prediction yb^c along an edge in A on the time
+difference to the next occurrenceof6isreplaced in B bya constraint on the clock the
+clock isresetwhentheprediction ismade,and itsvalueischeckedbythe constraint
+cwhenthenext6occurs.
+1. The automaton Ahasan edgeofthe form {£,a,x)-
+2.Theconstraint pa=±doesnotappearin
+3.Theconstraint ipistheconjunction ofallatomicclockconstraints oftheform(-2(ya'<-c)~
+c) with (2/0c)G'i'.
+4. Foreachinput symbolbdifferentfrom a, ifa constraint involving ybappears in then
+itappears inalso.
+5. Eachconjunct ofxappearsin also.
+6.Foreachinputsymbol6andforequalto>or>,the clock2(yb<..c)appearsinthereset
+condition p iffthe constraint t/j,c is a conjunct of x-
+7.Foreachinputsymbol6andfor~equalto<or<, theclock2(yj,^c)appearsinthereset
+condition piffthe constraint t/j,~cis a conjunct of Xjand either 6=aor theconstraint
+yb cdoesnotappearin
+Thenthe timedautomatonB definesthe timed languageC(A).
+Thefollowing theoremrelatesthevariousclassesoftimedautomata. The relationships arealso
+shown in Figure5.
+Theorem 5(Relationships between classes of timedautomata)
+(1) ERA EPA (2) EPAg ERA (3) ERAUEPA C EGA
+(4)EGACNTA(5) ERAC DTA (6) EPAg DTA
+(7) DTA g EGA
+14
+
+--- Page 18 ---
+DTA EGA
+NTA
+Figure6:Relationships between classesoftimedautomata
+Proof.For (1), the timed language ofthe event-recording automaton A2ofFigure 2is not definable
+by anevent-predicting automaton. Theproofis bycontradiction. Supposethatanevent-predicting
+automaton B defines the timedlanguage C(A2).Without loss of generality, assume thattheclock
+constraints of B use only integer constants. Consider the two timed words wi= (a,0)(6,0.5)(6,1)
+andW2=(a,0)(6,0.5)(6,0.9).Theevent-predicting autonmton B usesconstraints over the two
+clocksj/a^dt/fc.Althoughtheclock-valuation functiony^^ivb)differsfromtheclock-valuation
+functiony^(yb)iclockconstraintswith integerconstantscannotdetect this d^erence: forevery
+clockconstraint ipofBandeveryposition0 <i<2,wehave|=y?iffy^^|=ip.Thus,the
+automaton BacceptsWiiff itaccepts W2'But,theautomaton A2acceptswiandrejectsW2.
+For (2), the timed languageofthe event-predicting automaton A3ofFigure 2 cannotbe defined
+by an event-recording automaton. The proof issimilar to case (1).
+For (3), consider the union of the two automata A2andA3.The resulting automaton is an
+event-clock automaton. A proofsimilar to case (1) shows thatthe timed language C(A2)U^(As)
+isneither inERAnorinEPA.Thisshowsthattheinclusion ERAUEPACEGAisstrict.
+Thetranslation from event-clock automata to timed automata provestheinclusions (4)and (5).
+Inclusion (4)isstrict, becauseEGAis closedundercomplement whileNTAis not. Inclusion (5)is
+strictbecause of (7).
+For (6), the timedlanguageC ={{a^b,to.. .tk)|30<J< k.tk - tj = 1}is inEPA(the
+event-predicting automaton simply requires thattheclockconstraint yj,= 1 is satisfied at one of
+the symbols in the initial stringofa's)but not in DTA. The proof is by contradiction. Suppose
+thatadeterministic timedautomaton B defines thetimedlanguage C. Assume thatB uses only
+integerconstants, and m clocks.Gonsider the timed wordw=(a'"+^,fo• •-^m+i)with 0 = to<
+ti<•••<tm<^m+i=1-Since B is deterministic, thereisatmost one computation of Bthat
+readsthewordw.Since B hasatmostmclocks,thereisatleastoneposition I<j<rnsuch
+thatnoclockofB hasthe value1- tjwhenthatcomputation readsthe input (a,1). Hence,the
+automaton B "forgets"the time-stamp tj.Gonsider twoextensionsofthe timed wordw: let wibe
+wfollowedby(6,tj-|-1),and letW2bewfollowedby(6,t'+1),wheret'^tj ischosensuchthat
+tj-i<t'<tjjfi.Theclocksof B satisfy the same clockconstraints when reading the additional,
+(m-h2)-ndinputsymbol in bothcases. Thus, theautomaton BacceptswiiffitacceptsW2.But,
+butWiis inthetimedlanguage £,andW2isnot.
+For (7), the timed language {(000,^0^1^2) I^2-=1}isin DTA (the deterministic timed
+automaton withone clock x simplyresetsx whenreadingthefirst o, and checks theclockconstraint
+a;=1 whenreadingthethirdo)butnot in EGA. Theproof is similar to case (1): an event-clock
+automaton either accepts both (o,0)(o,0.5)(o, 1)and(o,0)(o,0.5)(o,0.9), or it rejects both timed
+15
+
+--- Page 19 ---
+words. 
+In[5],we defined anothersubclass of NTA thatis closed under all boolean operations, namely,
+the class 2DTA of timed languages thatare definable by deterministic two-way timed automata
+thatcan read the timed input worda bounded number oftimes (bymovingforward and backward
+overtheinput).While EGA is easily seen to be contained in 2DTA, and while thereare obvious
+similarities between event-predicting clocks and the two-way reading of timed inputwords, the
+exactrelationship between event-clock automata anddeterministic two-way automata remainsto
+bestudied. However, because theyadmitnondeterminism, event-clock automata are more suited
+forspecification thandeterministic two-way timedautomata.
+6TimedTransition Systems asEvent-clock Automata
+Timedtransition systems
+A transition system T consists of a set Q of states,a setQ°C Q of initial states,and a finite
+set T oftransitions. Eachtransition t^Tisa.functionfromQ to2^:foreachstateg€Q,
+the setT{g)givesthepossibler-successors ofq.The transition systemT isfinite iffthe set Q of
+states isfinite.A run qofthe transition system Tis a finite sequence qo-^qi-¥ -"-^qnofstates
+suchthatqo€andforall0 <i< n, there existsatransition r,-€ Twith €r,(9,).The
+transition r is enabledat the i-thstep ofthe run giffr(g,)is nonempty,and r is taken at the i-th
+step iffqier(g,_i)(notethatmultipletransitions maybetakenat thesamestep). Avarietyof
+programming systems,suchasmessage-passing systemsandshared-memory systems,can begiven
+atransition-system semantics [17].
+Themodeloftransition systemsisextendedtotimedtransition systemssothat it is possible
+to expressreal-time constraints on the transitions [12].A timed transition system T consistsof a
+transition system (Q,Q®,T) and two functions / and ufromT to thatassociate witheach
+transition t a.lowerbound/(r)and an upper bound w(r).Informally, the transition r must
+beenabledcontinuously for at least /(r)time units beforeit can be taken, and r must not be
+enabledcontinuously formorethan u(t) timeunits withoutbeingtaken.Formally, weassociatea
+real-valued time-stamp witheachstatechangealonga run:toistheinitialtime,andthe transition
+systemproceeds fromthe state qito thestate at timet,+i.Atimedrun r of the timed
+transition systemTis a finite sequence
+—>%—>Qi—^•••—>qn
+ofstatesqieQandnondecreasing time-stamps t,-6suchthatgisarunoftheunderlying
+transition system and the following two conditions are met:
+1.UpperBound:ifr isenabledat allsteps A:fori<A:<j,and nottakenat allsteps k for
+i < k <j,thentj-ti<u{t).
+2.LowerBound:ifr istakenatthej-thstep,thenthereissomestepi <j suchthattj-ti>1{t)
+andr isenabledat allsteps A:fori<A:<jand not takenat allsteps A:fori<A:<j.
+The semantics ofthe timed transition system T is the set oftimed runs ofT. Two timed transition
+systems areequivalent ifftheyhavethesametimedruns.
+16
+
+--- Page 20 ---
+JVomtimedtransition systemstoevent-recording automata
+Weshowthat the set of timedruns of a finitetimedtransition systemcan bedefinedbyan
+event-recording automaton. For this purpose, we need to switch from thestate-based semantics
+oftransition systemsto anevent-based semantics. Withthe giventimedrunr withstates qiand
+time-stamps tj,weassociate thetimedword
+Wr=((X,9o>,io) ((90,gi>,^l) {{quq2),t2) ...((9n-l,gn>,tn),
+whereXisaspecialsymbolnot in Q (as usual, Qj.=QU{X}).Noticethatthe timed run r and
+thecorresponding timedwordWrcontainthesame information: eachevent(i.e.,statechange)of
+r is modeled by a pair of states—a sourcestateand atargetstate.Every finite timed transition
+systemT = (Q,T, /,u),then,definesa timedlanguage C(T)overthe alphabet Qj_xQ,namely,
+the set oftimed words Wrthatcorrespond totimedruns r ofT. Furthermore, two timed transition
+systemsareequivalent ifftheydefinethesametimedlanguage.
+Theorem 6(Timedtransition systems) For everyfinite timed transition system T, there is
+an event-recording timed automaton Atthat defines the timed language C(T).
+Proof.Consider thegiven finite timedtransition system T. Each location of thecorresponding
+event-clock automaton Atrecordsastateg€Qand,for each transition r€T,apairofstates
+(a(r),)S(r)) €Q± x Q such thatif r is enabled in q,then r has been enabled continuously without
+being taken since the last statechange from a(r)to/?(r).Inaddition, we use a special location £o
+asthesolestartlocation ofAy.Everylocation is anaccepting location.
+For each initial stateqo€thereis an edge from the source location £otothetarget
+location (qo,{oi,fi)) with the input symbol (X,go)andthe trivial clock constraint true,where
+(a(r),/?(r)) = (X,^o)foralltransitions r6T.Inaddition, thereisan edgefrom the sourcelocation
+{q,(oi,p))to thetargetlocation{q', with the input symbol (9,q') and the conjunction (pof
+atomic clock constraints iffthereis atransition t£Tsuchthat{q,q')6r,and for all transitions
+rer,
+1. ifr isenabledin gandq'^r(g),then (a'(r),/9'(r)) =(a(r),/?(r)),else (a'(r),/?'(r)) =(q,q'),
+2. ifr isenabledinq,thenipcontainstheconjunct aJ^a(T),/?(T)) ^and
+3. ifq'€r(g),then<pcontainstheconjunct a;^a(T),/9(T)) >1{t)'
+Noticethattheevent-recording automaton Atisdeterministic, and its size is exponential in the
+size ofthetimedtransition systemT.To check if two timedtransition systems TiandT2are
+equivalent, we construct the corresponding event-recording automata At^andAt^and check if
+theydefinethesametimedlanguage.
+Theorem 7(Equivalence oftimedtransition systems) Theproblemofcheckingiftwofinite
+timedtransition systemsareequivalent isPsPACE-complete.
+Proof.Consider two finite timed transition systems TiandT2.Suppose thateachtransition
+systemhasatmostnstatesandmtransitions, andtheboundsassociated withthetransitions are
+at most c. Consider the event-clock automata At^and Each automaton has
+locations. Thesizeofthe input alphabet is (n-f1)-n,and theclockconstraints of At^anduse
+17
+
+--- Page 21 ---
+constants bounded byc. Sincethe two automata are deterministic, to checkifthey accept the same
+timedlanguage, weneedto taketheir product,constructthe regionautomaton R€g^{ATi xAjj)}
+andsearchfor a path thatisaccepting in onecomponent, but not in the other. The resulting
+regionautomaton has2^(log cn)manyregions.Thisimpliesthatthedesiredcheckcan
+be performedinspace polynomialin n and mand logc. The lowerbound followsfrom the fact that
+it isPsPACE-hard tocheckiftwonondeterministic finite-state machinesacceptthe samelanguage.
+References
+[1]R.Alur,C.Courcoubetis, andD.Dill.Modelcheckingindenserealtime.Information and
+Computation^ 104:2-34,1993.
+[2]R.Alur,C.Courcoubetis, andT.Henzinger. Computing accumulated delaysinreal-time
+systems.InProceedings oftheFifth AnnualConference onComputer-Aided Verification^ LNCS
+697, pages 181-193. Springer-Verlag, 1993.
+[3]R.AlurandD.Dill.Atheoryoftimedautomata. Theoretical Computer Science,126:183-235,
+1994.
+[4]R.Alur,T.Feder,andT.Henzinger. Thebenefitsofrelaxingpunctuality. Journalofthe
+ACM,43:116-146, 1996.
+[5]R.AlurandT.Henzinger. Backtothefuture:towardsatheoryoftimedregularlanguages.
+InProceedings oftheSSrdAnnualSymposium onFoundations ofComputer Science,pages
+177-186. IEEEComputer SocietyPress,1992.
+[6]R.Alur,A.Itai,R.Kurshan,andM.Yannakakis. Timingverification bysuccessive approxi
+mation.Information and Computation, 118(1):142-157,1995.
+[7]R.AlurandR.Kurshan.TiminganalysisinCospan.InHybridSystemsIII:Verification and
+Control,LNCS1066,pages220-231.Springer-Verlag, 1996.
+[8]J.Bengtsson, K.Larsen,F.Larsson,P.Pettersson, andW.Yi.UppAal: a toolsuitefor
+automatic verification ofreal-timesystems.InHybridSystemsIII:Verification andControl,
+LNCS1066,pages232-243. Springer-Verlag, 1996.
+[9]C.Courcoubetis andM.Yannakakis. Minimum andmaximum delayproblemsinreal-time
+systems.InProceedings oftheThirdAnnualConference onComputer-Aided Verification,
+LNCS575,pages399-409.Springer-Verlag, 1991.
+[10]C.Daws,A.Olivero,S.Tripakis,andS.Yovine.ThetoolKronos. InHybridSystemsIII:
+Verification andControl,LNCS1066,pages208-219.Springer-Verlag, 1996.
+[11]D.Dill.Timingassumptions andverification offinite-state concurrent systems.InProceedings
+oftheFirstAnnualConference onComputer-Aided Verification, LNCS407,pages197-212.
+Springer-Verlag, 1989.
+[12]T.Henzinger, Z.Manna,andA.Pnueli.Temporalproofmethodologies fortimedtransition
+systems. Information and Computation, 112:273-337, 1994.
+18
+
+--- Page 22 ---
+[13]T.Henzinger, X.Nicollin,J.Sifakis,andS.Yovine.Symbolic modelcheckingforreal-time
+systems. Information andComputation^ 111:193-244,1994.
+[14]J.HopcroftandJ.Ullman.Introduction toAutomata Theory,Languages, andComputation.
+Addison-Wesley, 1979.
+[15]R.Kurshan. Computer-Aided Verification: TheAutomata-Theoretic Approach. Princeton
+University Press,1994.
+[16]N.LynchandH.Attiya.Usingmappings toprovetimingproperties. Distributed Computing,
+6:121-139, 1992.
+[17]Z.MannaandA.Pnueli.TheTemporal LogicofReactiveandConcurrent Systems.Springer-
+Verlag, 1991.
+[18]M. Merritt, F. Modugno, and M. Tuttle. Time-constrained automata. In Proceedings of
+theSecondAnnualConference on Concurrency Theory,LNCS527,pages408-423. Springer-
+Verlag, 1991.
+[19]F.Schneider, B.Bloom,and K.Marzullo. Puttingtime into proof outlines. In Real Time:
+Theory in Practice, LNCS600, pages 618-639. Springer-Verlag, 1991.
+[20]A. Sistla, M. Vardi, and P. Wolper. The complementation problem for Buchi automata with
+applications totemporal logic. Theoretical Computer Science,49:217-237,1987.
+[21]P.Wolper,M.Vardi,andA.Sistla. Reasoning about infinitecomputationpaths. In Proceedings
+of the24thAnnualSymposium on Foundations ofComputer Science, pages 185-194. IEEE
+Computer SocietyPress,1983.
+[22]M.Yannakakis andD.Lee.Anefficientalgorithmfor minimizing real-timetransition systems.
+In Proceedings of the Fifth AnnualConference on Computer-Aided Verification, LNCS 697,
+pages210-224. Springer-Verlag, 1993.
+[23]T.Yoneda,A.Shibayam, B.Shlingloff, and E. Clarke. Efficientverification of parallel real
+timesystems. In Proceedings oftheFifthAnnualConference onComputer-Aided Verification,
+LNCS 697, pages 321-332. Springer-Verlag, 1993.
+19

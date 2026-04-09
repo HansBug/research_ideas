@@ -1,0 +1,2170 @@
+--- Page 1 ---
+ATVAEASY TO USE
+CONSISTENT
+DOCUMENTED
+COMPLETE
+REPLICABLEArtifact
+**
+*
+APPROVEDModel Checking Data Flows in Concurrent
+Network Updates (Full Version)?
+Bernd Finkbeiner1, Manuel Gieseking2,
+Jesko Hecking-Harbusch1, and Ernst-R udiger Olderog2
+1Saarland University, Saarbr ucken, Germany
+2University of Oldenburg, Oldenburg, Germany
+Abstract. We present a model checking approach for the verication of
+data ow correctness in networks during concurrent updates of the net-
+work conguration. This verication problem is of great importance for
+software-dened networking (SDN), where errors can lead to packet loss,
+black holes, and security violations. Our approach is based on a specica-
+tion of temporal properties of individual data ows, such as the require-
+ment that the ow is free of cycles. We check whether these properties
+are simultaneously satised for all active data ows while the network
+conguration is updated. To represent the behavior of the concurrent
+network controllers and the resulting evolutions of the congurations,
+we introduce an extension of Petri nets with a transit relation, which
+characterizes the data ow caused by each transition of the Petri net.
+For safe Petri nets with transits, we reduce the verication of temporal
+ow properties to a circuit model checking problem that can be solved
+with eective verication techniques like IC3, interpolation, and bounded
+model checking. We report on encouraging experiments with a prototype
+implementation based on the hardware model checker ABC.
+1 Introduction
+Software-dened networking (SDN) [33,7] is a networking technology that sep-
+arates the packet forwarding process, called the data plane , from the routing
+process, called the control plane . Updates to the routing conguration can be
+initiated by a central controller and are then implemented in a distributed man-
+ner in the network. The separation of data plane and control plane makes the
+management of a software-dened network dramatically more ecient than a
+traditional network. The model checking of network congurations and concur-
+rent updates between them is a serious challenge. The distributed update process
+can cause issues like forwarding loops, black holes, and incoherent routing which,
+from the perspective of the end-user, result in performance degradation, broken
+connections, and security violations. Correctness of concurrent network updates
+?This work was supported by the German Research Foundation (DFG) Grant Petri
+Games (392735815) and the Collaborative Research Center Foundations of Perspicu-
+ous Software Systems (TRR 248, 389792660), and by the European Research Council
+(ERC) Grant OSARES (683300).arXiv:1907.11061v2  [cs.LO]  14 Nov 2019
+
+--- Page 2 ---
+2 B. Finkbeiner et al.
+has previously been addressed with restrictions like consistent updates [39]: ev-
+ery packet is guaranteed during its entire journey to either encounter the initial
+routing conguration or the nal routing conguration, but never a mixture in
+the sense that some switches still apply the old routing conguration and others
+already apply the new routing conguration. Under these restrictions, updates to
+network congurations can be synthesized [13,32]. Ensuring consistent updates
+is slow and expensive: switches must store multiple routing tables and messages
+must be tagged with version numbers.
+In this paper, we propose the verication of network congurations and con-
+current updates between them. We specify desired properties of the data ows
+in the network, such as the absence of loops, and then automatically check, for
+a given initial routing conguration and a concurrent update, whether the spec-
+ied properties are simultaneously satised for all active data ows while the
+routing conguration is updated. This allows us to check a specic concurrent
+update and to thus only impose a sequential order where this is strictly needed
+to avoid an erroneous conguration during the update process.
+Our approach is based on temporal logic and model checking. The control
+plane of the network can naturally be specied as a Petri net. Petri nets are
+convenient to dierentiate between sequential and parallel update steps. The
+data plane, however, is more dicult to specify. The standard ow relation of a
+Petri net does not describe which ingoing token of a transition transits to which
+outgoing token. In theory, such a connection could be made with colored Petri
+nets [22], by using a uniquely colored token for each data ow in the network.
+Since there is no bound on the number of packets, this would require innitely
+many tokens and colors to track the innitely many data ows. To avoid this
+problem, we develop an extension of Petri nets called Petri nets with transits ,
+which augment standard Petri nets with a transit relation . This relation species
+the precise data ow between ingoing and outgoing tokens of a transition. In Petri
+nets with transits, a single token can carry an unbounded number of data ows.
+We introduce a linear-time temporal logic called Flow-LTL to specify the
+correct data ows in Petri nets with transits. The logic expresses requirements
+on several separate timelines: global conditions, such as fairness, are expressed
+in terms of the global timeline of the system run. Requirements on individual
+data ows, such as that the data ow does not enter a loop, on the other hand,
+are expressed in terms of the timeline of that specic data ow. The next op-
+erator, for example, refers to the next step taken by the particular data ow,
+independently of the behavior of other, simultaneously active, data ows.
+Concurrent updates of software-dened networks can be modeled as safe Petri
+nets with transits. We show that the model checking problem of the innite state
+space of Petri nets with transits against a Flow-LTL formula can be reduced to
+the LTL model checking problem for Petri nets with a nite number of tokens;
+and that this model checking problem can in turn be reduced to checking a
+hardware circuit against an LTL formula. This ultimately results in a standard
+verication problem, for which highly ecient tools such as ABC [2] exist.
+
+--- Page 3 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 3
+uv
+x
+dy
+(a) Example of a
+network topology
+with ve switches
+and six connections.v u x y d
+(b) Solid arrows show the for-
+warding rules before the update,
+dashed arrows the intended for-
+warding rules after the update.ingress =fvgingress =fvg
+v.fwd(u) v.fwd(x)
+u.fwd(x) u.fwd(x)
+x.fwd(d) x.fwd(y)
+y.fwd(x) y.fwd(d)
+egress =fdgegress =fdg
+(c) Network programs for the
+routing congurations before
+and after the update.
+Fig. 1: Example (due to [19]) of an update to a software-dened network.
+2 Motivating Example
+We motivate our approach with a typical network update problem taken from
+the literature [19]. Consider the simple network topology shown in Fig. 1a. From
+the global point of view, our goal is to update the network from the routing con-
+guration shown with solid lines in Fig. 1b to the routing conguration shown
+with dashed lines. Such routing congurations are typically given as static Net-
+Core [20,35] programs like the ones shown in Fig. 1c. The ingress andegress
+sections dene where packets enter and leave the network, respectively. Expres-
+sions of the form v.fwd(u) dene that switch vforwards packets to switch u.
+It is not straightforward to see how the update from Fig. 1b can be imple-
+mented in a distributed manner. If switch xis updated to forward to switch y
+before yis updated to forward to switch d, then any data ow that reaches x
+is sent into a loop between xandy. A correct update process must thus ensure
+sequentiality between switch updates upd(y.fwd(d)) and upd(x.fwd(y)) , in
+this order. The only other switch with changing routing is switch v. This update
+can occur in any order. A correct concurrent update would thus work as follows:
+(upd(y.fwd(d)) >> upd(x.fwd(y))) || upd(v.fwd(x)) ;
+where >>and||denote sequential and parallel composition, respectively.
+Figure 2 shows a Petri net model for the network topology and the concurrent
+update from the initial to the nal routing conguration from Fig. 1. The right-
+hand side models the control plane, where, beginning in update start , the update
+ofvand, concurrently, the sequential update to yand then to xis initiated.
+Each marking of the net represents a control state of the network. Changes to
+the control state are thus modeled by the standard ow relation. Leaving out
+the control plane allows us to verify congurations of network topologies.
+On the left-hand side, we model the data plane by extending the Petri net
+with a transit relation. This new type of Petri nets will be dened formally in the
+next section. We only depict the update to the data ow in and from switch v.
+Placesswu,swv, andswxrepresent the switches u,v, and x, respectively. The
+data plane is modeled by the transit relation which indicates the extension of
+the data ows during each transition at the switches.
+
+--- Page 4 ---
+4 B. Finkbeiner et al.
+swvfwdv!u
+swuv.fwd(u)
+fwdv!xswx
+v.fwd(x)ingressvupdate start
+updatev
+concurrent
+updateupdatey
+updatex::: :::
+::: :::
+Fig. 2: Example Petri net with transits encoding the data plane on the left and
+the control plane on the right. The standard ow relation, describing the ow of
+tokens, is depicted by solid black arrows, the transit relation by colored arrows.
+Colors that occur on both ingoing and outgoing arrows of a transition dene
+that the transition extends the data ow. If an outgoing arrow has a color that
+does not appear on an ingoing arrow, a new data ow is initiated.
+The standard ow relation is depicted by solid black arrows and the transit
+relation by colored arrows. If an outgoing arrow has a color that does notappear
+on an ingoing arrow, then a new data ow is initiated. In our example, data ows
+are initiated by transition ingressvand the (dotted) blue arrow. Colors that occur
+on both in- and outgoing arrows extend the data ow. In transition fwdv!u, the
+(dotted) blue arrows indicate the extension of the data ow from swvtoswu.
+The (dashed) green arrows between fwdv!uandswuindicate that, in addition to
+the incoming data ow from swv, there may be data ows that have previously
+reachedswuand have not yet departed from swu. These ows stay in swu.
+Notice that ingressv,fwdv!u, and fwdv!xdo not actually move tokens be-
+cause of the double-headed arrows. None of these transitions change the control
+state, they only model the data ow. As the switches u,v, and xremain contin-
+uously active, their tokens in swu,swv, andswxare never moved. By contrast,
+updatevmoves the token from v.fwd(u) tov.fwd(x) , thus disabling the data
+ow fromswvtoswuand enabling the data ow from swvtoswx. We specify the
+correctness of our update process with formulas of the temporal logic Flow-LTL .
+The formula Adexpresses connectivity requiring that all data ows ( A) even-
+tually ( ) arrive at the egress switch d. Flow-LTL and the specication of data
+ow properties are discussed in more detail in Sec. 4 and Sec. 5. The general
+construction of the motivating example is formalized in App. A.
+3 Petri Nets with Transits
+We give the formal denition of Petri nets with transits . We assume some basic
+knowledge about standard Petri nets [37]. A safe Petri net with transits (PNwT)
+is a structure N= (P;T;F;In;), where the set of placesP, the set of tran-
+sitionsT, the ( control )ow relation F(PT)[(TP), and the initial
+
+--- Page 5 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 5
+marking InPare as in safePetri nets. In safe Petri nets, each reachable mark-
+ing contains at most one token per place. We add the transit relation of tokens
+for transitions to obtain Petri nets with transits. For each transition t2T, we
+postulate that (t) is a relation of type (t)(preN(t)[fBg)postN(t),
+written in inx notation, where the symbol Bdenotes a start.p (t)qdenes
+that the token in place ptransits via transition tto placeqandB(t)qdenes
+that the token in place qmarks the start of a new data ow via transition t.
+The graphic representation of (t) in Petri nets with transits uses a color coding
+as can be seen in Fig. 2. Black arrows represent the usual control ow . Other
+matching colors per transition are used to represent the transits of tokens. Tran-
+sits allow us to specify which data ows are moved forward, split, and merged,
+which data ows are removed, and which data ows are newly created.
+Data ows can be of innite length and can be created at any point in time.
+Hence, the number of data ows existing in a place during an execution depends
+on the causal past of the place. Therefore, we recall informally the notions of
+unfoldings and runs [14,15] and apply them to Petri nets with transits. In the
+unfolding of a Petri net N, every transition stands for the unique occurrence
+(instance) of a transition of Nduring an execution. To this end, every loop in N
+is unrolled and every join of transitions in a place is expanded by duplicating
+the place. Forward branching, however, is preserved. Formally, an unfolding is
+a branching process U= (NU;U) consisting of an occurrence net NUand
+a homomorphism Uthat labels the places and transitions in NUwith the
+corresponding elements of N. The unfolding exhibits concurrency, causality, and
+nondeterminism (forward branching) of the unique occurrences of the transitions
+inNduring all possible executions. A runofNis a subprocess = (NR;) of
+U, where8p2PR:jpostNR(p)j1 holds, i.e., all nondeterminism has been
+resolved but concurrency is preserved. Thus, a run formalizes one concurrent
+execution of N. We introduce the unfolding of Petri nets with transits by lifting
+the transit relation to the unfolding U= (NU;U) . We dene the relation U
+as follows: For any t2TU, the transit relation U(t)(preNU(t)[fBg)
+postNU(t) is dened for all p;q2PUbyp U(t)q,U(p)(U(t))U(q).
+We use the transit relation in the unfolding to introduce (data) ow chains. A
+(data)ow chain inUis a maximal sequence =p0;t0;p1;t1;p2;::: of places
+inPUwith connecting transitions in TUsuch that
+1.9t2TU:BU(t)p0,
+2. ifis innite then for all i0 the transit relation piU(ti)pi+1holds,
+3. ifis nite, say p0;t0;:::;tn1;pnfor somen0, then for all iwith
+0i < n the transit relation piU(ti)pi+1holds, and there is no place
+q2PUand no transition t2TUwithpnU(t)q.
+4 Flow-LTL for Petri Nets with Transits
+We recall LTL applied to Petri nets and dene our extension Flow-LTL to specify
+the behavior of ow chains in Petri nets with transits. We x a Petri net with
+transits N= (P;T;F;In;) throughout the section.
+
+--- Page 6 ---
+6 B. Finkbeiner et al.
+4.1 Linear Temporal Logic for Petri nets
+We deneAP=P[Tas the set of atomic propositions . The set LTLoflinear
+temporal logic (LTL) formulas over APhas the following syntax  ::=truejaj
+: j 1^ 2j j 1U 2, wherea2AP. Here, is the next operator and U
+is the until operator. We use the abbreviated temporal operators (eventually )
+and (always ) as usual. A trace is a mapping :N!2AP. The trace i:
+N!2AP, dened by i(j) =(i+j) for allj2N, is theithsux of.
+We dene the traces of a Petri net based on its runs. Consider a run =
+(NR;) ofNand a nite or innite ring sequence =M0[t0iM1[t1iM2
+ofNRwithM0=InR. This sequence coversif (8p2PR9i2N:p2
+Mi)^(8t2TR9i2N:t=ti);i.e., all places and transitions in NRappear
+in. Note that several ring sequences may cover . To each ring sequence 
+covering, we associate an innite trace () :N!2AP. Ifis nite, say
+=M0[t0i[tn1iMnfor somen0, we dene 1. ()(i) =(Mi)[f(ti)g
+for 0i<n and 2.()(j) =(Mn) forjn. Thus, we record for 0 i<n
+(case 1) all places of the original net Nthat label the places in the marking Mi
+inNRand the transition of Nthat labels the transition tiinNRoutgoing from
+Mi. At the end (case 2), we stutter by repeating the set of places recorded in
+()(n) fromnonwards, but repeat no transition. If is innite we apply case 1
+for alli0 as no stuttering is needed to generate an innite trace ().
+We dene the semantics ofLTLon Petri nets by Nj=LTL i for all runs
+ofN:j=LTL , which means that for all ring sequences covering:
+()j=LTL , where the latter refers to the usual binary satisfaction relation j=LTL
+between traces and formulas  2LTLdened by: j=LTLtrue,j=LTLaia2
+(0),j=LTL: i notj=LTL ,j=LTL 1^ 2ij=LTL 1andj=LTL 2,
+j=LTL i1j=LTL ,j=LTL 1U 2i there exists a j0 withjj=LTL
+ 2and for alliwith 0i<j the following holds: ij=LTL 1.
+4.2 Denition of Flow-LTL for Petri Nets with Transits
+For Petri nets with transits, we wish to express requirements on several separate
+timelines. Based on the global timeline of the system run, global conditions
+like fairness and maximality can be expressed. Requirements on individual data
+ows, e.g., that the data ow does not enter a loop, are expressed in terms
+of the timeline of that specic data ow. Flow-LTL comprises of run formulas
+'specifying the usual LTL behavior on markings and data ow formulas 'F
+specifying properties of ow chains inside runs:
+'::= j'1^'2j'1_'2j !'j'Fand'F::=A 
+where formulas  2LTLmay appear both inside 'and'F.
+To each ow chain in a run, we associate an innite ow trace() :
+N!2AP. Ifis nite, say =p0;t0:::;tn1;pnfor somen0, we dene
+(1)()(i) =f(pi);(ti)gfor 0i<n and (2)()(j) =f(pn)gforjn.
+Thus, we record for 0 i < n (case 1) the place and the transition of
+the original net Nthat label the place piinNRand the transition tiinNR
+
+--- Page 7 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 7
+outgoing from pi. At the end (case 2), we stutter by repeating the place recorded
+in()(n) innitely often. No transition is repeated in this case.
+Ifis innite we apply case 1 for all i0. Here, no stuttering is needed to
+generate an innite ow trace () and each element of the trace consists of a
+place and a transition.
+A Petri net with transits Nsatises', abbr.Nj=', if the following holds:
+Nj=' i for all runs ofN:j='
+j=' i for all ring sequences covering:;()j='
+;()j= i()j=LTL 
+;()j='1^'2i;()j='1and;()j='2
+;()j='1_'2i;()j='1or;()j='2
+;()j= !'i;()j= implies;()j='
+;()j=A i for all ow chains of:()j=LTL 
+5 Example Specications
+We illustrate Flow-LTL with examples from the literature on software-dened
+networking. Specications on data ows like loop and drop freedom are encoded
+as data ow formulas. Fairness assumptions for switches are given as run formu-
+las.
+5.1 Data Flow Formulas
+We show how properties from the literature can be encoded as data ow formulas.
+For a network topology, let Swbe the set of all switches, IngrSwthe ingress
+switches, and EgrSwthe egress switches with Ingr\Egr=;. The connections
+between switches are given by ConSwSw.
+Loop freedom. Loop freedom [29] requires that a data ow visits every switch
+at most once. In Sec. 2, we outlined that arbitrarily ordered updates can lead
+to loops in the network. The following data ow formula expresses that each
+data ow is required to not visit a non-egress switch anymore after it has been
+forwarded and therefore left that switch (realized via the U-operator):
+A(^
+s2SwnEgrs!(sU:s))
+Drop freedom. Drop freedom [38] requires that no data packets are dropped.
+Packets are dropped by a switch if no forwarding is congured. We specify that
+all data ows not yet at the egress switches are extended by transitions from a
+setFwd encoding the connections Con between switches (details of the encoding
+can be found in App. A.2). We obtain the following data ow formula:
+A(^
+e2Egr:e!_
+f2Fwdf)
+
+--- Page 8 ---
+8 B. Finkbeiner et al.
+swwswx
+swyswzw.fwd(x)
+w.fwd(y)x.fwd(z)
+y.fwd(z)upd2 upd1
+Fig. 3: Concurrent network update that does not preserve drop freedom.
+swwswx
+swyswmswu
+swvswzw.fwd(x)
+w.fwd(y)m.fwd(u)
+m.fwd(v)upd2 upd1
+Fig. 4: Concurrent network update that does not preserve packet coherence.
+Example 1. Figure 3 shows an example update that violates drop freedom. Pack-
+ets are forwarded from switch wto switch zeither via switch xor via switch y. If
+the forwarding of xis deactivated by ring transition upd2before the forwarding
+of switch wis updated by ring upd1, then all packets still forwarded from wto
+xare dropped as no outgoing transitions from xwill be enabled.
+Packet coherence. Packet coherence [1] requires that every data ow follows
+one of two paths: either the path according to the routing before the update or
+the path according to the routing after the update. The paths Path 1and Path 2
+are dened as the sets of switches of the forwarding route before and after the
+update. This results in the following data ow formula:
+A((_
+s2Path 1s)_(_
+s2Path 2s))
+Example 2. In Fig. 4, the encoding of an update to a double-diamond network
+topology [8] is depicted as a simple example for a packet incoherent update.
+Before ring the update transitions upd1 and upd2, packets are forwarded via
+switches x,m, and u, after the complete update, via switches y,m, and v. Ifmis
+updated by ring transition upd2 while packets have been forwarded to xthen
+these packets are forwarded along the incoherent path x,m, and v.
+We note that loop and drop freedom are incomparable requirements. Together,
+they imply that all packets reach one egress switch. Connectivity, in turn, implies
+drop freedom but not loop freedom, because an update can allow some loops.
+
+--- Page 9 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 9
+5.2 Run Formulas
+Data ow formulas require behavior on the maximal ow of packets and switches
+are assumed to forward packets in a fair manner. Both types of assumptions are
+expressed in Flow-LTL as run formulas. We typically consider implications be-
+tween run formulas and data ow formulas.
+Maximality. A runisinterleaving-maximal if, whenever some transition is
+enabled, some transition will be taken: j=(W
+t2Tpre(t)!W
+t2Tt).
+A runisconcurrency-maximal if, when a transition tis from a moment on al-
+ways enabled, innitely often a transition t0(includingtitself) sharing a precon-
+dition with tis taken:j=V
+t2T( pre(t)!W
+p2pre(t);t02post(p)t0).
+Fairness. A runisweakly fair w.r.t. a transition tif, whenever tis always
+enabled after some point, tis taken innitely often: j= pre(t)!t.
+A runisstrongly fair w.r.t.tif, whenever tis enabled innitely often, tis
+taken innitely often: j= pre(t)!t.
+6 Model Checking Flow-LTL on Petri Nets with Transits
+We solve the model checking problem of a Flow-LTL formula 'on a Petri net
+with transits Nin three steps:
+1.Nis encoded as a Petri net N>without transits obtained by composing
+suitably modied copies of Nsuch that each ow subformula in 'can be
+checked for correctness using the corresponding copy.
+2.'is transformed to an LTL-formula '>which skips the uninvolved compo-
+sition copies when evaluating run and ow parts, respectively.
+3.N>and'>are encoded in a circuit and fair reachability is checked with a
+hardware model checker to answer if Nj='holds.
+Given a Petri net with transits N= (P;T;F;In;) and a Flow-LTL formula '
+with subformulas 'Fi=A i, wherei= 1;:::;n for somen2N, we produce a
+Petri net N>= (P>;T>;F>;F>
+I;In>) with inhibitor arcs (denoted by F>
+I)
+and an LTL formula '>. An inhibitor arc is a directed arc from a place pto a
+transitiont, which only enables tifpcontains no token. Graphically, those arcs
+are depicted as arrows equipped with a circle on their arrow tail.
+6.1 From Petri Nets with Transits to P/T Petri nets
+We informally introduce the construction of N>and Fig. 5 visualizes the process
+by an example. Details for this and the following constructions, as well as all
+proofs corresponding to Sec. 6 can be found in App. B.
+The original part ofN>(denoted by N>
+O) is the original net Nwithout
+transit relation and is used to check the run part of the formula. To N>
+O, a
+subnet for each subformula A iof'is composed (denoted by N>
+i, with places
+P>
+iand transitions T>
+i), which serves for checking the corresponding data ow
+part of the formula '. The subnet introduces the possibility to decide for the
+
+--- Page 10 ---
+10 B. Finkbeiner et al.
+tracking of up to one specic ow chain by introducing a copy [ p]iof each place
+p2Pand transitions simulating the transits. The place [ ]iserves for starting
+the tracking. Each run of a subnet simulates one possible ow chain of N, i.e.,
+every ring sequence covering any run of Nyields a ow chain.
+in
+t
+out !os
+[in]1
+[out]1t
+t
+tttV1
+ !t1 !s1s
+ssV1
+s[]1
+ !t2 !s2
+[in]n
+[out]nt
+t1
+tt2
+tt3ttVn
+ !tn !snss1
+ssVn
+ss2[]n
+in
+t
+outsN N>
+N>
+O N>
+1 N>
+n
+Fig. 5: An overview of the constructed P/T Petri net N>(on the right) for an
+example Petri net with transits N(on the left) and now subformulas A i.
+Anactivation token iterates sequentially through these components via places !tfort2T. In each step, the active component has to re exactly one transition
+and pass the active token to the next component. The sequence starts by N>
+O
+ring a transition tand proceeds through every subnet simulating the data ows
+according to the transits of t. This implies that the subnets have to either move
+their data ow via a t-labelled transition t0((t0) =t) or use the skipping
+transitiontViif their chain is not involved in the ring of tor a newly created
+chain should not be considered in this run.
+Lemma 1 (Size of the Constructed Net). The constructed Petri net N>
+hasO(jNjn+jNj)places and O(jNj3n+jNj)transitions.
+6.2 From Flow-LTL Formulas to LTL Formulas
+The two dierent kinds of timelines of 'are encoded in the LTL formula '>.
+On the one hand, the data ow formulas A iin'are now checked on the
+corresponding subnets N>
+iand, on the other hand, the run formula part of '
+is checked on the original part of the net N>
+O. In both cases, we need to ignore
+
+--- Page 11 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 11
+places and transitions from other parts of the composition. This is achieved by
+replacing each next operator and atomic proposition t2Tinside'with an
+until operator. Transitions which are not representing the considered timeline are
+called unrelated , others related . Via the until operator, all unrelated transitions
+can re until a related transition is red. This is formalized in Tab. 1 using the
+setsO=T>nTandOi= (T>nT>
+i)[ftVi2T>
+ijt2Tg, for the
+unrelated transitions of the original part and of the subnets, respectively. The
+related transitions of the original part are given by Tand for the subnets by
+Mi(t) =ft02T>
+inftVig j(t0) =tgandMi=T>
+inftVi2T>
+ijt2Tg.
+Table 1: Row 1 considers the substitutions in the run part of ', row 2 the
+substitutions in each subformula 'Fi. Column 1 considers simultaneously sub-
+stitutions, column 2 substitutions from the inner- to the outermost occurrence.
+t2T 
+(W
+t02Ot0)Ut ((W
+t2Ot)U((W
+t02Tt0)^))_((:(W
+t02Tt0))^)
+(W
+to2Oito)U(W
+tm2Mi(t)tm) ((W
+t2Oit)U((W
+t2Mit)^))_((:(W
+t2Mit))^)
+Additionally, every atomic proposition p2Pin the scope of a ow operator is
+simultaneously substituted with its corresponding place [ p]iof the subnet. Every
+ow subformula A iis substituted with []i_([]iU(:[]i^ 0
+i)), where []i
+represents that no ow chain is tracked and  0
+iis the result of the substitutions
+of atomic propositions and next operators described before. The until operator
+in []iU(:[]i^ 0
+i) ensures to only check the ow subformula at the time the
+chain is created. Finally, restricting runs to not end in any of the subnets yields
+the nal formula
+'>= ( !o)!'A
+with !obeing the activation place of the original part of the net and 'Athe
+result of the substitution of all ow subformulas.
+Lemma 2 (Size of the Constructed Formula). The size of the constructed
+LTL formula '>is inO(jNj3nj'j+j'j).
+Lemma 3 (Correctness of the Transformation). For a Petri net with tran-
+sitsNand a Flow-LTL formula ', there exists a safe P/T Petri net N>with
+inhibitor arcs and an LTL formula '>such that Nj='iN>j=LTL'>.
+6.3 Petri Net Model Checking with Circuits
+We translate the model checking of an LTL formula  with places and transitions
+as atomic propositions on a safe P/T Petri net with inhibitor arcs Nto a model
+checking problem on a circuit. We dene the circuit CNsimulating Nand an
+adapted formula  0, which can be checked by modern model checkers [9,18,2].
+Acircuit C= (I;O;L;F) consists of boolean variables I,O,Lfor
+input, output, latches, and a boolean formula FoverILOL, which
+
+--- Page 12 ---
+12 B. Finkbeiner et al.
+is deterministic in IL. The formula Fcan be seen as transition relation
+from a valuation of the input variables and the current state of the latches
+to the valuation of the output variables and the next state of the latches. A
+circuit Ccan be interpreted as a Kripke structure such that the satisability
+of a formula  0(denoted by Cj= 0) can be dened by the satisability in the
+Kripke structure.
+The desired circuit CNhas a latch for each place p2Pto store the current
+marking , a latch iforinitializing this marking with Inin the rst step, and
+a latch efor handling invalid inputs. The inputs Iconsider the ring of a
+transitiont2T. The latch iis true in every but the rst step. The latch eis true
+whenever invalid values are applied on the inputs, i.e., the ring of not enabled,
+or more than one transition. The marking latches are updated according to the
+ring of the valid transition. If currently no valid input is applied, the marking
+is kept from the previous step. There is an output for each place (the current
+marking), for each transition (the transition leading to the next marking), and
+for the current value of the invalid latch. We create  0by skipping the initial
+step and allowing invalid inputs only at the end of a trace:
+ 0=((e! e)! ):
+This allows for nite ring sequences. The concrete formula F, the Kripke struc-
+ture, and the corresponding proofs can be found in App. B. The circuit CNcan
+be encoded as an and-inverter graph in the Aiger format [4].
+Lemma 4 (Correctness of the Circuit). For a safe P/T Petri net with in-
+hibitor arcs Nand an LTL formula  , there exists a circuit CNwithjPj+ 2
+latches and O(jNj2)gates, and 0of sizeO(j j)such that Nj=LTL iCNj= 0.
+Theorem 1. A safe Petri net with transits Ncan be checked against a Flow-
+LTL formula 'in single-exponential time in the size of Nand'.
+Checking a safe Petri net with transits against Flow-LTL has a PSPACE-hard
+lower bound because checking a safe Petri net against LTL is a special case of
+this problem and reachability of safe Petri nets is PSPACE-complete.
+7 Implementation Details and Experimental Results
+We implemented our model checking approach in a prototype tool based on the
+toolAdam [16]. Our tool takes as input a Flow-LTL specication and a Petri net
+with transits, and carries out the transformation described in Sec. 6 to obtain
+an LTL formula and an Aiger circuit. We then use MCHyper [18] to combine the
+circuit and the LTL formula into another Aiger circuit. MCHyper is a verication
+tool for HyperLTL [11], which subsumes LTL. The actual model checking is
+carried out by the hardware model checker ABC [2]. ABC provides a toolbox
+of state-of-the-art verication and falsication techniques like IC3 [5]/PDR [12],
+interpolation (INT) [34], and bounded model checking [3] (BMC, BMC2, BMC3).
+We prepared an artifact to replicate our experimental results [21].
+
+--- Page 13 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 13
+Our experimental results cover two benchmark families (SF/RP) and a case
+study (RU) from software-dened networking on real-world network topologies:
+Switch Failure (SF) ( Parameter: nswitches): From a sequence of nswitches
+with the ingress at the beginning and the egress at the end, a failing switch is
+chosen at random and removed. Then, data ows are bypassed from the prede-
+cessor to the successor of the failing switch. Every data ow reaches the egress
+node no matter of the update (connectivity).
+Redundant Pipeline (RP) ( Parameters: n1switches in pipeline one / n2
+switches in pipeline two / vversion): The base version (B) contains two dis-
+joint sequences of switches from the ingress to the egress, possibly with diering
+length. For this and the next two versions, it is required that each data ow
+reaches the egress node (connectivity) and is only forwarded via the rst or the
+second pipeline (packet coherence). Update version (U): Two updates are added
+that can concurrently remove the rst node of any pipeline and return the data
+ows to the ingress. If both updates happen, data ows do not reach the egress.
+Returning the data ows violates packet coherence. Mutex version (M): A mutex
+is added to the update version such that at most one pipeline can be broken.
+Updates can happen sequentially such that data ows are in a cycle through
+the ingress. Correct version (C): The requirements are weakened such that each
+data ow only has to reach the egress when updates do not occur innitely often.
+Routing Update (RU) is a case study based on realistic software-dened net-
+works. We picked 31 real-world network topologies from [26]. For each network,
+we choose at random an ingress switch, an egress switch, and a loop- and drop-
+free initial conguration between the two. For a dierent, random nal con-
+guration, we build a sequential update in reverse from egress to ingress. The
+update overlaps with the initial conguration at some point during the update
+or is activated from the ingress in the last step. It is checked if all packets reach
+the egress (T) and if all packets reach another specic switch as an egress (F).
+Table 2 presents our experimental results and indicates for each benchmark
+the model checking approach with the best performance (cf. App. C for the full
+table). In the benchmarks where the specication is satised ( 3), IC3 is the clear
+winner, in benchmarks where the specication is violated ( 7), the best approach
+is bounded model checking with dynamic unrolling (BMC2/3). The results are
+encouraging: hardware model checking is eective for circuits constructed by our
+transformation with up to 400 latches and 27619 gates; falsication is possible
+for larger circuits with up to 1288 latches and 269943 gates. As a result, we
+were able to automatically verify with our prototype implementation updates
+for networks with topologies of up to 10 switches (# S) and to falsify updates
+for topologies with up to 38 switches within the time bound of 30 minutes.
+We investigated the cost of specications drop and loop freedom compared
+with connectivity and packet coherence. Table 3 exemplarily shows the results
+for network topology Napnet from RU. Connectivity, packet coherence, and loop
+freedom have comparable runtime due to similar formula and circuit sizes. Drop
+freedom is dened over transitions and, hence, expensive for our transformation.
+
+--- Page 14 ---
+14 B. Finkbeiner et al.
+Table 2: Experimental results from the benchmark families Switch Failure (SF)
+and Redundant Pipeline (RP), and the case study Routing Update (RU). The
+results are the average over ve runs on an Intel i7-2700K CPU with 3.50 GHz,
+32 GB RAM, and a timeout of 30 minutes.
+PNwT Translated PN Circuit Result
+Ben. Par. # SjPjjTj j'jjP>jjT>j j 0jLat. Gat. Sec. Algo. j=
+SF 3 4 4 5 35 17 22 60 90 2796 2.7 IC3 3
+  
+9 10 10 11 95 35 46 138 186 8700 1359.9 IC3 3
+10 11 11 12 105 38 50 151 202 9964 TO - ?
+RP 1/1/B 4 4 5 43 17 22 68 100 2989 4.0 IC3 3
+  
+4/4/B 10 10 11 103 35 46 146 196 8893 646.4 IC3 3
+4/5/B 11 11 12 113 38 50 159 212 10157 TO - ?
+1/1/U 6 6 9 63 25 36 100 136 5535 1.6 BMC2 7
+  
+5/4/U 13 13 16 133 46 64 191 248 14523 945.1 BMC3 7
+5/5/U 14 14 17 143 49 68 204 264 16127 TO - ?
+1/1/M 6 9 11 63 30 42 106 146 6908 8.1 BMC3 7
+  
+4/3/M 11 14 16 113 45 62 171 226 13573 1449.6 BMC2 7
+4/4/M 12 15 17 123 48 66 184 242 15146 TO - ?
+1/1/C 6 9 11 70 30 42 113 151 7023 63.1 IC3 3
+  
+3/3/C 10 13 15 110 42 58 165 215 12195 1218.0 IC3 3
+3/4/C 11 14 16 120 45 62 178 231 13688 TO - ?
+RU Arpanet196912T 4 14 10 117 31 39 154 188 7483 22.7 IC3 3
+Arpanet196912F 4 14 10 117 31 39 154 188 7483 2.0 BMC3 7
+NapnetT 6 23 17 199 48 64 254 292 15875 95.1 IC3 3
+NapnetF 6 23 17 199 48 64 254 292 15875 4.7 BMC3 7
+  
+NetrailT 7 30 23 271 62 88 344 380 26101 145.3 IC3 3
+NetrailF 7 30 23 271 62 88 344 380 26101 58.3 BMC3 7
+Arpanet19706T 9 33 24 281 67 89 354 400 27619 507.8 IC3 3
+Arpanet19706F 9 33 24 281 67 89 354 400 27619 49.7 BMC3 7
+NsfcnetT 10 31 22 261 65 87 334 376 26181 304.8 IC3 3
+NsfcnetF 10 31 22 261 65 87 334 376 26181 8.4 BMC3 7
+  
+TwarenF 20 65 45 531 130 170 664 736 87493 461.5 BMC3 7
+MarnetF 20 77 57 679 156 224 854 908 138103 746.1 BMC3 7
+JanetlenseF 20 91 71 847 184 280 1064 1104 203595 514.2 BMC2 7
+HarnetF 21 71 50 593 143 193 744 812 108415 919.0 BMC3 7
+Belnet2009F 21 71 50 597 145 199 754 816 113397 1163.3 BMC2 7
+  
+UranF 24 56 38 449 106 133 552 618 57950 143.2 BMC3 7
+KentmanFeb2008F 26 82 56 669 167 223 844 920 142291 111.2 BMC3 7
+Garr200212F 27 86 59 703 174 232 884 964 153509 324.2 BMC3 7
+IinetF 31 104 73 871 210 288 1094 1176 227153 1244.5 BMC3 7
+KentmanJan2011F 38 117 79 943 236 312 1184 1288 269943 112.6 BMC3 7
+
+--- Page 15 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 15
+Table 3: For the network topology Napnet and a concurrent update between two
+randomly generated topologies, our four standard requirements are checked.
+PN w. Transits Translated PN Circuit Result
+Ben. Req. jPjjTj j'j jP>jjT>j j 0jLatches Gates Sec. Algo. j=
+Napnet connectivity 23 17 199 48 64 254 292 15875 95.1 IC3 3
+p. coherence 23 17 208 48 64 267 298 16041 31.9 IC3 3
+loop-free 23 17 237 48 64 296 305 16289 52.6 INT 3
+drop-free 23 17 257 48 64 2288 325 30449 165.9 IC3 3
+8 Related Work
+There is a large body of work on software-dened networks, see [28] for a good
+introduction. Specic solutions that were proposed for the network update prob-
+lem include consistent updates [39,8] (cf. the introduction), dynamic schedul-
+ing[23], and incremental updates [25]. Model checking, including both explicit
+and SMT-based approaches, has previously been used to verify software-dened
+networks [6,31,30,43,1,36]. Closest to our work are models of networks as Kripke
+structures to use model checking for synthesis of correct network updates [13,32].
+While they pursue synthesis , rather than verication of network updates, the ap-
+proach is still based on a model checking algorithm that is called in each step
+of the construction of a sequence of updates. The model checking subroutine of
+the synthesizer assumes that each packet sees at most one switch that was up-
+dated after the packet entered the network. This restriction is implemented with
+explicit waits, which can afterwards often be removed by heuristics. Our model
+checking routine does not require this assumption. As it therefore allows for more
+general updates, it would be very interesting to add the new model checking al-
+gorithm into the synthesis procedure. Flow correctness also plays a role in other
+application areas like access control in physical spaces. Flow properties that are
+of interest in this setting, such as \from every room in the building there is a
+path to exit the building", have been formalized in a temporal logic [42].
+There is a signicant number of model checking tools (e.g., [40,41,24]) for
+Petri nets and an annual model checking contest [27]. In this contest, however,
+only LTL formulas with places as atomic propositions are checked. To the best of
+our knowledge, other model checking tools for Petri nets do not provide places
+and transitions as atomic propositions. Our encoding needs to reason about
+places and transitions to pose fairness conditions on the ring of transitions.
+9 Conclusion
+We have presented a model checking approach for the verication of data ow
+correctness in networks during concurrent updates of the network conguration.
+Key ingredients of the approach are Petri nets with transits, which superimpose
+the transit relation of data ows onto the ow relation of Petri nets, and Flow-
+LTL, which combines the specication of local data ows with the specication
+
+--- Page 16 ---
+16 B. Finkbeiner et al.
+of global control. The model checking problem for Petri nets with transits and
+Flow-LTL specications reduces to a circuit model checking problem. Our pro-
+totype tool implementation can verify and falsify realistic concurrent updates of
+software-dened networks with specications like packet coherence.
+In future work, we plan to extend this work to the synthesis of concurrent
+updates. Existing synthesis techniques use model checking as a subroutine to
+verify the correctness of the individual update steps [13,32]. We plan to study
+Flow-LTL specications in the setting of Petri games [17], which describe the
+existence of controllers for asynchronous distributed processes. This would allow
+us to synthesize concurrent network updates without a central controller.
+References
+1. Ball, T., Bjrner, N., Gember, A., Itzhaky, S., Karbyshev, A., Sagiv, M., Schapira,
+M., Valadarsky, A.: Vericon: towards verifying controller programs in software-
+dened networks. In: Proc. of PLDI (2014). doi: 10.1145/2594291.2594317
+2. Berkeley Logic Synthesis and Verication Group: ABC: A system for sequential
+synthesis and verication, version 1.01 81030
+3. Biere, A., Clarke, E.M., Raimi, R., Zhu, Y.: Veriying safety properties of a power
+PC microprocessor using symbolic model checking without BDDs. In: Proc. of CAV
+(1999). doi: 10.1007/3-540-48683-6 8
+4. Biere, A., Heljanko, K., Wieringa, S.: AIGER 1.9 and beyond. Tech. Rep. 11/2,
+Johannes Kepler University, Linz (2011)
+5. Bradley, A.R.: SAT-based model checking without unrolling. In: Proc. of VMCAI
+(2011). doi: 10.1007/978-3-642-18275-4 7
+6. Canini, M., Venzano, D., Pere s ni, P., Kosti c, D., Rexford, J.: A NICE way to test
+openow applications. In: Proc. of NSDI (2012)
+7. Casado, M., Foster, N., Guha, A.: Abstractions for software-dened networks. Com-
+mun. ACM 57(10) (2014). doi: 10.1145/2661061.2661063
+8. Cern y, P., Foster, N., Jagnik, N., McClurg, J.: Optimal consistent network updates
+in polynomial time. In: Proc. of DISC (2016). doi: 10.1007/978-3-662-53426-7 9
+9. Claessen, K., E en, N., Sterin, B.: A circuit approach to LTL model checking. In:
+Proc. of FMCAD (2013)
+10. Clarke, E.M., Henzinger, T.A., Veith, H., Bloem, R. (eds.): Handbook of Model
+Checking. Springer (2018). doi: 10.1007/978-3-319-10575-8
+11. Clarkson, M.R., Finkbeiner, B., Koleini, M., Micinski, K.K., Rabe, M.N., S anchez,
+C.: Temporal logics for hyperproperties. In: Proc. of POST (2014). doi: 10.1007/
+978-3-642-54792-8 15
+12. E en, N., Mishchenko, A., Brayton, R.K.: Ecient implementation of property di-
+rected reachability. In: Proc. of FMCAD (2011)
+13. El-Hassany, A., Tsankov, P., Vanbever, L., Vechev, M.T.: Network-wide congu-
+ration synthesis. In: Proc. of CAV (2017). doi: 10.1007/978-3-319-63390-9 14
+14. Engelfriet, J.: Branching processes of Petri nets. Acta Inf. 28(6) (1991). doi: 10.
+1007/BF01463946
+15. Esparza, J., Heljanko, K.: Unfoldings { A Partial-Order Approach to Model Check-
+ing. Springer (2008). doi: 10.1007/978-3-540-77426-6
+16. Finkbeiner, B., Gieseking, M., Olderog, E.: Adam: Causality-based synthesis of
+distributed systems. In: Proc. of CAV (2015). doi: 10.1007/978-3-319-21690-4 25
+
+--- Page 17 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 17
+17. Finkbeiner, B., Olderog, E.: Petri games: Synthesis of distributed systems with
+causal memory. Inf. Comput. 253(2017). doi: 10.1016/j.ic.2016.07.006
+18. Finkbeiner, B., Rabe, M.N., S anchez, C.: Algorithms for model checking HyperLTL
+and HyperCTL. In: Proc. of CAV (2015). doi: 10.1007/978-3-319-21690-4 3
+19. F orster, K., Mahajan, R., Wattenhofer, R.: Consistent updates in software de-
+ned networks: On dependencies, loop freedom, and blackholes. In: Proc. of IFIP
+Networking (2016). doi: 10.1109/IFIPNetworking.2016.7497232
+20. Foster, N., Harrison, R., Freedman, M.J., Monsanto, C., Rexford, J., Story, A.,
+Walker, D.: Frenetic: a network programming language. In: Proc. of ICFP (2011).
+doi: 10.1145/2034773.2034812
+21. Gieseking, M., Hecking-Harbusch, J.: AdamMC { A Model Checker for Petri Nets
+With Transits and Flow-LTL (2019). doi: 10.6084/m9.gshare.8313344
+22. Jensen, K.: Coloured Petri Nets: Basic Concepts, Analysis Methods and Practical
+Use, Volume 1. Springer (1992)
+23. Jin, X., Liu, H.H., Gandhi, R., Kandula, S., Mahajan, R., Zhang, M., Rexford, J.,
+Wattenhofer, R.: Dynamic scheduling of network updates. In: Proc. SIGCOMM
+(2014). doi: 10.1145/2619239.2626307
+24. Kant, G., Laarman, A., Meijer, J., van de Pol, J., Blom, S., van Dijk, T.: LTSmin:
+High-performance language-independent model checking. In: Proc. of TACAS
+(2015). doi: 10.1007/978-3-662-46681-0 61
+25. Katta, N.P., Rexford, J., Walker, D.: Incremental consistent updates. In: Proc. of
+HotSDN. ACM (2013). doi: 10.1145/2491185.2491191
+26. Knight, S., Nguyen, H.X., Falkner, N., Bowden, R.A., Roughan, M.: The internet
+topology zoo. IEEE Journal on Selected Areas in Communications 29(9) (2011).
+doi: 10.1109/JSAC.2011.111002
+27. Kordon, F., et al.: Complete Results for the 2019 Edition of the Model Checking
+Contest (2019)
+28. Kreutz, D., Ramos, F.M.V., Ver ssimo, P.J.E., Rothenberg, C.E., Azodolmolky, S.,
+Uhlig, S.: Software-dened networking: A comprehensive survey. Proc. of the IEEE
+103(1) (2015). doi: 10.1109/JPROC.2014.2371999
+29. Liu, H.H., Wu, X., Zhang, M., Yuan, L., Wattenhofer, R., Maltz, D.A.: zUpdate:
+updating data center networks with zero loss. In: Proc. of SIGCOMM (2013). doi:
+10.1145/2486001.2486005
+30. Mai, H., Khurshid, A., Agarwal, R., Caesar, M., Godfrey, P.B., King, S.T.: De-
+bugging the data plane with anteater. SIGCOMM Comput. Commun. Rev. 41(4)
+(2011). doi: 10.1145/2043164.2018470
+31. Majumdar, R., Tetali, S.D., Wang, Z.: Kuai: A model checker for software-dened
+networks. In: Proc. of FMCAD (2014). doi: 10.1109/FMCAD.2014.6987609
+32. McClurg, J., Hojjat, H., Cern y, P.: Synchronization synthesis for network pro-
+grams. In: Proc. of CAV (2017). doi: 10.1007/978-3-319-63390-9 16
+33. McKeown, N., Anderson, T., Balakrishnan, H., Parulkar, G.M., Peterson, L.L.,
+Rexford, J., Shenker, S., Turner, J.S.: Openow: enabling innovation in campus
+networks. Computer Communication Review 38(2) (2008). doi: 10.1145/1355734.
+1355746
+34. McMillan, K.L.: Craig interpolation and reachability analysis. In: Proc. of SAS
+(2003). doi: 10.1007/3-540-44898-5 18
+35. Monsanto, C., Reich, J., Foster, N., Rexford, J., Walker, D.: Composing software
+dened networks. In: Proc. of NSDI (2013)
+36. Padon, O., Immerman, N., Karbyshev, A., Lahav, O., Sagiv, M., Shoham, S.:
+Decentralizing SDN policies. In: Proc. of POPL (2015). doi: 10.1145/2676726.
+2676990
+
+--- Page 18 ---
+18 B. Finkbeiner et al.
+37. Reisig, W.: Petri Nets: An Introduction. Springer (1985). doi: 10.1007/
+978-3-642-69968-9
+38. Reitblatt, M., Canini, M., Guha, A., Foster, N.: Fattire: declarative fault tolerance
+for software-dened networks. In: Proc. of HotSDN (2013). doi: 10.1145/2491185.
+2491187
+39. Reitblatt, M., Foster, N., Rexford, J., Schlesinger, C., Walker, D.: Abstractions for
+network update. In: Proc. of SIGCOMM (2012). doi: 10.1145/2342356.2342427
+40. Schmidt, K.: Lola: A low level analyser. In: Proc. of ICATPN (2000). doi: 10.1007/
+3-540-44988-4 27
+41. Thierry-Mieg, Y.: Symbolic model-checking using ITS-tools. In: Proc. of TACAS
+(2015). doi: 10.1007/978-3-662-46681-0 20
+42. Tsankov, P., Dashti, M.T., Basin, D.: Access control synthesis for physical spaces.
+In: Proc. of CSF (2016). doi: 10.1109/CSF.2016.38
+43. Wang, A., Moarref, S., Loo, B.T., Topcu, U., Scedrov, A.: Automated synthesis of
+reactive controllers for software-dened networks. In: Proc. of ICNP (2013). doi:
+10.1109/ICNP.2013.6733666
+
+--- Page 19 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 19
+Appendix
+A Encoding of Concurrent Updates for SDN
+In this section of the appendix, we outline how updates to a congured network
+topology can be encoded into Petri nets with transits. First, we recall network
+topologies, network congurations, and concurrent updates. Second, we encode
+a network topology as data plane into Petri nets with transits. Third, we en-
+code a corresponding network conguration and a concurrent update to this
+conguration into usual Petri nets (without transits).
+A.1 Network Topology, Congurations, and Updates
+Anetwork topology Tis given as a nite, connected, undirected graph T=
+(Sw;Con) with the non-empty set of switches Swas vertices and the non-empty
+set of connections ConSwSwas edges. The conguration of a network
+topology is dened by a static NetCore [20,35] program with the following syntax:
+ingress = Ingr;
+forwarding;
+egress = Egr;
+such that IngrSwis the non-empty set of ingress switches where packets en-
+ter the network topology and EgrSwis the non-empty set of egress switches
+to which packets should be forwarded. It is required that Ingr\Egr =;.
+forwarding is a list of forwarding rules of the form x.fwd(y); with x;y2Sw.
+Such a rule denes that switch xforwards packets to switch y. Each switch oc-
+curs at most once on the left hand side of the list of forwarding rules, making
+the forwarding decision of switches deterministic . If a switch is not congured,
+then all packets are dropped at that switch.
+Aconcurrent update to the forwarding rules is given by the following syntax:
+switch update ::= upd(x.fwd(z)) (x;z2Sw)
+sequential update ::= (update >>update >>...>>update )
+parallel update ::= (update ||update ||...||update )
+update ::= switch update jsequential update jparallel update
+where, for eciency reasons, each switch is updated at most once.
+Update statements of the form upd(x.fwd(z)) dene that a given cong-
+uration is altered by changing the forwarding rule x.fwd(y) tox.fwd(z) or
+by adding x.fwd(z) to the given conguration if switch xis not congured in
+forwarding . The rst case updates the forwarding rule of switch xfrom switch y
+to switch zwhereas the second case congures the switch xto now forward pack-
+ets to switch z(instead of dropping the packets). The sequential update denes a
+sequence of updates, where the next update is only carried out after the current
+update is nished. The parallel update denes that all updates can happen in
+parallel and no assumptions about their order can be made.
+
+--- Page 20 ---
+20 B. Finkbeiner et al.
+Given a network topology T= (Sw;Con), an initial conguration ingress =
+Ingr; forwarding; egress = Egr;, and an update , we describe the construc-
+tion of the corresponding Petri net with transits N= (PD[PC;TD[TC;FD[
+FC;InD[InC;D) consisting of a sub-Petri net with transits
+ND= (PD;TD;FD;InD;D) to encode the topology and initial congura-
+tion, and a sub-Petri net without transits NC= (PC;TC;FC;InC) encoding
+the update to the initial conguration.
+A.2 Data Plane as Petri Net with Transits
+As the ow of packets is modeled by transits, we model switches and their connec-
+tions with tokens that remain in corresponding places. The initial conguration
+puts tokens in additional places such that only the transitions corresponding to
+the congured forwarding are enabled. Specic transitions model ingress switches
+where new data ows begin. These data ows are then extended by ring the
+enabled forwarding rules without moving any tokens. We thereby model any
+order of newly generated packets and their forwarding. We assume that for all
+connections between two switches xandy, both ( x;y) and ( y;x) are in Con.
+We create a place for each switch and for each direction of connections be-
+tween two switches: PD=fswxjx2Swg[f x.fwd(y)j(x;y)2Cong.
+We create a transition for each direction of connections between switches and
+for each ingress switch: TD=ffwdx!yj(x;y)2Cong[fingressxjx2Ingrg.
+In Sec. 5, we call this set of transitions Fwd when dening drop freedom .
+We dene the ow relation such that each transition fwdx!yhas the places
+swx,swy, and x.fwd(y) in its preset andpostset, and each transition ingressx
+has the place swxin its preset andpostset: FD=f(swx;fwdx!y);(swy;fwdx!y);
+(x.fwd(y);fwdx!y);(fwdx!y;swx);(fwdx!y;swy);(fwdx!y;x.fwd(y) )j(x;y)2
+Cong[f(swx;ingressx);(ingressx;swx)jx2Ingrg. All transitions are weak fair.
+The initial marking contains all switches and the initial forwarding rules from
+forwarding :InD=fswxjx2Swg[forwarding .
+The transit relation of transitions of the form fwdx!ydenes a data ow
+from switch xto switch yand maintains data ows in switch y. Transitions
+of the form ingressxcreate a new data ow in switch xand maintain data
+ows in switch x:D=f(swx(fwdx!y)swy);(swy(fwdx!y)swy)j(x;y)2
+Cong[f (B(ingressx)swx);(swx(ingressx)swx)jx2Ingrg.
+A.3 Control Plane as Petri Net
+The subnet for the update has no transit relation but moves tokens from and
+to places of the form x.fwd(y) such that transitions corresponding to other
+forwarding rules become enabled. The order of these updates is dened by the
+nesting of the sequential and the parallel operator in the update.
+The update is realized by initially one token moving through dedicated places.
+A parallel update temporarily increases the number of tokens and reduces it
+upon completion to one. The update and each of its sub-expressions have a
+
+--- Page 21 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 21
+unique starting and nishing place. The following construction denes the update
+behavior between start and nish places and connects nish and start places to
+ensure sequentiality and concurrency depending on the sub-expression structure.
+For a given update , let SwU be the set of switch updates in it, SeU the set of
+sequential updates in it, and PaU the set of parallel updates in it. Depending
+onupdate 's type, it is added to the respective set.
+We introduce start and nish places for all elements of the three sets SwU ,
+SeU, and PaU :PC=fupdstart;updnishjupd2SwUg[f seqstart;seqnishj
+seq2SeUg[f parstart;parnishjpar2PaUg. All transitions are weak fair.
+Each switch update is represented by one transition. Each sequential update
+of lengthnis represented by n+1 transitions, where the rst and last transition
+start and nish the sequential update, and the n1 transitions in between con-
+nect thensteps of the sequential update. Each concurrent update is represented
+by an open and a close transition: TC=fupdjupd2SwUg[f seq0;:::; seqnj
+seq2SeU^jseqj=ng[f paropen;parclosejpar2PaUg.
+There are two mutually exclusive cases for the ow of switch updates where
+(1) a previous conguration is updated and (2) a new conguration is added: For
+(1), we search for a previous conguration x.fwd(y) and move the token to the
+new conguration x.fwd(z) :FC
+SwU 1=f(upd(x.fwd(z))start;upd(x.fwd(z)) );
+(x.fwd(y);upd(x.fwd(z)) );(upd(x.fwd(z)) ;x.fwd(z) );(upd(x.fwd(z)) ;
+upd(x.fwd(z))nish)jupd(x.fwd(z))2SwU^upd(x.fwd(y))2forwardingg.
+If no corresponding previous conguration exists (2), a new token is created
+atx.fwd(z) :FC
+SwU 2=f(upd(x.fwd(z))start;upd(x.fwd(z)) );
+(upd(x.fwd(z)) ;upd(x.fwd(z))nish);(upd(x.fwd(z)) ;x.fwd(z) )j
+upd(x.fwd(z))2SwU^@y2Sw:upd(x.fwd(y))2forwardingg.
+For each sequential update, we add ows to the corresponding transitions
+such that the token can move from the start place of the sequential update to
+the start place of its rst direct sub-formula, then from the nish of each direct
+sub-formula ( i) to the start place of the next direct sub-formula ( i+ 1), and in
+the end, from the nish place of the last direct sub-formula to the nish place
+of the sequential update: FC
+SeU=f(seqstart;seq0);(seq0;substart
+1)jseq2SeU^
+sub1is the rst direct sub-expression of seqg[f(subnish
+i;seqi);(seqi;substart
+i+1)j
+seq2SeU^jseqj=n^1i<n^subiand subi+1are thei-th andi+ 1th
+direct sub-formula of seqg[f (subnish
+n;seqn);(seqn;seqnish)jseq2SeU^
+jseqj=n^subnis the last direct sub-expression of seqg.
+Each concurrent update is opened to the starting places of its direct sub-
+formulas and closed from the nish places of its direct sub-formulas:
+FC
+PaU=f(parstart;paropen);(parclose;parnish)g [ f (paropen;substart);
+(subnish;parclose)jpar2PaU^subis direct sub-expression of PaUg.
+We add all these sets into the ow of the Petri net FC=FC
+SwU 1[FC
+SwU 2[
+FC
+SeU[FC
+PaUand dene the initial marking to contain one token in the starting
+place of the update: InC=fupdatestartg.
+This construction gives us a Petri net with transits that models the concur-
+rent update for the given network topology and initial conguration. The set of
+egress switches can be used to formulate requirements.
+
+--- Page 22 ---
+22 B. Finkbeiner et al.
+B Proofs for the Transformation
+In this section of the appendix, we provide details to Sec. 6. Firstly, we give a
+formal denition of the construction of the P/T Petri net with inhibitor arcs
+N>from a Petri net with transits Nand a Flow-LTL formula 'described in
+Sec. 6.1. Secondly, the formal transformation from a Flow-LTL formula 'to
+an LTL formula '>(described in Sec. 6.2) is given. Thirdly, the correctness of
+these transformations are proven by mutually transforming the counterexam-
+ples. Finally, the formal construction of the circuit (outlined in Sec. 6.3), its
+corresponding Kripke structure, and its correctness are presented. By this, the
+proofs for all lemmata and the theorem of this paper are made available.
+B.1 Formal Construction of the Net Transformation
+We introduce a set of identiers IDand an injective naming function N:P[
+T!IDfor every Petri net N= (P;T;F;In) (and all of its extensions) which
+uniquely identies every place and transition of a given net. If the net Nis clear
+from the context, we omit the subscript and only write . Furthermore, we often
+omit the predicate p2P^(p) = identier andt2T^(t) = identier ,
+respectively, in formulas and only use identier instead ofport, respectively,
+within the formula to keep the presentation short.
+The construction of a Petri net with transits to a standard P/T Petri net
+with inhibitor arcs is given by the following denition.
+Denition 1 (Petri Net with Transits to a P/T Petri Net). LetN=
+(P;T;F;In;)be a Petri net with transits and 'a Flow-LTL formula with
+n2Nsubformulas A i, fori= 1;:::;n . We dene a P/T-Petri net with
+inhibitor arcs N>= (P>;T>;F>;F>
+I;In>), with
+P>def:=P>
+o[[
+i2f1;:::;ngP>
+i;T>def:=T>
+o[[
+i2f1;:::;ngT>
+i
+and a partial function :T>[P>!T[Pwhich maps the elements to its
+corresponding original ones. The smallest sets and sets P>
+o;P>
+i;T>
+0,T>
+i,F>,
+andF>
+Ifullling the following constraints dene the net N>.
+By constraint (o) it is ensured that all places, transitions, and ows of the
+original net Nare also existent in N>. The labeling and the identiers are
+copied.
+(o)P>
+oP^T>
+o=T^F>F^8p>2P:(p>) =p^8t>2T:(t>) =
+t^8p>2P:(p>) =(p)^8t>2T:(t>) =(t)
+With the following constraints starting with s, the additional places, transitions,
+and ows of the subnets are dened for each subformula A i. LetI=f1;:::;ng.
+In (s1), a copy of every original place for each subnet is demanded for tracking
+the ow chains.
+(s1)8i2I:8p2P:9p>2P>
+i:(p>) =p^(p>) = [(p)]i
+
+--- Page 23 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 23
+To consider if any chain has been tracked, an initial place []ifor every subnet
+is dened via constraint (s2).
+(s2)8i2I:9p>2P>
+i:(p>) = []i
+Constraint (s3) ensures the existence of transitions simulating the creation of
+a ow chain during the run. Hence, for every starting ow chain there is a
+transition in each subnet, which takes the initial token from []iand moves it
+according to the corresponding transit.
+(s3)8i2I:8t2T:8(B;q)2(t) :9t>2T>
+i: ([]i;t>)2F>^(t>;[(q)]i)2
+F>^(t>) =t^(t>) =(t)(q)i
+In constraint (s4), this is similarly done for each transit of each transition.
+(s4)8i2I:8t2T:8(p;q)2(t) :9t>2T>
+i: ([(p)]i;t>)2F>^
+(t>;[(q)]i)2F>^(t>) =t^(t>) =(t)((p);(q))i
+Constraint (s5) treats the situation that the currently tracked ow chain is inde-
+pendent of the ring of the previous original transition. Thus, a skipping tran-
+sition is demanded for every original transition tin each subnet which is only
+allowed to re when the considered chain of the subnet is not moved by the tran-
+sits oft, i.e., no corresponding places of the preset of tare occupied.
+(s5)8i2I:8t2T:9t>2T>
+i:8p2t: ([(p)]i;t>)2F>
+I^(t>) =
+t^(t>) =(t)Vi
+The following four constraints are used to connect the components sequentially.
+Constraint (a) ensures one activation place !ofor the original net, and one
+activation place!(t)ifor every original transition t2Tfor each subnet.
+(a)9p>2P>
+o:(p>) = !o^8i2I:8t2T:9p>2P>
+i:(p>) =!(t)i
+Constraint (mO) let every original transition t2T>
+otake the activation token
+from !oand moves it to the activation place!(t)0of all transition of the rst
+subnet which are labelled with tto activate this subnet.
+(mO)8t2To: ( !o;t)2F>^(t;!(t)0)2F>
+With the constraints (mSi) and (mSn), we move the active token through the
+subnets, or back to the original net, respectively. Therefore, we let all equally
+labelled transitions of the subnet take their corresponding activation token from
+the place!(t)ifor a labelt2Tand move it to the next subnet, i.e., place!(t)i+1
+or !o, respectively.
+(mSi)8i2f1;:::;n1g:8t2T:
+8t>2T>
+i:(t>) =t=)((!(t)i;t>)2F>^(t>;!(t)i+1)2F>)
+(mSn)8t2T:8t>2T>
+n:(t>) =t=)((!(t)n;t>)2F>^(t>; !o)2F>)
+
+--- Page 24 ---
+24 B. Finkbeiner et al.
+The initial marking of N>is dened by constraint (in). We only activate the
+original part of the net and allow all subnets to track a chain.
+(in) In>=f !og[f []iji2Ig[In.
+Newly introduced identiers, e.g., and !o, are unique and do not occur in N.
+The results of Lemma 1 directly follows from this construction. Having a copy
+of each original place for each ow subformula and an activation place for each
+original transition yields the quadratic number of places in the size of the net
+and the number of subformulas. The cubic number of the transitions in the size
+of the net and the number of subformulas follows from the possible quadratic
+number of transits of each transition and that for each ow subformula and for
+each transit a new transition is added.
+Proof (Lemma 1 (Size of the Constructed Net)). The injectivity of yields that
+each demanded place or transition is a unique element of P>orT>respectively.
+That we demand the smallest sets P>andT>fullling the constraints allows
+to only consider the explicitly stated elements.
+Therewith, constraint (o)together with constraint (a)yieldjP>
+oj=jPj+ 1.
+Constraint (s1)demandsjPjplaces for each subnet, constraint (s2)demands one
+initial place for every subnet, and constraint (a)requires one active place for each
+original transition for every subnet. Hence, jS
+i=1;:::;nP>
+ij=njPj+n+njTj
+and soP>=n(jPj+jTj+ 2) +jPj+ 1.
+For the transitions of the original part of the net, constraint (o)directly yields
+jT>
+oj=jTj. Constraint (s3) demands a transition for every newly created ow
+chain of the net, i.e., jf(t;p)2TPj(B;p)2(t)gjmany transitions, which
+are at mostjTjjPjtransitions for each subnet. Constraint (s4) does the same
+for every transit of the net, i.e., jf(p;t;q )2PTPj(p;q)2(t)gjmany
+transitions, which are at most jPjjTjjPjtransitions for each subnet. Constraint
+(s5)requires one transition for skipping and directly moving the active token to
+the next subnet. Hence, jS
+i=1;:::;nT>
+ij=njTjjPj+njPjjTjjPj+njTj
+and thus, T>containsn(jPj2jTj+jPjjTj+jTj) +jTjtransitions.u t
+B.2 Formal Construction of the Formula Transformation
+We formally introduce the transformation of a Flow-LTL formula 'to an LTL
+formula'>. We use the abbreviation 1W2for1_(1U2) and the oper-
+ator [0
+1=1;:::;0
+m=m] on formulas for the simultaneous substitution of jby
+0
+j. To substitute formulas from the inner- to the outermost, we utilise the func-
+tiond, which calculates the depth of a formula. The depth-function dis induc-
+tively dened: d(a) = 0 for every atomic proposition aandd(1) = 1 +d(1),
+d(1e2) = 1 + maxfd(1);d(1)gfor every unary operator , binary operator
+e, and formulas 1and2.
+Denition 2 (Flow-LTL to LTL). LetN= (P;T;F;In;)be a Petri net
+with transits, 'a Flow-LTL formula with n2Nsubformulas A i, fori=
+
+--- Page 25 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 25
+1;:::;n , andN>= (P>;T>;F>;F>
+I;In>)the with Denition 1 created P/T
+Petri net with inhibitor arcs. The corresponding LTL formula '>is created by
+the following steps.
+Flow part: For each ow formula A i, fori= 1;:::;n , we create a new for-
+mula PTX dmax
+i which adequately copes with the dierent timelines of the corre-
+sponding ow chains. Since in our approach each ow formula is checked on the
+corresponding subnet N>
+i, the places and transitions of the other components are
+ignored.
+The atomic propositions p2Pare substituted with the corresponding places
+of the subnet:
+(pF) P
+idef:= i2
+4[(p1)]i=p1;
+:::;
+[(pm)]i=pm3
+5forP=fp1;:::;pmg.
+For the atomic propositions t2T, we skip all transitions not concerning the
+extension of the current ow chain via an until operator. That means the ring
+ofunrelated transitions Oi= (T>nT>
+i)[f(t)Vi2T>
+ijt2Tg, i.e.,
+transitions of the other components or own skipping transitions, are skipped until
+arelated , i.e., one of the set of transitions extending the ow chain Mi(t) =
+ft>2T>
+inf(t)Vig j(t>) =tg, is red.
+(tF) PT
+idef:= P
+i2
+4(W
+to2Oito)U(W
+t2Mi(t1)t)=t1;
+:::;
+(W
+to2Oito)U(W
+t2Mi(tm0)t)=tm03
+5forT=ft1;:::;tm0g.
+The next operator is treated similarly. Let  PT
+icontainm1subformulas  0
+j
+forj= 1;:::;m 1. In this case, the related transitions are all transitions of the
+subnetT>
+ibut the skipping transitions: Mi=T>
+inf(t)Vi2T>
+ijt2Tg.
+We dene the disjunction of all related transitions by fMi=W
+t2Mitand apply
+the same ideas as in the previous case. To adequately cope with situations where
+no related transition t2Miwould ever re again ( (:fMi)), i.e., the stuttering
+at the end of a chain, we require the immediate satisfaction. To replace the
+formulas from the inner- to the outermost, we organize the formulas in groups
+f l
+1;:::; l
+klgaccording to their depth:
+(nF) Letf l
+1;:::; l
+klg=f 0
+jjj2 f1;:::;m 1g^d( 0
+j) =lgand
+d2f2;:::;d maxgwithdmaxdef:=maxfd( 0
+j)jj2f1;:::;m 1gg. Then,
+the substitutions of the next operators is given by
+ PTX 1
+idef:= PT
+i2
+64((W
+t2Oit)U(fMi^ 1
+1))_((:fMi)^ 1
+1)= 1
+1;
+:::;
+((W
+t2Oit)U(fMi^ 1
+k1))_((:fMi)^ 1
+k1)= 1
+k13
+75
+and
+ PTX d
+idef:= PTX d1
+i2
+64((W
+t2Oit)U(fMi^ d
+1))_((:fMi)^ d
+1)= d
+1;
+:::;
+((W
+t2Oit)U(fMi^ d
+kd))_((:fMi)^ d
+kd)= d
+kd3
+75
+
+--- Page 26 ---
+26 B. Finkbeiner et al.
+Run part: They same ideas are applied for the run part of the formula. Here
+the atomic propositions p2Pdo not need to be substituted since P>
+o=P
+holds. For the atomic propositions t2Thowever, the skipping procedure has
+to be applied as well. The unrelated transitions in this case are all transitions
+of the subnet O=T>nT. To only substitute occurrences in the run part of
+the formula, we introduce the substitution operator =Awhich does not change
+anything within the scope of the ow operator A.
+(tR)'Tdef:='2
+4(W
+t2Ot)Ut1=At1;
+:::;
+(W
+t2Ot)Utm=Atm3
+5.
+For the next operator in the run part of the formula, the related transition are
+all transitions of N>
+O, i.e.,T. We dene the disjunction of these transitions
+byT=W
+t2Tt. To adequately cope with situations where no transition t2
+Twould ever re again ( (:T)), i.e., the stuttering in the traces for nite
+ring sequences, we require the immediate satisfaction. Let the run part of 'T
+containm2subformulas 'jforj= 1;:::;m 2. We again organize the formulas
+according to their depth, to replace them from the inner- to the outermost.
+(nR) Letf'l
+1;:::;'l
+klg=f'jjj2 f1;:::;m 2g^d('j) =lgand
+d02f2;:::;d0
+maxgwithd0
+maxdef:=maxfd('j)jj2f1;:::;m 2gg. Then, the
+substitutions of the next operators is given by
+'TX 1def:='T2
+4((W
+t2Ot)U(T^'1
+1))_((:T)^'1
+1)=A'1
+1;
+:::;
+((W
+t2Ot)U(T^'k11))_((:T)^'1
+k1)=A'1
+k13
+5
+and
+'TXd0def:='TXd012
+4((W
+t2Ot)U(T^'d0
+1))_((:T)^'d0
+1)=A'd0
+1;
+:::;
+((W
+t2Ot)U(T^'d0
+kd0))_((:T)^'d0
+kd0)=A'd0
+kd03
+5
+Since ow chains can be created at any time during the run, we skip to their
+creation point, i.e., to the time []iis not occupied anymore. To also allow for
+not tracking any chain the weak until operator is used.
+(AR)'Adef:='TXd0max2
+4[]1W(:[]1^ PTX dmax
+1 )=A 1;
+:::;
+[]nW(:[]n^ PTX dmaxn )=A n3
+5
+Since we do not want any run or ring sequence to stop in any subnet N>
+i, the
+nal formula restricts the considered traces to those which innitely often visit
+the activation place !oof the original part of the net.
+(nSub)'>def:= !o!'A
+
+--- Page 27 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 27
+The idea of the proof of Lemma 2 directly results from Lemma 1, since the
+substitution of elements of 'depends on the size of N>. This net is quartic in
+the size of Nand the number of ow subformulas in '.
+Proof (Lemma 2 (Size of the Constructed Formula)). For each occurrence of
+an atomic proposition t2Tin the run part of', we have additionally 1 +
+2jT>nTj1 subformulas in '>by constraint (tR). SinceT>is quartic in
+the size of Nandn,'>is already quintic in the size of Nand'. For each
+occurrence of an atomic proposition t2Tin a ow subformula of'we have
+additionally 1 + 2 (jT>nTij+jTj)1 + 2(jMi(t)j)1 subformulas in '>
+(constraint (tF)). SinceMi(t) are at mostjPj2+jPjtransits of a transition
+T>is still the biggest part and we are quintic in the size of Nand'. For
+each occurrence of a next operator in the run part of'we have additionally
+2 + 1 + 2jT>nTj1 + 3 +jTj+ 1 + 3 + 1 +jTjsubformulas in '>(constraint
+(nR) ). Hence,'>is still quintic in the size of Nand'. For each occurrence
+of a next operator in a ow subformula of'we have additionally 2 + 1 + 2 
+(jT>nTij+jTj)1 + 3 +jTijjTj+ 1 + 3 + 1 +jTijjTjsubformulas in '>
+(constraint (nF)). Hence,'>is still quintic in the size of Nand'.u t
+B.3 Correctness Proof of the Transformations
+In this section, we prove Lemma 3. Hence, we x a Petri net with transits
+N= (P;T;F;In), the corresponding Petri net with inhibitor arcs N>=
+(P>;T>;F>;F>
+I;In>) which is created by Denition 1, a Flow-LTL formula
+'withn2Nsubformulas A i, fori= 1;:::;n , and the corresponding LTL
+formula'>which is created by Denition 2.
+The general idea is to show the contraposition of the statement:
+N6j='iN>6j=LTL'>:
+Therefore, we transform the counterexamples mutually by Denition 3 and Def-
+inition 4. For Denition 3, we sequentially pump up the ring sequence serving
+as counterexample for Nj='by one transition for each subnet in every step.
+If the subnet has to consider a ow chain, i.e., ;()6j=A iand the original
+transition transits the ow chain, the corresponding transition of the subnet is
+used. Otherwise, the corresponding skipping transition is added. The markings
+are extended to the additional tokens of N>.
+Denition 3 (CEX: From PNwT to PN). Let= (NR;)be a run of N,
+=M0[t0iM1[t1i a covering ring sequence, and for every ;()6j=A ibe
+i=pi
+0;ti
+0;pi
+1;ti
+1;::: the corresponding ow chain with (i)6j=LTL i. We create
+a tuple>= (N>R;>)and a sequence >=M>
+0[t>
+0iM>
+1[t>
+1i iteratively.
+We lift the function >to setsXby>(X) =f>(x)jx2Xg.
+(i) The marking M>
+0corresponds to the initial marking of N>, i.e.,>(M>
+0) =
+In>.
+
+--- Page 28 ---
+28 B. Finkbeiner et al.
+(ii) Every (n+1)th transition is the next transition of . Thus,t>
+j(n+1)=tjwith
+>(tj(n+1)) =(tj)for everyj2N(as long as tjis existent in ).
+(iii) Every other transition t=t>
+j(n+1)+i, for the existing tjandi2f1;:::;ng,
+is a fresh transition . The mapping of tis dependent on the previous original
+transitionto=(t>
+j(n+1))2T>
+o=T. In the case of ;()j=A i, no
+chain has to be considered, thus tis mapped to the corresponding skipping
+transition (i.e., >(t) =(to)Vi). In the case of ;()6j=A ithe mapping
+is done iteratively according to i. The rst occurrence of (B;(pi
+0))2(to)
+yields>(t) =(to)((pi
+0))i. We remember this position by i(;0) =j(n+
+1)+i+1. Then, whenever the next transition towith ((pi
+k);(pi
+k+1))2(to)
+occurs,>(t) =(to)((pi
+k);(pi
+k+1))iis used. This position is remembered with
+i(;k) =j(n+ 1) +i+ 1. In all other cases, >(t) =(to)Viholds again.
+(iv) Each marking M>
+kof>fork2Nnf0gis corresponding to a marking
+M0
+k>=(M>
+k1)npreN>((t>
+k1))[postN>((t>
+k1))(as long as t>
+k1has
+been created), i.e., >(M>
+k) =M0
+k>.
+The net N>Ris created iteratively out of the places of the markings M>
+jand
+the transitions t>
+jof>which are connected according to the pre- and postsets
+of>(t>
+j). We denote this construction with () =>.
+Note that the constructed tuple >= (N>R;>) is indeed a run of N>and the
+constructed sequence >is a ring sequence covering >.
+The ring sequence serving as counterexample for Nj='is gained from a
+covering>of a run of N>by projecting onto the elements of N. The ow
+chains serving as counterexample for ;()j=A iare created by iteratively
+concatenating the corresponding places and the transitions dierent to the skip-
+ping transition of each subnet.
+Denition 4 (CEX: From PN to PNwT). Let>= (N>R;>)be a run
+ofN>and>=M>
+0[t>
+0iM>
+1[t>
+1i a covering ring sequence.
+(i) We create a sequence =M0[t0iM1[t1i by projecting onto the elements
+ofN, i.e.,Mj=fp2M>
+j(n+1)j>(p)2Pgandtj=t>
+j(n+1)for all
+j2N(as long as M>
+j(n+1)andt>
+j(n+1)are existent in >).
+(ii) The net NRis analogously created as in Denition 3 and is dened by
+(p) =>(p)for allp2Mjand(tj) =>(t>
+j(n+1))for allj2N(as long
+as the elements exist).
+(iii) The ow chain i=pi
+0;ti
+0;pi
+1;ti
+1;:::for a subnet i2f1;:::;ngis only created
+when there is any transition t>
+jin>with>(t>
+j) =t>for anyt>2T>
+iwith
+(t>)6=((t>))Vi. In the case that there are such t>
+j, we iteratively collect
+the corresponding transitions and their to the transit belonging corresponding
+places of the pre- and postset. This means, if (t>) =((t>))(q)ifor any
+q2P, addq, and if(t>) =((t>))((p);(q))ifor anyp;q2P, then add
+(t>);qto the sequence. For each adding step k, we remember the position
+in>by>
+i(>;k) =j+ 1. We denote the construction by >
+i(>) =i.
+
+--- Page 29 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 29
+For this construction we denote >
+R(>) = (NR;)and>(>) =.
+Note that the constructed tuple = (N>;) indeed is a run of N, the con-
+structed sequences jare ow chains of N, and the constructed sequence is a
+covering ring sequence of .
+We prove Lemma 3 via a nested structural induction over the Flow-LTL for-
+mula'. Therefore, we use the LTL part and the ow part of 'as induction base
+for the outer induction, and prove each part separately by structural induction.
+Lemma 5 (LTL Part). Given an LTL formula  >created by Denition 2
+without condition (nSub) from the LTL part  (not within the scope of a ow
+operator A) of a ow-LTL formula '.
+(s) Given a run and a covering ring sequence , with(())ij=LTL !o
+for alli2N, then()6j=LTL =)(())6j=LTL >holds.
+(c) Given a ring sequence >of a run of the net N>with(>)ij=LTL !o
+for alli2N, then(>)6j=LTL >=)(>(>))6j=LTL holds.
+Proof (via structural induction over  ).For proving (s)and(c), we show sound-
+ness, i.e.,
+8i2N:()i6j=LTL =) 8j2f0;:::;n 0g:(())i(n+1)j6j=LTL >;
+and completeness , i.e.,
+8i2N:9j2f0;:::;n 0g:(>)i(n+1)j6j=LTL >=)(>(>))i6j=LTL 
+withn0=0 ifi= 0
+notherwisehold by an induction over the structure of  .
+(IB)Case =p2P. Denition 2 yields  >=p.
+Regarding soundness : Let=M0[t0iM1[t1i and() =M>
+0[t>
+0iM>
+1[t>
+1i
+with the corresponding mapping functions and>, respectively. The premise
+of the statement yields p62()(i). Fori= 0, condition (in) of Denition 1 to-
+gether with condition (i)of Denition 3 ensures that (M0)>(M>
+0) and that
+there cannot be any other p02M>
+0with>(p0)2P. Hence,p62(())(0).
+Fori>0, condition (iv)of Denition 3 yields that all other markings M>
+kare
+mapped to markings which are created by the ring of transitions of N>. De-
+nition 1 ensures that tokens residing on places p2P>
+o\Pof the original part
+of the net are not moved by transitions of the subnet. Hence, by p62()(i) we
+know thatpcannot get occupied while ring any transition of the subnet. With
+condition (ii)and (iii) of Denition 3 we know p62(())(i(n+ 1)j) for all
+j2f0;:::;ng.
+Regarding completeness : Given>=M>
+0[t>
+0iM>
+1[t>
+1iand its transformation
+>(>) =M0[t0iM1[t1i with the corresponding mapping functions and
+>, respectively. For i= 0, the premise yields p62(>)(0). From condition
+(i)of Denition 4, we know that M0=fp>2M>
+0j>(p>)2Pgand since
+p2Pand condition (ii)of the denition ensures that both mapping functions
+
+--- Page 30 ---
+30 B. Finkbeiner et al.
+coincide,p62(>(>). For all other i2N, the premise yields that there is
+aj2f0;:::;n 0gsuch thatp62(>)(i(n+ 1)j). Denition 1 ensures that
+every ring sequence of N>repeatedly has an original transition to2T>
+oand
+then sequentially ntransitions, one for each subnet. Furthermore, no transition
+of any subnet moves a token of the original net (apart from !o). Thus, for all
+j02f0;:::;n 0gthe placesp2Pof the markings of (>)(i(n+1)j0) stay the
+same. Since Denition 4 creates the markings for >(>) exactly by choosing
+those corresponding places and maps them accordingly, p62(>(>)(i(n+1)).
+Case =t2T. Denition 2 yields  >=W
+t02T>nTt0Ut.
+Regarding soundness : For alli2Nthe premise yields t62()(i). Since con-
+dition (ii)of Denition 3 copies every ( n+ 1)th transition we rstly know
+thatt62(())(i(n+ 1)) and secondly (())(i(n+ 1))\T>=;. Thus,
+(())i(n+1)6j=LTL >. Fori= 0 this already yields the conclusion. In the case
+thati >0, condition (iii) of Denition 3 ensures that for all j2f0;:::;nga
+transition is added which maps to a transition of the subnet T>nT. Hence,
+(())(i(n+ 1)j)\T= for allj2f0;:::;ng, and so(())i(n+1)j6j=LTL
+ >.
+Regarding completeness : The premise yields that there is a j2f0;:::;n 0gsuch
+that(>)i(n+1)j6j=LTLW
+t02T>nTt0Ut. Denition 1 yields that every trace of
+N>must contain at position i(n+1) a transition to2T>
+o=Tor no transition
+at all. Thus, for i= 0 we know from the premise t62(>)(0). Denition 4 keeps
+for alli(n+ 1) positions the transitions and the mapping for >(>). Hence,
+t62(>(>))(0). Fori>0, from Denition 1 follows that (>)(i(n+ 1)j)
+belong to some subnet and for all next positions until position i(n+ 1)1 only
+transitions t0belonging to subnets can possibly be red, i.e., t02T>nT. Thus,
+with the premise t62(>)(i(n+ 1). With the same argument as for the i= 0
+case,t62(>(>))(i).
+(IS) Let >
+1and >
+2be created from ow formulas  1and 2by Denition 2
+without (nSub) .
+Case =: 1. Since Denition 2 does not concern the negation  >=: >
+1.
+Regarding soundness : The premise yields ()ij=LTL 1and because >(()) =
+, this also can be stated as (>(()))ij=LTL 1. Then the contraposition of
+thecompleteness part of the induction hypothesis yields :(9j2f0;:::;n 0g:
+(())i(n+1)j6j=LTL >
+1). Thus,(())i(n+1)jj=LTL >
+1for all of those j,
+and so it is not satised for the negation, i.e.,  >.
+Regarding completeness : The premise states the existence of a j2f0;:::;n 0g
+with(>)i(n+1)jj=LTL >
+1). Since(>(>)) =>, the contraposition of the
+soundness part of the induction hypothesis yields (>(>))ij=LTL 1. Hence,
+(>(>))i6j=LTL .
+Case = 1^ 2. Since Denition 2 does not concern the conjunction operator
+ >= >
+1^ >
+2.
+Regarding soundness : The premise and the induction hypothesis for sound-
+ness yield that either 8j2 f0;:::;n 0g:(())i(n+1)j6j=LTL >
+1or8j2
+f0;:::;n 0g:(())i(n+1)j6j=LTL >
+2holds. The universal quantier can be
+
+--- Page 31 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 31
+moved to the outer level. Hence, 8j2f0;:::;n 0g:(())i(n+1)j6j=LTL >
+1^
+ >
+2.
+Regarding completeness : The premise states that there is j2f0;:::;n 0gsuch
+that(>)i(n+1)j6j=LTL >
+1or(>)i(n+1)j6j=LTL >
+1holds. We move the exis-
+tential quantier to the inner level and together with the induction hypothesis for
+thesoundness part we know that (>(>))i6j=LTL 1or(>(>))i6j=LTL 2
+holds. Hence, (>(>))i6j=LTL 1^ 2.
+Case = 1. Denition 2 yields  >= (W
+t02T>nTt0)U(W
+t2Tt^ >
+1)_
+((:W
+t2Tt)^ >
+1).
+Regarding soundness : The premise yields ()i6j=LTL 1, i.e.,()i+16j=LTL 1.
+The soundness part of the induction hypothesis ensures that the statement
+(*)(())(i+1)(n+1)j6j=LTL >
+1holds for all j2f0;:::;n 0g. We show the con-
+clusion by contradiction. Assume, (())i(n+1)j0j=LTL >for some of those
+j0. In the case that the rst disjunct is satised, condition (iii) of Denition 3
+ensures ifj0>0 that only transitions of the subnet are added. Those are skipped
+by the until and since at position i(n+ 1) condition (ii)of Denition 3 ensures
+that onlyt2Tcan occur(())i(n+1)j=LTLW
+t2Tt^ >
+1. This is directly
+given ifj0= 0. Hence, (())i(n+1)+1j=LTL >
+1which is a contradiction to (*)
+forj=n. If the second disjunct is satised, we know by (:W
+t2Tt) that never
+an original transition will occur in the future. Because of Denition 3 this is only
+possible ifis nite, and therewith also (). Thus, from i(n+ 1)jon()
+is stuttering and so all atomic propositions stay the same in the future. This
+is a contradiction to (*), since  >
+1currently holds and therewith for the whole
+future.
+Regarding completeness : The premise states the existence of a j2f0;:::;n 0g
+with(>)i(n+1)j6j=LTL(W
+t02T>nTt0)U(W
+t2Tt^ >
+1)_((:W
+t2Tt)^ >
+1).
+Forj >0, Denition 1 ensures that the starting position of the trace corresponds
+to a situation with an active subnet. Furthermore, it ensures that only transition
+t0of the subnet can be used until position i(n+ 1), i.e.,t02T>nT. Since those
+are skipped within the rst disjunct, this yields (>)i(n+1)6j=LTLW
+t2Tt^ >
+1.
+Forj= 0 this directly holds, since Denition 1 forces every trace of N>to
+start with a transition t2Tor to contain no transition at all. Since position
+i(n+ 1) belongs to situations where it is the turn of the original part of the
+net, either no original transition is ever red again (see case of the other dis-
+junct) or(>)i(n+1)+16j=LTL >
+1. Forj0=nthe induction hypothesis yields
+(>(>))i+16j=LTL 1and so(>(>))i6j=LTL . If no original transition
+is ever red again, the second disjunct yields (>)i(n+1)j6j=LTL >
+1. Since
+Denition 1 yields that only transitions t2Tare rable in the i(n+ 1) po-
+sitions of the trace, this situation must correspond to the stuttering of the
+trace. Since all atomic propositions stay the same during the stuttering we know
+(>)i(n+1)+16j=LTL >
+1. Hence, like in the other case the induction hypothesis
+yields the conclusion.
+Case = 1U 2. Since Denition 2 does not concern the until operator
+ >= >
+1U >
+2.
+
+--- Page 32 ---
+32 B. Finkbeiner et al.
+Regarding soundness : The premise yields 8k0 :()i+k6j=LTL 2_90l<k :
+()i+l6j=LTL 1. The induction hypothesis applied for all these ks andls yields:
+8k0 :8j2f0;:::;n 0g:(())(i+k)(n+1)j6j=LTL >
+2_90l < k :8j2
+f0;:::;n 0g:(())(i+l)(n+1)j6j=LTL >
+1. For anykwe know that starting from
+i(n+1) either all k(n+1)jsteps are not satisfying  >
+2or there is an 0l<k
+such that all l(n+ 1)jsteps are not satisfying  >
+1. Since the jensures that
+this exactly holds for all steps between kandk+ 1, we can also shift the indices
+such that8k0 :8j2f0;:::;n 0g:(())i(n+1)+kj6j=LTL >
+2_90l<k :
+8j2f0;:::;n 0g:(())i(n+1)+lj6j=LTL >
+1holds. By moving the universal
+quantier of the jto the outside, we obtain the semantical denition of the until
+operator. Hence, 8j2f0;:::;n 0g:(())i(n+1)j6j=LTL >
+1U >
+2.
+Regarding completeness : The premise yields that there is a j2f0;:::;n 0gwith
+8k0 :(>)i(n+1)j+k6j=LTL >
+2_90l < k :(>)i(n+1)j+l6j=LTL >
+1.
+We can move the existential quantier for the jinwards, i.e.,8k0 :9j2
+f0;:::;n 0g:(>)i(n+1)j+k6j=LTL >
+2_90l < k :9j02 f0;:::;n 0g:
+(>)i(n+1)j0+l6j=LTL >
+1. Since this holds for every kand thus, especially
+for everyk(n+ 1). Since the existence of the j0can be used to alter the in-
+dex to the previously existing position lfor everykwe know8k0 :9j2
+f0;:::;n 0g:(>)i(n+1)j+k(n+1)6j=LTL >
+2_90l < k :9j02f0;:::;n 0g:
+(>)i(n+1)j0+l(n+1)6j=LTL >
+1. The induction hypothesis then yields 8k0 :
+(>(>))i+k6j=LTL 2_90l < k :(>(>))i+l6j=LTL 1, which is the se-
+mantical denition of the conclusion. u t
+Lemma 6 (Flow Part). Given an LTL formula  >created by Denition 2
+without condition (nSub) from a ow formula A iof a ow-LTL formula '.
+(s) Given a run and a covering ring sequence , with(())jj=LTL !o
+for allj2N, then;()6j=A i=)(())6j=LTL >holds.
+(c) Given a ring sequence >of a run of the net N>with(>)jj=LTL !o
+for allj2N, then(>)6j=LTL >=)>
+R(>);(>(>))6j=A iholds.
+Proof (via structural induction over  i).We know from Denition 2 that  >=
+[]iW(:[]i^ >
+i) where >
+iis created from  iby the constraints (pF),(tF), and
+(nF). Since the operator Wis an abbreviation  >= ([]iU(:[]i^ >
+i))_[]i.
+Regarding (s) . The premise yields that there is a ow chain i=pi
+0;ti
+0;pi
+1;ti
+1;:::
+such that(i)6j=LTL i. Since there is a chain, Denition 3 yields the existence
+of a transition tin() at position i(;0)1 starting the chain, i.e., >(t) =
+(to)((pi
+0))ifor an original transition to2T>
+o=Twith (B;(pi
+0))2(to).
+Condition (s3) of Denition 1 ensures that at position i(;0) the place [ ]iis
+unoccupied. Hence, (())6j=LTL []i. Furthermore, from condition (in)follows
+that []iis initially marked. Denition 3 states that tis the rst occurrence of
+such kind and Denition 1 ensure that no other kind takes a token from [ ]i.
+Thus, []iis satised until position i(;0). Hence, we only have to show that
+in such situations (())i(;0)6j=LTL >
+iholds.
+Regarding (c) . The premise states that (>)6j=LTL([]iU(:[]i^ >
+i))_[]i
+holds. Since (>)6j=LTL []iDenition 1 yields the existence of a transition
+
+--- Page 33 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 33
+tin>with>(t) =(to)(q)ifor an original transition to2T>=Tand a
+placeq2Pwith (B;q)2(to). Thus, Denition 4 yields the existence of a
+ow chain >
+i(>) and that the rst place of the chain corresponds to index
+>
+i(>;0). Since we know that until this position [ ]iis satised, the premise
+yields(>)>
+i(>;0)6j=LTL >
+i. Hence, we have to show that in those situations
+(>
+i(>))06j=LTL iholds.
+We show these two cases via an induction over  i. We dene two sets =
+fi(;k);:::;i(;k+ 1)gand>=f>
+i(>;k);:::;>
+i(>;k+ 1)gand show
+that soundness , i.e.,
+8k2N:()k6j=LTL i=) 8j2:(())j6j=LTL >
+i
+and completeness , i.e.,
+8k2N:9j2>:(>)j6j=LTL >=)(>
+i(>))k6j=LTL i
+hold. The induction is similarly to the induction in the proof of Lemma 5. Since
+in the (tF) and (nF) constraints of Denition 2 also all time points are skipped
+which do not concern the current part of the formula, the dierent time lines are
+handled properly. The dierence in this case is that not after exactly nsteps the
+entry concern the current part of the formula but there could be more rounds
+not concerning the considered ow chain. This is adequately handled by allowing
+the skipping transition in Oi. We cannot skip in situations where we should not
+skip, i.e., in this round a transition to2Tohas red which moves the current
+chain, because of the inhibitor arcs of the skipping transition. Another key part
+is that, as for the LTL part, the tokens of the subnet (apart from the active one)
+are independent from every ring of any transition of the other subnets. u t
+Lemma 7 (Soundness). Given a run , a covering ring sequence , and an
+LTL formula '>created by Denition 2 from a Flow-LTL formula '. Then:
+;()6j='=)(())6j=LTL'>
+Proof (via structural induction over ').
+Denition 2 yields that every transformed formula '>0is of the form !o!
+'A. Since Denition 3 adds for every existing transition in also thentransi-
+tions (one for each subnet) to () (condition (3)) and by condition (mSn) of
+Denition 1 every transition of the last subnet puts a token onto !o, the state-
+ment(())ij=LTL !ois satised for every i2N. This also holds for nite
+ring sequences, because Denition 3 ensures that the last added transition is
+one of the last subnet. The stuttering then yields the satisfaction. Thus, we only
+have to show that (())6j=LTL'A. Let'>be such a subformula 'A.
+(IB)Case'= , for a standard LTL formula  . Lemma 5 directly yields
+(())6j=LTL'>.Case'=A i. Lemma 6 proves this case.
+(IS)Case'='1^'2. Since Denition 2 does not concern the conjunction
+operator of the run part, there are subformulas '>
+1and'>
+2with'>='>
+1^'>
+2,
+which are created from the corresponding '1and'2, respectively. The in-
+duction hypothesis yields that (())6j=LTL'>
+1or(())6j=LTL'>
+2, thus
+
+--- Page 34 ---
+34 B. Finkbeiner et al.
+(())6j=LTL'>
+1^'>
+2.
+Case'='1_'2. Since Denition 2 also does not concern the disjunction
+operator of the run part, this case is analogously done as the previous case.
+Case'= !'2. Since Denition 2 also does not concern the implica-
+tion operator there are subformulas '>
+1and'>
+2with'>='>
+1!'>
+2, which
+are created from  and'2, respectively. The premise of the statement yields
+;()j= , thus;()6j=: , and;()6j='2. Since: is still a standard
+LTL formula, Lemma 5 yields (())6j=LTL:'>
+1(the Denition 2 does not
+concern the negation). The induction hypothesis ensures (())6j=LTL'2, and
+so(())6j=LTL'>
+1!'>
+2. u t
+Lemma 8 (Completeness). Given a ring sequence >of a run of N>, and
+an LTL formula '>created by Denition 2 from a ow-LTL formula '. Then:
+(>)6j=LTL'>=)>
+R(>);(>(>))6j='
+Proof (via structural induction over ').
+Again, every '>0is of the form !o!'A. The premise of the statement
+therewith yields (>)j=LTL !o. Every other argument is analog to the
+arguments of the proof of Lemma 7. u t
+Finally, we are able to prove Lemma 3.
+Proof (Lemma 3 (Correctness of the Transformation)).
+Regarding soundness: We show the contraposition of the statement: N6j='=)
+N>6j=LTL'>. Hence, there is a run ofNand a covering ring sequence 
+such that;()6j='. Lemma 7 yields that the ring sequence () fullls
+(())6j=LTL'>. Thus, there exists a run >(created from () by iteratively
+adding the places of the markings and the transitions of the ring sequence and
+connecting them according their corresponding places and transitions in N>)
+which is covered by (), such that >6j=LTL'>, and thus N>6j=LTL'>.
+Regarding completeness. We analogously show the contraposition of the state-
+ment:N>6j=LTL'>=)N6j='. Hence, there is a run >ofN>and a
+covering ring sequence >such that(>)6j=LTL'>. Lemma 8 yields that the
+ring sequence >(>) fullls>
+R(>);(>(>))6j='. Hence, N6j='.u t
+B.4 Construction of the Circuit
+We formally dene the circuit CNfor a P/T Petri net with inhibitor arcs N=
+(P;T;F;FI;In) and the transformed formula  0of an LTL formula  described
+in Sec. 6.3.
+For a circuit C= (I;O;L;F) with a Boolean formula FoverIL
+OL, we use decoration to express the correspondence of the variables in the
+second and fourth component L. Thus, ifxdenotes the current value of a latch
+in the second component Lthenx0denotes the new value of that latch after the
+next clock pulse in the fourth component of L. This decoration is also lifted to
+sets. For a tuple ( I;L;O;L0)22I2L2O2Lwe say (I;L;O;L0)satises
+F(denoted by ( I;L;O;L0)j=F) iFis satised under the valuation which
+maps each occurring variable to true and all others to false.
+
+--- Page 35 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 35
+Denition 5 (P/T Petri Net to Circuit). For a P/T Petri net with inhibitor
+arcsN= (P;T;F;FI;In), we dene the circuit CN= (I;O;L;F)with
+the set of input variables I=T, the set of output variables O=fpoj
+p2Pg[ftojt2Tg[feog, the set of latches L=P[fi;egwith an
+initialisation latch iand a latch for invalid inputs e, and a boolean formula
+F=outP^outT^out e^latch e^latch i^latchPoverILOL
+which is dened with the help of the following formulas:
+val(t)def:=t^^
+t12Tnftg:t1^^
+p2t:pif(p;t)2FI
+potherwise;
+noTdef:=^
+t2T:val(t);
+succ (p)def:= (noT!p)^(:noT!^
+t2T(to!8
+<
+:pifp62t^p62t
+0ifp2t^p62t
+1otherwise)):
+The formula val(t)for at2Tstates the validity of t, i.e.,tis set as input but
+no other transition is set and tis enabled by the current state of the latches. The
+formula noTis true i no transition is valid and the formula succ (p)for a place
+p2Pdenes the successor value for p. If there is no valid input we keep the
+same marking. Otherwise, the marking is the successor marking of the current
+output transition toand the current marking. Therewith, the conjuncts of Fare
+dened as follows:
+out Pdef:=^
+p2P(po$(:i!p0)^(i!p));
+out Tdef:=^
+t2T(to$val(t));
+out edef:=eo$e;
+latch edef:=e0$i^noT;
+latch idef:=i0$true;
+latchPdef:=^
+p2P(p0$i!succ (p)ifp2In
+i^succ (p)otherwise):
+In all but the initial state, the outputs corresponding to places are the current
+values of the latches. The outputs corresponding to the transitions are at most
+one valid transition. The new value for the latches corresponding to places are
+initially the initial marking of N. Otherwise, if no valid input is applied, the
+current values of the latches are copied to the new values and if there is a valid
+transition, the successor marking of ring this transition in the current values is
+used for the new values.
+For all subsets PPandTT, we dene with Po=fpo2Ojp2Pgand
+To=fto2Ojt2Tgthe respective sets of the output variables. We dene
+
+--- Page 36 ---
+36 B. Finkbeiner et al.
+thetransformed formula  0by skipping the initialisation step and focusing on
+the valid traces:
+ 0=((eo!eo)!e )
+wheree is obtained from  by replacing every place and transition with the
+corresponding output variable.
+AKripke structure is a ve-tuple K= (A;S;S 0;!;`), with a set of atomsA,
+a set of statesS, a set of initial states S0S, atransition relation !SS,
+and a labelling function `:S!2A. Apath=01of a Kripke structure is
+an innite sequence of states i2Sfori2Nwith (i;i+1)2!. The path is
+initial i02S0. A Kripke structure Ksatises an LTL formula  (denoted
+byKj= ) i every initial path satises  .
+Denition 6 (Circuit to Kripke Structure). TheKripke structure KCof a
+circuitCis dened by KC= (A;S;S 0;!;`), with the set of atomsA=O, the
+set of statesS= 2I2L2O2L, the set of initial states S0=f(I;;;Ino;In0[
+fi0g jITg, the transition relation !=f((I1;L1;O1;L0
+1);(I2;L2;O2;L0
+2))2
+SSjL0
+1=L2^(I2;L2;O2;L0
+2)j=Fg, and the labelling function `=
+f((I;L;O;L0);O)2S2Og.
+B.5 Correctness of the Constructions
+We show the correctness of the construction of the circuit CNand the corre-
+sponding Kripke structure KCNby proving N6j=LTL iKCN6j= 0. For this
+purpose, we mutually transform the respective counterexamples and show their
+correspondence on the atomic propositions of  and 0, respectively. This al-
+ready yields the correctness part of Lemma 4. Finally, we have everything at
+hand to prove Theorem 1.
+Given a trace () of a ring sequence covering a run of a safe P/T Petri
+net with inhibitor arcs Nand a path =s0s1of the corresponding Kripke
+structure KCN= (A;S;S 0;!;`). We say an entry zi=()(i)22P[Tof the
+trace and an element sj= (Ij;Lj;Oj;L0
+j)2Sof the path coincide (denoted by
+zisj) izjT=ft2Tjto2Oj^eo62OjgandzjP=fp2Pjpo2Ojg.
+WherezjTandzjPare the projections onto the respective sets.
+Proof (Lemma 4 (Correctness of the Circuit)). The number of latches and gates
+directly follows from Denition 5. No formula has more than two nesting con-
+junctions over PorT. The correctness is proven on the corresponding Kripke
+structure KCNvia contraposition. We show N6j=LTL iKCN6j= 0by trans-
+forming the counterexamples.
+Soundness: LetN6j=LTL . Thus, there is a run = (NR;) and a covering
+ring sequence =M0[t0iM1[t1i such that()6j=LTL . We create a path
+=01ofKCNby0= (;;;;(M0)o;(M0)0[fi0g) and ifis innite
+i= (f(ti1)g;(Mi1)[fig;f(ti1)og[(Mi1)o;(Mi)0[fi0g)
+
+--- Page 37 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 37
+for alli2Nnf0g. If=M0[t0iM1[t1i[tn1iMnis nite the rst nstates are
+created as above and for the rst j >n we dene
+j= (;;(Mn)[fig;(Mn)o;(Mn)0[fi0;e0g)
+and for all other we dene jequally but that the current values of the latches
+also contain eand that also eois set for the outputs.
+We show that the sequence is indeed an initial path of KCN. Since(M0) =
+In, becausecovers a run of N, it directly holds 02S0. We show that for
+alli2N: (i;i+1)2!, i.e.,L0
+i=Li+1and (Ii+1;Li+1;Oi+1;L0
+i+1)j=F
+fori= (Ii;Li;Oi;L0
+i) andi+1= (Ii+1;Li+1;Oi+1;L0
+i+1). The rst clause can
+directly be seen by the denition of . We show that all the dened iin the
+nite as well as the innite case satisfy Fby checking each of the conjuncts:
+The conjunct outPis satised, because the current values pare set as output
+(iis true) and this ts to the denition of i. The conjunct outTis satised,
+becauseti1is enabled in Mi1because ofand no other transition is set in i.
+The conjunct latchPis satised, because succ (p) yields the marking resulting
+by ringti1in the current values of the latches (here (Mi1)) because noT
+is not satised. Because of , this is(Mi), which ts i. The other conjuncts
+are directly satised by the construction. In the case of a nite ring sequence
+the dened jalso satisfy F: The conjunct outPis satised, with the same
+arguments as in the previous case. The conjunct latchPis satised, because
+noTis satised and therewith the current values of the latches are taken and
+outTis also satised, because no transition is applied to the input. Also because
+ofnoTthe conjunct latch eis satised and with the additional constraints for
+all but the rst j > n the conjunct out eis satised for all i2N. The subpath
+1satises (eo!eo), because no eois ever set by the construction in the
+case of an innite and in the other case eois set for every j+ 1> n. Since
+by the construction ()(i)i+1directly holds, the path does not satisfy
+((eo!eo)!e ). Hence, KCN6j= 0.
+Completeness: LetKCN6j= 0. Thus, there is an initial path =01ofKCN
+not satisfying ((eo!eo)!e ). Hence, the subpath 1satises (eo!
+eo) and note . In the case that eo62Oifor alli2Nholds, we create a innite
+ring sequence =M0[t0iM1[t1i with(Mi) =fp2Pjpo2Oi+1gand
+(ti)2ft2Tjto2Oi+1g. Otherwise, if there is an i2Nwitheo62Oi,
+sayi=n+ 1 is the rst of such occurrences, we create a nite ring sequence
+=M0[t0iM1[t1i[tn1iMnfor the rst n1 steps as before and for the nth
+step we dene (Mn) =fp2Pjpo2On+1gas above.
+This is indeed a ring sequence, because (M0) =Inholds by the denition
+ofKCN, the construction of , and since is initial. All transitions are rable
+and yield the respective successor marking because of F, sinceis a path. This
+is because the error ag is maximally set in the last step, and thus, there must be
+exactly one enabled transition applied to the inputs. Therewith succ (p) yields
+the correct successor marking and this is the output of the next step. Since
+satises ((eo!eo), we know that also in the nite case of it holds
+()(i)i+1, since inthe output markings stay the same in situations where
+
+--- Page 38 ---
+38 B. Finkbeiner et al.
+eois set, because this is only possible if notT is true. Since 1does not satisfy
+e ,()6j=LTL . Constructing the corresponding run yields the conclusion. u t
+Proof (Theorem 1). For a Petri net with transits Nand a Flow-LTL formula ',
+Lemma 1 and 2 yield the polynomial size of the constructed P/T Petri net with
+inhibitor arcs N>and the constructed formula '>. Lemma 3 yields the equiv-
+alent satisability and Lemma 4 shows the polynomial size of the constructed,
+satisability-equivalent circuit CNand of the formula  0. This results in a Kripke
+structure of exponential size, which can be checked in linear time in the size of
+the state space and in exponential time in the size of the formula [10]. u t
+C Complete Experimental Results
+In this section of the appendix, we present the complete experimental results
+from the benchmark families presented in Sec. 7. Table 2 is a snapshot of this
+table.
+Table 4: Experimental results from the benchmark families Switch Failure (SF)
+and Redundant Pipeline (RP), and the case study Routing Update (RU). The
+results are the average over ve runs on an Intel i7-2700K CPU with 3.50 GHz,
+32 GB RAM, and a timeout of 30 minutes. For the case study RU, results are
+only listed when at least the falsier had no timeout.
+PNwT Translated PN Circuit Result
+Ben. Par. #SjPjjTjj'jjP>jjT>j j 0jLat. Gat. Sec. Algo.j=
+SF 3 44 5 35 17 22 60 90 2796 2.7 IC3 3
+4 55 6 45 20 26 73 106 3580 8.5 IC3 3
+5 66 7 55 23 30 86 122 4444 18.8 IC3 3
+6 77 8 65 26 34 99 138 5388 49.8 IC3 3
+7 88 9 75 29 38 112 154 6412 128.9 IC3 3
+8 99 10 85 32 42 125 170 7516 291.9 IC3 3
+9 1010 11 95 35 46 138 186 8700 1359.9 IC3 3
+10 1111 12 105 38 50 151 202 9964 TO - ?
+RP 1/1/B 44 5 43 17 22 68 100 2989 4.0 IC3 3
+1/2/B 55 6 53 20 26 81 116 3773 11.0 IC3 3
+1/3/B 66 7 63 23 30 94 132 4637 16.4 IC3 3
+1/4/B 77 8 73 26 34 107 148 5581 66.6 IC3 3
+1/5/B 88 9 83 29 38 120 164 6605 99.3 IC3 3
+2/1/B 55 6 53 20 26 81 116 3773 4.6 IC3 3
+2/2/B 66 7 63 23 30 94 132 4637 38.6 IC3 3
+2/3/B 77 8 73 26 34 107 148 5581 68.4 IC3 3
+2/4/B 88 9 83 29 38 120 164 6605 133.0 IC3 3
+2/5/B 99 10 93 32 42 133 180 7709 204.6 IC3 3
+3/1/B 66 7 63 23 30 94 132 4637 1004.9 IC3 3
+3/2/B 77 8 73 26 34 107 148 5581 76.2 IC3 3
+3/3/B 88 9 83 29 38 120 164 6605 192.3 IC3 3
+
+--- Page 39 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 39
+3/4/B 99 10 93 32 42 133 180 7709 310.9 IC3 3
+3/5/B 1010 11 103 35 46 146 196 8893 TO - ?
+4/1/B 77 8 73 26 34 107 148 5581 77.4 IC3 3
+4/2/B 88 9 83 29 38 120 164 6605 139.7 IC3 3
+4/3/B 99 10 93 32 42 133 180 7709 594.7 IC3 3
+4/4/B 1010 11 103 35 46 146 196 8893 646.4 IC3 3
+4/5/B 1111 12 113 38 50 159 212 10157 TO - ?
+5/1/B 88 9 83 29 38 120 164 6605 126.9 IC3 3
+5/2/B 99 10 93 32 42 133 180 7709 580.0 IC3 3
+5/3/B 1010 11 103 35 46 146 196 8893 TO - ?
+5/4/B 1111 12 113 38 50 159 212 10157 TO - ?
+5/5/B 1212 13 123 41 54 172 228 11501 TO - ?
+1/1/U 66 9 63 25 36 100 136 5535 1.6 BMC2 7
+1/2/U 77 10 73 28 40 113 152 6579 2.7 BMC3 7
+1/3/U 88 11 83 31 44 126 168 7703 6.3 BMC2 7
+1/4/U 99 12 93 34 48 139 184 8907 21.1 BMC3 7
+1/5/U 1010 13 103 37 52 152 200 10191 30.6 BMC2 7
+2/1/U 77 10 73 28 40 113 152 6579 2.3 BMC3 7
+2/2/U 88 11 83 31 44 126 168 7703 4.2 BMC3 7
+2/3/U 99 12 93 34 48 139 184 8907 18.4 BMC3 7
+2/4/U 1010 13 103 37 52 152 200 10191 23.7 BMC 7
+2/5/U 1111 14 113 40 56 165 216 11555 105.2 BMC2 7
+3/1/U 88 11 83 31 44 126 168 7703 8.6 BMC2 7
+3/2/U 99 12 93 34 48 139 184 8907 14.4 BMC2 7
+3/3/U 1010 13 103 37 52 152 200 10191 22.6 BMC3 7
+3/4/U 1111 14 113 40 56 165 216 11555 70.4 BMC2 7
+3/5/U 1212 15 123 43 60 178 232 12999 180.9 BMC3 7
+4/1/U 99 12 93 34 48 139 184 8907 15.2 BMC3 7
+4/2/U 1010 13 103 37 52 152 200 10191 49.0 BMC3 7
+4/3/U 1111 14 113 40 56 165 216 11555 75.6 BMC3 7
+4/4/U 1212 15 123 43 60 178 232 12999 144.4 BMC3 7
+4/5/U 1313 16 133 46 64 191 248 14523 883.7 BMC2 7
+5/1/U 1010 13 103 37 52 152 200 10191 38.4 BMC2 7
+5/2/U 1111 14 113 40 56 165 216 11555 87.3 BMC3 7
+5/3/U 1212 15 123 43 60 178 232 12999 182.8 BMC3 7
+5/4/U 1313 16 133 46 64 191 248 14523 945.1 BMC3 7
+5/5/U 1414 17 143 49 68 204 264 16127 TO - ?
+1/1/M 69 11 63 30 42 106 146 6908 8.1 BMC3 7
+1/2/M 710 12 73 33 46 119 162 8081 15.4 BMC2 7
+1/3/M 811 13 83 36 50 132 178 9334 59.1 BMC3 7
+1/4/M 912 14 93 39 54 145 194 10667 128.5 BMC3 7
+1/5/M 1013 15 103 42 58 158 210 12080 373.2 BMC 7
+2/1/M 710 12 73 33 46 119 162 8081 11.7 BMC3 7
+2/2/M 811 13 83 36 50 132 178 9334 45.1 BMC3 7
+2/3/M 912 14 93 39 54 145 194 10667 149.5 BMC2 7
+
+--- Page 40 ---
+40 B. Finkbeiner et al.
+2/4/M 1013 15 103 42 58 158 210 12080 457.5 BMC 7
+2/5/M 1114 16 113 45 62 171 226 13573 TO - ?
+3/1/M 811 13 83 36 50 132 178 9334 47.3 BMC3 7
+3/2/M 912 14 93 39 54 145 194 10667 129.9 BMC2 7
+3/3/M 1013 15 103 42 58 158 210 12080 347.0 BMC2 7
+3/4/M 1114 16 113 45 62 171 226 13573 1433.3 BMC3 7
+3/5/M 1215 17 123 48 66 184 242 15146 TO - ?
+4/1/M 912 14 93 39 54 145 194 10667 121.6 BMC3 7
+4/2/M 1013 15 103 42 58 158 210 12080 370.6 BMC2 7
+4/3/M 1114 16 113 45 62 171 226 13573 1449.6 BMC2 7
+4/4/M 1215 17 123 48 66 184 242 15146 TO - ?
+4/5/M 1316 18 133 51 70 197 258 16799 8.8 BMC3 7
+5/1/M 1013 15 103 42 58 158 210 12080 462.7 BMC2 7
+5/2/M 1114 16 113 45 62 171 226 13573 1740.1 BMC2 7
+5/3/M 1215 17 123 48 66 184 242 15146 TO - ?
+5/4/M 1316 18 133 51 70 197 258 16799 TO - ?
+5/5/M 1417 19 143 54 74 210 274 18532 TO - ?
+1/1/C 69 11 70 30 42 113 151 7023 63.1 IC3 3
+1/2/C 710 12 80 33 46 126 167 8196 183.5 IC3 3
+1/3/C 811 13 90 36 50 139 183 9449 301.7 IC3 3
+1/4/C 912 14 100 39 54 152 199 10782 565.8 IC3 3
+1/5/C 1013 15 110 42 58 165 215 12195 TO - ?
+2/1/C 710 12 80 33 46 126 167 8196 105.9 IC3 3
+2/2/C 811 13 90 36 50 139 183 9449 693.5 IC3 3
+2/3/C 912 14 100 39 54 152 199 10782 689.3 IC3 3
+2/4/C 1013 15 110 42 58 165 215 12195 TO - ?
+2/5/C 1114 16 120 45 62 178 231 13688 885.8 IC3 3
+3/1/C 811 13 90 36 50 139 183 9449 451.5 IC3 3
+3/2/C 912 14 100 39 54 152 199 10782 1252.4 IC3 3
+3/3/C 1013 15 110 42 58 165 215 12195 1218.0 IC3 3
+3/4/C 1114 16 120 45 62 178 231 13688 TO - ?
+3/5/C 1215 17 130 48 66 191 247 15261 TO - ?
+4/1/C 912 14 100 39 54 152 199 10782 1717.1 IC3 3
+4/2/C 1013 15 110 42 58 165 215 12195 775.1 IC3 3
+4/3/C 1114 16 120 45 62 178 231 13688 TO - ?
+4/4/C 1215 17 130 48 66 191 247 15261 TO - ?
+4/5/C 1316 18 140 51 70 204 263 16914 TO - ?
+5/1/C 1013 15 110 42 58 165 215 12195 TO - ?
+5/2/C 1114 16 120 45 62 178 231 13688 1641.3 IC3 3
+5/3/C 1215 17 130 48 66 191 247 15261 TO - ?
+5/4/C 1316 18 140 51 70 204 263 16914 TO - ?
+5/5/C 1417 19 150 54 74 217 279 18647 TO - ?
+RU Arpanet196912T 414 10 117 31 39 154 188 7483 22.7 IC3 3
+Arpanet196912F 414 10 117 31 39 154 188 7483 2.0 BMC3 7
+NapnetT 623 17 199 48 64 254 292 15875 95.1 IC3 3
+
+--- Page 41 ---
+Model Checking Data Flows in Concurrent Network Updates (Full Version) 41
+NapnetF 623 17 199 48 64 254 292 15875 4.7 BMC3 7
+EpochT 623 17 199 48 64 254 292 15875 169.2 IC3 3
+EpochF 623 17 199 48 64 254 292 15875 18.6 BMC3 7
+TelecomserbiaT 624 18 205 47 59 254 300 14779 492.3 IC3 3
+TelecomserbiaF 624 18 205 47 59 254 300 14779 51.2 BMC3 7
+Layer42T 624 18 209 49 65 264 304 16465 597.4 IC3 3
+Layer42F 624 18 209 49 65 264 304 16465 14.6 BMC3 7
+SanrenT 724 17 199 50 64 254 296 16177 1353.9 IC3 3
+SanrenF 724 17 199 50 64 254 296 16177 137.0 BMC3 7
+GetnetT 725 18 213 53 71 274 312 18601 1418.8 IC3 3
+GetnetF 725 18 213 53 71 274 312 18601 13.3 BMC3 7
+NetrailT 730 23 271 62 88 344 380 26101 145.3 IC3 3
+NetrailF 730 23 271 62 88 344 380 26101 58.3 BMC3 7
+Arpanet19706T 933 24 281 67 89 354 400 27619 507.8 IC3 3
+Arpanet19706F 933 24 281 67 89 354 400 27619 49.7 BMC3 7
+NsfcnetT 1031 22 261 65 87 334 376 26181 304.8 IC3 3
+NsfcnetF 1031 22 261 65 87 334 376 26181 8.4 BMC3 7
+HeanetT 733 26 305 67 97 384 420 30675 TO - ?
+HeanetF 733 26 305 67 97 384 420 30675 76.8 BMC3 7
+Nordu2005T 930 21 247 62 80 314 360 23269 TO - ?
+Nordu2005F 930 21 247 62 80 314 360 23269 48.5 BMC3 7
+ClaranetT 1555 40 473 111 153 594 648 70127 TO - ?
+ClaranetF 1555 40 473 111 153 594 648 70127 213.8 BMC3 7
+Garr199901T 1656 40 473 113 153 594 652 70785 TO - ?
+Garr199901F 1656 40 473 113 153 594 652 70785 795.4 BMC3 7
+FatmanT 1762 45 535 126 176 674 728 89701 TO - ?
+FatmanF 1762 45 535 126 176 674 728 89701 139.3 BMC3 7
+Nordu2010T 1856 38 449 106 133 552 618 57950 TO - ?
+Nordu2010F 1856 38 449 106 133 552 618 57950 136.1 BMC2 7
+PacicWaveT 1868 50 589 135 187 734 796 101171 TO - ?
+PacicWaveF 1868 50 589 135 187 734 796 101171 1707.4 BMC2 7
+TwarenT 2065 45 531 130 170 664 736 87493 TO - ?
+TwarenF 2065 45 531 130 170 664 736 87493 461.5 BMC3 7
+MarnetT 2077 57 679 156 224 854 908 138103 TO - ?
+MarnetF 2077 57 679 156 224 854 908 138103 746.1 BMC3 7
+JanetlenseT 2091 71 847 184 280 1064 1104 203595 TO - ?
+JanetlenseF 2091 71 847 184 280 1064 1104 203595 514.2 BMC2 7
+HarnetT 2171 50 593 143 193 744 812 108415 TO - ?
+HarnetF 2171 50 593 143 193 744 812 108415 919.0 BMC3 7
+Belnet2009T 2171 50 597 145 199 754 816 113397 TO - ?
+Belnet2009F 2171 50 597 145 199 754 816 113397 1163.3 BMC2 7
+Garr200404T 2273 51 607 148 200 764 832 115567 TO - ?
+Garr200404F 2273 51 607 148 200 764 832 115567 79.4 BMC3 7
+IstarT 2373 50 593 147 193 744 820 110051 TO - ?
+IstarF 2373 50 593 147 193 744 820 110051 276.6 BMC3 7
+
+--- Page 42 ---
+42 B. Finkbeiner et al.
+Garr199905T 2377 54 641 155 209 804 876 125707 TO - ?
+Garr199905F 2377 54 641 155 209 804 876 125707 157.7 BMC3 7
+Garr199904T 2377 54 641 155 209 804 876 125707 TO - ?
+Garr199904F 2377 54 641 155 209 804 876 125707 460.2 BMC2 7
+UranT 2456 38 449 106 133 552 618 57950 TO - ?
+UranF 2456 38 449 106 133 552 618 57950 143.2 BMC3 7
+KentmanFeb2008T 2682 56 669 167 223 844 920 142291 TO - ?
+KentmanFeb2008F 2682 56 669 167 223 844 920 142291 111.2 BMC3 7
+Garr200212T 2786 59 703 174 232 884 964 153509 TO - ?
+Garr200212F 2786 59 703 174 232 884 964 153509 324.2 BMC3 7
+IinetT 31104 73 871 210 288 1094 1176 227153 TO - ?
+IinetF 31104 73 871 210 288 1094 1176 227153 1244.5 BMC3 7
+KentmanJan2011T 38117 79 943 236 312 1184 1288 269943 TO - ?
+KentmanJan2011F 38117 79 943 236 312 1184 1288 269943 112.6 BMC3 7

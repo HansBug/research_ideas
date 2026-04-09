@@ -1,0 +1,978 @@
+--- Page 1 ---
+A primer on the Petri Net Markup Language and
+ISO/IEC 15909-2
+L.M. Hillah, UPMC & CNRS UMR 7606, Paris
+E. Kindler, Technical University of Denmark (DTU), Lyngby
+F. Kordon, UPMC & CNRS UMR 7606, Paris
+L. Petrucci, University Paris 13 & CNRS UMR 7030, Villetaneuse
+N. Trèves, CNAM & Cedric, Paris
+1 Introduction
+In 2000, there was a workshop [1] that should foster the deﬁnition of a standard transfer format for Petri
+netsas a satellite event of the annual ‘Petri Net Conference’ in Aarhus. As a result of this ﬁrst workshop,
+after many other discussions and meetings, the Petri Net Markup Language (PNML) is about to be ﬁnally
+adopted as ISO/IEC 15909-2. Over the years, PNMLhas evolved and, unfortunately, there are many
+diﬀerent intermediate versions and variants, that are still in use. With this paper, we would like to report
+on the ﬁnal result and on PNMLas it is deﬁned in ISO/IEC 15909-2. This way, we hope to unify the
+diﬀerent lines of PNMLand advertise the use of ISO/IEC 15909-2.
+Note that this paper is not a copy or exact reproduction of ISO/IEC 15909-2 (which, including all
+Annexes, has more than 100 pages). Rather it is a restructured excerpt that focuses on the most important
+issues and abstracts from some technical details, which can be found in ISO/IEC 15909-2. Most of the
+technical details can be derived from the RELAX NG grammars provided at the PNMLweb pages [17].
+Together, this should provide a fair account of the standard, its ideas and concepts, and its practical use.
+For a in-depth discussion of the rationales and design decisions behind PNML, we refer to the bunch of
+earlier publications [2, 15, 4, 18, 19]
+Though not an exact copy of ISO/IEC 15909-2, this paper reuses material of ISO/IEC 15909-2 with
+some modiﬁcations and simpliﬁcations with the kind permission of ISO/IEC, Geneva.
+Originally, PNMLwas introduced as an interchange format for all kinds of Petri nets [2, 3, 4]. Some
+major concepts of PNMLwere driven by this objective. Technically, ISO/IEC 15909-2 deﬁnes a transfer
+syntax for High-level Petri Net Graphs and those subclasses of Petri nets only that have been conceptually
+and mathematically deﬁned in the International Standard ISO/IEC 15909-1 [5], for capturing the essence
+of all kinds of coloured and high-level Petri nets [6, 7, 8, 9, 10, 11, 12, 13]. In this paper, the focus is
+onPNMLfor high-level nets in order not to mix up concepts that are part of ISO/IEC 15909-2 and some
+extensions, which are currently under consideration for ISO/IEC 15909-3. In the conclusion (Sect. 5), we
+will brieﬂy discuss some of these perspectives, which make PNMLapplicable for all kinds of Petri nets .
+2 Concepts
+In this section, we discuss the main concepts of PNML, were the main idea is that any kind of Petri net
+can be considered to be a labelled graph. In particular, all information that is speciﬁc to a particular kind
+ofPetri net can be captured in labels.
+This will be discussed in more detail in Sect. 2.1. The concepts of PNMLwill be deﬁned by a meta-
+model for PNMLin terms of UMLclass diagrams. These meta-models, however, do not deﬁne the XML
+syntax for the transfer format. Therefore, there is a mapping from the concepts of the PNMLmeta-model
+This paper was presented at the CPN workshop, Aarhus, Denmark, in October 2009, and is reproduced in the Petri Net
+Newsletter as a kind invitation from the editors.
+
+--- Page 2 ---
+PNML Core ModelSymmetricNet PT−Net HLPNG
+<<merge>><<merge>>
+<<merge>>Figure 1: Overview of the UMLpackages of PNML
+toXML, which will be discussed in Sect. 4. Curious readers, who are interested in looking at the actual
+XMLright away, might have a look at this and, in particular, at the example in Listing 1.
+As mentioned above, ISO/IEC 15909-2 deﬁnes transfer formats for diﬀerent versions of Petri nets :
+Place/Transition Nets ,High-level Petri Net Graphs (HLPNG), andSymmetric Nets as deﬁned in ISO/IEC
+15909-1, where Symmetric Nets are a subclass of high-level nets, which originally were introduced under
+the name well-formed nets [14]. The main diﬀerences between them are the available data types, which
+will be discussed in Sect. 3.
+2.1 General Principles
+In order to deal with diﬀerent kinds of Petri nets , the transfer format needs to be ﬂexible and extensible.
+In order to obtain this ﬂexibility, a Petri net is considered to be a labelled directed graph, where all type
+speciﬁc information of the net is represented in labels. Alabelmay be associated with a node, anarc, or
+thenetitself. This basic structure of a PNMLDocument is deﬁned in the PNMLCore Model using a UML
+class diagram. This will be discussed in Sect. 2.2.
+The PNMLCore Model imposesnorestrictionson labels. Therefore, the PNMLCore Model canrepresent
+any kind of Petri net . Due to this generality of the PNMLCore Model , there can be even PNMLDocuments
+that do not correspond to a Petri net at all. For example, there could be labelsfrom two diﬀerent and
+even incompatible versions of Petri nets within the same PNMLDocument . For a concrete version of Petri
+nets, the legal labelswill be deﬁned by extending the PNMLCore Model with another meta-model that
+exactly deﬁnes the legal labelsof this particular type.
+Technically, the PNMLCore Model is a UMLpackage, and there are additional UMLpackages for the
+diﬀerent Petri net types that extend the PNMLCore Model package. ISO/IEC 15909-2 deﬁnes a package
+forPlace/Transition Nets , a package for Symmetric Nets , and a package for High-level Petri Net Graphs ,
+where the package for High-level Petri Net Graphs extends the package for Symmetric Nets . Therefore,
+everySymmetric Net is also a High-level Petri Net Graph .
+Figure 1 gives an overview of the diﬀerent packages deﬁned and on their dependencies. The package
+PNMLCore Model deﬁnes the basic structure of Petri nets ; this structure is extended by the package
+for each type. The PNMLCore Model is discussed in Sect. 2.2 and the package PT-Net is discussed in
+Sect. 2.3.1. The general concepts of High-level Petri Net Graphs will be discussed in Sect. 2.3.2. The
+diﬀerent data types used in the diﬀerent versions of high-level Petri nets are discussed in Sect. 3.1. Based
+on these data types, the package SymmetricNet is discussed in Sect. 3.3.2 and the package HLPNGfor
+generalHigh-level Petri Net Graph is deﬁned in Sect. 3.3.3.
+2.2 The PNML Core Model
+Figures 2 and 3 show the meta-model of the PNMLCore Model as a UMLclass diagram. The diagram of
+Fig. 2 focusses on the conceptual parts, whereas the diagram of Fig. 3 focusses on the parts concerning
+the graphical representation (i.e. graphics). Note that the data type Stringis imported from a separate
+packageXMLSchemaDataTypes , which is discussed in Sect. 2.2.6; since this is a technicality only, the
+references to this package are shown in tiny fonts in the diagram. The concepts of the PNMLCore Model
+are discussed below.
+
+--- Page 3 ---
+  self.target.page  self.source.page =context Arc inv:PNMLCoreModel
+XMLSchemaDataTypes::
+StringToolInfo
+tool
+version
+Object
+id* label*label**net
+object
+{redefines label}name0..1
+name0..1
+{redefines label}
+Graphics
+Node
+RefPlace RefTrans1
+1Page
+TransitionNode1
+ref1
+refsource
+targetpage
+TransitionArc
+* **
+*page1..*1..*
+toolspecificPetriNetDoc
+LabelPetriNet
+typeid
+Attribute Annotation Name
+PlaceNode
+Place−− source and target must
+−− be on the same page*
+1textgraphics0..1
+0..1graphicstoolspecific
+toolspecific *
+<<import>>
+XMLSchemaDataTypesFigure 2: The PNMLCore Model package: concepts
+2.2.1 Petri Net Documents, Petri Nets, and Objects
+A document that meets the requirements of the PNMLCore Model is called a Petri Net Document
+(PetriNetDoc) or a PNMLDocument . It contains one or more Petri Nets (PetriNet). Each Petri Net
+has a unique identiﬁer and a type. Thetypeis a name uniquely identifying a Petri net type deﬁnition ;
+an example for such a name is http://www.pnml.org/version-2009/grammar/ptnet for the deﬁnition
+ofPlace/Transition Nets .
+APetri net consists of one or more pagesthat in turn consist of several objects. These objects,
+basically, represent the graph structure of the Petri net . Eachobjectwithin a Petri net document has a
+uniqueidentiﬁer , which can be used for referring to this object. Moreover, each objectmay be equipped
+with graphical information deﬁning its position, size, colour, shape and other attributes on its graphical
+appearance ( graphics). The precise graphical information that can be provided for an objectdepends on
+the particular type of the object(see Sect. 2.2.4 for more details).
+The most important objectsof aPetri net areplaces,transitions , andarcs. For extensibility reasons
+and principles of good design, placesandtransitions are generalised to nodes. For reasons explained in
+Sect. 2.2.2, this generalisation is via place nodes and viatransition nodes .Nodesof aPetri net can be
+connected by arcs.
+Note that it is legal to have an arcfrom aplaceto aplaceor from a transition to atransition according
+to the PNMLCore Model . The reason is that there are versions of Petri nets that support such arcs. If a
+Petri net type does not support such arcs, this restriction will be deﬁned in the particular package deﬁning
+
+--- Page 4 ---
+this type.
+2.2.2 Pages and Reference Nodes
+Three other kinds of objectsare used for structuring a Petri net :pages,reference places , andreference
+transitions . As mentioned above, a pagemay contain other objects; since a pageis anobjectitself, apage
+may even contain other pages, thus deﬁning a hierarchy of subpages.
+Note that PNMLrequires that an arcmust connect nodeson the same pageonly. The reason for this
+requirement is that arcsconnecting nodeson diﬀerent pagescannot be drawn graphically. In the PNML
+Core Model of Fig. 2, this requirement is captured by the OCLexpression next to the class for arcs.
+In order to connect nodeson diﬀerent pagesby anarc, a representative of one of the two nodesmust
+be drawn on the same pageas the other node. Then, this representative may be connected with the other
+nodeby anarc. This representative is called a reference node , because it has a reference to the nodeit
+represents. Note that a reference place must refer to a placeor areference place , and areference transition
+must refer to a transition or areference transition . Moreover, cyclic references among reference nodes are
+not allowed.
+2.2.3 Labels
+In order to assign further meaning to an object, eachobjectmay have labels. Typically, there are labels
+representing the name of a node, the initial marking of a place, thetransition condition , or some arc
+annotation . In addition, the Petri net itself or its pagesmay have some labels, which are called global
+labels. For example, the package HLPNGdeﬁnesdeclarations asglobal labels of aHigh-level Petri Net ,
+which are used for deﬁning variables , and user-deﬁned sortsandoperators .
+In the PNMLCore Model , we distinguish two kinds of labels:annotations andattributes . Anannotation
+comprises information that is typically displayed as text next to the corresponding object. Examples of
+annotations are names, initial markings, arc annotations, transition conditions, and timing or stochastic
+information. In contrast, an attribute is, typically, not displayed as text next to the corresponding object.
+Rather, an attribute has an eﬀect on the shape or colour of the corresponding object. For example, an
+attribute such as arc type could have domain fnormal,read,inhibitor ,resetg. ISO/IEC 15909-2,
+however, does not mandate the eﬀect on the graphical appearance of an attribute.
+Note that the classes for label,annotation andattribute are abstract in the PNMLCore Model , which
+means that the PNMLCore Model does not deﬁne concrete labels,annotations , andattributes . The only
+concrete labeldeﬁned in the PNMLCore Model is thename, which is a labelthat can be used for any
+objectwithin any Petri net type . This way, any objectsuch asnodes,pages, thenetitself, and even
+arcscan have a name. The value of a nameis aString, which is imported from the separate package
+XMLSchemaDataTypes (see Sect. 2.2.6 for more information). All other concrete labelsare deﬁned in the
+packages for the concrete Petri net types (see Sect. 2.3).
+In order to support the exchange of information among tools that have diﬀerent textual representation
+for the same concepts (i.e. when they have diﬀerent concrete syntax), there are two ways for representing
+the information within an annotation: textually in some concrete syntax and structurally as an abstract
+syntax tree (see Sect. 2.3.2 and 4.1.2 for details).
+Note that reference nodes may have labels, but these labelsdo not have any meaning. This choice was
+made in order to obtain a semantically equivalent Petri net withoutpagesby merging every reference
+nodeto thenodeit directly or indirectly refers to. This is called ﬂattening of thePetri net (see [15] for
+details). Still, the labels of a reference node can have an eﬀect on the graphical appearance or can give
+some additional information to the user.
+2.2.4 Graphical Information
+In addition to the Petri net concepts, information concerning the graphical appearance can be associated
+with each objectand each annotation . For anode, this information includes its position; for an arc, it
+includes a list of positions that deﬁne intermediate points of the arc; for anobject’s annotation , it includes
+its relative position with respect to the corresponding object; for anannotation of apage, the position
+is absolute. There can be further information concerning the size, colour and shape of nodes or arcs, or
+concerning the colour, font and font size of labels. Note that this information can be used for automatically
+transforming a Petri Net intoScalable Vector Graphics (SVG) by XSLTtransformations (see [16] for more
+details). This transformation, however, is not part of ISO/IEC 15909-2.
+
+--- Page 5 ---
+Figure 3 shows the diﬀerent graphical information that can be attached to the diﬀerent types of objects
+and the diﬀerent attributes. Note that these concepts still belong to the PNML Core Model ; it is shown in
+a diﬀerent ﬁgure only in order to avoid clutter. Table 1 gives an overview of the meaning and the domain
+of the attributes of the diﬀerent graphical features.
+Line
+shape
+color
+width
+styleFont
+family
+style
+weight
+size
+decoration
+align
+rotationcontext ArcGraphics inv:
+  self.object.oclIsKindOf(Arc)  self.object.oclIsKindOf(Page)  self.object.oclIsKindOf(Node) orcontext NodeGraphics inv:
+context AnnotationGraphics inv:
+  self.object.oclIsKindOf(Annotation)
+NodeGraphicsAnnotation
+Graphics
+0..1font
+line0..1fill0..1 0..1
+fill
+color
+image
+gradient−rotation
+line0..1
+line0..10..10..1
+dimension*
+positionposition
+offset0..1x
+yCoordinatePNMLCoreModel
+{ordered}
+gradient−colorGraphics
+FillArcGraphics
+Figure 3: The PNML Core Model : graphical information
+Table 1: PNMLattributes of graphical information
+Class Attribute Domain
+Coordinate x decimal
+y decimal
+Fill color CSS2-color
+image any URI
+gradient-color CSS2-color
+gradient-rotation {vertical, horizontal, diagonal}
+Line shape {line, curve}
+color CSS2-color
+width nonNegativeDecimal
+style {solid, dash, dot}
+Font family CSS2-font-family
+style CSS2-font-style
+weight CSS2-font-weight
+size CSS2-font-size
+decoration {underline, overline, line-through}
+align {left, center, right}
+rotation decimal
+Theposition deﬁnes the absolute position for nodesandpages. For an annotation theoﬀsetdeﬁnes
+its relative position to the objectit is attached to; for a global annotation , theoﬀsetdeﬁnes the absolute
+position on that page. Each absolute or relative position consists of a pair of Cartesian coordinates (x; y),
+where the units are points (pt). As for many graphical tools, the x-axis runs from left to right and the
+y-axis from top to bottom. And the reference point for the position of an objectis its centre.
+For anarc, the (possibly empty) sequence of positions deﬁnes its intermediate points (bend points).
+Note that the positions of the start point and the end point of anarcare not given explicitly for the
+arc. These positions are determined from the position of the source and the target nodesof thearcand
+the direction of the ﬁrst resp. last segment of the arc, by the intersection of this segment with the nodes
+
+--- Page 6 ---
+border. Altogether, the arcis displayed as a path from the start point on the border of the source node to
+theend point on the border of the target node via the intermediate points. Note that, even though there
+is no way to deﬁne the start point and theend point of an arc explicitly, the above concepts allow a user
+making sure that an arc starts and ends exactly at the point, where he wants it to start and end: If the
+ﬁrst, (or last) intermediate point of an arc lies exactly on the border of the respective node, this will be
+thestart point (or theend point resp.) of that arc.
+Forarcs, there are also some lineattributes, which deﬁne the style, thecolour, and the widthin which
+they are displayed.
+Depending on the value of the attribute shapeof element line, the path is displayed as a broken
+line(polyline) or as a quadratic Bezier curve. In the case of a Bezier curve the intermediate positions
+alternately are the line connectors or Bezier control points. The reference point of an arc is the middle of
+the arc, which is the middle of the middle segment of the arc, if there are an odd number of segments; it
+is the middle point, if there are an even number of segments.
+Thedimension of anodeorpagegives its size, again as a pair referring to its width (x) and height
+(y). Depending on the ratio of height and width, a placeis displayed as an ellipse rather than a circle. A
+transition is displayed as a rectangle of the corresponding size. If the dimension of an element is missing,
+each tool is free to use its own default value for the dimensions.
+The two elements ﬁllandlinedeﬁne the interior and outline colours of the corresponding element.
+The value assigned to a colorattribute must be a RGBvalue or a predeﬁned colour as deﬁned by CSS2
+(Cascading Style Sheets 2). When the attribute gradient-color is deﬁned, the ﬁll colour continuously
+varies from color to gradient-color. The additional attribute gradient-rotation deﬁnes the orientation of
+the gradient. When the attribute imageis deﬁned, the node is displayed as the image which is provided at
+the speciﬁed URI, which must be a graphics ﬁle in JPEGorPNGformat. In this case, all other attributes
+ofﬁllandlineare ignored.
+For anannotation , thefontelement deﬁnes the font used to display the text of the label. The attributes
+family,style,weight, andsizeareCSS2 attributes for deﬁning the appearance of the text. The detailed
+description of the possible values of these attributes and their eﬀect can be found in the CSS2 speciﬁcation.
+Thedecoration attribute deﬁnes additional properties of the appearance of the text such as underlining,
+overlining, or striking-through the text. Additionally, the alignattribute deﬁnes the alignment of the text
+to theleft,rightorcenter. Therotation attribute deﬁnes a clockwise rotation of the text.
+The reference point of an annotation is always its centre.
+2.2.5 Tool Speciﬁc Information
+For some tools, it might be necessary to store tool speciﬁc information (ToolInfo), which is not meant to
+be used by other tools. In order to store this information, tool speciﬁc information may be associated
+with each objectand each label. The internal structure of the tool speciﬁc information depends on the tool
+and is not speciﬁed by PNML.PNMLprovides a mechanism for clearly marking tool speciﬁc information
+alongwith the name and the version of the tool adding this information. Therefore, other tools can easily
+ignore it, and adding tool speciﬁc information will never compromise a Petri Net Document .
+The same objectmay be tagged with tool speciﬁc information from diﬀerent tools. This way, the same
+document can be used and changed by diﬀerent tools at the same time. The intention is that a tool should
+never change or delete the information added by another tool as long as the corresponding objectis not
+deleted. Moreover, tool speciﬁc information should be self-contained and not refer to other objectsof the
+net because the deletion of other objectsby a diﬀerent tool might make this reference invalid and leave the
+tool speciﬁc information inconsistent. This use of the tool speciﬁc information is strongly recommended;
+however, it is not normative.
+2.2.6 Data Types
+In this section, we discuss six XMLdata types, which are taken from XMLSchema . These can be used for
+deﬁning labels for some Petri net type with numerical and textual information. Note that these data types
+are not related to the data types that may be used within high-level nets! Rather, they deﬁne the types
+of the attributes and their XMLsyntax that may be used in the meta-models of the PNMLCore Model
+and of the Petri net types .
+Figure 4 gives an overview of these XMLdata types and their relation.
+
+--- Page 7 ---
+NonNegativeDecimal
+PositiveIntegerStringXMLSchemaDataTypes
+NonNegativeIntegerIntegerDecimalFigure 4: Standard data types
+Stringrefers to any printable sequence of characters, which is mapped to XMLPCDATA. Decimals ,
+NonNegativeDecimals ,Integer,NonNegativeInteger , andPositiveInteger refer to any character sequence
+which denotes a number of the corresponding kind.
+2.3 Petri Net Type Meta Models
+Next, we discuss three versions of Petri nets :Place/Transition Nets ,Symmetric Nets , andHigh-Level
+Petri Net Graphs (HLPNGs) as deﬁned in ISO/IEC 15909-1, where Symmetric Nets1are a restricted
+version of High-Level Petri Net Graphs currently deﬁned as an Amendment to ISO/IEC 15909-1. The
+general relation between the diﬀerent types has already been shown in Fig. 1. Again, the concepts of
+these diﬀerent versions are deﬁned in terms of meta-models. These meta-models deﬁne the labels of the
+respective Petri net type .
+ISO/IEC 15909-1 deﬁnes a mapping from the concepts of Place/Transition Nets to the concepts of
+High-Level Petri Net Graphs and shows how the usual mathematical representation of Place/Transition
+Netscan be represented as a restricted version of High-level Petri Nets . Though conceptually the same
+model, the syntax is diﬀerent. Therefore, ISO/IEC 15909-2 introduces yet another Petri net version:
+Place/Transiton Nets in High-level Notation , which will be discussed in Sect. 3.3.1.
+ISO/IEC 15909-2, however, introduces an explicit transfer format for Place/Transition Nets in order
+not to force tools for Place/Transition Nets to use the syntax of High-Level Petri Net Graphs . This format
+reﬂects the usual mathematical deﬁnition of Place/Transition Nets .
+2.3.1 Place/Transition Nets
+SincePlace/Transition Nets are the simplest version, we start with this version: the concepts are deﬁned
+in terms of a meta-model in UMLnotation: the package PT-Net.
+APlace/Transition Net is anet graph , where each placecan be labelled with a natural number
+representing the initial marking and each arccan be labelled with a non-zero natural number representing
+thearc annotation , with the usual meaning: the labelof aplace pdenotes the initial marking M(p), the
+labelof anarcfdenotes the arc weight W(f).
+Figure 5 shows the package PT-Net. Note that the only classes deﬁned here are PTMarking and
+PTArcAnnotation . The classes Place,Arc, andAnnotation come from the package PNMLCore Model .
+They are imported (actually, they are merged) here in order to deﬁne the possible labelsfor the particular
+nodesofPlace/Transition Nets . Likewise, the classes preﬁxed with XMLSchemaDataTypes are imported
+from the standard data type package (see Sect. 2.2.6).
+Theinitial marking of aplaceis represented by the annotation PTMarking , the contents of which
+must be a non-negative integer. Technically, the representation of the contents of this labelis deﬁned by
+referring to the data type NonNegativeInteger .
+1Remember that Symmetric Nets were originally introduced under the name well-formed nets [14].
+
+--- Page 8 ---
+Place{redefines label}initialMarking
+PTMarking0..1
+1textArc
+XMLSchemaDataTypes::
+NonNegativeIntegerPTArcAnnotationPT−Net
+textAnnotation
+    self.target.oclIsKindOf(PlaceNode)    )context Arc inv:
+−− no arcs between nodes of the same kind
+  (self.source.oclIsKindOf(PlaceNode) and 1
+PositiveIntegerXMLSchemaDataTypes::{redefines label}
+0..1inscription
+    self.target.oclIsKindOf(TransitionNode)  )
+or
+  (self.source.oclIsKindOf(TransitionNode) and
+XMLSchemaDataTypes<<merge>> <<import>>
+PNML Core ModelFigure 5: The package PT-Net
+Thearc annotation is represented by the annotation PTArcAnnotation , the contents of which must
+be a non-zero natural number, which is deﬁned by referring to the data type PositiveInteger .
+Note that, according to this deﬁnition, it is legal that a placedoes not have an annotation for the
+initial marking . In that case, the initial marking is assumed to be empty, i.e. 0. Likewise, there may be
+noannotation for anarc. In that case, the arc annotation is assumed to be 1.
+In addition to the deﬁnition of the new labels, this package also deﬁnes the structural restriction that,
+in aPlace/Transition Net , anarcmust not connect a placeto aplaceor atransition to atransition . This
+is captured by the OCLexpression below class arc.
+Sometimes, one wants to store the position of the individual tokens within a place. In order not to
+mandate all tools to support this feature, ISO/IEC 15909-2 suggests a tool speciﬁc information for this
+purpose, which would refer to the tool org.pnml.tool . Since no tool is required to support tool speciﬁc
+features, every tool is free to use and support this feature or not.
+PT−Net::
+Coordinatecontext TokenGraphics inv:
+−− TokenGraphics only for PTMarkings
+  self.object.oclIsKindOf(PTMarking)
+  self.tool = ’org.pnml.tool’PNML Extensions
+*tokenpositionTokenGraphicsPT−Net::
+ToolInfo
+<<import>>
+PT−Net
+Figure 6: Tool speciﬁc extension for token positions
+This extension is shown in Fig. 6. For a PTMarking , this label can be equipped with the tool speciﬁc
+information attached to AnnotationGraphics . This consists of information on a list of tokenpositions .
+Each of these elements represents the position of a token relative to the centre of the place; represented as
+
+--- Page 9 ---
+aCoordinate , which is imported from package PT-Net, where it was obtained by a merge with the PNML
+Core Model . If this graphical information is present at all, the number of tokenpositions should be the
+same as indicated by the PTMarking (see example in Sect. 4.1.5).
+2.3.2 High-Level Core Structure
+ISO/IEC 15909-1 deﬁnes High-level Petri Net Graphs .Symmetric Nets andPlace/Transition Nets are
+introducedasrestrictedversionsof High-level Petri Net Graphs . Thediﬀerenceisinthe typesandfunctions
+that may be used in the diﬀerent versions. To cater for this structure, we distill the common structure
+of allHigh-level Petri Net Graphs ﬁrst: This is called the High-Level Core Structure . The built-in data
+types of the speciﬁc Petri net types are discussed in Sect. 3.1.
+Syntactically, the basic features of a High-Level Petri Net are theannotations ofplaces,transitions ,
+andarcs. For each place, asortdeﬁnes the typeof the tokens on this place. Atermassociated with a
+placedenotes the initial marking and must have the respective sort. Thetermassociated with an arc
+to or from a place, deﬁnes which tokens are added or removed, when the corresponding transition ﬁres.
+Thesetermsmust also be of the respective sort.
+For constructing such terms, one can use built-in operators andsorts, and user-deﬁned variables ,
+which are deﬁned in a variable declaration . Thevariable declarations areannotations of thenetor a
+page. Moreover, a transition can have a condition which is a termofsortboolean and imposes additional
+conditions on the situations in which a transition can ﬁre.
+The meta-model for terms, which deﬁnes all these concepts, is shown in Fig. 7: It deﬁnes the concepts
+ofsorts,operators ,declarations , andterms, and how termsare constructed from variables andoperators .
+UserSortProductSortVariableDecl
+nameTerms
+SortDecl
+name
+MultisetSortNamedSort
+context NamedSort inv:
+  IsTypeOf(MultiSetSort)!self.def.ocl.context Operator inv:
+−− sort of Term is output sort of Operator
+  self.sort = self.outputcontext Variable inv:
+−− sort of Variable is sort of Term
+  self.sort = self.variableDecl.sort
+1/output
+*/input
+{ordered} equals(Sort):bool1variableDecl
+1sort
+1Term
+Sort Operator*
+BuiltInConstBuiltInOperator
+MultiSetOperatorBuiltInSort
+UserOperatorOperatorDecl
+name
+1
+declaration
+*
+1basiselementSort{ordered}1def1
+declaration{ordered}*subterm1def
+*
+{ordered}parameter
+NamedOperator
+multi/sortVariableDeclarations
+Declaration
+Tuple
+Figure 7: The meta-model for Terms
+For each variable declaration , there is a corresponding sort. Asortcan be abuilt-in sort , amultiset sort
+over some basis sort , aproduct sort over some sorts, or asortwhich is given in a user declaration . In the
+core structure, the only possible sort declaration of a user is by constructing a new sortfrom existing ones
+
+--- Page 10 ---
+and by giving them a new name. From these, the user can deﬁne new ones. Note that cyclic references in
+user-deﬁned sortsare not allowed. In addition to these user-deﬁned sorts, called named sorts , there will
+bearbitrary sorts . Since these are not allowed in Symmetric Nets , these are not deﬁned in the core. They
+are discussed in Sect. 3.3.3 where the concepts of general high-level nets are explained.
+Anoperator can be a built-in constant or abuilt-in operator , amultiset operator which among others
+can construct a multiset from an enumeration of its elements, or a tupleoperator. Each operator has a
+sequence of sortsas itsinput sorts , and exactly one output sort , which deﬁnes its signature. As for sorts,
+the user can deﬁne his own operators . Here, it is only possible to deﬁne an abbreviation, which is called
+anamed operator : It can use a term, which is built from existing operators and parameter variables, for
+deﬁning a new operator. As forsorts, cycles (recursion) in these deﬁnitions are not allowed. As for sorts,
+there will be arbitrary operator declarations for High-level Petri Net Graphs , but not for Symmetric Nets .
+Therefore, these concepts will be discussed in Sect. 3.3.3.
+From the built-in operators and the user-deﬁned operators andvariables ,termscan be constructed in
+the usual way. The sortof atermis thesortof thevariable or theoutput sort of theoperator. Therefore,
+sortis indicated as a derived association; its deﬁnition is expressed by an OCLexpression in the UMLmeta-
+model. Note that the inputandoutput sorts of theoperator are also represented as derived associations
+because, in some situations, they need not be given explicitly since they can be derived from the type of
+theoperator.
+Figure 8 shows the package High-Level Core Structure , which deﬁnes all the annotations for both
+Symmetric Nets andHigh-Level Petri Net Graphs . Note that, since the classes for built-in sortsand
+operators are abstract, we do not have any built-in sortsandoperators yet. These are discussed in
+Sect. 3.1.
+In addition to the annotations deﬁned above, the package High-Level Core Structure requires that arcs
+must not connect two placesand must not connect two transitions .
+Note that this model deﬁnes an abstract syntax (composition structure ) for all these concepts only. In
+order to allow tools to store the concrete text, all annotations ofHigh-level Nets may also consist of text,
+which should be the same expression in the concrete syntax of some tool. This concrete syntax, however,
+is not mandated by ISO/IEC 15909-2; therefore, all the meaning is in the structure of the labels!
+3 Details of High-level nets and their data types
+As mentioned earlier, Sect. 2.3.2 discussed the core structure of High-level Petri Net Graphs only. In this
+section, we brieﬂy discuss the details of the built-in sortsandoperators . For each built-in sort, there is a
+UMLpackage. Sections 3.1 gives an overview of these packages. Section 3.2 brieﬂy discusses the package
+for user-deﬁned declarations. Based on that, Sect. 3.3 deﬁnes the diﬀerent types of high-level nets.
+3.1 Data types
+ISO/IEC 15909-2 deﬁnes the following data types for being used in the diﬀerent versions of high-level
+Petri nets:
+Dotsdeﬁnes the sort which represents a type with exactly one element (token): fg. This is used
+to represent Place/Transition Nets asHigh-level Net Graphs .
+Multiset deﬁnes the multiset over any other sort, which are needed for deﬁning the terms labelling
+arcs and for initial markings.
+Booleans deﬁnes the boolean type and associated operations.
+Finite Enumerations ,Cyclic Enumerations , andFinite Integer Ranges allow the deﬁnition of ﬁnite
+rangesbyexplicitlyenumeratingthemorbygivinganintegerrange. Dependingonthetype, diﬀerent
+structures are imposed on them [14], such as an order relation, or a successor and predecessor
+operation.
+Partitions allow the deﬁnition of ﬁnite enumerations that are partitioned into sub-ranges, where a
+partition function deﬁnes for each element to which partition it belongs. These partitions deﬁne a
+separate sort, where each partition is an element of the respective type.
+
+--- Page 11 ---
+−− the term for the condition must be of sort boolean
+  (self.structure.sort.oclIsKindOf(Booleans:Bool)Place
+Transition
+PetriNetArc
+DeclarationHLAnnotation
+{redefines label}declaration
+*HLCoreAnnotationAnnotation
+Condition
+    self.target.oclIsKindOf(TransitionNode)  )
+or
+  (self.source.oclIsKindOf(TransitionNode) and
+    self.target.oclIsKindOf(PlaceNode)    )context Arc inv:
+−− no arcs between nodes of the same kindcontext Condition inv:Terms::Sort
+Terms::Term
+PageTerms::DeclarationsTerms::TermXMLSchemaDataTypes::
+String
+  (self.source.oclIsKindOf(PlaceNode) andHLCoreStructure
+*Type structure
+0..1
+structure
+structure
+structure0..1
+0..1 declaration0..1{redefines label}type
+{redefines label}HLMarking
+0..1structure {redefines label}
+0..10..1{redefines label}conditionhlinitialMarking
+0..1
+0..1{redefines label}hlinscription0..1text
+Terms::Term<<import>>
+Booleans<<import>>
+TermsXMLSchemaDataTypes
+<<merge>>
+PNMLCoreModel<<import>>Figure 8: The package High-Level Core Structure
+Integerdeﬁnes the integers and the usual operations on them; it also deﬁnes the subtypes positive
+numbers and the natural numbers.
+Stringsdeﬁnes the strings and the usual operations on them.
+Listsdeﬁnes the Lists over the other data types and the usual operations on them.
+For details, we refer to ISO/IEC 15909-2 or to the RELAX NG grammars which can be found at [17].
+3.2 User declarations
+In general High-Level Petri Net Graphs (HLPNGs), the user is allowed to deﬁne arbitrary sortsandop-
+erators. This package ArbitraryDeclarations is shown in Fig. 9. In contrast to named sorts andnamed
+operators , arbitrary sortsandoperators do not come with a deﬁnition of the sortoroperation ; they just
+introduce a new symbol without giving a deﬁnition for it. So, these symbols do not have a meaning, but
+can be used for constructing terms.
+
+--- Page 12 ---
+The additional concept Unparsed intermsprovides a means to include any text, which will not be
+parsed and interpreted by the tools. This is helpful for exchanging the general structure of a term, but
+not all its details.
+Unparsed Terms::SortTerms::DeclarationTerms::OperatorDeclArbitraryDeclarations
+Terms::SortDecl
+outputArbitrarySort ArbitraryOperator*input {ordered}
+1
+Terms<<extends>>
+Figure 9: The package ArbitraryDeclarations
+3.3 Net types
+Based on the data types introduced in the previous section, we can now discuss the diﬀerent versions of
+high-level nets. Note that, conceptually, high-level nets extend Place/Transition-Systems . But, syntacti-
+cally they do not. That is why all these types are not extending the package PT-Net, which is discussed
+in Sect. 2.3.1.
+Instead, the diﬀerent versions of high-level nets form a separate hierarchy (see also Fig. 1). The lowest
+level in this hierarchy are Place/Transition Nets in High-level Notation .
+3.3.1 Place/Transition Nets as High-level Net Graphs
+Booleans
+<<import>>
+<<merge>>
+MultisetsDots
+HLCoreStructurePT-HLPNGs<<import>>
+<<import>>
+Term s<<import>>
+<<import>>
+<<import>>
+context Type inv:
+--the type of all places must be Dot
+self.structure.oclIsTypeOf(Dots::Dot)
+context Condition inv:
+--the condition of all transitions mus t be true
+let cond: Terms ::Term = s elf.structure in 
+   cond.oclIsTypeOf(Booleans::BooleanConstant) and
+   cond.value = ‘tru e’
+Figure 10: The package of P/T Nets deﬁned as restricted HLPNGs
+Annex B of ISO/IEC 15909-1 deﬁnes Place/Transition Nets as a restricted form of High-level Net
+Graphs. Fig. 10 shows the corresponding UMLdeﬁnition. This class allows for the use of the built-in sorts
+BoolandDotonly. It does neither allow any user declarations , norvariables , norsorts, noroperators .
+
+--- Page 13 ---
+Thetypeof eachplacemust refer to sort Dot. All transition conditions need to be the constant true,
+if this label is present. And the arc annotations and theinitial markings areground terms of themulitset
+sortoverDot.
+3.3.2 Symmetric Nets
+Symmetric Nets as currently deﬁned in an Amendment (Annex B.2) of Part 1 of ISO/IEC 15909, are
+High-Level Petri Net Graphs with some restrictions. Basically, the carrier sets of all basic sortsare ﬁnite,
+and only a ﬁxed set of operations , as deﬁned below, are allowed. Therefore, the sortof aplacemust not
+be amultiset sort . The available built-in sortsare deﬁned below.
+Moreover, for Symmetric Nets , it is required that every HLPNGannotation has thestructural informa-
+tion.
+Thebuilt-in sortsofSymmetric Nets arethefollowing: Booleans ,range of integers ,ﬁnite enumerations ,
+cyclic enumerations anddots. Moreover, for every sort, there is the operator all, which is a multiset that
+contains exactly one element of its basis sort. This is often called the broadcast function.
+Altogether, the Symmetric Nets can be deﬁned by importing the packages as shown in Fig. 11.
+  !self.structure.oclIsKindOf(MultisetSort)context Type inv:
+−− no multiset sorts as types
+<<import>>
+<<import>>
+<<import>><<import>><<import>><<import>><<import>>
+<<merge>><<import>>
+<<import>>
+<<import>>
+BooleansPartitions
+SymmetricNetsCyclicEnumerations
+<<import>> <<import>><<import>>
+MultisetsFiniteEnumerations
+<<import>>FiniteIntRanges
+Dots HLCoreStructure Terms
+Figure 11: The package Symmetric Nets and its built-in sortsandfunctions
+3.3.3 High-level Petri Net Graphs
+The complete deﬁnition for High-Level Petri Net Graphs is shown in Fig. 12. It extends Symmetric Nets
+by declarations for sortsandfunctions and the additional built-in sortsforInteger,String, andList.
+
+--- Page 14 ---
+Terms SymmetricNetsHLPNGs
+<<import>>
+<<merge>><<import>>
+<<import>><<import>>
+<<import>>
+<<merge>><<import>>
+<<import>>
+ArbitraryDeclarationsIntegersStringsListsFigure 12: The package HLPNGs
+4XML Syntax
+Section 2 and 3 discussed the concepts of the PNMLCore Model and the concepts of Place/Transition
+Nets,High-level Petri Net Graphs , andSymmetric Nets intermsof UMLmeta-models(andsomeadditional
+constraints). This, however, does not deﬁne the concrete XMLsyntax for representing these concepts.
+The XMLsyntax of the PNMLCore Model and the three Petri net types is discussed in this section. A
+RELAX NG grammar deﬁning the exact XMLsyntax can also be found at the PNML web site [17].
+In Sect. 4.1, we discuss the general format of PNMLDocuments ; i.e. the XMLsyntax for the PNML
+Core Model . In Sect. 4.2, we discuss the format for Place/Transition Nets . In fact, for simple Petri net
+typessuch asPlace/Transition Nets there are some general rules, as to how the concepts of a package
+deﬁning some Petri net type are mapped to XMLsyntax. This idea is discussed here by the help of the
+example of Place/Transition Nets . ForHigh-level Petri Nets , however, there is a dedicated mapping for
+thelabelsof these types to XML. This is discussed in Sect. 4.3.
+Note that there is no need for a separate mapping for Symmetric Nets andPlace/Transition Nets in
+High-level Notation toXMLsince, as a restricted version of High-level Petri Nets , these mappings are fully
+covered by the mapping for High-level Petri Nets .
+4.1XML syntax of the PNML Core Model
+The mapping of the PNMLCore Model concepts to XMLsyntax is deﬁned for each class of the PNMLCore
+Model diagram separately.
+4.1.1 PNMLElements
+Each concrete class2of the PNMLCore Model is mapped to an XMLelement. The mapping of these classes
+along with the attributes and their data types is given in Table 2. These XMLelements are the keywords
+ofPNMLand are called PNMLelements for short. For each PNMLelement, the compositions of the PNML
+Core Model deﬁne in which elements it may occur as a child element.
+The data type IDin Table 2 refers to a set of unique identiﬁers within the PNMLDocument . The data
+type IDRef refers to the set of all identiﬁers occurring in the document, i.e. they are meant as references
+to identiﬁers. A reference at some particular position, however, is restricted to objects of a particular
+type — as deﬁned by the resp. associations in the PNMLCore Model . For instance, the attribute refof a
+2A class in a UML diagram is concrete if its name is not displayed in italics.
+
+--- Page 15 ---
+Table 2: Translation of the PNMLCore Model into PNMLelements
+Class XMLelement XMLAttributes
+PetriNetDoc <pnml > xmlns: anyURI
+(http://www.pnml.org/version-2009/
+grammar/pnml )
+PetriNet <net > id :ID
+type: any URI
+Place <place > id :ID
+Transition <transition > id :ID
+Arc <arc > id :ID
+source:IDRef (Node)
+target:IDRef (Node)
+Page <page > id :ID
+RefPlace <referencePlace > id :ID
+ref:IDRef (Place or RefPlace)
+RefTrans <referenceTransition > id:ID
+ref:IDRef (Transition or RefTrans)
+ToolInfo <toolspecific > tool : string
+version: string
+Graphics <graphics >
+Name <name>
+reference place must refer to a placeor areference place of the same net. The set to which a reference is
+restricted is indicated in the table (e.g. for a reference place , the attribute refshould refer to the idof
+aPlaceor aRefPlace ). Note that these requirements are deﬁned in the UMLmeta-model already; here,
+these requirements are repeated just for better readability.
+Note that the <pnml >element must have a namespace attribute xmlns. For the current version of PNML,
+this namespace is ﬁxed: http://www.pnml.org/version-2009/grammar/pnml
+4.1.2 Labels
+Except for names, there are no explicit deﬁnitions of PNMLelements forlabelsbecause the PNMLCore
+Modeldoes not deﬁne other labels. For concrete Petri net types , such as Place/Transition Nets ,Symmetric
+Nets, andHigh-level Petri Nets the corresponding packages deﬁne these labels.
+In general PNMLDocuments , any XMLelement that is not deﬁned in the PNMLCore Model (i.e.
+not occurring in Table 2) is considered as a labelof the PNMLelement in which it occurs. For exam-
+ple, an <initialMarking> element could be a labelof aplace, which represents its initial marking, and
+<inscription> , which represents an arc annotation.
+A legal element for a labelmust contain at least one of the two following elements, which represents
+the actual value of the label: a<text >element represents the value of the labelas a simple string; the
+<structure >element can be used for representing the value as an abstract syntax tree in XML.
+An optional PNML <graphics >element deﬁnes its graphical appearance; and optional PNML
+<toolspecific >elements may add tool speciﬁc information to the label. Note that ISO/IEC 15909-2
+does not mandate the inner structure of <toolspecific >elements; every tool is free to structure its infor-
+mation inside that element at its discretion; as long as it produces well-formed XML.
+4.1.3 Graphics
+AllPNMLelements and alllabelsmay include graphical information. The internal structure of the PNML
+<graphics >element, i.e. the legal XMLchildren, depends on the element in which the graphics element
+occurs. Table 3 shows the XMLelements which may occur within the <graphics >element (as deﬁned by
+theUMLmodel in Fig. 3).
+Table 4 explicitly list the attributes for each graphical element deﬁned in Table 3 (cf. Fig. 3 and
+Table 1). The domain of the attributes refers to the data types of either XMLSchema, or Cascading
+Stylesheets 2 ( CSS2), or is given by an explicit enumeration of the legal values.
+
+--- Page 16 ---
+Table 3: Possible child elements of the <graphics >element
+Parent element class Sub-elements of <graphics >
+Node, Page <position >
+<dimension >
+<fill >
+<line >
+Arc <position >(zero or more)
+<line >
+Annotation <offset >
+<fill >
+<line >
+<font >
+Table 4: PNMLgraphical elements
+XMLelement Attribute Domain
+<position >x decimal
+y decimal
+<offset >x decimal
+y decimal
+<dimension >x nonNegativeDecimal
+y nonNegativeDecimal
+<fill > color CSS2-color
+image any URI
+gradient-color CSS2-color
+gradient-rotation {vertical, horizontal, diagonal}
+<line > shape {line, curve}
+color CSS2-color
+width nonNegativeDecimal
+style {solid, dash, dot}
+<font > family CSS2-font-family
+style CSS2-font-style
+weight CSS2-font-weight
+size CSS2-font-size
+decoration {underline, overline, line-through}
+align {left, center, right}
+rotation decimal
+4.1.4 Mapping of XMLSchemaDataTypes concepts
+The concepts from the package XMLSchemaDataTypes are mapped to XMLsyntax in the following way:
+TheStringobjects are mapped to XMLPCDATA, i.e. there will be a PCDATA section within the element
+which contains the String. This, basically, corresponds to any printable text.
+Likewise, Integers,NonNegativeIntegers andPositiveIntegers are mapped to the XMLSchema syntax
+constructs integer,nonNegativeInteger , andpositiveInteger , respectively.
+4.1.5 Example
+In order to illustrate the structure of a PNMLDocument , there is a simple example PNMLDocument repre-
+senting the Petri net shown in Fig. 13, which is a Place/Transition Net . Listing 1 shows the corresponding
+PNMLDocument inXMLsyntax. It is a straightforward translation, where there are labelsfor thenames
+of objects, for the initial markings , and for arc annotations .
+Note that, in this ﬁgure, the initial marking is not displayed as a textual label– it is shown graphically.
+This is due to the fact that the initial marking comes with a tool speciﬁc information on the positions of
+thetokens, tokens are shown at the individual positions as given in the elements <tokenposition> .
+Since there is no information on the dimensions in this example (in order to ﬁt the listing to a single
+page), the tool has chosen its default dimensions for the place and the transition.
+
+--- Page 17 ---
+10 20 30 40 50 60
+10
+20
+yx
+ready 2Figure 13: A simple Place/Transition Net
+Listing 1: PNMLcode of the example net in Fig. 13
+<pnml xmlns= "http://www.pnml.org/version-2009/grammar/pnml" >
+<net id="n1" type= "http://www.pnml.org/version-2009/grammar/ptnet" >
+<page id="top-level" >
+<name>
+5 <text >An example P/T-net</text >
+</name>
+<place id="p1" >
+<graphics >
+<position x="20" y="20" />
+10 </graphics >
+<name>
+<text >ready</text >
+<graphics >
+<offset x="0" y="-10" />
+15 </graphics >
+</name>
+<initialMarking>
+<text >3</text >
+<toolspecific tool= "org.pnml.tool" version= "1.0" >
+20 <tokengraphics>
+<tokenposition x= "-2" y="-2" />
+<tokenposition x= "2" y="0" />
+<tokenposition x= "-2" y="2" />
+</tokengraphics>
+25 </toolspecific >
+</initialMarking>
+</place >
+<transition id="t1" >
+<graphics >
+30 <position x="60" y="20" />
+</graphics >
+</transition >
+<arc id="a1" source= "p1" target= "t1" >
+<graphics >
+35 <position x="30" y="5"/>
+<position x="60" y="5"/>
+</graphics >
+<inscription>
+<text >2</text >
+40 <graphics >
+<offset x="0" y="5"/>
+</graphics >
+</inscription>
+</arc >
+45 </page >
+</net >
+</pnml >
+
+--- Page 18 ---
+Table 5: Tool speciﬁc information for token positions
+XMLelement Attribute Domain
+<tokengraphics>
+<tokenposition> x decimal
+y decimal
+4.2XML syntax of the Petri net types
+Based on the PNMLCore Model of Sect. 2.2, Sect. 2.3.1 and 3.3 discussed the deﬁnition of some Petri net
+types, which restrict PNMLDocuments to the particular labelsdeﬁned in the corresponding packages.
+These packages deﬁne the labelsthat are used in the particular Petri net . Here, it is shown how to
+map such a package to the corresponding XMLsyntax. This mapping is the same for all type deﬁnitions,
+unless the type deﬁnition explicitly deﬁnes a dedicated mapping for this type. This general mapping will
+be explained by the help of the example of Place/Transition Nets (see Fig. 5 and the PNMLDocument in
+Listing 1).
+The PT-Net package deﬁnes two kinds of labelsthat can be used in a Place/Transition Net : PTMark-
+ings and PTAnnotations. Each placecan have one annotation PTMarking, and each arccan have one
+annotation PTAnnotation. This is indicated by the compositions in the UMLdiagram in Fig. 5.
+The XMLsyntax for these labelsis derived from the role names of these compositions. Every annotation
+PTMarking is mapped to an XMLelement <initialMarking> , and every annotation PTAnnotation is
+mappedtoanelement <inscription> . Listing1showsanexampleforthe XMLsyntaxofa Place/Transition
+Net.
+Since all labelsin this package are annotations , all graphical elements deﬁned for annotations may
+occur as children in these elements.
+In the PT-Net package each labelis deﬁned to have a <text >element, which deﬁnes the actual content
+of thisannotation . ForPlace/Transition Nets there are no structured elements.
+The corresponding classes from package DataTypes deﬁne the XMLcontent of the <text >element.
+These were discussed in Sect. 4.1.4 already.
+Note that for Place/Transition Nets , there is a predeﬁned tool speciﬁc extension for the label
+<initialMarking> (see Sect. 2.3.1), which represents the positions of tokens within a place. The class
+TokenGraphics is mapped to the XMLelement <tokengraphics> with no attributes. The token positions
+contained by this element are represented by the elements <tokenposition> as shown in Table 5. Within
+the element <tokengraphics> there can be any number of <tokenposition> elements with two attributes x
+and y.
+4.3 Mapping for High-Level Nets
+Table 6 deﬁnes the mappings between the meta-model elements and their XMLrepresentation. In these
+tables, only meta-model elements that have corresponding PNMLelements or attributes are displayed.
+Thus, most abstract elements are not shown in the tables, except if they have attributes. All attribute
+types are mapped to XMLSchema-datatypes library data types. For details, we refer to the RELAX NG
+grammars [17].
+5 Conclusion
+In this paper, we have outlined the main concepts and the syntax of PNMLas deﬁned in ISO/IEC-15909-2,
+which passed its ﬁnal ballot and will hopefully be published soon. For lack of space, we could not discuss
+all the details. In particular, we could not discuss the rationale behind the design of PNMLand we could
+not discuss all built-in data types and their XMLsyntax. For the design rationale, we refer to earlier
+publications [2, 15, 4] and for some more information on the XMLsyntax we refer to the PNMLweb pages
+[17], which has the full RELAX NG grammar for all currently standardized Petri net types. The ultimate
+source of information will be the International Standard ISO/IEC 15909-2.
+Another great help for implementing the PNMLmight be the PNMLFramework [18], which provides
+an API for reading and writing Petri nets in PNML. This API is automatically generated from the PNML
+
+--- Page 19 ---
+Table 6: High-level meta-model elements and their PNML constructs
+Model element PNML element PNML attributes
+Booleans::Bool bool
+Booleans::And and
+Booleans::Or or
+Booleans::Not not
+Booleans::Imply imply
+Booleans::Equality equality
+Booleans::Inequality inequality
+Booleans::BooleanConstant booleanconstant value: boolean
+HLCoreStructure::Declaration declaration
+HLCoreStructure::Type type
+HLCoreStructure::HLMarking hlinitialmarking
+HLCoreStructure::Condition condition
+HLCoreStructure::HLAnnotation hlinscription
+Terms::Declarations declarations
+Terms::VariableDeclaration variabledecl id: ID; name: string
+Terms::OperatorDeclaration No element id: ID; name: string
+Terms::SortDeclaration No element id: ID; name: string
+Terms::Variable variable variabledecl: IDREF
+Terms::NamedSort namedsort
+Terms::NamedOperator namedoperator
+Terms::Term No element
+Terms::Sort No element
+Terms::MultisetSort multisetsort
+Terms::ProductSort productsort
+Terms::UserSort usersort declaration: IDREF
+Terms::Tuple tuple
+Terms::Operator No element
+Terms::UserOperator useroperator declaration: IDREF
+ArbitraryDeclarations::ArbitrarySort arbitrarysort
+ArbitraryDeclarations::Unparsed unparsed
+ArbitraryDeclarations::ArbitraryOperator arbitraryoperator
+meta-models in the Eclipse Modeling Framework (EMF). More details can be found on the PNMLweb
+pages [17].
+These web pages are also used for discussing future extensions, some of which might be covered in
+Part 3 of ISO/IEC 15909. This concerns in particular the precise deﬁnition of how to deﬁne a Petri
+net type (which where used informally only up to now) and its features, and the use this Petri net type
+deﬁnition mechanism for deﬁning some more standard Petri types such as timed and stochastic Petri nets.
+Another major issue is the deﬁnition of a module concept for PNML[15, 19, 20]. This setting should
+be powerful enough to encompass most structuring mechanisms. Hence, it will be possible to exchange
+modular and hierarchical models, using diﬀerent structuring paradigms, between tools so as to apply their
+speciﬁc analysis techniques.
+If you are interested in some of these issues, you might also want to join the work of WG19 of ISO/IEC
+JTC1 SC7 or the discussion list available at the PNMLweb pages. All ideas are welcome.
+Acknowledgements The work on PNMLand ISO/IEC 15909-2 has been going on over 10 years now and many
+people have been involved in the discussion and development process in diﬀerent stages and diﬀerent intensity.
+Since, it is hard to weigh the individual contributions, we thank all of them in alphabetical order: Joao Paulo
+Barros, Jean Bérubé, Jonathan Billington, Didier Buchs, Søren Christensen, Jörg Desel, Erik Fischer, Giuliana
+Franceschinis, Guillaume Giﬀo, Jun Ginbayashi, Kees van Hee, Nisse Husberg, Kurt Jensen, Matthias Jüngel,
+Albert Koelmans, Olaf Kummer, Kjeld Høyer Mortensen, Reinier Post, Wolfgang Reisig, Stefan Roch, Karsten
+Wolf, Christian Stehno, Kimmo Varpaaniemi, Michael Weber, Lisa Wells, Jan Martijn van der Werf, and Lukasz
+Zogolowek.
+We would also like to thank ISO/IEC for their kind permission to publish this paper based on material of the
+upcoming standard ISO/IEC 15909.
+
+--- Page 20 ---
+References
+[1] Bastide, R., Billington, J., Kindler, E., Kordon, F., Mortensen, K.H., eds.: Meeting on XML/SGML
+based Interchange Formats for Petri Nets, University of Aarhus, Dept. of Computer Science (2000)
+[2] Jüngel, M., Kindler, E., Weber, M.: The Petri Net Markup Language. Petri Net Newsletter 59
+(2000) 24–29
+[3] Weber, M., Kindler, E.: The Petri Net Kernel. In Ehrig, H., Reisig, W., Rozenberg, G., Weber, H.,
+eds.: Petri Net Technologies for Modeling Communication Based Systems. Volume 2472 of LNCS.
+Springer (2003) 109–123
+[4] Billington, J., Christensen, S., van Hee, K., Kindler, E., Kummer, O., Petrucci, L., Post, R., Stehno,
+C., Weber, M.: The Petri Net Markup Language: Concepts, technology, and tools. In van der Aalst,
+W., Best, E., eds.: Application and Theory of Petri Nets 2003, 24thInternational Conference. Volume
+2679 of LNCS., Springer (2003) 483–505
+[5] ISO/IEC: Software and Systems Engineering – High-level Petri Nets, Part 1: Concepts, Deﬁnitions
+and Graphical Notation, International Standard ISO/IEC 15909 (2004)
+[6] Genrich, H.J., Lautenbach, K.: System modelling with high-level Petri nets. Theoretical Computer
+Science13(1981) 109–136
+[7] Jensen, K.: Coloured Petri nets and invariant methods. Theoretical Computer Science 14(1981)
+317–336
+[8] Berthomieu, B., Choquet, N., Colin, C., Loyer, B., Martin, J., Mauboussin, A.: Abstract Data Nets
+combining Petri nets and abstract data types for high level speciﬁcation of distributed systems. In:
+Proceedings of VII European Workshop on Application and Theory of Petri Nets. (1986)
+[9] Vautherin, J.: Parallel systems speciﬁcations with coloured Petri nets and algebraic speciﬁcations.
+In Rozenberg, G., ed.: Advances in Petri Nets. Volume 266 of LNCS. Springer-Verlag (1987) 293–308
+[10] Billington, J.: Many-sorted high-level nets. In: Proceedings of the 3rd International Workshop on
+Petri Nets and Performance Models, IEEE Computer Society Press (1989) 166–179
+[11] Reisig, W.: Petri nets and algebraic speciﬁcations. Theoretical Computer Science 80(1991) 1–34
+[12] Jensen, K., (Eds.), G.R.: High-level Petri Nets, Theory and Application. Springer-Verlag (1991)
+[13] Jensen, K.: Coloured Petri Nets, Volume 1: Basic Concepts. EATCS Monographs on Theoretical
+Computer Science. Springer-Verlag (1992)
+[14] Chiola, G., Dutheillet, C., Franceschinis, G., Haddad, S.: On well-formed coloured nets and their
+symbolic reachability graph. In Jensen, K., Rozenberg, G., eds.: Petri Nets: Theory and Application.
+(1991) 373–396
+[15] Weber, M., Kindler, E.: The Petri Net Markup Language. In Ehrig, H., Reisig, W., Rozenberg, G.,
+Weber, H., eds.: Petri Net Technologies for Modeling Communication Based Systems. Volume 2472
+of LNCS. Springer (2003) 124–144
+[16] Stehno, C.: Petri Net Markup Language: Implementation and Application. In Desel, J., Weske, M.,
+eds.: Promise 2002. Lecture Notes in Informatics P-21., Gesellschaft für Informatik (2002) 18–30
+[17] PNML team: PNML.org: The Petri Net Markup Language home page. (URL http://www.pnml.
+org/) 2009/06/8.
+[18] Hillah, L., Kordon, F., Petrucci, L., Trèves, N.: Model engineering on Petri nets for ISO/IEC 15909-2:
+API framework for Petri net types metamodels. Petri Net Newsletter 69(2005) 22–40
+[19] Kindler, E.: Modular PNML revisited: Some ideas for strict typing. In: Proc. AWPN 2007, Koblenz,
+Germany. (2007)
+[20] Kindler, E., Petrucci, L.: Towards a standard for modular Petri nets: A formalisation. In Franceschi-
+nis, G., Wolf, K., eds.: Application and Theory of Petri Nets 2009, Internat. Conference, Proceedings.
+Volume 5606 of LNCS., Springer-Verlag (2009) 43–62

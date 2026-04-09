@@ -1,0 +1,643 @@
+--- Page 1 ---
+Veri¯cation of Succinct Hierarchical State
+Machines?
+Salvatore La Torre1, Margherita Napoli1, Mimmo Parente1, and
+Gennaro Parlato1;2
+1Dipartimento di Informatica e Applicazioni
+Universitµ a degli Studi di Salerno, Italy
+2University of Illinois at Urbana-Champaign, USA
+Abstract. A hierarchical state machine (HSM) is a ¯nite state machine
+where a vertex can either expand to another hierarchical state machine
+(box) or be a basic vertex ( node). Each node is labeled with atomic
+propositions. We study an extension of such model which allows atomic
+propositions to label also boxes (SHSM). We show that SHSMs can be
+exponentially more succinct than HSMs, and veri¯cation is in general
+harder by an exponential factor. Also, we show for a subclass of SHSMs
+(which can still be exponentially more succinct than HSMs) the same
+upper bounds as for HSMs.
+1 Introduction
+Finite state machines (labeled ¯nite transition systems) are widely used for mod-
+eling the °ow of control of digital systems and are appealing to formal veri¯cation
+such as model checking [CE81,CK96]. In model checking, a high-level speci¯ca-
+tion is expressed by a formula of a logic and is checked for ful¯llment on an
+abstract model of the system. Though a typical solution to this problem is lin-
+ear in the size of the model, it is computationally hard since the model generally
+grows exponentially with the number of variables used to describe the system
+(state-space explosion ). As a consequence, an important part of the research on
+model checking has been concerned with handling this problem.
+Hierarchical structures are naturally present in complex systems where simple
+modules usually form a hierarchy. Representing such systems as standard tran-
+sition graphs introduces some redundancy which can be avoided by modeling
+them as hierarchical state machines [AY01]. A hierarchical ¯nite state machine
+is a ¯nite state machine where a vertex can either expand to another hierarchical
+state machine ( box) or be a basic vertex ( node). Each node is labeled with atomic
+propositions ( AP) and the outcomes of the model thus generate sequences over
+2AP. Complexity of model-checking is discussed in [AY01] and the succinctness of
+the model compared to standard ¯nite state machines is addressed in [AKY99].
+?This research was partially supported by the MIUR grant ex-60% 2005-06, Universitµ a
+degli Studi di Salerno.
+
+--- Page 2 ---
+In this paper, we consider a variation of the hierarchical state machines,
+where also boxes are labeled with atomic propositions. The intended meaning of
+such labeling is that when a box vexpands to a machine M, all the vertices of M
+inherit the atomic propositions which hold true at v(context ), so that di®erent
+vertices expanding to Mcan place Minto di®erent contexts. With such more
+general labeling, we show that it is possible to obtain models of systems which
+are exponentially more succinct than hierarchical state machines. Therefore, we
+call them Succinct HSMs (SHSMs). We recall that a restricted version of an
+SHSM, denoted CHSM (Context-dependent HSM), is considered in [LNPP03].
+There, an atomic proposition which labels a box bcannot label the vertices of
+any of the machines which directly or indirectly expand from b. We also prove
+that SHSMs can be exponentially more succinct than CHSMs.
+We study the complexity of veri¯cation for SHSMs. In particular, we con-
+sider basic veri¯cation questions such as reachability and cycle detection, and
+the model-checking problem against Ltl [Pnu77] and Ctl [CE81] speci¯ca-
+tions. We show that for an SHSM Mand a formula ':Ltlmodel-checking is
+Pspace -complete and can be solved in O(jMj16j'j) time; Ctl model-checking
+isExptime -complete and can be solved in O(jMj4j'jd) time where dis the
+maximum number of exit nodes of M. We also show that reachability and cycle
+detection are both NP-complete. From the results shown in [AY01] for hierarchi-
+cal state machines, we get time complexities increased by an O(2j'j) factor which
+is exactly what we gain in succinctness. However, we also show that things im-
+prove when we place some restrictions on the SHSM and the formula expressing
+the target set in the reachability and cycle detection problems. In particular, we
+show that Ltlmodel-checking of CHSMs can be solved in O(jMj8j'j) time, and
+if the target formula conforms with the structure of the SHSM (resp. CHSM),
+reachability and cycle detection can be solved in linear time.
+There are several papers in the literature that concern with hierarchical state
+machines. In [AGM00,AMY02], the veri¯cation tool HERMES which is based
+on hierarchical state machines is discussed. Hierarchical state machines with
+recursive expansions of nodes (recursive state machines) are studied in [ABE+05]
+and a corresponding temporal logic is introduced in [AEM04]. Recursive state
+machines turn out to be equivalent to pushdown automata [ABE+05]. Recursive
+calls and context-dependent properties are considered in [LNPP03], where also
+CHSMs are introduced as a restriction of the corresponding recursive model and
+some complexity results on veri¯cation are derived from those obtained on the
+recursive model. Here, we revisit such results and compare CHSMs to SHSMs.
+The impact of concurrency is studied in [AKY99,LMP04] for hierarchical state
+machines and in [BLP06] for recursive state machines. Finally, modular control
+synthesis for recursive state machines is studied in [ALM03a,ALM03b].
+2 The Model
+Given a set APof atomic propositions, a Kripke structure overAPis a rooted
+directed graph whose vertices are labeled with the atomic propositions holding
+
+--- Page 3 ---
+true in that vertex. In this paper, we model a system by a hierarchically struc-
+tured graph, where vertices can be either simple nodes or placeholders for other
+graphs. We formally de¯ne such graphs as follows.
+De¯nition 1. ASuccinct Hierarchical State Machine (SHSM) over APis a
+tupleM= (M1; : : : ; M k), each Mi= (Ni; ini;out i;true i;expni; Ei)is called
+machine and consists of:
+{a ¯nite set of vertices Ni, an initial vertex ini2Niand a set of output
+vertices out iµNi;
+{a labeling function true i:Ni¡!2APthat maps each vertex with a set of
+atomic propositions;
+{an expansion mapping expni:Ni¡! f 0;1; : : : ; k gsuch that expni(u)< i,
+for every u2Ni, and expni(u) = 0 , for every u2 finig [out i;
+{a set of edges Eiwhere each edge is either a pair (u; v), with u; v2Ni
+and expni(u) = 0 , or a triple ((u; z); v)with u; v2Ni, expni(u)>0, and
+z2out expni(u).
+We assume that the sets of vertices Niare pairwise disjoint. The set of
+all vertices of MisN=Sk
+i=1Ni. The mappings expn :N¡! f 0;1; : : : ; k g
+andtrue :N¡!2APextend the mappings expniandtrue i, respectively. If
+expn(u) =j >0, the vertex uexpands to the machine Mjand is called box.
+When expn(u) = 0, uis called a node. Let us de¯ne the closure expn+:N¡!
+2f0;1;:::;kg, as:h2expn+(u) if either h=expn(u) or there exists u02Nexpn (u)
+such that h2expn+(u0). We say that a vertex uis an ancestor ofv, and vis
+adescendant from u, ifv2Nhandh2expn+(u). Let us note that contrarily
+with what happens in Kripke structures, in this model the atomic propositions
+not labeling uare not necessarily to be intended false (in Sect. 3 we de¯ne the
+function false (u) of the atomic proposition which can be stated false atu).
+As an example of an SHSM Msee part (a) of Fig. 1, where p1; p2; p3are
+atomic propositions labeling nodes and boxes of M,eiandxiare respectively
+entry nodes and exit nodes for i= 1;2;3, and expn(bi
+j) =j¡1 for i= 0;1 and
+j= 2;3.
+Ahierarchical state machine (HSM) is an SHSM where true (u) =;, for
+every box u[AY01]. A context-dependent HSM (CHSM) M= (M1; : : : ; M k) is
+an SHSM where true (u)\true (v) =;, for every u; v2Nsuch that uis an
+ancestor of v[LNPP03]. Observe that the SHSM of Fig. 1 is also a CHSM but
+is not a HSM.
+The semantics of an SHSM Mis given by de¯ning an equivalent Kripke
+structure, denoted MF.
+The Kripke structure MF.A sequence of vertices ®=uiui+1¢¢¢uj, 0< i·
+j, is called a well-formed sequence ifu`+12Nexpn (u`), for every `=i; : : : ; j ¡1.
+Moreover, ®is also complete when ui2Nkandujis a node.
+A state of MFish®iwhere ®is a complete well-formed sequence of M.
+Note that the length of a complete well-formed sequence is at most k, therefore
+the number of states of MFis at most exponential in the number of vertices
+ofM. The initial state of MFishinki, where inkis the initial vertex of Mk.
+
+--- Page 4 ---
+fp3; p2; p1gb0
+3; b0
+2; e1; ;
+e3;
+b0
+3; e2
+fp2; p1g fp2g fp1g
+b0
+3; b1
+2; x1 b0
+3; b1
+2; e1 b0
+3; b0
+2; x1
+fp3g
+b1
+3; e2 b0
+3; x2fp2; p1gM3
+M2
+M1e2b0
+2b1
+2
+e1e3b0
+3b1
+3
+(b) (a)x3
+x2
+x1fp3g
+p1gfp2;fp3;
+p2; p1g
+fp1gfp2gb1
+3; b0
+2; e1fp3g
+b1
+3; b1
+2; x1 b1
+3; b1
+2; e1 b1
+3; b0
+2; x1fp3; p2; p1g fp3; p2g fp3; p1g
+b1
+3; x2 x3fp3; p2; p1g
+Fig. 1. An SHSM Mand the Kripke structure obtained by °attening M.
+Transitions of MFare obtained by using as templates the edges of M: there is
+a transition from a state h®¯ito a state h®¯0iif and only if ( ¯; ¯0) \denotes"
+an edge of M. Part (b) of Fig. 1 shows the Kripke structure which is equivalent
+to the SHSM from part (a) of the same ¯gure. We give a precise construction of
+MFin the following.
+Given an SHSM M= (M1; : : : ; M k), note that the tuple Mh= (M1; : : : ; M h),
+1·h·k, is an SHSM as well, and Mk=M. We now sketch how to compute
+recursively the °at Kripke structures MF
+h, and thus MF.
+We start with MF
+1which is obtained from machine M1by simply replacing
+each vertex uwith a state huilabeled with true (hui) =true (u) (recall that
+by de¯nition all vertices of M1are nodes). Thus, for each edge ( v; w)2E1we
+add a transition ( hvi;hwi) inMF
+1.
+Forh > 1,MF
+his obtained from Mhby simply replacing each box uofMh
+with a copy of the Kripke structure MF
+expn (u). More precisely, for each node
+u2Nh,huiis a state of MF
+hwhich is labeled with true (u). For each box
+u2Nhand state h®iofMF
+expn (u),hu®iis a state of MF
+hand is labeled with
+true (u)[true (h®i). The transitions of MF
+expn (u)are all inherited in MF
+h,
+that is, there is a transition ( hu®i;hu¯i) inMF
+hfor each transition ( h®i;h¯i)
+ofMF
+expn (u). The remaining transitions of MF
+hcorrespond to the edges of Mh:
+for each node v2Nhand edge ( u; v)2Eh(resp. (( u; z); v)2Eh) there is a
+transition from hui(resp. huzi) tohvi; for each box v2Nhand edge ( u; v)2Eh
+(resp. (( u; z); v)2Eh) there is a transition from hui(resp. huzi) tohv inexpn (v)i.
+A vertex uexpanding into Mhis a placeholder for MF
+hand determines a sub-
+graph in MFisomorphic to MF
+h. If two distinct vertices u1andu2both expand
+into the same machine Mh, that is expn(u1) =expn(u2) =h, then the states of
+
+--- Page 5 ---
+fp1; : : : ; p igMh
+ehb0
+hb1
+h
+ph
+eib0
+ib1
+i
+b2
+i
+fpi; : : : ; p hgMi; i= 2; : : : ; h ¡1
+M1
+e1xh
+fp1; : : : ; p hgfp1; ::
+::; phg
+x1
+ipi
+fp1; : : : ; p hgx0
+i
+x0
+1
+p1
+x1
+1
+Fig. 2. An SHSM Mhsuch that L(Mh; 'h) =L2
+h.
+MF
+happear in MFin two di®erent contexts, labeled possibly by di®erent sets of
+atomic propositions: in one context this set contains true (u1) and in the other
+it contains true (u2).
+Succinctness of the model. Observe that being able to represent with a
+single machine Mhmore than one subgraph of MF, our model in general is
+more succinct than a traditional Kripke structure. Box labeling further improve
+on this. In fact in a situation as described above, the two `copies' of MF
+hinMF,
+though labeled in a di®erent way, can be represented in an SHSM by the single
+machine Mh, while they should be represented by two di®erent machines in a
+HSM. Before stating this more formally, we need some de¯nitions.
+Given a transition graph with states labeled by subsets of atomic propositions
+and a state X, atrace is an in¯nite sequence ¾1¾2: : : ¾ i: : :of labels of states
+occurring in a path starting from X. Moreover, given an SHSM M, we de¯ne
+the language L(M) as the set of the in¯nite traces of MFstarting from its
+initial state. Moreover, for a boolean formula 'over the atomic propositions
+AP, we denote by L(M; ') the set of traces in L(M) containing a label which
+ful¯lls '. In the rest of this section, for h¸0 we ¯x a set of atomic propositions
+§h=fp1; : : : ; p hgand for a subset ¾µ§h, de¯ne ](¾) =P
+pi2¾2i¡1(in
+particular, ](;) = 0).
+Proposition 1. CHSMs can be exponentially more succinct than HSMs and
+¯nite state machines.
+Proof : Consider the family of languages L1
+hof traces ¾1: : : ¾ n: : :over 2§hsuch
+that: ¾1=;; fori < n ,¾i=¾i+1or](¾i+1) =](¾i) + 1; and ](¾n) = 2h¡1. Let
+'h=p1^ ¢¢¢ ^ ph. For h= 3, a CHSM Msuch that L(M; '3) =L1
+3is given
+in Fig. 1. It is easy to see that Mcan be generalized to a CHSM Mhsuch that
+L(Mh; 'h) =L1
+h, andjMhj=O(h). Since there are 2hdi®erent labels that need
+to be taken into account, we have that any hierarchical or ¯nite state machine
+M0
+hsuch that L(M0
+h; 'h) =L1
+hrequires at least 2hdi®erent nodes. u t
+There is an exponential gap also between CHSMs and SHSMs as shown in
+the following proposition.
+Proposition 2. SHSMs can be exponentially more succinct than CHSMs.
+
+--- Page 6 ---
+Proof : Consider the family of languages L2
+hof traces ¾1: : : ¾ n: : :over 2§hsuch
+that: ¾1=;;](¾n) = 2h¡1; and for i < n either ¾i=¾i+1, or](¾i+1) =](¾i)+1,
+or for some 1 ·j·h,fp1; p2: : : p j¡1g µ¾i,pj62¾iand¾i+1=fpj; : : : ; p hg.
+Let'h=p1^ ¢¢¢ ^ ph. An SHSM Mhsuch that L(Mh; 'h) =L2
+his given in
+Fig. 2, where p1; : : : ; p hare atomic propositions labeling nodes and boxes of M,
+eiandxj
+iare respectively entry and exit nodes, and expn(bj
+i) =i¡1. It is easy
+to check that jMhj=O(h).
+To complete the proof it su±ces to show that any CHSM M0
+hsuch that
+L(M0
+h; 'h) =L2
+hhas size exponential in h. Fix ¾1; ¾2µ§hsuch that pj62
+¾1[¾2,fp1; : : : p j¡1g µ¾1\¾2and there is an atomic proposition p`,` > j , such
+that p`2¾1andp`62¾2. LetM0
+hbe any CHSM such that L(M0
+h; 'h) =L2
+h.
+From the de¯nition of L2
+hand being ¾16=¾2, there are three di®erent states
+s1; s2; s3ofM0
+hFsuch that s3is a successor of s2,true (si) =¾ifori= 1;2
+andtrue (s3) =fpj; : : : ; p hg. For i= 1;2, let si=h®ibiuiiwhere uiare nodes,
+biare boxes, and ®iare sequences of boxes. Observe that from the de¯nition
+of CHSM if p`labels any of the boxes in ®1it cannot label any vertex of the
+machines to which either b1oru1belongs. Thus, either b16=b2oru16=u2must
+hold otherwise we get the contradiction that also s3(being a successor of s2in
+M0
+hF) cannot be labeled with p`. Therefore, for each pair of di®erent sets ¾1
+and¾2as above, there are two di®erent vertices of M0
+h. Since we can choose ¾1
+and¾2among 2h¡jmany di®erent sets, we can conclude that any CHSM M0
+h
+such that L(M0
+h; 'h) =L2
+hmust have at least 2h¡jdi®erent vertices. Therefore,
+if we pick j= 1 we get that such M0
+hmust have at least 2h¡1di®erent vertices,
+and the proposition is proved. u t
+It is worth noting that the mentioned succinctness results do not add up to
+each other, in the sense that it is not true that SHSMs can be doubly exponen-
+tially more succinct than HSMs. In fact, HSMs, CHSMs and SHSMs can all be
+translated to equivalent ¯nite state machines with a single exponential blow-up.
+From Proposition 1 and the fact that any CHSM is also an SHSM, we have the
+following.
+Corollary 1. SHSMs can be exponentially more succinct than HSMs and ¯nite
+state machines.
+3 Reachability and Cycle Detection
+In this section we deal with reachability and cycle detection on SHSMs. We start
+de¯ning the problems. Then, we show that they are NP-complete and discuss
+some conditions which allow us to give an e±cient solution.
+Given an SHSM M= (M1; : : : ; M k) and a propositional boolean formula ',
+Reach( M,')is the problem of deciding if there exist a state XinMFon which
+'is satis¯ed and a path in MFfromhinkitoX. The problem Cycle( M,')is
+the problem of deciding if there exist a state XinMFat which 'is satis¯ed,
+a path from hinkitoXand a path from Xto itself.
+NP-completeness. We ¯rst show NP-hardness. As stated in the following
+lemma, NP-hardness holds even when the formula is very simple.
+
+--- Page 7 ---
+Lemma 1. Given an SHSM Mand a formula 'expressed as a conjunction of
+literals, the problems Reach( M,')andCycle( M,')areNP-hard.
+Proof : First, we observe that as the intuition suggests, Cycle( M,')can be
+polynomially reduced to Reach( M,'). Thus, to show the lemma we reduce 3-
+SAT to the problem Reach( M,'). Let Ãbe a 3-SAT formula Ã=C1^ ¢¢¢ ^
+Cn, over a set of atomic propositions AP0=fP1; : : : ; P kg, where each Ciis a
+disjunction of three literals. We construct an SHSM M= (M1; : : : ; M k), on the
+set of atomic propositions AP=fc1; : : : ; c ng, as follows: each Mi; i¸1, has
+four vertices forming a line: ini,pi,notp iandouti. The vertex piis labeled
+cj, ifPioccurs in the clause Cj, while the vertex notp iis labeled cjif:Piis
+inCj. For i >1,piandnotp iare boxes expanding into Mi¡1, having edges
+((pi; out i¡1); notp i) and (( notp i; out i¡1); out i). Vertices p1andnotp 1are nodes.
+De¯ne '=c1^ ¢¢¢ ^ cn. It is not di±cult to verify that Ãis satis¯able if and
+only if there exists a reachable state of MFat which 'is satis¯ed. u t
+To show membership in NP, we introduce the notions of path and cycle on
+SHSMs. In the following, given a box u2Nh,out(u) is the set of all vertices
+z2out expn (u)such that (( u; z); v)2Eh, for some v2Nh. Moreover, with
+[u; z] we denote a pair such that either uis a node and z=²oruis a box and
+z2out(u).
+LetM= (M1; : : : ; M k) be an SHSM. A H-path from a pair [ u1; z1] to a vertex
+urinMh, is a sequence of pairs [ u1; z1] [u2; z2]: : :[ur¡1; zr¡1] such that for every
+1·j < r ,uj2Nhand one of the following cases occurs: either ujis a node
+and ( uj; uj+1)2Eh, orujis a box, (( uj; zj); uj+1)2Ehand there is a H-path
+from [ inexpn (uj); ²] tozjinMexpn (uj). In the following, when we refer to a H-path
+inMh, we sometimes omit the reference to a machine Mhsince it is univocally
+determined by the vertices u1; : : : ; u r. Moreover, we say that a vertex u2Nhis
+H-connected if either u=inhor there is a H-path from [ inh; ²] tou. Observe that
+if a node u2Nhis H-connected then there exists a path from hinhitohuiin the
+Kripke structure MF
+h, while if a box uis H-connected, a path exists from hinhi
+tohu inexpn (u)i. Hence, if a vertex uis H-connected, this in turn means that
+there exists a path from h® inhito either h®uiorh®u in expn (u)iinMF, for any
+well-formed sequence ®=²or®=u1: : : u j, with expn(uj) =h. On the other
+side, note that if there exists a path in MFfromhinkito a state hu1: : : u mi,
+then there are paths from hu1: : : u j¡1inexpn (uj¡1)itohu1: : : u j¡1ujinexpn (uj)i
+forj= 1; : : : ; m ¡1 and from hu1: : : u m¡1inexpn (um¡1)itohu1: : : u m¡1umi.
+Therefore, all vertices ujforj= 1; : : : ; m are H-connected. These observations
+prove the following proposition.
+Proposition 3. Given an SHSM M= (M1; : : : ; M k), letX=hu1u2: : : u mibe
+a state of MF. There is a path from hinkitoXinMFif and only if all the
+vertices uiare H-connected.
+AH-cycle in an SHSM is a H-path from a pair [ u; z] tou. Now, we want to
+consider the relationship between cycles in MFand H-cycles in M. Given a pair
+[v0; z0] with z02out(v0), a well-formed sequence v0v1: : : v ris called connected
+toz0if for each `= 1; : : : ; r there exist z`2out(v`)[ f²g, and a H-path
+
+--- Page 8 ---
+from [ v`; z`] toz`¡1(note that vrmay also be the output node zr¡1). This
+de¯nition simply captures the property that there is a path of MFfrom a state
+h® v0v1: : : v r¯i(with ®; ¯possibly empty) to a state h® v0zisuch that ® v0is a
+common pre¯x to all the complete well-formed sequences of the visited states.
+Proposition 4. LetMbe an SHSM and X=hu1: : : u mibe a reachable state
+ofMF.Xbelongs to a cycle in MFif and only if either:
+{[um; ²]belongs to a H-cycle or
+{there exist 1·i < m andz2out(ui)such that [ui; z]belongs to a H-cycle
+andui: : : u mis a well-formed sequence connected to z.
+The following proposition is crucial in our argument for NP-membership.
+Proposition 5. Given an SHSM M, the set of H-connected vertices and the
+set of pairs belonging to a H-cycle of Mcan be determined in O(jMj).
+Therefore, we have the following theorem.
+Theorem 1. The problems Reach( M,')andCycle( M,')for SHSMs are
+NP-complete.
+E±cient solutions. Here, we present some conditions on an SHSM Mand
+a formula 'which allow us to give e±cient algorithms for both Reach( M,')
+andCycle( M,'). First we de¯ne a partial evaluation of 'on a well-formed
+sequence and then we give the algorithms for the above two problems.
+Given a formula 'and two disjoint sets T; FµAP, let Inst( '; T; F ) denote
+the formula obtained by instantiating to truethe atomic propositions of Tand
+tofalse those in F. If we are given a state XofMF, then a propositional formula
+'can be evaluated in Xsimply by computing Inst( ';true (X); APntrue (X)).
+To solve our problems, we would like to ¯nd a state in MFwhere 'is satis¯ed,
+using the SHSM M, without explicitly constructing MF. To this aim we use a
+greedy approach to evaluate ': we visit top-down Mand at each vertex uwe
+instantiate as many atomic propositions as possible. The question is: which are
+the atomic propositions of 'can be instantiated? Surely, we can instantiate to
+trueall the atomic propositions of true (u), while the atomic propositions which
+can be instantiated to false depend on the vertices that may follow uin any
+complete well-formed sequence of M. In other terms, an atomic proposition can
+be instantiated to false if it labels neither unor vertices having uas an ancestor,
+that is it does not belong to a set true¤(u) de¯ned as true¤(u) =true (u)[S
+v2Nexpn+(u)true (v):Thus, we de¯ne the set of atomic propositions of 'that
+can be instantiated to false at a vertex u2Nh, asfalse (u) =APntrue¤(u):
+Let us remark that the function false can be computed by visiting Mjust once.
+Given an SHSM M, a propositional boolean formula 'overAPand a well-
+formed sequence ®ofM, the partial evaluation of'on®, is de¯ned as
+½
+PEval( '; ²) ='
+PEval( '; ®u ) = Inst(PEval( '; ®);true (u);false (u)):
+The following lemma ensures correctness of our approach.
+
+--- Page 9 ---
+Lemma 2. Given an SHSM M, a formula ', and a state X=h®iofMF:
+PEval ('; ®) =Inst(';true (X); APntrue (X)).
+In what follows w.l.o.g. we assume that the formula returned by a partial
+evaluation is simpli¯ed according to the following tautologies: ( Ã^true)´Ã,
+(Ã^false)´false, (Ã_false)´Ã, (Ã_true)´true, (:true)´false, (:false)´
+true. We say that 'isconstant if it is either trueorfalse.
+Now, we are ready to de¯ne a condition to get polynomial-time algorithms for
+the problems Reach( M,')andCycle( M,').
+Fix an SHSM Mand a boolean formula '. We say that the partial evaluations
+of'inMareuniquely inherited i®: for every two well-formed sequences ®u
+and¯v, ifexpn(u) =expn(v) and both PEval( '; ®u ) and PEval( '; ¯v ) are not
+constant, then PEval( '; ®u ) = PEval( '; ¯v ).
+Assume w.l.o.g. that all the vertices of Mare H-connected (from Proposi-
+tion 5, an arbitrary SHSM can be simpli¯ed such that this holds using linear
+time). Thus from Proposition 3 all states of MFare reachable. Hence, using
+mainly Lemma 2, it is possible to design an algorithm that looks for a complete
+well-formed sequence ®for which the function PEval( '; ®) gives TRUE. Such al-
+gorithm visits top-down the machines of Mand evaluates PEval on well-formed
+sequences by computing iteratively the function Inst. Note that if the evaluations
+of'are uniquely inherited, multiple visits of a machine Mhare not needed, and
+thus the overall complexity of the algorithm is linear in jMjandj'j.
+Theorem 2. Let'be a formula and Mbe an SHSM such that the partial
+evaluations of 'inMare uniquely inherited. The problem Reach( M,')is
+decidable in time O(jMj ¢ j 'j).
+The algorithm to solve the problem Cycle( M,')and its correctness strongly
+rely on the following Lemma 3 which is a direct consequence of Proposition 4.
+Lemma 3. LetMbe an SHSM with all H-connected vertices, 'be a boolean
+formula and ®=u1: : : u jbe a well-formed sequence such that PEval ('; ®) =true .
+There exists a well-formed sequence ¯such that h®¯iis a solution of the problem
+Cycle( M,')if and only if either
+a)there exists a H-cycle in Mh,h2expn+(uj)or
+b)there exist i·jandz02out(ui)such that [ui; z0]is in a H-cycle and
+ui: : : u jis a well-formed sequence connected to z0.
+Theorem 3. Let'be a formula and Mbe an SHSM such that the partial
+evaluations of 'inMare uniquely inherited. The problem Cycle( M,')is
+decidable in time O(jMj ¢ j 'j).
+Note that for general 'andM, the above algorithms can be easily modi¯ed
+in such a way that each machine Mhcan be visited just once for each subformula
+of'. Thus the following theorem holds.
+Theorem 4. Given an SHSM Mand a formula ', the problems Reach( M,')
+andCycle( M,')are decidable in O(jMj ¢ 2j'j)time.
+
+--- Page 10 ---
+Observe that when in Mthere are no context-properties ( true (u) =;for
+every box u), then the partial evaluations of every formula 'inMare uniquely
+inherited and thus Theorems 2 and 3 generalize those in [AY01].
+We give a further condition on Mand'which let us get e±cient algorithms
+whenMis a CHSM. Let AP( Ã) be the set of atomic propositions of a formula
+Ã. We say that Ãislocal toMvertices i® for every vertex uofMeither
+AP('i)\(true (u)[false (u)) =;orAP('i)\(true (u)[false (u)) =AP('i)
+holds. It is possible to show that for a CHSM M, if'is of the form '1^¢¢¢^ 'm
+where each 'iis local to Mvertices, then the partial evaluations of 'inMare
+uniquely inherited.
+Corollary 2. LetMbe a CHSM and 'be a conjunction of formulas which are
+local to Mvertices. The problems Reach( M,')andCycle( M,')are decidable
+in time O(jMj ¢ j 'j).
+As a ¯nal remark, note that from Lemma 1, Reach( M,')andCycle( M,')
+areNP-hard for SHSMs even if we restrict to conjunctions of formulas which
+are local to the vertices of the considered SHSM.
+4LtlandCtlModel Checking
+In this section we consider the veri¯cation of requirements expressed by Ltl
+andCtl formulas. We recall a BÄ uchi automaton A= (Q; q1; ¢; L; T ) is a Kripke
+structure ( Q; q1; ¢; L ) together with a set of accepting states T[Tho90].
+Fix an SHSM M= (M1; : : : ; M k) and a BÄ uchi automaton A= (Q; q1; ¢; L; T ),
+with Q=fq1; : : : ; q mg. We de¯ne the graphs M(i;j;P), where 1 ·i·k,
+1·j·m, and Pis a subset of APsuch that P[true M(ini) =L(qj).
+The vertices of M(i;j;P)are 4-tuples [ u; q; j; P ]. The third and fourth compo-
+nents are the same for all the vertices in the same graph and are needed only
+to distinguish vertices of di®erent graphs. Components uandqare respectively
+vertices of MiandAsuch that: if uis a node, the labeling of qcoincides with the
+labeling of uaugmented with the set Pof the atomic propositions that uinherits
+from its ancestors; if uis a box, with expn(u) =h, the labeling of qcontains
+also the atomic propositions labeling the initial node inhof the expansion of u.
+Moreover, the edges in M(i;j;P)are obtained from the edges of MiandAas in
+the standard Cartesian product of MiandA.
+The SHSM M0=MNAis inductively de¯ned as follows. M(k;1;;)is the
+graph containing the starting node of M0. Let M(i;j;P)be a graph of M0, and
+[u; qt; j; P] be a vertex of M(i;j;P). IfexpnM(u) = 0 then expnM0([u; qt; j; P]) = 0.
+IfexpnM(u) =h >0, and P0=P[true M(u) then M(h;t;P0)is a graph of M0
+andexpnM0([u; qt; j; P]) is the index of M(h;t;P0). Finally, we use only an atomic
+proposition tgt to label vertices: true M0([u; q; j; P ]) isftgtgi®q2T.
+By a counting argument and the observation that for CHSMs the graphs M(i;j;P)
+are uniquely determined by the indices iandj, we can show the following lemma.
+Lemma 4. Given an SHSM M,M0=MNAis an SHSM whose size is O(m2¢
+jMj ¢ j Aj ¢ j2APj). Moreover, if Mis a CHSM, then the size of M0isO(m2¢
+jMj ¢ j Aj).
+
+--- Page 11 ---
+The language L(A) accepted by a BÄ uchi automaton Ais the set of all traces
+corresponding to paths visiting in¯nitely often a state of T. The SHSM MNA
+can be used to check for emptiness the language given by the intersection of
+L(M) and L(A), as shown in the following lemma.
+Lemma 5. Emptiness of L(M)\L(A)can be checked in time linear in the size
+ofMNA.
+Proof : Observe that the set of the traces of M0Fis the same as the set of
+traces of the Cartesian product of MFandA. Thus L(M)\ L(A)6=;if and
+only if Cycle( M0,tgt)is TRUE. Since the simple formula consisting of the sole
+atomic proposition tgt has only a partial evaluation, that is tgt itself, from
+Theorem 3 this problem can be checked in linear time. u t
+As a consequence of the above lemmas, we obtain an algorithm to solving
+theLtlmodel checking for SHSMs. We construct a BÄ uchi automaton A:'of
+sizeO(2j'j) accepting the set L(A:') of the sequences that do not satisfy ', and
+then 'is satis¯ed on all paths of Mif and only if L(M)\ L(A:') is empty.
+Therefore, by Lemmas 4 and 5 we have:
+Theorem 5. TheLtlmodel checking on an SHSM Mand a formula 'can be
+solved in O(jMj ¢ 16j'j)time. Moreover, if M is a CHSM then the problem can
+be solved in O(jMj ¢ 8j'j)time.
+Now we consider Ctl for expressing branching-time properties and sketch
+an algorithm to solve Ctl model checking. We ¯x an SHSM M= (M1; : : : ; M k)
+and a temporal logic formula '. Let P'be the set of atomic propositions that
+appear in '. The ¯rst step of our algorithm consists of constructing a hier-
+archical state machine M'such that MF
+'is isomorphic to MF. Let index :
+[1; k]£2P'![1; k2jP'j] be a bijection such that index (i; Pi)<index (j; Pj)
+whenever i < j . Clearly, index maps the pairs ( i; Pi) into a strictly increas-
+ing sequence of consecutive naturals starting from 1. For a machine Mi=
+(Ni; ini; OUT i;true i;expni; Ei), 1·i·kandPµP', de¯ne MP
+ias the
+machine ( NP
+i; inP
+i; OUTP
+i;trueP
+i;expnP
+i; EP
+i) where:
+¡NP
+i=fuPju2Nig, and OUTP
+i=fuPju2OUT ig;
+¡trueP
+i(uP) =true i(u)[Pifuis a node and trueP
+i(uP) =;, otherwise;
+¡expnP
+i(u) = 0 if uis a node and expnP
+i(u) =index (expni(u); P[true i(u)),
+otherwise;
+¡EP
+i=f(uP; vP)j(u; v)2Eig [ f((uP; zP[true i(u)); vP)j((u; z); v)2Eig.
+We de¯ne M'by the tuple of machines ( M0
+1; : : : ; M0
+k0) such that for j= 1; : : : ; k0,
+M0
+j=MP
+iwhere j=index (i; P). From the de¯nition of MP
+iit is simple to verify
+thatM'is a HSM and jM'jisO(jMj2jP'j) =O(jMj2j'j). Moreover, MF
+'and
+MFare identical up to a renaming of states. Therefore, by the results on HSMs
+from [AY01], we get the following theorem (where Mis an SHSM, 'is a formula
+anddis the maximum number of exit nodes of a machine of M).
+Theorem 6.
+TheCtl model checking of SHSMs can be solved in O(jMj4j'jd)time.
+
+--- Page 12 ---
+References
+[ABE+05] R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. Reps, and M. Yan-
+nakakis. Analysis of recursive state machines. ACM Transactions on Pro-
+gramming Languages and Systems (TOPLAS) , 27(4): 786{818, 2005.
+[AEM04] R. Alur, K. Etessami, and P. Madhusudan. A Temporal Logic of Nested
+Calls and Returns. In Proc. 10th International Conference on Tools and
+Algorithms for the Construction and Analysis of Systems, TACAS'04 , LNCS
+2988, pp. 467{481, 2004.
+[AGM00] R. Alur, R. Grosu, and M. McDougall. E±cient reachability analysis of
+hierarchical reactive machines. In Proc. 12th International Conference on
+Computer Aided Veri¯cation, CAV'00 , LNCS 1855, pages 280{295. Springer,
+2000.
+[AKY99] R. Alur, S. Kannan, and M. Yannakakis. Communicating hierarchical state
+machines. In Proc. 26th International Conference on Automata, Languages
+and Programming, ICALP'99 , LNCS 1644, pp. 169{178, 1999.
+[ALM03a] R. Alur, S. La Torre, and P. Madhusudan. Modular Strategies for Re-
+cursive Game Graphs. In Proc. 9th International Conference on Tools and
+Algorithms for the Construction and Analysis of Systems, TACAS'03 , LNCS
+2619, pp. 363-378, 2003.
+[ALM03b] R. Alur, S. La Torre, and P. Madhusudan. Modular Strategies for In¯nite
+Games on Recursive Graphs. In Proc. 15th International Conference on
+Computer Aided Veri¯cation, CAV'03 , LNCS 2725, pp. 67-79, 2003.
+[AMY02] R. Alur, M. McDougall, and Z. Yang. Exploiting Behavioral Hierarchy for
+E±cient Model Checking. In Proc. 14th International Conference on Com-
+puter Aided Veri¯cation, CAV'02 , LNCS 2404, pp. 338{342, 2002.
+[AY01] R. Alur and M. Yannakakis. Model checking of hierarchical state machines.
+ACM Transactions on Programming Languages and Systems (TOPLAS) ,
+23(3):273 { 303, 2001.
+[BLP06] L. Bozzelli, S. La Torre, and A. Peron. Veri¯cation of well-formed Commu-
+nicating Recursive State Machines. In Proc. 7th International Conference
+on Veri¯cation, Model Checking, and Abstract Interpretation, VMCAI'06 ,
+LNCS 3855, pp. 412{426, 2006.
+[CE81] E.M. Clarke and E.A. Emerson. Design and synthesis of synchronization
+skeletons using branching time temporal logic. In Proc. of Workshop on
+Logic of Programs , LNCS 131, pages 52 { 71. Springer-Verlag, 1981.
+[CK96] E.M. Clarke and R.P. Kurshan. Computer-aided veri¯cation. IEEE Spec-
+trum, 33(6):61 { 67, 1996.
+[LNPP03] S. La Torre, M. Napoli, M. Parente, G. Parlato. Hierarchical and Recursive
+State Machines with Context-Dependent Properties. In Proc. 30th Interna-
+tional Conference on Automata, Languages and Programming, ICALP'03 ,
+LNCS 2719, pp. 776{789, 2003.
+[LMP04] R. Lanotte, A. Maggiolo, and A. Peron, Structural Model Checking for Com-
+municating Hierarchical Machines. In Proc. 31st International Symposium
+on Mathematical Foundations of Computer Science, MFCS'04 , LNCS 3153,
+pp. 525{536, 2004.
+[Pnu77] A. Pnueli. The temporal logic of programs. In Proc. 18th IEEE Symposium
+on Foundations of Computer Science, FOCS'77 , pages 46 { 77, 1977.
+[Tho90] W. Thomas. Automata on in¯nite objects. In J. van Leeuwen, editor, Hand-
+book of Theoretical Computer Science , volume B, pages 133 { 191. Elsevier
+Science Publishers, 1990.

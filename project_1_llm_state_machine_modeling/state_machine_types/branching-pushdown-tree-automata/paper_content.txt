@@ -1,0 +1,581 @@
+--- Page 1 ---
+Branching Pushdown Tree Automata⋆
+Rajeev Alur and Swarat Chaudhuri
+University of Pennsylvania
+Abstract. We observe that pushdown tree automata (PTAs) known in
+the literature cannot express combinations of branching and pushdown
+properties. This is because a PTA processes the children of a tre e node
+in possibly diﬀerent control states but with identical stacks. We p ropose
+branching pushdown tree automata (BPTAs) as a solution. In a BPTA,
+a push-move views its matching pops as an unbounded, unordered set of
+successor moves and can assert existential and universal requireme nts on
+them, just the way ﬁnite automata on unranked, unordered trees pass
+requirements to the children of a tree node. We show that BPTAs c an
+express some natural properties and are more expressive than PTAs.
+Using a small-model theorem, we prove their emptiness problem t o be
+decidable. The problem becomes undecidable, however, if push-m oves
+are allowed to specify the ordering of matching pops.
+1 Introduction
+Regular languages of trees [1] have been studied extensively in the literature [10]
+and found a number of applications. Automata accepting such languages can
+reason about paths in a tree existentially (“a symbol ais seen along some path
+from the current node”) and universally (“ ais seen on allpaths”). Concretely,
+while reading a node in a binary tree, a nondeterministic, top-down tree au-
+tomaton can nondeterministically pick pairs of diﬀerent states to be sent to t he
+children of the current node. Such “branching” of the ﬁnite control permits tree
+automata to specify properties of trees such as: “every node labeled ahas a
+descendant labeled band another descendant labeled c.”
+Above the class of regular tree languages in the hierarchy of expressiveness
+lies the class of context-free tree languages [7, 1]. Such languages are accepted
+bynondeterministic pushdown tree automata (PTAs) [3, 9, 8, 4, 6], which aug-
+ment tree automata with pushdown stores. PTAs are expressively equivalent
+to context-free tree grammars [1, 7], and their emptiness problem is in EXP-
+TIME [11, 6]. Their usual operational deﬁnition runs as follows: while reading a
+tree node, a PTA Aassumes a conﬁguration of the form ( q,w), whereqis a state
+andwis a stack. At any point, Amay push or pop the stack, or it may fork copies
+to be sent to the children of the current node. The essence of the expressiveness
+of PTAs, however, lies in the fact that they allow information stored on the stack
+⋆This research was partially supported by ARO URI award DAAD19-01-1-0473 and
+NSF award CCR-0306382.
+
+--- Page 2 ---
+at a push-transition to be retrieved at “matching” pop-transitions arbitrar ily far
+away. Another way to view this is: a push-move in a PTA Acanconstrain its
+matching pops—for instance, it may require q′to be the only state reached via
+the latter. This is analogous to the way a transition in a tree automaton can
+constrain the automaton’s state at the children of a tree node.
+We note, however, that in existing deﬁnitions of PTAs, copies of the automa-
+ton forked by a branch-transition have identical stacks , even though they may
+diﬀer in control state (in some deﬁnitions, the stacks may diﬀer, but only in a
+bounded way). If a push stores γon the stack, then at every matching pop , it
+is the same γthat must be popped. Thus, while γmay be used to require that
+every matching pop leads to state q′, a push-move cannot assert properties such
+as: “there exists a unique matching pop leading to state q1, and every other
+matching pop leads to state q2.” Intuitively, a PTA can only express universal
+(as opposed to universal andexistential) matching requirements. On the other
+hand, tree automata can reason universally and existentially about the children
+of a tree node—for unranked trees, MSO-complete tree automata [5] have tran-
+sitions asserting requirements such as: “there exists a unique child to which s tate
+q1is passed, and every remaining child gets state q2.” Thus, PTAs do not re-
+ally combine the way tree automata specify branching properties with the way
+pushdown automata express matching requirements.
+To see how this prevents PTAs from capturing the interplay of matching
+and tree branching, consider a basic pushdown language: that of words over
+brackets [, ] 1and ] 2where every bracket [ has a matching instance of ] 1or ]2.
+Now consider the language Lof trees labeled by the above brackets where: (1)
+each node labeled [ has a single descendant labeled ] 1such that the path from
+the former to the latter is “matched,” and (2) every other “matched descendant”
+is labeled ] 2. A push-transition taken by a PTA at a node labeled [ (or within a
+bounded distance from it) can check that allmatching brackets reachable from
+the point of push are of a certain type. However, no PTA can accept L.
+In this paper, we introduce branching pushdown tree automata (BPTAs),
+a class of pushdown automata which run on trees but do not suﬀer from this
+shortcoming in expressiveness. A push-transition in a BPTA views the tree nodes
+reached via its matching pops as an unbounded, unordered set of successor nodes,
+and can assert existential and universal requirements on them. More precisely,
+a push-transition is of the form q→(q′,push(χ)), whereqis the source state,
+q′is the destination state, and χ, aconstraint on the states reached by the
+matching pops, can demand a requirement such as: “state q1is reached through
+one matching pop, and the rest lead to q2.” Note how this is analogous to the
+way MSO-complete ﬁnite automata on unranked, unordered trees can assert
+requirements on the children of a tree node. Thus, the ability of tree automata to
+reason about tree branches is combined seamlessly with the power of pushdown
+automata to match brackets, letting BPTAs accept a “truly pushdown” class of
+tree languages. Note also that the language Lmay now be accepted easily. At
+nodes labeled ] 1and ] 2, the BPTA AforLpops and moves respectively to states
+
+--- Page 3 ---
+q1andq2, then continues down the tree. At a node labeled [, Apushes, asserting
+the constraint χon the matching pops, before it branches.
+BPTAs enjoy closure properties similar to PTAs but are provably more ex-
+pressive. The main technical result of this paper is an algorithm for their empti-
+ness problem. The analogous problem for PTAs reduces to pushdown games [11];
+however, such a reduction seems impossible in this case. Instead, we deﬁne a
+proof system that, for states qand constraints χ, derives facts such as “starting
+at stateqwith empty stack from the root of some tree, the automaton has a
+way to reach the leaves of that tree with empty stack, at states that together
+satisfyχ.” Using a small-model theorem that states that a short proof exists for
+every proof in this system, we obtain a 3-EXPTIME algorithm for the emptines s
+problem. Intriguingly, checking emptiness becomes undecidable if we allow BP-
+TAs to reason about the order among the matching pops of a push by allowing
+the constraints asserted at push-moves to be regular expressions.
+The organization of this paper is as follows. In Sec. 2, we present some deﬁ-
+nitions we use in the rest of the paper. In Sec. 3, we formally deﬁne BPTAs, and
+in Sec. 4, we present our main decision procedure. We study the expressiveness
+of BPTAs in Sec. 5, and conclude with some discussion in Sec. 6.
+2 Basics
+Binary trees Our models in this paper are binary trees . LetΣbe an input alpha-
+bet. A ﬁnite binary tree over Σis a term given by the grammar T:=⊥ |a(T,T),
+fora∈Σ. The tree ⊥is the empty tree , and the rootof a treea(T1,T2) is the
+lettera. Thei-thleafofTis thei-th instance of ⊥in it (reading left-to-right).
+Thei-th composition (T◦iT′) ofTandT′is the term obtained by replacing the
+i-th leaf ofTbyT′.
+Count constraints Consider a ﬁnite set Qand a word α∈Q+. We denote the
+length ofαby|α|and thei-th symbol in αbyα(i). The count ofq∈Qinαis
+the number of times qoccurs inα.
+We will be interested in count constraints overQ. Such a constraint χfollows
+the grammar χ:= (count(q)≥k)|(count(q) =k)|χ∧χ, fork∈N. A wordα
+satisﬁesχ(written as α|=χ) iﬀ it satisﬁes each conjunct of form ( count(q)≥k)
+or (count(q) =k); the former holds iﬀ the count NofqinαsatisﬁesN≥k, and
+the latter iﬀ N=k. We assume our constraints to be in the simplest possible
+form, i.e. no two conjuncts refer to count(q) for the same q.
+Let us now construct an alphabet of starred elements Q∗={q∗|q∈Q}.
+We will represent a count constraint χoverQas amultiset (U∪U), where
+Uis a multiset over Q, andU⊆Q∗. For each q∈Q, letmqbe the number
+of occurrences of qinU; ifq∗∈U, then setτq= (count(q)≥mq), else set
+τq= (count(q) =mq). Then we must have χ=/logicalandtext
+qτq. Intuitively, mqcopies of
+qinχguarantees any word satisfying χto have at least mqoccurrences of q;
+absence ofq∗(q∗is read as “an unspeciﬁed number of q-s”) guarantees that the
+
+--- Page 4 ---
+constraint is an equality. For instance, χ={q1,q∗
+1,q2}represents the constraint
+(count(q1)≥1)∧(count(q2) = 1) ∧/logicalandtext
+i/negationslash=1,2(count(qi) = 0).
+In the sequel, we denote by count(χ,q) the number of times qappears in
+χ, and we deﬁne the sizeofχto be Size(χ) =/summationtext
+qcount(χ,q). Also, binary
+relations over constraints χandχ′are to be interpreted as relations over the
+corresponding multisets. Now we deﬁne an “implied-by” relation /precedesorcurlyfor count
+constraints. For constraints χandχ′, we deﬁne χ/precedesorcurlyχ′iﬀ (1) for each q∈Q
+such thatq∗∈χ, we have count(χ,q)≤count(χ′,q), and (2) for each q∈Q
+such thatq∗/∈χ, we have count(χ,q) =count(χ′,q). Clearly, if χ/precedesorcurlyχ′, then for
+every word α∈Q+, we haveα|=χ′⇒α|=χ.
+For count constraints χ1=U1∪U1andχ2=U2∪U2, where U1,U2are
+multisets over QandU1,U2⊆Q∗, we deﬁne the sum(χ1+χ2) as (U1∪U2)∪
+(U1∪U2). Note that the union of U1andU2is a multiset union that duplicates
+states, whereas U1∪U2is a simple set union. Likewise, for q∈U1, we deﬁne
+(χ1− {q}) to be ( U1\ {q})∪U1.
+3 Branching pushdown tree automata
+Syntax and semantics A(top-down) branching pushdown tree automaton
+(BPTA) is a tuple A= (Q,Σ,q 0,δ,F), whereQis a ﬁnite set of states, Σ
+is an input alphabet, q0∈Qis the initial state, and F⊆Qis a set of ﬁnal
+states. The transition relation δconsists of four kinds of transitions: (1) push-
+transitions q→(q′,push(χ)), whereq,q′∈Qandχis a count constraint over Q;
+(2) pop-transitions q→(q′,pop), whereq,q′∈Q; (3) swap-transitions q→q′,
+whereq,q′∈Q, and (4) branch-transitions qa−→(q1,q2), wherea∈Σand
+q1,q2∈Q.
+Intuitively, while processing a binary tree, a BPTA is able to change its
+conﬁguration using a push, pop or swap transition and process the same tree
+while in the new conﬁguration. It may also read the root of the tree, fork two
+copies using a branch transition, and use them to inductively process the left
+and right subtrees of the present tree. We note that the assumption that the
+current input symbol is ignored during pushes, pops and swaps is only for simpler
+exposition, and does not limit expressiveness. Also, observe that the transiti ons
+of a BPTA do not manipulate a stack explicitly—indeed, we avoid the use of
+a stack altogether while deﬁning runs of BPTAs. However, we will see that our
+deﬁnition can encode the usual stack-based semantics for pushdown automata.
+We will also see that pushdown tree automata (PTAs) can be encoded by BPTAs
+where for every constraint χappearing in a push-transition, Size(χ) = 0.
+The semantics of a BPTA Ais deﬁned inductively via predicates Run(q,α,T ),
+whereq∈Q,αis a word over Q, andTis a binary tree. Intuitively, the predicate
+Run(q,α,T ) is true iﬀ the automaton has a run on the tree T, starting at state
+qwith empty (implicit) stack and ending at the leaves of Twith empty stack,
+such thatαis obtained by reading from left to right the states of Aat the leaves
+ofT. Formally:
+–Run(q,q,⊥) is true;
+
+--- Page 5 ---
+–ifAhas a transition q→q′, then Run(q,q′,⊥);
+–ifT=a(⊥,⊥) and Ahas a transition qa−→(q1,q2), then Run(q,q1q2,T);
+–assume that Run(q′,α′,T) and Ahas a transition q→(q′,push(χ)). Then
+Run(q,α,T ) holds if for some α∈Q∗, we have: (1) α|=χ, and (2) there is
+a bijection µ:{1,2,...,|α|} → { 1,2,...,|α|}such that Ahas a transition
+α(i)→(α′(µ(i)),pop) for all 1 ≤i≤ |α|;
+–ifRun(q,α,T ) and Run(q′,α′,T′), andα(i) =q′, then Run(q,α′′,T◦iT′),
+whereα′′is obtained by substituting α(i) byα′.
+The BPTA Aaccepts a treeTifRun(q0,α,T) for some word αoverF.
+Informally, the acceptance condition requires the automaton to reach each leaf
+ofTin a ﬁnal state with an empty (implicit) stack. The language L(A) ofAis
+the set of all trees it accepts.
+Among the above, the fourth and the
+[ [[[
+]1 ]1 ]1 ]1 ]1]1
+]1 ]1
+]2 ]2 ]2
+Fig. 1. A BPTA exampleﬁfth clauses are the most interesting. The
+fourth clause captures matching—if Apushes
+to go from qtoq′, and there is an empty-
+stack-to-empty-stack run from q′toq′′, then
+a pop from q′′toq′′′matches the original
+push. The distinguishing feature of BPTAs
+is that the word obtained by reading the
+q′′′’s from left to right must now satisfy a
+count constraint χ. The ﬁfth clause captures
+the way a run from qand ending, among
+others, atq′, can be composed with a run from q′.
+To see a language recognized by a BPTA, consider binary trees over the
+input alphabet Σ={[,]1,]2}. Let nodes and paths in such trees have the natural
+deﬁnitions, and let brackets [ be matched by brackets ] 1and ] 2. Call a node x′
+in a tree a matching node of a nodexifxis labeled [, x′is labeled ] 1or ]2,
+and there is a well-matched path (deﬁned in the natural way) from xtox′. Now
+consider the language Lof such trees where (1) every path from the root to a
+“leaf” ⊥(not including the leaf itself) is matched, and (2) every node labeled [
+has exactly two matching nodes labeled ] 1, and every remaining matching node
+is labeled ] 2. The tree in Fig. 1, for instance, belongs to L(the leaves have been
+omitted to keep the ﬁgure clean).
+A BPTA AforLhas states q,q]1, andq]2, the initial state being q. On
+reading a node labeled ] 1(similarly ] 2),Apops and changes state to q]1(orq]2).
+On reading a node labeled [, Apushes and sends the state qto the children
+of the current node, the count constraint in the push being: “state q]1appears
+exactly twice, and q]2occurs 0 or more times.”1It is easy to see that AacceptsL.
+Pushdown tree automata A(top-down) pushdown tree automaton (PTA) P
+has a ﬁnite state set H, an initial state h0, a ﬁnite stack alphabet Γ, a set of
+1While BPTAs, as deﬁned, cannot push and branch in a “compound” transiti on, a
+move like this can be implemented using extra “book-keeping” stat es.
+
+--- Page 6 ---
+ﬁnal states, and transitions of the types h→(h1,push(γ)),h→(h1,pop(γ)),
+h→h1, andha−→(h1,h2), whereh,h1,h2∈H,γ∈Γ, andais an input
+symbol. A conﬁguration ofPis of the form ( h,w), whereh∈H, andw∈Γ∗is
+astack. We deﬁne the semantics of Aon an input tree Tvia predicates of the
+typeAccept ((h,w),T), which intuitively means “ PacceptsTfrom conﬁguration
+(h,w),” and is true if one of the following conditions holds:
+–w=ǫ,his a ﬁnal state, and T=⊥;
+–there is a transition h→h′such that Accept ((h′,w),T);
+–T=a(T1,T2), and for some transition ha−→(h1,h2),Accept ((h1,w),T1)
+andAccept ((h2,w),T2);
+–there is a transition h→(h′,push(γ)) such that Accept ((h′,γ.w),T);
+–w=γ.w′, and for some transition h→(h′,pop(γ)),Accept ((h′,w′),T).
+The automaton Paccepts a tree TifAccept ((h0,ǫ),T) holds; L(P) is the
+language of P. Now, to see that BPTAs can encode PTAs, note that the only
+way a push-transition is diﬀerent from a swap transition is that it constrains the
+“matching” pop transitions—if γis pushed, then it is γthat must be popped
+at every matching pop. More precisely, construct from Pa BPTA Awith state
+setH∪(H×Γ)—intuitively, a pop in Ato state (h,γ) simulates a move in
+Pthat popsγand changes state to h. Every branch and swap transition in
+Pis also a transition in A;Aalso has extra swap-transitions ( h,γ)→hfor
+allh∈H,γ∈Γ. For every pop-transition h→(h′,pop(γ)) inP,Ahas a
+transitionh→((h′,γ),pop), and for every push h→(h′,push(γ)) inP,Ahas a
+transitionh→(h′,push(χ)), where the count constraint χ=/logicalandtext
+h(count((h,γ)≥
+0)∧/logicalandtext
+∀h.q/negationslash=(h,γ)(count(q) = 0). It is not hard to see that L(A) =L(P). Now, let a
+0-BPTA be a BPTA where for every constraint χappearing in a push-transition,
+we have Size(χ) = 0. We note that Ais a 0-BPTA. We can also show that for
+every 0-BPTA, there is an equivalent PTA. Then:
+Theorem 1. The class of languages accepted by PTAs equals the class of la n-
+guages accepted by BPTAs where for every constraint χappearing in a push-
+transition, we have Size (χ) = 0.
+4 Emptiness
+Now we present our main technical result: a decision procedure for the problem
+of checking, given a BPTA A, whether L(A) is empty.
+Consider a BPTA A= (Q,Σ,q 0,δ,F), whereQ={q1,q2,...,qn}, and recall
+the predicates Run(q,α,T ) deﬁned in Sec. 3. We would like to prove such predi-
+cates inductively—however, since they are unboundedly many, we must quotient
+them in a ﬁnite way.
+We do so using predicates of the form F(q,χ), whereq∈Qandχis acount
+constraint overQ. The predicate F(q,χ) holds iﬀ Run(q,α,T ) holds for some
+treeTand some word α∈Q+such thatα|=χ. Then, by deﬁnition:
+Lemma 1. Ifχ/precedesorcurlyχ′, then for all q,F(q,χ′)⇒ F(q,χ).
+
+--- Page 7 ---
+Lemma 2. L(A)/\e}atio\slash=∅iﬀF(q0,χF), whereχF={q∗:q∈F}.
+A natural question is whether it suﬃces to consider only predicates F(q,χ)
+whereχappears in a push-transition of A. It turns out that it does not. Consider
+a BPTA Athat has, among others, a push-transition q→(q′,push(ψ)), where
+ψ={p∗
+1,p2,p∗
+2}, and pop-transitions q′′→(p1,pop) andq′′→(p2,pop). Now
+suppose the constraint χ={p1,p∗
+1,p∗
+2}appears in a diﬀerent push-transition,
+and that we want to prove F(q,χ). We note that to use the push-transition
+involvingψin such a proof, we need to prove the stronger predicate F(q,χ′′),
+whereχ′′=χ+ψ={p1,p∗
+1,p2,p∗
+2}. If we are to use this push along with the
+pop-transitions from q′′, we also need to prove F(q′,χ′), whereχ′={q′′,q′′,q′′∗}.
+However, there is no reason why χ′must appear in a transition of A.
+Hence we deﬁne a proof system Ffor facts F(q,χ). The system derives predi-
+catesF(q,χ) (designed to be the syntactic analog of F(q,χ)), and uses the rules:
+1.F(q,χ), forχ/precedesorcurly{q}(Base)
+2.F(q,χ)F(q′,χ′)
+F(q,χ′′)(Compose ),
+ifq′is inχandχ′′/precedesorcurlyχ+χ′− {q′}.
+3.F(q,χ)(Swap ),
+ifAhas a transition q→q′andχ/precedesorcurly{q′}.
+4.F(q,χ)(Branch ),
+ifAhas a transition qa−→(q1,q2) for someasuch thatχ/precedesorcurly{q1,q2}.
+5.F(q′,χ′)
+F(q,χ)(Summarize ),
+if there are count constraints χ′′andψsuch that: (1) χ/precedesorcurlyχ′′, (2)ψ/precedesorcurlyχ′′,
+(3)Ahas a push-transition q→(q′,push(ψ)), and (4) there is a relation
+ν⊆χ′×χ′′such that:
+(a) for every v∈χ′′, there is some u∈χ′such thatν(u,v)
+(b) for each u∈χ′that is a state of A, we have a unique v∈χ′′such that
+ν(u,v),vis a state of A, andAhas a transition u→(v,pop);
+(c) for each uof formq′′∗, forq′′∈Q, inχ′, everyv∈χ′′such thatν(u,v)
+must satisfy: (i) vis of formq′′′∗for someq′′′∈Q, and (ii) Ahas a
+transitionq′′→(q′′′,pop).
+Here, the rule Base may be used to establish that F(q,{q}) is true. In
+addition, this rule can prove a “weaker” fact such as F(q,{q,q∗}), implied by
+F(q,{q}) according to Lemma 2. Generally, if any of our rules can derive a fact,
+then it can also derive every weaker fact.
+We will explain why the rule Compose is sound to demonstrate its pur-
+pose. Suppose we have F(q,χ) and F(q′,χ′), forq′∈χ. Inductively, we have
+Run(q,α,T ) for some α,Tsuch thatα|=χ; likewise, we have Run(q′,α′,T′)
+
+--- Page 8 ---
+for someα′,T′such thatα′|=χ′. Sinceq′=α(i) for some i, we have, by the
+semantics of A,Run(q,α′′,T◦iT′), whereα′′is obtained by replacing the i-th
+letter ofαbyα′. Asα′′|=χ+χ′− {q′}, we can soundly derive any goal weaker
+thanF(q,χ+χ′− {q′}).
+Rules Swap andBranch capture the semantics of the swap and branch
+transitions of A. We will explain the rule Summarize via an example (Fig. 2).
+Suppose we want to derive F(q,χ), whereχ={p1,p∗
+1,p2}. LetAhave a push-
+transitionq→(q′,push(ψ)) that, matched by some pop-transitions and com-
+bined with the true predicate F(q′,χ′), proves F(q,χ′′) for some χ′′satisfy-
+ingχ/precedesorcurlyχ′′. We must have ψ/precedesorcurlyχ′′; also, there must exist appropriate pop-
+transitions from χ′toχ′′. To be concrete, let χ′′={p1,p1,p1,p∗
+1,p2}, andψ=
+{p1,p1,p∗
+1,p2}, and suppose Ahas pop transitions q→(p1,pop),q′→(p1,pop),
+andq′→(p2,pop). Now, every instance of p1(orp2) inχ′′guarantees one copy
+ofp1(p2) reached in a run of A, and must be derived via a pop from a copy of
+qorq′inχ′. The element p∗
+1stands for “an unspeciﬁed number (zero or more)
+ofp1’s,” and must be derived from “an unspeciﬁed number of states that, via a
+pop, may lead to p1.” Thus, we may set χ′={q,q,q′,q∗,q′,q′∗}(as in the ﬁg-
+ure) orχ′={q,q,q,q′∗,q′}, but not, say, χ′={q,q,q,q∗,q}. Now, the relation
+ν⊆χ′×χ′′collects the pairs ( u,v) such that vis derived from u.
+Let us write ⊢FF(q,χ) ifF(q,χ) is derivable in F. We can prove that:
+Lemma 3. F(q,χ)iﬀ⊢FF(q,χ).
+Now take a proof tree for F(q0,χF),
+qqq
+q′q′q′
+q′∗q∗
+p1p1p1
+p1p2p2
+p∗
+1p∗
+1push(ψ)
+ψ={p1,p1,p∗
+1,p2}
+χχ′
+χ′′pop
+Fig. 2. The rule SummarizewhereχFis as in Lemma 2. We show
+that for every such tree, there is a proof
+for the same predicate involving a small
+number of predicates. Consider a path in
+this tree from the root (the target predi-
+cateF(q0,χF)) to a leaf (a predicate de-
+rived without a premise). For predicates
+PandP′that lie on such a path, let us
+write P⊳P′ifPis derived using P′in
+one step. We write P⊳+P′ifPis ob-
+tained via a positive number of deriva-
+tions from P′. Call a proof tree Smin-
+imalif it cannot be further reduced by
+any of the following two operations: (1)
+replace the proof for a predicate PinSby a proof tree with fewer vertices, and
+(2) ifF(q,χ)⊳F(q′,χ′) inS, then replace F(q′,χ′) by a predicate F(q′,χ′′), where
+χ′′/precedesorcurlyχ′andχ′′/\e}atio\slash=χ′, such that F(q,χ) can be derived from F(q′,χ′′) (and the
+other predicates used to derive F(q,χ) inS). Note that in the above, a proof for
+F(q′,χ′′) follows directly from the proof for F(q′,χ′)).
+LetSbe a minimal proof tree. We note that if χ/precedesorcurlyχ′for someχandχ′,
+andF(q,χ)⊳+F(q,χ′) for some qinQ, then by Lemma 1, we can compact S
+by replacing the proof of F(q,χ) by the (stronger) proof for F(q,χ′). Since Sis
+minimal, this is a contradiction, so that:
+
+--- Page 9 ---
+Lemma 4. In a minimal proof tree, we cannot have F(q,χ)⊳+F(q,χ′)ifχ/precedesorcurlyχ′.
+Now note that if F(q,χ)⊳F(q′,χ′) in a minimal proof tree, then we can have
+Size(χ)<Size(χ′) only if the rule Summarize is used for this derivation. Now
+consider a state psuch thatp∗∈χ, and letcmax= maxψmaxq(count(ψ,q))
+be the maximum count of a state in a count constraint that appears in a push-
+transition of A. Because we must have ψ/precedesorcurlyχ′′, it may not suﬃce to have
+count(χ′′,p) =count(χ,p), but the number of extra copies of pthat we may
+need to add is at most cmax(we may also have to add elements of the form
+q∗, but recall that they do not ﬁgure in the size of a constraint). At the same
+time, for states p′for whichp′∗/∈χ, we cannot have count(χ,p′)>cmax—this
+is because count(χ,p′) =count(χ′′,p′) =count(ψ,p′), which contradicts the
+deﬁnition of cmax. Settingk=θ(ncmax) for the rest of this section, we have
+Size(χ′)≤Size(χ) +k. Then:
+Lemma 5. IfF(q,χ)⊳F(q′,χ′)in a minimal proof, then Size (χ′)≤Size(χ)+k.
+Now we abstract the problem fur-
+/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0/0
+/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1/1
+(m0
+1,m0
+2)
+m1=m0
+1+ (m0
+2−m2)km2=m0
+2+ (m0
+1−m1)km1= 1
+m2= 1
+Fig. 3. Bound on constraint sizether. From now on, only consider count
+constraints χwhereq∈χ⇒q∗∈
+χ. Call a sequence of such count con-
+straintsϕ=χ1χ2...χlaproof witness
+if it satisﬁes the conditions: (1) for all i,
+Size(χi+1)≤Size(χi) +k, (2) ifj >i,
+then we cannot have χi/precedesorcurlyχj, and (3)
+χ1=χF, whereχFis as in Lemma 2.
+Let us denote by λ(ϕ) the maximum
+size of a constraint in a proof witness ϕ.
+We ask the question: what is the max-
+imum value of λ(ϕ) over all proof witnesses ϕ? The answer is an upper bound
+on the maximum size of a count constraint χappearing in a predicate F(q,χ) in
+a minimal proof tree.
+Deﬁne the basisof a count constraint χas the set of states qsuch thatq∗∈χ.
+The total number of bases is bounded by 2n. Using the facts that the ordering /precedesorcurly
+only relates count constraints over the same basis and that we assume nothing
+about the speciﬁc counts of states in a constraint, we observe:
+Lemma 6. For any proof witness ϕ=χ1χ2...χl, there are 2nsequences of
+count constraints ϕ1,ϕ2,...,ϕ2n, such that (1) each constraint appearing in a
+particularϕihas the same basis, (2) constraints in diﬀerent ϕi’s have diﬀerent
+bases, and (3) the concentenation ϕ′of theϕi’s is a proof witness satisfying
+λ(ϕ)≤λ(ϕ′).
+Call a proof witness contiguous if it may be split into sub-witnesses over
+particular bases in the above way. To ﬁnd λ(ϕ′) for a contiguous proof wit-
+nessϕ′=ϕ1ϕ2...ϕ2n, we consider a sub-witness ϕi=χ1χ2...χl, such that
+count(χ1,q) =mfor allqin the common basis of constraints in ϕi(in general,
+
+--- Page 10 ---
+the stateqican have a count mi, but we could set m= maximiwithout de-
+creasingλ(ϕ)). We will ﬁnd a bound π(m,n,k ) onλ(ϕi) under this assumption.
+First, note that for i1>i2, we cannot have count(χi1,q)>count(χi2,q) forallq
+in the basis of ϕi. Then, starting from χ1, if we decrease the count of one of the
+states to 1, then the other counts can grow at most to ( m+ (m−1)k) =O(mk)
+(the situation is illustrated in Fig. 3-(b) for basis size 2; here, allowed pairs
+(m1,m2) of counts are depicted as points in a 2-dimensional space, and can
+only lie in its shaded part—( m0
+1,m0
+2) is the “initial” point). In this way we
+can show that π(m,n,k )≤π(O(mk),n−1,k), and using this inequality, that
+λ(ϕi) =O(mnkn). Now note that in ϕi+1, the ﬁrst constraint has the form
+(m′,m′,...,m′), wherem′=O(mnkn), so thatλ(ϕi+1) =O(mn2kn2+n). Also,
+in the ﬁrst constraint in ϕ1, the count of each state is 0. From all this and using
+induction, we obtain that λ(ϕ) =O(kn2n
+).
+Now note that the total number of multisets over a basis of size nwhere
+each element can have at most rcopies isrn. Therefore, the total number of
+predicates F(q,χ) isO(kn2n
+). Since every derivation step in Fderives at least
+one new predicate, we have:
+Theorem 2. The emptiness problem of BPTAs is in 3-EXPTIME.
+5 Expressiveness
+Basic properties In this section, we study the expressiveness of BPTAs fur-
+ther. First, note that on word models, a push in a run of a BPTA has a single
+matching pop, so that the count constraints in push-transitions applicable in this
+setting can be simpliﬁed to: “one of the states in Q′⊆Qappears once, and the
+other states do not occur.” This can be encoded by nondeterministic pushdown
+word automata, proving (along with Theorem 1) that BPTAs on words accept
+precisely the class of context-free languages.
+As for closure properties of BPTAs, closure under union is trivial. Some
+“hardness” results follow from Theorem 1 and results for pushdown automata:
+Theorem 3. BPTAs are closed under union, but not under intersection or c om-
+plementation. The problems of checking the emptiness of (1) the complement of
+a BPTA and (2) the intersection of two BPTAs are undecidable.
+We show that BPTAs are more
+a1a2an$bm1bm2bmn
+b21b22
+b11b1nb2n
+b12
+Fig. 4. Expressiveness of BPTAsexpressive than PTAs by consid-
+ering trees as in Fig. 4 (the leaves
+have been omitted). Here, the in-
+put alphabet is Σ={0,1,$},
+and the symbols ai,bijare inΣ
+for alli,j(while these trees are
+not binary, we can always en-
+code them by such). Now let L
+be the language of trees of the above form where for all i≤n, there is exactly one
+
+--- Page 11 ---
+k≤msuch thatan−i+1=bki. This language is recognized by a BPTA that has
+statesq0andq1(along with a couple of other states needed for “book-keeping”)
+corresponding to the input symbols 0 and 1. While reading each ai, it executes
+a push-transition that enforces the following count constraint χon its matching
+pops: “state qaiappears exactly once, and state qj, wherej/\e}atio\slash=ai∈ {0,1}can
+appear an unspeciﬁed number of times.” On reading a symbol bij, the BPTA
+executes a pop-transition to the state qbij.
+To see why Lcannot be recognized by a PTA MwithNstates, take a tree
+as above where n=m>N . In any run, Mmust enter two branches of the tree
+in the same conﬁguration. Then we can replace one of these branches with the
+other to get an accepting run on a tree not in L. This leads to:
+Theorem 4. There is a BPTA Asuch that no PTA recognizes L(A).
+Alternation One may wonder if BPTAs can be simulated by alternating push-
+down tree automata (APTAs), which can fork copies during a run and require
+that all forked copies accept the input tree. Such automata have undecidable
+membership and emptiness problems and can accept languages not recognizable
+by BPTAs. For instance, the non-context free word language L={aibici:i≥1},
+clearly not accepted by a BPTA, can be accepted by an APTA [6].
+However, alternation does not appear to be the source of expressiveness of
+BPTAs. Consider the language Lof trees as in Fig. 4 where there is a j≤nsuch
+that for all i≤j, there is a branch ksuch thatan−j+1=bkjandan−i+1=bki.
+An APTA Mrunning on such trees cannot track the universal quantiﬁer over
+ijust by forking copies. Such copies would run independently and not agree on
+the value of j. We conjecture that Lcannot be accepted by an APTA. On the
+contrary, consider a BPTA Athat has a pair of states qσ,q#
+σfor eachσ∈Σ, and
+pushes on the a’s and pops on the b’s. At every aipreceding some nondetermin-
+istically guessed aj,Apushes and asserts that, among the states reached via the
+matching pops, “ qaiappears at least once.” At aj,Ademands that “ q#
+ajoccurs
+once or more” among the states reached by the matching pops. While popping
+along thek-th branch of b’s,Ahas, in the beginning, the option to move to a
+stateq#
+σat any point. If it does so on a symbol bkl, then it checks that σ=bkl.
+Now it waits to move to a state qσ′. If it does so on a symbol bkp, then it checks
+thatσ′=bkp. We can show that Aaccepts a tree if and only if it belongs to L.
+Regular expressions instead of count constraints? While a count con-
+straintχin a push-transition in a BPTA Acan reason about state counts in the
+multiset of states reached via the pops matching the push, it cannot order them
+by the position of the leaves they reach. A way to let BPTAs reason about the
+order of matching pops would be to let χbe aregular expression . The semantics
+for push-transitions is the obvious one; pop, swap and branch transitions stay
+the same.
+Such automata can trivially encode BPTAs; unfortunately, their emptiness
+problem is undecidable (we omit the proof). Evidently, the expressiveness of
+BPTAs is quite close to the maximum permitted by decidability contraints.
+
+--- Page 12 ---
+6 Conclusions
+In this paper, we introduced BPTAs as a new automaton model for pushdown
+tree languages. Unlike pushdown tree automata studied in the literature, BPTAs
+allow path quantiﬁers to be combined with pushdown properties satisﬁed along
+a path. We established that BPTAs are strictly more expressive than classica l
+PTAs and presented a decision procedure for their emptiness problem.
+There is an intriguing connection between our decidability result and known
+results [2] for transition systems equipped with well-founded quasi-orders (wq o).
+Using Lemma 6, we can establish that the relation /precedesorcurlydeﬁnes a wqo on a transition
+system whose states are predicates of the form F(q,χ). We can then pose the
+emptiness question for BPTAs as an alternating coverability problem on this
+transition system, which can then be proved decidable by extending existing
+decidability proofs for coverability in such systems.
+Several questions are left open. First, we are not convinced that the upper
+bound for our decision procedure is tight, and it is possible that an entirely new
+approach would yield a better upper bound. Secondly, an extension of context-
+free tree grammars that is equivalent to BPTAs would be interesting to st udy.
+Finally, this paper exclusively deals with automata on ﬁnite trees, and a general-
+ization to inﬁnite trees and inﬁnitary acceptance conditions would be of interest.
+Acknowledgement: We thank P. Madhusudan for valuable discussions.
+References
+1. H. Comon, M. Dauchet, R. Gilleron, D. Lugiez, S. Tison, and M. Tommasi. Tree
+automata techniques and applications. Draft, 2002.
+2. A. Finkel and Ph. Schnoebelen. Well-structured transition sy stems everywhere!
+Theoretical Computer Science , 256(1-2):63–92, 2001.
+3. I. Guessarian. Pushdown tree automata. Math. Systems Theory , 16(4):237–263,
+1983.
+4. D. Harel and D. Raz. Deciding emptiness for stack automata on inﬁnite t rees.
+Information and Computation , 113(2):278–299, 1994.
+5. D. Janin and I. Walukiewicz. On the expressive completeness of th e propositional
+mu-calculus with respect to monadic second order logic. In CONCUR 1996 , LNCS
+1119, pages 263–277. Springer-Verlag, 1996.
+6. O. Kupferman, N. Piterman, and M.Y. Vardi. Pushdown speciﬁcation s. InLPAR
+2002, LNCS 2514, pages 262–277. Springer, 2002.
+7. W. C. Rounds. Mappings and grammars on trees. Mathematical Systems Theory ,
+4(3):257–287, 1970.
+8. A. Saoudi. Pushdown automata on inﬁnite trees and nondeterministic context-free
+programs. International Journal of Foundations of Comp. Sci. , 3(1):21–39, 1992.
+9. K. M. Schimpf and J. H. Gallier. Tree pushdown automata. Journal of Computer
+and System Sciences , 30(1):25–40, 1985.
+10. W. Thomas. Languages, automata, and logic. Handbook of Formal Language
+Theory , III:389–455, 1997.
+11. I. Walukiewicz. Pushdown processes: Games and model-checkin g.Information and
+Computation , 164(2):234–263, 2001.

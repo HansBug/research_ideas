@@ -1,0 +1,731 @@
+--- Page 1 ---
+CADP 2010: A Toolbox for the Construction
+and Analysis of Distributed Processes⋆
+Hubert Garavel, Fr´ ed´eric Lang, Radu Mateescu, and Wendelin Serwe
+Inria Laboratoire d’Informatique de Grenoble, Vasy team
+655, avenue de l’Europe, 38330 Montbonnot St Martin, France
+{Hubert.Garavel,Frederic.Lang,Radu.Mateescu,Wendelin.Serwe }@inria.fr
+Abstract. Cadp (Construction and Analysis of Distributed Processes )
+is a comprehensive software toolbox that implements the results of con-
+currency theory. Started in the mid 80s, Cadp has been continuously de-
+veloped by adding new tools and enhancing existing ones. Today, Cadp
+beneﬁts from a worldwide user community, both in academia and indus-
+try. This paper presents the latest release Cadp 2010, which is the result
+of a considerable development eﬀort spanning the last four years. The
+paper ﬁrst describes the theoretical principles and the modular architec-
+ture of Cadp , which has inspired several other recent model checkers.
+The paper then reviews the main features of Cadp 2010, including com-
+pilers for various formal speciﬁcation languages, equivalence checkers,
+model checkers, performance evaluation tools, and parallel veriﬁcation
+tools running on clusters and grids.
+1 Introduction
+Among all the scientiﬁc issues related to the reliability of computer systems,
+concurrency has a major place, because the design of parallel systems is a com-
+plex, error-prone, and largely unmastered activity. Thirty years after the ﬁrst
+attempts at building automated veriﬁcation tools for concurrent systems, the
+problem is still there; it has even gaine d in relevance because system complex-
+ity has increased, and because concurrency is now ubiquitous, from multicore
+microprocessors to massively parallel supercomputers.
+To ensure the reliability of a concurrent system under design, it is understood
+that the ﬁrst step consists in establishing a precise model of the system behavior,
+this model usually consisting of several concurrent processes, together with a
+description of the data types, constants, variables, and functions manipulated
+by these processes. This opens the debate on the most appropriate languages
+to express system models, with a large choice of candidates ranging from semi-
+formal to formal languages.
+⋆This work has been partly funded by Bull, by the French National Agency for Re-
+search (project OpenEmbedd), by the French Ministry of Economics and Industry
+(Aerospace Valley project Topcased), and by the Conseil G´ en´eral de l’Is` ere(Mina-
+logic project Multival).
+P.A. Abdulla and K.R.M. Leino (Eds.): TACAS 2011, LNCS 6605, pp. 372–387, 2011.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2011
+
+--- Page 2 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 373
+Once a precise, if not formal, model is available, one needs automated meth-
+ods to prove the correctness of the syste m with respect to its speciﬁcation or, at
+least, to search for the presence of certa in mistakes. Without neglecting recent
+progresses in theorem proving and static analysis, state space exploration tech-
+niques (among which reachability analysis and model checking) remain the most
+successful approaches for dealing with com plex concurrent systems, especially
+during the design phase, when system speciﬁcations are evolving frequently.
+State space exploration techniques are usually grouped in two classes: enumer-
+ative(or explicit state ) techniques consider each stat e of the system separately,
+whereas symbolic (or implicit state ) techniques manipulate sets of states rep-
+resented using decision diagrams ( Bdds and their variants) or logical formulas
+whose satisﬁability is determined using SatandSmtsolvers. In this paper, we
+will use the term enumerative instead of explicit-state in order to avoid possible
+confusions with the terminology about explicit and implicit models (see Sect. 2).
+Enumerative techniques are based on a forward exploration of the transition re-
+lation between states ( postfunction), making them suitable for the on-the-ﬂy
+veriﬁcation of speciﬁcations written in languages with arbitrary data types. Al-
+though they enable exploration of ap r i o r i fewer states than their symbolic
+counterparts, enumerative techniques prove to be adequate for the analysis of
+asynchronous parallel systems containing complex data structures. Among the
+enumerative model checkers developed in the 80s, Spin[33] and Cadp are the
+two oldest that are still available on the latest 64-bit architectures and being
+used in an industrial setting. The principles underlying these two model check-
+ers are a source of inspiration for other r ecent veriﬁcation tools based on similar
+concepts.
+Cadp (Construction and Analysis of Distributed Processes )1is a toolbox for
+verifying asynchronous concurrent syst ems. The toolbox, whose development
+started in 1986, is at the crossroads between several branches of computer sci-
+ence: concurrency theory, formal methods, and computer-aided veriﬁcation. Ini-
+tially, Cadp consisted of only two tools: Cæsar [14], a compiler and explicit state
+space generator for the Lotos language, and Ald´ebaran [11,13], an equiva-
+lence checker based on bisimulation minimization. Over the past 25 years, Cadp
+has been continuously improved and extended [12,19,20]. This paper presents
+the latest release, Cadp 2010 “ Zurich ”, which currently contains 45 tools.
+Cadp oﬀers now a comprehensive set of functi onalities covering the entire de-
+sign cycle of asynchronous systems: speciﬁcation, interactive simulation, rapid
+prototyping, veriﬁcation, testing, and performance evaluation. For veriﬁcation,
+it supports the three essential approaches existing in the ﬁeld: model check-
+ing, equivalence checking, and visual c hecking. To deal with complex systems,
+Cadp implements a wide range of veriﬁcation techniques (reachability analysis,
+on-the-ﬂy veriﬁcation, compositional veriﬁcation, distributed veriﬁcation, static
+analysis) and provides scripting languages for describing elaborated veriﬁcation
+scenarios. In addition, Cadp 2010 brings deep changes with respect to previous
+releases, especially the support for many diﬀerent speciﬁcation languages.
+1http://vasy.inria.fr/cadp
+
+--- Page 3 ---
+374 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+This paper gives an overview of Cadp 2010, highlighting new tools and recent
+enhancements. It is organized as follows . Sect. 2 presents the core semantic mod-
+els of Cadp . Sect. 3 describes the three languages now supported by Cadp and
+lists translations developed for other languages. Sect. 4, 5, 6, and 7 respectively
+present the Cadp tools for model checking, equivalence checking, performance
+evaluation, and distributed veriﬁcation. Finally, Sect. 8 summarizes the achieve-
+ments and indicates directions for future work.
+2 Architecture and Veriﬁcation Technology
+Compared to other explicit-state model checkers, Cadp has the following prin-
+ciples and distinctive features (some of which were already present in inspiring
+tools rooted in concurrency theory, such as Cwb [8] and Cwb-Nc [7]):
+–Cadp supports both high-level languages with a formal semantics (process
+calculi) and lower level formalisms (networks of communicating automata);it also accepts connections from inform al or semi-formal languages that have
+a means to compute the posttransition function.
+–Contrary to most model checkers supporting only scalar types, Cadp has
+from the outset supported concurrent programs with complex and/or dy-
+namic data structures (records, unions, lists, trees, etc.) provided that these
+data structures are not shar ed by concurrent processes.
+–Cadp relies on action-based (rather than state-based ) semantic models inher-
+ited from concurrency theory, in which one can only refer to the observable
+actions performed by a system instead of the internal contents of states,
+which are supposed to be hidden and implementation dependent, and thus
+are not abstract enough. This encompasses the classical concepts of Ltss( f o r
+veriﬁcation), discrete- and continuous-time Markov chains (for performance
+evaluation), and extended Markovian models, such as Interactive Markov
+Chains (Imcs) [31], which combine Ltss and Markov chains.
+–Relying on action-based models enables equivalence checking, i.e., the com-
+parison of speciﬁcations for equality or inclusion; this corresponds to the
+notions of bisimulations for Ltss and aggregation/lumpability for Markov
+chains. Also, the possibility of replacing a state space by an equivalent but
+smaller one is fundamental in compositional veriﬁcation.
+–As a consequence, the model checkers of Cadp are based on branching-
+time (rather than linear-time) logics, which are adequate with bisimulation
+reductions.
+–Cadp is equipped with an original software architecture, which has widely in-
+spired recent competing model checkers developed in the 2000s. Early model
+checkers were “monolithic” in the sense that they tightly combined (1) the
+source language used to describe the concurrent system under veriﬁcationand the compiling algorithms used to generate/explore the state space of
+the concurrent system, and (2) the temporal logic language used to spec-
+ify correctness formulas and the veriﬁcation algorithms that evaluate theseformulas over the state space. Cadp took a diﬀerent approach and adopted
+
+--- Page 4 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 375
+a modular architecture with a clear sep aration between language-dependent
+and language-independent aspects. Diﬀerent veriﬁcation functionalities are
+implemented in diﬀerent tools, which can be reused for several languages and
+which are built upon well-speciﬁed int erfaces that enable code factoring.
+–Cadp 2010 can manage state spaces as large as 1010explicit states; by em-
+ploying compositional veriﬁcation techniques on individual processes, much
+larger state spaces can be h andled, up to sizes comp arable to those reached
+using symbolic techniques, such as Bdds.
+Cadp can be seen as a rich set of powerful, interoperating software components
+for manipulating automata and Markov chains. All these tools are integrated in
+two ways: for interactive use, a graphical user-interface (named Eucalyptus )
+with contextual menus is provided; for batch-mode use, a scripting language
+named Svl[18] was designed, with user-friendly syntax and powerful veriﬁcation
+strategies that make of Svla unique feature of Cadp .
+Explicit state spaces. In the terminology of Cadp ,a n explicit state space is a
+state-transition graph deﬁned extensively , meaning that the sets of states and
+transitions are entirely known, because they have been already computed.
+In the early 90s, most veriﬁcation tools represented explicit state spaces using
+textual ﬁle formats, which were only adequate for small graphs but would not
+scale satisfactorily, e.g., to millions of states. To solve this issue, Cadp was
+equipped in 1994 with Bcg(Binary-Coded Graphs ), a portable ﬁle format for
+storing Ltss.Bcgis a binary format, which was designed to handle large state
+spaces (up to 108states and transitions initially — this limit was raised to 1013
+inCadp 2010 to take into account 64-bit machines). Because the Bcgformat
+is not human readable, it comes with a collection of code libraries and utility
+programs for handling Bcgﬁles.
+Two key design goals for Bcgare ﬁle compactness and the possibility to en-
+code/decode ﬁles quickly and dynamically (i.e., without requiring knowledge of
+the entire state space in advance); these goals are achieved using dedicated com-
+pression techniques that give signiﬁcant results: usually, two bytes per transition
+on average, as observed on Vlts (Very Large Transition Systems )2, a benchmark
+suite used in many scientiﬁc publications. A third design goal is the need to pre-
+serve in Bcgﬁles the source-level information (identiﬁers, line numbers, types,
+etc.) present in the source programs from which Bcgﬁles are generated, keeping
+in mind that these programs could be written in diﬀerent languages.
+Implicit state spaces. In the terminology of Cadp ,a n implicit state space is
+a state-transition graph deﬁned comprehensively , meaning that only the initial
+state and the posttransition function are given, such that (a fragment of) the
+graph is progressively explored and discovered on demand, depending on the
+veriﬁcation goals. Handling implicit state spaces properly is a prerequisite for
+on-the-ﬂy veriﬁcation.
+In addition to Bcg, which only applies to explicit state spaces, Cadp
+provides Open/Cæsar [16], a software framework for implicit state spaces,
+2http://vasy.inria.fr/cadp/resources/benchmark_bcg.html
+
+--- Page 5 ---
+376 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+which enforces modularity by clearly separating language-dependent aspects
+(i.e., compiler algorithms) from language-independent aspects (i.e., veriﬁcation
+algorithms). Open/Cæsar is organized around three components: the graph
+module (which encapsulates all language-dep endent aspects, typically code gen-
+erated from a high-level source program to compute states and transitions), the
+library module (which provides useful generic data structures, e.g., stacks, ta-
+bles, hash functions, etc.), and the exploration module (which gathers language-
+independent aspects, typically veriﬁcation and state exploration algorithms). All
+the internal details of the graph module are hidden behind a programming inter-
+face, which provides an abstraction for states and transition labels (making them
+available as opaque types) and implements the transition relation by means of
+a higher-order iterator.
+Since the introduction of the Open/Cæsar architecture in 1992, each of its
+three modules has been progressively extended. Regarding the graph module,
+onlyLotos was supported at ﬁrst, but support for more languages has been
+added, either by Vasy or other research teams. Regarding the library module,
+its data structures and algorithms have been continuously optimized and en-
+riched. Regarding the exploration module, many Open/Cæsar tools have been
+developed for simulation, random executi on, model checking, equivalence check-
+ing, and test case generation.
+Boolean equation systems (Bess[ 3 9 ] ) .These are a useful low-level formalism for
+expressing analysis problems on Ltss, i.e., model checking, equivalence checking,
+partial order reductions, test case generation, and behavioral adaptation. A Bes
+is a collection of equation blocks, each deﬁning a set of Boolean variables (left-
+hand sides) by propositional formulas (right-hand sides). All equations in a block
+have the same ﬁxed point sign: either minimal ( μ) or maximal ( ν).Bessc a nb e
+represented as Boolean graphs [1] and are closely related to game graphs [51] and
+parity games [50].
+TheCæsar
+ Solve library [43] of Open/Cæsar contains a collection of
+linear-time algorithms for solving alternation-free Bessu s i n gv a r i o u se x p l o -
+ration strategies of its underlying Boolean graph (depth-ﬁrst search, breadth-
+ﬁrst search, etc.). The resolution works on the ﬂy, the Besbeing constructed
+(e.g., from the evaluation of a temporal logic formula on an Lts,o rf r o mt h e
+comparison of two Ltss) at the same time it is solved, new equations being
+added to the Besand solved as soon as they are discovered. All algorithms of
+Cæsar
+ Solve can generate diagnostics, i.e., compute a minimal (in the sense
+of graph inclusion) Boolean subgraph explaining why a given Boolean variable
+is true or false [42].
+New strategies have been added to Cadp 2010 for solving conjunctive Bess
+(arising from equivalence checking) and disjunctive Bes(arising from model
+checking), keeping in memory only the vertices (and not the edges) of the Boolean
+graphs. Currently, Cadp 2010 oﬀers nine resolution strategies, which can solve
+Bess containing 107variables in ten minutes. Recently, a new linear-time al-
+gorithm generalizing the det ection of accepting cycles in B¨ uchi automata was
+added [47], which serves for model checking fairness properties. For testing and
+
+--- Page 6 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 377
+benchmarking purposes, Cadp 2010 provides the new Bes
+Solve tool, which
+can evaluate Bess entirely construct ed and stored in (gzipped) ﬁles, or built on
+the ﬂy randomly according to fourteen parameters (number of variables, equa-
+tion length, percentage of disjunctive and conjunctive operators, etc.).
+Parameterized Boolean equation systems. Cadp also uses internally the Pbes
+(Parameterized Bes) model [41], which extends the Besmodel by adding typed
+data parameters and arbitrary Boolean expressions over these parameters. The
+Pbes model was originally invented as a means to represent the model check-
+ing of Mcl formulas ( μ-calculus extended with typed data), implemented in
+theEvaluator 4.0 model checker now available in Cadp 2010 (see Sect. 4).
+Recently, this model received much attention from the model checking commu-
+nity, which investigates two approaches: symbolic resolution or instantiations
+towards Bess followed by on-the-ﬂy resolution, the latter being somehow close
+toSat-solving. Beyond veriﬁcation, Pbess can express other problems such as
+evaluation of parameterized Horn clauses or Datalog queries over data bases.
+3 Speciﬁcation Languages
+A major diﬀerence of Cadp 2010 compared with earlier versions is the support
+for several speciﬁcation languages, while previously only Lotos was supported.
+3.1 Support for th e LOTOS Language
+Lotos [34] is a formal speciﬁcation language standardized by Isoto describe
+communication protocols. It is composed of two diﬀerent languages in one: a
+data part, based on algebraic abstract data types, and a control part, which is a
+process calculus combining the best features of Ccs,Csp,a n d Circal .F o rt h i s
+reason, Cadp provides two Lotos compilers, both sharing a common front-end.
+Compiling the data part. TheCæsar.adt compiler [15,28] translates the data
+part of a Lotos program (i.e., a collection of sorts, constructors, and functions
+deﬁned by algebraic equations) into executable C code. The translation aims at
+veriﬁcation eﬃciency, by ﬁrst optimizing memory (which is essential for state
+space exploration, where every bit counts), then time. The compiler automati-
+cally recognizes certain classes of usual types (natural numbers, enumerations,
+tuples, etc.), which are implemented optimally. The algebraic equations of Lotos
+are translated using a pattern-matching compilation algorithm for rewrite sys-
+tems with priority. Amusingly, most of the compiler is written using Lotos
+abstract data types, so that Cæsar.adt is used to bootstrap itself.
+The version of Cæsar.adt included in Cadp 2010 allows values of complex
+types (such as tuples, unions, lists, trees , strings, sets, etc.) to be represented
+“canonically”, meaning that these values are stored in tables, represented in nor-
+mal form as table indexes and thus are stored only once in memory. A technical
+challenge was to make this feature optional: the user can selectively store certain
+types in tables, while other types remain implemented as before.
+
+--- Page 7 ---
+378 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+Compiling the control part. TheCæsar compiler [25,24] translates an entire
+Lotos program (reusing the C code generated by Cæsar.adt )i n t oCc o d e
+that can be used either for generating an explicit Lts(encoded in the Bcg
+format) or an implicit Lts(represented using the Open/Cæsar programming
+interface), or for rapid prototyping (using the Exec/Cæsar programming inter-
+face, which enables the connection wit h a real-world environment). The subset
+ofLotos accepted by Cæsar must obey certain constr aints, which forbid un-
+bounded dynamic creation of processes and non-terminal recursion in process
+calls; practically, the se constraints are acceptable in most cases.
+The translation is done using several intermediate steps, so as to perform,
+for eﬃciency reasons, as many computations as possible at compile-time. The
+Lotos program is ﬁrst translated into a simpliﬁed language named SubLotos ,
+then into a (hierarchical) Petri net extended with atomic transitions, typed lo-cal/global variables, and arbitrary combinations of conditions and actions at-
+tached to Petri net transitions. This Petri net is then simpliﬁed by applying a
+collection of optimizations on its control and data ﬂows, and ﬁnally transformedinto a C program, which is then compiled and executed.
+In addition to various bug ﬁxes, the version of Cæsar included in Cadp 2010
+delivers increased performance, especially by introducing dynamically resizable
+state tables and by optimizing the generated C code for the amount of physical
+memory available. Also, the reduction techniques based on data ﬂow analy-sis [24], which typically reduce state spaces by several orders of magnitude, have
+been enhanced by applying data-ﬂow optimizations iteratively, following the hi-
+erarchical structure of the Petri net: for 22% of the benchmarks, the number ofstates is divided by 2.4 on average (on certain benchmarks, it is divided by 25).
+3.2 Support for the FSP Language
+Fsp(Finite State Process ) is a concise algebraic notation for concurrent pro-
+cesses [40], supported by the Ltsa (Labelled Transition System Analyser )v e r i -
+ﬁcation tool designed at Imperial College (London, United Kingdom). Fspand
+Ltsa are particularly suited for students to practice with academic examples.
+Although FspandLotos share many fundamental concepts, they diﬀer
+slightly in their expressiveness. On the one hand, Fspprovides a priority opera-
+tor that has no equivalent in Lotos . On the other hand, Lotos allows abstract
+data types to be deﬁned by the user, while Fspprovides Booleans, integers, la-
+bels, and predeﬁned numeric functions only. Also, Lotos allows sequential and
+parallel composition operators to be combined with only few restrictions, while
+Fspimposes a strict separation between sequential and parallel processes, so
+that parallel processes cannot be composed in sequence.
+Cadp 2010 supports the Fsplanguage, following the translation approach
+of [38], implemented in two new tools. The Fsp2Lotos tool translates each
+sequential Fspprocess into a Lotos process, and each parallel Fsp
+process
+into an Exp.Open [37] network of communicating processes with priorities.
+TheFsp.Open tool provides a transparent interface between Fspand the
+Open/Cæsar environment.
+
+--- Page 8 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 379
+For the Fspuser community, Cadp 2010 brings the following advantages:
+it can handle Fspprograms with non-guarded process recursion; it can handle
+larger Fspprograms than Ltsa, due to the particular attention to performance
+issues in Cadp and to the support of 64-bit architectures, whereas Ltsa suﬀers
+from Java’s 32-bit limitations; ﬁnally, Cadp oﬀers many tools that complement
+the functionalities provided by Ltsa.
+3.3 Support for the L OTOS NT Language
+A major new feature of Cadp 2010 is the support of Lotos NT [5], a speci-
+ﬁcation language derived from the Isostandard E-Lotos [35].Lotos NT is
+an attempt [17] at merging the most salient features of process calculi (concur-
+rency, abstraction, congruence results) into mainstream programming languages
+(imperative and functional languages for sequential programming). Contrary to
+Lotos , which gathers two diﬀerent languages into one, Lotos NT exhibits a
+single uniﬁed language, in which the data part can be seen as a subset of the
+control part (i.e., functions are a particu lar case of processes): absence of such a
+nice symmetry in Lotos is a drawback and a cause for its steep learning curve.
+Lotos NT has convenient features that Lotos is lacking: it has a set of pre-
+deﬁned data types (Booleans, natural numbers, integers, reals, characters, and
+strings); it provides short-hand notations for lists, sets, and arrays; it eases the
+deﬁnition of inductive types by automatically generating common operations
+(equality and order relations, ﬁeld accessors, etc); it enables typing of commu-nication channels; it introduces the notion of modules. Similar to the Lotos
+compilers of Cadp ,Lotos NT can import hand-written, external C code that
+implements Lotos NT types and functions; under some conditions, it is also
+possible to combine Lotos andLotos NT code into the same speciﬁcation.
+The feedback received about Lotos NT from both academia and industry
+is highly positive: it is observed that people quickly start writing meaningful
+Lotos NT speciﬁcations without the need for a long prior training. As of Jan-
+uary 2010, the Vasy team has switched from Lotos toLotos NT for all its
+modeling activities, and Lotos NT is used internally in companies such as Bull,
+CEA/Leti, and STMi croelectronics.
+Cadp 2010 includes a set of tools ( Lpppreprocessor, Lnt2Lotos transla-
+tor, and Lnt.Open connector to Open/Cæsar
+)t h a ti m p l e m e n t Lotos NT by
+translation to Lotos , which enables one to reuse the Cæsar andCæsar.adt
+compilers to analyze and execute Lotos NT speciﬁcations. To reduce the trans-
+lation complexity, many semantic checks are deferred to the Cæsar.adt and
+Cæsar compilers that will run on the generated, possibly incorrect Lotos code.
+The translation of Lotos NT data part into Lotos (which is, to some extent,
+the reverse of the translation performed by Cæsar.adt ) requires compilation
+of functions deﬁned in imperative-style i nto rewrite systems with priorities. It
+reuses an existing algorithm [48] for translating a subset of the C language
+into Horn clauses, but largely exte nds this algorithm to handle reference-
+passing parameters, pattern matching (“ case” statements), loop interruptions
+
+--- Page 9 ---
+380 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+(“break ” statements), multiple “ return ” statements within function bodies,
+uncatchable exceptions (“ raise” statements), and overloading of function names.
+The translation of the Lotos NT control part into Lotos process algebraic
+terms borrows from a prior translation of ChpintoLotos [23], which was
+adapted and optimized for Lotos NT . The translation is tricky because Lotos
+is much less “regular” than Lotos NT for certain aspects (sequential compo-
+sition, functionality typing for process termination) and because Lotos lacks
+certain concepts (graphical parallel composition [26], type checking for commu-
+nication channels). Surprisingly, the state spaces generated from Lotos NT pro-
+grams are in general not larger than those generated from “equivalent” Lotos
+programs, due to the precise analysis and sharing of continuations during the
+translation.
+3.4 Support for Other Languages
+Numerous other languages have been connected to Cadp 2010. Fig. 1 gives a
+global picture; dark grey boxes indicate the languages and software components
+included in Cadp 2010; light grey boxes indicate the languages for which Vasy
+has developed translat ors and connections to Cadp 2010, these translators be-
+ing distributed separately from Cadp 2010; arcs are labeled with bibliographic
+references; arcs without labels correspond to work in progress.
+[3]
+[5]
+[37][36][27]
+[38][45]
+[23]
+[29][3]
+[15, 25, 24][30, 49][52] [6]
+Open/CæsarFiacre ChpSdl Aadl π-calculus Wsdl -Bpel eb3
+Fsp Lotos NT
+Lotos Exp SystemC /TlmSam
+Bip
+Fig. 1. Connection of the input languages of Cadp 2010
+4 Model Checking
+Cadp contains three model checkers operating on explicit and implicit Ltss.
+Xtl(eXecutable Temporal Language ) [44] is a functional language dedicated
+to the exploration and querying of an explicit Ltsencoded in the Bcgformat.
+Xtlhandles (sets of) states, labels, and transitions as basic data types, enabling
+temporal logic operators to be implemented using their ﬁxed point characteriza-
+tions. Temporal logic operators can be mixed with non-standard properties (e.g.,
+counting states, transitions, etc.) and, more generally, with arbitrary computa-tions described as recursive functions exploring the Lts.Xtlspeciﬁcations can
+
+--- Page 10 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 381
+include reusable libraries of operators (15 such libraries are available in Cadp )
+and can also be interfaced with external C code for speciﬁc computations.
+Evaluator 3.x [46] evaluates formulas of Rafmc (the regular alternation-
+freeμ-calculus) on an implicit Ltson the ﬂy. Rafmc incorporates the Pdl
+modalities containing regular formulas over transition sequences, which are much
+more concise and intuitive than their ﬁxed point counterparts: for instance, safety
+properties are simply expressed using the modality [ R]false, which forbids the
+transition sequences characte rized by the regular formula R.T h et o o lw o r k sb y
+reformulating the model checking problem as a Besresolution, which is per-
+formed using the linear-time local algorithms of the Cæsar
+ Solve library [43].
+According to the shape of the formula, the most memory-eﬃcient algorithm
+of the library is selected automatically . The tool produces examples and coun-
+terexamples, which are general Ltssubgraphs (i.e., may contain branches and/or
+cycles), and also enables the deﬁnition of reusable libraries of property patterns.
+Evaluator 4.0 [47] is a new model checker handling formulas written in
+Mcl (Model Checking Language ), which conservatively extends Rafmc with
+two kinds of features. First, Mcladds data-handling mechanisms to parse and
+exploit structured transition labels (containing a channel/gate name and a list
+of values exchanged), generated from value-passing speciﬁcation languages. Mcl
+contains action predicates with value ext raction, ﬁxed point operators parame-
+terized with data values, quantiﬁers over ﬁnite data domains, regular formulas
+extended with counters, and constructs inspired from functional programming
+languages (“ let”, “if-then-else ”, “case”, “while ”, “repeat ”, etc.).
+Second, Mcl adds fairness operators, inspired from those of Pdl-Δ,w h i c h
+characterize complex, unfair cycles consisting of inﬁnite repetitions of regular
+subsequences. These operators belong to Lμ2,t h e μ-calculus fragment of al-
+ternation depth two and were shown to subsume Ctl∗. Although Lμ2has, in
+the worst case, a quadratic model checki ng complexity, the fairness operators
+ofMclare evaluated in linear-time using an enhanced resolution algorithm of
+Cæsar
+ Solve [47].
+5 Equivalence Checking
+Equivalence checking is useful to guarantee that some properties veriﬁed on one
+graph are also satisﬁed by another. Alternatively, equivalence checking can be
+used to minimize a graph by collapsing its equivalent states. Concurrency the-
+ory produced many graph equivalence relations, including strong bisimulation,
+branching bisimulation, as well as stochastic/probabilistic extensions of strong
+and branching bisimulations (which take into account the notion of lumpabil-
+ity) for models combining features from Ltss and Markov chains. From the
+beginning, equivalence checking has been a key feature of Cadp ,ﬁ r s tw i t ht h e
+Ald´ebaran tool [11,13] and, since 1999, with the Bcg
+Min1.0 tool for min-
+imization of explicit graphs using various partition-reﬁnement algorithms. The
+functionalities of these two tools have been progressively subsumed by improved
+tools, namely Bcg
+Min2.0 and Bisimulator , available in Cadp 2010.
+
+--- Page 11 ---
+382 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+Bcg
+Min2.0 enables an explicit Ltsto be minimized acco rding to various
+equivalence relations. It implements partition-reﬁnement algorithms based on
+the notion of state signature [4]. Intuitively, the signature of a state is the set
+of all couples “(transition label, block of the target state)” of the outgoing tran-
+sitions (possibly following some compressed sequence of internal transitions in
+the case of branching bisimulation). Reﬁnement of the state partition consists
+in dispatching states with diﬀerent signatures to diﬀerent blocks until the ﬁx-
+point has been reached, each block thus corresponding to a class of equivalent
+states. Bcg
+Min2.0 extends this algorithm to the stochastic/probabilistic ex-
+tensions of strong and branching bisimulations, by incorporating lumpability in
+the computation of signatures.
+For strong and branching bisimulations, tests on more than 8000 Bcggraphs
+show that Bcg
+Min2.0 is 20 times faster and uses 1 .3 times less memory than
+Bcg
+Min1.0. For stochastic/probabilistic bisimulations, Bcg
+Min2.0 is more
+than 500 (occasionally, 8500) times faster and uses 4 times less memory. Large
+graphs of more than 108states and 109transitions have been minimized in a
+few hours, using less than 100 Gbytes Ram.
+Bisimulator [2,43] compares an implicit Lts(usually, describing a proto-
+col) with an explicit Lts(usually, describing the expected service ) on the ﬂy,
+by encoding the problem as a Bes, which is solved using the linear-time local
+algorithms of the Cæsar
+ Solve [43] library of Cadp . This encoding generalizes
+and, due to optimizations applied on the ﬂy depending on the Ltsstructure,
+outperforms the pioneering on-the-ﬂy equivalence checking algorithms [13]. For
+typical cases (e.g., when the service Ltsis deterministic and/or τ-free, τdenot-
+ing the hidden/invisible action), the tool automatically chooses an appropriate
+memory-eﬃcient Besresolution algorithm, which stores only the states, and not
+the transitions.
+Bisimulator implements seven equivalence re lations (strong, weak, branch-
+ing,τ∗.a[13], safety, trace, and weak trace) an d their associated preorders, and
+is one of the richest on-the-ﬂy equivalence checkers available. For non-equivalent
+Ltss, the tool can generate a counterexample, i.e., a directed acyclic graph con-
+taining the minimal set of transition sequ ences that, if traversed simultaneously
+in the two Ltss, lead to couples of non-equivale nt states. Minimal-depth coun-
+terexamples can be obtained using breadth-ﬁrst strategies for Besresolution.
+The tool is also equipped with reductions modulo τ-compression (collapse of
+τ-cycles) and τ-conﬂuence (elimination of redundant interleavings), which pre-
+serve branching equivalence and can improve performance by several orders of
+magnitude.
+6 Performance Evaluation
+During the last decade, Cadp has been enhanced for performance evaluation op-
+erating on extended Markovian models encoded in the Bcgformat (see details
+in [9]). Besides Bcg
+Min,t h eExp.Open tool [37] now supports also the parallel
+composition of extended Markovian models, implementing maximal progress of
+
+--- Page 12 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 383
+internal transitions in choice with stochastic transitions. New tools have been
+added, namely Determinator [32], which eliminates stochastic nondetermin-
+ism in extended Markovian models on the ﬂy using a variant of the algorithm
+presented in [10], and the Bcg
+Steady andBcg
+Transient tools, which com-
+pute, for each state sof an extended Markovian model, the probability of being
+inseither on the long run (i.e., in the “steady state”) or at each time instant t
+in a discrete set provided by the user.
+More recently, the new Cunctator on-the-ﬂy steady-state simulator for ex-
+tended Markovian models has been added to Cadp . The tool explores a random
+execution sequence in the model until a no n-Markovian transition or a deadlock
+state is found, or the sequence length or virtual time (obtained by summing
+up the Markovian information present on transitions) reaches a maximum value
+speciﬁed by the user, or the user interactively halts the simulation. Upon termi-
+nation, the throughputs of labeled transitions chosen by the user are displayed,
+together with information such as the number of τ-transitions encountered and
+the presence of nondeterminism (i.e., states with more than one outgoing τ-
+transition). The context of a simulation can be saved and restored for starting
+subsequent simulations, enabling one to implement convergence criteria (e.g.,
+based on conﬁdence intervals) by executing series of increasingly long simula-
+tions in linear time. For nondeterministic models, Cunctator selects between
+conﬂicting τ-transitions according to one of three scheduling policies (the ﬁrst,
+the last, or a randomly chosen transition). Thus, launching simulations using
+diﬀerent scheduling policies provides more insight about the stochastic behavior
+of the model. Compared to Bcg
+Steady , which computes exact throughputs,
+Cunctator consumes less memory but achiev ing the same accuracy may re-
+q u i r em o r et i m e .
+7 Parallel and Distributed Methods
+Veriﬁcation algorithms based on state space exploration have high computing
+and memory requirements and, thus, are often limited by the capabilities of
+one single sequential machine. However, the limits can be pushed forward by
+new algorithms capable of exploiting processing resources oﬀered by networks of
+workstations, clusters, grids, etc.
+Cadp was among the ﬁrst toolboxes to release tools for distributed model
+checking. The ﬁrst step was to parallelize the state space construction, which is
+a bottleneck for veriﬁcation because stori ng all reachable states requires a consid-
+erable amount of memory. For this purpose, the Distributor andBcg
+Merge
+tools [22,21] split the generation of an Ltsacross several machines, each machine
+building only a fragment of the entire Lts. Interestingly, essential Distributor
+features, such as the Pbg(Partitioned Bcg Graph ) format and the graphical
+monitor that displays in real-time the p rogress of generation across all the ma-
+chines, have been replicated in co mpeting veriﬁcation toolsets.
+The second step was the integration into Cadp 2010 of a collection of new
+software tools ( Pbg
+Cp,Pbg
+Mv,Pbg
+Rm,a n dPbg
+Open ) to manipulate an
+Ltsin the Pbgformat, and their connection to Open/Cæsar .
+
+--- Page 13 ---
+384 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+The third step was the parallelization of on-the-ﬂy veriﬁcation itself. There-
+fore we designed a distributed version of the Cæsar
+ Solve library to solve
+Boolean equation systems on the ﬂy using several machines, thus enabling the
+development of parallel model and equivalence checkers.
+8C o n c l u s i o n
+Concurrency theory is now 40-year old; formal methods are 35-year old; model
+checking veriﬁcation is nearly 30-year old. To push theoretical ideas into reality
+and to obtain new scientiﬁc results, signiﬁcant eﬀort must be put into software
+development and confrontation with industrial applications.
+This was indeed the case with Cadp 2010 which, besides all aforementioned
+new tools and major enhancements, also required large amounts of program-
+ming work: porting to various processors (Itanium, PowerPC, Sparc, x86, x64),
+operating systems (Linux, MacOS X, Solaris, Windows) and C compilers (gcc 3,
+gcc 4, Intel, and Sun); careful code cleanup to remove all compiler and lint
+warnings, not only in the C code of the Cadp tools themselves, but also in the
+C code that they may generate (this ensu res that all compiler warnings received
+by end-users are related to some mistakes in their Lotos orLotos NT code);
+signiﬁcant documentation eﬀort; intensi ve nonregression testing using thousands
+ofLotos andLotos NT programs, Bcgﬁles, temporal logic formulas, Boolean
+equation systems, etc. together with a new tool named Contributor that will
+allow Cadp users to send such test cases to the Vasy team.
+The relevance of these eﬀorts and the maturity of Cadp can be estimated
+from its dissemination and impact ﬁgures. As of December 2010, academic and
+commercial licences have been signed with more than 435 universities, public
+research institutes, and global corporations; 137 case-studies have been tackled
+using Cadp ; 58 research software applications have been developed using Cadp ;
+numerous academic courses are using Cadp to teach concurrency; the Cadp user
+forum gathers more than 150 registered members with 1000 messages exchanged.
+Regarding future work, we plan to develop a native Lotos NT compiler,
+to connect even more conc urrent languages to Cadp , and add new veriﬁcation
+tools that exploit massively parallel computing platforms. The latter research
+area is especially diﬃcult, because it superposes the algorithmic complexities
+of veriﬁcation and distributed programming; yet this is the only way to exploit
+parallel computing resources, w hich are becoming pervasive.
+References
+1. Andersen, H.R.: Model Checking and Boolean Graphs. TCS 126(1), 3–30 (1994)
+2. Bergamini, D., Descoubes, N., Joubert, C., Mateescu, R.: BISIMULATOR: A Mod-
+ular Tool for On-the-Fly Equivalence Checking. In: Halbwachs, N., Zuck, L.D.
+(eds.) TACAS 2005. LNCS, vol. 3440, pp. 581–585. Springer, Heidelberg (2005)
+3. Berthomieu, B., Bodeveix, J.-P., Farail, P., Filali, M., Garavel, H., Gauﬁllet, P.,
+Lang, F., Vernadat, F.: Fiacre : An Intermediate Language for Model Veriﬁcation
+in the Topcased Environment. In: ERTS (2008)
+
+--- Page 14 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 385
+4. Blom, S., Orzan, S.: Distributed state space minimization. STTT 7, 280–291 (2005)
+5. Champelovier, D., Clerc, X., Garavel, H., Guerte, Y., McKinty, C., Lang, F.,
+Serwe, W., Smeding, G.: Reference Manual of the Lotos NT toLotos Translator
+(Version 5.1). Tech. Report INRIA/VASY, 117 pages (2010)
+6. Chossart, R.: ´Evaluation d’outils de v´ eriﬁcation pour les sp´ eciﬁcations de syst` emes
+d’information. M´ emoire maˆ ıtre `es sciences, Univ. de Sherbrooke, Canada (2010)
+7. Cleaveland, R., Li, T., Sims, S.: The Concurrency Workbench of the New Century
+(Version 1.2). User’s Manual (2000)
+8. Cleaveland, R., Parrow, J., Steﬀen, B.: The Concurrency Workbench. In: Sifakis,
+J. (ed.) CAV 1989. LNCS, vol. 407. Springer, Heidelberg (1990)
+9. Coste, N., Garavel, H., Hermanns, H., Lang, F., Mateescu, R., Serwe, W.: Ten Years
+of Performance Evaluation for Concurrent Systems Using CADP. In: Margaria, T.,
+Steﬀen, B. (eds.) ISoLA 2010. LNCS, vol. 6416, pp. 128–142. Springer, Heidelberg
+(2010)
+10. Deavours, D.D., Sanders, W.H.: An Eﬃcient Well-Speciﬁed Check. In: 8th Inter-
+national Workshop on Petri Nets and Performance Models, PNPM 1999 (1999)
+11. Fernandez, J.-C.: ALDEBARAN : un syst` eme de v´ eriﬁcation par r´ eduction de
+processus communicants. Th` ese de Doctorat, Univ. J. Fourier, Grenoble (1988)
+12. Fernandez, J.-C., Garavel, H., Kerbrat, A., Mateescu, R., Mounier, L., Sighire-
+anu, M.: Cadp (Cæsar /Ald´ebaran Development Package): A Protocol Valida-
+tion and Veriﬁcation Toolbox. In: Alur, R., Henzinger, T.A. (eds.) CAV 1996.LNCS. vol. 1102, Springer, Heidelberg (1996)
+13. Fernandez, J.-C., Mounier, L.: “On the Fly” Veriﬁcation of Behavioural Equiva-
+lences and Preorders. In: Larsen, K.G., Skou, A. (eds.) CAV 1991. LNCS, vol. 575,
+Springer, Heidelberg (1992)
+14. Garavel, H.: Compilation et v´ eriﬁcation de programmes Lotos .T h `e s ed eD o c t o r a t ,
+Univ. J. Fourier, Grenoble (1989)
+15. Garavel, H.: Compilation of Lotos Abstract Data Types. In: FORTE (1989)
+16. Garavel, H.: OPEN/CAESAR: An Open Software Architecture for Veriﬁcation,
+Simulation, and Testing. In: Steﬀen, B. (ed.) TACAS 1998. LNCS, vol. 1384, p. 68.Springer, Heidelberg (1998)
+17. Garavel, H.: Reﬂections on the Future of Concurrency Theory in General and Pro-
+cess Calculi in Particular. In: LIX Colloquium on Emerging Trends in ConcurrencyTheory. ENTCS, vol. 209 (2008)
+18. Garavel, H., Lang, F.: SVL: a Scripting Language for Compositional Veriﬁcation.
+In: FORTE. IFIP (2001)
+19. Garavel, H., Lang, F., Mateescu, R.: An Overview of Cadp 2001. EASST Newslet-
+ter 4, 13–24 (2002)
+20. Garavel, H., Mateescu, R., Lang, F., Serwe, W.: CADP 2006: A toolbox for the
+construction and analysis of distributed processes. In: Damm, W., Hermanns, H.
+(eds.) CAV 2007. LNCS, vol. 4590, pp. 158–163. Springer, Heidelberg (2007)
+21. Garavel, H., Mateescu, R., Bergamini, D., Curic, A., Descoubes, N., Joubert, C.,
+Smarandache, I., Stragier, G.: DISTRIBUTOR and BCGMERGE: Tools for dis-
+tributed explicit state space generation. In: Hermanns, H. (ed.) TACAS 2006.
+LNCS, vol. 3920, pp. 445–449. Springer, Heidelberg (2006)
+22. Garavel, H., Mateescu, R., Smarandache, I.: Parallel state space construction
+for model-checking. In: Dwyer, M.B. (ed.) SPIN 2001. LNCS, vol. 2057, p. 217.Springer, Heidelberg (2001)
+23. Garavel, H., Sala¨ un, G., Serwe, W.: On the Semantics of Communicating Hardware
+Processes and their Translation into Lotos for the Veriﬁcation of Asynchronous
+Circuits with Cadp . SCP 74(3), 100–127 (2009)
+
+--- Page 15 ---
+386 H. Garavel, F. Lang, R. Mateescu, and W. Serwe
+24. Garavel, H., Serwe, W.: State Space Reduction for Process Algebra Speciﬁcations.
+TCS 351(2), 131–145 (2006)
+25. Garavel, H., Sifakis, J.: Compilation and Veriﬁcation of Lotos Speciﬁcations. In:
+PSTV. IFIP (1990)
+26. Garavel, H., Sighireanu, M.: A Graphical Parallel Composition Operator for Pro-
+cess Algebras. In: FORTE/PSTV (1999)
+27. Garavel, H., Thivolle, D.: Veriﬁcation of GALS systems by combining synchronous
+languages and process calculi. In: P˘ as˘a r e a n u ,C . S .( e d . )M o d e lC h e c k i n gS o f t w a r e .
+LNCS, vol. 5578, pp. 241–260. Springer, Heidelberg (2009)
+28. Garavel, H., Turlier, P.: Cæsar.adt : un compilateur pour les types abstraits
+alg´ebriques du langage Lotos . In: Actes du CFIP (1993)
+29. Helmstetter, C.: Tlm.Open: a SystemC /TlmFront-End for the Cadp Veriﬁcation
+Toolbox, http://hal.archives-ouvertes.fr/hal-00429070/
+30. Helmstetter, C., Ponsini, O.: A Comparison of Two SystemC/TLM Semantics for
+Formal Veriﬁcation. In: MEMOCODE (2008)
+31. Hermanns, H.: Interactive Markov Chains and the Quest for Quantiﬁed Quality. In:
+Hermanns, H. (ed.) Interactive Markov Chains. LNCS, vol. 2428, p. 57. Springer,
+Heidelberg (2002)
+32. Hermanns, H., Joubert, C.: A Set of Performance and Dependability Analysis
+Components for CADP. In: Garavel, H., Hatcliﬀ, J. (eds.) TACAS 2003. LNCS,
+vol. 2619, pp. 425–430. Springer, Heidelberg (2003)
+33. Holzmann, G.J.: The SPIN Model Checker: Primer and Reference Manual.
+Addison-Wesley, Reading (2003)
+34. ISO/IEC. Lotos — A Formal Description Technique Based on the Temporal Or-
+dering of Observational Behaviour. International Standard 8807, International Or-
+ganization for Standardization, Geneva (1989)
+35. ISO/IEC. Enhancements to Lotos (E-Lotos ). International Standard 15437:2001,
+International Organization for Standardization, Geneva (2001)
+36. Khan, A.M.: Connection of Compositional Veriﬁcation Tools for Embedded Sys-
+tems. M´ emoire master 2 recherche, Univ. J. Fourier, Grenoble (2006)
+37. Lang, F.: Exp.Open 2.0: A ﬂexible tool integrating partial order, compositional,
+and on-the-ﬂy veriﬁcation methods. In: Romijn, J.M.T., Smith, G.P., van de Pol,
+J. (eds.) IFM 2005. LNCS, vol. 3771, pp. 70–88. Springer, Heidelberg (2005)
+38. Lang, F., Sala¨ un, G., H´ erilier, R., Kramer, J., Magee, J.: Translating FSP into
+LOTOS and Networks of Automata. FACJ 22(6), 681–711 (2010)
+39. Mader, A.: Veriﬁcation of Modal Properties Using Boolean Equation Systems.
+Bertz, Berlin (1997)
+40. Magee, J., Kramer, J.: Concurrency: State Models and Java Programs. Wiley,
+Chichester (2006)
+41. Mateescu, R.: V´ eriﬁcation des propri´ et´es temporelles des programmes parall` eles.
+Th`ese de Doctorat, Institut National Polytechnique de Grenoble (April 1998)
+42. Mateescu, R.: Eﬃcient Diagnostic Generation for Boolean Equation Systems. In:
+Graf, S. (ed.) TACAS 2000. LNCS, vol. 1785, p. 251. Springer, Heidelberg (2000)
+43. Mateescu, R.: Cæsar
+ Solve : A Generic Library for On- the-Fly Resolution of
+Alternation-Free Boolean Equation Systems. STTT 8(1), 37–56 (2006)
+44. Mateescu, R., Garavel, H.: Xtl: A Meta-Language and Tool for Temporal Logic
+Model-Checking. In: STTT. BRICS (1998)
+45. Mateescu, R., Sala¨ un, G.: Translating Pi-Calculus into LOTOS NT. In: M´ ery, D.,
+Merz, S. (eds.) IFM 2010. LNCS, vol. 6396, pp. 229–244. Springer, Heidelberg
+(2010)
+
+--- Page 16 ---
+A Toolbox for the Construction and Analysis of Distributed Processes 387
+46. Mateescu, R., Sighireanu, M.: Eﬃcient On-the-Fly Model-Checking for Regular
+Alternation-Free Mu-Calculus. SCP 46(3), 255–281 (2003)
+47. Mateescu, R., Thivolle, D.: A Model Checking Language for Concurrent Value-
+Passing Systems. In: Cuellar, J., Sere, K. (eds.) FM 2008. LNCS, vol. 5014, pp.
+148–164. Springer, Heidelberg (2008)
+48. Ponsini, O., F´ ed`ele, C., Kounalis, E.: Rewriting of imperative programs into logical
+equations. SCP 56(3), 363–401 (2005)
+49. Ponsini, O., Serwe, W.: A Schedulerless Semantics of TLM Models Written in
+SystemC Via Translation into LOTOS. In: Cuellar, J., Sere, K. (eds.) FM 2008.LNCS, vol. 5014, pp. 278–293. Springer, Heidelberg (2008)
+50. Schewe, S.: Solving Parity Games in Big Steps. In: Arvind, V., Prasad, S. (eds.)
+FSTTCS 2007. LNCS, vol. 4855, pp. 449–460. Springer, Heidelberg (2007)
+51. Stevens, P., Stirling, C.: Practical Model-Checking Using Games. In: Steﬀen, B.
+(ed.) TACAS 1998. LNCS, vol. 1384, p. 85. Springer, Heidelberg (1998)
+52. Thivolle, D.: Langages modernes pour la v´ eriﬁcation des syst` emes asynchrones.
+PhD thesis, Univ. J. Fourier Grenoble and Polytechnic. Univ. of Bucharest (2011)

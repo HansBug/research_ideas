@@ -1,0 +1,242 @@
+--- Page 1 ---
+Uppaal Stratego⋆
+Alexandre David, Peter Gjøl Je nsen, Kim Guldstrand Larsen,
+Marius Mikuˇ cionis, and Jakob Haahr Taankvist
+Department of Computer Science, Aalborg University,
+Selma Lagerl¨ ofs Vej 300, 9220 Aalborg Øst, Denmark
+Abstract. Uppaal Stratego is a novel tool which facilitates genera-
+tion,optimization,comparisonaswellasconsequenceandperformanceex-
+ploration of strategies for stochastic pricedtimedgames ina user-friendly
+manner. The tool allows for eﬃcient and ﬂexible “strategy-space” explo-
+ration before adaptation in a ﬁnal implementation by maintaining strate-
+giesasﬁrstclassobjectsinthemodel-checkingquerylanguage.Thepaper
+describesthestrategiesandtheirproperties,constructionandtransforma-
+tion algorithms and a typical tool usage scenario.
+1 Introduction
+Model checking may be used to verify that a proposed controller prevents an
+environment from causing dangerous situations while, at the same time, operat-
+ing in a desirable manner. This approach has been successfully pursued in the
+setting of systems modeled as ﬁnite-state automata, timed automata, and prob-
+abilistic automata of various types with nuSMV [7], FDR [11], Uppaal [3] and
+PRISM [13] as prime examples of model checking tools supporting the above
+mentioned formalisms. Most recentl y the simulation-based method of statistical
+model checking has been introduced in Uppaal SMC [4], allowing for highly
+scaleable analysis of fullystochastic Sriced Timed A utomata with respect to a
+wide range of performance properties. F or instance, expected waiting-time and
+cost, and time-bounded and cost reachability probabilities, may be estimated
+(and tested) with an arbitrary precision and high degree of conﬁdence. Com-
+bined with the symbolic model checking of Uppaal this enables an adequate
+analysis of mixed critical systems, whe re certain (safety) properties must hold
+with absolute certainty, whereas for other quantitative (performance) properties
+a reasonably good estimati on may suﬃce, see e.g. [10].
+Rather than verifyinga proposed controller,synthesis – whenpossible –allows
+analgorithmicconstructionofacontrollerwhichisguaranteedtoensurethatthe
+resulting systems will satisfy the desired correctness properties. The extension
+of controller synthesis to timed and hybrid games started in the 90s with the
+seminalwork ofPnueli et al.[1,14]on co ntrollersynthesis for timed gameswhere
+⋆The research has received funding from the European FET projects SENSATION
+and CASSTING, the ARTEMIS project MBAT as well as the Sino-Danish Basic
+Research Center IDEA4CPS.
+©Springer-Verlag Berlin Heidelberg 2015
+C. Baier and C. Tinelli (Eds.): TACAS 2015, LNCS 9035, pp. 206–211, 2015.
+DOI: 10.1007/978-3-662-46681-0 _16
+
+--- Page 2 ---
+Uppaal Stratego 207
+thesynthesisproblemwasprovendecidablebyasymbolicdynamicprogramming
+technique.In Uppaal Tiga [2,5] aneﬃcient on-the-ﬂyalgorithmforsynthesisof
+reachability and safety objectives for timed games has been implemented, with
+a number of successful industrial applications having been made including zone-
+basedclimatecontrolforpig-stables[12]andcontrollersforhydraulicpumpswith
+60% improvement in energy-consumption compared with industrial practice at
+t h et i m e[ 6 ,1 5 ] .
+However, once a strategy has been synthesized for a given objective no further
+analysishas been supportedso far. In particularit has notbeen possible to make
+a deeper examination of a synthesized st rategy in terms of other additional
+properties that may or may not hold under the strategy. Neither has it been
+possible to optimize a synthesized non-deterministic safety strategy with respect
+to desired performance measures. Both o f these issues have been addressed by
+the authors in recent work [8,9], and in this paper we present the tool Uppaal
+Stratego which combines these techniques to generate, optimize, compare and
+explore consequences and per formance of strategies synthesized for stochastic
+priced timed games in a user-friendly manner. In particular, the tool allows for
+eﬃcient and ﬂexible “strategy-space” exploration before adaptation in a ﬁnal
+implementation.
+Uppaal Stratego1integrates Uppaal and the two branches Uppaal SMC
+[4] (statistical model checking), Uppaal Tiga [2] (synthesis for timed games)
+and the method proposed in [9] (synthesis of near optimal schedulers) into one
+tool suite. Uppaal Stratego comes with an extended query language where
+strategies are ﬁrst class objects that m ay be constructed, co mpared, optimized
+and used when performing (statistical) model checking of a game under the
+constraints of a given synthesized strategy.
+Consider the jobshop scheduling problem shown in Fig. 1 which models a
+number of persons sharing a newspaper. Each task process reads a section of
+the paper, whereas only one person can read a particular section at a time.
+Each reader wants to read the newspaper i n diﬀerent orders, and the stochastic
+environment chooses how long it takes to read each section. This makes the
+problem a problem of ﬁnding a strategy, rather than ﬁnding a static scheduler
+as in the classical jobshop scheduling problem.
+Fig. 1. Uppaal Stratego template of a single person reading a newspaper
+1Uppaal Stratego is available at http://people.cs.aau.dk/ ~marius/stratego/
+
+--- Page 3 ---
+208 A. David et al.
+Figure 1 shows a stochastic priced timed game (SPTG) which models one
+person reading the newspaper. The circles are locations and the arrows are tran-sitions. The solid arrows are transitions controlled by the controller and the
+dashed are transitions controlled by the stochastic environment. The model re-
+ﬂects the reading of the four sections in the preferred order (here comics, sport,
+local and economy) for the preferred amo unt of time. In the top locations the
+person is waiting for the next section t o become available; here four Boolean
+variables are used to ensure mutex on the reading of a section. In the bottom
+locations, the person is reading the par ticular section for a duration given by a
+uniform distribution on the given interval, e.g. [10,11]for our person’s reading ofsport. The stopwatch WTimeis only running in the waiting locations thus eﬀec-
+tivelymeasuringthe accumulatedtime when the personiswaitingto read.Given
+a complete model with several persons co nstantly competing for the sections, we
+are interested in synthesiz ing strategies for several multi-objectives, e.g. syn-
+thesize a strategy ensuring that all per sons have completed reading within 100
+minutes, and then minimize the expected waiting time for our preferred person.
+2 Games, Automata and Properties
+Using the featuresof Uppaal Stratego we can analyzethe SPTG in Fig. 1. In-
+ternally, Uppaal Stratego has diﬀerent models and re presentations of strate-
+gies, an overview of these and their relations are given in Fig. 2. The model seen
+in Fig. 1 is a SPTG, as WTimeis a cost function or price with location dependent
+rate (here 0 or 1), and we assume that environment takes transitions accordingto a uniform distribution over time.
+As shown in Fig. 2 we can abstract a SPTG into a timed game (TGA). This
+abstraction is obtained simply by ignoring the prices and stochasticity in the
+model. Note that since prices are observers, this abstraction does not aﬀect
+the possible behavior of the model, but merely forgets the likelihood and cost ofvariousbehaviors.Theabstractionmaps a 1
+1/2-playergame,where the opponent
+is stochastic into a 2-player game with an antagonistic opponent.
+Given a TGA ( G)w ec a nu s e Uppaal Tiga to synthesize a strategy σ(ei-
+ther deterministic or non-deterministic). This strategy can, when put in parallel
+with the TGA, G|σ, be model-checked in the same way as usual in Uppaal.W e
+P
+Stochastic Priced Timed GameP|σ σ◦
+StrategyP|σ◦
+Statistical Model Checking
+Stochastic Priced Timed AutomataGTimed Game
+σStrategy
+G|σ(Statistical) Model Checking
+Timed Automata
+Abstraction
+SynthesisφSynthesis
+Uppaal Tiga
+φ
+Fig. 2.Overview of models and their relations. The lines show diﬀerent actions. The
+dashed lines show that we use the object.
+
+--- Page 4 ---
+Uppaal Stratego 209
+can also use the strategy in a SPTG P,a n do b t a i n P|σ. Under a strategy it
+is possible to do statistical model checking (estimation of probability and cost,and comparison), which enables us to observe the behavior and performance of
+the strategy when we assume that the environment is purely stochastic. This
+also allows us to use to use prices under σ, even though they were not consid-
+ered in the synthesis of σ.F r o mb o t h PandP|σlearning is possible using the
+method proposed in [9]. The learning algorithm uses a simulation based method
+for learning near-optimal strat egies for a given price metric. If σis the most
+permissive strategy guaranteeing some goal, then the learning algorithm can op-
+timize under this strategy, and we will get a strategy σ
+◦which is near-optimal
+but still has the guarantees of σ. As the last step we can construct P|σ◦,w h i c h
+we can then do statistical model checking on.
+3S t r a t e g i e s
+InUppaal Stratego we operate three diﬀerent kinds of strategies, all mem-
+oryless. Non-deterministic strategies are strategies which give a setof actions
+in each state, with the most permissive strategy – when it exists – oﬀering the
+largest set of choices. In the case of time d games, most permissive strategies ex-
+ist for safety and time-bounded reachability objectives. Deterministic strategies
+give oneactionin eachstate. Stochastic strategies givea distribution overthe set
+of actions in each state. Fig. 3 shows how strategies are generated and used. For
+generating strategies, we can use Uppaal Tiga o rt h em e t h o dp r o p o s e di n[ 9 ]
+on SPTGs. Uppaal Tiga generates (most permissive) non-deterministic orde-
+terministic strategies. The method proposed in [9] generates strategies which
+are deterministic. A strategy generated with Uppaal Stratego can undergo
+diﬀerent investigations: model checking, statistical model checking and learning.
+Learning consume non-deterministic strategies (potentially multiple actions perstate) and may produce a deterministic one by selecting a single action for each
+state, such that the ﬁnal deterministic strategy is optimized towards some goal.
+Figure 3 shows that currently it is possible to model check only under symbol-ically synthesized strategies (as oppos ed to optimized ones) as symbolic model
+checking requires the strategy to be repre sented entirely in terms of zones (con-
+straint systems over clock values and thei r diﬀerences). Statistical model check-
+ing can only be done under stochastic strategies. All deterministic strategies can
+be thought of as stochastic by assigning a probability of 1 to the onechoice.
+Model
+Optimization [9]Statistical MC
+Uppaal SMCSymbolic synthesis
+Uppaal TigaSymbolic MC
+Uppaal
+Near-optimal Strategies [9] Uppaal Tiga Strategies
+Fig. 3.Overview of algorithms and data structures in Uppaal Stratego
+
+--- Page 5 ---
+210 A. David et al.
+To evaluate non-deterministic strategies statistically we applying a stochastic
+uniform distribution over the non-deterministic choices.
+4 Query Language
+We let strategies become ﬁrst class citi zens by introducing strategy assignment
+strategy S = and strategy usage under S where Sis an identiﬁer. These are
+appliedto the queriesalreadyused in Uppaal,Uppaal Tiga andUppaal SMC
+as well as those proposed in [9]. An overview of these queries is given in Table 1.
+Notice that we changed the syntax of the queries presented in [9]. Recall the
+example with the four authors sharing a newspaper as presented in Fig. 1. We
+compute a strategyfor Kim to reachhis plane within one houron line 1 in Fig. 4.
+Respecting this, we ﬁnd that Marius cannot join, as the query on line 2 is not
+satisﬁed. Instead, we optimize that Peter joins in on line 3 ( [<=60]is a bound
+on how long the simulations we learn from used can be). Finally, line 4 estimates
+that Jakob is done with probability ≥0.9 under Peter’s optimizations.
+Table 1. Types of queries
+UppaalSafety A[] prop under NS
+Liveness A<> prop under NS
+TigaGuarantee objective strategy NS = control: A<> prop
+Guarantee objective strategy NS = control: A[] prop
+SMCEvaluation Pr[bound](<> prop) under SS
+Expected value E[bound;int](min: prop) under SS
+Simulations simulate int [bound]{expr1,expr2} under SS
+[9]Minimize objective strategy DS = minE (expr) [bound]: <> prop under NS
+Maximize objective strategy DS = maxE (expr) [bound]: <> prop under NS
+Fig. 4. Uppaal Stratego queries and results for the model in Fig. 1
+References
+1. Asarin, E., Maler, O., Pnueli, A.: Symbolic controller synthesis for discrete and
+timed systems. In: Antsaklis, P.J., Kohn, W., Nerode, A., Sastry, S.S. (eds.) HS
+1994. LNCS, vol. 999, Springer, Heidelberg (1995)
+2. Behrmann, G., Cougnard, A., David, A., Fleury, E., Larsen, K.G., Lime, D.:
+UPPAAL-tiga: Time for playing games !I n :D a m m ,W . ,H e r m a n n s ,H .( e d s . )C A V
+2007. LNCS, vol. 4590, pp. 121–125. Springer, Heidelberg (2007)
+
+--- Page 6 ---
+Uppaal Stratego 211
+3. Behrmann, G., David, A., Larsen, K.G., H˚ akansson, J., Pettersson, P., Yi, W.,
+Hendriks, M.: Uppaal 4.0. In: Proceedings of the 3rd International Conference on
+the Quantitative Evaluation of Systems, QEST 2006, IEEE Computer Society,Washington, DC (2006)
+4. Bulychev, P.E., David, A., Larsen, K.G., Mikuˇ cionis, M., Poulsen, D.B., Legay, A.,
+Wang,Z.:UPPAAL-SMC:statistical modelcheckingforpricedtimedautomata.In:Proceedings 10th Workshop on Quantitative Aspects of Programming Languages
+and Systems, QAPL 2012, Tallinn, Estonia. EPTCS, vol. 85 (March 2012)
+5. Cassez, F., David, A., Fleury, E., Larsen, K.G., Lime, D.: Eﬃcient on-the-ﬂy algo-
+rithmsfor theanalysis oftimedgames. In:Abadi,M.,deAlfaro, L.(eds.)CONCUR
+2005. LNCS, vol. 3653, pp. 66–80. Springer, Heidelberg (2005)
+6. Cassez, F., Jessen, J.J., Larsen, K.G., Raskin, J.-F., Reynier, P.-A.: Automatic
+synthesis of robust and optimal controllers – an industrial case study. In: Majum-
+dar, R., Tabuada, P. (eds.) HSCC 2009. LNCS, vol. 5469, pp. 90–104. Springer,
+Heidelberg (2009)
+7. Cimatti, A., Clarke, E., Giunchiglia, E., Giunchiglia, F., Pistore, M., Roveri, M.,
+Sebastiani, R., Tacchella, A.: NuSMV 2: An openSource tool for symbolic model
+checking. In: Brinksma, E., Larsen, K.G. (eds.) CAV 2002. LNCS, vol. 2404, p.359. Springer, Heidelberg (2002)
+8. David, A., Fang, H., Larsen, K.G., Zhang, Z.: Veriﬁcation and performance evalu-
+ation of timed game strategies. In: Legay, A., Bozga, M. (eds.) FORMATS 2014.LNCS, vol. 8711, pp. 100–114. Springer, Heidelberg (2014)
+9. David, A., Jensen, P.G., Larsen, K.G., Legay, A., Lime, D., Sørensen, M.G.,
+Taankvist, J.H.: On time with minimal expected cost! In: Cassez, F., Raskin, J.-F.(eds.) ATVA 2014. LNCS, vol. 8837, pp. 129–145. Springer, Heidelberg (2014)
+10. David, A., Larsen, K.G., Legay, A., Mikuˇ cionis, M.: Schedulability of herschel-
+planck revisited usingstatistical model checking.In:Margaria, T., Steﬀen,B. (eds.)ISoLA 2012, Part II. LNCS, vol. 7610, pp. 293–307. Springer, Heidelberg (2012)
+11. Gibson-Robinson, T., Armstrong, P., Boulgakov, A., Roscoe, A.W.: FDR3 — A
+modern reﬁnement checker for CSP. In: ´Abrah´am, E., Havelund, K. (eds.) TACAS
+2014 (ETAPS). LNCS, vol. 8413, pp. 187–201. Springer, Heidelberg (2014)
+12. Jessen, J.J., Rasmussen, J.I., Larsen, K.G., David, A.: Guided controller synthesis
+for climate controller using uppaal tiga . In:Raskin,J.-F., Thiagarajan, P.S. (eds.)
+FORMATS 2007. LNCS, vol. 4763, pp. 227–240. Springer, Heidelberg (2007)
+13. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: Veriﬁcation of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS,vol. 6806, pp. 585–591. Springer, Heidelberg (2011)
+14. Maler, O., Pnueli, A., Sifakis, J.: On the synthesis of discrete controllers for timed
+systems. In: Mayr, E.W., Puech, C. (eds.) STACS 1995. LNCS, vol. 900, Springer,
+Heidelberg (1995)
+15. Zhao, H., Zhan, N., Kapur, D., Larsen, K.G.: A ”hybrid” approach for synthesizing
+optimal controllers of hybrid systems: A case study of the oil pump industrial
+example (2012)

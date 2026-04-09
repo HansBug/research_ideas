@@ -1,0 +1,218 @@
+--- Page 1 ---
+Ymer: A Statistical Model Checker⋆
+H˚akan L.S. Younes
+Computer Science Department, Carnegie Mellon University,
+Pittsburgh, PA 15213, USA
+Abstract. We present Ymer, a tool for verifying probabilistic transient
+properties of stochastic discrete event systems. Ymer implements both
+statistical and numerical model checking techniques. We focus on two
+features of Ymer: distributed acceptance sampling and statistical model
+checking of nested probabilistic statements.
+1 Introduction
+Ymer is a tool for verifying probabilistic transient properties of stochastic dis-
+crete event systems. Properties are expressed using the logics PCTL [2] and
+CSL [1]. For example, the CSL property ¬P≥0.01[/latticetopU[0,15.07]faulty =n] asserts
+that the probability of nservers becoming faulty within 15 .07 seconds is less than
+0.01. In general, Φ U[τ1,τ2]Ψ is a path formula and is evaluated over execution
+paths for a stochastic system. The formula P≥θ[ϕ], where ϕis a path formula,
+holds if and only if the probability measure of the set of paths that satisfy ϕis
+at least θ. To solve CSL model checking problems, one can attempt to compute
+the probability measure of a set of paths using numerical techniques, but this
+is infeasible for systems with complex dynamics (e.g. generalized semi-Markov
+processes) or large state spaces. Existing CSL model checkers—ETMCC [3] and
+PRISM [5]—are limited to ﬁnite-state Markov chains.
+To handle the generality of stochastic discrete event systems, Ymer imple-
+ments the statistical model checking techniques, based on discrete event simula-
+tion and acceptance sampling, for CSL model checking developed by Younes and
+Simmons [12] (see also [10–Chap. 5]). To verify a formula P≥θ[ϕ], Ymer uses dis-
+crete event simulation to generate sample execution paths and veriﬁes the path
+formula ϕover each execution path. The veriﬁcation result over a sample ex-
+ecution path is the outcome of a chance experiment (Bernoulli trial), which is
+used as an observation for an acceptance sampling procedure. Ymer implements
+both sampling with a ﬁxed number of observations and sequential acceptance
+sampling. Ymer includes support for distributed acceptance sampling, i.e. the
+use of multiple machines to generate observations, which can result in signiﬁcant
+speedup as each observation can be generated independently.
+Ymer currently supports time-homogeneous generalized semi-Markov pro-
+cesses speciﬁed using an extension of the PRISM input language. PRISM and
+⋆Supported by the Army Research Oﬃce (ARO) under contract no. DAAD190110485
+and a grant from the Royal Swedish Academy of Engineering Sciences (IVA).
+K. Etessami and S.K. Rajamani (Eds.): CAV 2005, LNCS 3576, pp. 429–433, 2005.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2005
+
+--- Page 2 ---
+430 H.L.S. Younes
+ETMCC work only with Markov processes, but support a richer set of properties
+than Ymer, including steady-state properties and unbounded until operators in
+path formulae. Ymer can use numerical techniques for continuous-time Markov
+chains (CTMCs) as it includes the hybrid engine from the PRISM tool for CTMC
+model checking. Numerical and statistical techniques can be used in combination
+to solve nested CSL queries for CTMCs as described by Younes et al. [11].
+2 Distributed Acceptance Sampling
+Statistical solution methods that use samples of independent observations are
+trivially parallelizable. One can use multiple computers to generate the observa-
+tions, as noted already by Metropolis and Ulam [7–p. 340], and expect a speedup
+linear in the added computing power. To ensure that observations are indepen-
+dent, some care needs to be taken when generating pseudorandom numbers on
+each machine. Ymer uses the scheme proposed by Matsumoto and Nishimura [6],
+which encodes a process identiﬁer into the pseudorandom number generator. This
+eﬀectively creates a diﬀerent generator for each unique identiﬁer.
+Ymer adopts a master/slave architecture (Fig. 1) for the distributed veriﬁca-
+tion task. One or more slave processes register their ability to generate observa-
+tions with a single master process. The master process collects observations from
+the slave processes and performs an acceptance sampling procedure. Each slave
+process is assigned a unique identiﬁer by the master process to ensure that the
+slave processes use diﬀerent pseudorandom number generators. The right side of
+Fig. 1 illustrates a typical communication session.
+When using distributed sampling with a sequential test, such as Wald’s [9]
+sequential probability ratio test, it is important not to introduce a bias against
+observations that take a longer time to generate. For probabilistic model check-
+ing, each observation involves the generation of a path preﬁx through discrete
+event simulation and the veriﬁcation of a path formula over the generated path
+preﬁx. If we simply use observations as they become available, then the guaran-
+tees of the acceptance sampling test may no longer hold. For example, negative
+MASTER
+acceptance sampling
+SLA VE
+simulationSLA VE
+simulation...SLA VE MASTER
+register
+model and property
+observation
+...
+observation
+done⎭⎪⎬⎪⎫
+repeat
+Fig. 1. Master/slave architecture and communication protocol for distributed accep-
+tance sampling
+
+--- Page 3 ---
+Ymer: A Statistical Model Checker 431
+observations for the path formula /latticetopU[0,1000]Ψ require simulation for 1000 time
+units, while positive observations may be fast to generate if Ψ is satisﬁed early
+(cf. [10–Example 5.4]).
+Such bias is avoided by committing, a priori , to the order in which obser-
+vations are taken into account. Observations that are received out-of-order are
+buﬀered until it is time to process them. Ymer maintains a dynamic schedule
+of the order in which observations are processed. At the beginning, we sched-
+ule to receive one observation from each slave process in a speciﬁc order. We
+then reschedule the processing of the next observation for a slave process at the
+arrival of an observation. This gives us a schedule that automatically adjusts
+to variations in performance of slave processes without the need for explicit
+communication of performance characteristics.
+To show the eﬀect of distributed sampling, we use the model of an n-station
+symmetric polling system described by Ibe and Trivedi [4]. In this model, each
+station has a single-message buﬀer and the stations are attended by a single
+server in cyclic order. The server begins by polling station 1. If there is a message
+in the buﬀer of station 1, the server starts serving that station. Once station i
+has been served, or if there is no message at station iwhen it is polled, the
+server starts polling station i+ 1 (or 1 if i=n). We verify the CSL property
+m1=1→P≥0.5[/latticetopU[0,20]pol l1], which states that if station 1 is full, then it is
+polled within 20 time units with probability at least 0 .5. We do so in the state
+where station 1 has just been polled and the buﬀers of all stations are full.
+Fig. 2 shows the reduction in veriﬁcation time for the symmetric polling sys-
+tem when using two machines to generate observations. The ﬁrst machine is
+equipped with a 733 MHz Pentium III processor. If we also generate observa-
+tions, in parallel, on a machine with a 500 MHz Pentium III processor, we get
+the relative performance indicated by the solid curve. The veriﬁcation time with
+two machines is roughly 70 % of the veriﬁcation time with a single machine.
+Fig. 3 shows the fraction of observations used from each machine, with m 1being
+|S| 102104106108101010121014%
+020406080100
+Fig. 2. Fraction of veriﬁcation time as a
+function of state space size for the sym-
+metric polling system when using two ma-
+chines instead of one|S| 102104106108101010121014%
+020406080100 m1
+m2
+Fig. 3. Distribution of workload as a func-
+tion of state space size for the symmetric
+polling system when using two machines
+to generate observations
+
+--- Page 4 ---
+432 H.L.S. Younes
+the faster of the two machines. We can see that these fractions are in line with
+the relative performance of the machines.
+3 Nested Probabilistic Operators
+To illustrate the use of nested probabilistic operators, we consider the robot grid
+world described by Younes et al. [11]. A robot is moving in an n×ngrid from
+the bottom left corner to the top right corner. The objective is for the robot to
+reach the top right corner within 100 time units with probability at least 0 .9,
+while maintaining at least a 0 .5 probability of periodically (every 9 time units)
+communicating with a base station. Let cbe a Boolean state variable that is
+true when the robot is communicating, and let xandybe two integer-valued
+state variables holding the current location of the robot. The CSL property
+P≥0.9/bracketleftbig
+P≥0.5[/latticetopU[0,9]c]U[0,100]x=n∧y=n/bracketrightbig
+expresses the desired objective.
+The path formula for the outer probabilistic statement contains a probabilis-
+tic operator and cannot be veriﬁed without error with statistical techniques.
+Younes et al. [11] present a mixed solution method using statistical sampling for
+top-level probabilistic operators and numerical methods for nested probabilistic
+operators. Younes [10–Sect. 5.2] provides a purely statistical approach, which is
+made practical through the use of heuristics for selecting observation errors and
+memoization [8] to avoid repeated eﬀort. Ymer implements both techniques.
+Fig. 4 plots the veriﬁcation time for the robot grid world property as a func-
+tion of state space size. The results were generated on a machine with a 3 GHz
+Pentium 4 processor. The purely statistical approach is slower for smaller state
+spaces, but handles larger state spaces than the other two solution methods
+without exhausting memory resources (800 MB in this case). The dotted line
+shows where the property goes from being true to being false as the state space
+grows larger. The use of sequential acceptance sampling gives the peak in the
+curve for the mixed solution method, but the peak is not present in the curve
+for the purely statistical method thanks to memoization. The data shows that
+|S| 10210410610810101012t(s)
+10−210−1100101102103104
+numerical
+mixed
+statisitcal
+Fig. 4. Comparison of solution methods for robot grid world property with nested
+probabilistic operators
+
+--- Page 5 ---
+Ymer: A Statistical Model Checker 433
+no method strictly dominates any other method in terms of veriﬁcation time, al-
+though one should keep in mind that the correctness guarantees are diﬀerent for
+all three methods. Numerical methods can guarantee high numerical accuracy,
+while statistical methods provide only probabilistic correctness guarantees.
+4 Implementation Details and Availability
+Ymer is implemented in C (the random number generator) and C++, and uses
+the CUDD package for symbolic data structures (BDDs and MTBDDs) used by
+the hybrid CTMC model checking engine. The part of the code implementing
+numerical analysis of CTMCs has been adopted from the PRISM tool. Ymer is
+free software distributed under the GNU General Public License (GPL), and is
+available for download at http://www.cs.cmu.edu/˜lorens/ymer.html.
+References
+1. Baier, C., Haverkort, B. R., Hermanns, H., and Katoen, J.-P. Model-checking
+algorithms for continuous-time Markov chains. IEEE Transactions on Software
+Engineering , 29(6):524–541, 2003.
+2. Hansson, H. and Jonsson, B. A logic for reasoning about time and reliability.
+Formal Aspects of Computing , 6(5):512–535, 1994.
+3. Hermanns, H., Katoen, J.-P., Meyer-Kayser, J., and Siegle, M. A Markov chain
+model checker. In Proc. 6th International Conference on Tools and Algorithms for
+the Construction and Analysis of Systems , volume 1785 of LNCS , pages 347–362.
+Springer, 2000.
+4. Ibe, O. C. and Trivedi, K. S. Stochastic Petri net models of polling systems. IEEE
+Journal on Selected Areas in Communications , 8(9):1649–1657, 1990.
+5. Kwiatkowska, M., Norman, G., and Parker, D. Probabilistic symbolic model check-
+ing with PRISM: A hybrid approach. International Journal on Software Tools for
+Technology Transfer , 6(2):128–142, 2004.
+6. Matsumoto, M. and Nishimura, T. Dynamic creation of pseudorandom number
+generators. In Monte-Carlo and Quasi-Monte Carlo Methods 1998 , pages 56–69.
+Springer, 2000.
+7. Metropolis, N. and Ulam, S. M. The Monte Carlo method. Journal of the American
+Statistical Association , 44(247):335–341, 1949.
+8. Michie, D. “Memo” functions and machine learning. Nature , 218(5136):19–22,
+1968.
+9. Wald, A. Sequential tests of statistical hypotheses. Annals of Mathematical Statis-
+tics, 16(2):117–186, 1945.
+10. Younes, H. L. S. Veriﬁcation and Planning for Stochastic Processes with Asyn-
+chronous Events . PhD thesis, Computer Science Department, Carnegie Mellon
+University, 2005. CMU-CS-05-105.
+11. Younes, H. L. S., Kwiatkowska, M., Norman, G., and Parker, D. Numerical vs.
+statistical probabilistic model checking. International Journal on Software Tools
+for Technology Transfer , 2005. Forthcoming.
+12. Younes, H. L. S. and Simmons, R. G. Probabilistic veriﬁcation of discrete event
+systems using acceptance sampling. In Proc. 14th International Conference on
+Computer Aided Veriﬁcation , volume 2404 of LNCS , pages 223–235. Springer, 2002.

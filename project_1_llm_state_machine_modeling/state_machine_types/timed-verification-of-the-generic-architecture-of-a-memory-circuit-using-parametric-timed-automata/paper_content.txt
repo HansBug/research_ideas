@@ -1,0 +1,1284 @@
+--- Page 1 ---
+R´emyChev allier,
+´Em manuelleEncre naz-Ti phe ne,
+Laure ntFribourg and WeiwenXu
+TimedVeriﬁca tion
+oftheGeneri cArchitecture
+ofaMem oryCircui t
+UsingParametricTimedAutomata
+Rese archRep ortLSV -06-14
+July2006
+
+--- Page 3 ---
+Tim edVeriﬁcationoftheGenericArchitecture
+ofaMemoryCircuit
+UsingParametricTim edAutomata⋆⋆⋆
+RemyChevallier1,EmmanuelleEncrenaz-Tiphene2,
+LaurentFribourg2andWeiwenXu2
+1STM icroelectronics,FTM ,CentralR&D,Crolles,France
+2LSV-CNRS,ENSdeCachan,France
+Abstract.UsingavariantofClariso-Cortadella’sparametricmethod
+forverifyingasynchronouscircuits,weanalysesome crucialtimingbe-
+haviorsofthearchitectureofSPSMALLmemory,acomme rcialproduct
+ofSTM icroelectronics.Usingthemodelofparametrictimedautomata
+andmodelcheckerHYTECH,weformallyderiveasetoflinearcon-
+straintsthatensurethecorrectnessoftheresponsetimesofthememory.
+Wearealsoabletoinfertheconstraintscharacterizingtheoptimalsetup
+timingsofinputsignals.Wehavechecked,fortwodiﬀerentimplemen-
+tationsofthisarchitecture,thatthevaluesgivenbyourmodelmatch
+remarkablywiththevaluesobtainedbythedesignerthroughelectrical
+simulation.
+Keywords.MemoryCircuit,TimedAutomata,ModelChecking.
+⋆PartiallysupportedbyprojectMEDEA+Blueberries.
+⋆⋆ApreliminaryversionappearedintheProceedingsof4thInternationalConference
+onFormalModellingandAnalysisofTimedSystems(FORM ATS’06),Sept.2006.
+
+--- Page 4 ---
+1 Introduction
+Thedesignerofamemorycircuitguaranteesthecorrectbehaviorofitsprod-
+uctandsomequantitativeperformance(called“(guaranteed)responsetimes”),
+assumingthatthecircuitisembeddedintoanenvironmentsatisfyingsomequan-
+titativerequirements(called“(external)requirements”).Theresponsetimesrep-
+resentanupperboundonthetimetakenbythecircuittoproducetheresultofa
+(writeorread)operation.Theexternalrequirementsspecifythelowerboundson
+theclockcycletimesandthestabilitytimesofinputsignals.Thesevaluesofthe
+parametersofthespeciﬁcationformthedatashe etofthecircuitprovidedbythe
+manufacturertothecustomer.Theyaredeterminedbyelectricalsim ulation.In
+ordertoperformsuchasimulation,eachcomponentofthememoryismodelled
+atthetransistorlevelasasetofdiﬀerentialequations,whichrepresenttheKir-
+shoﬀlawsassociatedwiththeelectriccurrenttraversingthecomponent.These
+diﬀerentialequationsdependonthephysicalcharacteristicsofthetransistors
+andwires(capacitors,resistors,...).Thefullmemoryisthusrepresentedasa
+bigsystemofdiﬀerentialequations.Thevaluesofthedatasheetarecomputed
+byresolutionofthesediﬀerentialequations,using,e.g.,toolHSIM [1].Actually,
+suchasimulationprocessismuchtoolongtobeperformedinacompleteman-
+ner.Sensitiveportionsofthecircuit,whicharesupposedtocontainthelongest
+pathsoftraversal,arethereforeidentiﬁedbyhand.Electricalsimulationsare
+performedonlyforsuchlimitedportionsofcircuit,whichareassumedtocon-
+tainthecriticalpaths.Suchanassumptionof‘criticality’isrisky:itisvery
+diﬃculttoidentifybyhandrelevantsensitiveportionsofthecircuit(especially
+whenthecomplexityofthecircuitincreases).Theneedforformalmethodsto
+verifythetimingvaluesofthedatasheetisthereforewidelyrecognized.
+In[9,8],ClarisoandCortadellaproposeaformalmethodforverifyingthe
+timingsofasynchronouscircuits.Theapproachinfersasetofsuﬃcientlinear
+constraintsrelatingthedelaysoftheinternalgatesofthecircuittotheexter-
+naldelaysofthecircuitspeciﬁcationthatguaranteethecorrectbehaviorofthe
+circuit.Themethodisbasedonthereachabilityanalysisofatimedmodelof
+thecircuit(withadditionalabstractinterpretationtechniques[10]).Aspointed
+outin[9],suchparametricconstraintsetsareveryinformativeforthedesigner,
+astheyidentifysensitivepartsofthecircuits(e.g.,“criticalpaths”)andinter-
+relationsbetweenvariousdataofthespeciﬁcation.Moreover,manytechnology
+mappingscanbetestedimmediately(bymereinstantiationoftheparameters).
+Wefollowhereasimilarapproachforformallyverifyingsomegenericproperties
+ofacommercialmemorydesignedbySTM icroelectronics,calledSPSMALL.Our
+timinganalysismethodderivesasetofsuﬃcientlinearconstraintsrelatingthe
+externalparametersofthedatasheettotheinternalgatedelaysthatguarantee
+thecorrectnessofthecircuit’sbehavior.Inparticular,theseconstraintscanbe
+seenassuﬃcientconditionsforcertainpathsofthecircuittobe“critical”(i.e.
+thosealongwhichthepropagationdelayisthelongest).Usingthemodelofpara-
+metrictimedautomata(see[3])andtoolHYTECH [13]forreachabilityanalysis,
+weareabletogenerateasetoflinearconstraintsthatensuresthecorrectness
+
+--- Page 5 ---
+ofsomecrucialtimingbehaviorsofthememory.Thismethodisapplicableto
+severalinstancesofSPSMALLmemoriesimplementedwithdiﬀerenttransistor
+technologies(correspondingtodiﬀerentsetsofparametervalues).Weactually
+appliedthemethodtotwoinstances,calledSP1andSP2,whichcorrespondto
+ahigh-speedandlow-powerimplementationsrespectively.
+ComparisonwithRelatedWork.Aspointedoutabove,ourworkisadapted
+fromClariso-Cortadella’smethod[9,8].However,[9,8]focusonaparticularform
+oflinearconstraints(linearinequalitieswithcoeﬃcientsalwaysequalto±1)and
+representthemasaparticularformofconvexpolyhedra,called“octahedra”[8].
+Incontrast,weuseherelinearconstraintsandtheirclassicalformofconvex
+polyhedraintheirfullgenerality[12].Otherdiﬀerenceswith[9,8]are:
+-adiﬀerentlevelofmodelling:thecomponentsofthememoryarerepresented
+hereatthe“latch”levelinsteadofgatelevel.Atthislevelofrepresentation,the
+ﬂowofinputsignalstraversesthecircuitinalinearmanner(withoutloops),
+whiletheﬂowiscyclicatthegatelevel(theouputofonegatecanbeaninput
+ofanothergateandtheconversecanbesimultaneouslytrue),
+-theuseofmereforwardreachabilityanalysisratherthantechniquesof
+ﬁxpointcomputationofabstractinterpretation(using,e.g.,wideningoperators),
+-theuseofadecompositionalapproach,whichsplitstheglobalsysteminto
+threesmallerparts,
+-theuseofastep-by-stepreﬁnementofthereachabilityanalysisprocess:we
+startwiththemostgeneralformofconstraintsonparameters;wethenreﬁne
+themprogressively,viaiterativereachabilityanalysis,detecting,ateachrun,
+someerroneousgeneratedstatesuntilcompleteelimination.
+Besides[9,8],ourworkisalongthelinesof[15,5,17]wheretimedautomata
+havebeenusedextensivelytomodelandchecktimingpropertiesofasynchronous
+circuits(cf.[11]).ReachabilityanalysisisthereperformedviatoolKRONOS[18].
+Ourworkisalsoacontinuationof[4,7]wheretheSPSMALLmemoryismodelled
+asatimedautomatonandsomeofitstimingpropertiesareprovenbyreachabil-
+ityanalysis(usingtoolUPPAAL[14]).Thecrucialdiﬀerencehere,withrespect
+tothesepreviousworks,isthatweusethemodelofparametrictimedautomata
+(performingreachabilityanalysiswithHYTECH [13]).
+Planofthepaper.InSect.2,wepresentthegeneralobjectivesofourveriﬁca-
+tionprocess.InSect.3,wegiveageneraldescriptionofourmethod.InSect.4,
+weexplainhowweapplyitonSPSMALLmemoryafterhavingsplitthemodel
+into3parts,inthecaseofthewriteproperty.Wegivethecounterpartresults
+forthereadpropertyinSect.5.FinalremarksaregiveninSect.6.
+2 ObjectivesofVeriﬁcation
+2.1 ArchitectureofaMemoryCircuit
+Amemorycircuitaimsatstoringdataatsomeaddressedlocations.Itisasso-
+ciatedwithtwooperations:‘write’and‘read’.Thememorycircuithasseveral
+
+--- Page 6 ---
+inputportsandoneoutputport(seeFig.1).Thesignalsdrivenbyinputports
+are:
+–CK,thesignaloftheperiodicclock;
+–D,then-bitswidthsignalrepresentingthedatatobestored;
+–A,thelog2(m)-bitswidthsignalrepresentingtheaddressofaninternalmem-
+orylocation;
+–WEN,the1-bitwidthsignalrepresentingeitherawriteorareadoperation.
+ThesignaldrivenbytheoutputportisQ(ofn-bitswidth).
+Thedataarestoredinamemoryarraycomposedofm×nmemorypoints.A
+memorylocationisacollectionofnmemorypoints.ThisisdepictedonFig.1.
+Thewriteoperation(WEN=0whenCKisrising)writesthevalueofDinthe
+internalmemorylocationselectedbyA,andpropagatesDonoutputportQ.
+Thereadoperation(WEN=1whenCKisrising)outputsonportQacopy
+ofthedatastoredinthememorylocationselectedbyA.CK
+D
+A
+WENQ
+log2(m)nn
+nm
+storage arrayFig.1.Simpliﬁedviewofamemory(Symbolk
+−/→representsaportofk-bitswidth)
+2.2 Simpliﬁcation
+Asasimpliﬁcation,wewillconsiderthecasewheretheportsofDarereduced
+toasinglebit.ThepropagationofallthebitsofDfollowidenticalpaths.Each
+pathpropagateseitherarisingedgeorafallingedge.Letuspointoutthatthe
+propagationtimeofarisingedgediﬀersfromthatofafallingedge.However,
+thepropagationofalltherising(resp.falling)edgestakesthesametime.This
+justiﬁesthereductionofourmodeltoadatapathofonebitforD,withtwocases
+dependingonwhetherDisrisingorfalling.Accordingly,thesamesimpliﬁcation
+isdoneforQ.
+AsimilarreductionappliestoA:ﬁrst,allthebitsofAfollowidenticalpaths
+beforereachingtheaddressdecoder;then,allthepathsintheaddressdecoder
+
+--- Page 7 ---
+areabstractedasthe“slowest”path(theonetakingthelongesttimetopropa-
+gatethesignal).
+Likewise,wearenaturallyledtofocustoauniquememorypoint,denoted
+bymp,insteadoftheoriginalm×nstoragearray.Notethattheoperations
+involvingtheoriginalm×nmemorypointsmaytakediﬀerenttimes,depending
+ontheirphysicallocation.Ourabstractionisjustiﬁedbecausewewillassume
+thatmpcorrespondstothepointofthestoragearrayfromwhichtheslowest
+pathtoQoriginates(SeeSect.5).
+AcloserviewofthestoragemechanismisgiveninAppendix0.Ithighlights
+thereductionofparallelpathsforD,AandQ.Formoredetailsaboutmemory
+architecture,see[16].
+2.3 Tim ings
+Amemoryisembeddedintoasynchronousenvironmentscheduledbyaperiodic
+signal,named‘clock’(CK).Theperiodofacycle,tcycle,decomposesitselfintoa
+highperiod(tHI)andalowperiod(tLO).Inordertobetakenintoaccount,each
+inputsignalIhastoremainstableforagivenamountoftime,beforetherising
+edgeoftheclock.ThisdelayiscalledsetuptimeforI,anddenotedbytsetupI3.
+Traversalofinternalcomponents.Thecircuitismadeofanumberele-
+mentaryinternalcomponents(logicalgates,latches,wires,...).Thelogicalgates
+(orblocks)areassumedtobetraversedinstantaneously4.Theonlycomponents
+withnon-nulldelayarethewiresandthelatches.Eachwireandlatchcom-
+ponentisassociatedwithaninterval[l↑,u↑](resp.[l↓,u↓]),whichgiveslower
+andupperboundsofthecomponenttraversaldelaywhentheattackingsignal
+isrising(resp.falling)5.Weadoptthe“inertial delay”interpretation(see[6]):
+changesthatdonotpersistforltimeareﬁlteredout.
+Actualresponsetimes.AwriteoperationoccurswheninputsignalWENis
+low.Duetothetimeoftraversaloftheelementarycomponentsofthememory,
+thisoperationtakesadelay,called“actualresponsetimeforwrite”,denoted
+bytD,WEN↓
+CK→Q.ThisisdepictedonFig.2.Duetotheone-bitabstractionofD,
+thisdelaynowjustdependsonwhetherDisrisingorfalling.Arising(resp.
+falling)edgeofDinducesarising(resp.falling)edgeofQ.Accordingly,this
+delaywillbedenotedbytD↑,WEN↓
+CK→Q↑ortD↓,WEN↓
+CK→Q↓.ThedelaytD,WEN↓
+CK→Qisjustthe
+3Thereexistsalsoarequireddelayofstability,called“hold”time,requiredafterthe
+risingedgeofthesignal,butwewillnotconsideritinthispaper.
+4Ifthedelayoftraversalofthegateisnon-null,webackpropagateittotheinput
+wiresofthegate(cf.[15]).
+5Thisisastraightforwardgeneralizationof“bi-boundeddelay”model(see[6]),taking
+intoaccounttherisingorfallingnatureofinputsignal.
+
+--- Page 8 ---
+WEN
+QDCKtcycle
+tsetupWENtHItLO
+tsetupD
+tD↑,WEN↓
+CK→Q↑
+Fig.2.AwriteoperationcorrespondingtoarisingedgeofD(D↑).
+maximumofthesetwovalues.
+Similarly,whenareadoperationoccurs(WEN=1),the“actualresponse
+timeforread”,denotedbytA,WEN↑
+CK→Q,canbedeﬁnedalongthesamelines.This
+delayisitselfthemaximumofthevaluescorrespondingtothefallingandrising
+edgesofA,denotedbytA↑,WEN↑
+CK→Q↑andtA↓,WEN↑
+CK→Q↓respectively.
+Responsetimesguaranteedbythedatasheet.Thedatasheetstatesthe
+maximumdelay,denotedbytwrite
+max,afterwhichawriteoperationisguaranteed
+tohaveproduceditsresult.Asimilardelay,denotedbytread
+max,isalsogivenfor
+thereadoperation.Thevaluestwrite
+max,tread
+maxformthe(guaranteed)responsetimes
+partofthedatasheet.
+Thesetupandcycletimingvalues(tHI,tLO,tsetupD,tsetupA,tsetupWEN)form
+the(external)requirementsofthedatasheet.
+2.4 Veriﬁedproperties
+Wesupposethatwearegivenanimplementationofthememory,andassume
+thatitsenvironmentsatisﬁestheexternalrequirementsofthedatasheet.Weare
+interestedinverifyingthattheactualresponsetimesarenogreaterthanthe
+correspondingresponsetimesguaranteedbythedatasheet.
+Writeproperty.Theresultofawritecommandisproducedonoutputport
+Qwithintwrite
+max.Thiswillbeexpressedas:tD,WEN↓
+CK→Q≤twrite
+max.
+
+--- Page 9 ---
+Readproperty.Similarly,wewillexpressthecorrectnessofareadcommand
+as:tA,WEN↑
+CK→Q≤tread
+max.
+Optimalsetuptimings.Besides,ouranalysiswillallowustoinferanoptimal
+valueforsetuptimingtsetupD(resp.tsetupA):itcorrespondstothelowestvalue
+oftsetupD(resp.tsetupA)whichstillguaranteesthereadandwriteproperties,
+whilelettinginvariantthevaluesofalltheotherparametersofthedatasheet.
+3 Method
+Wesupposethatwearegivenahigh-leveldescriptionofthememorycircuit
+undertheformofanabstract(timed)functionalgraph(seeFig.3).Givensuch
+agraph,theprocessconsiststo:
+–constructamodelofthememoryundertheformofatimedautomaton,
+–generatethesetofreachablestates(withinaﬁnitenumberofcycles,viz.
+2cycles),
+–infer(bystepwisereﬁnement)asetoftimingconstraintsensuringthere-
+sponsetimeproperty,
+–verifythat,foragivenimplementation,theresponsetimepropertyholdsby
+checkingtheinstantiatedconstraints.
+3.1 ModellingSPSMALL
+LevelofModelling.Amemorycanbemodelledatdiﬀerentlevelsofcom-
+plexity,e.g.,inaincreasingorder:atthefunctionalblocklevel,atthe“latch”
+level,atthegatelevel,oratthetransistorlevel.
+FortheSPSMALLmemory,themodelcanthusbeimplementedusing:3main
+components,attheblocklevel(cf[4]),30componentsatthelatchlevel,70com-
+ponentsatthegatelevel,or200componentsatthetransistorlevel.Thereis
+atradeoﬀinﬁndingtheappropriatelevelofmodelling.Thelowerthelevelof
+modellingis,themorefaithfultotherealitythemodelis,butthemorediﬃcult
+theveriﬁcationprocessis.
+Inthiswork,wechosetorepresentthememoryatthelatchlevel.Thead-
+vantageistolimitthenumberofcomponents(around30)atareasonablesize,
+andtohavea“schematics”describingthearchitectureofthememoryatthis
+level,whichcloselycorrespondsto(VHDL)codeautomaticallyproducedwith
+commercialtoolTLL[2].ThisisdepictedonFig.3.
+Theschematicsnaturallydecomposesintotworelevantsubparts,depending
+onwhetheronestudiesthecircuitonawriteorreadoperation.Thesepartsare
+depictedonFig.7andFig.8forwriteandreadrespectively.Eachpartismade
+ofthreekindsofcomponents:wires,latchesandlogicalblocks:
+–Awirecarriesaninputsignaltoitsoutputwithadelayin[l↑,u↑](resp.
+[l↓,u↓]).
+
+--- Page 10 ---
+WEN
+CK
+AD
+or
+or3nor not10
+256
+13
+158 16 Q
+714
+19
+1817 2122
+11204
+9
+1223
+2426
+output bufferLatchD
+LatchWEN
+LatchAmp
+10
+25
+Fig.3.AbstractgraphforSPSMALL
+–Alatchisacomponentthatcanstoreonebitofdata.Ithastwoinputsd
+(datatobelatched)ande(enable),andoneouputq.Itpropagatestheinput
+datadtoitsoutputq(withadelayin[l↑,u↑]or[l↓,u↓])aslongaseishigh.
+Whileeislow,qkeepsitsvalue(evenifdchanges).Thelatchissaidtobe
+“closed”(resp.“open”)whene=0(resp.e=1).
+–Logicalblocksareusedtooutputasignalfonctionallydpendentoftheinputs
+oftheblock.(Recallthatweassumeinthispaperthatthedelaysassociated
+withsuchblocksarenull.)
+SPSMALL asaTim edAutomaton.Themodeloftimedautomata[3]is
+especiallywell-suitedtorepresentasynchronouscircuits(see,e.g.,[15,5,17]).
+Roughlyspeaking,atimedautomatonisaﬁnitestateautomataenrichedwith
+(symbolic)clocksthatevolveatthesameuniformrate,andcanberesettozero.
+Astateisapair(/lscript,v)where/lscriptisalocation (or“controlstate”),andvaclock
+valuation.Eachlocationisassociatedwithaconjunctionoflinearconstraints
+overclocks,calledinvariant.Astate(/lscript,v)hasadisc retetransition,labelled
+e,to(/lscript/prime,v/prime)ifvsatisﬁesaconstraint,calledguard,associatedtoe,andv/primeis
+obtainedfromvbyresettingcertainclocksto0.Thestate(/lscript,v)hasatime
+transition ofdurationtto(/lscript,v/prime)ifv/prime=v+tandforallt/prime(0≤t/prime≤t),
+v+t/primesatisﬁestheinvariantassociatedto/lscript.Statescanbeexpressedunderthe
+symbolicformofconjunctionsoflinearconstraints.Suchstatesareclassically
+representedasconvexpolyhedra(see,e.g.,[13]).Setsofstatescorrespondto
+unionofpolyhedra.The(for ward)reachab ilityanalysis consistsingenerating
+iterativelythe“successors”ofsetsofstatesviathesystemtransitions,using
+elementarymanipulationofpolyhedra.
+
+--- Page 11 ---
+TheSPSMALLmemoryismodelledasatimedautomaton,resultingfrom
+thecompositionofallthetimedautomatacorrespondingtotheinputsignals
+andtheinternalcomponents.Moreprecisely:
+–Eachinputsignalofthememory(synchronoussignalCK,inputsignalD,
+read/writecommandWEN)isrepresentedasatimedautomaton.
+–Eachcomponentofthememory(latch,wire,...)isalsorepresentedasa
+timedautomaton,
+–Thetransmissionofaninternalsignalbetweentwocomponentsismodelled
+bysynchronizingthetwocorrespondingtimedautomataviaashareddiscrete
+transition.
+Letusexplainhowtomodelawireasatimedautomaton.Thewirecom-
+ponentisenabledl↑(pico)secsaftertherisingedgeoftheinputsignal,andthe
+outputsignalisﬁredafteradelaylyingin[l↑,u↑](parametersl↑andu↑are
+usedtopropagateafallingedge).Suchawirecomponentisnaturallymodelled
+asthetimedautomatondepictedinFig.4.Itmakesuseof1internalclockc
+and5locations.Thesymbold↑(resp.d↓)correspondstoarisingedge(resp.
+fallingedge)ofinputinternalsignald,andsimilarlyforsymbolo↑(resp.o↓)
+withoutputsignalo.Eachedgecorrespondstoadiscretetransitionlabelled
+withthenameofinputsignals(d↑ord↓)oroutputsignals(o↑oro↓).The
+medium-levellocationsareassociatedwithinvariantsc≤u↑orc≤u↓.The
+guardassociatedwithedgesoutgoingdownwardsfromtheselocationsisc≥l↑
+orc≥l↓.
+Likewise,alatchismodelledasatimedautomatondepictedonFig.5(using
+thesameconventionsasforthewireautomaton).Thereare6locationsand1
+clockc.Thenameofthelocationseidjreﬂectsthevaluesiandjofeandd
+respectively;besidese1djBindicatesthatanoutputq↑(resp.q↓)hasalready
+beenoutputifj=1(resp.j=0).
+3.2 ReachabilityAnalysis
+A“globalclock”s(whichisinitializedto0,andneverreset)isusedtomeasure
+theevolutionoftime.Thestatesgeneratedbyreachabilityanalysiscorrespondto
+linearconstraintswhichrelatethevaluesofinputandoutputsignals,depending
+ontimingvaluesofthedatasheet,thevaluesoftheinternaldelays,astimes
+evolves.Inordertoverifyproperty:tD↑,WEN↓
+CK→Q↑≤twrite
+max,wemodelthebehavior
+ofthememoryalongtwocycles:
+–a1stcyclewherethevaluesofDandWENaresettsetupDandtsetupWEN
+timebeforethe2ndrisingedgeofCK(correspondingtothewriteoperation);
+inputsignalWENismodelledasafallingedge,followedbyalowlevel
+(selectionofawritecommand),andinputsignalDismodelledasarising
+edge,followedbyahighlevel(inkeepingwiththestabilizationrequirement
+setup D).
+
+--- Page 12 ---
+o↓c:=0
+c:=0d↓
+d↓c:=0c:=0d↓
+d↑
+d↑
+c:=0c:=0d↑
+o↑c≤u↓ c≤u↑
+c≥l↑c≥l↓
+Fig.4.Timedautomatonofawirecomponentwithdelays[l↑,u↑]and[l↓,u↓]toprop-
+agateanedgefromdtoo.c:=0e↑
+e↓
+d↓
+d↑d↑d↓
+c:=0c:=0d↑
+d↓c:=0
+c:=0e↓
+e↓e1d1e1d0e0d0
+e0d1e1d0B
+e1d1Bc:=0e↑
+e↓q↓
+q↑c≥l↓
+c≥l↑c≤u↑c≤u↓
+Fig.5.Timedautomatonofalatchcomponentwithdelays[l↑,u↑]and[l↓,u↓]to
+propagateanedgefromdtoq.
+
+--- Page 13 ---
+–a2ndcyclewherethewriteoperationisperformed(theDvalueispropa-
+gatedonQport).
+Accordingly,theobservationofthegeneratedstatesisdonealongtwocycles
+(seeFig.6).
+WEN
+DCK
+Qtcycle
+tHItLO
+tsetupD
+s=0 s=tcycle+tD,WEN
+CK→QtsetupWEN
+Q:=0 Q:=1tD↑,WEN↓
+CK→Q↑
+Fig.6.Thewriteoperationusedinourexperiment.
+Inthenextsubsection,wewillexplainhowtheveriﬁcationmethodapplies
+withoutinstantiationoftheparameters.Letusﬁrstexplainhowthemethod
+worksgivenaspeciﬁcimplementationofthememory:intherestofthissection,
+weassumealltheparameterstobeinstantiatedwiththevaluesofthedatasheet
+(fortHI,tLO,tsetupD,tsetupWEN,twrite
+max,tread
+max)andthosegivenbysimulation(for
+theintervals[l↑
+i,u↑
+i]and[l↓
+i,u↓
+i],foreachinternalcomponenti).
+Weuseaﬂag(initializedto0)whichstoresthefactthattherisingedgeof
+inputsignalDhasreachedQport.Withoutlossofunderstanding,thisﬂagis
+alsodenotedbyQ.ThevalueofswhenQissetto1,correspondstothesought
+valuetD↑,WEN↓
+CK→Q↑.Startingfroms=0∧Q=0,thesetofreachablestatesis
+iterativelycomputeduntil,either:
+–theswitchofQoccursbefore2cycles,or
+–2cyclesarerunoutwithoutanyswitchofQ.
+Thisyieldsasetofﬁnalstates,denotedbyPost2tcycle,whichcanbedecomposed
+into:
+
+--- Page 14 ---
+–goodstates,i.e,states,forwhichtheswitchofQhasoccurred(Q=1∧s=
+tcycle+tD↑,WEN↓
+CK→Q↑≤2tcycle).
+–bad states,i.e.,states,forwhich2cycleshasrunoutwithoutanyswitch
+ofQ(Q=0∧s=2tcycle).
+Thepropertyholdsiﬀ:
+–alltheﬁnalstatesofPost2tcyclearegood(nobadstate),and
+–foreachﬁnalstate,thevaluetD↑,WEN↓
+CK→Q↑ofsisatmostequaltotwrite
+max(i.e.:
+tD↑,WEN↓
+CK→Q↑≤twrite
+max).
+Thesymmetricalproperty:tD↓,WEN↓≤twrite
+maxhastobealsoveriﬁed.Thisis
+donealongthesameprinciplesasdescribedabove.
+3.3 Tim ingConstraintsExtractionbyStepwiseReﬁnement
+Letusnowexplainhowtoperformthereachabilityanalysisatagenericlevel,
+withoutsettingtheparameterstosomespeciﬁcvaluesofagivenimplemen-
+tation.WedenotebyAssumption(D↑),asetofsymbolicconstraints,relat-
+ingsomeparametersoftheexternalrequirementsofthedatasheet(viz.,tHI,
+tLO,tsetupD)andtheinternalcomponentdelays{[l↑
+i,u↑
+i]},{[l↓
+i,u↓
+i]}together.At
+thebeginningoftheprocess,Assumption(D↑)isTrue,whichmeansthatwe
+startwiththemostgeneralparameters(l↑
+i(resp.l↓
+i)isjustassumedtobeless
+thanorequaltou↑
+i(resp.u↓
+i)).Givenaninitialsetofstatescharacterizedby
+Assumption(D↑),weperformreachabilityanalysison2cycles.Wethusgenerate
+asetofconstraints,denotedbyPost2tcycle(Assumption(D↑)).Theﬁrstrunof
+Post2tcycle(Assumption(D↑)),withAssumption(D↑)=True,usuallycontains
+bad(ﬁnal)states.Thereﬁnementprocessconsiststoeliminatesuchbadstates,
+byrestrictingthepossiblevaluesoftheparameters,asfollows:
+1.selectabadstateofPost2tcycle(Assumption(D↑));
+2.detecta“suspect”constraint;6
+3.addthenegationofthissubconstrainttoAssumption(D↑).
+4.RecomputePost2tcycle(Assumption(D↑))afterhavingresetsandQto0.
+Andsoon,performiteratively1-2-3-4untilnobadstateisgenerated.
+Ateachrun,Assumption(D↑)isaconjunctionoflinearconstraintswith
+anincreasingnumberofconjuncts.Accordingly,Post2tcycle(Assumption(D↑))
+decreasesateachrun.Attheend,thereﬁnementprocessoutcomestwoformulas,
+Assumption(D↑)andFinal(D↑)≡Post2tcycle(Assumption(D↑)):
+–Assumption(D↑)isaconjunctiveconstraintbindingparametersoftheex-
+ternalrequirementsofthedatasheet(cycleandsetuptimings)totheinternal
+componentdelays{[l↑
+i,u↑
+i]},{[l↓
+i,u↓
+i]}.
+6Inourcontext,asuspectconstraintisaninequalitythatisviolatedbythevaluesof
+anSPSMALLavailableinstance,viz.SP1(seeSect.4.3).
+
+--- Page 15 ---
+–Final(D↑)isasetofconjunctiveconstraintsrelatingtheactualresponse
+timetD↑,WEN↓
+CK→Q↑totheinternalcomponentdelays{[l↑
+i,u↑
+i]},{[l↓
+i,u↓
+i]}.
+Typically,Final(D↑)isoftheform:
+f(l,u)≤tD↑,WEN↓
+CK→Q↑≤g(l,u),
+wheref(l,u)andg(l,u)arelinearexpressionsoverthedelaysl↓
+i,u↓
+i,l↑
+i,u↑
+iasso-
+ciatedtoallthecomponentsiofthesystem.
+Byconstruction,Final(D↑)containsgoodstatesonly(thewritingalwaysoc-
+curswithintwocycles.).Givenanimplementationofthememory,Assumption(D↑)
+andFinal(D↑)cannowbeusedtoshowthattD↑,WEN↓
+CK→Q↑≤twrite
+maxissatisﬁed.This
+isdonebycheckingthat,afterinstantiationofalltheparameterswiththevalues
+ofthedatasheetandthevaluesoftheinternaldelaysoftheimplementation:
+1.Assumption(D↑)holds;
+2.Final(D↑)entailstD↑,WEN↓
+CK→Q↑≤twrite
+max.
+Notethat,inthecasewhereFinal(D↑)isoftheformf(l,u)≤tD↑,WEN↓
+CK→Q↑≤
+g(l,u),checkingitem2reducestocheck:g(l,u)≤twrite
+max.
+Inananalogousway,inordertoverifythecounterpartpropertyforthe
+fallingedgeofD,onewillinferAssumption(D↓)andFinal(D↓),andwill
+check:tD↓,WEN↓
+CK→Q↓≤twrite
+max.
+FromtD↑,WEN↑
+CK→Q↑≤twrite
+maxandtD↓,WEN↓
+CK→Q↓≤twrite
+max,oneinfersthattheimple-
+mentationsatisﬁes:
+tD,WEN↓
+CK→Q≤twrite
+max.
+SetsAssumption(D↑)andAssumption(D↓)canalsobeusedtoﬁndthe
+constraintsassociatedtotheoptimalsetuptimingtsetupD:itcorrespondstothe
+lowestvalueoftsetupDwhichstillguaranteesthereadandwriteproperties,while
+lettinginvariantthevaluesofalltheotherparametersofthedatasheet.Thisis
+illustratedinSect.4.2.
+4 VeriﬁcationoftheWritePropertyofSPSMALL
+Weapplythemethodforprovingthecorrectnessofthetimingsofthedatasheet
+ofSPSMALLforthewriteoperation.Therelevantportionofthisschematicsfor
+thewritepropertyisdescribedonFig.7.Notethat,somehowsurprisingly,the
+memorypointmpisabsentoftheschematics:thewritepropertyconcernsan
+end-to-endpropagationofinformationfromDtoQ,whichactuallybypasse sthe
+memorypoint(whereDisindependentlystored)7.Theschematicscontains12
+7Suchabypassmechanismisafeatureofso-called“write-through”memories.
+
+--- Page 16 ---
+components:7“wire”components,whichtransmitsaninput;one“not”compo-
+nent,whichtransmitsthenegationofitsinput;one“or”componentwhichcom-
+putesthelogical“or”ofitstwoinputs,andtwo“latches”,latch Dandlatch WEN.
+not3wire0d0d1 q1
+elD
+wire2
+elWENo15
+welo16o8o0
+latchWEN1
+14wire5
+o5Q
+wire7outputbuﬀerD
+WENCKlatchD
+wire13wire15
+wire16wire8 or2526
+Fig.7.SchematicsoftherelevantportionofSPSMALLforwrite.
+WenowapplytheabovemethodforderivingthesetsAssumption(D↑)and
+Final(D↑)ofconstraintsassociatedwithmemorySPSMALL,inthecaseofa
+risingedgeofD.Asimilarapproachappliesforthecaseofafallingedge.
+4.1 Decomposition
+TherelevantportionofthecircuitforthewritecommandfromDtoQhasbeen
+depictedonFig.7.
+Inpractice,wecannotapplydirectlythemethoddescribedabove,because
+wecannotperformreachabilityanalysiswithHYTECH duetothehighnumber
+(34)ofparameters.Themodelisthereforedecomposedintothreeparts(seethe
+dashedlinesonFig.7):
+–The1stpartrepresentstheD’sedgepropagationthroughlatch D:Theinput
+signalsareDandCK.Theoutputistheoutputoflatch D,denotedbyq1.
+ArisingedgeofDinducesarisingedgeonq1.Thegoalistocomputelower
+andupperboundsoftheoccurrencetimeoftherisingedgeofq1,starting
+fromtherisingedgeofCK.ThisdelaywillbedenotedbytD↑
+CK→q1↑.
+–The2ndpartrepresentsthepropagationoftheWENfallingedgethrough
+latch WEN(amongothercomponents).TheinputsignalsareWENandCK.
+Theoutputisdenotedbywel.AfallingedgeofWENinducesafallingedge
+onwel.Thegoalistocomputethelowerandupperboundsoftheoccurrence
+timeofthefallingedgeofwel,startingfromtherisingedgeofCK.This
+delaywillbedenotedbytWEN↓
+CK→wel↓.
+
+--- Page 17 ---
+–The3rdpartrepresentsthepropagationofq1’srisingedgethroughQ.The
+inputsignalsareq1andwel.TheoutputisQ.Afallingedgeofwelanda
+risingedgeofq1,inducearisingedgeonQ.Thegoalistocomputethelower
+andupperboundsoftheoccurenceoftherisingedgeofQ,startingfrom
+therisingedgeofCK.Thiswillbedenotedbytq1↑,wel↓
+CK→Q↑.Usingthebounds
+tWEN↓
+CK→wel↓andtD↑
+CK→q1↑foundinthetwoﬁrstparts,thiswillallowusﬁnally
+todeterminetheconstraintsontD↑,WEN↓
+CK→Q↑.
+4.2 GenericConstraints
+Weanalyzeseparatelyeachpart,thusobtainingconstraintsbindingintermediate
+inputandoutputparameters(seeAppendix1,2,3).The“suspect”constraints
+discardedduringthereﬁnementprocess(seeSect.3.3)arethoseincompatible
+withthevaluesofthedelayintervals[l↑
+i,u↑
+i]and[l↓
+i,u↓
+i]ofinstanceSP1(see
+Sect.4.3).Byrecombinationoftheseseparatesetsofconstraints,weobtaincon-
+straintsrelatingtheinputsandoutputsofthewholememory,thataregiven
+below.ForthecaseofarisingedgeofD,wehave:
+Assumption(D↑):
+tsetupD+u↓
+2+u↓
+3<l↑
+0+tLO∧u↓
+2+u↓
+3+u↑
+1<tLO
+∧u↓
+3+tsetupWEN<tLO+u↓
+13∧u↓
+13+u↓
+14<tsetupWEN+l↓
+3∧u↓
+14<tHI
+∧u↓
+13+u↓
+14+u↓
+16<tsetupWEN+l↓
+3+u↓
+15∧tsetupD+u↓
+3+u↓
+15≤l↑
+5+l↑
+0+l↑
+1
+∧u↑
+5+u↑
+0+u↑
+1≤l↓
+8+l↓
+3+l↓
+15+tsetupD
+Final(D↑):
+l↓
+3+l↓
+15+l↓
+8+l↑
+7≤tD↑,WEN↓
+CK→Q↑≤u↓
+3+u↓
+15+u↓
+8+u↑
+7
+InthecaseofafallingedgeofD,thepropagationofDinducesafalling
+edgeofq1,thenofQ.AccordinglyAssumption(D↓)(resp.Final(D↓))canbe
+deducedfromAssumption(D↑)(resp.Final(D↑))bychangingeachl↑
+i(resp.
+u↑
+i)ofAssumption(D↑)(resp.Final(D↑))intol↓
+i(resp.u↓
+i).
+FromFinal(D↑)andFinal(D↓),weinferthefollowingconstraint,guaran-
+teeingpropertytD,WEN↓
+CK→Q≤twrite
+max:
+u↓
+3+u↓
+15+u↓
+8+max{u↑
+7,u↓
+7}≤twrite
+max. (∗)
+ConstraintsofAssumption(D↑)andAssumption(D↓)canbeusedtodeter-
+minelowerandupperboundsfortsetupD:
+max{u↑
+0+u↑
+1+u↑
+5−l↓
+8−l↓
+3−l↓
+15,u↓
+0+u↓
+1+u↓
+5−l↓
+8−l↓
+3−l↓
+15}≤tsetupD
+∧tsetupD≤min{l↑
+0+l↑
+1+l↑
+5−u↓
+3−u↓
+15,l↓
+0+l↓
+1+l↓
+5−u↓
+3−u↓
+15,tLO+l↑
+0−u↓
+2−u↓
+3}
+
+--- Page 18 ---
+WethusinferanoptimalvalueoftsetupD,denotedbytopt
+setupD,whichcorre-
+spondstoitslowerbound8:
+topt
+setupD=max{u↑
+0+u↑
+1+u↑
+5,u↓
+0+u↓
+1+u↓
+5}−l↓
+8−l↓
+3−l↓
+15
+AsimilarexpressioncanbeobtainedfortheoptimalvalueoftsetupWEN.
+4.3 ApplicationtoInstanceSP1
+Theabovesetsofconstraintsnowallowustogiveaformaljustiﬁcationofthe
+correctnessoftheinstanceSP1.Thevaluesofthedatasheetare(intensof
+picoseconds):
+tHI=36,tLO=74,tsetupD=108,tsetupWEN=48,twrite
+max=56.
+Theinternaldelaysare(intensofpicoseconds):
+[l↑
+i,u↑
+i][l↓
+i,u↓
+i]
+(l0,u0) (95,95)(66,66)
+(l1,u1) (14,14)(18,18)
+(l2,u2) (23,30)(23,30)
+(l3,u3) (5,5) (2,2)
+(l5,u5) (22,22)(45,45)
+(l7,u7) (21,21)(20,20)
+(l8,u8) (0,0) (22,22)
+(l13,u13)(11,11) (8,8)
+(l14,u14)(21,22)(21,22)
+(l15,u15)(14,14)(11,11)
+(l16,u16)(24,24) (0,0)
+WecheckthatalltheconstraintsofAssumption(D↑)andAssumption(D↓)are
+satisﬁed.Wealsocheckconstraint(∗).ThisshowsthatSP1satisﬁestD,WEN↑
+CK→Q≤
+twrite
+max.Furthermore,weﬁndthevalue96fortopt
+setupD,whichmatchesverywell
+withtheoptimalvalue95foundbysimulationbythedesigner.
+4.4 ApplicationtoInstanceSP2
+Asmentionedabove,thevaluesofthedatasheetandinternaldelaysofSP1
+havebeenusedinthereﬁnementprocessinordertoderivetheappropriate
+setofgenericconstraints.Therefore,thederivedsetsofconstraintsAssumption
+andFinalofSect.4.2hasnotbeenproducedindependentlyfromSP1,andthe
+correctnessofSP1hasbeencheckedaposteriori.Theconstraintsarehowever
+availablenowonceforall,andcanbereusedtocheckimmediatelyanyother
+instanceofSPSMALL.ThisiswhathasbeendonewithinstanceSP2.The
+valuesofthedatasheetare(intensofpicoseconds):
+tHI=72,tLO=170,tsetupD=241,tsetupWEN=109,twrite
+max=142.
+Theinternaldelaysare(intensofpicoseconds):
+8Actually,wecheckedthattopt
+setupDalsosatisﬁesconstraints,comingfromotherparts
+ofthecircuit,whicharenotlimitativeinthecaseofinstancesSP1andSP2.
+
+--- Page 19 ---
+[l↑
+i,u↑
+i] [l↓
+i,u↓
+i]
+(l0,u0) (197,197)(140,140)
+(l1,u1) (60,60) (58,58)
+(l2,u2) (66,66) (43,43)
+(l3,u3) (8,8) (4,4)
+(l5,u5) (61,61) (63,63)
+(l7,u7) (47,47) (52,52)
+(l8,u8) (0,0) (42,42)
+(l13,u13)(23,23) (23,23)
+(l14,u14)(35,35) (36,36)
+(l15,u15)(56,56) (43,43)
+(l16,u16)(24,24) (0,0)
+AsinthecaseofSP1,wecheckthatSP2satisﬁestD,WEN
+CK→Q≤twrite
+max.Besides,
+weﬁndthevalue229fortopt
+setupD,whichmatchesexactlywiththeoptimalvalue
+foundbyelectricalsimulationbythedesigner.
+4.5 InterpretationofAssumptionandFinalconstraints
+LetusexplainhowcertainconstraintsofAssumption andFinalcanbeinter-
+preted.Asmentionedabove,theconstraintsofFinalisoftheformf(l,u)≤
+tD,WEN↓
+CK→Q ≤g(l,u),whereg(l,u)isasumofinternaldelays(viz.u↓
+3+u↓
+15+
+u↓
+8+max{u↑
+7,u↓
+7}),andsimilarlyforf(l,u).Thisexpressioncorrespondstothe
+delayassociatedtothepathwhichstartsatinputCK,goesthroughinverter
+not3,thenwireswire15,wire8,wire7,andendsatoutputportQ.Suchapath
+iscritical,asitcorrespondstothelongesttraversalfromaninputtotheoutput
+portQ,thusconditioningtheend-to-enddelaytoQ.Thisfeatureisguaranteed
+bythesetofconstraintsAssumption,whichgivesconditions,amongothers,en-
+quiringtheotherpathstobeshorter.Moreprecisely,theconstraintsintheset
+Assum ptionstate:
+–theorderalongwhichsignalsarriveatjunctionpoints(logicalgatesor
+blocks).Forinstance,inequalityu↑
+5+u↑
+0+u↑
+1≤l↓
+8+l↓
+3+l↓
+15+tsetupDsays
+that,atjunctionpointoutputbuﬀer,theinputo5(issuedfromarisingedge
+ofD,occurringtsetupDbeforetherisingedgeofCK,andfollowingpath
+wire0-latch D-wire5)arrivesbeforeinputo8(issuedfromarisingedgeof
+CK,andfollowingpathnot3-wire15-wire8);inotherwords,thisinequal-
+itysaysthatthedatatobewrittenintheoutputbuﬀerarrivesbeforethe
+writingcommand.
+–thestabilityconditionssuﬃcienttoensurethataninputsignalcorrectly
+propagatesthroughoutacomponent.Forinstance,inequalityu↑
+0+u↑
+1≤
+tsetupD+l↓
+2+l↓
+3saysthatinputd1(issuedfromtherisingedgeofD,occurring
+tsetupDbeforetherisingedgeofCK)arrivesatleastu1beforeinputelDof
+latchD(issuedfromtherisingedgeofCK,andfollowingpathnot3-wire2);
+inotherwords,theinequalitysaysthatthedatatobelatchedarrivesearly
+enoughbeforethelatchcloses.
+
+--- Page 20 ---
+5 VeriﬁcationoftheReadProperty
+InthisSection,wefocusonthereadoperation(insteadofwrite).Therelevant
+portionofthecircuit(incaseofafallingedgeofA)isdepictedonFig.8.Recall
+thatweassumethattheportofAisreducedtoasinglebit.Furthermore,the
+m×nstoragearrayisabstractedasauniquememorypointmp.Asmentioned
+before,theoperationsinvolvingthememorypointsmaytakediﬀerenttimes,
+accordingtothephysicallocationofthememorypoint.Wewillassumethat
+mpcorrespondstothememorypointtakingthelongesttime(i.e.,theonecor-
+respondingtothe“slowest”wire10)9.Moreover,inputDisnotrelevantforthis
+property.
+Q
+ACKWEN wire13
+not3
+latchAelAlatchWEN
+wire16
+wire21wire20wire15
+o20
+o22mp
+wire10
+wire8
+wire11o10
+o8
+o11
+o21wire19wire7
+outputbuﬀer14
+18elWEN
+wire17or25
+or2226
+Fig.8.SchematicsoftherelevantportionofSPSMALLforread.
+The“responsetime”propertyforthereadoperationnowexpressesasfollows:
+tA↓,WEN↑
+CK→Q ≤tread
+maxandtA↑,WEN↑
+CK→Q ≤tread
+max.
+WenowfocusonthecaseofafallingedgeofA.(Asimilarapproachapplies
+fortherisingedgecase.)ThetimingparametersinvolvedaredepictedonFig.9.
+Asforthewriteproperty,theschematicsdecomposesitselfintothreesub-
+parts(delimitedbythedashedlineonFig.8).Likewise,theanalysisisperformed
+oneachsubpart,andtheassociatedconstraintsrecombinedtogether.Theresult-
+ingconstraints(besides{l↓
+i≤u↓
+i}and{l↑
+i≤u↑
+i})are:
+9Suchamemorypointgenerallycorrespondstoan“extreme”pointofthetopology
+ofthememoryarray,andcanbeidentiﬁedbyelectricalsimulation.
+
+--- Page 21 ---
+WENCK
+mpA
+Qtcycle
+tHItLO
+tsetupWEN
+tsetupA
+s=tcycle+tA↓,WEN↑
+CK→Q s=0tA↓,WEN↑
+CK→Q
+Q:=0 Q:=1
+Fig.9.Timingdiagramforthereadoperation(consideringmp =1atthebeginning
+ofthecycleofthereadoperation).
+
+--- Page 22 ---
+Assumption(A↓):
+max{u↑
+10,u↓
+10}<l↓
+3+l↓
+20+l↓
+11
+∧tLO+l↓
+17>u↓
+3+u↓
+19+tsetupA
+∧u↓
+17+u↓
+18<tsetupA+l↓
+3+l↓
+19
+∧u↓
+18<tLO
+∧u↓
+17+u↓
+18+u↓
+21<tsetupA+l↓
+3+l↓
+20
+∧tLO+l↑
+13>u↓
+3+tsetupWEN
+∧u↑
+13+u↑
+14<tsetupWEN+l↓
+3
+∧u↑
+14<tHI
+∧u↑
+13+u↑
+14+u↑
+16<tsetupWEN+l↓
+3+l↓
+15
+Final(A↓):
+l↓
+3+l↓
+20+l↓
+11+max{l↓
+7,l↑
+7}≤tA↓,WEN↑
+CK→Q ≤u↓
+3+u↓
+20+u↓
+11+max{u↓
+7,u↑
+7}
+Similarly,onecaninfersetsAssumption(A↑)andFinal(A↑).
+FromFinal(A↓)andFinal(A↑),weinferthefollowingconstraint,guaran-
+teeingpropertytA,WEN↑
+CK→Q≤tread
+max:
+u↓
+3+u↓
+20+u↓
+11+max{u↑
+7,u↓
+7}≤tread
+max. (∗∗)
+ConstraintsofAssumption(A↓)andAssumption(A↑)canbeusedtoinfer
+anoptimalvalueoftsetupA,denotedbytopt
+setupA10:
+topt
+setupA=max{max{u↓
+17+u↓
+18+u↓
+21,u↑
+17+u↑
+18+u↑
+21}−l↓
+3−l↓
+20,max{u↓
+17+u↓
+18,u↑
+17+u↑
+18}−l↓
+3−l↓
+19}
+AsinSect.4.5,theconstraintsofFinalcorrespondtothedelaysassociated
+withthecriticalpath:itisissuedfromCK,goesthroughnot3,wire20,wire11
+andwire7.Likewise,manyconstraintsofAssumption canbeviewedassuﬃcient
+conditionseitherfortheotherpathstobeshorterthanthecriticalone,orfor
+theinputsignalstopropagatethroughallthecomponentstoQ.
+VeriﬁcationofSP1.TherelevantvaluesofthedatasheetSP1(intensof
+picoseconds):
+tHI=36,tLO=74,tsetupA=58,tread
+max=77
+Theinternaldelaysare(intensofpicoseconds):
+10Actually,wecheckedthattopt
+setupAalsosatisﬁesconstraints,comingfromotherparts
+ofthecircuit,whicharenotlimitativeinthecaseofinstancesSP1andSP2.
+
+--- Page 23 ---
+[l↑
+i,u↑
+i][l↓
+i,u↓
+i]
+(l3,u3) (5,5) (2,2)
+(l7,u7) (21,21)(20,20)
+(l10,u10)(6,6) (6,6)
+(l11,u11)(23,23)(23,23)
+(l13,u13)(11,11) (8,8)
+(l14,u14)(21,22)(21,22)
+(l16,u16)(24,24) (0,0)
+(l17,u17)(16,16)(15,15)
+(l18,u18)(31,31)(31,31)
+(l19,u19)(15,15)(12,12)
+(l20,u20)(40,40)(29,29)
+(l21,u21)(0,0) (0,0)
+WecheckthatalltheconstraintsofAssumption(A↓)andAssumption(A↑
+)aresatisﬁed.Wealsocheckconstraint(∗∗).Thisshows thatSP1satisﬁes
+tA,WEN↑
+CK→Q≤tread
+max.Furthermore,weﬁndthevalue30fortopt
+setupA,whichmatches
+exactlywiththeoptimalvaluefoundbysimulationbythedesigner.
+VeriﬁcationofSP2.ForSP2,therelevantvaluesofthedatasheetare:
+tHI=72,tLO=170,tsetupA=110,tread
+max=169
+Theinternaldelaysare(intensofpicoseconds):
+[l↑
+i,u↑
+i][l↓
+i,u↓
+i]
+(l3,u3) (8,8) (4,4)
+(l7,u7) (47,47)(52,52)
+(l10,u10)(14,14)(10,10)
+(l11,u11)(51,51)(55,55)
+(l13,u13)(23,23)(23,23)
+(l14,u14)(35,35)(36,36)
+(l16,u16)(24,24) (0,0)
+(l17,u17)(14,14) (9,9)
+(l18,u18)(79,79)(89,89)
+(l19,u19)(36,36)(22,22)
+(l20,u20)(74,74)(58,58)
+(l21,u21)(0,0) (0,0)
+AsinthecaseofSP1,wecheckthatSP2satisﬁestA,WEN↑
+CK→Q≤tread
+max.Besides,
+weﬁndthevalue75fortopt
+setupA,whichmatcheswellwiththeoptimalvalue(74)
+foundbyelectricalsimulationbythedesigner.
+6 FinalRemar ks
+Wehaveshowninthispaperhowtoapplyparametrizedmethodstoverifytimed
+propertiesofthegenericarchitectureofamemory.Wehavethusfoundcertain
+
+--- Page 24 ---
+suﬃcientconditions(undertheformoflinearinequalitiesbetweenparameters)
+thatensurethattheresponsetimestoawritecommandorareadcommandlie
+betweencertainbounds,andhavecheckedthesepropertiesonaninstanceSP1
+ofthememory.Theselinearinequalitieshavebeenalsousedtoderivetheopti-
+malvaluesofsetuptimingsofinputsignals(viz.,setuptimingsforDandA).
+Suchananalysiscanbeimmediatelyappliedtotheveriﬁcationofotherinstances
+oftheSPSMALLmemory,asexampliﬁedhereoninstanceSP2.
+Otherpropertiesconcerningthewritingintothememorypoints,andcon-
+cerningthe“holdtimings”ofinputsignals(minimalstabilitydurationafterthe
+risingedgeoftheclock)canbeprovedsimilarly,forthecompletionoftheveriﬁ-
+cation.Notethatsuchpropertiesareconsideredbythedesigneraslesssensitive
+fortheSPSMALLarchitecture.
+Letusalsopointoutthatourveriﬁcationprocessdoesnotgetridcom-
+pletelyofresultsgivenbysimulation,sinceitmakesuseofvaluesofelementary
+delays[l↓,u↓]and[l↑,u↑]fortheinternalcomponents.Thisisincontrastwith
+thetraditionalsimulationprocess,whichcomputesthevaluesoftheend-to-end
+propagationdelayssettingupthedatasheet.
+OurmethodhasexploitedthedataavailableforinstanceSP1(datasheet
+andinternaldelayintervals),especiallyduringthestepwisereﬁnementprocess,
+whenwetooktherefutationofselectedconstraints(the“suspect”ones).By
+negatingsuchconstraints,wehaveactuallyfocusedonacertainclassofthe
+circuit,disregardingotherpossiblechoicesofimplementation.Infact,themajor
+outcomeofourveriﬁcationprocessisageneralandformaldescriptionofthe
+architectureprinciplesalongwhichSPSMALLhasbeendesigned.Wehaveshown
+thattheseprinciplesarecorrectlyimplementedbytwodiﬀerentinstancesofthe
+memory.
+References
+1.HSIMSimulatorDescription.Inhttp://www.synopsys.com/products/.
+2.TLL Transistor Abstraction Tool description. In
+http://www.transeda.com/products/.
+3.R.AlurandD.L.Dill.Atheoryoftimedautomata.TheoreticalComputerScience
+126,pages183–235,1994.
+4.M.BacletandR.Chevallier.TimedveriﬁcationoftheSPSMALLmemory.In1th
+InternationalConferenceMemoryTechnologyandDevelopment,pages1–2,Giens
+France,2005.
+5.M.Bozga,H.Jianmin,O.Maler,andS.Yovine.Veriﬁcationofasynchronous
+circuitsusingtimedautomata.InTPTS’02,ENTCSvol65,2002.
+6.J.A.BrzozowskiandC-J.H.Seger.AsynchronousCircuits.Springer,1994.
+7.R.Chevallier,E.Encrenaz-Tiph`ene,L.Fribourg,andW.Xu.Timinganalysisof
+anembeddedmemory:SPSMALL. In10thWSEASInternationalConferenceon
+Circuits,Athens,Greece,2006.
+
+--- Page 25 ---
+8.R.ClarisoandJ.Cortadella.Theoctahedronabstractdomain.InProc.11th
+StaticAnalysisSymposium(SAS),LNCS3148,Springer,pp.312-327,2004.
+9.R.ClarisoandJ.Cortadella.Veriﬁcationoftimedcircuitswithsymbolicdelays.
+InProc.AsiaandSouthPaciﬁcDesignAutomationConference(ASP-DAC),pp.
+628-633,2004.
+10.P.CousotandR.Cousot.Abstractinterpretation:Auniﬁedlatticemodelforstatic
+analysisofprogramsbyconstructionorapproximationofﬁxpoints.InPOPL,pp.
+238-252,1977.
+11.D.Dill.Timingassumptionsandveriﬁcationofﬁnite-stateconcurrentsystems.
+InAutomaticVeriﬁcationMethodsforFiniteStateSystems,LNCS407,Springer,
+1989.
+12.N.Halbwachs.Delayanalysisinsynchronousprograms.InCAV’93,LNCS697,
+Springer,pp.333-346,1993.
+13.T.A.Henzinger,P.-H.Ho,andH.Wong-Toi.AUserGuidetoHYTECH.In
+TACAS’95,LNCS1019,Springer,pp.41-71,1995.
+14.K.Larsen,P.Pettersson,andW.Yi.UPPAALinaNutshell.InternationalJournal
+onSoftwareToolsforTechnologyTransfer,1:134–152,1997.
+15.O.MalerandA.Pnueli.Timinganalysisofasynchronouscircuitsusingtimed
+automata.InCHARM E’95,LNCS987,Springer,pp.189-205,1995.
+16.D.A.PattersonandJ.L.Hennessy.ComputerArchitecture:AQuantitativeAp-
+proach.MorganKaufma nn,1990.
+17.R.BenSalah,M.Bozga,andO.Maler.Ontiminganalysisofcombinational
+circuits.InFORM ATS’03,LNCS2791,Springer,pp.204-219,2003.
+18.S.Yovine.KRONOS:Averiﬁcationtoolforreal-timesystems.InternationalJour-
+nalonSoftwareToolsforTechnologyTransfer,1:123–133,1997.
+Appendix0.MemoryStoragemechanism
+Fig.10givesacloserviewofthememorystoragemechanism.Thicklinesinthe
+ﬁgurerepresentthereducednumberofpathsonwhichouranalysisfocuson.
+Appendix1.ComputationoftD
+CK→q1
+Theexperimentpropagatesanedge(eitherrisingorfalling)fromDthrough
+q1.CorrespondingschematicsisdepictedonFig.11.Timingparametersare
+depictedonFig.12.
+Applyingtheconstraintextractionprocedureofsection3.3,weobtain,inthe
+caseofarisingedgeofD(D↑):
+Assum ption:
+u↑
+0+u↑
+1≤tsetupD+l↓
+2+l↓
+3
+∧u↓
+2+u↓
+3+u↑
+1<tLO
+∧tsetupD+u↓
+2+u↓
+3<l↑
+0+tLO
+Final:
+tHI+tLO−tsetupD+l↑
+0+l↑
+1≤tD↑
+CK→q1↑≤tHI+tLO−tsetupD+u↑
+0+u↑
+1
+
+--- Page 26 ---
+Dn−1Q0
+Qn−1A0
+LatchD0 OutputBuﬀer0
+OutputBuﬀern−1 LatchDn−1
+OUTPUTSELECTI ONADDRESSDECODERLatchA0Alog2(m)−1
+LatchAlog2(m)−1
+D0mp(0,0) mp(0,m)
+mp(n,m) mp(n,0)addressm address0
+storagearray
+Fig.10.SchematicviewofparallelpathsofD,AandQ.D
+CKd0 o0
+elDwire0
+not3wire2d1 q1
+d3 o3latchD
+1
+Fig.11.ComponentsforthecomputationoftD
+CK→q1.
+
+--- Page 27 ---
+CK
+DTHITLO
+[l0,u0]
+elD
+q1o3dlD
+[l1,u1]tsetupD
+tHI
+tD↑
+CK→q1↑[l3,u3]
+[l2,u2]tHI
+Fig.12.TimingparametersforthecomputationoftD↑
+CK→q1↑.
+
+--- Page 28 ---
+Appendix2:ComputationoftWEN↓
+CK→wel↓
+ThisexperimentgivesanalyticalexpressionsoflowerandupperboundsoftWEN↓
+CK→wel↓.
+ItconsistsinpropagatingafallingedgefrominputportWENuptointernal
+signalwel.TheschematicsofthecomponentsisdescribedonFig.13.WEN
+CKo16eWENqWEN
+not3latchWEN
+wire13
+wire15wire16dWEN 14
+welo15or25
+Fig.13.ComponentsinvolvedinthecomputationoftWEN↓
+CK→wel↓.
+ThetimingparametersaredeﬁnedonFig.14.
+Applyingtheconstraintextractionprocedureofsection3.3,weobtain:
+Assum ption:
+tLO+l↓
+13>u↓
+3+tsetupWEN
+∧u↓
+13+u↓
+14<tsetupWEN+l↓
+3
+∧u↓
+14<tHI
+∧u↓
+13+u↓
+14+u↓
+16<tsetupWEN+l↓
+3+l↓
+15
+Final:
+l↓
+3+l↓
+15≤tWEN
+CK→wel≤u↓
+3+u↓
+15
+Appendix3.Computationoftq1,wel↓
+CK→Q
+Theexperimentpropagatesarising(resp.falling)edgefromq1,occuringatin-
+stanttD↑
+CK→q1↑(resp.tD↓
+CK→q1↓),uptotheoutputportQ.Signalwelisabstracted
+asafallingedgeoccuringatinstanttWEN↓
+CK→wel↓.Correspondingschematicsisde-
+pictedonFig.15.
+Weobtainthefollowingsetsofconstraints:
+Assum ption:
+
+--- Page 29 ---
+CKTHITLO
+[l13,u13]WEN
+[l14,u14]
+[l16,u16]o16[l3,u3] [l3,u3]
+o15
+wel[l15,u15]dWENtsetupWEN
+eWEN
+qWENtHI tHI
+tWEN↓
+CK→wel↓
+Fig.14.TimingparametersfortWEN↓
+CK→wel↓.Qwire5
+wire8o8o5outputbuﬀer
+q1
+welwire7
+Fig.15.Computationoftq↑
+1,wel↓
+CK→Q↑.
+
+--- Page 30 ---
+tHI+tLO+tWEN↓
+CK→wel↓≤l↑
+5+tD↑
+CK→q1↑
+∧u↑
+5+tD↑
+CK→q1↑≤l↓
+8+tWEN↓
+CK→wel↓+tHI+tLO
+Theboundsfortq1↑,wel↓
+CK→Q↑inFinal:
+l↓
+8+tWEN↓
+CK→wel↓+l↑
+7+tHI+tLO≤tq1↑,wel↓
+CK→Q↑≤u↓
+8+tWEN↓
+CK→wel↓+u↑
+7+tHI+tLO

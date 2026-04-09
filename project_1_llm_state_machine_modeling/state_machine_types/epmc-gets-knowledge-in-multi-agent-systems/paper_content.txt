@@ -1,0 +1,627 @@
+--- Page 1 ---
+EPMC Gets
+Knowledge in
+Multi-agent Systems
+Chen Fu1,2(B), Ernst Moritz Hahn3,
+Yong Li1, Sven Schewe4, Meng Sun5,
+Andrea Turrini1,6, and Lijun Zhang1,2,6
+1State Key Laboratory of Computer Science, Institute of Software, Chinese
+Academy of Sciences, Beijing, China
+fchen@ios.ac.cn
+2University of Chinese Academy of Sciences, Beijing, China
+3University of Twente, Enschede, The Netherlands
+4University of Liverpool, Liverpool, UK
+5LMAM and Department of Information Science, School of Mathematical Sciences,
+Peking University, Beijing, China
+6Institute of Intelligent Software, Guangzhou, China
+Abstract. In this paper, we present EPMC , an extendible probabilistic
+model checker. EPMC has a small kernel, and is designed modularly.
+It supports discrete probabilistic models such as Markov chains andMarkov decision processes. Like PRISM , it supports properties speci-
+ﬁed in PCTL*. Two central advantages of EPMC are its modularity
+and extendibility. We demonstrate these features by extending EPMC
+toEPMC-petl , a model checker for probabilistic epistemic properties
+on multi-agent systems. EPMC-petl takes advantage of EPMC to pro-
+vide two model checking algorithms for multi-agent systems with respect
+to probabilistic epistemic logic: an exact algorithm based on SMT tech-
+niques and an approximated one based on UCT. Multi-agent systems andepistemic properties are given in an extension of the modelling language
+ofPRISM , making it easy to model this kind of scenarios.
+1 Introduction
+In this paper, we present a new model checker called EPMC , an acronym for
+Extendible Probabilistic Model Checker . Two main characteristics of EPMC are
+its high modularity and its full extendibility. It achieves its ﬂexibility by an
+infrastructure that consists of a minimal core part and multiple plugins that
+This work was supported in part by the Guangdong Science and Technology Depart-
+ment (Grant No. 2018B010107004) and by the National Natural Science Foundation
+of China (Grants Nos. 62102407, 62172019).
+This project has received funding from the European Union’s Horizon 2020 research
+and innovation programme under grant agreements 864075 (CAESAR), and 956123
+(FOCETA).
+c/circlecopyrtSpringer Nature Switzerland AG 2022
+B. Finkbeiner and T. Wies (Eds.): VMCAI 2022, LNCS 13182, pp. 93–107, 2022.https://doi.org/10.1007/978-3-030-94583-1
+_5
+
+--- Page 2 ---
+94 C. Fu et al.
+provide model checking functionalities. We believe that it is very convenient to
+develop a new model checker based on the core parts of EPMC . While the model
+checker historically starts from probabilistic models, it will be easy to extend it
+to incorporate other model types.
+The baseline includes model checking functionality for probabilistic systems.
+Probabilistic systems play an important role in reasoning about randomised
+network protocols, and biological and concurrent systems. They also ﬁnd appli-
+cations in analysing security protocols. Markov decision processes are amongthe most important semantic models. As a result, several model checkers that
+support MDP analysis have been developed, including the state-of-the-art prob-
+abilistic model checker PRISM [35],Storm [15],MRMC [30],LiQuor [12],
+MoChiBa [50], and IscasMc [22]. These model checkers diﬀer in the model
+and property types they support. For instance, MRMC and Storm handle
+branching time properties speciﬁed in PCTL [ 25], whereas LiQuor ,IscasMc
+and MoChiBa are specialised in analysing linear time properties (PLTL) [ 5].
+PRISM can handle both.
+The ﬁrst baseline of EPMC includes support for PCTL, PLTL, and their
+extension to PCTL*. In addition, it can also be used to analyse Markov games.
+To demonstrate the main features of EPMC , we extend it to the model checker
+EPMC-petl .EPMC-petl is designed for the veriﬁcation of probabilistic multi-
+agent systems against PETL (probabilistic epistemic temporal logic) proper-
+ties under uniform schedulers. Multi-agent systems have found many applica-tions and veriﬁcation techniques have also been proposed over the past decades.
+Although there are model checkers for multi-agent systems, as we will see in
+related works (Sect. 4), they can only handle restricted classes of the model we
+are interested in, such as a non-probabilistic setting or, where they can handle
+probability, they do not support epistemic accessibility relations. The algorith-
+mic design, implementation, and validation based on an existing model checkerfor probabilistic multi-agent systems against properties speciﬁed in PETL under
+uniform schedulers is not available.
+Exploiting the minimal kernel and multiple plugins of EPMC , we can con-
+veniently implement the algorithms speciﬁc for the epistemic fragment of PETL
+while reusing the core parts of EPMC for the management of the remaining
+fragment, part of PCTL. In particular, the modularity of EPMC makes the
+development of new functionalities rather independent from the existing ones,
+without having to change existing code. This speeds up the implementationand simpliﬁes the debugging of the code, by isolating the diﬀerent components
+responsible for the diﬀerent veriﬁcation steps.
+Summarising, the main features of EPMC include extendibility, modularity,
+and the support of games and strategy synthesis. Beyond introducing EPMC ,
+we also present, with its extension to EPMC-petl ,the ﬁrst tool that supports
+PETL model checking for probabilistic nondeterministic multi-agent systems.
+Organisation of the Paper.
+Section 2introduces the architecture of our tool. In
+particular, we demonstrate how to develop the PETL model checker EPMC-
+petl. Experimental results are presented in Sect. 3. Sect. 4discusses related
+works, and Sect. 5concludes the paper.
+
+--- Page 3 ---
+EPMC Gets Knowledge in Multi-agent Systems 95
+2 Architecture
+We show the architecture of EPMC and how to build EPMC-petl on top of
+it.EPMC contains two main components: a) EPMC core; b) various plugins.
+Details of these components and the interface are provided below.
+The larger part of EPMC is developed in Java. It uses JNA [ 3] to access
+libraries written in C/C++ to improve the performance of some computation
+or to provide access to legacy code. Instances of such libraries are the BDDlibraries (like CUDD [ 51]) used to store symbolically the models or the C imple-
+mentation of diﬀerent versions of value iteration algorithms. The compilation of
+EPMC is managed by the software project management and comprehension tool
+Maven [ 2]. Maven takes care of caching and retrieving all building dependencies
+such as Ant [ 1] and JavaCC [ 4], used for the parsers. This allows for porting
+EPMC to multiple platforms and architectures.
+2.1 EPMC Core
+EPMC consists of a minimal kernel and multiple plugins that provide the func-
+tionalities needed for model checking. This kernel is rather small. It is only
+responsible for the bootstrap phase, where the plugins are loaded, and for start-
+ing the model checking procedure. It ﬁrst initialises the data structures neededto load the plugins and then loads and initialises each plugin according to the
+order, in which they are speciﬁed. Finally, it starts the model checking procedure
+by parsing the given models and properties and calling the appropriate solvers.
+In order to maximise modularity, the kernel has no information about the
+existing plugins until they are loaded and initialised; it is the duty of each plugin
+to register itself in EPMC . In order to be recognised as a valid EPMC plugin,
+it has to
+– declare its name and that it is an EPMC plugin in its MANIFEST.MF ﬁle;
+– list the plugins it depends on; and
+– implement all interfaces deﬁned by the plugin manager from the kernel part.
+Once the plugin meets these requirements, it can be used in EPMC to provide
+the expected functionalities. The plugin can be inserted into EPMC in two ways:
+either its jarﬁle is placed in the embeddedplugins directory contained in the
+EPMC jarﬁle and its name is listed in the embeddedplugins.txt ﬁle; or it
+is speciﬁed at command line by means of the option plugin as a jarﬁle or as
+a directory containing the class ﬁles. During the kernel’s bootstrap phase, the
+plugins listed in embeddedplugins.txt are loaded ﬁrst, following the order in
+which they appear in the ﬁle. Then the plugins speciﬁed by the option plugin
+are loaded according to their order.
+When loading a plugin, a set of speciﬁc methods deﬁned by the plugin inter-
+face are called. In these methods, the plugin can register itself with respect to its
+functionalities. A plugin can, for example, add new command line options, newcommands, or new data types; or it can declare to support speciﬁc operations,
+
+--- Page 4 ---
+96 C. Fu et al.
+such as model checking a speciﬁc logic operator. The registration performed by
+a plugin can be altered by the plugins loaded later. A plugin loaded later hastherefore a higher priority than a plugin loaded earlier. In particular, one can
+last load a simple plugin that removes or modiﬁes some of the options provided
+earlier in order to create a version of EPMC specialised for speciﬁc tasks within
+a speciﬁc setting.
+2.2 Plugins Available in EPMC
+We will now introduce some of the plugins natively supported by EPMC ;t h e
+diﬀerent ﬂavours of EPMC can be obtained by choosing and combining multiple
+plugins together: for instance, by selecting the appropriate set of plugins EPMC
+becomes a tool for performing PCTL model checking on Markov chains or MDPs,
+and with a diﬀerent set of plugins we can obtain a tool for model checking Markov
+decision processes against PLTL formulas. By combining the two sets of plugins,the resulting EPMC is able to check these models against the whole of PCTL*.
+Below we give an overview of the plugins of EPMC .
+Algorithm Group: This group contains all plugins that provide the classical
+algorithms that are used for probabilistic model checking, such as graph decom-
+position into strongly connected components and maximal end components forboth symbolic and explicit representations. It currently only includes the plu-
+ginalgorithm , which provides standard algorithms, such as the following ones:
+FoxGlynn , which follows the algorithm proposed in [ 28] for computing Poisson
+probabilities for CTMCs; Tarjan , which implements the well-known strongly
+connected component decomposition algorithm by Robert Tarjan [ 53] for explicit
+data structures; and Bloem and Chatterjee , which compute strongly con-
+nected components using BDDs and are based on the work of Roderick Bloem
+et al. [ 6] and Krishnendu Chatterjee et al. [ 10], respectively.
+Automata Group: The purpose of this group is to enclose the plugins that encode
+ω-regular automata. It currently includes two plugins, namely the automata
+and the automaton-determinisation plugins. automata provides a uniform
+interface for automata such as B¨ uchi and Rabin automata, while automaton-
+determinisation provides the algorithms proposed by Sven Schewe, Thomas
+Varghese, and Nir Piterman [ 46,48,49] to determinise nondeterministic B¨ uchi
+automata to deterministic Rabin and parity automata.
+Command Group: This group provides three plugins that set the main function-
+ality of EPMC :command-check calls the model checker to actually perform
+the model checking operation; command-help prints out the usage messages;
+and command-lump requires as input a probabilistic model and generates as
+output a new model, which is bisimilar to the original model.
+
+--- Page 5 ---
+EPMC Gets Knowledge in Multi-agent Systems 97
+BDD Group: The BDD group is dedicated to the symbolic representation of
+models and properties by means of the Binary Decision Diagrams data struc-tures. The ddplugin provides a uniform interface to use a BDD library and
+therefore does not provide any actual implementation of BDD data structures.
+Such an implementation is provided by one of the following plugins; each ofthem implements the dd interface and at least one of them has to be included
+whenever EPMC is expected to support the symbolic representation of models.
+The dd-buddy plugin wraps the C library BuDDy [ 14], which is a small and
+eﬃcient BDD library. The dd-cacbdd plugin gives access to the C++ library
+CacBDD [ 44], which implements a dynamic cache management algorithm. The
+dd-cudd plugin provides the C library CUDD [ 51], which is the most well-
+known BDD library used in several tools; it is the default BDD library of the
+PRISM model checker [ 35,47]. The dd-cudd-mtbdd plugin is the companion
+ofdd-cudd for the multi-terminal binary decision diagrams (MTBDDs) oﬀered
+by CUDD. The dd-jdd plugin includes the library JDD [ 54], which is a Java
+implementation of binary decision diagrams inspired by BuDDy. The dd-sylvan
+anddd-sylvan-mtbdd plugins make the library Sylvan [ 17] available in EPMC ;
+Sylvan is a parallel (multi-core) BDD library written in C.
+Bisimulation Algorithm Group: This group collects the plugins that compute
+bisimulation relations on the models: the lumper-explicit-signature plugin
+implements a signature based lumping algorithm for probabilistic systems; andthelumper-dd plugin implements a lumping algorithm for probabilistic systems
+by using MTBDDs.
+Expression Group: This group hosts the expression-basic plugin, which is
+designed to provide a uniform interface as well as the corresponding data struc-
+tures to handle formulas from temperoal logics like PCTL and PLTL.
+Graph Group: The single graph plugin available in this group provides a uniform
+interface as well as the data structures to store various models as a graph. Themodel can be a Markov chain, a Markov decision process, an automaton, or any
+model that can be interpreted as a labelled graph. It also provides the interfaces
+to access the properties in the nodes or the properties on the edges. For instance,it permits to collect all atomic propositions that hold in a state via evaluating
+the properties of this state node.
+Graph Solver Group: Similar to the BDD group, we have the graphsolver plu-
+gin, which deﬁnes a uniform interface for solving the linear programming prob-
+lems used to compute the reachability probabilities the model checking problemsare reduced to. The actual implementation is provided by the graphsolver-
+iterative plugin, which solves the given linear programming problem by value
+iteration. It supports both Jacobi and Gauss-Seidel iteration methods.
+JANI Format Group: This group contains all plugins related to the recently pro-
+posed JANI model and interaction format [ 7]. There are currently three plugins:
+
+--- Page 6 ---
+98 C. Fu et al.
+thejani-model plugin provides a parser to transform an input JANI model to
+a graph or an MTBDD. It is also able to parse the input JANI formula; thejani-exporter takes care of exporting models and properties in JANI format.
+PRISM Format Group: The single prism-format plugin available in this group
+provides a parser to transform a given PRISM model description to an explicit
+graph or an MTBDD. It also provides a parser for the input formula.
+Property Solver Group: The plugins contained in this group are responsible
+for solving the properties analysed during the model checking phase. Simi-
+larly to the BDD group, the speciﬁc property solvers are all implementationsof the common interface provided by the propertysolver plugin. There are
+currently eight implementation plugins representing eight diﬀerent classes of
+properties: propertysolver-coalition provides a solution to solve a proba-
+bilistic parity game against linear temporal properties; propertysolver-ﬁlter
+handles the ﬁlter operation in the given PRISM formula; propertysolver-ltl-
+lazy implements an eﬃcient method to model check the PCTL* logic over
+the probabilistic systems by means of advanced LTL veriﬁcation techniques;
+propertysolver-operator works with the operators that occur in the given
+formula; propertysolver-pctl implements the PCTL model checking algorithm
+over probabilistic systems; propertysolver-propositional provides a way to
+identify all states that satisfy the given propositional formula; propertysolver-
+reachability exempliﬁes how to write a plugin that handles the reachability
+formula P
+Faover Markov chains; and propertysolver-reward implements a
+model checking algorithm to handle probabilistic systems with rewards.
+Util Group: The single plugin utilavailable in this group provides basic utilities
+useful for working with bits, JSON documents, and other native data types in aJAVA-style approach.
+Value Group: Similar to the expression group, this group hosts the value-basic
+plugin, which is designed to provide a uniform interface to represent all kinds of
+values and types that may be used in EPMC , as well as the implementation of
+the standard values and type such as Booleans, integers, and reals.
+Dependencies Between Plugins. Each plugin may have build-time and run-
+time dependencies on other plugins. Build-time dependencies can be considered
+as hard dependencies: they must be satisﬁed at compilation time as well as
+during the bootstrap phase; these build-time dependencies are made explicit intheMANIFEST.MF ﬁle, and the order the plugins are loaded in the bootstrap phase
+has to respect such build-time dependencies. For instance, the property-solver-
+pctlplugin has a build-time dependency on property-solver , since property-
+solver-pctl implements the interfaces deﬁned by property-solver .
+The graph of build-time dependencies between the groups of plugins is shown
+in Fig. 1, where an arrow from one group to another means that the former
+
+--- Page 7 ---
+EPMC Gets Knowledge in Multi-agent Systems 99
+Fig. 1. Build-time dependencies between groups of plugins in EPMC
+requires the latter. To simplify the graph, we omitted all arrows that can be
+inferred by transitivity, such as the one between any group and util.
+Run-time dependencies can be seen as soft dependencies: their satisfaction
+depends on the actual steps performed during the model checking phase. For
+instance, the property-solver-pctl plugin has only a run-time dependency
+ongraphsolver-iterative , since graphsolver-iterative is required during the
+model checking phase only in cases the property cannot be decided via a sim-ple graph exploration. (This happens for quantitative properties.) This means
+that graphsolver-iterative has to be available at run-time for some properties,
+while for other properties it may be missing. If EPMC is intended to be used
+to check only qualitative properties, then graphsolver-iterative can safely be
+omitted, while EPMC needs the graphsolver-iterative plugin (or any other
+plugin implementing graphsolver ) to analyse quantitative properties.
+2.3 PETL Model Checker as a Plugin
+The structure of EPMC-petl , largely shared with EPMC given its modular
+architecture, is illustrated in Fig. 2.
+To provide the PETL model checking algorithms for multi-agent systems
+oﬀered by EPMC-petl , we have developed the PETL plugins that add the cor-
+responding functionalities, namely: the parser for the multi-agent system model
+speciﬁcation and the PETL properties; the data structures to store them; and
+the algorithms for evaluating the properties against the given model.
+In multi-agent systems, the agents have the capacity to perform certain
+actions, which they choose according to their individual protocols. Given the
+distributed nature of multi-agent systems, it is typical that the agents haveincomplete information about the state of the global system due to the fact that
+they are only able to observe a limited part of the global state when they have to
+choose their actions. The incompleteness of information is normally modelled bydeﬁning, for each agent i, an equivalence relation ∼
+iover all global states of the
+systems, then two global states are considered indistinguishable for a given agent
+iif they are related by ∼i. Note that two states that are indistinguishable for
+an agent may be distinguishable for another agent, so there is no constraint on
+how two states are related by the diﬀerent relations. Every agent makes its own
+
+--- Page 8 ---
+100 C. Fu et al.
+Fig. 2. Architecture of EPMC-petl
+decisions based only on the limited information it has, namely, the information
+restricted by its own indistinguishability relation. Decisions of agents are usually
+formalised by schedulers , which are functions that take the history executions as
+input and decide (output) the next move for each agent. Schedulers that only
+make use of the limited information each agent is aware of are called uniform .
+Intuitively, a uniform scheduler for the agent iis expected to make the same
+choice when given two executions that are equivalent under ∼i.
+To build the model checker EPMC-petl , we have to ﬁrst implement three
+things in this plugin: the model, the property, and the equivalence relations.
+Model. We use the PRISM language as input format and the model type should
+be “mdp”, to represent the fact that the model has both probabilistic and nonde-
+terministic behaviour. Each module in the MDP deﬁnes one agent’s behaviour,
+with the name of the module being the agent’s name. The state space of theoverall multi-agent system is constructed following the PRISM approach, i.e.,
+by considering all state variables, whether local to a module or global, and with
+the usual PRISM restrictions on how transitions can update these variables.
+Diﬀerently from the standard PRISM language semantics, at each step every
+agent chooses one action among the enabled transitions, independent of whether
+other agents have a transition with the same action that is enabled. The actionslabelling the transitions are therefore not used for the synchronisation of the
+modules: they are instead the names of local actions, and each command must
+be labelled by one action.
+
+--- Page 9 ---
+EPMC Gets Knowledge in Multi-agent Systems 101
+The overall result is that the agents do not interact with each other by
+synchronising on common actions, but by the eﬀects of the individual transitionschosen by the individual agents.
+Property. To specify the properties of probabilistic multi-agent systems, in par-
+ticular the temporal dynamics of agents’ knowledge, we adopt the probabilistic
+epistemic temporal logic (PETL) (cf. [ 16]), which can be viewed as a combina-
+tion of epistemic logic [ 18] and probabilistic computation tree logic (PCTL) [ 25].
+To specify PETL formulas, we extend the PRISM language by adding the epis-
+temic operators K
+iand EG,CG,a n d DGto the set of operators that can occur
+in a property formula, where iis (the name of) an agent and Gis a set of agents.
+Intuitively, the property Kiϕmeans that agent iknows that property ϕholds in
+statesifϕholds in all states equivalent to swith respect to ∼i; properties EGϕ,
+CGϕ,a n d DGϕare similar, but refer to the common/distributed knowledge of
+the group of agents. These epistemic operators are thus added to the PRISM
+properties as K{agent }andE/C/D {agent 1, ..., agent n}, respectively.
+Equivalence Relations. Equivalence relations are encoded as sets of formu-
+las shown in Fig. 3. Each agent in the model has its own equiv agent name
+...equiv end block and each block contains a set of formulas. The formulas
+are deﬁned on all state variables that occur in the model deﬁnition and are notrestricted to those of the corresponding single agent.
+Fig. 3. The format of
+equivalence relationsEach formula induces one equivalence class, i.e., two
+states that satisfy the same formula of agent jare consid-
+ered to be related by ∼j. This means that formulas are
+required to be pairwise disjoint; if a state does not satisfy
+any formula, it is not equivalent to any other state, so it
+belongs to its singleton equivalence class.
+PETL Solvers. In general, the model checking problem for
+probabilistic multi-agent systems against PETL properties
+is undecidable [ 20], but is decidable when restricted to
+the class of uniform memoryless schedulers. The decision
+algorithm for the latter follows the PCTL approach: the
+PETL property is checked bottom-up, with each operator
+managed by its corresponding solver. Epistemic operators
+are part of the state formulas while the temporal operatorsare managed as in PCTL, except for the class of schedulers
+considered for computing the Until operator.
+The key parts of the PETL plugins are three solvers needed to verify PETL
+properties: the ﬁrst one focuses on the knowledge operators, while the other two
+take care of the PCTL until operator (wrapped inside a probabilistic operator P,
+as in PCTL), which needs to be computed on the class of uniform memorylessschedulers instead of the general class of memoryless schedulers as done in PCTL;
+these two solvers implement two diﬀerent algorithms, an exact one based on
+mixed integer non-linear programming and an approximation based on upper
+
+--- Page 10 ---
+102 C. Fu et al.
+conﬁdence bounds applied to trees (UCT) [ 31]. The remaining fragments of
+PETL, like propositional formulas and the next operator, can be computed asfor PCTL. They can therefore be inherited from the existing plugins of EPMC .
+MINLP Solver. This solver implements the PETL model checking algorithm
+developed in [ 20]: it reduces the problem of checking the satisfaction of an until
+formula to a mixed integer non-linear programming (MINLP) problem, which
+can then be solved by, e.g., an SMT solver. Here we make use of the SMT solver
+Z3 [45], which can be replaced by any other SMT solver that supports SMT-lib
+version 2.5 as input format. The reduction ensures that the resulting scheduler
+is uniform and memoryless, with a diﬀerent encoding for P
+max=? and Pmin=?.
+UCT Solver. This solver implements an approximated algorithm relative to the
+until operator, based on the upper conﬁdence bounds applied to trees (UCT)
+algorithm [ 19]. This UCT based solver performs a Monte Carlo sampling of
+the model, with heuristics guiding the choice between the exploration of new
+parts of the state space, the analysis of already explored state space, and the
+action to choose. This solver oﬀers several parameters to the user to tune theheuristics: time limit – how much time the solver should use when exploring
+the model; depth limit – how many steps the solver should perform in the state
+space exploration; B value – the bias parameter in the UCT formula between oldand new state exploration; and random seed – the random seed used to select
+unvisited successors (so to be able to reproduce the solver’s execution).
+The implementation of this solver makes use of specialised data structures to
+store the information collected during the UCT sampling; in particular, the data
+structure organises the information so to ensure that the underlying scheduleris uniform, as required by the PETL decision algorithm. The basic idea is to
+store the selected actions of each agent, and then exclude the actions making
+the scheduler non-uniform when executing the next step in the exploration.
+Knowledge Solver. This solver deals with the knowledge operators, namely K
+i,
+EG,DG,a n d CG. Depending on the actual knowledge property Z(ϕ), the solver
+takes the satisfaction information about the state formula ϕalready computed
+(recall that PETL model checking is based on a bottom-up approach similar
+to PCTL) and returns the set of states that satisfy Z(ϕ), by implementing the
+semantics of Z(ϕ).
+Online Availability. EPMC , including its extension EPMC-petl ,i sa n
+open source tool. EPMC is freely available at https://github.com/ISCAS-PMC/
+ePMC as a git repository to be forked and modiﬁed.
+3 Empirical Evaluation
+We have generated ﬁve diﬀerent ﬂavours of EPMC by loading diﬀerent mod-
+ules. One version that supports only PCTL; one that supports PCTL*; one
+
+--- Page 11 ---
+EPMC Gets Knowledge in Multi-agent Systems 103
+Table 1. Diﬀerent variations of EPMC . The runtime is given in seconds, and ‘ns’
+and ‘to’ abbreviate ‘not supported’ and ‘time-out’ (set to 100 s, as performancewas not our concern). The properties used were ϕ
+1= Pmax=?[Fnumcrit>1]
+(PCTL); ϕ2= Pmin=?[(GFp 1 !=1 0 ∨GFp1 = 0 ∨FGp1 = 1) ∧GFp1! =
+0∧GFp1 = 1] (PLTL); ϕ3= P>=1[F“premium”] (PCTL); ϕ4= P=?[(GFleftn=
+16)∨/logicalortext16
+i=13FGrightn= i]( P L T L ) ; ϕ5=/angbracketleft/angbracketleft1/angbracketright/angbracketrightP>=1[(!“z1” U“z2”)] (Coalition);
+ϕ6=/angbracketleft/angbracketleft1/angbracketright/angbracketrightP>=1[(!“z1” U“z2”) ∧F“z3”] (Coalition); ϕ7=/angbracketleft/angbracketleft1/angbracketright/angbracketrightPmin=?[(!“z1” U
+“z2”)] (Coalition); ϕ8=/angbracketleft/angbracketleft1/angbracketright/angbracketrightPmax=?[(!“z1” U“z2”) ∧(!“z4” U“z2”) ∧F“z3”]
+(Coalition); ϕ9= Pmax=?[G(rw x/negationslash=rcx∨rw y/negationslash=rcy)] (PETL); and ϕ10=
+Pmax=?[GE rw ,rc(rw x/negationslash=rcx∨rw y/negationslash=rcy)] (PETL).
+Experiment EPMC PRISM Rabinizer4 PRISM-games
+PCTL PCTL* SMG PETL full
+Mutual ϕ11.7 1.8 ns ns 1.8 0.0 0.0 0.0
+Exclusion 4 ϕ2ns 4.5 ns ns 4.5 14.4 10.4 13.3
+Workstation ϕ31.1 1.0 ns ns 1.2 0.0 0.0 0.0
+Cluster 16 ϕ4ns 1.8 ns ns 1.7 to 0.7 to
+Robot ϕ5ns ns 2.9 ns 2.9 ns ns 0.6
+10 ϕ6ns ns 3.1 ns 3.2 ns ns 1.9
+Robot shoot ϕ7ns ns 5.2 ns 5.7 ns ns 0.0
+7, 1, 0.3 ϕ8ns ns 5.9 ns 5.5 ns ns 2.0
+Reconnaissance ϕ9ns ns ns 17.1 12.6 ns ns ns
+2 ϕ10ns ns ns 16.4 15.3 ns ns ns
+for solving probabilistic parity games; one that supports PETL; and a version
+that supports all of these. As comparison, we considered the following tools
+PRISM [ 35], PRISM-games [ 11], and Rabinizer4 [ 34].
+We have run these tools on a few MDP benchmarks taken from the PRISM
+website [ 47], SMG games from [ 23,24] and multi-agent systems from [ 20]; we
+considered some simple properties for these models. The goal of the comparison,
+reported in Table 1, is to show the adaptability of EPMC in supporting diﬀerent
+logics and to use diﬀerent modules, not the actual performance.
+4 Related Work
+We have already discussed related probabilistic model checkers in the introduc-tion, all of which do not support PETL model checking. Here we list relatedtools for analysing multi-agent systems or epistemic logics.
+MCMAS [ 41–43] is an open-source, OBDD-based symbolic model checker for
+verifying multi-agent systems. MCMAS is restricted to non-probabilistic mod-els. There are some model checkers for multi-agent systems built on top of
+MCMAS: MCMAS-SDD [ 36] introduces an SDD-based technique for the for-
+mal veriﬁcation of multi-agent systems; MCMAS-SLK [ 8] supports the veriﬁ-
+cation of systems against speciﬁcations expressed in strategy logic (SL) with
+knowledge; MCMAS-SL[1G] [ 9] puts forward an automata-based methodology
+for verifying and synthesising multi-agent systems against speciﬁcations given in
+
+--- Page 12 ---
+104 C. Fu et al.
+SL[1G], which is the one-goal fragment of strategy logic; MCMAS LDLK [32]c a n
+verify properties given in LDLK (Linear Dynamic Logic with Knowledge) formulti-agent systems; MCMAS
+LDL fK[33] implements the algorithm for the ver-
+iﬁcation of multi-agent systems against LDL fKspeciﬁcations, which is LDLK
+interpreted on ﬁnite traces. As for MCMAS, all these model checkers do notconsider probabilistic components in their systems and logics.
+Probabilistic swarm systems support systems with an unbounded and time-
+changing number of agents. Based on PRISM [35], Lomuscio and Pirovano have
+introduced the software package PSV (probabilistic swarm veriﬁer), with several
+sub-components that support bounded time PSV-BD [ 38], counter abstraction
+PSV-CA [ 39], strategic properties PSV-S [ 40], and faulty systems. The logics
+these tools consider are either without epistemic operators, or they allow only a
+single epistemic operator to occur as the top operator of the formula. While the
+EPMC extension EPMC-petl we have discussed only analyses systems with a
+ﬁxed number of agents, it supports the nesting of epistemic operators as well as
+their boolean combination.
+MCK [ 21] is an OBDD-based model checker for multi-agent systems that
+supports temporal-epistemic speciﬁcations. It has been extended in [ 26] to sup-
+port probabilistic reasoning, but nondeterministic choices are not considered;the work in [ 27] implements a symbolic BDD-based model checking algorithm
+for an epistemic strategy logic with observational semantics also based on MCK.
+Epistemic accessibility relations are studied in this work, but only for a non-probabilistic setting. EPMC-petl supports the analysis of systems that com-
+bine nondeterminism and probabilistic choices, which is missing in these tools.
+MCTK [ 52] is a symbolic model checker for a temporal logic of knowledge. It
+is developed from NuSMV [ 13]. Similarly, the authors of [ 37] propose a methodol-
+ogy for model checking a temporal-epistemic logic by building upon an extension
+of NuSMV. Verics [ 29] is a model checker for real-time and multi-agent systems.
+It implements bounded model checking algorithms for CTL, real-time CTL, and
+variants of CTL that include epistemic operators. Again, these tools can only
+work with non-probabilistic multi-agent systems.
+5 Conclusion
+In this paper we have presented EPMC , an extendible probabilistic model
+checker, and EPMC-petl , a tool for model checking epistemic properties
+on multi-agent systems that exhibit both probabilistic and nondeterministic
+behaviours. Key advantages of EPMC are its high degree of modularity and
+full extendibility. We have exempliﬁed by the particular extension of EPMC-
+petl how this extensibility can be used to easily cover attractive new properties
+that no other solver has covered before. Of course, besides demonstrating this
+advantage of EPMC ,EPMC-petl also provides this additional functionality,
+which is novel and a contribution in itself.
+
+--- Page 13 ---
+EPMC Gets Knowledge in Multi-agent Systems 105
+References
+1. Apache AntTMwebsite. http://ant.apache.org/
+2. Apache Maven website. http://maven.apache.org/
+3. Java Native Access (JNA) website. https://github.com/java-native-access/jna
+4. JavaCCTM: The Java Compiler CompilerTMwebsite. http://javacc.org/
+5. Bianco, A., de Alfaro, L.: Model checking of probabilistic and nondeterministic
+systems. In: Thiagarajan, P.S. (ed.) FSTTCS 1995. LNCS, vol. 1026, pp. 499–513.
+Springer, Heidelberg (1995). https://doi.org/10.1007/3-540-60692-0 70
+6. Bloem, R., Gabow, H.N., Somenzi, F.: An algorithm for strongly connected com-
+ponent analysis in nlognsymbolic steps. Formal Methods Syst. Des. 28(1), 37–56
+(2006)
+7. Budde, C.E., Dehnert, C., Hahn, E.M., Hartmanns, A., Junges, S., Turrini, A.:
+JANI: quantitative model and tool interaction. In: Legay, A., Margaria, T. (eds.)
+TACAS 2017. LNCS, vol. 10206, pp. 151–168. Springer, Heidelberg (2017). https://
+doi.org/10.1007/978-3-662-54580-5 9
+8.ˇCerm´ak, P., Lomuscio, A., Mogavero, F., Murano, A.: MCMAS-SLK: a model
+checker for the veriﬁcation of strategy logic speciﬁcations. In: Biere, A., Bloem, R.
+(eds.) CAV 2014. LNCS, vol. 8559, pp. 525–532. Springer, Cham (2014). https://
+doi.org/10.1007/978-3-319-08867-9 34
+9. Cerm´ ak, P., Lomuscio, A., Murano, A.: Verifying and synthesising multi-agent
+systems against one-goal strategy logic speciﬁcations. In: AAAI, pp. 2038–2044
+(2015)
+10. Chatterjee, K., Henzinger, M., Joglekar, M., Shah, N.: Symbolic algorithms for
+qualitative analysis of Markov decision processes with B¨ uchi objectives. Formal
+Methods Syst. Des. 42(3), 301–327 (2013)
+11. Chen, T., Forejt, V., Kwiatkowska, M., Parker, D., Simaitis, A.: PRISM-games: a
+model checker for stochastic multi-player games. In: Piterman, N., Smolka, S.A.
+(eds.) TACAS 2013. LNCS, vol. 7795, pp. 185–191. Springer, Heidelberg (2013).https://doi.org/10.1007/978-3-642-36742-7
+13
+12. Ciesinski, F., Baier, C.: Liquor: a tool for qualitative and quantitative linear time
+analysis of reactive systems. In: QEST, pp. 131–132 (2006)
+13. Cimatti, A., et al.: NuSMV 2: an OpenSource tool for symbolic model checking.
+In: Brinksma, E., Larsen, K.G. (eds.) CAV 2002. LNCS, vol. 2404, pp. 359–364.
+Springer, Heidelberg (2002). https://doi.org/10.1007/3-540-45657-0 29
+14. Cohen, H., Whaley, J., Wildt, J., Gorogiannis, N.: BuDDy. http://sourceforge.net/
+p/buddy/
+15. Dehnert, C., Junges, S., Katoen, J.-P., Volk, M.: A Storm is coming: a mod-
+ern probabilistic model checker. In: Majumdar, R., Kunˇ cak, V. (eds.) CAV 2017.
+LNCS, vol. 10427, pp. 592–600. Springer, Cham (2017). https://doi.org/10.1007/
+978-3-319-63390-9 31
+16. Delgado, C., Benevides, M.: Veriﬁcation of epistemic properties in probabilistic
+multi-agent systems. In: Braubach, L., van der Hoek, W., Petta, P., Pokahr, A.
+(eds.) MATES 2009. LNCS (LNAI), vol. 5774, pp. 16–28. Springer, Heidelberg
+(2009). https://doi.org/10.1007/978-3-642-04143-3 3
+17. van Dijk, T., van de Pol, J.: Sylvan: multi-core decision diagrams. In: Baier, C.,
+Tinelli, C. (eds.) TACAS 2015. LNCS, vol. 9035, pp. 677–691. Springer, Heidelberg
+(2015). https://doi.org/10.1007/978-3-662-46681-0 60
+18. Fagin, R., Halpern, J.Y., Moses, Y., Vardi, M.Y.: Reasoning About Knowledge.
+MIT Press, Cambridge (2004)
+
+--- Page 14 ---
+106 C. Fu et al.
+19. Fu, C., Turrini, A., Huang, X., Song, L., Feng, Y., Zhang, L.: Model checking for
+probabilistic multiagent systems under uniform schedulers, submitted for publica-
+tion, shared by the authors
+20. Fu, C., Turrini, A., Huang, X., Song, L., Feng, Y., Zhang, L.: Model checking
+probabilistic epistemic logic for probabilistic multiagent systems. In: IJCAI, pp.
+4757–4763 (2018)
+21. Gammie, P., van der Meyden, R.: MCK: model checking the logic of knowledge.
+In: Alur, R., Peled, D.A. (eds.) CAV 2004. LNCS, vol. 3114, pp. 479–483. Springer,
+Heidelberg (2004). https://doi.org/10.1007/978-3-540-27813-9 41
+22. Hahn, E.M., Li, Y., Schewe, S., Turrini, A., Zhang, L.: iscasMc: a web-based
+probabilistic model checker. In: Jones, C., Pihlajasaari, P., Sun, J. (eds.) FM 2014.LNCS, vol. 8442, pp. 312–317. Springer, Cham (2014). https://doi.org/10.1007/
+978-3-319-06410-9
+22
+23. Hahn, E.M., Schewe, S., Turrini, A., Zhang, L.: A simple algorithm for solving
+qualitative probabilistic parity games. In: Chaudhuri, S., Farzan, A. (eds.) CAV2016. LNCS, vol. 9780, pp. 291–311. Springer, Cham (2016). https://doi.org/10.
+1007/978-3-319-41540-6
+16
+24. Hahn, E.M., Schewe, S., Turrini, A., Zhang, L.: Synthesising strategy improvement
+and recursive algorithms for solving 2.5 player parity games. In: Bouajjani, A.,
+Monniaux, D. (eds.) VMCAI 2017. LNCS, vol. 10145, pp. 266–287. Springer, Cham
+(2017). https://doi.org/10.1007/978-3-319-52234-0 15
+25. Hansson, H., Jonsson, B.: A logic for reasoning about time and reliability. FAC
+6(5), 512–535 (1994)
+26. Huang, X., Luo, C., van der Meyden, R.: Symbolic model checking of probabilistic
+knowledge. In: TARK, pp. 177–186 (2011)
+27. Huang, X., van der Meyden, R.: Symbolic model checking epistemic strategy logic.
+In: AAAI, pp. 1426–1432 (2014)
+28. Jansen, D.N.: Understanding Fox and Glynn’s “Computing Poisson probabilities”.
+Technical report. ICIS-R11001, Institute for Computing and Information Sciences,
+Radboud Universiteit (2011)
+29. Kacprzak, M., et al.: Verics 2007 - a model checker for knowledge and real-time.
+Fundam. Informaticae 85(1–4), 313–328 (2008)
+30. Katoen, J., Khattri, M., Zapreev, I.S.: A Markov reward model checker. In: QEST,
+pp. 243–244 (2005)
+31. Kocsis, L., Szepesv´ ari, C.: Bandit based Monte-Carlo planning. In: F¨ urnkranz, J.,
+Scheﬀer, T., Spiliopoulou, M. (eds.) ECML 2006. LNCS (LNAI), vol. 4212, pp.
+282–293. Springer, Heidelberg (2006). https://doi.org/10.1007/11871842 29
+32. Kong, J., Lomuscio, A.: Model checking multi-agent systems against LDLK speci-
+ﬁcations. In: IJCAI, pp. 1138–1144 (2017)
+33. Kong, J., Lomuscio, A.: Model checking multi-agent systems against LDLK speci-
+ﬁcations on ﬁnite traces. In: AAMAS, pp. 166–174 (2018)
+34. Kˇ ret´ınsk´y, J., Meggendorfer, T., Sickert, S., Ziegler, C.: Rabinizer 4: from LTL to
+your favourite deterministic automaton. In: Chockler, H., Weissenbacher, G. (eds.)
+CAV 2018. LNCS, vol. 10981, pp. 567–577. Springer, Cham (2018). https://doi.
+org/10.1007/978-3-319-96145-3 30
+35. Kwiatkowska, M., Norman, G., Parker, D.: PRISM 4.0: veriﬁcation of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) CAV 2011. LNCS,vol. 6806, pp. 585–591. Springer, Heidelberg (2011). https://doi.org/10.1007/978-
+3-642-22110-1
+47
+36. Lomuscio, A., Paquet, H.: Veriﬁcation of multi-agent systems via SDD-based model
+checking. In: AAMAS, pp. 1713–1714 (2015)
+
+--- Page 15 ---
+EPMC Gets Knowledge in Multi-agent Systems 107
+37. Lomuscio, A., Pecheur, C., Raimondi, F.: Automatic veriﬁcation of knowledge and
+time with NuSMV. In: Veloso, M.M. (ed.) IJCAI 2007, Proceedings of the 20th
+International Joint Conference on Artiﬁcial Intelligence, Hyderabad, India, 6–12January 2007, pp. 1384–1389 (2007)
+38. Lomuscio, A., Pirovano, E.: Verifying emergence of bounded time properties in
+probabilistic swarm systems. In: IJCAI, pp. 403–409 (2018)
+39. Lomuscio, A., Pirovano, E.: A counter abstraction technique for the veriﬁcation of
+probabilistic swarm systems. In: AAMAS, pp. 161–169 (2019)
+40. Lomuscio, A., Pirovano, E.: Parameterised veriﬁcation of strategic properties in
+probabilistic multi-agent systems. In: AAMAS, pp. 762–770 (2020)
+41. Lomuscio, A., Qu, H., Raimondi, F.: MCMAS: a model checker for the veriﬁcation
+of multi-agent systems. In: Bouajjani, A., Maler, O. (eds.) CAV 2009. LNCS, vol.
+5643, pp. 682–688. Springer, Heidelberg (2009). https://doi.org/10.1007/978-3-
+642-02658-4
+55
+42. Lomuscio, A., Qu, H., Raimondi, F.: MCMAS: an open-source model checker for
+the veriﬁcation of multi-agent systems. Int. J. Softw. Tools Technol. Transfer 19(1),
+9–30 (2015). https://doi.org/10.1007/s10009-015-0378-x
+43. Lomuscio, A., Raimondi, F.: mcmas : a model checker for multi-agent systems. In:
+Hermanns, H., Palsberg, J. (eds.) TACAS 2006. LNCS, vol. 3920, pp. 450–454.
+Springer, Heidelberg (2006). https://doi.org/10.1007/11691372 31
+44. Lv, G., Su, K., Xu, Y.: CacBDD: a BDD package with dynamic cache manage-
+ment. In: Sharygina, N., Veith, H. (eds.) CAV 2013. LNCS, vol. 8044, pp. 229–234.
+Springer, Heidelberg (2013). https://doi.org/10.1007/978-3-642-39799-8 15
+45. de Moura, L., Bjørner, N.: Z3: an eﬃcient SMT solver. In: Ramakrishnan, C.R.,
+Rehof, J. (eds.) TACAS 2008. LNCS, vol. 4963, pp. 337–340. Springer, Heidelberg
+(2008). https://doi.org/10.1007/978-3-540-78800-3 24
+46. Piterman, N.: From nondeterministic B¨ uchi and Streett automata to deterministic
+parity automata. Logical Methods Comput. Sci. 3(3) (2007)
+47. PRISM web site. http://www.prismmodelchecker.org
+48. Schewe, S.: Tighter bounds for the determinisation of B¨ uchi automata. In: de
+Alfaro, L. (ed.) FoSSaCS 2009. LNCS, vol. 5504, pp. 167–181. Springer, Heidelberg
+(2009). https://doi.org/10.1007/978-3-642-00596-1 13
+49. Schewe, S., Varghese, T.: Tight bounds for the determinisation and complementa-
+tion of generalised B¨ uchi automata. In: Chakraborty, S., Mukund, M. (eds.) ATVA
+2012. LNCS, pp. 42–56. Springer, Heidelberg (2012). https://doi.org/10.1007/978-
+3-642-33386-6 5
+50. Sickert, S., Kˇ ret´ınsk´y, J.: MoChiBA: probabilistic LTL model checking using limit-
+deterministic B¨ uchi automata. In: Artho, C., Legay, A., Peled, D. (eds.) ATVA
+2016. LNCS, vol. 9938, pp. 130–137. Springer, Cham (2016). https://doi.org/10.
+1007/978-3-319-46520-3 9
+51. Somenzi, F.: CUDD: CU decision diagram package release 2.5.0. http://vlsi.
+colorado.edu/ ∼fabio/CUDD/
+52. Su, K., Sattar, A., Luo, X.: Model checking temporal logics of knowledge via
+OBDDs. Comput. J. 50(4), 403–420 (2007)
+53. Tarjan, R.E.: Depth-ﬁrst search and linear graph algorithms. SIAM J. Comput.
+1(2), 146–160 (1972)
+54. Vahidi, A.: JDD, a pure Java BDD and Z-BDD library. http://javaddlib.
+sourceforge.net/jdd/

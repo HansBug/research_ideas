@@ -1,0 +1,1680 @@
+--- Page 1 ---
+Software & Systems Modeling
+https://doi.org/10.1007/s10270-018-0676-3
+THEME SECTION PAPER
+A method for testing and validating executable statechart models
+Tom Mens1·Alexandre Decan1·Nikolaos I. Spanoudakis2
+Received: 29 August 2016 / Accepted: 11 April 2018
+© Springer-Verlag GmbH Germany, part of Springer Nature 2018
+Abstract
+Statecharts constitute an executable language for modelling event-based reactive systems. The essential complexity of
+statechart models solicits the need for advanced model testing and validation techniques. In this article, we propose a method
+aimed at enhancing statechart design with a range of techniques that have proven their usefulness to increase the quality
+and reliability of source code. The method is accompanied by a process that ﬂexibly accommodates testing and validation
+techniques such as test-driven development, behaviour-driven development, design by contract, and property statecharts that
+check for violations of behavioural properties during statechart execution. The method is supported by the Sismic tool, an
+open-source statechart interpreter library in Python, which supports all the aforementioned techniques. Based on this tool-
+ing, we carry out a controlled user study to evaluate the feasibility, usefulness and adequacy of the proposed techniques for
+statechart testing and validation.
+Keywords Statechart ·Executable modeling ·Behaviour-driven development ·Design by contract ·Runtime veriﬁcation
+1 Introduction
+Statecharts were introduced nearly three decades ago by
+Harel [ 27,28] as a visual executable modelling language.
+From a formal point of view, they can be considered as
+an extension of hierarchical ﬁnite-state machines with char-
+acteristics of both Mealy and Moore automata. Statecharts
+(sometimes referred to as behavioural state machines )a r e
+part of the UML standard [ 41] and constitute a popular mod-
+elling notation for representing the executable behaviour
+of complex reactive event-based systems. They are fre-
+quently used in industry for the development of real-time
+systems and embedded systems [ 13,44], relying on commer-
+Communicated by Dr. M. Papadakis, S. Ali, and G. Perrouin.
+B Tom Mens
+tom.mens@umons.ac.be
+Alexandre Decan
+alexandre.decan@umons.ac.be
+Nikolaos I. Spanoudakis
+nispanoudakis@isc.tuc.gr
+1Software Engineering Lab, Faculty of Sciences, University of
+Mons, 7000 Mons, Belgium
+2Applied Mathematics and Computers Laboratory, School of
+Production Engineering and Management, Technical
+University of Crete, 73100 Chania, Greececial tools such as IBM Rational’s StateMate andRhapsody ,
+the Mathworks’ Stateﬂow , itemis’ Yakindu Statechart Tools
+and IAR Systems’ visualSTATE . There are also multiple
+open-source frameworks deﬁning domain-speciﬁc languages
+(DSLs) based on statecharts, such as the A TOMPM [ 47] web-
+based domain-speciﬁc modelling environment with support
+for model transformation, and the AMOLA [ 46] language
+targeting the multi-agent systems community. Most of these
+tools support visualisation, modiﬁcation and simulation of
+statecharts, as well as code generation from statechart mod-
+els. The more advanced tools also provide support for model
+debugging and model veriﬁcation.
+At the level of source code development, a variety of test-
+ing techniques have found widespread use. These include
+test-driven development (TDD )[3],behaviour-driven devel-
+opment (BDD )[39] and design by contract (DbC )[38].
+Most of these techniques have not been taken up at design
+level, however, for increasing the quality and reliability of
+behavioural software models. In particular, it is poorly under-
+stood how such techniques can be used for testing and
+validating executable statechart models. Indeed, designing
+statecharts and their interaction with the environment can be
+quite complex and error-prone, partly because of the stat-
+echart formalism itself, and partly because of the complex
+behaviour that these statecharts are modelling [ 11].
+To address this problem, we propose a method aimed
+to enhance statechart design with such techniques. The
+123
+
+--- Page 2 ---
+T. Mens et al.
+method comes with dedicated tooling, in the form of Sismic
+(a recursive acronym for “Sismic Interactive StatechartModel Interpreter and Checker”), a modular Python library
+composed of a statechart interpreter and associated libraries
+for testing and validation of executable statecharts based onthe techniques of TDD, BDD, DbC, and property statechartsthat allow to monitor for violations of behavioural proper-
+ties during statechart execution. The library is provided as an
+open-source solution, in order to facilitate its extension byother researchers. It comes with support for importing and
+exporting statechart models to and from external statechart
+visualisation and editing tools.
+The remainder of this article is structured as follows. Sec-
+tion 2explains and motivates the techniques of TDD, BDD,
+DbC and run-time monitoring. Section 3presents the pro-
+posed method and process for statechart design and testing.Section 4explains the tooling that we have developed to sup-
+port all the techniques supported by the method. Sections 5
+and 6illustrate how to use the method and its associated tools
+by means of an example. Section 7evaluates the method and
+tools through a controlled user study. Section 8compares our
+work with other approaches, and Sect. 9concludes.
+2 Background
+2.1 TDD and BDD
+Test-driven development (TDD )[3] has become accepted for
+source code development thanks to the many available frame-
+works for automated unit testing . TDD is often accompanied
+by so-called user stories , representing informal, natural lan-
+guage descriptions of one or more features of the software
+system, written from an end user perspective.
+The technique of behaviour-driven development (BDD )
+allows to bridge the gap between user stories and executable
+functional tests. BDD extends TDD with acceptance test
+or customer test-driven development practices as found inextreme programming [ 39,50]. BDD allows users to spec-
+ify representative scenarios and their expected outcomes
+using Gherkin ,
+1a domain-speciﬁc natural language that has
+been created speciﬁcally to support BDD. It enables users
+to describe the intended software behaviour without need-
+ing to detail how that behaviour is or will be implemented.Scenarios and their outcomes are described as sequencesofsteps expressed as domain-speciﬁc natural language sen-
+tences using Gherkin -speciﬁc keywords such as Given ,
+When ,Then ,And andBut . Developers can then deﬁne
+mapping code for these steps, in order to enable the automatic
+execution of each of these scenarios as executable functional
+tests. As such, the technical gap between developers and usersis reduced.
+1See http://docs.behat.org/en/v2.5/guides/1.gherkin.html .User stories and BDD would provide a very good basis
+for coming up with relevant functional tests for executablestatecharts, assuming that developers are available to write
+the necessary mapping code to execute the scenarios as func-
+tional tests over the statechart.
+2.2 DbC
+Design by contract (DbC) was introduced more than two
+decades ago by Bertrand Meyer and popularised through
+the object-oriented programming language Eiffel [ 19,38].
+It is often used to support the interaction and compositionof software components (e.g. methods, functions, classes or
+packages) in complex systems based on the interface speci-
+ﬁcations of these components. DbC prescribes that softwarecomponents should have formal, precise and veriﬁable inter-
+face speciﬁcations, which extend the ordinary deﬁnition of
+abstract data types with preconditions, postconditions andinvariants. The term contract stresses the obligation of the
+programmer to respect the conditions of the code she is
+using.
+The use of DbC has been shown to increase the reliability
+of executable code. It has been used with success to enable
+automated debugging with AutoFix, a tool that uses con-
+tracts to ﬁx faults in general-purpose software [ 43]. Other
+programming languages also provide support for DbC. For
+Java programs for example, DbC is supported by JML, a
+formal behavioural interface speciﬁcation language [ 34].
+OCL, the constraint language that is part of the UML
+standard, offers the possibility to specify preconditions,
+postconditions and invariants on UML models [ 40]. It
+has been used to specify contracts on class diagrams[6] supported by the USE tool [ 24] and has recently
+been extended to support behavioural models such as pro-
+tocol state machines [ 26] and sequence diagrams [ 23].
+We are not aware, however, of any DbC tool that pro-
+vides integrated support for specifying and checking struc-
+tural properties during the run-time execution of state-charts.
+Just like contracts can be deﬁned on source code com-
+ponents at different levels of granularity, it is useful anddesirable to express contracts at different levels on an exe-cutable statechart. Contracts could be deﬁned on individual
+states (either basic or composite states) to express how these
+states are supposed to interact with other states. Contractscould be expressed on concurrent regions of a state to spec-
+ify how these regions are supposed to synchronise with
+each other. Finally, contracts could be speciﬁed on tran-sitions to verify that any action executed by a transition
+satisﬁes some invariants. Once deﬁned, contracts can be
+monitored continuously while the statechart is being exe-cuted.
+123
+
+--- Page 3 ---
+A method for testing and validating executable statechart models
+2.3 Run-time verification
+Any mechanism for monitoring observable behaviours or
+properties over an executing system is considered run-time
+veriﬁcation [35]. It is also known under the names run-time
+monitoring ordynamic analysis . The technique is considered
+lightweight , avoiding the complexity of formal veriﬁcation
+techniques by working directly with the actual system (as
+opposed to a more abstract formal representation of the sys-tem) and analysing only a limited number of execution traces.
+It can be regarded as a testing approach, since it only checks
+for violations of properties at run-time, but cannot make anyguarantees that the properties will hold for all possible system
+runs. Techniques and formalisms to monitor system proper-
+ties during its execution include regular expressions, tempo-ral logics, state machines and rule-based programming [ 21].
+In the context of our work, the system being monitored will
+be an executable statechart. Drusinsky proposed TLCharts,
+an extension of statecharts allowing to specify temporal logicassertions and monitor violations of these assertions at run-
+time [ 14,15]. While the usefulness of such logic formalisms
+seems without doubt, their usability has been criticised, anddifferent attempts have been made to increase the usability by
+non-logicians [ 4,9,16]. We will therefore explore an alterna-
+tive approach, using the full expressive power of statechartsto monitor properties over statecharts.
+3 Process
+The main contribution of this work is to provide a pro-
+cess with associated tool support for the phases of statechart
+design and statechart testing. Statechart testing enables tovalidate the design before its integration during the actualsystem implementation.
+We deﬁne our process as amethod fragment [10,31]t ob e
+used by the designer in her speciﬁc software or systems devel-opment projects involving executable statechart modelling.
+Method fragments act as reusable methodological parts that
+can be ﬂexibly used as puzzle pieces, allowing to accommo-date the process to the speciﬁcities of any project, in function
+of the current needs and available competencies. Since the
+method fragment we propose will focus on the Design Phase
+only, we assume that a preceding Analysis Phase has already
+been carried out and that the statechart design (and associated
+testing) phase will be typically followed by an implementa-
+tion and deployment phase.
+Our method fragment is deﬁned using the SPEM 2.0 lan-
+guage for representing software methodologies [ 42]a sa
+series of phases containing tasks that output work products
+that are required as input for tasks in later phases. Figure 1
+provides a high-level view of the different involved phases.
+Figure 2shows the different work products created, used and
+modiﬁed throughout these phases.
+Fig. 1 SPEM 2.0 activity diagram describing the proposed process
+The method fragment assumes that in the overall soft-
+ware methodology there is an Analysis Phase that outputs a
+component diagram deﬁning the different components of the
+system, and user stories expressing how the system should
+behave. For systems that require user interaction, we also
+assume that a UI mock-up is created during the Analysis
+Phase.
+Using these work products as input, the statechart Design
+Phase will commence. The key work product created during
+theDesign Phase is the statechart , a pivotal work product
+for any statechart-based system design. The Design Phase
+is followed by a Testing Phase , providing different types of
+test results as output. If any errors or failures are reported in
+the test results, the process iterates over the Design Phase
+to address these errors. If all errors have been ﬁxed, a new
+development iteration can start from the Analysis Phase to
+implement more functionality, if needed. At this point, thedevelopment team can decide to hook an implementation
+or integration phase to continue to develop the product—
+knowing that the designed statechart has been validated.
+In the next subsections, we detail the statechart design
+and Testing Phase in terms of their speciﬁc tasks and work
+products.
+3.1 Design Phase
+Figure 3shows all tasks of the statechart Design Phase . Tasks
+at the same horizontal level can take place concurrently. Fig-
+ure4complements this view by providing for each task, its
+input and output work products along with the role achievingthe task.
+The following tasks are part of the Design Phase :
+–Deﬁne Statechart is undertaken by a Software Engineer .
+He reads the user stories (deﬁning the behaviour of the
+system) and the component diagram and produces the
+statechart that captures this behaviour. This task is pivotal
+in the Design Phase as it unlocks many other tasks.
+–I n Enrich Statechart with Contracts ,t h e Software Engi-
+neer follows a DbC approach to augment the statechart
+with contracts composed of preconditions, postcondi-tions and invariants over states and transitions.
+–Deﬁne Scenarios is carried out by a Tester . He is in charge
+of converting the free text user stories into BDD scenar-
+ios.
+123
+
+--- Page 4 ---
+T. Mens et al.
+Fig. 2 SPEM 2.0 work product
+dependencies diagram
+Fig. 3 SPEM activity diagram
+describing the statechart Design
+Phase . Black rectangles indicate
+fork or join nodes. Figurecreated using the EclipseProcess Framework (EPF)Composer, a tool for producingcustomizable software processes
+–I n Implement Scenario Steps ,aProgrammer needs to
+write the mapping code from the steps used in scenar-
+ios to statechart test primitives. This code will be used
+during the Testing Phase to check the scenarios over the
+statechart.
+–Deﬁne Properties is concerned with deﬁning behavioural
+properties over the system. It can be desirable to expressfunctional properties of the intended behaviour, for exam-
+ple in terms of the events that are consumed and sentby a particular component. Such properties can be veri-
+ﬁed dynamically during the execution of the component.
+The Software Engineer relies on the component diagram
+along with the requirements and her domain knowledge
+to deﬁne these properties.
+–Deﬁne Unit Tests involves writing unit tests for testing the
+statechart in a later phase. It is carried out by a Program-
+mer, since it requires knowledge of the programming
+language used by the unit testing framework.
+123
+
+--- Page 5 ---
+A method for testing and validating executable statechart models
+Fig. 4 SPEM 2.0 activity detail diagram for the Design Phase . Every task is connected to input and output work products along with the role of
+the person executing the task
+3.2 Testing Phase
+The statechart Testing Phase relies on the output work prod-
+ucts of the Design Phase to test and validate statecharts using
+a range of different techniques: dynamic monitoring of con-tracts and properties, running unit tests and scenarios over
+the statechart. Figure 5presents the tasks of this phase and
+the details of each task in terms of roles and work products:–T h e t a s k Integrate External Components to Statechart
+allows the Programmer to realise interfaces to external
+components that need to participate in the testing pro-
+cess. If there are no external systems or user interfaces
+available, this task is not needed. Hence, this task canbe used for testing just the validity of the statechart in
+isolation (by simulating the external system events), or
+during a later implementation phase with all external sys-tems connected.
+123
+
+--- Page 6 ---
+T. Mens et al.
+Fig. 5 SPEM activity diagrams
+for the statechart Testing Phase
+–Manually test through UI can be done by a Tester to
+manually explore and validate the functionality of the
+statechart by means of an external user interface that hasbeen created for this purpose, and connected to the stat-
+echart.
+–Run Scenarios can be done by the Tester , by executing the
+scenarios (by means of the provided steps mapping code)
+with a BDD tool and analysing the scenarios test results.
+In more complex cases, this task may involve selectingwhich scenarios to execute.
+–Run Unit Tests can be done by the Tester , by providing the
+already created unit tests to the test runner of a unit testing
+framework and analysing the unit test results. In morecomplex cases, this task may involve selecting which tests
+to execute.It is important to stress that, during the three tasks carried
+out by the Tester , all statechart contracts and properties that
+were speciﬁed as part of the Design Phase will be dynam-
+ically monitored for violations. Hence, the test results will
+also include reports of any such violations.
+4 Tooling
+The process presented in Sect. 3needs to be supported by
+automated tools in order to be of any practical use. Such
+tooling is required, because designing and testing statechartscan be quite hard due to their complexity and because there
+are many subtleties of the statechart formalism. Hence, it is
+difﬁcult to formally guarantee conformance of a statechartto its intended requirements. Our method proposes different
+123
+
+--- Page 7 ---
+A method for testing and validating executable statechart models
+Fig. 6 Architectural overview
+of the Sismic tool framework
+ways to test and validate statecharts, by using the techniques
+of unit testing, BDD, and dynamic monitoring of contracts
+and properties expressed over statecharts.
+To automate and support the proposed method, we devel-
+oped the Sismic tool. Sismic is a Python library for inter-
+preting and testing statecharts. V ersion 1.0.0 has been usedfor this article. It is distributed through the Python Pack-age Index ( pypi.python.org/pypi/sismic ). Its documentation
+can be found on sismic.readthedocs.io . Its source code is
+available on github.com/AlexandreDecan/sismic under the
+open-source licence LGPLv3, adhering to the principles of
+open science and open research. It allows other researchers to
+use and extend the tool, and it facilitates integrating receivedfeedback into newer versions of the tool.
+The high-level architecture of Sismic is summarised in
+Fig. 6. The different code components and work products
+of this architecture will be presented in the following sub-sections. All parts of the architecture included in the shaded
+grey box labelled sismic have been developed speciﬁcally for
+the purpose of statechart simulation, testing and validation.For some of these activities, Sismic makes use of third-party
+libraries (e.g. behave for BDD) or external tools (e.g. Plan-
+tUML and ASEME for model visualisation and editing).Input and output ﬁles used by Sismic are shown in yellow
+note boxes.
+4.1 Importing and exporting statechart models
+Internally, Sismic encodes statechart models as objects.
+Experienced Python developers may choose to directly cre-ate and manipulate statecharts in this way through the model
+API that has been provided for this purpose. In practice, how-
+ever, it is much more comfortable to create statechart modelsusing either a text-based markup editor or an external visualeditor and import these models through the I/O API provided
+for this purpose. Upon import of a statechart ﬁle, the syntactic
+correctness of the statechart is checked automatically.
+Currently, Sismic allows importing and exporting state-
+chart expressed using the human-readable Y AML markup
+language and has experimental support for importing andexporting statechart diagrams expressed in the AMOLA lan-guage [ 46] through the ASEME IDE
+2statechart editor [ 48].
+Sismic also provides export support to PlantUML3in order
+to visualise statecharts, beneﬁting from its automatic layoutfeatures. This is how we generated Fig. 14for example. Other
+exchange formats can be easily accommodated.
+4.2 Statechart interpreter
+The core of Sismic is composed of its statechart interpreter .
+In order to execute a statechart model, a statechart inter-
+preter must be instantiated. This interpreter relies on an action
+code evaluator to execute any action code contained in the
+statechart speciﬁcation. By default, action code and guards
+(conditions) are expressed using regular Python code. Other
+action languages can be supported if a language interpreteris provided for them.
+The statechart interpreter offers a discrete, step-by-step
+and fully observable simulation engine, supporting theUML 2 statechart concepts and semantics. By default, the
+statechart interpreter uses an inner-ﬁrst/source-state and run-
+to-completion semantics (a.k.a. macrostep, super-step or bigstep semantics [ 18,29,30]). Since the UML speciﬁcation [ 41]
+deliberately leaves the order in which transitions are to be
+executed undeﬁned, we needed to make some implementa-
+2aseme.tuc.gr .
+3plantuml.com .
+123
+
+--- Page 8 ---
+T. Mens et al.
+Fig. 7 Code fragment of a
+statechart simulation with
+Sismic1from sismic . io import import from yaml
+2from sismic . interpreter import Interpreter
+3
+4 statechart = import from yaml( filepath=’microwave .yaml ’)
+5 interpreter = Interpreter(statechart)
+6
+7 interpreter . execute once ()
+8 interpreter .queue( ’door opened ’)
+9 interpreter . execute once ()
+1 0 interpreter .time + = 2
+1 1 interpreter .execute()
+12
+13 print ( ’Active states : ’ , interpreter . configuration)
+14 print ( ’Timer value : ’ , interpreter . context [ ’ timer ’ ])
+15 print ( ’Power value : ’ , interpreter . context [ ’power ’ ])
+tion choices. The interpreter processes eventless transitions
+before transitions containing events and consumes internal
+events before external ones. However, Sismic also provides
+modular support for providing other semantics.
+Parametrized events are supported as well. Event param-
+eters can be accessed by the statechart through the attributes
+of the event variable. For example, if an event heating_set
+has a parameter power , its value can be accessed using
+event.power in action code, guard and contracts of any
+transition triggered by heating_set .
+When simulating statecharts, simulated time (logical time)
+and wall-clock time are supported. By default, the statechart
+interpreter uses simulated time. Several time-related predi-cates (e.g. after ,idle ) can be used in guards, actions and
+contracts of statecharts.
+4.3 Using the API to execute statecharts
+Sismic ’s statechart interpreter can be used to control stat-
+echarts programmatically. The code fragment of Fig. 7
+provides an example of how to do this, on the basis of amicrowave controller statechart that will be used as running
+example in Sects. 5and 6(see Fig. 14).
+After instantiating a statechart interpreter with the stat-
+echart speciﬁcation loaded from a Y AML ﬁle (line 4),
+the statechart is put in its initial conﬁguration by calling
+theexecute_once() method (line 7). The queue(…)
+method stores a new door_opened event in the interpreter’s
+event queue (line 8). Invoking the execute_once()
+method again (line 9) processes the event and returns a
+MacroStep instance. As illustrated in Fig. 8, if a macrostep
+processes a triggered transition, it includes every consecutive
+stabilisation step (including all steps needed to enter nested
+states, or to enter the conﬁguration of a history state). Line 10increases the simulated time by modifying the interpreter’s
+time variable. Line 11 executes the statechart as long as a
+MacroStep is returned by the interpreter. Line 13 displays
+the currently active states of the statechart, and lines 14 and15 display the values of the statechart’s local variables timer
+andpower .
+4.4 Run-time monitoring of statecharts
+A key feature of Sismic ’s statechart interpreter is its built-in
+support for monitoring for violation of contracts and unde-
+sirable run-time properties. To this extent, the traditionalmacro- and micro-step semantics of statechart execution isaugmented with some additional steps. This is illustrated in
+Fig. 8, which depicts (a deliberately simpliﬁed version of) the
+semantics of the statechart interpreter. For ease of readabil-ity, we use the statechart notation to illustrate all steps that
+are followed by the interpreter when a statechart receives an
+event that triggers a transition. The “normal” semantics ofstatechart execution is shown by the yellow states.
+The red states (with white font) in Fig. 8augment the
+statechart semantics with run-time support for contract mon-itoring. They indicate where and when the contract checking(of states and transitions) intervenes to support DbC. This
+depends on whether it concerns pre- and postconditions or
+invariants. State preconditions are checked before the state is
+entered (i.e. before executing its entry actions, if present),
+state postconditions are checked after the state is exited
+(i.e. after executing its exit actions, if present), and stateinvariants of each active state are checked at the end of
+each executed macrostep (corresponding to a stable running
+conﬁguration of the statechart). Transition preconditions arechecked before processing the transition (and before execut-
+ing its optional transition action), transition postconditions
+are checked after processing the transition (and after execut-
+ing the optional transition action), and transition invariantsare checked twice: before and after processing the transition.
+Hence, transition invariants can be considered as syntactic
+sugar for conditions that are both preconditions and postcon-ditions.
+The statechart interpreter also provides support for mon-
+itoring properties at run-time. To avoid a statechart designerneeding to learn a different (formal) language for express-
+123
+
+--- Page 9 ---
+A method for testing and validating executable statechart models
+Fig. 8 Sismic ’s macrostep
+semantics, adding support
+required for dynamic monitoring
+of contracts and properties
+ing such properties, these properties can be expressed using
+the full expressive power of the statechart notation itself.Such properties are therefore referred to as property state-
+charts . Examples of such property statecharts are provided
+in Sect. 5.2.
+Since these properties need to monitor a running state-
+chart, their behaviour has to be expressed in terms of the
+events that are consumed or sent, or in terms of the states that
+are entered or exited by the statechart being monitored. Tothis extent, the statechart interpreter will raise speciﬁc meta-
+events about the execution of the statechart. The blue states in
+Fig. 8(e.g.notifyeventconsumed ) show which meta-events
+are created during statechart execution. Some meta-events
+exhibit additional parameters: for example, when a state is
+entered, meta-event state entered has a parameter state
+whose value is the name of the state being entered. Simi-larly, meta-event eventconsumed has a parameter event
+that corresponds to the event being consumed.
+Meta-events are automatically sent during statechart exe-
+cution to all bound property statecharts. To bind a property
+statechart, it sufﬁces to provide this property statechart
+to the bind_property_statechart method of an
+interpreter. These property statecharts monitor for property
+violations based on those meta-events, following a “fail-fast”
+approach: a failure will be reported as soon as the monitoredbehaviour leads to a ﬁnal state in one of the bound property
+statecharts.
+Due to the meta-events being considered and the “fail-
+fast” approach adopted by the statechart interpreter for
+their veriﬁcation, property statecharts are mainly intended tocheck for the presence of undesirable behaviour (safety prop-erties), i.e. properties that can be checked on a (ﬁnite) preﬁx
+of a (possibly inﬁnite) execution trace. While it is technically
+possible to use property statecharts to express liveness prop-erties (something desirable eventually happens), this would
+require additional code for their veriﬁcation since liveness
+properties are not supported “as is” by Sismic .
+4.5 Support for unit testing and BDD scenarios
+As for any other library, unit tests can be written for Sismic
+using its API to manipulate the statechart, and hence, the
+unit tests themselves have to be expressed in the language
+supported by that framework (in our case, Python).
+To evaluate BDD scenarios, Sismic provides a command-
+line interface (CLI) called sismic-bdd , which takes as
+input feature ﬁles containing scenarios expressed in theGherkin language.
+123
+
+--- Page 10 ---
+T. Mens et al.
+Fig. 9 Component diagram for
+a microwave oven. Each
+component lists the events it is
+able to send to a connectedcomponent. Some events areparameterised (e.g.display_set(s:string) and
+beep(d:integer) ). The arrows on
+the component connectorsindicate in which directionevents are sent. Internalv a r i a b l e su s e do n l yb yt h eController component are
+preceded by a - sign<<component>>
+User Input
+<<component>>
+Door
+ door_opened()
+ door_closed()
+<<component>>
+Controller
+-power : integer
+-timer : integer
+<<component>>
+Lamp
+ lamp_on()
+ lamp_off()<<component>>
+Power
+ power_inc()
+ power_dec()
+ power_reset()
+<<component>>
+Heating
+ heating_on()
+ heating_off()
+ set(power : integer)<<component>>
+Turntable
+ turntable_start()
+ turntable_stop()<<component>>
+Timer
+ timer_inc()
+ timer_dec()
+ timer_reset()
+<<component>>
+Display
+ display_clear()
+ display_set(s : string)<<component>>
+Cooking
+ cooking_start()
+ cooking_stop()<<component>>
+WeightSensor
+ item_removed()
+ item_placed()
+<<component>>
+Beeper
+ beep(d : integer)<<component>>
+Clock
+ tick()
+5 Running example: statechart Design Phase
+To illustrate how Sismic supports the Design Phase of the
+method proposed in Sect. 3.1, we use a microwave oven
+controller as running example. The example is inspired byGomaa [ 25]. Section 5.1presents the work products (result-
+ing from the Analysis Phase ) that will be used as input for the
+Design Phase . Each of the remaining subsections correspond
+to one of the tasks of the Design Phase .
+5.1 Analysis Phase work products
+5.1.1 Component diagram
+We assume that a microwave oven contains different interact-
+ing components controlled by a main Controller component
+through event-based communication (Fig. 9). TheController
+receives events from the Door to signal when it is opened
+orclosed , and from a WeightSensor to detect whether a
+food item is placed in or removed from the oven. The User
+Input component represents the user interface. It contains
+three subcomponents: a Cooking component providing but-
+tons that trigger events to start orstop cooking, and a Power
+andTimer component allowing to increment,decrement or
+reset the heating power and cooking time, respectively. The
+Controller uses two integer variables power andtimer to
+keep track of the desired heating power and remaining cook-ing time. It uses a Display component to inform the user, by
+displaying a character string on the screen. A Clock compo-
+nent sends a tick event to the Controller every second. The
+Controller is able to switch onoroﬀan indicator light con-
+trolled by the Lamp component. It also controls a Heating
+component (the magnetron device emitting the microwaves)bysetting its power and turning it onoroﬀ. It instructs
+theTurntable component to start orstop turning. A Beeper
+component can be used to make sound signals by sending itabeep event.
+Fig. 10 Simple user interface mock-up for a microwave oven simula-
+tion
+5.1.2 UI mock-up
+Figure 10presents the design of a very simple user interface
+mock-up, illustrating how the user is supposed to manuallycontrol the microwave oven’s components. The panel at the
+right represents icons and buttons for the Display ,Beeper
+andUserInput components, as well as a button to simulate
+the opening of the Door . The left panel shows the status of
+theLamp ,Turntable ,WeightSensor andDoor components.
+It also contains a button to close the Door .
+5.1.3 User stories
+Any device that is supposed to interact with a user should
+have a set of functional requirements representing the
+intended functionality from the user point of view. This func-
+tionality can be expressed informally in terms of user stories
+expressing the intended outcome of typical interaction of the
+user with the device. These semi-structured textual user sto-
+ries are provided by a domain expert who does not necessarilyhave experience with software modelling. A partial example
+123
+
+--- Page 11 ---
+A method for testing and validating executable statechart models
+Fig. 11 Example of a user story
+for a microwave oven“As a user, I want to be able to open and close the oven door to place
+my food in the oven. I want to be able to adjust the cooking time andheating power by pressing buttons. I want to use buttons to start andstop the cooking in order to control when the cooking takes place. Iwant the oven lamp to be on while the door is open so that I can seewhere to put my food. I also want the lamp to be on during cooking
+so that I can monitor the heating proces. Because I do not want to be
+exposed to dangerous microwaves, I don’t want any microwaves to be
+emitted while the door is open.”
+Fig. 12 Two property
+statecharts expressing the safetycriterion that microwaves shouldnot be emitted while the ovendoor is open. They monitor theController component for
+violations during its execution
+of such a user story for the microwave oven is presented in
+Fig. 11.
+5.2 Define properties
+Considering the user story of Fig. 11, it is the task of a Soft-
+ware Engineer to express and enforce the safety criterion
+that microwaves should not be emitted while the oven door is
+open. It is the Heating component that is in charge of emitting
+microwaves. The Controller component implicitly assumes
+that, whenever a heating_on event is sent, the microwaves
+start emitting, and whenever a heating_oﬀ event is sent, the
+microwaves stop emitting.
+The Software Engineer can express property statecharts
+that monitor the execution of the Controller component for
+violations of the safety criterion. The two property statechartsof Fig. 12encode this expected behaviour. Their visual repre-
+sentation is automatically generated by the tooling presented
+in Sect. 4.1. The ﬁrst property statechart monitors if the oven
+stops emitting microwaves while the door is opened. This is
+ensured by checking that the heating_oﬀ event is sent by
+theController sufﬁciently rapidly (i.e. before the next tick
+is consumed). Monitoring that heating_oﬀ event is sent by
+the controller can be done by checking that a meta-event
+event sent is received by the property statechart and that
+its parameter event has an attribute name equal to “heat-ing_off” (encoded by the guard [event.event.name
+=='heating_off ']). If atick has been consumed before
+heating_oﬀ is sent by the Controller , the property statechart
+will go to its ﬁnal state, indicating a violation of the property.
+The second property statechart of Fig. 12veriﬁes that heat-
+ing (i.e. emission of microwaves) does not happen, while thedoor is still open. If the door is open and a heating_on event
+is sent before the door is closed again, the property statechart
+will go to its ﬁnal state.
+Figure 13illustrates another property statechart that is
+unrelated to the microwave’s safety criterion. Instead, it
+serves to check whether heating is properly controlled bythe microwave controller, by verifying that the events heat-
+ing_on andheating_oﬀ are strictly alternating.
+5.3 Define Statechart
+It is the task of a Software Engineer to model executable
+statecharts whose event-based behaviour respects the func-tionality speciﬁed by the requirements, compatible with the
+events deﬁned in the component diagram and the behaviour
+deﬁned by the user stories.
+Figure 14speciﬁes the design of the Controller compo-
+nent as an executable statechart. The visual representation
+used in the ﬁgure is automatically generated by the toolingpresented in Sect. 4. The used action language is Python. The
+123
+
+--- Page 12 ---
+T. Mens et al.
+Fig. 13 Property statechart
+verifying the alternating
+behaviour of heating
+statechart assumes the presence of three variables that rep-
+resent the set of possible power values (expressed in Watt)
+and the default and maximum power of the microwave oven.
+They are initialised as follows:
+1 POWER_VALUES = [ 3 0 0 , 600 , 900 , 1200 , 1500]
+2 POWER_DEFAULT = 2 # 9 0 0 W a t t s
+3 M A X P O W E R = 3 # 1200 Watts
+The statechart’s behaviour depends on whether the door
+is opened or closed, as well as on whether an item has beenplaced in the oven for heating. When the door is closed with
+an item inside the oven, the user can set two internal vari-
+ables of the statechart: the cooking timer (through the Timer
+component interface) and the requested heating power (in
+theprogram mode state, by using the Power component
+interface). The user will be informed of the timer andpower
+values through the Display component. As soon as a value
+for thetimer has been set, the Controller can start cooking
+in thecooking mode state (when event cooking_start gets
+triggered). Every second (i.e. every time a tick is received
+from the Clock component), the remaining time will be
+decreased until cooking is ﬁnished. Cooking can be cancelled
+by pushing the stop button through the Cooking compo-
+nent (triggering the cooking_stop event), which will reset
+thetimer . This is achieved by the internal transition deﬁned
+on the top-level controller state. Cooking can be paused
+by opening the door during cooking ( door_opened event).
+After closing the door ( door_closed event), cooking can be
+resumed by pushing the start button again ( cooking_start
+event).
+5.4 Enrich Statechart with Contracts
+As motivated in Sect. 2, it is desirable to apply DbC to exe-
+cutable statecharts, by expressing and checking contracts on
+states and transitions. Figure 14provides some examples of
+useful contracts enriching the Controller statechart. They are
+deﬁned on the controller state, theready state and the cook-
+ingmode state, respectively.
+Keywords pre: ,post: andinv: are used to represent
+preconditions, postconditions and invariants, respectively.
+The notation __old__ is used to refer to the old value of
+a variable (e.g. __old__.power ). Contracts can rely on a
+range of useful predicates. For example, active(state)is used to check whether state is in the active conﬁgu-
+ration of the statechart, sent(event) veriﬁes whether a
+particular event has been sent during the current step, and
+received(event) veriﬁes whether a particular event
+has been received during the current step.
+The contract on the root state controller imposes several
+invariants. The invariant not sent( 'heating_on ')o r
+active( 'cooking mode ') asserts that heating
+_on events can only be sent while residing in the cooking
+mode state. This provides an alternative way of partly mon-
+itoring the microwave safety criterion. The other invariantsverify the accepted range of values for the statechart’s local
+variables timer (that should not have negative values) and
+power (whose integer value should range between 0 and
+some ﬁxed constant MAXPOWER ).
+The contract on the ready state expresses an invariant
+timer >0. The contract on the cookingmode state has one
+precondition that cooking time should be strictly positive. It
+also has two invariants: cooking time cannot go below zero,
+and power value should not be changed while being in cook-ing mode. Finally, it has one postcondition that cooking canonly be interrupted by opening the door or by reaching 0
+seconds of remaining cooking time.
+These contract speciﬁcations can be used to reveal con-
+ceptual errors in the statechart speciﬁcation by monitoring
+the statechart’s execution for contract violations.
+5.5 Define unit tests
+Unit tests provide a straightforward way of testing the
+intended statechart behaviour. Python developers can writeunit tests for statecharts by relying on Python’s built-inunittest library (or any other library providing support for
+unit testing), combined with Sismic ’s API for executing
+statecharts. After loading and initialising the Controller stat-
+echart, and executing a sequence of events, one can check
+whether the statechart behaves as expected using the usual
+assertion methods offered by the unit testing framework(e.g.assertEqual ,assertNotEqual ,assertNotIn ). For exam-
+ple, one can test whether the statechart resides in a particular
+state, whether it has sent or received a particular event, andwhether its internal variables contain a speciﬁc value.
+123
+
+--- Page 13 ---
+A method for testing and validating executable statechart models
+Fig. 14 Statechart modelling the executable behaviour of the Controller component
+123
+
+--- Page 14 ---
+T. Mens et al.
+Fig. 15 Example of Python unit
+tests for the Controller
+statechart1import unittest
+2from sismic . io import import from yaml
+3from sismic . interpreter import Interpreter
+4
+5class MicrowaveTests( unittest .TestCase):
+6 def setUp( self ):
+7 with open( ’microwave .yaml ’) as f :
+8 sc = import from yaml( f )
+9 self .oven = Interpreter(sc)
+10 self .oven. execute once ()
+11
+12 def test noheating when door isnot closed( self ):
+13 self . oven . queue( ’door opened ’ , ’item placed ’ , ’timer inc ’)
+14 self .oven. execute ()
+15 self . oven . queue( ’ cooking start ’)
+16 for step initer ( self .oven. execute once , None):
+17 for event instep . sent events :
+1 8 self .a ssertNotEqual(event .name, ’heating on ’)
+19 self . assertNotIn( ’cooking mode ’ , self .oven. configuration)
+20
+21 def test increase timer(self ):
+22 self . oven . queue( ’door opened ’ , item placed ’ , ’door closed ’)
+23 self . oven . queue(10 ∗[ ’timer inc ’])
+24 self .oven. execute ()
+25 self . assertEqual( self .oven. co ntext [ ’timer ’ ] , 10)
+Figure 15illustrates two simple unit tests for the Con-
+troller statechart. The ﬁrst test of Fig. 15(lines 12–19)
+partially veriﬁes the oven’s safety criterion of not emittingmicrowaves while the door is open. The second test (lines 21–25) veriﬁes that the internal timer variable increases when
+timer_inc is received.
+Running unit tests in an automated way allows designers to
+verify whether the statechart respects the intended behaviour,
+as speciﬁed by the requirements. Such unit tests can use the
+full power of a programming language to express complextests. However, it assumes statechart designers to be ﬂuent
+in the programming language that is used to express the unit
+tests, and requires them to know Sismic ’s API. This is not
+necessarily the case, since domain experts may not have aprofound knowledge of the programming language details
+of how to specify and run unit tests. Hence, the need to use
+both a modelling language (for expressing statecharts) and aprogramming language (for writing unit tests) introduces an
+unnecessary technical gap. It goes against the main principles
+of software modelling, which aims at hiding the accidentalcomplexity and technical details of the underlying program-
+ming language.
+5.6 Define Scenarios and Implement Scenario Steps
+To avoid needing to code tests programmatically, the tech-
+nique of BDD allows to bridge the gap between informal user
+stories (such as the one shown in Fig. 11) and executable sce-
+narios expressed using the Gherkin language. This allows
+the domain expert to express scenarios in a domain-speciﬁcnatural language and only requires the knowledge of a fewspeciﬁc Gherkin keywords for their writing. Figure 16pro-
+vides a concrete but partial example of such scenarios.
+In order to be able to execute scenarios, a Python developer
+needs to write code deﬁning the mapping from the actions andassertions expressed as natural language sentences in the sce-
+narios (using speciﬁc keywords such as given ,when ,and or
+then ) to Python code that manipulates the statechart. Sismic
+already provides a set of predeﬁned statechart-speciﬁc steps
+that can be used in scenarios, such as “ Given I send
+event {name} ”o r“ Then event {name} should
+be fired ”.
+While these predeﬁned steps should be sufﬁcient to manip-
+ulate the statechart, it is sometimes more intuitive to usedomain-speciﬁc steps to write scenarios. For instance, thedomain-speciﬁc step “ Given I open the door ” cor-
+responds to the action of sending an event door_opened to
+the statechart. The mapping from this domain-speciﬁc stepto the action of sending a door_opened event to the state-
+chart could be deﬁned using plain Python code that accesses
+Sismic ’s interpreter, as illustrated by the following code frag-
+ment:
+1from behave import given
+2
+3 @given( ’ I open the door ’ )
+4def open_the_door(context ):
+5 return context . interpreter . queue( ’door_opened’ )
+Alternatively, this domain-speciﬁc step can be imple-
+mented more easily as an alias of predeﬁned step “ Given
+I send event door_opened ”. To do so, Sismic ’s API
+provides two convenient helpers to map new steps to prede-ﬁned ones, namely map_action andmap_assertion .
+Using these helpers, one can easily implement the domain-
+123
+
+--- Page 15 ---
+A method for testing and validating executable statechart models
+Feature : Cooking
+Scenario : Start and stop cooking
+Given I open the door
+And I place an item in the oven
+A n d I close the door
+And I press increase timer button 5 times
+A n d I press increase power button
+W h e n I press start button
+Then heating turns on
+W h e n I press stop bu tton
+Then heating turns off
+[...]
+Feature : Lighting
+Scenario : L a m p is on when door is open
+When I open the door
+Then lamp turns on
+When I c l o s e the door
+Then lamp turns off
+Scenario : L amp is on while cooking
+Given I open the door
+And I place an item in the oven
+A n d I close the door
+And I press increase timer button 5 times
+W h e n I press start button
+Then lamp turns on
+[...]
+Feature: Safety Criterion
+Background : Put food and prepare for cooking
+Given I open the door
+And I place an item in the oven
+A n d I close the door
+And I press increase timer button 5 times
+Scenario : No heating when door is not closed
+Given I open the door
+W h e n I press start button
+Then heating does not turn on
+Scenario : Opening door interrupts heating
+Given I press start button
+And 3 seconds ela psed
+When I open the door
+Then heating turns off
+[...]
+Fig. 16 Scenarios (expressed in Gherkin language) describing part of
+the intended functionality of a microwave ovenspeciﬁc steps of Fig. 16, as illustrated by the following code
+fragment:
+1from sismic .bdd import map_action, map_assertion
+2
+3 map_action( ’ I open the door’ ,
+4 ’ I send event door_opened’ )
+5 map_action( ’ I place an item in the oven’ ,
+6 ’I send event item_placed’)
+7 ...
+8 map_assertion(’Heating turns on’ ,
+9 ’Event heating_on is fired ’)
+10 map_assertion( ’Heating does not turn on’ ,
+11 ’Event heating_on is not fired ’)
+6 Running example: Statechart Testing
+Phase
+This section revisits our running example to explain how
+theStatechart Testing Phase (presented in Sect. 3.2) can be
+carried out in a semi-automated way based on the Sismic
+tool presented in Sect. 4. Each of the following subsections
+correspond to one of the tasks of the Statechart Testing Phase ,
+summarised in the use case diagram of Fig. 17.
+As shown in Fig. 17, there are three complementary ways
+of testing statecharts: through an external UI, by runningunit tests or by running scenarios. Independently of whichof these techniques is being used (preferably allof them),
+the statechart interpreter will also continuously monitor for
+violation of contracts and property statecharts.
+6.1 Monitor contracts
+Sismic ’s statechart interpreter supports run-time monitoring
+of contract violations. Unless if explicitly instructed to dis-
+able contract checking, the interpreter monitors all contract
+conditions during statechart execution. This implies that con-tracts are monitored by default when running unit tests orBDD scenarios. Contracts are speciﬁed directly as part of
+the statechart description (as illustrated in Fig. 14). Con-
+Fig. 17 Use case diagram
+summarising the tasks of theStatechart Testing Phase
+123
+
+--- Page 16 ---
+T. Mens et al.
+$ python −m unittest tests microwave .py
+Ran 2 tests in 0.089s
+OK
+Fig. 18 Result of running the unit tests on the Controller statechart
+tracts can be speciﬁed using the action language supported
+by the action code evaluator (Python by default) and can
+use a range of useful predicates. If a contract is violated,aPreconditionError ,PostconditionError or
+InvariantError is raised.
+6.2 Monitor properties
+Sismic ’s statechart interpreter provides built-in support for
+verifying property statecharts such as the ones of Figs. 12
+and 13. To monitor property statecharts at run-time, it sufﬁces
+to bind them to the interpreter using its bind_property_state-
+chart method. Property statecharts are automatically moni-
+t o r e db yt h e sismic-bdd command-line interface if they are
+provided using the -- properties parameter.
+During the execution of the statechart, the interpreter will
+monitor for property violations by checking whether theproperty statechart arrives in a ﬁnal state. As soon as this
+happens, the interpreter raises a PropertyStatechart-
+Error . It is up to the statechart designer to decide how to
+cope with this violation (e.g. by executing appropriate excep-
+tion handling code).
+6.3 Run Unit Tests
+Running unit tests that make use of Sismic ’s API, such as
+those shown in Fig. 15, is straightforward. Developers can
+use their favourite unit testing framework to run the unit tests.
+For example, one could use Python’s built-in unittest library
+in the usual way, as illustrated in Fig. 18.
+6.4 Manually test through UI
+An intuitive way of validating the behaviour of a statechart
+design is by exploring its behaviour by means of a simplyGUI (such as the one of Fig. 19) that directly interacts with
+its associated statechart. To achieve this, one needs to bind
+the statechart interpreter to the event handler of the GUI, and
+to instruct speciﬁc UI actions (such as pressing a button) tosend events to the statechart interpreter or vice versa. The
+GUI shown in Fig. 19has been implemented using Python’s
+tkinter library. We refer the interested reader to Sismic ’s
+online documentation for more details on how to integrate
+statecharts with external Python code.
+Exploring the executable statechart behaviour through this
+GUI will allow a Tester to manually discover conceptual
+Fig. 19 GUI for interacting with the Controller statechart (imple-
+mented in Python with tkinter )
+errors. For example, trying to decrease the timer too much
+(by means of the timer –button) will result in a violation
+of the invariant timer >=0on statecontroller because the
+action associated with event timer_dec in stateclosedwith
+item decreases the value of timer (that was initialised to 0
+by the entry action of controller )t o −1. As a consequence,
+the interpreter raises an InvariantError , whose output
+is presented in Fig. 20.
+This contract violation corresponds to a typical out of
+range error. It can be solved easily by adding a guard [timer
+>0]to the event-action pair timer_dec/timer = timer - 1
+deﬁned on state closedwithitem in Fig. 14. The guard will
+preventtimer from being decreased if its value is already
+0. In a similar way, guards should be added to the eventspower_inc andpower_dec deﬁned on state programmode
+to avoid violations of invariant 0<=power <=MAX-
+POWER .
+6.5 Run Scenarios
+Assume that the scenarios of Fig. 16a r es t o r e di n .fea-
+ture ﬁles and that a mapping ﬁle steps.py has been deﬁned
+containing the code required to map the natural languagesentences of these scenarios to Python code that manipulates
+the statechart. The sismic-bdd command-line interface
+can then consecutively run each scenario contained in eachfeature ﬁle on the statechart (stored in ﬁle microwave.yaml ).
+The result of the execution will be a summary of all executed
+scenarios and encountered errors (if any), as shown in Fig. 21.
+The “Start and stop cooking” scenario (see Fig. 16) causes
+a violation of a contract during the execution of the step
+“When I press stop button”. Indeed, the cooking_stop event
+that is sent to the statechart when this step is executed triggersthe internal transition of the root state controller . The exe-
+cution of the action power = POWER_DEFAULT of the
+transition results in a modiﬁcation of the value of the inter-nal variable power and thus in a violation of the invariant
+123
+
+--- Page 17 ---
+A method for testing and validating executable statechart models
+Fig. 20 Example output
+produced upon violation of a
+statechart contractsismic . exceptions . InvariantError : InvariantError
+Object : CompoundState( ’ c ontroller ’)
+Assertion : timer >=0
+Configuration : [ ’ c ontroller ’ , ’door closed ’ , ’closed with item ’ ,
+’program mode’ , ’not ready ’ ]
+Step : Step@0(
+Event( ’timer dec ’) ,
+[ Transition(’ controller ’ , None, event=’timer dec ’)] , >[],<[])
+Context :
+−POWER VALUES = [ 3 0 0 , 6 0 0 , 9 0 0 , 1 2 0 0 , 1 5 0 0 ]
+−POWER DEFAULT = 2
+−MAXPOWER = 3
+−power = 2
+−timer = −1
+Fig. 21 Result of running the
+BDD scenarios on theController statechart$ sismic −bdd microwave .yaml
+features cooking. feature lighting . feature satefy . feature
+steps steps .py
+Feature : Cooking
+Scenario : Start and stop cooking
+Given I open the door
+...
+W h e n I press stop button
+Assertion Failed : InvariantError
+Object : BasicState ( ’ cooking mode’)
+Assertion : power = = old .p o w e r
+...
+...
+Failing scenarios :
+cooking . feature :3 Start and stop cooking
+2 features passed , 1 failed , 0 skipped
+5 scenarios pa ssed , 1 failed , 0 skipped
+28 steps passed , 1 failed , 1 skipped , 0 undefined
+Took 0m0.130 s
+power == __old__.power speciﬁed for the cooking
+mode state.
+It is up to the Software Engineer to decide to either forbid
+resetting the power variable, or to weaken the state invari-
+ant ofcookingmode to allow changing the power variable
+when acooking_stop event is received, e.g. power ==
+__old__.power or received(‘cooking
+_stop’) .
+7 Evaluation
+To evaluate the proposed method and the usefulness and
+usability of the proposed techniques for validating and test-ing statecharts, we conducted a controlled user study usingtheSismic tool presented in Sect. 4.
+7.1 Experimental set-up
+The aim of the study was to evaluate:– The usefulness of three of the proposed techniques for
+testing and validating statecharts, namely BDD, DbC
+and dynamic monitoring for violations of property stat-echarts. We did not evaluate the unit testing technique,
+because we do not consider it as a new contribution and
+we did not expect all participants to have sufﬁcient pro-gramming experience in Python unit test frameworks.
+– The usability of the proposed implementation of the tech-
+niques in the Sismic tool.
+Thirteen persons between 22 and 34 years old were
+selected to take part in the study based on convenience
+sampling. All participants were already familiar with the stat-echart formalism, and all had a higher education degree (3
+master students, 6 PhD students and 4 postdoc researchers).
+Each participant was handed out a questionnaire contain-
+ing the instructions for the experiment. For reproducibility
+purposes, the full questionnaire and set of answers of each
+participant can be found on https://github.com/ecos-umons/
+sismic-validation .
+123
+
+--- Page 18 ---
+T. Mens et al.
+Fig. 22 Statechart of a
+simpliﬁed microwave oven
+controller
+controller
+entry: timer = 0
+door opened
+door closed
+timer_inc / timer = timer + 1
+timer_dec / timer = timer - 1
+timer_reset / timer = 0
+cooking mode
+entry / send('heating_on')
+timer_tick / timer = timer - 1program mode[timer == 0] /
+send('heating_off');
+send('beep', number=3)
+cooking_start
+[timer > 0]door_opened door_closed
+After responding to a set of preliminary questions, par-
+ticipants were required to install Sismic on their machines.
+No particular installation problems were encountered. The
+actual experiment started from a simpliﬁed version of themicrowave oven, for which the participants were ﬁrst asked
+to understand and test its behaviour. Next they were asked
+to extend this functionality in a test-driven way, using themethod, techniques and tools presented in this paper. To helpin this activity, participants were provided with the following
+information at the outset of the experiment:
+– A simpliﬁed version of the GUI of Fig. 19to simulate the
+oven’s behaviour.
+– A textual description (Y AML ﬁle) and visual rendering
+(similar to Fig. 22) of the statechart of the oven controller.
+– An explanation of how the GUI interaction (e.g. button
+presses) has been mapped to statechart events.
+– Executable BDD scenarios (expressed in Gherkin) for the
+oven’s behaviour.
+– Steps ﬁles (in Python) expressing the mapping of the
+scenarios to instructions for the statechart interpreter.
+– An example of a property statechart.
+The experiment was composed of 9 successive tasks ( T1to
+T9). As illustrated in the rightmost boxplot of Fig. 23, the total
+experiment took between 58 and 338 minutes (median value
+of 162), depending on the participant. With a few exceptions,the tasks increased in complexity, reﬂected by an increasing
+time required to carry them out.
+TasksT1toT4were devised to get acquainted with the
+provided example and ﬁles. During these tasks, the partici-
+pants were expected to play the role of a Tester who has not
+been involved in the statechart design but is required to testand validate the statechart. The tasks were the following:T1 T2 T3 T4 T5 T6 T7 T8 T9050100Duration (in minutes)
+Total0100200300
+Fig. 23 Boxplots showing the duration of each task (blue) and in total
+(green)
+T1corresponds to task Manually test through UI of the Test-
+ing Phase of the proposed process. Participants were
+asked to get familiar with the provided GUI and to use it
+to discover possible problems in the oven behaviour.
+T2is a preparatory task to make the participants familiar
+with the Gherkin language and the provided scenarios.
+T3corresponds to task Run Scenarios of the Testing Phase of
+the proposed process. Participants were expected to playt h er o l eo fa Tester who is unfamiliar with the statechart
+design but is required to test the statechart behaviour on
+the basis of the provided scenarios.
+T4is a preparatory task to make the participants familiar with
+the textual and visual notation of the provided statechart.
+TasksT5toT9were designed to give the participants
+hands-on experience with the proposed techniques. Thistime, the participants play the role of a Software Engineer .
+The tasks were the following:
+T5aims at applying a full iteration over the statechart design
+and Testing Phase , focusing on the DbC technique.
+The participant ﬁnds herself at the position where new
+requirements need to be added to an existing (and pre-
+viously tested) statechart. She starts by carrying out thetask Enrich Statechart with Contracts to ensure that the
+123
+
+--- Page 19 ---
+A method for testing and validating executable statechart models
+Fig. 24 Participant familiarity
+with BDD before the experiment
+(left) and likelihood of using
+BDD during modiﬁcation ofexisting statecharts after theexperiment (right)
+I don’t know what this is
+I know it but never used itI use it occasionally
+I use it regularly036912
+Not at all
+SlightlyModerately
+VeryExtremely036912
+timer value should never be negative and never exceed
+one hour. Next, the participant applies the Manually test
+through UI task to detect errors in the statechart design.
+Based on these errors, she carries out the task Deﬁne Stat-
+echart to make the statechart behaviour compatible with
+the added contract. The participant iterates until she is
+conﬁdent that the statechart is correctly deﬁned.
+T6aims at applying another iteration over the statechart
+design and Testing Phase , focusing this time on the BDD
+technique. The participant is asked to add lamp function-
+ality to the oven behaviour. To do so, she ﬁrst carries outtasks Deﬁne Scenarios andRun Scenarios over the state-
+chart. Based on the scenario test results, she carries out the
+task Deﬁne statechart to make the statechart behaviour
+compatible with the new scenarios. The participant iter-
+ates until she is conﬁdent that the statechart is correctly
+deﬁned.
+T7provides more scenarios regarding lamp functionality to
+the participant. The participant needs to follow a similar
+process as in the previous task until she is conﬁdent that
+the statechart is correctly deﬁned.
+T8aims at applying a full iteration over the statechart design
+andTesting Phase , focusing on the technique of property
+statecharts. First, participants are given the ﬁrst propertystatechart depicted in Fig. 12and iterate over the tasks
+Deﬁne Statechart ,Manually test through UI andMonitor
+properties until they are conﬁdent that the statechart does
+not violate this property. Next, they are expected to carryout task Deﬁne properties to deﬁne the second property
+statechart of Fig. 12and to iterate until they are conﬁdent
+that the statechart under test does not violate this property.
+T9aims at adding weight sensor functionality to the
+microwave oven, using all provided testing techniques.
+The participants have to deﬁne and run new scenariosfor this functionality and ensure that all existing con-
+tracts and properties remain satisﬁed while adding this
+new functionality. To do so, they use the Manually test
+through UI andRun Scenarios tasks, with both implicitly
+rely on Monitor properties andMonitor contracts .
+At the end of each task, participants were asked to respond
+to a series of questions, some following a Likert rating scale,and others being open-ended in order to allow us to receive
+more detailed feedback. The questions aimed at assessing
+the usefulness and usability of the three proposed statechart
+testing and validation techniques. We present the analysisresults of each technique separately below. We summarise
+the responses to each Likert-scale question in ﬁgures (e.g.
+Fig. 24) that combine a bar chart with a boxplot showing the
+minimum, ﬁrst quartile, median, third quartile and maximumvalues. In addition, a red vertical dashed line shows the mean
+value.
+7.2 Evaluation of BDD
+At the outset of the experiment, most participants indicated
+that they were either unaware of BDD or that they wereknowledgeable about the technique but never used it before
+(Fig. 24). During the experiment, the participants were asked
+to run existing BDD scenarios, as well as to provide andtest more scenarios while extending the statechart with more
+functionality. At the end of the experiment, at least 9 out
+of 13 participants responded that they were either very or
+extremely likely to use the BDD technique for the purpose of
+supporting statechart creation (9Participants ),veriﬁcation
+(9Participants ) and modiﬁcation (11Participants ), respec-
+tively.
+Figure 25shows that, after having read BDD scenarios
+for the provided example, most participants found them to
+bevery orextremely easy to understand, and easy orvery
+easy to specify themselves. Figure 26(left) shows that par-
+ticipants were very orextremely conﬁdent that the oven
+controller satisﬁed the provided scenarios. After executingthe scenarios with sismic-bdd , their conﬁdence increased
+even more, on average (Fig. 26right).
+Overall, participants were very positive about the BDD
+approach. For example, one participant found them “ useful
+for deﬁning high-level tests, even non-programmers (eg. the
+client) can write them. ” Another participant answered that
+“it is really user-friendly as there is no need to learn some
+speciﬁc language and we can just read the scenarios like
+user stories. ” Related to the expressiveness, one participant
+believed the natural speciﬁcation language to be “ suitable
+enough to describe most of the possible scenarios. ” Finally,
+123
+
+--- Page 20 ---
+T. Mens et al.
+Fig. 25 Understandability (left)
+and ease of speciﬁcation (right)
+of BDD scenarios
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Very difficult
+DifficultEasy
+Very easy036912
+Fig. 26 Conﬁdence in the
+speciﬁed BDD scenarios beforetheir execution (left) andincrease in conﬁdence after theirexecution (right)
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Much lower
+LowerAbout the same
+HigherMuch higher036912
+Fig. 27 Participant familiarity
+with DbC before the experiment(left) and likelihood of usingDbC during modiﬁcation ofexisting statecharts after theexperiment (right)
+I don’t know what this is
+I know it but never used itI use it occasionally
+I use it regularly036912
+Not at all
+SlightlyModerately
+VeryExtremely036912
+one participant responded that “ even for ‘easy’ changes in
+the statecharts, related scenarios helped me to validate thecorrectness of my work. ”
+From the negative side, some participants complained
+about the verbosity, lack of scalability and lack of exhaus-
+tiveness. For example, one participant found it “ hard to be
+exhaustive while specifying tests. ” Another one asked “ Does
+it scale up to complexity with more complex use cases? ”A
+third one answered that “ Using human-readable functional
+scenarios is too verbose. The real behaviour of the scenario
+is hidden behind the peculiarities of the ‘human readable’
+language used. ”
+7.3 Evaluation of DbC for statechart monitoring
+At the outset of the experiment, most participants were
+knowledgeable about DbC, but only 3 participants had actu-ally used it (Fig. 27left). During the experiment, participants
+were asked to add new contracts to an existing statechart, to
+monitor the statechart behaviour with these contracts, andto modify the contracts while extending the statechart with
+new functionality. At the end of the experiment, at least 9
+out of 13 participants responded that they were either very
+orextremely likely to use DbC for the purpose of creating(10Participants ),verifying (10Participants )o rmodifying (9
+Participants ) statecharts, respectively.
+Figure 28shows that most participants were very or
+extremely convinced about the usefulness of contract spec-
+iﬁcation and monitoring during statechart design, and they
+found the implementation as provided by Sismic to be con-
+venient orvery convenient .
+7.4 Evaluation of property statecharts
+We did not ask participants about previous familiarity with
+the technique of property statecharts, as this technique was
+newly proposed for Sismic . During the experiment, the par-
+ticipants were asked to check the statechart for propertyviolations on the basis of a property statechart that was pro-
+vided to them. They were also asked to add and monitor
+another property statechart representing a different property.
+Figure 29shows that most participants (10) found prop-
+erty statecharts to be easy orvery easy to understand. On
+average, participants found it less easy to write property stat-echarts themselves. Five out of 13 participants even found
+thisdifﬁcult orvery difﬁcult . At the end of the experiment,
+most participants found property statecharts to be very use-
+ful or better (Fig. 30, left). Despite their perceived difﬁculty,
+123
+
+--- Page 21 ---
+A method for testing and validating executable statechart models
+Fig. 28 Usefulness of statechart
+contracts (left) and convenience
+of their implementation in
+Sismic (right)
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Very inconvenient
+InconvenientConvenient
+Very convenient036912
+Fig. 29 Understandability (left)
+and ease of designing propertystatecharts (right)
+Very difficult
+DifficultEasy
+Very easy036912
+Very difficult
+DifficultEasy
+Very easy036912
+Fig. 30 Usefulness of property
+statecharts (left) and likelihoodof using property statechartsduring modiﬁcation of existingstatecharts (right)
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Not at all
+SlightlyModerately
+VeryExtremely036912
+8 out of 13 participants responded that they were very likely
+to use it in the future for modifying existing statecharts.
+7.5 Discussion
+The controlled user study ended with an appreciation of the
+usefulness of each evaluated technique for testing and vali-dating statecharts, and the ease of use of its implementation
+inSismic . The received responses provide initial evidence
+that BDD scenarios and run-time monitoring of contractsand property statecharts are all beneﬁcial during statechart
+design. Most participants indicated that they were (very)
+likely to use each of these techniques in the future for thepurpose of creating new statecharts, or for verifying or mod-ifying existing ones.
+It is worthwhile to note that the large majority of the par-
+ticipants had never used BDD or DbC before participating inthe study. Most of them also did not have a formal methods
+background. Despite this, they did not have a big problem in
+applying the proposed approaches for the purpose of state-chart testing.
+The complementarity of the statechart testing and valida-
+tion techniques was highlighted by the participants in theirresponses. On the one hand, the ability of run-time moni-toring of contracts and property statecharts were appreciated
+by one participant “ because it can capture several paths ”:
+the properties and assertions that are expressed by property
+statecharts and contracts are veriﬁed at run-time, regardless
+of the followed execution path. Nevertheless, as indicatedby another participant, it “ requires a large number of tests
+to be useful ”. On the other hand, a participant found BDD
+scenarios to be “ suitable enough to describe most of the pos-
+sible scenarios ”, but agreed that it is “ hard to be exhaustive
+while specifying tests ”. Indeed, BDD scenarios only test one
+execution path at a time, and being exhaustive would requirea very large, even inﬁnite number of scenarios. A similarremark could be made about the expressiveness of statechart
+contracts. Because they are deﬁned on individual states, it is
+not possible to use them to express behavioural properties orinvariants that involve visiting multiple states. Another limi-
+tation in expressiveness is caused by the absence of some kind
+of “memory”, preventing contracts to express the temporalityor causality required for some properties. Contracts should
+therefore be considered as a complementary technique to the
+mechanism of property statecharts. This discussion revealsthe need of providing and combining a range of different andcomplementary techniques for testing and validating state-
+charts, as proposed by our method and associated tooling.
+123
+
+--- Page 22 ---
+T. Mens et al.
+Fig. 31 Readability of a visual
+(left) or textual (right) statechart
+representation
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Not at all
+SlightlyModerately
+VeryExtremely036912
+Fig. 32 Ease of designing a
+statechart using a visual (left) ortextual (right) representation
+Very difficult
+DifficultEasy
+Very easy036912
+Very difficult
+DifficultEasy
+Very easy036912
+The implementation of Sismic that was used for the
+experiment did not yet provide any means for visualising stat-
+echarts. Being aware of this possible limitation, we assessedits effect on the ease of reading, designing and modifying
+statecharts. Figures 31and 32reveal a slight tendency of
+participants preferring a visual over a textual representation.One of the participants commented that “ generally speaking
+the choice would depend on the person using it ” and we “ see
+beneﬁt in providing both (or rather, not removing the textualoption given the availability of a visual editor) ”. We have
+taken into account this valuable remark and provided sup-
+port for visualising statecharts using PlantUML and editing
+statecharts graphically using the ASEME IDE.
+7.6 Threats
+The controlled study suffers from several threats to validity.
+Therefore, the ﬁndings should merely be used as anecdo-
+tal evidence of the usefulness of the proposed process andtechniques.
+As a ﬁrst threat to validity, the number of participants was
+fairly low, making it difﬁcult to generalise the ﬁndings. Sec-ondly, the selection of the participants based on conveniencesampling introduced an inevitable bias: all participants were
+either students or researchers. The educational background
+of the participants may have played a role in the evaluation,and practitioners or company employees involved in state-
+chart design might have another opinion.
+In order to use the proposed method and Sismic tooling, a
+certain amount of programming experience is desirable, due
+to the fact that Sismic is a library as opposed to a full-ﬂedged
+visual modelling environment. All selected participants hadsome amount of programming practice in Python (rangingbetween less than 1 year and more than 5 years), and their
+self-assessed proﬁciency with Python ranged from poor to
+good.
+Another threat relates to the complexity of the tasks that
+the participants were asked to carry out. Given the limited
+amount of available time, the examples and tasks providedto them were relatively simple. Hence, we cannot generalise
+the ﬁndings to more realistic designs that are likely to be
+more complex.
+Because of the fairly low number of participants, our study
+did not include a control group. As a consequence, we cannot
+make any claims on how the proposed techniques compare
+to other techniques (or using none at al) for statechart testingand validation. In follow-up work, we plan to evaluate the
+actual impact of using the proposed techniques and tools on
+the quality of statechart designs, as well as on the productivityof the designers and testers.
+8 Related work
+8.1 Related tools
+Many tools exist for specifying executable statecharts and
+generating code from them (e.g. StateMate ,Rhapsody ,State-
+ﬂow ,Yakindu ,visualSTATE , and many more). Most of these
+tools are commercial and offer a complete modelling envi-
+ronment. Sismic differs from this in two ways. First of all, it
+is provided as a library to facilitate its use as part of other
+applications. Secondly, it is provided as a fully documented
+and modular open-source research prototype, so that it can
+be used freely as a platform for carrying out research exper-iments. While many tools (or plug-ins for them) provide
+123
+
+--- Page 23 ---
+A method for testing and validating executable statechart models
+support for test-driven design, we are not aware of any tool
+providing the combination of testing techniques provided bySismic . Within the open-source realm, two tools are never-
+theless worthwhile mentioning. Papyrus (www.eclipse.org/
+papyrus/ ), combined with Moka , is an integrated modelling
+environment in Eclipse supporting simulation and execu-tion of UML models. It does not provide built-in support
+for statechart testing as in Sismic , but plug-ins could be
+developed to achieve this. AutoFOCUS 3 (af3.fortiss.org )
+is an integrated open-source modelling tool that supports
+requirements analysis, simulation and testing of models, for-
+mal model checking and veriﬁcation, architectural designand optimisation of software and hardware components, and
+design space exploration [ 1]. While being very complete,
+it is different from Sismic in that the behavioural models
+are expressed as ﬁnite-state automata rather than full-ﬂedgedhierarchical statecharts.
+8.2 Unit testing of statechart models
+Dietrich et al. [ 12] applied unit testing to UML statecharts
+and implemented it in a model simulation tool called Syntony .
+Test cases were deﬁned using UML sequence diagrams, pro-viding scenarios that are veriﬁed over the statechart undertest. The Yakindu statechart tool for Java ( www.statechart.
+org) also provides support for unit testing using SCUnit, a
+framework that supports writing tests over statecharts, andrunning these tests with the JUnit testing framework.
+8.3 BDD for statechart modelling
+We found very little related work on the use of BDD at amodelling level. Lazar et al. [ 33] proposed bUML, a tool to
+combine BDD with model-driven development based on a
+speciﬁc UML proﬁle, and compliant with the fUML actionlanguage. While the authors propose a visual UML syntax
+for expressing BDD scenarios, they only apply it to planning
+and monitoring of project progress, rather than using it fortesting behavioural models like UML statecharts, as is the
+case in Sismic .
+8.4 DbC for statechart modelling
+At the level of UML models, DbC has mainly be used for
+class diagrams. Cabot [ 6] used the UMLtoCSP tool to trans-
+form such contracts into a constraint satisfaction problemthat is fed to a constraint solver. Gogolla implemented sup-
+port for validating such contracts through the USE tool [ 24].
+This tool has been extended with contract support for proto-col state machines [ 26] and sequence diagrams [ 23]. Cariou
+et al. [ 7] applied contracts at the meta-model level to ver-
+ify at run-time whether the statechart execution semanticsis respected. Cimatti et al. [ 8] used component contracts tospecify the behaviour of interacting components and com-
+bined this with a temporal logic framework to formally verifythe contracts using the OCRA tool and the NuSMV symbolic
+model checker. It has a plug-in for the AutoFOCUS3 and the
+CHESS modelling tool.
+8.5 Smart Contracts
+Recently, the technique of smart contracts has emerged as
+a way to specify programs that enforce the application ofrules to govern transactions [ 11], to safeguard contractual
+clauses [ 32] and to deﬁne quality of service (QoS) char-
+acteristics (e.g. performance, availability, security) [ 5]. For
+example, smart contracts have been proposed for support-ing cryptocurrency protocols [ 11,32], as well as executable
+Service Level Agreements (SLAs) for the smart grid [ 5].
+The proposed mechanism of property statecharts can be usedas a way to realise smart contracts. As an example, assume
+that there is an agent A that signs a Service Level Agree-
+ment (SLA) with agent B. The SLA dictates that whenever Areceives a request from B, then A must reply within 1 hour.
+The statecharts in Fig. 33depict the behaviour of agent A
+and the property statechart monitoring the agent’s SLA. Theagent receives requests, and if they are made by afﬁliates,it processes them and subsequently responds. The property
+statechart monitoring the agent’s SLA with agent B starts in
+thewaiting state. If a request from agent B is received by
+agent A and more than one hour passes before a response has
+been issued to B, then the contract is terminated (fails).
+8.6 Automatic generation of tests and contracts
+Ernst et al. [ 17] proposed to automate the generation of con-
+tracts over programs and to detect possible inconsistencies or
+incompleteness in the speciﬁed contracts. To this extent, hedeveloped the Daikon tool that automatically detects likely
+invariants from dynamic program executions. In a similar
+vein, Meyer [ 37] proposed to deduce automated tests from
+contract speciﬁcations. This reduces the burden of needing
+to write many tests manually and facilitates checking cor-
+rectness of a system. It would be beneﬁcial to apply the sameidea to generate statechart tests both from the contracts andthe behavioural properties deﬁned over the statechart and its
+components, especially in combination with the use of muta-
+tion testing to increase the quality of an existing test suite
+[20,49], and concolic testing (a combination of concrete and
+symbolic execution) to generate new test cases to achieve
+higher coverage [ 45].
+8.7 Formal verification and run-time verification
+Approaches based on formal veriﬁcation and model checking
+allow to verify properties (e.g. related to reachability, live-
+123
+
+--- Page 24 ---
+T. Mens et al.
+Fig. 33 Example of statecharts
+for smart contracts between two
+communicating agents A and B.
+aStatechart representing the
+behaviour of agent A. b
+Property statechart monitoringthe SLA with another agent B
+Agent A Behaviour
+receive request process requestrespond
+message_received [event.sender.isAfﬁliated()]message_sent
+SLA with Agent B
+waiting
+received message [after(3600)]event consumed
+[event.event.name == 'message_received'
+and event.event.sender.name == 'B']event consumed
+[event.event.name == 'message_sent'
+and 'B' in event.event.recipients
+and not after(3600)](a)
+(b)
+ness, fairness and safety) over the system under study (in our
+case, a statechart model) [ 2]. Such techniques often rely on a
+model checker tool and need to cope with problems related tospace explosion. Formalisms based on temporal logics allow
+to specify properties qualiﬁed in terms of time and rely on a
+model checker to verify such properties. For example, Gnesiet al. [ 22] presented JACK, a model checker that veriﬁes
+correctness properties over UML statecharts. These prop-
+erties are expressed in a variant of branching time temporal
+logic, and a labelled transition system (derived from the state-chart) is checked against these requirements. Another family
+of veriﬁcation approaches is the one based on some vari-
+ant of ﬁnite automata (a.k.a. ﬁnite-state machines or FSMs).This includes labelled transition systems, timed automata,
+hybrid automata and counter automata. They have the advan-
+tage of being more similar to the statechart language (sincethey are also based on states and transitions), hence reduc-ing the mental gap to express properties in these formalisms.
+Among many others, the LTSA tool, based on labelled tran-
+sition systems, has been proposed to analyse the behaviour ofconcurrent systems [ 36]. While their usefulness seems with-
+out doubt, their usability has been criticised, and different
+attempts have been made to increase the usability by non-logicians [ 4,9,16].
+Run-time veriﬁcation is based on similar techniques
+(including regular expressions, temporal logics, statemachines and rule-based programming [ 21]), but aims at
+monitoring observable behaviours or properties over an exe-
+cuting system. Run-time veriﬁcation checks for violation
+of properties at run-time, at the expense of providing lesscoverage than formal veriﬁcation approaches [ 35]. Whilenumerous approaches have used state machines or related
+mechanisms to monitor the execution of programs, much less
+research has focused on monitoring of executable statechartmodels. Drusinsky [ 14,15] proposed to monitor violations
+of temporal logic assertions aver statecharts at run-time.
+The notion of property statecharts explored in this articleis different, in that it offers the full expressive power ofstatecharts to monitor properties over statecharts. Because
+arbitrary Python code can be used (e.g. in transition actions),
+property statecharts are Turing complete. Nevertheless, dueto the “fail-fast” approach adopted by Sismic ’s interpreter for
+their veriﬁcation, property statecharts are mainly intended to
+check for the presence of undesirable behaviour (safety prop-erties), i.e. properties that can be checked on a (ﬁnite) preﬁx
+of a (possibly inﬁnite) execution trace. While it is technically
+possible to use property statecharts to express liveliness prop-erties (something desirable eventually happens), this would
+require additional support for their veriﬁcation.
+9 Conclusion
+This article presented a new method for testing and validatingexecutable statecharts. The method is supported by Sismic ,
+an open- source research prototype tool that we developed
+speciﬁcally for this purpose. The Sismic method enhancestraditional statechart design with a range of techniques that
+have already proven their usefulness for source code devel-
+opment. All of these techniques can be combined easily totest and validate statechart designs.
+123
+
+--- Page 25 ---
+A method for testing and validating executable statechart models
+A straightforward way of testing statecharts relies on writ-
+ing unit tests, but this introduces an unnecessary technical gapof needing to write these tests in an underlying programming
+language. The technique of behaviour-driven development
+(BDD) overcomes this limitation by allowing to specify sce-narios of desired functional behaviour in a semi-formal nat-ural language and to use these scenarios as executable func-
+tional tests over the statechart. This approach has the advan-
+tage of only needing a minimum amount of mapping code.
+We also provided two techniques for run-time veriﬁcation
+of statecharts. The ﬁrst one consists of applying the princi-
+ple of design by contract (DbC) at the level of statecharts,allowing to specify preconditions, postconditions and invari-
+ants on states and transitions, and monitoring violations these
+contracts during statechart execution. The second techniqueconsists of specifying behavioural properties as statechartsthemselves, allowing the statechart under test to be monitored
+at run-time for violations of these properties.
+We evaluated the proposed method, and more in particu-
+lar the usefulness and usability of the proposed techniques
+through a controlled user study conducted with thirteen par-
+ticipants. All techniques were considered to be useful andcomplementary. Participants reported that they were likely
+to use each of the proposed techniques for creating new
+statecharts, or for verifying or modifying existing ones.Participants also indicated that the implementation of thetechniques in Sismic w a se a s yt ou s e .
+Acknowledgements We express our gratitude to Jordi Cabot, Simon
+V an Mierlo, Gauvain Devillez and Mathieu Goeminne, and severalanonymous reviewers for providing comments on earlier versions ofthis article.
+References
+1. Aravantinos, V ., V oss, S., Teuﬂ, S., Hölzl, F., Schätz, B.: AutoFO-
+CUS 3: tooling concepts for seamless, model-based developmentof embedded systems. In: International Workshop on Model-BasedArchitecting of Cyber-Physical and Embedded Systems and Inter-national Workshop on UML Consistency Rules, V olume 1508 ofCEUR Workshop Proceedings, pp. 19–26. CEUR-WS.org (2015)
+2. Baier, C., Katoen, J.-P .: Principles of Model Checking. MIT Press,
+Cambridge (2008)
+3. Beck, K.: Test-Driven Development by Example. Addison-Wesley,
+Reading (2002)
+4. Beer, I., Ben-David, S., Eisner, C., Fisman, D., Gringauze, A.,
+Rodeh, Y .: The temporal logic sugar. In: International ConferenceComputer Aided V eriﬁcation (CA V), pp. 363–367. Springer (2001)
+5. Bunse, C., Klingert, S., Schulze, T.: Greenslas: supporting energy-
+efﬁciency through contracts. In: International Workshop on EnergyEfﬁcient Data Centers, pp. 54–68. Springer (2012)
+6. Cabot, J., Clarisó, R., Riera, D.: On the veriﬁcation of UML/OCL
+class diagrams using constraint programming. J. Syst. Softw. 93,
+1–23 (2014)
+7. Cariou, E., Ballagny, C., Feugas, A., Barbier, F.: Contracts for
+model execution veriﬁcation. In: European Conference ModellingFoundations and Applications (ECMFA), V olume 6698 of LecturerNotes in Computer Science, pp. 3–18. Springer (2011)8. Cimatti, A., Tonetta, S.: Contracts-reﬁnement proof system for
+component-based embedded systems. Sci. Comput. Program. 97,
+333–348 (2015)
+9. Corbett, J.C., Dwyer, M.B., Hatcliff, J., Robby.: A language frame-
+work for expressing checkable properties of dynamic software.In: International SPIN Model Checking and Software V eriﬁcationWorkshop, V olume 1885 of Lecturer Notes in Computer Science,pp. 205–223. Springer (2000)
+10. Cossentino, M., Gaglio, S., Garro, A., Seidita, V .: Method frag-
+ments for agent design methodologies: from standardisation toresearch. Int. J. Agent Oriented Softw. Eng. 1(1), 91–121 (2007)
+11. Delmolino, K., Arnett, M., Kosba, A., Miller, A., Shi, E.: Step by
+step towards creating a safe smart contract: lessons and insightsfrom a cryptocurrency lab. In: International Conference on Finan-cial Cryptography and Data Security, pp. 79–94. Springer (2016)
+12. Dietrich, I., Dressler, F., Dulz, W., German, R.: V alidating UML
+simulation models with model-level unit tests. In: InternationalConference Simulation Tools and Techniques (SIMUTools) (2010)
+13. Douglas, B.P .: Doing Hard Time: Developing Real-Time Systems
+with UML, Objects, Frameworks, and Patterns. Addison-Wesley,Reading (1999)
+14. Drusinsky, D.: Semantics and runtime monitoring of TLCharts:
+statechart automata with temporal logic conditioned transitions. In:
+Proceedings of the Fourth Workshop on Runtime V eriﬁcation (RV2004), Electronic Notes in Theoretical Computer Science, V olume113, pp. 3–21 (2005)
+15. Drusinsky, D.: Modeling and V eriﬁcation Using UML Statecharts.
+Elsevier Science, Amsterdam (2006)
+16. Dwyer, M.B., Avrunin, G.S., Corbett, J.C.: Patterns in property
+speciﬁcations for ﬁnite-state veriﬁcation. In: International Confer-ence on Software Engineering, pp. 411–420. ACM (1999)
+17. Ernst, M.D., Perkins, J.H., Guo, P .J., McCamant, S., Pacheco, C.,
+Tschantz, M.S., Xiao, C.: The Daikon system for dynamic detectionof likely invariants. Sci. Comput. Program. 69(1–3), 35–45 (2007)
+18. Esmaeilsabzali, S., Day, N.A., Atlee, J.M., Niu, J.: Deconstructing
+the semantics of big-step modelling languages. Requir. Eng. 15(2),
+235–265 (2010)
+19. Estler, H., Furia, C.A., Nordio, M., Piccioni, M., Meyer, B.: Con-
+tracts in practice. In: International Symposium on Formal Methods(FM), V olume 8442 of Lecturer Notes in Computer Science, pp.230–246. Springer (2014)
+20. Fabbri, S.C.P .F., Maldonado, J.C., Sugeta, T., Masiero, P .C.: Muta-
+tion testing applied to validate speciﬁcations based on statecharts.In: International Symposium on Software Reliability Engineering(ISSRE), pp. 210–219. IEEE Computer Society (1999)
+21. Falcone, Y ., Havelund, K., Reger, G.: A tutorial on runtime veriﬁ-
+cation. Eng. Dependable Softw. Syst. 34, 141–175 (2013)
+22. Gnesi, S., Latella, D., Massink M.: Model checking UML stat-
+echart diagrams using JACK. In: International Symposium onHigh-Assurance Systems Engineering (HASE), pp. 46–55. IEEEComputer Society (1999)
+23. Gogolla, M., Hamann, L., Hilken, F., Sedlmeier, M.: Modeling
+behavior with interaction diagrams in a UML and OCL tool.In: Behavior Modeling—Foundations and Applications, BM-FA2009–2014, Revised Selected Papers, V olume 6368 of LecturerNotes in Computer Science, pp. 31–58. Springer (2015)
+24. Gogolla, M., Büttner, F., Richters, M.: USE: a UML-based speci-
+ﬁcation environment for validating UML and OCL. Sci. Comput.Program. 69(1–3), 27–34 (2007)
+25. Gomaa, H.: Designing Software Product Lines with UML: From
+Use Cases to Pattern-Based Software Architectures. Addison Wes-ley, Reading (2004)
+26. Hamann, L., Hofrichter, O., Gogolla, M.: On integrating structure
+and behavior modeling with OCL. In: International Conference onModel Driven Engineering Languages and Systems, V olume 7590
+123
+
+--- Page 26 ---
+T. Mens et al.
+of Lecturer Notes in Computer Science, pp. 235–251. Springer
+(2012)
+27. Harel, D.: On visual formalisms. Commun. ACM 31(5), 514–530
+(1988)
+28. Harel, D., Gery, E.: Executable object modeling with statecharts.
+IEEE Comput. 30(7), 31–42 (1997)
+29. Harel, D., Kugler, H.: The Rhapsody Semantics of Statecharts
+(or, on the Executable Core of the UML), V olume LNCS 3147.Springer, Berlin (2004)
+30. Harel, D., Naamad, A.: The STA TEMA TE semantics of statecharts.
+ACM Trans. Softw. Eng. Methodol. 5(4), 293–333 (1996)
+31. Henderson-Sellers, B., Ralyté, J.: Situational method engineering:
+state-of-the-art review. J. Univers. Comput. Sci. 16(3), 424–478
+(2010)
+32. Idelberger, F., Governatori, G., Riveret, R., Sartor, G.: Evaluation
+of logic-based smart contracts for blockchain systems. In: Interna-tional Symposium on Rules and Rule Markup Languages for theSemantic Web, pp. 167–183. Springer (2016)
+33. Lazar, I., Motogna, S., Parv, B.: Behaviour-driven development of
+foundational UML components. Electron. Notes Theor. Comput.Sci. 264(1), 91–105 (2010). (Int’l Workshop on Formal Engi-
+neering approaches to Software Components and Architectures
+(FESCA))
+34. Leavens, G.T., Cheon, Y .: Design by Contract with JML. Technical
+report, Iowa State University (2006)
+35. Leucker, M., Schallhart, C.: A brief account of runtime veriﬁcation.
+J. Logic Algebr. Program. 78(5), 293–303 (2009). (The 1st Work-
+shop on Formal Languages and Analysis of Contract-OrientedSoftware (FLACOS’07))
+36. Magee, J.: Behavioral analysis of software architectures using
+LTSA. In: International Conference on Software Engineering, pp.634–637. ACM (1999)
+37. Meyer, B.: Contract-driven development. In: International Con-
+ference on Fundamental Approaches to Software Engineering(FASE), V olume 4422 of Lecturer Notes in Computer Science,p. 11. Springer (2007)
+38. Meyer, B.: Applying "design by contract". IEEE Comput. 25(10),
+40–51 (1992)
+39. North, D.: Behavior modiﬁcation: the evolution of behavior-driven
+development. Better Software (2006)
+40. Object Management Group. Object Constraint Language, V ersion
+2.4. OMG Document Number: formal/2014-02-03. URL: http://
+www.omg.org/spec/OCL/2.4 (2014)
+41. Object Management Group. OMG Uniﬁed Modeling Lan-
+guage (OMG UML), V ersion 2.5. OMG Document Num-ber: formal/2015-03-01. URL: http://www.omg.org/spec/UML/2.
+5(2015)
+42. OMG. Software and Systems Process Engineering Meta-Model
+Speciﬁcation. V ersion 2.0. Technical Report OMG DocumentNumber: Formal/2008-04-01. Object Management Group (2008)
+43. Pei, Y ., Furia, C.A., Nordio, M., Wei, Y ., Meyer, B., Zeller, A.:
+Automated ﬁxing of programs with contracts. IEEE Trans. Soft.Eng. 40(5), 427–449 (2014)
+44. Samek, M.: Practical UML Statecharts in C/C++: Event-Driven
+Programming for Embedded Systems, 2nd edn. CRC Press, BocaRaton (2008)
+45. Sen, K.: Concolic testing. In: International Conference on Auto-
+mated Software Engineering, pp. 571–572. ACM (2007)
+46. Spanoudakis, N., Moraitis, P .: The agent modeling language
+(AMOLA). In: Dochev, D., Pistore, M., Traverso, P . (eds.) ArtiﬁcialIntelligence: Methodology, Systems, and Applications, V olume5253 of Lecture Notes in Computer Science, pp. 32–44. Springer,Berlin (2008)
+47. Syriani, E., V angheluwe, H., Mannadiar, R., Hansen, C.,
+V an Mierlo, S., Ergin, H.: A ToMPM: a web-based model-ing environment. In: Joint Proceedings of MODELS’13 InvitedTalks, Demonstration Session, Poster Session, and ACM Student
+Research Competition, V olume 1115, CEUR Workshop Proceed-ings (2013)
+48. Topalidou-Kyniazopoulou, A., Spanoudakis, N.I., Lagoudakis,
+M.G.: A CASE tool for robot behavior development. In: Chen,X., Stone, P ., Sucar, L.E., Zant, T. (eds.) RoboCup 2012: RobotSoccer World Cup XVI. Lecture Notes in Computer Science, vol.7500, pp. 225–236. Springer, Berlin (2013)
+49. Trakhtenbrot, M.: New mutations for evaluation of speciﬁcation
+and implementation levels of adequacy in testing of statechartsmodels. In: Testing: Academic and Industrial Conference Practiceand Research Techniques (MUTA TION), pp. 151–160 (2007)
+50. Wynne, M., Hellesoy, A.: The Cucumber Book: Behaviour-
+Driven Development for Testers and Developers. Pragmatic Book-shelf. ISBN: 978-1-93435-680-7. https://pragprog.com/book/
+hwcuc/the-cucumber-book (2012)
+Tom Mens obtained a Ph.D. in
+Science in 1999 at the Vrije Uni-versiteit Brussel with a thesis enti-tled “A Formal Foundation forObject-Oriented Software Evolu-tion". After a postdoctoral fellow-ship of the Fund for ScientiﬁcResearch—Flanders, he became alecturer at the University of Mons(UMONS) in October 2003. He
+is full professor at the Depart-
+ment of Computer Science, direc-tor of the Software EngineeringLab, and vice-president of theINFORTECH Research Institute
+of UMONS. His main research interests are software modeling, soft-ware evolution and open-source software ecosystems. He co-editedtwo Springer books “Software Evolution” and “Evolving SoftwareSystems”. He published numerous scientiﬁc articles in peer-reviewedinternational conferences and journals (of which ﬁve appeared in Soft-ware and Systems Modeling). He was keynote speaker for ICSME2016 and program chair of ICSM 2013, CSMR 2012 and CSMR 2011.He has been involved in several interuniversity research projects andnetworks, including the ERCIM Working Group on Software Evolu-tion, the ESF Research Network RELEASE, the FNRS-FRQ Québec-Wallonie collaborative research project “Socio-Technical Methodol-ogy and Analysis of Software Ecosystem Health” and the joint BelgianFNRS-FWO Excellence of Science project “Automated Assistance forDeveloping Software in Ecosystems of the Future”. He is a seniormember of the IEEE, and member of the ACM. For more information,visit http://staff.umons.ac.be/tom.mens .
+Alexandre Decan conducted his
+doctoral studies at the Universityof Mons on the subject of dataquality in relational databases. Heobtained a Ph.D. degree in 2013for the thesis entitled “CertainQuery Answering in First-OrderLanguages". He is postdoctoralresearcher at the Software Engi-neering Lab of the University ofMons (Belgium), where he hasco-authored many publicationsrelated to the maintenance andevolution of software ecosystems.He has been actively involved in
+123
+
+--- Page 27 ---
+A method for testing and validating executable statechart models
+several research projects such as the Action de Recherche Concertée
+“Ecological Studies of Open Source Software Ecosystems”, the Wal-loon IDEES project portfolio of the European Regional Develop-ment Fund, and the joint FNRS-FRQ Québec-Wallonie collaborativeresearch project “Socio-Technical Methodology and Analysis of Soft-ware Ecosystem Health”. For more information, visit https://decan.
+lexpage.net .
+Nikolaos I. Spanoudakis holds a
+laboratory teaching assistant posi-tion in the Applied Mathematicsand Computers Laboratory of theSchool of Production Engineeringand Management of the TechnicalUniversity of Crete. He obtained aPh.D. in Computer Science fromParis Descartes University (Paris-V) in 2009 with a thesis enti-
+tled “The Agent Systems Engi-
+neering Methodology (ASEME)”.His main research interests areagent-oriented software engineer-ing, multi-agent systems, intelli-gent systems, software modeling, and applications of artiﬁcial intel-
+ligence and argumentation, in the areas of ambient intelligence, e-commerce, ﬁnancial and infomobility services. He is a senior memberof the IEEE, and member of the ACM, the Hellenic Artiﬁcial Intelli-gence Society (EETN), and the Technical Chamber of Greece (TEE-TCG). He has experience as information systems architect, designerand developer, technical manager, project manager and consultantin information technology and services. For more information, visithttp://users.isc.tuc.gr/~nispanoudakis .
+123

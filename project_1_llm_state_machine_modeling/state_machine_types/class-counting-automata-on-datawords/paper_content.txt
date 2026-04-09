@@ -1,0 +1,885 @@
+--- Page 1 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+International Journal of Foundations of Computer Science
+cWorld Scientic Publishing Company
+Class Counting Automata on Datawords
+Amaldev Manuel
+Institute of Mathematical Sciences,
+Taramani, Chennai, India - 600113
+amal@imsc.res.in
+http://www.imsc.res.in/~amal
+R. Ramanujam
+Institute of Mathematical Sciences,
+Taramani, Chennai, India - 600113
+jam@imsc.res.in
+http://www.imsc.res.in/~jam
+Received (Day Month Year)
+Accepted (Day Month Year)
+Communicated by (xxxxxxxxxx)
+In the theory of automata over innite alphabets, a central diculty is that of nding
+a suitable compromise between expressiveness and algorithmic complexity. We propose
+an automaton model where we count the multiplicity of data values on an input word.
+This is particularly useful when such languages represent behaviour of systems with
+unboundedly many processes, where system states carry such counts as summaries. A
+typical recognizable language is: \every process does at most kactions labelled a". We
+show that emptiness is elementarily decidable, by reduction to the covering problem on
+Petri nets.
+Keywords : Automata on innite alphabet; dataword; decidability.
+1991 Mathematics Subject Classication: 22E46, 53C35, 57S20
+1. Introduction
+Many widely used systems of today, most importantly web servers and other dis-
+tributed systems, are machines which concurrently run many sequential processes.
+When there is no a priori bound on the number of processes, though at any point
+of time only nitely many are active, the necessity of the system to distinguish one
+process from another involves potentially unbounded data. Typically, system states
+carry summary information about processes that are known to be active, and hence
+the set of system congurations is innite. Such systems arise in the study of web
+services, communication protocols and software systems with recursive concurrent
+threads of execution.
+Innite state systems are not unfamiliar in theory of computation; a rich body
+1
+
+--- Page 2 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+2Amaldev Manuel and R. Ramanujam
+of results exists on counter systems, pushdown systems and Petri nets. Most reach-
+ability properties of such innite state systems are either undecidable or have such
+high complexity that algorithmic verication is impractical. On the other hand, if
+we restrict ourselves to only nite state systems, we can reason only about systems
+where the set of processes is xed and known a priori, and we do not (as yet) have
+clear abstractions that allow us to transfer the results of such reasoning to systems of
+unbounded processes. Hence there is a clear need for formal models that work with
+unbounded systems but yet restrict expressiveness to allow decidable verication.
+Notice that interesting properties of such systems do not involve process names
+(or identiers) explicitly. A specication that restricts attention only to processes
+P1;P2andP3can be implemented by a nite state system. On the other hand,
+consider a specication such as: \at least kprocesses get to perform an aaction":
+this necessitates remembering potentially unboundedly many values, thus leading
+to innite state systems.
+This paper is situated in such a context and while we have no denitive answers,
+we consider \state summaries" that allow elementary decidability. The model we use
+is that of nite automata over innite alphabets and we use counters to record the
+intended "summaries". The main result is that emptiness is Expspace -complete
+for such a class of automata. Unfortunately, the automata are not closed under
+complementation, and even the word problem is intractable, suggesting that we
+have more work to do to further restrict expressiveness.
+The study of automaton mechanisms over innite alphabets has gained interest
+in recent years, especially from the viewpoint of database theory. In this approach,
+data values are modelled using a countably innite domain, and structures are nite
+words labelled by this innite alphabet. Typically the alphabet is presented as a
+product (D), where  is nite and Dis countable. For our purposes, we can
+think of Das process names and  as the nite set of events they participate in, or
+conditions that hold.
+The study of languages over innite alphabets was initiated in [2] and [19], where
+the approach was to dene the notion of regularity for languages over innite al-
+phabets in terms of morphisms to languages over nite alphabets. There are many
+automaton mechanisms for studying word languages over innite alphabets: register
+automata [9], pebble automata [17 ;18], data automata [5], nested words [1], class
+memory automata [4] and automata on Gauss words [16], with dierent expressive
+power and complexity. Logic based approaches include monadic second order logics
+[6;3], two variable rst order logics [5] and temporal logics with special \freeze"
+quantiers [8] or predicate abstraction [14 ;15]. Algebraic approaches involve quasi-
+regular expressions [10], or register monoid mechanisms [7]. All these involve inter-
+esting trade-os between expressiveness and complexity of decision procedures. A
+unifying framework placing all these models in perspective is as yet awaited (see
+[20] for an excellent survey).
+While register automata have polynomial complexity, they are eectively nite
+state; data automata are more expressive, but emptiness is not known to be elemen-
+
+--- Page 3 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 3
+tarily decidable. What we present here is a restriction of class memory automata:
+these automata can not only test for existence of data values, but can also count
+themultiplicity of occurrences of data values, subject to constraints on such counts.
+However, these counters are monotone , and hence the constraints are limited in
+expressive power: we can compare counts against constants, but not much more.
+We show that such a model of Class counting automata (CCA) is interest-
+ing, for several reasons; specically, we get elementary decidability. We see this as
+\populating the landscape" of classes of data languages, in the sense of [4].
+From the viewpoint of reasoning about unbounded systems of processes, it is
+unclear what exactly is the expressiveness needed. For instance, consider the spec-
+ication: \No two successive positions carry the same data value"; this is naturally
+implemented using a register mechanism. But this is a \hard" global scheduling con-
+straint: after any process event is scheduled, the succeeding event must necessarily
+be from a dierent process; it is hardly clear that such a constraint is important
+for loosely coupled systems of processes. This indicates that while we do want to
+specify combinations of global and local properties, we need to nonetheless allow
+for sucient exibility.
+2. Class counting automata
+Below, fork>0, we denote by [ k] the setf1;2;:::kg. When we say [ k]0, we mean
+the setf0g[[k]. By N, we mean the set of natural numbers f0;1;:::g. When
+f:A!B, (a;b)2(AB), byf(a;b), we mean the function f0:A!B, where
+f0(a0) =f(a0) for alla02A;a06=a, andf0(a) =b.
+Customarily, the innite alphabet is split into two parts: it is of the form  D,
+where  is a nite set, and Dis a countably innite set. Usually,  is called the
+letter alphabet andDis called the data alphabet . Elements of Dare referred to as
+data values . We use letters a;betc to denote elements of  and use d;d0to denote
+elements of D.
+Adata word wis an element of ( D). A collection of data words L(D)
+is called a data language . In this article, by default, we refer to data words simply
+as words and data languages as languages. As usual, by jwjwe denote the length
+ofw.
+Letw= (a1;d1)(a2;d2):::(an;dn) be a data word. The string projection of
+w, denoted as str(w) =a1a2:::an, the projection of wto its  components. Let
+i2[n]. The data class ofdiinwis the setfj2[n]jdi=djg. A subset of [ n] is
+called a data class of wif it is the data class of some di,i2[n]. Note that the set
+of data classes of wform a partition of [ n].
+Aconstraint is a pairc= (op;e), where op2f<;=;6=;>gande2N. When
+v2N, we sayvj=cifvopeholds. LetCdenote the set of all constraints. Dene a
+bagto be a nite seth(DN) such that whenever ( d;n1)2hand (d;n2)2h,
+we have:n1=n2. Thushdenes a partial function from DtoNwhich is dened
+on a nite subset of D. By convention, we implicitly extend it to a total function
+
+--- Page 4 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+4Amaldev Manuel and R. Ramanujam
+onDby considering hto represent the set h0=h[f(d;0)jthere is no n2N
+such that (d;n)2hg. Hence we (ab)use the notation h(d) =nfor a bagh. LetB
+denote the set of bags. Note that the notation h(d;n) now stands for the bag
+h0= (h(fdgN))[f(d;n)g.
+The automaton we present below includes a bag of innitely many monotone
+counters, one for each possible data value. When it encounters a letter - data pair,
+say (a;d), the multiplicity of dis checked against a given constraint, and accordingly
+updated, the transition causing a change of state, as well as possible updates for
+other data as well. We can think of the bag as a hash table, with elements of Das
+keys, and counters as hash values. Transitions depend only on hash values (subject
+to constraints) and not keys.
+Below, let Inst =f"+;#gstand for the set of instructions . Each instruction
+takes a natural number as an argument. The "+instruction with argument ktells
+the automaton to increment the counter by k, whereas#with argument kasks for
+a reset to the value k. Note that the instruction ( "+;0) says that we do not wish to
+make any update, and ( "+;1) causes a unit increment; we use the notation [0] and
+[+1] for these instructions below.
+Denition 1. Aclass counting automaton , abbreviated as CCA, is a tuple
+CCA = (Q;;I;F ), whereQis a nite set of states, IQis the set of ini-
+tial states, FQis the set of nal states. The transition relation is given by:
+(QCInstUQ), whereCis a nite subset of CandUis a nite
+subset of N.
+Representation of constants : We note here that the constants in the denition
+of the automata are represented in unary. The mode of representation of numbers
+turns out to be crucial for the upper bound of the emptiness problem.
+LetAbe a CCA. A conguration ofAis a pair (q;h), whereq2Qandh2B.
+The initial conguration of Ais given by ( q0;h0), whereh0is the empty bag; that
+is,8d2D;h0(d) = 0 andq02I.
+Given a data word w= (a1;d1);:::(an;dn), a runofAonwis a sequence
+= (q0;h0)(q1;h1):::(qn;hn) such that q02Iand for alli;0i<n , there exists
+a transition ti= (q;a;c;;m;q0)2 such that q=qi,q0=qi+1,a=ai+1and:
+hi(di+1)j=c.
+hi+1is given by:
+hi+1=hi(di+1;m0) if="+;m0=hi(di+1) +m
+hi(di+1;m) if=#
+is an accepting run above if qn2F. The language accepted by Ais given by
+L(A) =fw2(D)jAhas an accepting run on wg.L(D)is said to be
+recognizable if there exists a CCA Asuch thatL=L(A). Note that the counters
+are either incremented or reset to xed values.
+We rst observe that CCA runs have some useful properties. To see this, consider
+
+--- Page 5 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 5
+a baghandd1;d22D,d16=d2such that at a conguration ( q;h), we have two
+transitions enabled on inputs ( a1;d1) and (a2;d2) leading to congurations ( q1;h1)
+and (q2;h2) respectively. Notice that for any condition c, ifh(d2)j=cthen so also
+h1(d2)j=c. Similarly, for any condition c0, ifh(d1)j=c0then so also h2(d1)j=c0.
+Thus when we have distinct data values, tests on them do not \interfere" with each
+other. We can extend this observation further: given data words uandvsuch that
+the data values in uare pairwise disjoint from those in v, if we have a run from
+(q;h) onuto (q;h1) and onvfrom (q;h1) to (q0;h2), then there is a conguration
+(q0;h0) and a run from ( q;h) onvto (q0;h0). This will be useful in the following.
+Example 2. The language L1=\Data values under aare all distinct" is accepted
+by a CCA. The CCA accepting this language is the automaton A= (Q;;q0;F)
+whereQ=fq0;q1g,q0is the only initial state and F=fq0g.consists of:
+(q0;a;(=;0);q0;[+1]) ;(q0;a;(=;1);q1;[0]);
+(q0;b;(;0);q0;[0]);(q1;;(;0);q1;[0]).
+q0q1a;(=;0);[+1]
+b;(;0);[0] ;(;0);[0]
+a;(=;1);[0]
+Fig. 1. Automaton in the Example 2
+Since the automaton above is deterministic, by complementing it, that is, setting
+F=fq1g, we can accept the language L1=\There exists a data value appearing
+at least twice under a".
+Example 3. Fixto befag. Let the language L2be\There exists a data value
+whose multiplicity is not two." is accepted by a CCA. The CCA accepting this
+language is the automaton A= (Q;;q0;F)whereQ=fq0;q1;q2;q3g,q0is the
+only initial state and F=fq1;q3g.consists of:
+(q0;a;(=;0);q1;[+1]) ;(q0;a;(=;0);q0;[0]);
+(q1;a;(=;1);q2;[+1]) ;(q1;a;(=;0);q1;[0]);
+(q2;a;(=;2);q3;[+1]) ;(q2;a;(=;0);q2;[0]);
+(q3;a;(;3);q3;[+1]) ;(q3;a;(=;0);q3;[0]).
+The idea is that the automaton chooses non-deterministically a data value and
+faithfully counts its multiplicity, while keeping the counters of other data values
+zero. Finally the automaton accepts the word, if the current count is not two.
+
+--- Page 6 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+6Amaldev Manuel and R. Ramanujam
+q0 q1 q2 q3a;(=;0);[0] a;(=;0);[0] a;(=;0);[0]a;(=;0);[0]
+a;(;3);[+1]
+a;(=;0);[+1] a;(=;1);[+1] a;(=;2);[+1]
+Fig. 2. Automaton in the Example 3
+But as we show below, its complement language, L2=\All data values occur
+exactly twice" is not recognizable. Thus, CCA- recognizable data languages are not
+closed under complementation.
+Proposition 4. The language L2= \All data values occur exactly twice" is not
+recognizable.
+Proof. Suppose there is a CCA Awithmstates accepting this language. Consider
+the data word
+w= (a;d1)(a;d2):::(a;dm+1)(a;d1)(a;d2)::(a;dm+1)
+Clearly,w2L2. Therefore, there is a successful run of Aonw. Then there is a
+stateqrepeating in the sux of length m+ 1. Let us say this splits wasuvv0,
+such that the conguration after uis (q;h) and after vit is (q;h1). Then by the
+remarks we made earlier, we can nd an accepting run for uv0as well. But then
+uv0is not inL2.
+Proposition 5. CCA-recognizable data languages are closed under union and in-
+tersection but not under complementation.
+Proof. Closure under union and intersection is easily obtained by product con-
+struction.
+The following observation will be useful for decision questions that follow. Given
+a CCAA= (Q;;q0;F) letmbe the maximum constant used in . We dene the
+following equivalence relation on N,c'm+1c0ic<(m+1)_c0<(m+1))c=c0.
+Note that if c'm+1c0then a transition is enabled at cif and only if it is enabled
+atc0. We can extend this equivalence to congurations of the CCA as follows. Let
+(q1;h1)'m+1(q2;h2) iq1=q2and8d2D;h1(d)'m+1h2(d).
+Lemma 6. IfC1,C2are two congurations of the CCA such that C1'm+1C2,
+then8w2(D),C1`
+wC0
+1=) 9C0
+2;C2`
+wC0
+2andC0
+1'm+1C0
+2.
+Proof. Proof by induction on the length of w. For the base case observe that any
+transition enabled at C1is enabled at C2and the counter updates respects the
+equivalence. For the inductive case consider the word w:a. By induction hypothesis
+
+--- Page 7 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 7
+C1`
+wC0
+1=) 9C0
+2;C2`
+wC0
+2andC0
+1'm+1C0
+2. IfC0
+1`aC00
+1then using the above
+argument there exists C00
+2such thatC0
+2`aC00
+2andC00
+1'm+1C00
+2.
+In fact the lemma holds for any Nm+ 1, where mis the maximum con-
+stant used in . This observation paves the way for proving the decidability of the
+emptiness problem.
+3. Decision problems
+Since the space of congurations of a CCA is innite, reachability is in general
+non-trivial to decide. We now show that the emptiness problem is elementarily
+decidable.
+Theorem 7. The non-emptiness problem for CCA is Expspace -complete.
+3.1.Upper bound
+We reduce the emptiness problem of CCA to the covering problem on Petri nets
+([11]). For checking emptiness, we can omit the  Dlabels from the congura-
+tion graph; we are then left only with counter behaviour. However since we have
+unboundedly many counters, we are led to the realm of multi-counter automata, or
+vector addition systems.
+Denition 8. An!-counter machine Bis a tuple (Q;;q0)whereQis a nite
+set of states, q02Qis the initial state and (QCInstUQ), whereC
+is a nite subset of CandUis a nite subset of N.
+A conguration of Bis a pair (q;h), whereq2Qandh:N!N. The initial
+conguration of Bis (q0;h0) whereh0(i) = 0 for all iinN. A run ofBis a sequence
+= (q0;h0)(q1;h1):::(qn;hn) such that for all isuch that 0i<n , there exists a
+transitionti= (p;c;;m;q )2 such that p=qi,q=qi+1and there exists jsuch
+thath(j)j=c, and the counters are updated in a similar fashion to that of CCA.
+The reachability problem for Basks, given q2Q, whether there exists a run of
+Bfrom (q0;h0) ending in ( q;h) for someh(\CanBreachq?").
+Lemma 9. Checking emptiness for CCA can be reduced to checking reachability for
+!-counter machines.
+Proof. It suces to show, given a CCA, A= (Q;;q0;F), whereF=fqg, that
+there exists a counter machine BA= (Q;0;q0) such that Ahas an accepting run
+on some data word exactly when BAcan reachq. (WhenFis not a singleton,
+we simply repeat the construction.) 0is obtained from  by converting every
+transition ( p;a;c;;m;q ) to (p;c;;m;q ). Now, let L(A)6=;. Then there exists a
+data wordwand an accepting run = (q0;h0)(q1;h1):::(qn;hn) ofAonw, with
+qn=q. Letg:N!Dbe an enumeration of data values. It is easy to see that
+0= (q1;h0g)(q1;h1g):::(qn;hng) is a run of BAreachingq.
+
+--- Page 8 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+8Amaldev Manuel and R. Ramanujam
+(() Suppose that BAhas a run= (q0;h0)(q1;h1):::(qn;hn),qn=q. It can
+be seen that 0= (q0;h0g1)(q1;h1g1):::(qn;hng1) is an accepting run of
+Aonw= (a1;d1):::(an;dn) wherewsatises the following. Let ( p;c;;m;q ) be
+the transition of BAtaken in the conguration ( qi;hi), anddksuch thathi(dk)j=c.
+Then by the denition of BAthere exists a transition ( p;a;c;;m;q ) in . Then it
+should be the case that ai+1=aanddi+1=g(dk).
+Proposition 10. Checking non-emptiness of !-counter machines is decidable.
+LetsN, andca constraint. We say sj=c, if for alln2s,nj=c.
+We dene the following partial function Bnd on all nite and co-nite subsets
+ofN. GivensnN,Bnd(s) is dened to be the least number greater than all the
+elements in s. GivensconiteN,Bnd(s) is dened to be Bnd(Nns). Given an
+!-counter machine B= (Q;;q0) letmB=maxfBnd(s)jsj=c;cis used in g.
+It is worth noting that mBisO(jAj).
+We construct a Petri net NB= (S;T;F;M 0) where,
+S=Q[fiji2N;1imBg.
+Tis dened according to  as follows. Let ( p;c;;n;q )2 and letibe
+such that 0imBandij=c. Then we add a transition tsuch that
+t=fp;igandt=fq;i0g, where (i) if is"+theni0=minfmB;i+ng,
+and (ii) ifis#theni0=minfmB;ng. Note that ican be zero, in which
+case we add edges only for the places in [ mB].
+The ow relation Fis dened according totandtfor eacht2T.
+The initial marking is dened as follows. M0(q0) = 1 and for all pinS, if
+p6=q0thenM0(p) = 0.
+LetMbe any marking of NB. We say that Mis astate marking if there exists
+q2Qsuch thatM(q) = 1 and8p2Qsuch thatp6=q,M(p) = 0. When Mis a
+state marking, and M(q) = 1, we speak of qas the state marked by M. Forq2Q,
+deneMf(q) to be set of state markings that mark q. It can be shown, from the
+construction of NB, that in any reachable marking MofNB, if there exists q2Q
+such thatM(q)>0, thenMis a state marking, and qis the state marked by M.
+We now show that the counter machine Bcan reach a state qiNBhas a reach-
+able marking which covers a marking in Mf(q). We dene the following equivalence
+relation on N,m'mBni (m < mB)_(n < mB))m=n. We can lift this to
+the bags (in !-counters) in the natural way: h'mBh0i8i(h(i)<mB)_(h0(i)<
+mB))h(i) =h0(i). It can be easily shown that if h'mBh0then a transition is
+enabled at hif and only if it is enabled at h0.
+Letbe a mapping of B-congurations to NB-congurations as follows: given
+= (q;h), dene() =M, where
+M(p) =8
+<
+:1 ip=q
+0 ip2Qnfqg
+j[p]jip2PnQ;p6= 09
+=
+;
+
+--- Page 9 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 9
+Above [p] denotes the equivalence class of punder'mBonNinh. Now suppose
+thatBreachesq. Let the resulting conguration be = (q;h). We claim that
+the marking () ofNBis reachable (from M0) and covers Mf(q). Conversely if
+a reachable marking MofNBcoversMf(q), for some q2Q, then there exists a
+reachable conguration = (q;h) ofBsuch that() =M. This is proved by a
+simple induction on the length of the run.
+Since the covering problem for Petri nets is decidable, so is reachability for
+!-counter machines and hence emptiness checking for CCA is decidable.
+Complexity of Emptiness checking : The decision procedure discussed above
+runs in Expspace [11], and thus we have elementary decidability. Note that the
+representation of constants in unary is a crucial assumption about the Expspace
+upper bound. When the constants are represented in binary, we do not know whether
+the upper bound still holds.
+3.2.Lower bound
+We now show that the emptiness problem is also Expspace -hard. Eectively this
+is a reduction of the covering problem again, but for technical convenience, we use
+multicounter automata.
+Ak-multicounter automaton with weak acceptance is a tuple A=
+(Q;;;q0;F) whereQis a nite set of states, q02Qis the initial state and
+FQis a set of nal states. The transition relation is of the form  fin
+(QNkNkQ). The two vectors in the transition specify decrements
+and increments of the counters.
+The automaton works as follows: it has k-counters, denoted by  v= (v1;:::vk)
+which hold non-negative counter values. A conguration of the machine is of the
+form (q;v) whereq2Qand v2Nk. The initial conguration is ( q0;0). Given
+a conguration ( q;v) the automaton can go to a conguration ( q0;v0) on letter a
+if there is a transition ( q;a; vdec;vinc;q0) such that  vvdec0 (pointwise) and
+v0= vvdec+ vinc. A nal conguration is one in which the state is nal.
+The problem of checking non-emptiness of a multicounter automaton with weak
+acceptance is known to be Expspace -hard [12].
+Any multicounter automaton M= (Q;;;q0;F) can be converted to another
+(in a \normal form"): M0= (Q0;;0;q0;F) such that L(M) is non-empty if and
+only ifL(M0) is non-empty and M0uses only unit vectors or zero vectors in its
+transitions. A unit vector is of the form ( b1;b2;:::;bk) where there is a unique
+i2[k] such that bi= 1 and for j6=i,bj= 0. That is M0decrements or increments
+at most one counter in each transition.
+0is obtained as follows. Let t= (q;a; vdec;vinc;q0). Let u1;u2;:::; unbe a
+sequence of unit vectors such that  vdec= iuiand u10;u20;:::; um0be a sequence
+of unit vectors such that  vinc= iui0. We add intermediate states to rewrite tby
+
+--- Page 10 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+10Amaldev Manuel and R. Ramanujam
+the ` following sequence of transitions,
+(q;a; u1;0;q(t;u1));(q(t;u1);a;u2;0;q(t;u2));:::;
+(q(t;un);a;0;u10;q(t;u10));(q(t;u10);a;0;u20;q(t;u20));:::;
+(q(t;um10);a;0;um0;q0)
+Lemma 11. L(M)is non-empty if and only if L(M0)is non-empty.
+Proof. By an easy induction on the length of the run. It is easy to see that for every
+accepting run ofMwe have an accepting run 0ofM0, this is achieved by replacing
+every transition tin the runby the corresponding sequence of transitions. For the
+reverse direction, we need to show that every run accepting run 0ofM0can be
+translated to an accepting run ofM. This is possible since the intermediate states
+added to obtain the transitions in M0are unique for each transition tinM. Hence
+for every sequence of transitions taking M0fromq1toq2whereq1;q22Qthere is
+a unique transition twhich takes Mfromq1toq2. By doing an induction on the
+number of states occurring in 0which are from Qwe can show that there is a valid
+runwhich is accepting.
+Next we convert M0to a CCA thus establishing a lower bound of Expspace
+for the emptiness problem. Let M0= (Q;;;q0;F) be ak-multicounter au-
+tomaton in normal form. We construct the automaton A= (Q;;A;q0;F). Let
+t= (q;a;u;u0;q0) where u;u0are either unit or zero vectors. If  uis ai-th unit
+vector and  u0is a zero vector, we add a transition tA= (q;a;(x=i);(#;0);q0)
+to A. If uis ai-th unit vector and  u0isj-th unit vector, we add a transition
+tA= (q;a;(x=i);(#;j);q0) to A. If uis a zero vector and  u0is aj-th unit vector,
+we add a transition tA= (q;a;(x= 0);(#;j);q0) to A.
+Lemma 12. L(M0)is non-empty if and only if L(A)is non-empty.
+Proof. The proof is by induction on the length of the run. First we dene a mapping
+from congurations of Ato congurations of M0in the following manner, ((q;h)) =
+(q;v) wherevi=jfjjh(j) =igj. We show, by induction on the length of the run,
+that for every conguration reachable by Athere is a conguration  ofM0such
+that() = and conversely for every conguration  reachable by M0there is a
+conguration reachable by Asuch that() = .
+For the base case, it is evident that ((q0;h0)) = (q0;0).
+Suppose that = (q;h) is a conguration reachable in lsteps, and that the
+transitiont= (q;a;x =j;(#;i);q0) is enabled at . Therefore there is a counter
+holding the value j. By induction hypothesis there exists a conguration  such that
+() = = (q;v) such that vj>0. After the transition t, the number of counters
+holding the value jdecreases by one and the number of counters holding the value
+
+--- Page 11 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 11
+iincreases by one(if i6= 0). This is achieved by the transition ( q;a; uj;ui;q0) in 0,
+preserving the map .
+Conversely, suppose a conguration  = (q;v) is reachable by M0inlsteps. Then
+by induction hypothesis we have a conguration reachable by the automaton A
+such that() = . Suppose a transition t0= (q;a; ui;uj;q0) is enabled in  
+resulting in  0.
+Consider the case where  ui6=0 and uj6=0. By construction t0is obtained from
+a transition t= (q;a;(x=i);#;j;q0). We choose the smallest counter holding the
+value zero and apply the transition t, resulting in 0such that(0) = 0. The
+remaining cases are similar.
+The reduction from MtoM0is not in polynomial time when the constants
+in the transitions of the Multicounter automata are encoded in binary. However,
+we observe that the Expspace -hardness for covering problem from [11 ;12] can be
+obtained with updates restricted to the values 1, 0 and 1. Hence, the lower bound
+extends to the scenario where the constants are represented in binary.
+3.3.Word problem
+Since emptiness checking is of such high complexity, one may wonder whether the
+model is complex enough to render even the word problem to be hard: the simplest
+algorithmic question of how one can check whether a given word is accepted or not.
+The important thing to note is that during a run, the size of the conguration is
+bounded by the length of the input data word. Therefore a non-deterministic Turing
+machine can easily guess a path in polynomial time and check for acceptance. Hence
+the word problem is easily seen to be in NP. Interestingly, it turns out to be NP-
+hard as well.
+Theorem 13. The word problem for CCA is NP-complete.
+The proof is by reduction of the satisability problem for 3-CNF formulas to
+the word problem for CCAs. Given the 3-CNF formula, we code it up as a data
+word, where data values are used to remember the identity of literals in clauses.
+We use a two letter alphabet with + ;indicating whether a propositional variable
+occurs positively or negatively. Data values stand for the propositional variables
+themselves. Thus a pair (+ ;d1) asserts that the rst boolean variable occurs posi-
+tively.
+We show the coding by an example, let '(p1_:p3_p4)^(:p2_
+p5_p1)^(:p3_ :p4_p5), we construct the corresponding word w=
+(+;d1)(;d3)(+;d4)(#;d)(;d2)(+;d5)(+;d1)(#;d)(;d3)(;d4)(+;d5)(#;d)2
+(f+;;#gD).
+The non-deterministic automaton checks satisability in the following way. Ev-
+ery time the automaton encounters a new data value (representing a propositional
+variable), the automaton non-deterministically assigns a boolean value and stores
+
+--- Page 12 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+12Amaldev Manuel and R. Ramanujam
+it in the counter (1 for ?and 2 for>) corresponding to the data value, in the
+future whenever the same data value occurs the counter is consulted to obtain the
+assigned value to the propositional variable. The automaton evaluates each clause
+and carries the partial evaluation in its state. Finally the automaton accepts the
+word if the formula evaluates to >.
+4. Extensions
+We observe that the model admits many extensions, without substantially aecting
+the main decidability result.
+4.1.Many bags
+Instead of working with one bag of counters, the automaton can use several bags of
+counters, much as multiple registers are used in the register automaton. It is easy
+to formally dene CCA with k-bags, using k-tuples of constraints on guards. An
+interesting fact is that a CCA with k-bags can be converted to a CCA with one
+bag. This can be achieved because of the following:
+Any CCA, no matter how many bags it has, can be converted to a CCA
+whose counter values are bounded (We take the maximum constant used
+in  and rewrite the transitions in such a way that we never increment a
+counter once it reaches that value).
+Ak-bag CCA, whose counters are bounded can be simulated by a CCA with
+one bag, by using a bit representation. Since the counters are bounded, we
+know a priori how many bits are needed to represent each bag.
+4.2.Checking any counter
+Another strengthening involves checking for the presence of anycounter satisfying
+a given constraint and updating it. The idea is to extend the transitions to the
+following form, t= (q;a; 0;1;:::;n;q0) where each i2CInstUis of the
+form (ci;i;mi). The intended semantics of the transition is as follows. Suppose
+that the current letter is aand data value is d0. The transition tis enabled if there
+exist distinct data values d1;:::;dnsuch that, for every i2[n]0,disatisesi. On
+the occurrence of teachdiis updated with respect to i. Note that in this way we
+can modify the counter of a data value which is not the current data value.
+Formally a CCA with context check , denoted CCAC, is a tuple ( Q;;I;F ), where
+the transition relation is modied to be  (Q(CInstU)nQ),
+whereCis a nite subset of C,Uis a nite subset of N, while everything else
+remain the same.
+LetAbe a CCAC. A conguration ofAis a pair (q;h), whereq2Qandh2B.
+The initial conguration of Ais given by ( q0;h0), whereh0is the empty bag; that
+is,8d2D;h0(d) = 0 andq02I.
+
+--- Page 13 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 13
+Given a data word w= (a1;d1);:::(am;dm), a runofAonwis a sequence
+= (q0;h0)(q1;h1):::(qm;hm) such that q02Iand for all i;0i < m , there
+exists a transition ti= (q;a; 0;1;:::;n;q0)2 wherej= (cj;j;mj) such that
+q=qi,q0=qi+1,a=ai+1and:
+hi(di+1)j=c0and there exist distinct e1;:::eninDsuch that for all j2
+f1;:::;ng,ej6=di+1andhi(ej)j=cj.
+hi+1is given by:
+hi+1=8
+>><
+>>:hi(di+1;m0) if0="+;m0=hi(di+1) +m0
+hi(di+1;m0) if0=#
+hi(ej;m0) ifj="+;m0=hi(ei) +mj
+hi(ej;mj) ifj=#
+We dene!-counter machines with context in a similar way: such a machine
+is a tuple ( Q;;q0) whereQis nite set of states, q0is the initial state and  
+(Q(CInstU)nQ), whereCis a nite subset of C,Uis a nite subset
+ofN. A run of an !-counter machine with context is dened analogously to that
+of CCA with context. We can then easily show that checking emptiness for CCA
+with context can be reduced to checking reachability for !-counter machines with
+context.
+Finally, the following proposition shows that checking emptiness of CCA with
+context is decidable in Expspace .
+Proposition 14. Checking non-emptiness of !-counter machines with context is
+decidable.
+Proof. Given an!-counter machine B= (Q;;q0), we dene mBas in the proof
+of Proposition 10.
+We construct a Petri net NB= (S;T;F;M 0) where,
+S=Q[fiji2N;1imBg.
+Tis dened according to  as follows. Let t= (q;a; 0;1;:::;n;q0) be a
+transition in  where j= (cj;j;mj) and leti0;i1;:::;inbe such that
+0ijmBandijj=cj. Then we add a transition tsuch thatt=
+fp;i0;i1;:::;ingandt=fq;i0
+0;i0
+1;:::;i0
+ng(take note of the fact thatt
+andtare multisets), where (i) if jis"+theni0
+j=minfmB;ij+njg, and
+(ii) ifjis#theni0
+j=minfmB;njg. Note that ijcan be zero, in which
+case we add edges only for the places in [ mB].
+The ow relation Fis dened according totandtfor eacht2T.
+The initial marking is dened as follows. M0(q0) = 1 and for all pinS, if
+p6=q0thenM0(p) = 0.
+The rest of the proof is similar to the proof of Proposition 10 with obvious
+modications.
+
+--- Page 14 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+14Amaldev Manuel and R. Ramanujam
+4.3.The language of constraints
+The language of constraints can be strengthened. Previously, the constraints where
+of the form c= (op;e). Consider the following language, the language of Presburger
+arithmetic. The terms in this language are given by the grammar,
+t::= 0j1jt1+t2jx; x2V
+whereVis a countably innite set of variables. The formulas of this language are
+given by:
+'::=t1t2j:'j'1_'2j9x:':
+The semantics is given as follows. The variables takes natural numbers as their
+values and + is interpreted as addition. We call a formula '(x) with one free variable,
+a Presburger constraint. We say that k2Nsatises'(x) ifkj='(x). Note that
+the set of numbers satisfying a constraint may be neither nite nor co-nite. For
+example, the formula 9y:y+y=xdenes the set of even numbers.
+LetCpbe the set of all Presburger constraints. We dene CCA with Presburger
+constraints, abbreviated as CCA + Presburger, as a tuple CCA = ( Q;;I;F ),
+where the transition relation is modied to be  (QCpInstUQ),
+whereCis a nite subset of Cp, while everything else remain the same. The deni-
+tions of run and acceptance condition is dened in the obvious way.
+A set of natural numbers Diseventually periodic i there exists positive numbers
+mandpsuch that for all ngreater than m,n2Din+p2D. From the following
+theorem we know that the set of numbers satisfying a Presburger constraint is
+eventually periodic.
+Theorem 15 ([13]) A set of natural numbers is representable in Presburger arith-
+metic i it is eventually periodic.
+Using this, the decision procedure in Section 3 can be modied to check the
+emptiness of CCA with Presburger constraints. As above, we dene !-counter ma-
+chines with Presburger constraints: such a machine is a tuple ( Q;;q0) whereQis
+a nite set of states, q02Qis the initial state and  (QCpInstUQ),
+whereCpis a nite subset of CpandUis a nite subset of N. Runs are dened in
+the natural way.
+We can then easily show that checking emptiness for CCA with Presburger
+constraints can be reduced to checking reachability for !-counter machines with
+Presburger constraints. Then the following proposition shows that checking empti-
+ness of CCA with Presburger constraints is decidable in Expspace .
+Proposition 16. Checking non-emptiness of !-counter machines with Presburger
+constraints is decidable.
+Proof. Given an!-counter machine B= (Q;;q0), letc1;:::cnbe the constraints
+used in . From the theorem above, we know that c1;:::cnare eventually periodic
+
+--- Page 15 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 15
+with the pairs ( m1;p1);:::(mn;pn). We takem=m1+:::+mnandpas the least
+common multiple of p1;:::pn.
+We construct a Petri net NB= (S;T;F;M 0) where,
+S=Q[fiji2N;1im+pg.
+Tis dened according to  as follows. Let ( p;c;;n;q )2 and letibe
+such that 0im+pandij=c. Then we add a transition tsuch that
+t=fp;igandt=fq;i0g, where (i) if is"+theni0=minfi+n;m +
+(i+nm) modpg, and (ii) if is#theni0=minfn;m + (nm) modpg.
+Note thatican be zero, in which case we add edges only for the places in
+[mB].
+The ow relation Fis dened according totandtfor eacht2T.
+The initial marking is dened as follows. M0(q0) = 1 and for all pinS, if
+p6=q0thenM0(p) = 0.
+The rest of the proof is similar to the proof of Proposition 10 with obvious
+modications.
+4.4.Two-way CCA
+A two-way CCA is system ( Q;;I;F ), whereQ;I;F are as usual, the transition
+relation is (QCInstUQfL;R;Sg). A conguration ofAis a
+triple (q;i;h ), whereq2Q,i2Nandh2B, where the variable idenotes the
+position of the head. The initial conguration of Ais given by ( q0;1;h0), whereh0
+is the empty bag; that is, 8d2D;h0(d) = 0 andq02I.
+Given a data word w= (a1;d1);:::(an;dn), a runofAonwis a sequence
+= (q0;i0;h0)(q1;i1;h1):::(ql;il;hl) such that q02Iand for allj;0j <l , there
+exists a transition tj= (q;a;c;;m;q0;)2 such that q=qj,q0=qj+1,a=aij
+andhj(dij)j=c. The resulting counter conguration hj+1is dened as in the case
+of CCA. Finally, the updated position of the head is determined in the following
+way,
+ij+1=8
+<
+:ij1 if=L
+ij+ 1 if=R
+ij if=S
+We assume that the input word is wrapped with end markers so that if the
+machine tries to go o the boundary of the word it halts erroneously. We say a run
+is accepting if the machine halts in a nal state.
+As we will see below, the emptiness problem is undecidable for the two-way
+extension of CCAs.
+4.5.Alternating CCA
+An alternating CCA is system ( Q=Q8]Q9;;I), whereQ;I;  are as usual. Note
+that there is no designated set of nal states; instead, the state set is partitioned
+
+--- Page 16 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+16Amaldev Manuel and R. Ramanujam
+into a set of universal states Q8and a set of existential states Q9. Aconguration
+ofAis a tuple (q;h), whereq2Qandh2B. The initial conguration of Ais given
+by (q0;h0),q02Iandh0is the empty bag; that is, 8d2D;h0(d) = 0 andq02I.
+Given a data word w= (a1;d1);:::(an;dn), assume that the automaton is at
+positioniwith conguration ( qi;hi). We say that ( qi+1;hi+1) is a valid successor
+conguration if there exists a transition t= (q;a;c;;m;q0;)2 such that q=qi,
+q0=qi+1,a=ai+1andhi(di+1)j=c. The resulting counter conguration hj+1is
+dened as in the case of CCA.
+We say that a conguration ( q;h) is accepting if
+(1)q2Q8and all of its valid successor congurations are accepting. (Note that a
+conguration with no valid successor congurations is accepting.)
+(2)q2Q9and there is a valid successor conguration ( q0;h0) which is accepting.
+Finally we say that the word is accepted if the initial conguration ( q0;h0) is
+accepting.
+Theorem 17. The emptiness problem is undecidable for Two-way CCAs and for
+Alternating CCAs.
+Proof.
+We do the proofs simultaneously by reducing the Post's Correspondence Prob-
+lem to the emptiness of two-way CCA and of alternating CCA. Without loss of
+generality, assume that we are given a PCP instance Iwhich is a set of ordered
+pairs of non-empty strings over the alphabet  = fl1;l2;:::lkg, that isI=f(ui;vi)j
+i2[n];ui;vi2+g. A solution for Iis a nite sequence of integers i0;i1;:::im, all
+of them from the set f1;:::ngsuch thatui0ui1:::uim=vi0vi1:::vim. We dene a
+two-way CCA which accepts precisely all solutions of I.
+For this purpose, we code the PCP solution as a dataword, in the following way.
+Let =fl1;l2;:::lkgand ^ = [. Given a word w=a1a2:::anin , we
+denote by wthe word a1a2:::anin.
+A solution of Iis a dataword wover ^ such that,
+(I) The string projection of the word is in ( u1v1+u2v2:::+unvn)+.
+(II) Every data value doccurring in wappears precisely twice, once labelled by a
+letter from  and once by a letter from . Moreover if dis labelled by li2
+inwif and only if it is labelled by li2 inv(the second occurrence).
+(III) The ordering of data values in the positions labelled by  is exactly the same
+as the ordering of data values in positions labelled by . Formally, let dande
+are data values occurring in w. Letdandebe the positions where dande
+are labelled by letters from . Similarly, let dandebe the positions where
+dandeare labelled by letters from .The condition says that d<eif and
+only ifd<e.
+It is easy to see that there is data word wsatisfying the above three conditions
+
+--- Page 17 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 17
+iIhas a solution. We show that two-way CCA and alternating CCA can check
+these three conditions.
+(1) The rst condition is a regular property and can be checked by any nite state
+automaton. Hence it is easily checked by a CCA.
+(2) The conjunction of the following four conditions is equivalent to condition (II).
+(a) Data values occurring in -labelled positions are all distinct.
+(b) Data values occurring in -labelled positions are all distinct.
+(c) All data values occurring under -labels occur under -labels as well.
+(d) All data values occurring under -labels occur under -labels as well.
+Note that each of these conditions can be checked by a CCA. Since CCAs are
+closed under intersection, a CCA can verify condition (II).
+(3) Condition (III) is checked by a two-way CCA in the following way. We assume
+that conditions (I) and (II) are veried independently. Given a position ilabelled
+by a letter from  we say that the position j >i is the -successor of iijis
+a position labelled by a letter from  and all positions k,i<k<j are labelled
+by letters from . Similarly we can dene -successor of a -labelled position.
+Letiandjbe -successors and let dianddjbe the corresponding data values.
+We know that dianddjoccurs under  as well. Let those positions be iandj.
+For each -successors i;jthe automaton veries that iandjare successors.
+To achieve this, assume that the automaton starts in a  position i, it resets
+the counter of dito 1 and goes to next -labelled position j. It increments the
+counter ofdjto 2. Now, the automaton moves to left end marker and makes a
+left to right sweep ignoring all  positions. During this sweep the automaton
+stops when it sees the data value djunder a  label. It resets counter of dito
+zero and then veries that the next  position has the data value djwith the
+help of the counter. After this step the automaton goes to the left end of the
+word and again makes a right sweep. This time it stops when it sees the data
+valuedjunder a  label. Then the procedure is repeated for position j. Finally
+the machine halts and accepts when it reaches the last  position in the data
+word.
+(4) Condition (III) is checked by an alternating CCA in the following way. The au-
+tomaton starts in state q0. In this state automaton records all the data values it
+has seen till the current position. Whenever it sees a fresh data value, it makes
+a universal branching, one branch continues in state q0and one branch goes to
+stateq1. In the state q1the automaton veries the following. Assume the fresh
+data value doccurs under a  label and let the data value on its  successor
+position ise. The automaton veries that the positions where dandeare occur-
+ring under  labels are  successors. This can easily be done by incrementing
+the counters corresponding to dandeto specially designated values. The q1
+branching halts successfully after each verication. The q0branching accepts at
+the end of the word.
+
+--- Page 18 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+18Amaldev Manuel and R. Ramanujam
+An important corollary of this result is that the universality problem for CCAs
+is undecidable, and hence language inclusion is undecidable as well.
+Other interesting extensions relate to the kind of updates allowed and to ac-
+ceptance conditions. While adding decrements to counters in CCA leads to un-
+decidability of the emptiness problem, we can add resets to counters preserving
+decidability. A reset operation sets the corresponding counter value to zero. The
+acceptance condition we have in CCA is global in the sense that it relates only to
+the global control state rather than multiplicities encountered. We can strengthen
+the acceptance condition as follows: A= (Q;;q0;F;G ) where (Q,q0, ,F) are
+as before, and GfinN. We say a nal conguration ( q;h) is accepting if q2F
+and8d2D;h(d)2Gorh(d) = 0.
+We then nd that the non-emptiness problem (for CCAs with reset and counter
+conditions) continues to be decidable but becomes as hard as Petri net reachability,
+which is not even known to be elementarily decidable. This is proved by relating
+this class to that of class memory automata discussed below.
+One standard restriction is the deterministic subclass. In the case of CCAs, this
+necessitates checking that transitions are not only label-wise deterministic on  but
+also that the constraints are non-intersecting. But since requirement specications
+would be non-deterministic in general, it is not clear that the deterministic subclass
+is interesting.
+5. Other automata models
+CCAs are situated among a family of automata models that have been proposed
+for data languages. The simplest form of memory is a nite random access read-
+write storage device, traditionally called register . Innite memory automata [9], the
+machine is equipped with nitely many registers, each of which can be used to store
+one data value. Every automaton transition includes access to the registers, reading
+them before the transition and writing to them after the transition. The new state
+after the transition depends on the current state, the input letter and whether or
+not the input data value is already stored in any of the registers. If the data value is
+not stored in any of the registers, the automaton can choose to write it in a register.
+The transition may also depend on which register contains the encountered data
+value. Because of niteness of the number of registers, in a suciently long word the
+automaton cannot distinguish between all data values. On the other hand, register
+automata have the capability of keeping the \latest information", a capability that
+deterministic CCA do not have.
+In the previous section, we considered an extension of CCAs with context. One
+nice aspect of this extension is that it can recognize all data languages accepted
+by register automata. This is achieved by the following scheme. Suppose that we
+want to simulate a k-register automaton, we use kbags to represent each of these
+
+--- Page 19 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+Class Counting Automata on Datawords 19
+registers. In every bag, atmost one counter has the value one, others being zero.
+The intended meaning is that the data value corresponding to that counter is in the
+particular register. Whenever a write operation happens, not only do we make the
+counter of the current data value one, but also we decrement an arbitrary counter
+as described previously. The register read operation is straightforward to simulate.
+In this way, we can faithfully represent the registers using the kbags. We noted
+above that kbags can be simulated by one bag.
+In class memory automata (CMA, [4]), a function assigns to every data value
+dthe state of the automaton that was assumed after reading the previous position
+with valued. We can think of this as using hash tables, with values coming from a
+nite set. On reading a pair ( a;d), the automaton reads the table entry correspond-
+ing todand makes a transition dependent on the table entry, the input letter a
+and the current state. The transition causes a change of state as well as updating
+of the table entry. The non-emptiness problem for CMAs is decidable, but as hard
+as Petri net reachability, which is not known to be even elementarily decidable.
+We can show that the class of CCA-recognizable languages is strictly contained
+in the class of CMA-recognizable languages, but when we add resets and counter
+acceptance conditions as above, the class becomes exactly as expressive as CMAs.
+Indeed, we see CCAs as a natural restriction of CMAs yielding elementary decid-
+ability of the non-emptiness problem. Mapping the precise relation between these
+classes is interesting but part of a larger exercise and hence we omit it here.
+Another simple computational model, based on transducers is the data automa-
+ton model introduced in [5]. It is shown in [4] that this model is exactly as expressive
+as CMAs.
+6. Conclusion
+We dened a class of automata on datawords and showed that its emptiness problem
+is decidable and is elementary. We also considered many extensions this class of
+automata which preserve elementary decidability.
+But with an NP-hard word problem, Expspace -hard non-emptiness question
+and undecidable language inclusion, working with data languages does seem daunt-
+ing. However, given the need for verifying properties of systems with unboundedly
+many processes, the abstraction of innite alphabets is yet worth preserving. What
+we need to consider are restrictions that are meaningful for systems of unbounded
+processes.
+Acknowledgement. We thank the anonymous reviewers for their detailed com-
+ments, which have greatly helped to improve the content and presentation of the
+paper.
+
+--- Page 20 ---
+September 29, 2014 11:34 WSPC/INSTRUCTION FILE AmalRam
+20Amaldev Manuel and R. Ramanujam
+References
+[1] Rajeev Alur and P. Madhusudan. Adding nesting structure to words. In Oscar H.
+Ibarra and Zhe Dang, editors, Developments in Language Theory , volume 4036 of
+Lecture Notes in Computer Science , pages 1{13. Springer, 2006.
+[2] Jean-Michel Autebert, Joroy Beauquier, and Luc Boasson. Langages sur des alpha-
+bets innis. Discrete Applied Mathematics , 2:1{20, 1980.
+[3] Manuel Baclet. Logical characterization of aperiodic data languages. Research Report
+LSV-03-12, Laboratoire Sp ecication et V erication, ENS Cachan, France, September
+2003. 16 pages.
+[4] Henrik Bj orklund and Thomas Schwentick. On notions of regularity for data lan-
+guages. In Erzs ebet Csuhaj-Varj u and Zolt an Esik, editors, FCT, volume 4639 of
+Lecture Notes in Computer Science , pages 88{99. Springer, 2007.
+[5] Mikolaj Bojanczyk, Anca Muscholl, Thomas Schwentick, Luc Segoun, and Claire
+David. Two-variable logic on words with data. In LICS , pages 7{16. IEEE Computer
+Society, 2006.
+[6] Patricia Bouyer. A logical characterization of data languages. Inf. Process. Lett. ,
+84(2):75{85, 2002.
+[7] Patricia Bouyer, Antoine Petit, and Denis Th erien. An algebraic characterization
+of data and timed languages. In Kim Guldstrand Larsen and Mogens Nielsen, edi-
+tors, CONCUR , volume 2154 of Lecture Notes in Computer Science , pages 248{261.
+Springer, 2001.
+[8] Stephane Demri and Ranko Lazic. LTL with the freeze quantier and register au-
+tomata. In LICS , pages 17{26. IEEE Computer Society, 2006.
+[9] Michael Kaminski and Nissim Francez. Finite-memory automata. Theor. Comput.
+Sci., 134(2):329{363, 1994.
+[10] Michael Kaminski and Tony Tan. Regular expressions for languages over innite
+alphabets. Fundam. Inform. , 69(3):301{318, 2006.
+[11] Javier Esparza. Decidability and complexity of Petri net problems - an Introduction.
+InAdvances in Petri Nets , volume 1491 of Lecture Notes in Computer Science , pages
+374{428, Springer-Verlag, 1998.
+[12] R. Lipton. The reachability problem requires exponential space. Research Report 62,
+Yale University, 1976.
+[13] Herbert B. Enderton. A Mathematical Introduction to Logic. Harcourt/Academic
+Press, second edition, 2001.
+[14] Alexei Lisitsa and Igor Potapov. Temporal logic with predicate lambda-abstraction.
+InTIME , pages 147{155, 2005.
+[15] Alexei Lisitsa and Igor Potapov. On the computational power of querying the history.
+Fundam. Inform. , 91(2):395{409, 2009.
+[16] Alexei Lisitsa, Igor Potapov, and Raq Saleh. Automata on Gauss words. In LATA ,
+volume 5457 of Lecture Notes in Computer Science , pages 505{517, 2009.
+[17] Frank Neven, Thomas Schwentick, and Victor Vianu. Towards regular languages over
+innite alphabets. In Jiri Sgall, Ales Pultr, and Petr Kolman, editors, MFCS , volume
+2136 of Lecture Notes in Computer Science , pages 560{572. Springer, 2001.
+[18] Frank Neven, Thomas Schwentick, and Victor Vianu. Finite state machines for strings
+over innite alphabets. ACM Trans. Comput. Log. , 5(3):403{435, 2004.
+[19] Friedrich Otto. Classes of regular and context-free languages over countably innite
+alphabets. Discrete Applied Mathematics , 12:41{56, 1985.
+[20] Luc Segoun. Automata and logics for words and trees over an innite alphabet. In
+Zolt an Esik, editor, CSL, volume 4207 of Lecture Notes in Computer Science , pages
+41{57. Springer, 2006.

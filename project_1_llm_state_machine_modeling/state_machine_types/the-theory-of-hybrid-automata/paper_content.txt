@@ -1,0 +1,1080 @@
+--- Page 1 ---
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Copyright  © 1996 , by the author(s).  
+All rights reserved.  
+ 
+Permission to make digital or hard copies of all or part of this work for personal or 
+classroom use is granted without fee provided that copies are not made or distributed 
+for profit or commercial advantage and that copies bear this  notice  and the full citation 
+on the first page. To copy otherwise, to republish, to post on servers or to redistribute to 
+lists, requires prior specific permission.  
+
+--- Page 2 ---
+THETHEORY OFHYBRID AUTOMATA
+by
+ThomasA.Henzinger
+Memorandum No.UCB/ERL M96/28
+28May1996
+
+--- Page 3 ---
+THETHEORYOFHYBRIDAUTOMATA
+by
+ThomasA.Henzinger
+Memorandum No.UCB/ERL M96/28
+28 May 1996
+ELECTRONICS RESEARCH LABORATORY
+CollegeofEngineering
+University ofCalifornia, Berkeley
+94720
+
+--- Page 4 ---
+TheTheoryofHybridAutomata**
+Thomas A. Henzinger*
+Electrical Engineering and Computer Sciences
+University of California at Berkeley
+Abstract. Wesummarize several recent results about hybrid automata. Our
+goal is to demonstrate thatconcepts from the theory of discrete concurrent
+systemscan give insightsintopartlycontinuous systems, andthatmethods for
+theverification of finite-state systems can be used to analyze certain systems
+withuncountable statespaces.
+1Hybrid Automata
+A hybrid automaton is a formal model for a dynamical systemwithdiscreteand
+continuous components.
+1.1Syntax
+Aparadigmatic exampleofa mixeddiscrete-continuoussystem is a digital con
+troller ofan analog plant. The discrete stateofthe controller is modeled by the
+vertices of a graph(control modes), and the discretedynamics of thecontroller
+is modeled by the edgesofthe graph (control switches). The continuous stateof
+theplantis modeled by points in Rn,and the continuous dynamics of the plant
+is modeled by flow conditions such as differential equations. Thebehavior of
+theplantdepends onthestateofthecontroller: eachcontrolmodedetermines
+aflowcondition, and each control switch may cause a discrete change in the
+stateof theplant,asdetermined by ajumpcondition. Dually, the behavior of
+the controller depends on the stateofthe plant: each control mode continuously
+observesan invariant condition ofthe plant state,and by violating the invariant
+condition, acontinuous changein theplantstatewill cause a controlswitch.
+•Thisresearch was supported in part by the Office of Naval Research YoungInvestigator
+awardN00014-95-1-0520, bytheNational ScienceFoundation CAREER awardCCR-9501708,
+bytheNational ScienceFoundation grantCCR-9504469, bytheAirForce Office ofScientific
+Research contract F49620-93-1-0056, and by the Advanced Research Projects Agencygrant
+NAG2-892.
+tlnvitedto the 11thAnnualIEEE Symposiumon LogicinComputer Science(LICS96).
+'Email: tah@eecs.berkelev.edu.
+
+--- Page 5 ---
+Figure1:Thermostat automaton
+Definition 1.1[Hybridautomata] [5,36,3]Ahybridautomaton Hconsistsof
+thefollowing components.
+Variables. A finite set X ={xi,...,xn} ofreal-numbered variables. The
+numberniscalledthedimension ofH.WewriteXfortheset{ii,...,x„}
+of dotted variables (whichrepresent firstderivatives duringcontinuous
+change),andwewriteX'forthe set{x[,...,x'n)ofprimedvariables
+(whichrepresent valuesat theconclusion ofdiscretechange).
+Control graph.A finite directed multigraph {V,E).TheverticesinV*are
+calledcontrolmodes.The edges in Eare called controlswitches.
+Initial,invariant, and flow conditions. Threevertexlabelingfunctions init,
+inv,andflowthatassignto each controlmode vGVthree predicates.
+Eachinitialcondition init(v)isa predicate whosefreevariables are from A'.
+Eachinvariant condition inv{v)is a predicate whose free variables are
+fromX.Eachflowcondition flow[v)is a predicate whosefree variables
+arefromA*UA'.
+Jumpconditions. Anedgelabelingfunctionjumpthatassignstoeachcontrol
+switche£Eapredicate. Eachjumpcondition jump(e)is apredicate
+whosefreevariables arefromA' UA''.
+Events.AfinitesetSofevents,andanedgelabelingfunctionevent:E-S
+thatassigns to each controlswitch an event. D
+Example 1.1 [Temperature control]Thehybridautomaton ofFigure1models
+athermostat. Thevariablexrepresents thetemperature. IncontrolmodeOff,
+theheaterisoff,and thetemperature fallsaccording to theflowcondition
+x=-O.lx.IncontrolmodeOn,the heateris on, and the temperature rises
+according to theflowcondition x= 5- O.lx. Initially,the heater is offand
+thetemperature is20degrees.According to thejump condition x <19,the
+heatermaygoonassoonasthetemperature fallsbelow19degrees.According
+to theinvariantconditionx >18,at thelatestthe heaterwillgoonwhenthe
+temperature falls to 18degrees. D
+
+--- Page 6 ---
+1.2SafeSemantics
+Theexecution ofahybridautomaton resultsincontinuous change(flows)and
+discrete change (jumps). The mixed discrete-continuous dynamics can be ab
+stracted by a fully discretetransition system.
+Definition 1.2[Labeledtransition systems]Alabeledtransition systemScon
+sistsofthefollowing components.
+Statespace.A (possibly infinite) set Qofstates,and a subset Q°CQof
+initialstates.
+Transition relations. A (possibly infinite) set Aoflabels,and for each label
+aG.4, a binary relationAon the state spaceQ.Eachtripleq-^q'is
+called atransition.
+AsubsetRCQof thestatespace is called a region.Given a region Rand
+a labelaG -4, we write posta(R) ={q1\ 3qGR.q-*q'} for the region of a-
+successors ofR,andwewriteprea(R)={q\3q'GR.q-^q'}for theregionof
+a-predecessors ofR.
+For a given hybridautomaton, we define two labeledtransition systems. Both
+transition systems represent discretejumpsbytransitions. Thetimedtransition
+systemabstracts continuous flows by transitions, retaining onlyinformation
+aboutthesource,thetarget,andtheduration of each flow. Thetime-abstract
+transition systemabstracts alsotheduration offlows.
+Definition 1.3[Transitionsemanticsofhybrid automata] Thetimedtransition
+systemSfHofthe hybridautomaton Histhe labeledtransition system with the
+components Q,Q°,A,and—>foreacha£A,defined as follows.
+•DefineQ.Q°CV*xEnsuch that (v,x)GQiff theclosedpredicate
+im>(i>)[A' := x] is true, and (v,x) G Q°iff bothinit(v)[X := x] and
+inv(v)[X := x] are true. The set Qis called the state space ofH,and the
+subsetsofQarecalledH-regions.
+A =EUi>0.
+For each event ueS,define (v,x)—>(v',x') iff there is a control switch
+e GEsuchthat(1) the source of e is vandthetargetof e isv',(2)the
+closed predicate jump(e)[X,X' :=x,x']is true, and (3) event(e) = a.
+For each nonnegative realSGM>o,define(i/,x)—>(v',x') iffv=v'and
+there is a differentiate function/:[0,S]—>Kn,with the first derivative
+/:(0,<J)->Rn,suchthat(1)/(0)=xandf{8)=x',and (2) for all reals
+£G(0,5),bothinv(v)[X :=f(e)]andflow{v)[X, X :=f{e),f(s)]are
+true.Thefunction / is called a witnessforthetransition (i',x)->(r',x').
+
+--- Page 7 ---
+Thetime-abstract transition systemSfjofHis thelabeledtransition system
+with the components Q,Q°,B,and-¥foreachbGB,definedasfollows.
+•QandQ°are defined as above.
+•B= S U{r},for someevent r £E.
+• Foreachevent aGE,defineAas above.
+•Define(i7,x)-4(t/,x') iffthere is a nonnegative realSGK>osuchthat
+{v,x)->(v',x').
+The time-abstract transition system Sfjiscalledthetimeabstraction of the
+timed transition system S*H.
+Remark. [Definition 1.3]The state space Qand the timed label set Aare
+infinite. The time-abstract label set Bis finite. For all statesqof a hvbrid
+automaton, g-»g.Sequences ofeventtransitions andtimetransitions withdu
+ration(label)0arepermitted, whichgeneralizes theinterleaving semantics for
+discreteconcurrent systems[7].
+Remark. [Timevs.phaseview]Thetime-abstract transition systemS%,
+whichprojectsawaythe timedimension, canbeviewedasthephaseportraitof
+thetimedtransition systemSlH[22].D
+Remark. [Time-silent transition semantics] Noneoftheresultspresented in
+this paper changeif the r-transitionsof time-abstract transition systemsare
+considered silent[26].
+1.3LiveSemantics
+Ifweconsiderthe infinitebehaviorofahybrid automaton, then weareinterested
+onlyininfinitesequences oftransitions whichdo notconvergeintime.The
+divergence oftimeisalivenessassumption, anditistheonlylivenessassumption
+weneedtoconsider[21,28].Ahybridautomaton isnonzenoifit.cannotprevent
+timefromdiverging. Clearly,onlynonzenodesignsofreal-timesystemscanbe
+realized.
+Definition 1.4 [Livetransition systems]Consideralabeledtransition system
+Sandastateq0ofS.Aq0-rootedtrajectoryofSisafiniteorinfinitesequence
+ofpairs(a,-,g,),>ioflabelsa,GAandstates q{GQsuchthatft-i^V?,-forall
+t > 1. If goisaninitialstate ofS,then(a,-,?,•),->iisaninitialized trajectory
+ofS.Alivetransition system(S,L)isa pairconsisting ofalabeledtransition
+systemSand a set Lofinfiniteinitializedtrajectories of5. The set Lofinfinite
+initialized trajectories ismachine-closed forSifeveryfiniteinitialized trajectory
+ofSisaprefixofsometrajectory inL.1If (5,L)isalivetransition system,
+'Assuming thatevery initial state of Shasasuccessor state.
+
+--- Page 8 ---
+and(ai,qi)i>i iseither a finite initialized trajectory of Sor a trajectory in L,
+then thecorresponding sequence (a,-),->ioflabelsis calleda(finiteorinfinite)
+traceof (S,I).
+Definition 1.5[Tracesemantics ofhybridautomata] Weassociate witheach
+transition of the timed transition systemSlHadurationinIR>o.For events
+aGD,thedurationofq-^q'is0.Forreals8GK>o,thedurationofqAq'
+isS.Aninfinitetrajectory (a,-,9j)j>i of the timed transition systemSlHdi
+vergesif theinfinitesumYli>ihdiverges, whereeach<J,is the duration of
+thecorresponding transition g7-1—^9*-Aninfinitetrajectory (6,-,g,),>i of the
+time-abstract transition system S%divergesif there is a divergent trajectory
+(oi,gi),'>i ofS'Hsuchthatforalli >1,eithera,=6,-ora,,6,G"E.LetVHbe
+the set of divergent initialized trajectories of the timed transitionsystem S'H,
+and let LaHbe set ofdivergent initialized trajectories of thetime-abstract tran
+sitionsystemS#.Thehybridautomaton HisnonzenoifVHismachine-closed
+forS*H(orequivalently, LaHismachine-closed forS%).Eachtrace ofthe live
+transition system {StH,VH)iscalleda timedtraceofH,and each trace of the
+livetransition system{S%,L%) is called a time-abstract traceofH.D
+1.4Composition
+Fortwohybridautomata H\andH2,wedefinethetimedsemantics andthe
+time-abstract semantics of the parallel composition Hi\\H2.The two hybrid
+automata H\andH2interactviajointevents: if event aisbothan event of Hi
+and an event of Ho,thenHiandH2mustsynchronize ona-transitions; ifa isan
+eventofHibut not an event of H2,then each a-transition ofHisynchronizes
+with a0-duration timetransition ofH2,and vice versa. For each real 6> 0, a
+timetransition ofHiwithduration Smust synchronize with a time transition
+ofH2withthesameduration.
+Definition 1.6 [Product of transition systems]Aconsistency checkfor two
+labeled transition systems SiandS2is an associative partial function ©on
+pairs consisting of a transition fromSiand atransition from£2-Theproduct
+SixS2with respect to the consistency check0 isthe labeledtransition system
+withthe state spaceQixQ2,the setQjxQ\ofinitialstates, the labelset
+range{(S>), and thefollowing transition relations: foreachlabelaGrange(Q>),
+define(qi,q2)-^(q'i, q2)iffthereisalabelaiGAiandalabela2GA2suchthat
+aisthe(defined)resultofapplying <g>tothetwotransitions qi^q[and92-^9^
+D
+Definition 1.7[Composition ofhybridautomata] Consider two hybrid au
+tomataHiandH2.Atransition qi^\q\ofStHlandatransition92-^2°f
+Sfj3areconsistent ifoneofthe following three conditionsis true.
+1.ai=a2.In this case, the consistency check <S>=applied to thetransitions
+qi-^q'iandq2^q2yieldsa\.
+
+--- Page 9 ---
+x= -100-*x:€(1900,4900]\exit /x=0
+Figure2:Trainautomaton
+approach
+Figure3:Controller automaton
+2.aiG£i\D2and°2= 0. In this case,the consistency check<S>=yieldsoi.
+3.ai= 0 anda2G£2X^1-In this case, the consistency check ©=yieldsa2.
+Thetimedtransition systemSj^im.,isdefinedtobetheproduct SfHlxStIi2
+with respect to the consistency check®-.Thetime-abstract transition system
+^Hi\\h2 1Sdefinedtobethetimeabstraction of5^,,H.O
+Example 1.2[Railroadgate control]Thehybridautomaton ofFigure2models
+atrainon acirculartrack with a gate. The variablexrepresents thedistance
+ofthetrainfrom the gate. Initially, the speed of the trainis between 40 and
+50 meters per second. At the distance of 1000meters from the gate, the train
+issues an approach event and may slowdown to 30 meters per second. At the
+distance of 100meterspast the gate, the trainissues an exitevent.Thecircular
+6
+
+--- Page 10 ---
+Figure4:Gateautomaton
+track is between 2000 and 5000 meters long. We write jumpconditions as
+guardedcommands, which allows us to suppress conjuncts of the form x'=x.
+Inparticular, thejumpcondition of thecontrolswitchfromNeartoPastis
+x= 0 Ax'=x,and thejumpcondition fromPasttoFarisx=-100A 1900<
+x' <4900.The hybrid automaton of Figure 3 models the gate controller.
+The variable uis a symbolic constant thatrepresents the reaction delay of the
+controller. The variable zis aclockfor measuring elapsed time. When an
+approach event is received, the controller issues alowereventwithinuseconds,
+andwhenanexiteventisreceived, thecontroller issuesaraiseeventwithin
+useconds. The hybrid automaton of Figure 4 models the gate. The variable
+yrepresents the position of the gate in degrees. Initially, the gate is open
+(y= 90). When a lowerevent isreceived,the gatestartsclosingat the rate of9
+degreesper second, and whenaraiseevent isreceived, the gatestartsopening
+atthesamerate.Which values of the symbolic constant uensurethatthe
+gate is fully closed(y= 0)whenever the train is within 10meters of the gate
+(—10<ar< 10)? D
+Remark. [Sharedvariables] Theconsistency check®=depends only on the
+transition labels, and not on the source and targetstatesoftransitions. Alterna
+tiveconsistency checkscan be used to modelread-shared andevenwrite-shared
+variables of hybrid automata [8].
+Remark. [Time-abstract hybridautomata] The time-abstract transition sys
+temSj^ii/^isgenerallydifferentfromtheproductSjijxS%2ofthetime-
+abstractcomponent systems. This is not the case for time-abstract hybridau
+tomata[22].Time-abstract designisdesirable, becausemanyusefulproperties
+oftime-abstract component systems are inherited by the compound system. D
+
+--- Page 11 ---
+Remark. [Receptiveness] Thecomposition of twononzenohybridautomata
+is notnecessarily nonzeno. It is an interesting modelingproblemfor real-time
+systems to guarantee the livenessofcompounddesigns [1,19,33].
+2OntheTraceLanguages ofHybridAutomata
+We identify which requirements on the traces of a hybrid automaton can be
+checkedalgorithmically, and which cannot.
+2.1Verification Tasks
+Westudy four paradigmatic questions about the traces of a hybrid automaton.
+The reachabilityproblemisa fundamentalsubtask for the verification ofsafety
+requirements, andtheemptiness problem is afundamental subtaskforthever
+ificationoflivenessrequirements. The timed trace inclusion problemcompares
+the traces of a hybrid automaton against a timed specification, and the time-
+abstract trace inclusion problem compares the traces of a hybrid automaton
+againstatime-abstract specification.
+Definition 2.1[Reachability, emptiness, and trace inclusion] Thereachability
+problemfor a class ftof hybrid automata asks, given a hybrid automaton H
+fromftandacontrolmodevofH,ifthereisaninitialized trajectory ofS'H(or
+equivalently, S%)thatvisitsastateoftheform (v,x). Theemptiness problemfor
+ftasks, givena hybrid automaton Hfromft,if there is a divergent initialized
+trajectory of SfH(orequivalently, Sjj).The(finitary) timedtraceinclusion
+problemforftasks, given two hybrid automata HiandH2fromft,if every
+(finite) timed trace of Hiis also a timed trace of H2.The(finitary) time-
+abstracttraceinclusion problemforftasks,giventwo hybrid automata Hiand
+H2fromft,if every (finite) time-abstract traceofHiis also a time-abstract
+traceofH2.
+Remark. [Definition 2.1]Someof these problems are harder than others. In
+particular, reachability can be reduced to finitary time-abstract trace inclusion,
+and emptiness can be reducedto time-abstract trace inclusion. Also,finitary
+traceinclusion canbereduced totraceinclusion. 
+2.2Rectangular Automata
+A hybrid automaton isrectangular iftheflowconditions are independent of the
+control modes, and the variables are pairwise independent. Specifically, in each
+controlmodeof arectangular automaton, the firstderivative of eachvariable is
+givena range of possiblevalues,andthatrange does not change with control
+switches. With each control switch of a rectangular automaton, the value of
+each variable iseither leftunchanged, or changed nondeterministically to a new
+
+--- Page 12 ---
+value within a given range of possibilities. The behaviors of the variables are
+decoupled, because the rangesof possiblevaluesand derivative valuesfor one
+variable cannotdependonthevalue or derivative value ofanother variable.
+Definition2.2 [Rectangular automata] [38,27]ArectangleI =IIki^1' °f
+dimension nis the product of n intervals I,CRof the real line, each with
+rationalor infiniteendpoints. Therectangle I isbounded(asingleton) ifeach
+intervalI,-,for 1 < i < n,is bounded (a singleton). A hybrid automaton
+His arectangular automaton if thefollowing three restrictions are met. Let
+A'={xi....,x„} be the set of variablesof H.
+1. Foreach control mode vofH,the initial condition init(v)has the form
+XGltmt^foraboundedn-dimensional rectangleI"1"^),andthe in
+variant condition inv(v)has the form A' G I"1"^)for an n-dimensional
+rectangle I'ni'(«).
+2. There isa bounded n-dimensionalrectangle I-^0"'suchthatforeachcontrol
+modevofH,theflowcondition flow(v)has the form A' G lfl°w.
+3. For each control switch e of H,thejumpcondition jump(v)has the form
+XgFre(e>AY'=YAX'GIposf(e)fortwon-dimensional rectangles
+ipre(e)andpo5t(e)?and&^ygy0fvariables Thecontrolswitcheis
+said toreinitialize the variables in X\Y.For all 1 < i < n,ifthevariable
+xtisreinitialized bye,thentheintervall^ost^mUstbebounded.
+The rectangular automaton Hisasingularautomaton iftheflowrectangle I^ow
+isasingleton. Thesingularautomaton Hisatimedautomaton ifIflow=[1,l]n.
+D
+Remark. [Clocksand drifting clocks]Aclockcan be modeled by a variable
+Xiwiththeflowintervallfou'=[1,1].Allvariablesofatimedautomaton are
+clocks[6].Aclockwith drift e,forsGQ>o,can be modeled by a variable with
+theflowinterval [1-s,1+e][12,31].
+Remark. [Composition] Timed,singular,and rectangular automata areclosed
+under composition: for twotimed (singular; rectangular) automata HiandH2,
+wecanconstruct a timed (singular; rectangular) automaton Hsuchthat S'H=
+Sjfi||#2(anc*therefore, SaH=Sjj^uJ.IfthedimensionofHiisi»iandthe
+dimension ofH2isn2,then the dimension of H isni+n2.
+Wedefinetwo generalizations of rectangular automata. Multirectangular au
+tomataallowflowconditions thatvary with control switches, and triangular
+automata allowthecomparison ofvariables.
+Definition 2.3[Multirectangular and triangularautomata] Ahybridautoma
+tonHis amultirectangular automaton iftherestrictions ofDefinition 2.2are
+
+--- Page 13 ---
+met,exceptthatdifferent control modes vandv'ofHmay have different flow
+rectanglesjfl0^)andI^ou'(v').Themultirectangular automaton Hisamulti-
+singularautomaton if allflowrectangles of Hare singletons. The intersection
+ofan n-dimensional rectangle with any number ofhalf-spacesof W1thatare de
+finedbyinequalities oftheformXi<Xj,for1<i,j<n, iscalledatriangleof
+dimension n. A hybrid automaton is atriangular automaton if the restrictions
+of Definition2.2 are met, except thatevery rectangle may be a triangle. D
+Remark. [Stopwatches andsymbolic constants] A stopwatch can be mod
+eledbyamultisingular variable x,-withthetwoflowintervalsl?ow^=[l,i]
+(thestopwatch isturnedon)andlfow^v)=[0,0](thestopwatch isturnedoff).
+Stopwatches are useful for measuring accumulated durations, such as the cu
+mulativeamountof time that isspent in controlmodev[4,32].Anunknown
+system constant can be modeledbyasingularvariable Xjwith the flowinterval
+j/tou_^qqjsuckt^at^^.gnotreinitialized byanycontrolswitch,and
+(2)thebehaviors ofothervariablesmaydependonthe(unknown but constant)
+valueof Xj[9].
+Remark. [Initialized multirectangular automata] Somemultirectangularau
+tomatacan betranslated to rectangular automata by increasing the dimension.
+Inparticular, this is the case for initialized multirectangular automata, where
+foreachvariablex,andeachcontrolswitche,iftheflowintervalI^0"'^ofthe
+sourcevofeisdifferentfromtheflowintervalI^0"'*"')ofthetargetv'ofe,then
+Xiis reinitialized by e [38].
+Example 2.1[Railroad gatecontrol]The train automaton of Figure2 is an
+initialized IDmultirectangular automaton and can be translated to a 2D rect
+angularautomaton withthesametimedtraces.Thecontroller automaton of
+Figure 3 is a 2D triangular automaton with a clockzand a symbolic con
+stantu.Ifthe reactiondelay uofthe controlleris known(say,5seconds), then
+thecontroller can bemodeledbyaIDtimedautomaton. The gate automaton
+ofFigure4isaIDmultisingular automaton(not initialized). Ifthedirectionof
+thegatecannotbereversedmidway,thenthegatecanbe modeledbyasingular
+automaton. D
+Remark. [Abstract interpretation] Nonsingular flowintervalspermit the con
+servative approximation of complexcontinuous behavior with arbitrary accu
+racy[23]:wemaysplitthestate spaceintoregionsandwithineachregion,use
+lower and upperboundsonthefirstderivatives of allvariables. D
+2.3Verification Results
+Thefollowing theoremensurestheverifiability ofrectangularautomata against
+time-abstract finite-state specifications.
+10
+
+--- Page 14 ---
+Theorem 2.1 [Time-abstract traces][27]Foreveryrectangular automaton H,
+theset offinite time-abstract tracesofH isregular,andtheset of infinitetime-
+abstracttracesof H is ui-regular.
+Proof. Given an rectangular automaton Hof dimension n, we can construct
+asingular automaton H'ofdimension 2n suchthatHandH'havethesame
+timedtraces.Theconstruction replaceseachvariable x,-ofHbyavariablex\
+ofH'thattracks the smallest possible value of x,-,and a variable x"ofH'that
+tracks the largest possible value of H'.Inparticular, if x; has the flow interval
+[£,u],thenxfhastheflowinterval[t,C\andxj*hastheflowinterval[u,u].Alur
+andDillhave shown thatfor every timed automaton H'one can construct a
+Biichiautomaton H"whose traces are exactly the time-abstract traces of H'
+(seeTheorem 3.2below).Theirconstruction can begeneralized to singular
+automata. D
+Corollary 2.1[Time-abstract trace inclusion] Thetime-abstract traceinclu
+sionproblem forrectangular automata can be decided in EXPSPACE.
+Remark. [Emptiness] The emptiness problemfor rectangular automata is
+inPSPACE, andtheadditional exponential fortime-abstract traceinclusion is
+causedbyanintermediate complementation step.PSPACEemptiness checking
+isoptimal, becausealreadythereachability problemfortimed automata (and
+other real-time formalisms) isPSPACE-hard [6].O
+Rectangular automata characterize an exactboundary betweenthe decidability
+andundecidability ofverification problems. If the flow conditions are allowed
+to vary with control switches (multirectangular automata), or if the valuesof
+differentvariablesmayberelated (triangular automata), then already the reach
+abilityproblem cannotbedecided.
+Theorem 2.2[Reachability] [5]Thereachability problemsformultisingular au
+tomata and fortriangular automata are undecidable.
+Proof. Reduction from the haltingproblem for 2-counter machines. D
+Remark. [Theorem 2.2]Theorem2.2canbe sharpened to morespecificstate
+ments[9,27].Forexample, thecombination ofclockswithasinglestopwatch
+causesundecidability, and sodoes the combinationofclockswith symbolic con
+stants. D
+Wehavefocusedon time-abstract trace inclusion, becausethere is no hope for
+deciding timedtraceinclusion.
+Theorem 2.3[Timedtraceinclusion] [6]Thefinitarytimedtraceinclusion
+problem fortimed automata is undecidable.
+Remark. [Complementation] Theorem 2.3doesnotcontradict thedecidability
+oftheemptinessproblemfortimed automata (whichfollowsfromTheorem 2.1),
+because the (finitary) timedtracesets of timed automata are not closed under
+complement [6].
+11
+
+--- Page 15 ---
+3OntheStateSpacesofHybridAutomata
+Since the statespace of a nontrivial hybrid automaton is infinite, it cannot
+be explored by enumerating states. We analyze the statespace of a hybrid
+automaton bycomputing withfinitesymbolicrepresentations ofinfiniteregions.
+Forexample, if x is areal-numbered variable, then the predicate 1 < x < 5 is a
+finitesymbolic representation of aninfinitesetofrealnumbers.
+3.1Symbolic Analysis ofTransition Systems
+A labeled transition system can be analyzed using symbolic representations of
+regionsifthere are algorithms for performingcertain operations on the symbolic
+representations.
+Definition 3.1[Theories for transition systems]Considera labeled transition
+system 5 with the statespaceQ. AtheoryTfor 5 is a set of predicates that
+are assigned truthvalues by the statesinQ.Given apredicate pofT,we write
+[p]forthe set ofstates in Qthatsatisfyp,andwesaythatpdefinestheregion
+[pjCQ. Aset$ofpredicatesfrom Tinducesanequivalence relationas*onQ:
+forallstatesqand r ofS,defineqas*riffqand r satisfythe same predicates
+in3>.ThetheoryTisdecidable if for each predicate p of7\it can be decided
+whether[pjisempty. The theory Tiseffectively closedunderbooleanoperations
+iffor all predicates piandp2ofT,one can construct a predicate Or(pi,p2) of
+Tthatdefinesthe region [pi]U§p2},and a predicate Not(pi)thatdefinesthe
+regionQ\[pi].The theory Tiseffectively closedundertransitions if for each
+predicate p of T,and each label a of S,onecan construct a predicate Post(p,a)
+ofTthatdefinestheregionposta(lp}),2 and a predicate Pre(p,a)thatdefines
+theregionprea([[p]). The theory Tpermitsthesymbolicanalysisof5 if(1) Tis
+decidable, (2) Tiseffectively closed under boolean operations andtransitions,
+and (3)thereis apredicate ofTthatdefinestheset ofinitialstatesofS.
+Definition 3.2[Similarity, bisimilarity, and trace equivalence] Consider a la
+beledtransition systemSwith the statespaceQ.and an equivalence relation
+as onQ. A ^-simulation ^ofSis a binary relation on Qsuchthatq•<r
+implies(1)qasr and (2) for eachlabelaofS,ifq-^q',then there exists a
+stater'suchthatrA>rfandq'<r''.Asymmetric ^-simulationis calledaas-
+bisimulation. Twostatesqand r of Sare^-similar ifthereis aas-simulation
+Xsuchthatq<randr<q.The two statesqand r are zz-bisimilar if there is
+a«-bisimulation ~suchthatq~r. The twostates qandraretraceequivalent
+ifthelabeledtransition systemsS[Q°:={q}]andS[Q°:= {r}]havethesame
+finite traces. If Tis a theory for 5, and 0is a set of predicates fromT,then
+the«*-(bi)similarity relationof5 iscalled<&-(bi)similarity. D
+2Effective closureunder postisnotrequired forthe results presented in this paper.
+12
+
+--- Page 16 ---
+procedure BisimApprox:
+Input: a labeled transition systemSwith label set A,and a set
+$ofpredicates.
+Output: the set IIofequivalence classesof the ^-bisimilarity re
+lationof5.
+letIIbe the set of as*-equivalence classes;
+whilethere are two regions R,R!eUand a label aEAsuchthat
+bothRC\prea(R!) andR\prea(R') are nonempty do
+(Ri,R2):=(Rnprea(Rf),R\prea(R'));
+n =(n\{R})U{RuR2}
+od:
+return n.
+Figure5:Symbolic bisimilarity computation
+Remark. [Definition3.2]Weremind the reader ofsome well-known facts from
+concurrency theory. If two statesqand r are as-bisimilar, thenqand r are
+also as-similar. Ifthere is an equivalence relationassuchthatthe twostatesq
+and r are as-similar, thenqand r are traceequivalent. Theconverse of either
+statement isnotnecessarily true.
+Bisimilarity andsimilarity relations of alabeledtransition systemScan be
+defined as greatest fixpoints of amonotonic operator, andapproximated by
+iterating theoperator. Theiteration can beperformed in atheorythatper
+mitsthesymbolic analysis of 5. Theiteration terminates iff theapproximated
+equivalence relationhas finitely manyequivalence classes.
+Definition 3.3[Finitary equivalences]An equivalence relation cziscalledfini
+taryifthereare finitely many^-equivalence classes. D
+Proposition 3.1[Symbolic bisimilarityapproximation] LetSbealabeledtran
+sition system with a finite labelset, let T bea theory that permits the symbolic
+analysis of S, and let $be a finite set of predicates fromT. Each step of
+theprocedure BisimApprox (Figure 5) is effective, andupontermination the
+procedure returnsthe ^-bisimilarity relation of S. Furthermore, theprocedure
+BisimApprox terminates iff the ^-bisimilarity relation of S is finitary. D
+Proposition 3.2[Symbolic similarity approximation] [20]LetS, T,and$be
+as inProposition 3.1.Eachstep of the procedure SimApprox (Figure 6) is
+effective, and upontermination the procedure returns the ^-similarity relation
+ofS.Furthermore, theprocedure SimApprox terminates iff the ^-similarity
+relationofS isfinitary. D
+13
+
+--- Page 17 ---
+procedure SimApprox:
+Input:alabeledtransition systemSwithlabelsetA,anda set
+$ofpredicates.
+Output: theset II of equivalence classes of the^-similarity rela
+tionofS.
+letIIbe the set of as*-equivalence classes;
+foreach region R£Udosim(R):=Rod;
+whilethere are two regions R,R'eU and a label a£Asuchthat
+bothRnprea(sim(R')) andsim(R)\prea{sim(R')) are
+nonempty do
+(rti./fe):=(Rnprea(sim(R')),R\prea(sim(R')));
+U=(U\{R))U{R1};
+sim(Ri):=sim(R)nprea(sim(R'))\
+ifR2is nonempty thenII:=IIU{i?o};sim(Rn):=sz'm(i?)fi
+od;
+return II.
+Figure6: Symbolic similarity computation
+Remark. [Proposition 3.2]Fortwostates qand r ofS,there isa as-simulation
+^withqXr iff upon termination of the procedure SimApprox, q £ Rand
+r€sim(/?)forsomeregion#GILD
+Ifa finitary bisimilarity orsimilarity relationofaninfinite-state transitionsys
+temScan be computed, then many verification problemsfor 5can be reduced
+tofinite-state problems. Alternatively, ifa verification task can be statedin the
+//-calculus, then we may compute directly on the infinite state space without
+computinga finitary reduction. The //-calculus definesmonotonicoperators on
+regions,and the iteration oftheseoperatorscan be performed in a theory that
+permits the symbolicanalysisof5. The iteration isguaranteed to terminate if
+asuitablefinitaryreduction of thestatespace exists.
+Definition 3.4[The//-calculus] Consideralabeledtransition system Swith
+the state spaceQ,and atheoryTforS.Theformulasof the(S,T)-based
+p-calculus are generated by the grammar
+<j>::=p\+iV<h\-4\3@4\iiR.4>\R
+for predicates p of T,labelsaofS,andregionvariables R. Aformula of
+the (5,T)-based //-calculus islegalif eachoccurrence of aregionvariableis
+bound by a //-quantifier and separated fromthe quantifier by an evennumber
+ofnegations. Givena mapFthatassignstoeachregionvariablearegion
+14
+
+--- Page 18 ---
+ofS, every subformula of a legalformula of the (5, T)-based //-calculusdefines
+aregionl<f>]FCQ:
+iF=M
+H>V=Q\MF13(q)^f=prea(l<t>}F)
+lnR.<l>}F=f]{Q'QQ\Q'=[^1]
+F= F{R)
+Thelegalformula <j>ofthe (5,T)-based//-calculus definestheregion|<p|=16\F,
+for somemap F.Theformula <f>isexistential ifeveryoccurrence of an30
+connective lies within an even number of negations, and <f>isuniversal if every
+occurrence of an 33connective lieswithin an odd number of negations. 
+Remark. [Negation-free //-formulas] LetV®<£stand for-i3©-k£,and letvR.<f>
+stand for (->//#.-><f>[R:=->R]).Usingthedefinedconnectives A,\Q,andv,
+every formula of the //-calculus can betranslated into an equivalent formula in
+negation-free form, where all ->connectives occur in front of predicates. If<j>is a
+formulainnegation-free form, then <j>isexistential iff<pcontains nooccurrence
+oftheMOconnective, and<f>isuniversaliff0containsno occurrence ofthe33
+connective. D
+Remark. [Reachability andcontrollability] We mention two of the many
+systemrequirements thatcan be checked using the //-calculus. LetSbe a
+labeledtransition system with a finite label set A,letp°be apredicate that
+defines the set of initial statesofS,and let p" be a predicate thatdefines a
+set oferrorstatesofS.Thereis notrajectory from aninitialstateto anerror
+stateifftheexistential //-formula p°A{pR.p"V\/aeA3®R)definestheempty
+region.Supposethatthe behaviorof5 can be influenced by applyinga control
+mapthatmaps each stateof5 to a label in A[35]:during the execution of S,
+in eachstateq,the control map choosesa label a, and the system proceeds to
+ana-successor ofq.There isa controlmap thatkeepsthe systemfromentering
+anerrorstateifftheexistential //-formula p°A(///?.p"Vf\a€A3(g)R)defines
+theemptyregion. 
+Proposition 3.3[Symbolic p-calculus approximation] LetTbeatheorythat
+permitsthe symbolic analysis of the labeledtransition system S, let <j>bea le
+galformulaofthe(S,T)-based ^-calculus, andlet$betheset ofpredicates
+thatoccurin<f>.Eachstepoftheprocedure MuApprox (Figure7) iseffec
+tive,andupontermination theprocedure returnsapredicate p ofTsuchthat
+!b3=M-Furthermore, theprocedure MuApprox isguaranteed toterminate if
+the$-bisimilarity relationofS isfinitary. lf<j>isexistential oruniversal, then
+theprocedure MuApprox isguaranteed toterminate if the^-similarity relation
+of S is finitary. D
+15
+
+--- Page 19 ---
+procedure MuApprox (S,<f>):
+Input:a labeled transition systemS,and a legalformula <j>of the
+//-calculus.
+Output: a predicate p such thatp and <f>definethe same region
+ofS.
+case <j>is apredicate p:
+return p
+case<j)hastheform<j>iV<$>2:
+returnOr{MuApprox(S,<f>i),MuApprox(S,<j>2))
+case <f>hastheform->^':
+returnNot(MuApprox(S,<j>'))
+case<phastheform3@0':
+returnPi-e(MuApprox(S, (j>'),a)
+case<phastheform///?.4>':
+pi:=false;
+repeat
+P2:=Pi;Pi:=MuApprox(S, <f>'[R:=p2])
+until[pj]=[p2J;
+return pi
+endcase.
+Figure 7: Symbolic //-calculus model checking
+16
+
+--- Page 20 ---
+Proof.Fortermination, observethateachpredicatethat isgenerated bythe
+procedure MuApprox definesaunionofequivalence classesofthe^-bisimilarity
+relationofS.Furthermore, if<j>isexistential, thentheoperatorPreisapplied
+onlytoregionsRthat areclosedundersimulators; that is,if q£ Randq•<r
+forsome^-simulation •<,thenr£ R.D
+Remark. [Termination] If theprocedure BisimApprox terminates, then the
+procedure SimApprox terminates also.Theconverseisnotnecessarily true. For
+any given input formula, the procedure MuApprox mayterminate even if the
+procedures SimApprox andBisimApprox do notterminate. Thisencourages
+practical experimentation, especially since in practice, with concrete time and
+spaceconstraints, strongtermination guarantees are always elusive. D
+3.2LinearHybridAutomata
+The hybrid automata thatcan be analyzed symbolically in the theory of the
+realswithaddition arecalledlinear.
+Definition 3.5[Linearhybrid automata] A lineartermisanexpression ofthe
+formk'o+kixi-\\-kmxm,forreal-numberedvariables xi,...,xmand integer
+constants ko,...,km. Ifttandt2arelinearterms,thenti<t2is alinear
+inequality. Ahybridautomaton Hislinearif the followingtwo restrictions are
+met.
+1.Theinitial,invariant, flow,andjumpconditions ofHareboolean combi
+nationsoflinearinequalities.
+2. IfAisthesetofvariables ofH,thentheflowconditions ofHcontain
+freevariables from A' only. D
+Remark. [Definition3.5]The linear hybrid automata are closed undercompo
+sition.All(multi)rectangular automata and alltriangular automata arelinear
+hybridautomata. Theuse of general linear hybridautomata forapproximating
+complex continuous behavior can be more efficient thanthe use of rectangular
+automata [30, 37]. 
+Definition 3.6[Theoriesfor hybrid automata] Consider a hybrid automaton
+HwiththesetA"ofvariables andthesetVofcontrolmodes.AnH-predicate
+is apredicate whosefreevariables areboolean-valued variables fromVand
+real-valued variables from A'. A state(v,x)ofH satisfies the.//-predicate p if
+the closed predicate p[v,V\{v),X :=true,false, x] is true. The //-predicate p
+islinearif p is a booleancombination of (1)boolean-valued variables fromV*
+and (2) linear inequalities whose (real-valued) variables are from A'. Thelinear
+H-predicate p is arectangular H-predicate if eachlinearinequality in pcanbe
+written intheformx <korx >k,foravariable xandarational constant k.
+AnH-formula of therectangular ^-calculus is a formula of the (5^,T)-based
+//-calculus, forthesetTofrectangular //-predicates. 
+17
+
+--- Page 21 ---
+Theorem 3.1[Symbolic analysisof linearhybridautomata] [5,8]Forevery
+linearhybridautomaton H,theset oflinear H-predicates permitsthesymbolic
+analysisofthetime-abstract transition systemSfj.
+Proof. The linear //-predicates are quantifier-free formulas of the first-order
+theory(E,+,<,0,1) of the realswith addition, comparison, and integercon
+stants.Each time transition ofa linear hybrid automaton has a witness thatcan
+bedecomposed into afinitesequenceofstraight lines.Then,usingquantifica
+tionoverthe reals,the PostandPreoperationscan be expressed in the theory
+(R,+<,0,1). Theproofconcludes with the observation thatthefirst-order
+theory(R,+,<,0,1)admitsquantifier elimination. 
+Remark. [Timedautomata]The symbolicanalysisofsingularautomata does
+not require thefull theory of linear predicates, which leads to more efficient
+implementations [18,10,11, 17].Forahybridautomaton .4,alinear//-predicate
+p isatriangular H-predicate ifeachlinearinequalityinp can bewritten in the
+formx <k,x >k,x < y+k, or x >y+k,forvariablesx andyanda rational
+constant k.Foreverytimed automaton H,the set of triangular //-predicates
+permitsthesymbolicanalysisofthetime-abstract transition systemS%[29].D
+Remark. [Polynomial hybridautomata] Sincethe theory of the reals with
+additionandmultiplication isdecidable, it ispossibletodefineaclassofhy
+bridautomata that are moregeneralthanlinearhybridautomata andcan be
+analyzedsymbolically in themorepowerfultheory.Thepracticality ofsucha
+generalization hasnotbeenstudied. D
+3.3Bisimilarity andSimilarity Relations
+FromTheorem 2.1itfollowsthatforeveryrectangular automaton H,the trace
+equivalence relationofthetime-abstract transition systemSfaisfinitary.Ifwe
+can identify subclassesof rectangular automata whosetime-abstract transition
+systemshavefinitarysimilarityor bisimilaryrelations,then weobtain termina
+tionguarantees fortheprocedure MuApprox appliedtohybridautomata.
+Definition3.7 [Timedandtime-abstract (bi)similarity] Considerahybridau
+tomatonHand a set $of//-predicates. The$-(bi)similarity relationofthe
+timedtransition systemS'Hiscalledthetimed$-(bi)similarity relationof//,
+andthe^-(bi)similarity relationofthetime-abstract transitionsystemS%is
+calledthetime-abstract ^-(bi)similarity relationof//.D
+Thefundamental theoremoftimedautomata showstheexistenceoffinitary
+time-abstract bisimilarity relations for timed automata. This result can be
+extended tosingularautomata.
+Theorem 3.2[Time-abstract bisimilarity ofsingularautomata] [6,5]//His
+asingularautomaton, and4>isafinitesetofrectangular H-predicates, thenthe
+time-abstract $-bisimilarity relationofH isfinitary.
+18
+
+--- Page 22 ---
+Figure8: Fourfinitaryequivalence relations ontheunitsquare
+Proof. A rectangular automaton Hand a finite set 4>of rectangular //-
+predicates arenormalized if all non-flow interval endpoints inHand all con
+stantsin$are integers. Normalization can be achieved by multiplying all non-
+flowintervalendpoints in Hand allconstants in 4>bya suitably choseninteger
+constant. Assuming thatHand$are normalized, let A"be thelargestinteger
+constant thatoccurs in Hand4>.IfHis a timed automaton, then the (finite)
+set4>oftriangular //-predicates with integer constants nolarger thanA"induces
+a finitary ^-bisimulationon the time-abstracttransition system S%.The first
+panelof Figure8 showstheinducedbisimulation on the unit square [0.1]2for
+a 2Dtimedautomaton H.Forinstance, ifv=v'and 0 < xi<x2< 1 and
+0 <x\<x2< 1,then the twostates (v,x)and[v',x')ofHaretime-abstract
+$-bisimilar. If His a singular automaton, then a slight extension of triangular
+//-predicates needs to be considered. Forexample, the second and thirdpanels
+of Figure 8 showthe induced bisimulationson the unit square for 2Dsingular
+automata with the flowrectangles [2,2]x[1,1]and[1,1]x[3,3],respectively. D
+Corollary 3.1 [Symbolic //-calculus modelcheckingforsingularautomata] The
+procedure MuApprox terminates ifgiventhetime-abstract transition systemof
+a singular automaton H andan H-formula <t>of therectangular p-calculus.
+Remark. [Nonsingular automataand nonrectangular predicates] Singularau
+tomatawithrectangular predicates identify a boundary between theexistence
+andnonexistence offinitary bisimilarity relations. Infact,forthe following three
+generalizations, bisimilarity degenerates to equality on infinite statespaces. Let
+$i={*i=1,X2=l,xi<x2}and<J>2={xi=l,x2= 1}.
+1. There is an (infinite-state) singularautomaton Hsuchthatthe time-
+abstract $i-bisimilarity relationofHisequality.
+2. There isan (infinite-state) multisingular automaton Hsuchthatthe time-
+abstract $2-bisimilarity relationofHisequality.
+3.Thereis an(infinite-state) 2Drectangular automaton Hsuchthatthe
+time-abstract $2-bisimilarity relationof//isequality. 
+19
+
+--- Page 23 ---
+Theboundary betweentheexistence andnonexistence offinitarysimilarity
+relations liesat 2D rectangular automata.
+Theorem 3.3[Time-abstract similarityof2Drectangular automata] [20]//H
+isa2Drectangular automaton, and$isafinitesetofrectangular H-predicates,
+thenthetime-abstract ^-similarity relationofH isfinitary.
+Proof. Thestructure of the finitary time-abstract similarity relation is best
+illustrated withanexample. LetHbe a2Drectangular automaton with the
+flowrectangle [1,2]x[1,3].Assuming thatHand$arenormalized, the fourth
+panel ofFigure8 shows a finitarykernel of a time-abstract ^-simulation on the
+unitsquare.Thesimulation is obtained by intersecting thebisimulations for
+the two cases of extremal flow:maximal xiand minimal X2,and vice versa. 
+Corollary 3.2 [Symbolic //-calculus modelchecking for2Drectangular au
+tomata] Theprocedure MuApprox terminates ifgiventhetime-abstract tran
+sitionsystemof a 2D rectangularautomaton H and an existential or universal
+H-formula <f>of therectangular fi-calculus.
+Theorem3.3doesnot generalize torectangular automataofarbitrary dimension.
+Theorem 3.4[Time-abstract similarityof3Drectangular automata] [26]Let
+$={^l= 1,a?2=1,«3=!}•Thereisan(infinite-state) 3Drectangular
+automaton Hsuchthatthetime-absti-act ^-similarity relationofH isequality.
+In summary, rectangular automata are a maximal class of hybrid automata
+withfinitarytime-abstract traceequivalence relations, 2Drectangular automata
+are a maximalclassof hybrid automata with finitary time-abstract similarity
+relations,and singular automata are a maximalclassofhybrid automata with
+finitarytime-abstract bisimilarity relations.
+Remark. [Context-free equivalences] Wehaverestricted ourselves todecidabil
+ity results thatcan beobtained byrelating hybrid automata tofiniteautomata.
+Additional decidability resultscan beobtainedbyrelating hybridautomata to
+pushdown automata [13,15]. Little is known, however, aboutwhich classes
+ofhybridautomata are time-abstract traceequivalent (similar;bisimilar) to
+pushdown automata. D
+Remark. [Timed(bi)similarity] Wehavefocusedontime-abstract statespace
+equivalences, becausethetimedcounterpartsareinfinitaryalreadyfornontrivial
+timedautomata. From Theorem 2.3 it followsthatfor timed automata, the
+timed trace equivalenceof two states cannot be decided. It should be noted,
+however, thattimed similarity and timed bisimilaritycan be decided for timed
+automata. Specifically, ifHisatimedautomaton, $isafinitesetofrectangular
+//-predicates, and qand r are twostates of//,then it can be decidedifqand
+r are timed $-(bi)similar [16,39].
+20
+
+--- Page 24 ---
+3.4Computation TreeLogics
+Wehave studiedthestructure ofthe timed and time-abstract transition systems
+of hybrid automata. Thesetransition systems, however, may not be directly
+useful for (dis)proving assertions aboutthebehavior of ahybridautomaton //,
+becauseeachtrajectoryof SlHandSfaonlysamplesapiecewise-continuous tra
+jectoryofHat certain discrete points. In the following, werestrictourselves to
+the time-abstract view.Sinceeach time transition of Sfjabstracts all informa
+tionaboutintermediate statesthatare visited, by looking only at a trajectory
+ofSjj,it is impossible to check if the corresponding piecewise-continuous tra
+jectoryofHvisits any given stateor region. Wesolve this problem by defining
+(time-abstract) observational transition systems, whereeachtimetransition is
+labeled with a region: the time transition tis labeled with the region Riff
+allintermediate statesand thetargetstateof/.liewithinR.Thus,an obser
+vational transition systemresultsfrom the continuous observation of ahybrid
+automaton, withlimitedobservational power: for a given set 71of regions, it
+can be observed whether a continuous trajectory fragment stayswithin any of
+theregionsfrom71.
+Definition 3.8[Piecewise-continuous semantics ofhybridautomata] Consider
+a hybridautomaton Hand a set 71of//-regions. The7l-observational transition
+systemS#ofHis the labeled transition system with the components Q,Q°,
+A,andAforeachc£ C,definedasfollows.3
+•QandQ°are defined as in Definition 1.3.
+•C=zZun.
+•For each event a£E, define Aas in Definition 1.3.
+•For each region R£71,define{v,x)—>(v',x') iff there is a nonnegative
+realS £R>oand a witness / for the transition (v,x)—y(v',x') suchthat
+for all reals e £(0,<51,(v,f(e)) £ R.The real Sis apossible duration of
+thetransition (u,x)—»(r',x').
+An infinite trajectory (c,,g,),>i of the7£-observational transition system S#
+divergesifthere is an infinite sequence (£,),>oofreals such that(1) the infinite
+sumJ2i>ihdiverges, and (2) for all i> 0, either a,£Eand<5,= 0, or
+a,-£7Zand<$,is a possible duration of the corresponding transition gi_i-4<7,. A
+set$of//-predicates permits the observational symbolic analysis of thehybrid
+automaton Hif$permitsthesymbolic analysis oftheobservational transition
+systemS]j,where71isthesetof//-regions that aredefinablebypredicates in$.
+Anequivalence relation~onQis anobservational ^-(bi)similarity relationof
+Hif~isthe$-(bi)similarity relationoftheobservational transitionsystem Sj,
+where71istheset of^-equivalence classes. 
+3IfV.={R}forasingle//-region R,thenwewriteS$forthe72-observational transition
+systemSJJ.
+21
+
+--- Page 25 ---
+Sinceobservational transition systemsaredefinedin a time-abstract way,the
+results of Theorems 3.1, 3.2, and 3.3 carry overfrom time-abstract to observa
+tionaltransition systems.
+Proposition 3.4[Observational symbolicanalysisoflinearhybridautomata]
+Foreverylinearhybridautomaton H,thesetoflinearH-predicates permitsthe
+observational symbolicanalysisofH.Consider afiniteset $ofrectangular H-
+predicates. IfH is a singularautomaton, thenthereis afinitaryobservational
+$-bisimilarity relationofH.IfH is a 2D rectangular automaton, thenthereis
+afinitary observational ^-similarity relationofH.
+For (dis)proving assertions about the infinite behavior of hybrid automata, we
+needto take into account the livenessassumptionthat time diverges. Compu
+tation tree logicsfor hybrid automata are branching-time temporal logicsfor
+statingrequirements about divergent piecewise-continuous trajectories.
+Definition 3.9 [Computation tree logics]Considera linear hybrid automaton
+Hwith the state space Q.TheH-formulas oflinearCtlare generated by the
+grammar
+0::= p|4>iV02|--^|0i3W02I3D0
+forlinear //-predicates p.Everv//-formula oflinearCtldefinesan //-region
+MQQ-
+I0iV62J=[0,JUI03]
+i-0i=q\m
+q£|0i3W02] ifftheobservational transitionsystemsj^1^2!hasa
+(finite)<y-rootedtrajectory that visitsa state in |[02]
+q£f3D0jifftheobservational transition systemS^hasadivergent,
+g-rooted trajectory
+The//-formula 0 oflinear CtlisanH-formula ofrectangular Ctlifallpred
+icatesthatoccur in 0 are rectangular //-predicates. The//-formula 0 of rect
+angularCtlis an//-formula ofrectangular 3Ctlif each occurence of the 314
+connective in 0 and each occurrence of the 3Dconnective in 0 lies withinthe
+scope of an even number of negations, and 0 is an //-formula ofrectangular
+VCTLif alloccurrences of314and 3D lie within the scopeof odd numbers of
+negations. D
+Remark. [Definition 3.9]Thesemantics oflinearCtlisdefinedtobepiecewise-
+continuous (it refers to trajectories ofobservational ratherthantime-abstract
+transition systems), live(it refersto divergenttrajectories), and strict(the tem
+poralconnectives donot impose requirements onthe currentstate; forexample,
+a nonstrict versionof0i3£/02can bedefinedas02V(0i3W02)). The disjunc
+tion in the semantic clause for the 3Uconnective is necessary, because a switch
+22
+
+--- Page 26 ---
+from0ibeingtrue to 02beingtrue mayoccurfroma right-closed to aleft-open
+interval. In the following, wewrite3O0fortrue3U<f>, andVD0for->3O->0. D
+Ifa system requirement isgivenasaformulaofa computationtree logic,then
+thecorresponding verification task isamodel-checking problem.
+Definition 3.10[Modelchecking] Themodel-checking problemfora class ftof
+hybridautomata and acomputationtree logicCasks,givenahybridautomaton
+Hfromftand an//-formula 0fromC,if[0|containsallinitial states of //.D
+For a linear hybrid automaton //,an//-formula 0 of linear Ctlcan betrans
+lated into a formula 0'ofthe //-calculus. The piecewise-continuityoflinear Ctl
+istakencareofbyinterpreting 0'overanobservational transition systemS#.
+ThelivenessoflinearCtlistakenofbyinterpreting 0'overanextensionofS]J
+with a clockvariable thatcan observethe divergence of time. The translation
+leads to a model-checking procedure for linear hybrid automata andlinearCtl.
+Definition 3.11[Clockextension]A clockautomaton //.isa timed automaton
+with a single variable, z,a single control mode with the initialcondition c= 0
+and the invariant condition true,and asinglecontrolswitch with the jump
+condition z'= 0. IfHis a hybrid automaton andzis not a variable of //,
+then the composition H\\H:iscalledaclockextension ofH.A procedure
+is aneffectiveprocedure fortheobservational symbolicanalysisof the hybrid
+automaton Hif eachstepoftheprocedure iseithereffective or a subroutine
+calloftheformMuApprox{S$, 0),foraclockextension//'of//. alinear//'-
+predicatep,andaformula0ofthe(Sjj?,T)-based//-calculus, whereTisthe
+set oflinear//'-predicates. D
+Theorem 3.5[FromCtlto the//-calculus] [29,8]LetHbealinearhybrid
+automaton and let0beanH-formula of linearCtl.Thereis aneffective
+procedure fortheobservational symbolicanalysisofHwhich,upontermination,
+returnsalinearH-predicate pwith[p]]=J0|.Furthermore, theprocedure is
+guaranteed toterminate if H is a singularautomaton and0is aformulaof
+rectangular Ctl,andif H is a 2D rectangular automaton and0is aformula
+ofrectangular 3Ctlor ofrectangular VCtl.
+Proof.TheCtlformula0i3U<f>2canbetranslatedtothe formula(///?.3@(02V
+/?)),for c = ([01V02Jofthe//-calculus. The//-formula 3D0 can be trans
+latedto the //'-formula {vR.03tf(0A:=lA 03tf(0A:= 0 A/?))),where
+H'=H\\HZis aclockextension of//.The latter formulaasserts that 0 is
+true throughout some infinitetrajectory along whichz =1 is true infinitely
+often and z= 0 is true infinitely often. This can be the case ifand only if the
+trajectory diverges. D
+Corollary 3.3[Ctlmodelchecking] Themodel-checking problemforrectan
+gularCtlisPSPACE-decidable forsingularautomata. Themodel-checking
+23
+
+--- Page 27 ---
+problems forrectangular 3Ctlandrectangular VCTLarePSPACE-decidable
+for 2D rectangular automata.
+Remark. [HyTech] The procedure ofTheorem3.5forcheckinglinearCtlre
+quirements oflinear hybrid automata hasbeenimplemented inthe tool HyTech
+[24,25].Theprocedure hasbeenfoundtoterminateon severalexamplesofprac
+ticalinterest thatdonot fallintoanyofthe classesforwhicha priori termination
+guarantees can be given [31].D
+Example 3.1[Railroad gatecontrol]Recallthesafetyrequirementforthe rail
+road gate controller from Example 1.2, namely,thatthe gate is fully closed
+whenever the train is within 10 meters of the gate. This requirement is ex
+pressed by the formula [FarAIdleAOpen)->VD(-10< x < 10 ->Closed)
+ofrectangular VCtl.HyTech simplifiesthis Ctlformula, fully automatically,
+to alinearpredicate whoseprojection ontotheu-dimension is5u< 49.Itfol
+lowsthatthe safety requirement is met ifand only ifthe reaction delay uof the
+controller islessthan9.8seconds. D
+Remark. [Nonzenoness] The semantics of the 3Uconnective of linear Ctlis
+defined over finite trajectories. Thealternative interpretation of314over finite
+prefixesofdivergent trajectories requiresthatthe underlying hybrid automaton
+isnonzeno. Fora linearhybridautomaton Hand aclockextension H\\HZ,the
+rectangular existential formula0n. =(i/R.30{z = 1A30(z= 0AR)))defines
+the set of statesqwith divergent ^-rooted trajectories. Hence, if <f>nican be
+simplifiedto a linear //-predicate pn.,then theadditionofpnzas aconjunct to
+allinvariant conditions of Hresults in a nonzeno linear hybrid automaton Hn:
+suchthatHandHn:have the same divergent timed traces. FromTheorem 3.5
+itfollowsthatthis isalwayspossibleforsingular and 2Drectangular automata.
+D
+Remark. [Ctlwithclocks,stopwatches, andsymbolic constants] TheH-
+formulas of linear Ctlcan be generalized to permitreal-numbered variables
+thatare not variables of the hybrid automaton //.In this way,linear Ctlhas
+beenextended to include clocks(Tctl)[7,2],stopwatches [14,8],and symbolic
+constants [40].The symbolic-analysis result of Theorem 3.5 continues to hold
+for these logics,and the decidability results ofCorollary 3.3continue to hold for
+Tctl.Isolated decidability results are knownalso forcomputation tree logics
+with a limited useofstopwatchesor symbolicconstants [4,40].D
+Acknowledgments. My view of mixed discrete-continuous systemshas been
+shaped in collaborations with Rajeev Alur,CostasCourcoubetis, NicolasHalb-
+wachs,Pei-Hsin Ho,PeterKopke, Zohar Manna,XavierNicollin, AmirPnueli,
+AnujPuri,JosephSifakis, Howard Wong-Toi, PravinVaraiya, Moshe Vardi,
+and Sergio Yovine. My special thanksgo to Oded Maler,Zohar, and Amirfor
+introducing me to the problemdomain [34],to Pei-Hsinand Howardfor imple
+mentingHyTech, and toPeterformanyvaluable comments on several drafts
+ofthismanuscript.
+24
+
+--- Page 28 ---
+References
+[1]M.Abadiand L.Lamport. An old-fashioned recipeforrealtime. In J.W.
+de Bakker, K. Huizing,W.-P. de Roever,and G.Rozenberg, eds.,Real
+Time:TheoryinPractice, LectureNotesin Computer Science(LNCS)
+600, pp. 1-27. Springer-Verlag, 1992.
+[2]R.Alur,C.Courcoubetis, andD.L.Dill.Modelcheckingindenserealtime.
+Information andComputation, 104(l):2-34, 1993.
+[3]R.Alur,C.Courcoubetis, N.Halbwachs, T.A.Henzinger, P.-H.Ho,
+X.Nicollin,A.Olivero,J.Sifakis,and S.Yovine.The algorithmicanalysis
+ofhybridsystems. TheoreticalComputerScience, 138:3-34, 1995.
+[4]R.Alur,C.Courcoubetis. and T.A. Henzinger. Computing accumulated
+delaysin real-time systems. In C. Courcoubetis, ed., Computer-aided Ver
+ification, LNCS697,pp. 181-193. Springer-Verlag, 1993.
+[5]R.Alur,C. Courcoubetis, T.A.Henzinger, and P.-H.Ho.Hybridautomata:
+an algorithmic approach to the specificationand verificationof hybrid sys
+tems. In R.L. Grossman, A. Nerode, A.P.Ravn, and H. Rischel, eds.,
+HybridSystemsI,LNCS736,pp. 209-229. Springer-Verlag, 1993.
+[6]R.Alurand D.L.Dill.Atheoryoftimedautomata. Theoretical Computer
+Science, 126:183-235, 1994.
+[7]R. Alur and T.A. Henzinger. Logicsandmodelsof real time: a survey.
+InJ.Wr.de Bakker, K. Huizing, W:.-P.de Roever,and G. Rozenberg, eds.,
+RealTime:TheoryinPractice, LNCS600,pp. 74-106. Springer-Verlag,
+1992.
+[8]R. Alur, T.A. Henzinger, and P.-H.Ho. Automatic symbolic verification
+ofembedded systems. IEEETrans.Software Engineering, 22(3):181-201.
+1996.
+[9]R. Alur, T.A. Henzinger, and M.Y. Vardi. Parametric real-time reason
+ing. InProc.25thAnnualSymp.TheoryofComputing, pp. 592-601. ACM
+Press,1993.
+[10]R. Alurand R.P.Kurshan. Timing analysisinCospan. In R. Alur,T.A.
+Henzinger, and E.D. Sontag, eds., HybridSystems III,LNCS1066,pp.
+220-231. Springer-Verlag, 1996.
+[11]J.Bengtsson, K.G.Larsen,F.Larsson,P.Pettersson,andW.Yi. UppAal:
+a tool-suite for automatic verification of real-time systems. In R. Alur,
+T.A. Henzinger, and E.D. Sontag, eds., HybridSystems III, LNCS1066.
+pp.232-243. Springer-Verlag, 1996.
+25
+
+--- Page 29 ---
+[12]D.Bosscher, I.Polak,and F.Vaaiidrager. Verification ofanaudio-control
+protocol. In H. Langmaack, W.-P. de Roever, and J. Vytopil, eds., Formal
+Techniques inReal-time andFault-tolerant Systems, LNCS863, pp. 170-
+192.Springer-Verlag, 1994.
+[13]A.Bouajjani, R. Echahed, and R. Robbana. Verification of context-free
+timed systems usinglinear hybrid observers. In D.L.Dill,ed.,Computer-
+aidedVerification, LNCS,pp.118-131.Springer-Verlag, 1994.
+[14]A.Bouajjani, R.Echahed,andJ.Sifakis.Onmodelcheckingforreal-time
+properties with durations. In Proc.8thAnnualSymp.LogicinComputer
+Science,pp. 147-159. IEEE Computer Society Press, 1993.
+[15]A.Bouajjaniand R.Robbana. Verifyingu;-regular propertiesfor subclasses
+of linear hybrid systems. In P. Wolper, ed., Computer-aided Verification,
+LNCS 939, pp. 437-450. Springer-Verlag,1995.
+[16]K.Cerans.Decidability ofbisimulation equivalence forparalleltimer pro
+cesses. In G. von Bochmann and D.K. Probst,eds.,Computer-aided Veri
+fication,LNCS663,pp. 302-315. Springer-Verlag, 1992.
+[17]C. Daws, A. Olivero, S. Tripakis, and S. Yovine. The tool Kronos. In
+R. Alur, T.A. Henzinger, and E.D. Sontag, eds., HybridSystemsIII, LNCS
+1066, pp. 208-219. Springer-Verlag, 1996.
+[18]D.L.Dill.Timingassumptions and verification of finite-state concurrent
+systems. In J. Sifakis, ed., Computer-aided Verification, LNCS 407, pp.
+197-212. Springer-Verlag, 1989.
+[19]R.Gawlick, R.Segala,J.F.Sogaard-Andersen, and N.A. Lynch.Liveness
+in timed and untimed systems. In S. Abiteboul and E. Shamir,eds.,Au
+tomata,Languages, andProgramming, LNCS 820, pp. 166-177. Springer-
+Verlag,1994.
+[20]M.R.Henzinger, T.A.Henzinger, andP.W.Kopke.Computing simulations
+on finite and infinite graphs. In Proc.36rdAnnualSymp.Foundations of
+Computer Science,pp. 453-462. IEEE Computer Society Press, 1995.
+[21]T.A.Henzinger. Soonerissaferthan later. Information Processing Letters,
+43:135-141, 1992.
+[22]T.A.Henzinger. Hybridautomata withfinitebisimulations. InZ.Fiilop
+and F. Gecseg,eds., Automata, Languages, andProgramming, LNCS 944,
+pp.324-335. Springer-Verlag, 1995.
+[23]T.A.Henzinger and P.-H. Ho. Algorithmicanalysis of nonlinear hybrid
+systems. In P. Wolper, ed., Computer-aided Verification, LNCS 939, pp.
+225-238. Springer-Verlag, 1995.
+26
+
+--- Page 30 ---
+[24]T.A.Henzinger, P.-H.Ho,and H.Wong-Toi. HyTech: the next gener
+ation.InProc. 16th Annual Real-time Systems Symp., pp.56-65.IEEE
+Computer SocietyPress,1995.
+[25]T.A.Henzinger, P.-H.Ho,and H. Wong-Toi. A userguideto HyTech. In
+E.Brinksma, W.R.Cleaveland, K.G. Larsen, T. Margaria, and B. Steffen,
+eds.,Toolsand Algorithmsfor the Construction and Analysis of Systems,
+LNCS 1019, pp. 41-71.Springer-Verlag, 1995.
+[26]T.A.Henzinger and P.W. Kopke.Stateequivalences forrectangular hybrid
+automata. In U.Montanari, ed.,Concurrency Theory, Lecture Notesin
+Computer Science. Springer-Verlag, 1996.
+[27]T.A. Henzinger, P.W. Kopke, A. Puri,and P. Varaiya. What'sdecidable
+abouthybridautomata? InProc.27thAnnual Symp.TheoryofComputing,
+pp.373-382. ACMPress,1995.
+[28]T.A.Henzinger, P.W.Kopke,and H.Wong-Toi. Theexpressive power
+of clocks. InZ. Fiilop and F. Gecseg, eds., Automata, Languages, and
+Programming, LNCS 944, pp. 417-428. Springer-Verlag, 1995.
+[29]T.A. Henzinger, X. Nicollin,J. Sifakis, and S. Yovine. Symbolic model
+checkingfor real-time systems. Information andComputation, 111(2):193-
+244,1994.
+[30]T.A. Henzinger and H. Wong-Toi. Linearphase-portrait approximations
+fornonlinear hybridsystems. In R. Alur,T.A. Henzinger,and E.D. Sontag,
+eds.,HybridSystems 111,LNCS 1066,pp. 377-388. Springer-Verlag, 1996.
+[31]P.-H.Ho and H. Wong-Toi. Automated analysisof an audio control pro
+tocol. In P. Wolper, ed..Computer-aided Verification, LNCS 939, pp. 381-
+394.Springer-Verlag, 1995.
+[32]Y. Kesten, A. Pnueli,J. Sifakis,and S.Yovine.Integration graphs: a class
+ofdecidable hybridsystems. In R.L.Grossman, A.Nerode, A.P.Ravn,
+and H. Rischel,eds., HybridSystemsI,LNCS736,pp. 179-208. Springer-
+Verlag, 1993.
+[33]N.A.Lynch,R.Segala,F.Vaandrager, andH.B.Weinberg. HybridI/O
+Automata. In R. Alur, T.A. Henzinger, and E.D. Sontag, eds., Hybrid
+SystemsIII,LNCS 1066,pp. 496-510. Springer-Verlag, 1996.
+[34]O.Maler,Z. Manna, and A. Pnueli. From timed to hybrid systems. In
+J.W.de Bakker, K. Huizing, W.-P. de Roever, and G. Rozenberg, eds.,
+RealTime:TheoryinPractice, LNCS600,pp. 447-484. Springer-Verlag,
+1992.
+27
+
+--- Page 31 ---
+[35]0.Maler,A. Pnueli,and J. Sifakis.On the synthesisofdiscretecontrollers
+for timed systems. In E.W. Mayr and C. Puech, eds., Theoretical Aspects
+ofComputer Science,LNCS900,pp.229-242.Springer-Verlag, 1995.
+[36]X.Nicollin,A.Olivero,J.Sifakis,and S.Yovine.An approach to the
+description and analysis of hybrid systems. In R.L. Grossman, A. Nerode,
+A.P. Ravn, and H. Rischel,eds., HybridSystemsI, LNCS 736,pp. 149-178.
+Springer-Verlag, 1993.
+[37]A. Puri, V. Borkar, and P. Varaiya. ^-approximationofdifferentialinclu
+sions. In R. Alur. T.A.Henzinger, and E.D. Sontag, eds., HybridSystems
+III,LNCS 1066,pp. 362-376. Springer-Verlag, 1996.
+[38]A. Puri and P. Varaiya. Decidability ofhybridsystemswithrectangular
+differential inclusions. In D.L. Dill,ed.,Computer-aided Verification. LNCS
+818, pp. 95-104.Springer-Verlag, 1994.
+[39]S. Tasiran, R. Alur, R.P. Kurshan, and R.K.Brayton. Verifying abstrac
+tions oftimedsystems. In U.Montanari, ed.,Concurrency Theory,Lecture
+Notes in Computer Science. Springer-Verlag, 1996.
+[40]F. Wang. Timing behavior analysisfor real-timesystems. In Proc.10th
+Annual Symp. Logic in Computer Science, pp.112-122. IEEEComputer
+SocietyPress,1995.
+28

@@ -1,0 +1,960 @@
+--- Page 1 ---
+Consistent*Complete*W
+ellDocumented*EasytoReuse* *Evaluated
+*CAV*Artifact*
+AECAutomata Tutor v3?
+Loris D'Antoni1, Martin Helfrich2, Jan Kretinsky2, Emanuel Ramneantu2, and
+Maximilian Weininger2
+1University of Wisconsin-Madison
+loris@cs.wisc.edu
+2Technical University of Munich
+fmartin.helfrich,jan.kretinsky,emanuel.ramneantu,maxi.weininger g@tum.de
+Abstract. Computer science class enrollments have rapidly risen in the
+past decade. With current class sizes, standard approaches to grading
+and providing personalized feedback are no longer possible and new tech-
+niques become both feasible and necessary. In this paper, we present the
+third version of Automata Tutor, a tool for helping teachers and students
+in large courses on automata and formal languages. The second version
+of Automata Tutor supported automatic grading and feedback for nite-
+automata constructions and has already been used by thousands of users
+in dozens of countries. This new version of Automata Tutor supports au-
+tomated grading and feedback generation for a greatly extended variety
+of new problems, including problems that ask students to create regu-
+lar expressions, context-free grammars, pushdown automata and Turing
+machines corresponding to a given description, and problems about con-
+verting between equivalent models - e.g., from regular expressions to
+nondeterministic nite automata. Moreover, for several problems, this
+new version also enables teachers and students to automatically gener-
+ate new problem instances. We also present the results of a survey run
+on a class of 950 students, which shows very positive results about the
+usability and usefulness of the tool.
+Keywords: Theory of computation Automata Theory Personalized
+educationAutomata Tutor Automated grading.
+1 Introduction
+Computer science (CS) class enrollments have been rapidly rising, e.g., CS en-
+rollment roughly triples per decade at Berkeley and Stanford [12] or TU Munich.
+Both online and oine courses and degrees are being created to educate students
+?We thank Emil Ratko-Dehnert from ProLehre TUM for the professional help with
+the student survey; Tobias Nipkow and his team for allowing us to conduct the
+user survey in his class; Christian Backs, Vadim Goryainov, Sebastian Mair and
+Jan Wagener for the exercises they added as part of their Bachelor's theses; Julia
+Eisentraut and Salomon Sickert-Zehnter for their help in developing this project;
+the TUM fund \Verbesserung der Lehrmittelsituation" and the CAV community for
+caring about good teaching. Loris D'Antoni was supported, in part, by NSF under
+grants CNS-1763871, CCF-1750965, CCF-1744614, and CCF-1704117; and by the
+UW-Madison OVRGE with funding from WARF.arXiv:2005.01419v4  [cs.FL]  14 May 2020
+
+--- Page 2 ---
+2 L. D'Antoni et al.
+and professionals in computer science and these courses may soon have thousands
+of students attending a lecture, or tens of thousands following a Massive Online
+Open Course (MOOC). At these scales, standard approaches to grading and
+providing personalized feedback are no longer possible and new techniques be-
+come both feasible and necessary. Current approaches for handling this growing
+student volume include reducing the complexity of assignments or relying on im-
+precise feedback and grading mechanisms. Simpler assessment mechanisms, e.g.,
+multiple-choice questions, are easier to grade automatically but lack realism [7].
+Designing better techniques for automated grading and feedback generation is
+therefore a necessity.
+Recent advances in formal methods, including program synthesis and veri-
+cation, can help teachers and students in veriably correct ways that statistical
+or rule-based techniques cannot. For example, formal methods have been used to
+identify student errors and provide feedback for problems related to introductory
+Python programming assignments [17] geometry [8,10], algebra [16], logic [2], and
+automata [3,5]. In particular, for this last topic, the tool Automata Tutor v2 [6]
+has already been used by more than 9,000 students at more than 30 universities
+in North America, South America, Europe, and Asia.
+In this paper, we present Automata Tutor v3, an online3tool that extends
+Automata Tutor v2 and uses techniques from program synthesis and decision
+procedures to improve the quality and eectiveness of teaching courses on au-
+tomata and formal languages. Besides being part of the standard CS curriculum,
+the concepts taught in these courses are rich in structure and applications, e.g.,
+in control theory, text editors, lexical analyzers, or models of software interfaces.
+Concrete topics in such curricula include automata, regular expressions, context-
+free grammars, and Turing machines. For problems and assignments related to
+these topics Automata Tutor v3 can automatically: (1) Detect whether the stu-
+dent's solution is correct. (2) Detect dierent types of student's mistakes and
+translate them into explanatory feedback. (3) If possible, generate new problems
+together with the corresponding solutions for teachers to use in class.
+Automata Tutor v3 greatly expands its predecessor Automata Tutor v2,
+which only provides ways to pose and solve problems for deterministic and non-
+deterministic nite automata constructions. This paper describes the new com-
+ponents introduced by Automata Tutor v3 and how this new version improves
+on its previous one. The key advantages to its competitors are the breadth, au-
+tomatic generation and grading of exercises, infrastructure allowing for use in
+large courses and a useful feedback to the students, compared to text-based in-
+terfaces used by Autotool [13], rudimentary feedback in JFLAP [14] and none
+in Gradience [1].
+Since Automata Tutor has already been well received by teachers around the
+world, we believe that the readers from the CAV community will nd great value
+in knowing about this new and fundamentally richer version of the tool and how
+it can extensively help with teaching the automata and formal languages courses,
+a task we know many of the attendees have to face on a yearly basis.
+3https://automata.model.in.tum.de
+
+--- Page 3 ---
+Automata Tutor v3 3
+Our contributions are the following:
+{ Twelve new types of problems (added to the four problems from the
+previous version) that can be created by teachers and for which the tool
+can assign grades together with feedback to student attempts. While the
+previous version of Automata Tutor could only support problems involving
+nite automata constructions, Automata Tutor v3 now supports problems
+for proving language non-regularity using the pumping lemma, building reg-
+ular expressions, context free grammars, pushdown automata and Turing
+machines, and conversions between such models.
+{ Automatic problem generation for ve types of problems, with the code
+modularity allowing to add it for all the others. This feature allows teachers
+to eortlessly create new assignments, or students to practice by themselves
+with potentially innitely many exercises.
+{A new and improved user interface that allows teachers and students
+to navigate the increased number of problem types and assignments. Fur-
+thermore, each problem type comes with an intuitive user interface (e.g., for
+drawing pushdown automata).
+{An improved infrastructure for the use in large courses, in particular, in-
+corporating login systems (e.g. LDAP orOAuth ), getting a certied mapping
+from users to students and enabling teachers to grade homework or exams.
+{Auser study run on a class of 950 students to assess the eectiveness
+and usability of Automata Tutor v3. In our survey, students report to have
+learned quickly ,felt condent , and enjoyed using Automata Tutor v3, and
+found it easy to use . Most importantly, students found the feedback given by
+the tool to be useful and claimed they understood more after using the tool
+and felt better prepared for an upcoming exam. In our personal experience,
+the tool saves us dozens of thousands of corrections in each single course.
+2 Automata Tutor in a nutshell
+Automata Tutor is an online education tool created to support courses teaching
+basic concepts in automata and formal languages [6]. In this section, we de-
+scribe how Automata Tutor helps teachers run large courses and students learn
+eciently in such courses.
+Learning without Automata Tutor Figure 1 schematically shows a student-
+teacher interaction in a course taught without an online tutoring system. The
+teacher creates exercises, grades them manually, and (sometimes) manually pro-
+vides personalized feedback to the students. This type of interaction has many
+limitations: (1) it is asynchronous (i.e., the student has to wait a long time for
+what is often little feedback) and does not scale to large classrooms, posing
+strenuous amount of work on teachers, (2) it does not guarantee consistency in
+the assigned grades and feedback, and (3) it does not allow students to revise
+their solutions upon receiving feedback as the teachers often release a solution
+to all students as part of the feedback and do not grade new submissions.
+Another drawback of this interaction is the limited number of problems stu-
+dents can practice on. Because teachers do not have the resources to create many
+
+--- Page 4 ---
+4 L. D'Antoni et al.
+Exercises Teacher Students 
+creates 
+grades solve 
+feedback Internet? want more
+… feedback?
+… practice?
+Fig. 1. Common structure of practical sessions for CS classes.
+practice problems and provide feedback for them, students are often forced to
+search the Internet for old exams and practice sheets or even exercises from
+other universities. Due to the lack of feedback, this chaotic search for practice
+problems often ends up confusing the students rather than helping them.
+Fig. 2. Overview of Automata Tutor v3 (our contributions in green). The teacher
+creates exercises on various topics. The students solve the exercises in a feedback cycle:
+After each attempt they are automatically graded and get personalized feedback. The
+teacher has access to the grade overview. For additional practice, students can generate
+an unlimited number of new exercises using the automatic problem generation.
+Learning with Automata Tutor Figure 2 shows the improved interaction of-
+fered by Automata Tutor v3. Here, a teacher creates the problem instances with
+the help of the tool. The problems are then posed to the students and, no matter
+how large a class is , Automata Tutor automatically grades the solution attempts
+of students right when they are submitted and immediately gives detailed and
+personalized feedback for each submission. If required, e.g. for a graded home-
+work, it is possible to restrict the number of attempts. Using this feedback, the
+
+--- Page 5 ---
+Automata Tutor v3 5
+Fig. 3. Creating a new problem of type \PDA Construction".
+students can immediately try the problem again and learn from their mistakes.
+As shown in a large user study run on the rst version of Automata Tutor [5], this
+fast feedback cycle is encouraging for students and results in students sponta-
+neously exploring more practice problems and engaging with the course material.
+Additional practice is supported by the automatic problem generation, with the
+same level of detailed and personalized feedback as before without increasing the
+workload of the teacher. Furthermore, automatic problem generation can assist
+the teacher in creating new exercises. Finally, whenever necessary, the teacher
+can download an overview of all the grades.
+
+--- Page 6 ---
+6 L. D'Antoni et al.
+Fig. 4. Feedback received when solving the problem created in Figure 3.
+Improved user interface Automata Tutor is an online tool which runs in the
+most used browsers. A new collapsible navigation bar groups problems by topic,
+facilitating quick access to exercises and displaying the structure of the course
+(see Figure 6 in Appendix B). To create a new exercise, a teacher clicks the \+"-
+button and is presented the view of Figure 3. In this case, the drawing canvas
+allows to easily specify the sample solution pushdown automaton. Similarly,
+when students solve this exercise, they draw their solution attempt also on the
+canvas. After submitting, they receive their personalized feedback and grade (see
+example in Figure 4). For the automatic problem generation, a dropdown menu
+to select the problem type and a slider to select the diculty is displayed together
+with the list of all problems the user has generated so far (see the screenshot in
+Figure 7 in Appendix B).
+3 Design
+3.1 University and course management
+While Automata Tutor can be used for independent online practice, one of the
+main advantages is its infrastructure for large university courses. To this end,
+it is organized in courses . A course is created and supervised by one or more
+teachers. Together, they can create, test and edit exercises. The students can-
+not immediately see the problems, but only after the teachers have decided to
+pose them. This involves setting the maximum number of points, the number of
+allowed attempts as well as the start and end date.
+
+--- Page 7 ---
+Automata Tutor v3 7
+To use Automata Tutor, students must have an account. One can either
+register by email or, in case the university supports it, login with an external login
+service like LDAP orOauth . When using the login service of their university,
+teachers get a certied mapping from users to students and enabling teachers to
+use Automata Tutor v3 for grading homework or exams.
+Students can enroll in a course using a password. Enrolled students see all
+posed problems and can solve them (using the allowed number of attempts). The
+nal grade can be accessed by the teachers in the grade overview.
+3.2 New problem types
+In this section, we list the problem types newly added to Automata Tutor v3.
+They are all part of the course [9] and a detailed description of each problem can
+be found in Appendix A, including the basic theoretical concept, how a student
+can solve such a problem, what a teacher has to provide to create a problem,
+the idea of the grading algorithm, and what feedback the tool gives.
+RE/CFG/PDA Words: Finding words in or not in the language of a regular
+expression, context free grammar or pushdown automaton.
+RE/CFG/PDA Construction: Given a description of a language, construct a
+regular expression, context free grammar or pushdown automaton.
+RE to NFA: Given a regular expression, construct a nondeterministic-nite
+automaton.
+Myhill-Nerode Equivalence Classes: There are two subtypes: either, given a
+regular expression and two words, nd out whether they are equivalent w.r.t.
+the language, or, given a regular expression and a word, nd further words
+in the same equivalence class.
+Pumping-Lemma Game: Given a language, the student has to guess whether
+it is regular or not and then plays the game as one of the quantiers.
+Find Derivation: Given a context free grammar and a word, the student has to
+specify a derivation of that word.
+CNF: Given a context free grammar, the student has to transform it into Chom-
+sky Normal Form.
+CYK: Given a context free grammar in CNF and a word, the student has to
+decide whether the word is in the language of the grammar by using the
+CockeYoungerKasami algorithm.
+While to TM: Given a while-program (a Turing-complete programming lan-
+guage with very restricted syntax), construct a (multi-tape) Turing machine
+with the same input-output behaviour.
+3.3 Automatic problem generation
+Automatic Problem Generation (APG) allows one to generate new exercises of
+a requested diculty level and problem type. This allows students to practice
+independently and supports teachers when creating new exercises. While APG
+is currently implemented for four CFG problem types and for the problem type
+\While to TM", it can be easily extended to other problem types by providing
+the following components:
+
+--- Page 8 ---
+8 L. D'Antoni et al.
+{ Procedure for generating exercises at random either from given basic
+building blocks or from scratch.
+{ A \quality" metric qual(E) for assessing the quality of the generated
+exerciseE, ranging from trivial or infeasible to realistic.
+{ A \diculty" metric di(E) for assessing the diculty of E.
+Given these components, Automata Tutor generates a new problem with a given
+minimum diculty dminand maximum diculty dmaxas follows. Firstly, 100
+random exercises are generated. Secondly, Automata Tutor chooses exercises E
+with the best quality such that dmindi(E)dmax.
+Concretely, for the CFG problem types, CFGs with random productions are
+generated and sanitized. Resulting CFGs that do not accept any words or have
+too few productions are excluded using the quality metric. The diculty metric
+always depends on the number of productions; additionally, depending on the
+exact problem type, further criteria are taken into account.
+For the problem type \While to TM" we use an approach similar to the
+one suggested in existing tools for automatic problem generation [18,15]: We
+handcrafted several base programs which are of dierent diculty level. In the
+generation process, the syntax tree of such a base program is abstracted and
+certain modifying operations are executed; these change the program without
+aecting the diculty too much. E.g. we choose dierent variables, switch the
+order of if-else branches or change arithmetic operators. Then several programs
+are generated and those of bad quality are ltered out. A program is of bad
+quality if its language is trivially small or if it contains innite loops; since
+detecting these properties is undecidable, we employ heuristics such as checking
+that the loops terminate for all inputs up to a certain size with a certain timeout.
+4 Implementation and scalability
+Automata Tutor v3 is open source and it consists of a frontend, a backend, and
+a database. It also provides a developer's manual for creating new exercises.
+The frontend, written in scala , renders the webpage. The drawing canvases
+for the dierent automata and the Turing machines rely on javascript. The fron-
+tend and backend communicate using XML objects.
+The backend, written in C#, contains methods to unpack the xml of the
+frontend to compute the grade and feedback for solutions. It is also used to
+check the syntax of exercises and for the automatic problem generation. It relies
+on AutomataDotNet4, a library that provides ecient algorithms for automata
+and regular expressions.
+The database keeps track of existing users, problems and courses. It uses the
+H2 Database Engine.
+All the new parts of Automata Tutor v3 were developed and tested over the
+last 3 years at TU Munich, where they were used to support the introductory
+theoretical computer science course. This local deployment served as an impor-
+tant test-bed before publicly deploying the tool online at large scale. Due to its
+4https://github.com/AutomataDotNet/Automata
+
+--- Page 9 ---
+Automata Tutor v3 9
+modular structure, the tool is easily scalable by having multiple frontends and
+backends together with a load distributor. This approach has successfully scaled
+to 950 concurrent student users; for this, we used 7 virtual machines: 3 host-
+ing frontends, 3 hosting backends (each with 2 cores 2.60GHz Intel(R) Xeon(R)
+CPU and 4GB RAM), and 1 for load distribution and the database (with 4 such
+cores and 8GB RAM). We will scale the number of machines based on need.
+5 Evaluation and user study
+Large-class deployment In the latest iteration of the TU Munich course
+in 2019, we used Automata Tutor v3 (in the following denoted as AT) in a
+mandatory homework system for a course with about 950 students; the home-
+work system also included written and programming exercises. In total, we posed
+79 problems consisting of 18 homework and 61 practice problems. The teachers
+saved themselves the eort of correcting 26,535 homework exercises, and the
+students used AT to get personalized feedback for their work 76,507 times. On
+average, each student who used AT did so 107 times.
+Student survey results At the end of the course, we conducted an anonymized
+survey, based on the System Usability Survey [4]. 14.6% of the students in the
+course answered the survey, which is an ordinary rate of return for an online
+questionnaire, especially given that there was no incentive. The students were
+given statements to judge on a Likert scale from 1 to 5 (strongly disagree to
+strongly agree). We dene \The students agreed with the following statement"
+to mean that the average and median scores were at least 4 and less than 10%
+of the students chose a score below 3. Dually, if the students disagreed with the
+statement with median and average score that was at most 2 and less than 10%
+having a score greater than 3, we say that they \agreed with the negation of
+the statement". For all statements that do not satisfy either of the criteria, we
+report mixed answers. The full survey results can be found in Appendix C.
+Usability Regarding the usability of the tool, the students agreed with the
+following statements:
+{I quickly learned to use the AT.
+{I do notneed assistance to use the AT.
+{I feel condent using the AT.
+{The AT is easy to use.
+{I enjoy using the AT/the AT is fun to use.
+However, there were lots of valuable suggestions for improvements, many of
+which we have implemented since then. Moreover, the survey also revealed space
+for improvement, in particular for streamlining as documented by the following
+statements where the answers were more mixed:
+{The AT is unnecessarily complex.
+{The canvas for drawing is intuitive.
+{The use of AT is self-explanatory.
+
+--- Page 10 ---
+10 L. D'Antoni et al.
+Fig. 5. Question from the survey we conducted to evaluate Automata Tutor, showing
+that the tool is preferred by a majority of students.
+Usefulness Regarding how useful AT was for learning, the students agreed with
+the following statements:
+{I understand more after using the AT.
+{I prefer using the AT to using pen and paper exercises (12.9% disagreed, but
+median and average are 4).
+{The feedback of the AT was helpful and instructive.
+{The exercises within the AT are well-designed.
+{The AT ts in well with the programming tasks and written homework.
+{The AT did nothinder my learning.
+{I feel better prepared for the exam after using AT.
+{The feedback of the AT was notmisleading/confusing.
+Note that there are no statements with mixed or negative answers regarding the
+usefulness. Additionally, as shown in Figure 5, when we asked students about
+their preferred means of learning, AT gets the highest approval rate, being pre-
+ferred to written or programming exercises as well as lectures.
+Overall, this class deployment of Automata Tutor v3 and the accompanying
+surveys were great successes, and showed how the tool is of extreme value for
+both students and teachers, in particular for such large a course.
+6 Conclusion
+This paper presents the third version of Automata Tutor, an online tool helping
+teachers and students in large automata/computation theory courses. Automata
+Tutor v3 now supports automated grading and feedback generation for a wide
+variety of problems and, for some of them, even automatic generation of new
+problem instances. Furthermore, it is easy to extend and we invite the community
+to contribute by implementing further exercises. Finally, our experience shows
+that Automata Tutor v3 improves the economical aspects of teaching greatly as
+it scales eortlessly with the number of students.
+Earlier versions of Automata Tutor have already been adopted by thousands
+of students at dozens of schools and we hope this paper allows Automata Tutor v3
+to help even more students and teachers around the world.
+
+--- Page 11 ---
+Automata Tutor v3 11
+References
+1. Gradiance online accelerated learning. Accessible at http://www.newgradiance.
+com/.
+2. U. Z. Ahmed, S. Gulwani, and A. Karkare. Automatically generating problems
+and solutions for natural deduction. In IJCAI 2013, Proceedings of the 23rd Inter-
+national Joint Conference on Articial Intelligence, Beijing, China, August 3-9,
+2013, 2013.
+3. R. Alur, L. D'Antoni, S. Gulwani, D. Kini, and M. Viswanathan. Automated
+grading of DFA constructions. In Proceedings of the Twenty-Third International
+Joint Conference on Articial Intelligence , IJCAI '13, pages 1976{1982. AAAI
+Press, 2013.
+4. J. Brooke et al. Sus-a quick and dirty usability scale. Usability evaluation in
+industry , 189(194):4{7, 1996.
+5. L. D'Antoni, D. Kini, R. Alur, S. Gulwani, M. Viswanathan, and B. Hartmann.
+How can automatic feedback help students construct automata? ACM Trans.
+Comput.-Hum. Interact. , 22(2):9:1{9:24, 2015.
+6. L. D'Antoni, M. Weavery, A. Weinert, and R. Alur. Automata tutor and what we
+learned from building an online teaching tool. Bulletin of the EATCS , 117, 2015.
+7. N. R. C. Educational. How People Learn: Brain, Mind, Experience, and School:
+Expanded Edition . The National Academies Press, 2000.
+8. S. Gulwani, V. A. Korthikanti, and A. Tiwari. Synthesizing geometry construc-
+tions. SIGPLAN Not. , 46(6):50{61, June 2011.
+9. J. E. Hopcroft, R. Motwani, and J. D. Ullman. Introduction to automata theory,
+languages, and computation, 3rd Edition . Pearson international edition. Addison-
+Wesley, 2007.
+10. S. Itzhaky, S. Gulwani, N. Immerman, and M. Sagiv. Solving geometry problems
+using a combination of symbolic and numerical reasoning. In K. McMillan, A. Mid-
+deldorp, and A. Voronkov, editors, Logic for Programming, Articial Intelligence,
+and Reasoning , volume 8312 of Lecture Notes in Computer Science , pages 457{472.
+Springer Berlin Heidelberg, 2013.
+11. V. I. Levenshtein. Binary codes capable of correcting deletions, insertions, and
+reversals. In Soviet physics doklady , volume 10, pages 707{710, 1966.
+12. D. Patterson. Why are english majors studying computer science?, November 2013.
+13. M. Rahn and J. Waldmann. The leipzig autotool system for grading student
+homework. Functional and Declarative Programming in Education (FDPE) , 2002.
+14. V. S. Shekhar, A. Agarwalla, A. Agarwal, B. Nitish, and V. Kumar. Enhanc-
+ing JFLAP with automata construction problems and automated feedback. In
+M. Parashar, U. Bellur, S. D. M. Kumar, P. Chandran, M. Krishnan, K. Madduri,
+S. K. Prasad, C. C. Sekhar, N. C. Narendra, C. Valera, S. Chaudhary, K. Arya,
+and X. Li, editors, Seventh International Conference on Contemporary Computing,
+IC3 2014, Noida, India, August 7-9, 2014 , pages 19{23. IEEE Computer Society,
+2014.
+15. V. Shenoy, U. Aparanji, K. Sripradha, and V. Kumar. Generating DFA construc-
+tion problems automatically. In 2016 International Conference on Learning and
+Teaching in Computing and Engineering (LaTICE) , pages 32{37. IEEE, 2016.
+16. R. Singh, S. Gulwani, and S. K. Rajamani. Automatically generating algebra
+problems. In Proceedings of the Twenty-Sixth AAAI Conference on Articial In-
+telligence, July 22-26, 2012, Toronto, Ontario, Canada. , 2012.
+
+--- Page 12 ---
+12 L. D'Antoni et al.
+17. R. Singh, S. Gulwani, and A. Solar-Lezama. Automated feedback generation for
+introductory programming assignments. In Proceedings of PLDI'13 , pages 15{26,
+New York, NY, USA, 2013. ACM.
+18. A. Weinert. Problem generation for DFA construction. https:
+//alexanderweinert.net/papers/2014dfageneration.pdf , 2014. Accessed:
+04.05.2020.
+A Detailed description of the new problem types
+In this section, we describe functionality for all the problems that have been
+newly added to Automata Tutor v3. We will use the following acronyms: RE:
+Regular expression, CFG: Context-free grammar, PDA: Pushdown automaton,
+NFA: Nondeterministic nite automaton, CNF: Chomsky Normal Form, CYK:
+Cocke-Younger-Kasami al- gorithm, TM: Turing machine. For every type of
+problem that we added, we will describe the basic theoretical concept, how a
+student can solve such a problem, what a teacher has to provide to create a new
+problem, the idea of the grading algorithm and the kind of feedback Automata
+Tutor v3 gives. In the rst two subsections, we aggregate several problem types,
+as the idea is very similar.
+RE/CFG/PDA Words
+Content This type of problem transfers a basic understanding of formal lan-
+guages and the concept of RE, CFG or PDA [9, Chapters 3, 5, 6].
+Solving The student is given a RE/CFG/PDA and has to provide words that
+are in the language of the RE/CFG/PDA and words that are not.
+Creating The teacher provides a RE/CFG/PDA and decides how many words
+in and how many words not in the language the student should specify.
+Grading The student gets points for each unique word that was correct. Words
+that are given multiple times do not count.
+Feedback The student is informed about each incorrect word.
+RE/CFG/PDA Construction
+Content This problem type conveys an intermediate understanding of formal
+languages and the concept of RE, CFG or PDA. Note, that the earlier version
+of Automata Tutor (v2) already contains this problem type for deterministic
+nite automata, NFA and RE. However, we changed the version for RE
+signicantly.
+Solving The student is given the description of a language in text form, ei-
+ther as natural language or as formal specication, and has to provide a
+RE/CFG/PDA that recognizes the language.
+Creating The teacher has to provide the RE/CFG/PDA and its description.
+It is up to him to check that they indeed match. Two of the problem types
+have a way to support the teacher in this:
+For RE: The teacher is able to specify equivalent REs. Additionally, this
+supports the grading algorithm, as described below.
+
+--- Page 13 ---
+Automata Tutor v3 13
+For PDA: The teacher is supported by a simulation for PDA, i.e. the pos-
+sibility to run the PDA on a word and observe the current state and stack
+at each point during this run.
+Grading The student gets more points the closer the attempt was to the sam-
+ple solution. This depends on the learned concept:
+For RE: REs recognizing the correct language always get full points. In-
+correct REs are not graded based on the dierence in the language they
+recognize, but according to the Levenshtein edit distance [11] to any of the
+possible REs the teacher provided. For every necessary edit, 20% of the
+points are deducted. This is preferable to comparing the languages, because
+a small careless mistake in the RE can have a large impact on the language.
+The grading then depends on the teacher providing a few sensible REs.
+For CFG/PDA: Equivalence for PDA and CFGs is undecidable. Thus, we
+perform a limited equivalence check for all words up to a certain length. This
+length is not xed, but depends on the grammar and the size of the alpha-
+bet, even for small word length the check might take minutes. To guarantee
+a fast response, the backend is given one second to check as many words as
+possible. It constructs the sets A, words accepted by the correct solution,
+andB, words accepted by the student solution. The nal grade is calculated
+asjA\Bj
+jA[Bjtimes the maximum number of points. This suces, as the exercises
+are created and solved by hand, so it is unlikely that a dierentiating word is
+very long. Still, even when the full grade is achieved, Automata Tutor does
+not claim that the languages are equal, but only reports that the student
+solution passed all tests, giving the amount of words tried.
+Feedback The student gets counterexamples for the equivalence, i.e. a word
+that is part of one of the languages but not the other. Additionally, for
+PDA, the teacher can allow the students to also simulate words in their
+PDA.
+RE to NFA
+Content This problem type teaches the transformation from RE to -NFA,
+cementing the understanding of both concepts. It does not only allow to
+directly specify the solution -NFA, but also gives the possibility to follow
+the step-by-step algorithm [9, Chapter 3.2.3], using \block states" to resolve
+one RE constructor at a time.
+Solving The student is given a RE and has to provide an -NFA recognizing
+the same language. To do so, the canvas allows to create normal states and
+block states.
+Creating The teacher only has to provide a RE.
+Grading The grade is calculated as the number of used block states divided
+by the number of correct block states times the maximum grade. Note that
+the overall automaton also counts as a block state, so if the student directly
+species an -NFA without using block states, the grading is binary (0 or
+full points). The rationale for this is, that the exercise incentivizes students
+to document their path to solution and take small steps; however, we do not
+
+--- Page 14 ---
+14 L. D'Antoni et al.
+want to force students to adhere to a lengthy construction if they already
+understand the concept.
+Feedback The feedback informs about block states with incorrect specica-
+tion; the more the students adhere to the exact algorithm, the more this
+feedback helps them, as they can more easily identify the position of the
+error. Additionally, whenever a block state with an invalid label is created,
+e.g. something that is not a subexpression of the goal RE, the student is
+immediately notied.
+Equivalence Classes
+Content This problem type conveys understanding of equivalence classes of
+a regular language; two words w1;w2are equivalent with respect to some
+regular language L, if for all possible suxes xthey have the same acceptance
+behaviour, i.e. w1x2L()w2x2L[9, Chapter 4].
+Solving There are two subtypes of this problem type: For the rst subtype, the
+student is given a RE and two words, and has to decide whether they are
+equivalent or not (with respect to the language of the RE). In both cases
+a justication is necessary, either the language of suxes which is accepted
+after both words or a dierentiating sux. For the second subtype, the
+student is given an RE and a word and has to nd further words that are in
+the same equivalence class (with respect to the language of the RE).
+Creating The teacher has to provide a RE and decide the subtype of the prob-
+lem. Depending on the subtype, the teacher has to specify either one or two
+further words. Additionally, the number of words the student has to provide
+has to be specied for the second subtype.
+Grading For the rst subtype, the grade depends on the correct assessment of
+whether the words are equivalent and on the justication. For the second
+subtype, the grading is the same as in problem type \RE Words".
+Feedback For the rst subtype, the student is informed whether the assessment
+was correct. If it was, but the justication is wrong, the feedback either gives
+information about how the language of the suxes is dierent from what the
+student provided, or whether both words with the sux appended are in or
+not in the language.
+Pumping-Lemma Game
+Content The point of this problem type is understanding the pumping lemma
+for regular languages [9, Chapter 4.1] via the game where one player instan-
+tiates the existential and the other the universal quantiers.
+Solving Given a language, the student states whether the language is regular or
+not. Afterwards, the student and Automata Tutor play the pumping lemma
+game against each other: They take turns instantiating the quantied values
+of the pumping lemma. Depending on the initial choice, the student either
+initiates the existentially quantied variables (i.e. the pumping lemma num-
+bernand the split of the word) or the universally quanties values (i.e. the
+word and the number ithat describes how often to pump).
+
+--- Page 15 ---
+Automata Tutor v3 15
+Creating To specify a language, the teacher is oered the format of arithmetic
+language. In short, this allows to add exponents to terminals, indicating
+how often they are repeated, and to give constraints on these exponents; for
+example in the language faibjji<jg)iandjare the exponents and i<j
+is a constraint. If the language is not regular, additionally an unpumpable
+word has to be specied (e.g. anbn+1). This allows AutomataTutor to win
+the game if the student chooses \regular". Note that there are languages
+that satisfy the pumping lemma, but that are not regular. It is up to the
+teacher to avoid posing such exercises.
+Grading The student gets all points for a win and zero points for a loss. Au-
+tomata Tutor always wins, if the choice of regular/irregular was wrong. If
+that choice was correct, but further mistakes were made (e.g. the pumping
+lemma number was chosen too small), Automata Tutor takes advantage and
+wins the game.
+Feedback The student sees the choices of Automata Tutor. If Automata Tutor
+wins, the student can analyze the counterexample.
+Find Derivation
+Content This problem type transfers a basic understanding of (leftmost / right-
+most) derivations for CFGs [9, Chapter 5.1].
+Solving Given a CFG and an accepting word, the student has to specify any /
+a leftmost / a rightmost derivation for that word. The derivation has to be
+given step by step. Each step results from the previous one by replacing a
+nonterminal according to one of the production rules.
+Creating The teacher gives a CFG together with a word in its language and
+decides the type of derivation (i.e. any / leftmost / rightmost).
+Grading The student gets all points if the derivation was correct and zero
+points otherwise, i.e. binary grading.
+Feedback The student is informed about the rst incorrect step in the deriva-
+tion. If the error is due to the replacement of the wrong nonterminal (i.e.
+not the leftmost / rightmost one), the student gets a corresponding hint.
+CNF
+Content This problem type conveys understanding of the Chomsky Normal
+Form (CNF) for grammars and the transformation algorithm to CNF [9,
+Chapter 7.1].
+Solving Given a CFG, the student needs to nd a grammar in CNF that accepts
+the same language.
+Creating The teacher gives a CFG.
+Grading The student gets points according to the equivalence metric of prob-
+lem type \CFG Construction" (i.e. using the limited equivalence test).
+Feedback First, it is checked if the grammar is in CNF. If the grammar is not
+in CNF, the attempt is not graded and the student is informed about why
+the grammar is not in CNF. Otherwise, the student gets counterexamples
+for the equivalence of two grammars, i.e. words that are only accepted by
+one of the two grammars.
+
+--- Page 16 ---
+16 L. D'Antoni et al.
+CYK
+Content Understanding of the CYK algorithm [9, Chapter 7.4.4] that decides
+if a word is accepted by a CFG.
+Solving Given a grammar in CNF and a word, the student lls out the CYK-
+table according to the algorithm.
+Creating The teacher gives a grammar in CNF and a word.
+Grading The table is checked row by row starting from the bottom until one
+row is incorrect. For each correct row the user gets points.
+Feedback For each wrong cells in the incorrect row, the student gets a hint.
+Each hint noties the user that there are nonterminals in the cell that do
+not belong there and/or that the cell is missing some nonterminal. However,
+the hints do not contain specic nonterminals.
+While to TM
+Content This problem type concerns the conversion of while-programs, a Turing-
+complete programming language with very restricted syntax, to TMs. It
+helps to understand the connection between the theoretical CS model (TM)
+and programming, which they already know. The exercise looks for equiva-
+lence in the input-output-behaviour of while-programs and TMs; that means
+that given input values x0;:::;x n(as value of the variables of the while-
+program or initial content of the tapes of the TM), after executing the
+while-program or TM, the output values (variables/tape contents) are the
+same.
+Solving The student is given a while-program with nvariables. The user in-
+terface allows to draw an ntape TM, where every tape corresponds to a
+variable in the program. The student then has to create a TM that mimics
+the input-output behaviour of the while-program.
+Creating The teacher has to specify a terminating while-program. The teacher
+should be able to check termination, as the while-programs for which con-
+struction a TM is feasible are typically very short and simple.
+Grading The grading is similar to that of the problem type \CFG Construc-
+tion": Given a certain time, inputs up to a certain length are tested. In order
+to avoid innite loops, every input is tested for at most 1000 steps; this value
+is feasible in terms of running time, because rstly, performing 1000 steps
+of a Turing machine is not computationally expensive, and secondly, the
+number of runs that reach this step limit is typically very low.
+Feedback The feedback informs how many inputs where tested, how many of
+them were correct. In case there were runs that did not behave as expected,
+up to ve counterexamples are given. This contain the expected and the
+computed output. It also possible to simulate the TM on the counterexam-
+ples.
+B Additional screenshots
+
+--- Page 17 ---
+Automata Tutor v3 17
+Fig. 6. New navigation bar, grouped by topics.
+Fig. 7. Automatic problem generation.
+
+--- Page 18 ---
+18 L. D'Antoni et al.
+C Complete student survey results
+The following pages show the full results of the student survey that is described
+in Section 5.
+
+--- Page 19 ---
+kursorganisation@prolehre.tum.de, AutomataTutor_Eval_SoSe\'19
+11.09.2019 EvaSys Evaluation Page 1
+kursorganisation@prolehre.tum.de
+  
+  
+  
+    
+  
+  
+ 
+AutomataTutor_Eval_SoSe\'19 (SoSe 2019)
+Erfasste Fragebögen = 139
+Survey ResultsSurvey Results
+Legend
+Question textRight pole Left polen=No. of responses
+av.=Mean
+md=Median
+dev.=Std. Dev.
+ab.=Abstention25%
+10%
+250%
+30%
+425%
+5Relative Frequencies of answers Std. Dev. Mean Median
+Scale Histogram
+Welcome to the evaluation of the Automata TutorWelcome to the evaluation of the Automata Tutor
+Thank you for taking the time to evaluate the Automata Tutor (in the following AT) used in this course!
+The evaluation will take about 7-9 minutes to fill out and will help improve the AT for future students at the TU München and other
+universities.
+Best regards,
+Maximilian Weininger
+(Automata Tutor Support)
+General UsageGeneral Usage
+Did you ever use the Automata Tutor? 
+n=138Yes. 100%
+No. 0%
+( If yes, continue straight to "3. Usability of Automata Tutor (AT)" )
+Why didn't you use the Automata Tutor?
+n=139Not applicable - I did use it. 15.1%
+I didn't know of its existence. 0%
+I tried and didn't like it. 0%
+I found it too complicted. 0%
+I didn't need it for my learning. 0.7%
+For other reasons (Please provide specifics in 2.3) 0%
+Usability of the Automata Tutor (AT)Usability of the Automata Tutor (AT)
+I quickly learned to use the AT.strongly agree strongly disagreen=139
+av.=4,4
+md=5
+dev.=0,70%
+11,4%
+26,5%
+338,1%
+454%
+5
+I need assistance to use the AT.strongly agree strongly disagreen=139
+av.=1,6
+md=1
+dev.=0,859,7%
+126,6%
+210,1%
+32,9%
+40,7%
+5
+
+--- Page 20 ---
+kursorganisation@prolehre.tum.de, AutomataTutor_Eval_SoSe\'19
+11.09.2019 EvaSys Evaluation Page 2The AT is unnecessarily complex.strongly agree strongly disagreen=139
+av.=2
+md=2
+dev.=1,144,6%
+127,3%
+212,2%
+313,7%
+42,2%
+5
+The canvas for drawing is intuitive.strongly agree strongly disagreen=139
+av.=3,9
+md=4
+dev.=11,4%
+16,5%
+222,3%
+336%
+433,8%
+5
+I feel confident using the AT.strongly agree strongly disagreen=139
+av.=4,2
+md=4
+dev.=0,91,4%
+14,3%
+29,4%
+343,2%
+441,7%
+5
+The AT is easy to use.strongly agree strongly disagreen=138
+av.=4,1
+md=4
+dev.=0,90,7%
+15,1%
+214,5%
+347,8%
+431,9%
+5
+I enjoy using the AT/ the AT is fun to use.strongly agree strongly disagreen=139
+av.=4,1
+md=4
+dev.=1,12,2%
+19,4%
+218%
+320,9%
+449,6%
+5
+The use of AT is self-explanatory.strongly agree strongly disagreen=139
+av.=3,6
+md=4
+dev.=1,14,3%
+112,2%
+226,6%
+335,3%
+421,6%
+5
+Learning support of the Automata Tutor (AT)Learning support of the Automata Tutor (AT)
+I understand more after using the AT.strongly agree strongly disagreen=139
+av.=4,3
+md=5
+dev.=0,80,7%
+12,9%
+211,5%
+333,1%
+451,8%
+5
+I prefer using the AT to using pen and paper exercises.strongly agree strongly disagreen=139
+av.=4
+md=4
+dev.=1,24,3%
+18,6%
+215,1%
+327,3%
+444,6%
+5
+The feedback of the AT was helpful and instructive.strongly agree strongly disagreen=139
+av.=4,1
+md=4
+dev.=10,7%
+18,6%
+210,8%
+337,4%
+442,4%
+5
+The exercises within the AT are well-designed.strongly agree strongly disagreen=138
+av.=4,1
+md=4
+dev.=12,2%
+17,2%
+210,1%
+342%
+438,4%
+5
+The AT fits in well with the programming tasks and written
+homework.strongly agree strongly disagreen=136
+av.=4,4
+md=5
+dev.=0,90,7%
+14,4%
+28,8%
+329,4%
+456,6%
+5
+The AT hindered my learning.strongly agree strongly disagreen=136
+av.=1,4
+md=1
+dev.=0,876,5%
+114%
+26,6%
+30,7%
+42,2%
+5
+I feel better prepared for the exam after using AT.strongly agree strongly disagreen=138
+av.=4,1
+md=4
+dev.=0,92,2%
+12,9%
+216,7%
+339,1%
+439,1%
+5
+
+--- Page 21 ---
+kursorganisation@prolehre.tum.de, AutomataTutor_Eval_SoSe\'19
+11.09.2019 EvaSys Evaluation Page 3The feedback of the AT was misleading/ confusing.strongly agree strongly disagreen=139
+av.=2
+md=2
+dev.=133,8%
+139,6%
+217,3%
+37,9%
+41,4%
+5
+Individual learning behaviourIndividual learning behaviour
+How often did you use the AT?
+(Please provide only one answer).
+n=139Multiple days a week 16.5%
+Once a week 79.1%
+Every few weeks 4.3%
+Less than 3 times 0%
+Never 0%
+How many hours a week did you invest in your homework on AT?
+(Please provide only one answer).
+n=1380 hrs 0%
+<= 1 hr 38.4%
+ 1 - 2 hrs 43.5%
+2 - 3 hrs 14.5%
+3 - 4 hrs 2.2%
+>= 5 hrs. 1.4%
+What are your preferred means of learning?
+(Multiple answers possible.)
+n=139Lecture 30.2%
+Written exercises 67.6%
+Programming 56.8%
+Automata Tutor Tool 76.3%
+Individual learning (via script, book, or videostream) 56.8%
+Group discussion/ learning group 32.4%
+I feel well-prepared for the exam.strongly agree strongly disagreen=139
+av.=3,2
+md=3
+dev.=15,8%
+115,8%
+234,5%
+337,4%
+46,5%
+5
+I expect a good result in my exam.strongly agree strongly disagreen=139
+av.=3,2
+md=3
+dev.=1,18,6%
+114,4%
+236,7%
+325,2%
+415,1%
+5
+Send dataSend data
+Please do not forget to press “absenden”/"submit" so your entries will be saved and submitted.
+Thank you for providing your feedback to the Automata Tutor   :-)
+
+--- Page 22 ---
+kursorganisation@prolehre.tum.de, AutomataTutor_Eval_SoSe\'19
+11.09.2019 EvaSys Evaluation Page 4Profile
+Subunit: TUM Carl von Linde-Akademie
+Name of the instructor: kursorganisation@prolehre.tum.de
+Name of the course:
+(Name of the survey)AutomataTutor_Eval_SoSe\'19
+Values used in the profile line: Mean
+Usability of the Automata Tutor (AT)Usability of the Automata Tutor (AT)
+I quickly learned to use the AT. strongly
+disagreestrongly agreen=139 av.=4,4 md=5,0 dev.=0,7
+I need assistance to use the AT. strongly
+disagreestrongly agreen=139 av.=1,6 md=1,0 dev.=0,8
+The AT is unnecessarily complex. strongly
+disagreestrongly agreen=139 av.=2,0 md=2,0 dev.=1,1
+The canvas for drawing is intuitive. strongly
+disagreestrongly agreen=139 av.=3,9 md=4,0 dev.=1,0
+I feel confident using the AT. strongly
+disagreestrongly agreen=139 av.=4,2 md=4,0 dev.=0,9
+The AT is easy to use. strongly
+disagreestrongly agreen=138 av.=4,1 md=4,0 dev.=0,9
+I enjoy using the AT/ the AT is fun to use. strongly
+disagreestrongly agreen=139 av.=4,1 md=4,0 dev.=1,1
+The use of AT is self-explanatory. strongly
+disagreestrongly agreen=139 av.=3,6 md=4,0 dev.=1,1
+Learning support of the Automata Tutor (AT)Learning support of the Automata Tutor (AT)
+I understand more after using the AT. strongly
+disagreestrongly agreen=139 av.=4,3 md=5,0 dev.=0,8
+I prefer using the AT to using pen and paper
+exercises.strongly
+disagreestrongly agreen=139 av.=4,0 md=4,0 dev.=1,2
+The feedback of the AT was helpful and instructive. strongly
+disagreestrongly agreen=139 av.=4,1 md=4,0 dev.=1,0
+The exercises within the AT are well-designed. strongly
+disagreestrongly agreen=138 av.=4,1 md=4,0 dev.=1,0
+The AT fits in well with the programming tasks and
+written homework.strongly
+disagreestrongly agreen=136 av.=4,4 md=5,0 dev.=0,9
+The AT hindered my learning. strongly
+disagreestrongly agreen=136 av.=1,4 md=1,0 dev.=0,8
+I feel better prepared for the exam after using AT. strongly
+disagreestrongly agreen=138 av.=4,1 md=4,0 dev.=0,9
+The feedback of the AT was misleading/ confusing. strongly
+disagreestrongly agreen=139 av.=2,0 md=2,0 dev.=1,0
+Individual learning behaviourIndividual learning behaviour
+I feel well-prepared for the exam. strongly
+disagreestrongly agreen=139 av.=3,2 md=3,0 dev.=1,0
+I expect a good result in my exam. strongly
+disagreestrongly agreen=139 av.=3,2 md=3,0 dev.=1,1

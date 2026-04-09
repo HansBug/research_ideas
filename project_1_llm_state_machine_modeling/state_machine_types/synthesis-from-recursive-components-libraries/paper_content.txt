@@ -1,0 +1,937 @@
+--- Page 1 ---
+Submitted to Electronic Proceedings
+in Theoretical Computer Science.Synthesis from Recursive-Components Libraries∗
+Yoad Lustig†
+Rice University
+yoad.lustig@gmail.comMoshe Y . Vardi
+Rice University
+vardi@cs.rice.edu
+Synthesis is the automatic construction of a system from its speciﬁcation. In classical synthesis
+algorithms it is always assumed that the system is ”constructed from scratch” rather than composed
+from reusable components. This, of course, rarely happens in real life. In real life, almost every
+non-trivial commercial software system relies heavily on using libraries of reusable components.
+Furthermore, other contexts, such as web-service orchestration, can be modeled as synthesis of a
+system from a library of components.
+In 2009 we introduced LTL synthesis from libraries of reusable components. Here, we extend
+the work and study synthesis from component libraries with “call and return” control ﬂow structure.
+Such control-ﬂow structure is very common in software systems. We deﬁne the problem of Nested-
+Words Temporal Logic (NWTL) synthesis from recursive component libraries, where NWTL is a
+speciﬁcation formalism, richer than LTL, that is suitable for “call and return” computations. We
+solve the problem, providing a synthesis algorithm, and show the problem is 2EXPTIME-complete,
+as standard synthesis.
+1 Introduction
+The design of almost every non-trivial software system is based on using libraries of reusable com-
+ponents. Reusable components come in many forms: functions, objects, or others. Nevertheless, the
+basic idea of constructing systems from reusable components underlies almost all software construc-
+tion. Indeed, almost every system involves many sub-systems, each dealing with different engineering
+aspects and each requiring different expertise. In practice, the developer of a commercial product rarely
+develops all the required sub-systems herself. For example, a software application for an email client
+contains sub-systems for managing graphic user interface (as well as many other sub-systems). Rarely
+will a developer of the email-client system develop the basic graphic-user-interface functionality as part
+of the project. Instead, basic sub-systems functionality is usually acquired as a library , i.e., a collec-
+tion of reusable components that can be integrated into the system. The construction of systems from
+reusable components is extensively studied. Many examples for important work on the subject can be
+found in Sifakis’ work on component-based construction [16] and de Alfaro and Henzinger’s work on
+“interface-based design” [1]. Furthermore, other situations, such as web-service orchestration [8, 15],
+can be viewed as the construction of systems from libraries of reusable components.
+Synthesis is the automated construction of a system from its speciﬁcation. The basic idea is simple
+and appealing: instead of developing a system and verifying that it adheres to its speciﬁcation, we would
+like to have an automated procedure that, given a speciﬁcation, constructs a system that is correct by
+construction. The modern approach to temporal synthesis was initiated by Pnueli and Rosner, who
+introduced LTL (linear temporal logic) synthesis [14]. In LTL synthesis, the speciﬁcation is given in
+∗For a longer version of this paper see http://www.cs.rice.edu/\protect\unhbox\voidb@x\penalty\
+@M\{}vardi/papers .
+†Current afﬁliation: Yahoo! Research, Israel
+
+--- Page 2 ---
+2 Synthesis from Recursive-Components Libraries
+LTL and the system constructed is a ﬁnite-state transducer modeling a reactive system. In this setting
+of synthesis it is always assumed that the system is “constructed from scratch” rather than “composed”
+from reusable components. In [12], we introduced the study of synthesis from reusable components. We
+argued there that even when it is theoretically possible to design a sub-system from scratch, it is often
+desirable to use reusable components. The use of reusable components allows abstracting away most of
+the detailed behavior of the sub-system, and writing a speciﬁcation that mentions only the aspects of the
+sub-system relevant for the synthesis of the system at large.
+A major concern in the study of synthesis from reusable components is the choice of a mathemat-
+ical model for the components and their composition. The exact nature of the reusable components in
+a software library may differ. The literature, as well as the industry, suggest many different types of
+components; for example, function libraries (for procedural programming languages) or object libraries
+(for object-oriented programming languages). Indeed, there is no one correct model encompassing all
+possible facets of the problem. The problem of synthesis from reusable components is a general prob-
+lem to which there are as many facets as there are models for components and types of composition.
+Components can be composed in many ways: synchronously or asynchronously, using different types of
+communications, and the like [16].
+As a basic model for a component, following [12], we abstract away the precise details of the com-
+ponent and model a component as a transducer , i.e., a ﬁnite-state machine with outputs. Transducers
+constitute a canonical model for reactive components, abstracting away internal architecture and focus-
+ing on modeling input/output behavior. In [12], two models of composition were studied. In data-ﬂow
+composition the output of one component is fed as input to another component. The synthesis problem
+for data-ﬂow composition was shown to be undecidable. In control-ﬂow composition control is held by a
+single component at every point in time; the composition of components amounts to deciding how control
+is passed between components, by setting which component receives control when another component
+relinquishes it. Control-ﬂow is motivated by software (and web services) in which a single function is in
+control at every point during the execution. In [12] we focused on “goto” control ﬂow, and proved that
+LTL synthesis in that setting is 2EXPTIME-complete.
+In this paper we extend that work and study a composition notion that relates to “call and return”
+control structure. “Call and return” control ﬂow is very natural for both software and web services. An
+online store, for example, may “call” the PayPal web service, which receives control of the interaction
+with the user until it returns the control to the online store. To allow for “call and return” control-ﬂow
+structure, we deﬁne a recursive component to be a transducer in which some of the states are designated
+as exit states. The exist states are partitioned into call states, and return states. Intuitively, a recursive
+component receives control when entering its initial state and relinquishes control when entering an
+exit state. When a call state is entered, the control is transferred from the component in control to the
+component that is being called by the component in control. When a return state is entered, the control
+is transferred from the component in control to the component that called it (i.e., control is returned).
+To model return values, each transducer has several return states. Each return state is associated with a
+re-entry state. Thus, each transducer has a single entry state, several re-entry states, several return states,
+and several call states. Composing recursive components amounts to matching call states with entry
+states and return states with re-entry states.1
+Dealing with “call and return” control ﬂow poses two distinct conceptual difﬁculties. The ﬁrst is
+the technical difﬁculty of dealing with a “call and return” system that has a pushdown store. When
+1It is possible to consider more complex models, for example, models in which there are several call values. The techniques
+presented here can be extended to deal with such models.
+
+--- Page 3 ---
+Yoad Lustig and Moshe Y . Vardi 3
+adapting the techniques of [12], a run is no longer a path in a control-ﬂow tree, but rather a traversal in a
+composition tree, in which a return corresponds to climbing up the tree. To deal with this difﬁculty we
+employ techniques used with 2-way automata [13]. A second difﬁculty has to do with the speciﬁcation
+language. “Call and return” control-ﬂow requires a richer speciﬁcation language than LTL [5, 3]. For
+example, one might like to specify that one function is only called when another function is in the
+caller’s stack; or that some property holds for the local computations of some function. In recent years
+an elegant theory of these issues was developed, encompassing suitable speciﬁcation formalisms, as
+well as semantic, automata-theoretic, and algorithmic issues [5, 3, 6]. Here we use the speciﬁcation
+language nested-words temporal logic (NWTL) [3], and the automata-theoretic tool of nested words
+B¨uchi automata (NWBA) [3, 6].
+We deﬁne here and study the NWTL recursive-library-component realizability and synthesis prob-
+lems. We show that the complexity of the problem is 2EXPTIME-complete (like standard synthesis
+and synthesis of “goto” components) and provide a 2EXPTIME algorithm for the problem. We use the
+composition-tree technique of [12], in which a composition is described as an inﬁnite tree. The chal-
+lenge here is that we need to ﬁnd nested words in classical trees. While the connection between nested
+words and trees has been studied elsewhere, cf. [2], our work here is the ﬁrst to combine nested-word
+automata with the classical tree-automata framework for temporal synthesis, using techniques developed
+for two-way automata [13, 17].
+2 Preliminaries
+Alternating Automata : For a natural number n, we denote the set {1,..., n}by[n]. For an alphabet Σ,
+we denote by Σ∗the set of ﬁnite words over Σ, byΣωthe set of inﬁnite words over Σ, and by Σ∞the
+union Σ∗∪Σω. Given a set Dof directions, a D-tree is a set T⊆D∗such that if x·c∈T, where x∈D∗
+andc∈D, then also x∈T. For every x∈T, the words x·c, for c∈D, are the successors ofx. Apathπ
+of a tree Tis a set π⊆Tsuch that ε∈πand for every x∈π, either xis a leaf or there exists a unique
+c∈Dsuch that x·c∈π. The full D -tree is D∗. For an alphabet Σ, aΣ-labeled D-tree is a pair /angbracketleftT,τ/angbracketright
+where Tis a tree and τ:T→Σmaps the nodes of Tto letters in Σ.
+For a set X, letB+(X)be the set of positive Boolean formulas over X(i.e., Boolean formulas built
+from elements in Xusing ∧and∨), where we also allow the formulas True (an empty conjunction) and
+False (an empty disjunction). For a set Y⊆Xand a formula θ∈B+(X), we say that Y satisﬁes θiff
+assigning True to elements in Yand assigning False to elements in X\Ymakes θtrue. An alternating
+tree automaton isA=/angbracketleftΣ,D,Q,qin,δ,F/angbracketright, where Σis the input alphabet, Dis a set of directions, Qis a
+ﬁnite set of states, δ:Q×Σ→B+(D×Q)is a transition function, qin∈Qis an initial state, and Fis a
+set of accepting states. For a state q∈Q, we denote by Aqthe automaton /angbracketleftΣ,D,Q,q,δ,G/angbracketrightin which qis
+the initial state.
+The alternating automaton Aruns on Σ-labeled D-trees. A runofAover a Σ-labeled D-tree/angbracketleftT,τ/angbracketright
+is a(T×Q)-labeled N-tree/angbracketleftTr,r/angbracketright. Each node of Trcorresponds to a node of T. A node in Tr, labeled by
+(x,q), describes a copy of the automaton that reads the node xofTand visits the state q. Note that many
+nodes of Trcan correspond to the same node of T. The labels of a node and its successors have to satisfy
+the transition function. Formally, /angbracketleftTr,r/angbracketrightsatisﬁes the following: (1) ε∈Trandr(ε) =/angbracketleftε,qin/angbracketright, and (2)
+Lety∈Trwith r(y) =/angbracketleftx,q/angbracketrightandδ(q,τ(x)) =θ. Then, either xis a leaf, or there is a (possibly empty)
+setS={(c0,q0),(c1,q1),..., (cn−1,qn−1)} ⊆D×Q, such that Ssatisﬁes θ, and for all 0 ≤i≤n−1, we
+have y·i∈Trandr(y·i) =/angbracketleftx·ci,qi/angbracketright. A leaf y∈Trwith r(y) =/angbracketleftx,q/angbracketrightandδ(q,τ(x)) =θ, has accepting
+continuation if there exists a (possibly empty) set S={(c0,q0),(c1,q1),..., (cn−1,qn−1)} ⊆D×F, such
+
+--- Page 4 ---
+4 Synthesis from Recursive-Components Libraries
+thatSsatisﬁes θ.
+For an alternating ﬁnite automaton, that runs on ﬁnite trees, a run /angbracketleftTr,r/angbracketrightis accepting if every leaf
+ofTrhas accepting continuation. For an alternating automaton, that runs on inﬁnite trees, a run /angbracketleftTr,r/angbracketright
+is accepting if all its inﬁnite paths visit Finﬁnitely often. This acceptance condition is called B¨uchi
+acceptance. The co-B ¨uchi acceptance condition requires that Fbe visited along each path only ﬁnitely
+often. An automaton acceptance condition is weak if its state set Qcan be partitioned into several subsets
+Q1,..., Qksuch that (1) every i∈[k]either Qi⊆ForQi∩F=/ 0, and (2) for every i≤kall transitions
+from states in Qiare into states in ∪k
+j=iQj. An automaton accepts a tree iff there exists a run that accepts
+it. We denote by L(A)the set of all Σ-labeled D-trees that Aaccepts. The alternating automaton Ais
+nondeterministic if for all the formulas that appear in δ, if(c1,q1)and(c2,q2)are conjunctively related,
+then c1/negationslash=c2. (i.e., if the transition is rewritten in disjunctive normal form, there is at most one element
+of{c}×Q, for each c∈D, in each disjunct).
+We denote each of the different types of automata by three-letter acronyms in {N,A}×{ F,B,C,W}×
+{W,T}, where the ﬁrst letter describes the branching mode of the automaton (nondeterministic, or al-
+ternating), the second letter describes the acceptance condition (ﬁnite, B ¨uchi co-B ¨uchi or weak), and
+the third letter describes the object over which the automaton runs (words or trees). Thus, NBT are
+nondeterministic tree automata and AWW are alternating weak word automata.
+Transducers : Atransducer is a deterministic automaton with outputs; formally, T=/angbracketleftΣI,ΣO,Q,q0,δ,F,L/angbracketright,
+where: ΣIis a ﬁnite input alphabet, ΣOis a ﬁnite output alphabet, Qis a set of states, q0∈Qis an initial
+state, δ:Q×ΣI→Qis a transition function, Fis a set of ﬁnal states, and L:Q→ΣOis an output
+function labeling states with output letters. For a transducer Tand an input word w=w1w2...wn∈Σn
+I,
+arun, or a computation ofTonwis a sequence of states r=r0,r1,...rn∈Qnsuch that r0=q0and for
+every i∈[n]we have ri=δ(ri−1,wi).
+For a transducer T, we deﬁne δ∗:Σ∗
+I→Qin the following way: δ∗(ε) =q0, and for w∈Σ∗
+I
+andσ∈ΣI, we have δ∗(w·σ) =δ(δ∗(w),σ). AΣO-labeled ΣI-tree/angbracketleftΣ∗
+I,τ/angbracketrightisregular if there exists a
+transducer T=/angbracketleftΣI,ΣO,Q,q0,δ,L/angbracketrightsuch that for every w∈Σ∗
+I, we have τ(w) =L(δ∗(w)). A transducer
+Toutputs a letter for every input letter it reads. Therefore, for an input word wI∈Σ∞
+I, the transducer T
+induces a word w∈(ΣI×ΣO)∞that combines the input and output of T. The maximal computations of
+Tare those that exit at a ﬁnal state in For are of length ω.
+Nested Words, NWTL and NWBA : When considering a run in the “call and return” control-ﬂow
+model, the run structure should reﬂect both the linear order of the execution and the matching between
+calls and their corresponding returns. For example, when a programmer uses a debugger to simulate a
+run, and the next command to be executed is a call, there are two natural meanings to “simulate next
+command”: ﬁrst, it is possible to execute the next machine command to be executed (i.e. jump into the
+called procedure). In debugger terminology this is “step into”, and this meaning reﬂects the linear order
+of machine commands being executed. On the other hand, it is possible to simulate the entire computation
+of the procedure being called, i.e. every machine command from the call to its corresponding return. In
+compiler terminology this is “step over”, and this meaning reﬂects the matching between calls and their
+returns. Thus, the structure of a run, with the matching between calls and returns, is richer then the
+sequence of commands that reﬂects only the linear order. Relating to this richer structure is crucial for
+reasoning about recursive systems, and it should be reﬂected in the mathematical model of a run, in the
+formalism by which formal claims on runs are made, i.e., in the speciﬁcation formalism.
+A run in a “call and return” model is a sequence of conﬁgurations, or a word , together with a match-
+ing relation that matches calls and their corresponding returns. The matching relation is nested , i.e.
+constrained to ensure that a return to an inner call appears before the return to an outer call. A formal
+deﬁnition appears below. The model of the run consists of both the word (encoding the linear order) and
+
+--- Page 5 ---
+Yoad Lustig and Moshe Y . Vardi 5
+the matching relation. A word with nested matching is a nested word [6]. At the speciﬁcation level, it
+should be possible to make formal claims regarding system that refer to the “call and return” structure
+[5, 3]. For example: one may want to argue about the value of some memory location as long as a
+function is in scope (i.e. during the subsequence of the computation between the call to the function
+and its corresponding return). Alternatively one may want to argue about the values of some local val-
+ues whenever some function is in control (that may correspond to several continuous subsequences of
+commands). Another example is arguing about the call stack whenever some function is in control (such
+as “whenever f is in control either g or h are on the call stack”). Several speciﬁcation formalisms were
+suggested to reason about “call and return” computations [5, 3, 6]. Here we use Nested Words Temporal
+Logic , (NWTL) [3], which is both expressive and natural to use. Finally, to reason about nested words,
+we use nested words B ¨uchi automata (NWBA), which are a special type of automata that run on nested
+words [3, 6]. Intuitively, in a standard inﬁnite word, each letter has a single successor letter. Therefore,
+automata on standard words can be seen as being in some state q, reading a letter σand “sending” the
+next state q/primeto the successor letter σ/prime. In a nested word, however, a letter σmight have two “natural
+successors”. First the letter σ/primefollowing it in the linear sequence of execution, and second another letter
+σ/prime/primethat is matched to it by the “call and return” matching. A NWBA not only “sends” a state to the
+successor letter σ, but also “sends” some information, named hierarchical symbol , to the matched letter
+σ/prime/prime. The transition relation takes into account both the state and the hierarchical symbols. A formal
+deﬁnition of NWBA’s is presented below.
+We proceed with the formal deﬁnitions of nested words, the logic NWTL for nested words, and the
+automata NWBA running on nested words. The material presented below is taken from [3], which we
+recommend for a reader who is not familiar with nested words, their logic, or their automata.
+Amatching onNor an interval [1,n]ofNis a binary relation µand two unary relations callandret,
+satisfying the following: (1) if µ(i,j)holds then call(i)andret(j)hold and i<j; (2) if µ(i,j)andµ(i,j/prime)
+hold then j=j/primeand if µ(i,j)andµ(i/prime,j)hold then i=i/prime; (3) if i≤jandcall(i)andret(j)hold, then
+there exists i≤k≤jsuch that either µ(i,k)orµ(k,j). LetΣbe a ﬁnite alphabet. A ﬁnite nested word
+of length noverΣis a tuple w=/angbracketleftw,µ,call,ret/angbracketright, where w=a1...an∈Σ∗, and/angbracketleftµ,call,ret/angbracketrightis a matching
+on[1,n]. A nested ω-word is a tuple w=/angbracketleftw,µ,call,ret/angbracketright, where w=a1...∈Σω, and/angbracketleftµ,call,ret/angbracketrightis a
+matching on N. We say that a position iin a nested word wis a call position if call(i)holds; a return
+position if ret(i)holds; and an internal position if it is neither a call nor a return. If µ(i,j)holds, we say
+thatiis the matching call of j, and jis the matching return of i, and write c(j) =iandr(i) =j. Calls
+without matching returns are pending calls. For a nested word w, and two positions i,jofw, we denote
+byw[i,j]the substructure of w(i.e., a ﬁnite nested word) induced by positions lsuch that i≤l≤j.
+Ifj<iwe assume that w[i,j]is the empty nested word. For nested ω-words w, we let w[i,∞]denote
+the substructure induced by positions l≥i. When this is clear from the context, we do not distinguish
+references to positions in subwords w[i,j]andwitself, e.g., we shall often write /angbracketleftw[i,j],i/angbracketright |=ϕto mean
+thatϕis true at the ﬁrst position of w[i,j].
+Nested words temporal logic (NWTL ) is a speciﬁcation formalism suitable for “call and return” com-
+putations [3]. First we deﬁne a summary path between positions i<jin a nested word w. Intuitively, a
+summary path skips from calls to returns on the way from itoj. The summary path between positions
+i<jin a nested word wis a sequence i=i0<i1< ... < ik=jsuch that for all p<kwe have ip+1=r(ip)
+ifipis a matched call and j≥r(ip); orip+1=ip+1 otherwise. Next, we deﬁne NWTL syntax. For an
+alphabet Σ, the letters of Σ,/latticetop(standing for true), call, and retare NWTL formulas. NWTL has the op-
+erators: not ¬, or∨, next /circlecopyrt, abstract next (that skips from a call to its return) /circlecopyrtµ, previous /circlecopyrt −, abstract
+previous /circlecopyrt −µ, summary until (to be deﬁned below) Uσ, and summary since Sσ. For NWTL formulas
+ϕ1,ϕ2the following are NWTL formulas: ¬ϕ1|ϕ1∨ϕ2|/circlecopyrtϕ1|/circlecopyrtµϕ1|/circlecopyrt −ϕ1|/circlecopyrt −µϕ1|ϕ1Uσϕ2|ϕ1Sσϕ2. We
+
+--- Page 6 ---
+6 Synthesis from Recursive-Components Libraries
+proceed to deﬁne NWTL semantics. Let w=w1...wnorw1...be a ﬁnite or inﬁnite word over Σ. Let
+w=/angbracketleftw,call,ret,µ/angbracketright, and i≥1 be a number bounded by the length of w. Every nested word satisﬁes /latticetop, in
+particular (w,i)|=/latticetop. For a letter σ∈Σwe have (w,i)|=σiffσ=wi. (This is can be extended to alpha-
+bets of the type Σ=2AP, that consists of sets of atomic propositions, in the standard way, i.e., (w,i)|=p
+iffp∈wi). Boolean operators semantics is standard (w,i)|=¬ϕiff(w,i)/negationslash|=ϕ; and (w,i)|=ϕ1∨ϕ2iff
+(w,i)|=ϕ1or(w,i)|=ϕ2. We also have (w,i)|=/circlecopyrtϕiff(w,i+1)|=ϕand(w,i)|=/circlecopyrt −ϕiff(w,i−1)|=ϕ.
+We have (w,i)|=calliffiis a call, and (w,i)|=retiffiis a return. We have (w,i)|=/circlecopyrtµϕiffiis a call
+with a matching return j(i.e., µ(i,j)holds) and (w,j)|=ϕ. Similarly, (w,i)|=/circlecopyrt −µϕiffiis a return
+with a matching call j(i.e., µ(j,i)holds) and (w,j)|=ϕ. For summary until we have (w,i)|=ϕ1Uσϕ2
+iff there exists a j≥ifor which (w,j)|=ϕ2, and for the summary path i=i0<i1< ... < ik=jbetween
+iandjwe have for every p<kthat(w,ip)|=ϕ1. Similarly, (w,i)|=ϕ1Sσϕ2iff there exists a position
+j<ifor which (w,j)|=ϕ2and for the summary path j=i0<i1< ... < ik=ibetween jandiwe have
+for every p∈[k]that(w,ip)|=ϕ1.
+Rather than use NWTL directly, we use here nested-word B ¨uchi automata (NWBA), which are
+known to be at least as expressive as NWTL; in fact, there is an exponential translation from NWTL to
+NWBA [3], analogous to the exponential translation of linear temporal logic to B ¨uchi automata [18]. A
+nondeterministic nested word B ¨uchi automaton (NWBA ) is a tuple A=/angbracketleftΣ,Q,Q0,Qf,P,P0,Pf,δc,δi,δr/angbracketright,
+consisting of a ﬁnite alphabet Σ, ﬁnite set Qof states, a set Q0⊆Qof initial states, a set Qf⊆Qof
+accepting states, a ﬁnite set Pof hierarchical symbols, a set P0⊆Pof initial hierarchical symbols, a set
+Pf⊆Pof ﬁnal hierarchical symbols, a call-transition relation δc⊆Q×Σ×Q×P, an internal transition
+relation δi⊆Q×Σ×Q, and a return-transition relation δr⊆Q×P×Σ×Q. The automaton Astarts in
+an initial state and reads the nested word from left to right. A run rof the automaton Aover a nested
+word w=/angbracketlefta1a2...,µ,call,ret/angbracketrightis a sequence q0,q1,...of states, and a sequence pi1,pi2,...of hierarchi-
+cal symbols, corresponding to the call positions i1,i2,..., such that q0∈Q0, and for each position i, ifiis
+a call then /angbracketleftqi−1,ai,qi,pi/angbracketright ∈δc; ifiis internal, then /angbracketleftqi−1,ai,qi/angbracketright ∈δi; ifiis a return such that µ(j,i), then
+/angbracketleftqi−1,pj,ai,qi/angbracketright ∈δr; and if iis an unmatched return then /angbracketleftqi−1,p,ai,qi/angbracketright ∈δrfor some p∈P0. Intuitively,
+in a run r, the hierarchical symbol associated with a matched return position i, is the hierarchical symbol
+pj, associated with the call position jthat is matched to i. The run ris accepting if (1) for all pending
+calls i,pi∈Pf, and (2) if wis a ﬁnite word of length lthen the ﬁnal state qlis accepting (i.e., ql∈Qf),
+and if wis an ω-word then for inﬁnitely many positions i, we have qi∈Qf. The automaton Aaccepts
+the nested word wif it has an accepting run over w.
+3 The computational model
+Recursive Components and their composition : To reason about recursive components one has to
+choose a mathematical model for components. The choice of model has to balance the need for a rich
+modeling formalism, for which computationally powerful models are preferred, and the need to avoid
+the pitfall of undecidability, for which simpler models are preferred.
+A successful sweet spot in this trade off is the computational model of ﬁnite-state transducers, i.e.
+ﬁnite-state machines with output. A common approach to reasoning about real world systems, is abstract-
+ing away the data-intensive aspects of the computation and model the control aspects of the computation
+by a ﬁnite-state transducer. Using this approach, the transducers model is rich enough to model real
+world industrial designs [9, 7]. For that reason, transducers are widely used in both theory [18, 14, 4]
+and practice [9, 7], and are prime candidates as a model for “call and return” components.
+To model “call and return” control-ﬂow by transducers, we introduce a small variation on the ba-
+
+--- Page 7 ---
+Yoad Lustig and Moshe Y . Vardi 7
+sic transducer model. Essentially, we use transducers in which some states are “call states”, where a
+transition to one of these states stands for a call to another component; some states are “return” states,
+where a transition to one of these states stands for a return to the component that called this component;
+and some states are re-entry states, i.e., states to which the component enters upon return from a call
+to another component. Similar models can be found in [4]. Different return values, are modeled here
+by having different re-entry states. The model is somewhat simpliﬁed in the sense that a return is not
+constrained in terms of the call state through which the call was made. In software, for example, the
+return is constrained to the instruction following the call instruction (although several return values may
+be permitted). Nevertheless, the model is rich enough to deal with the essence of “calls and returns”, and
+the techniques we present can be used to deal with richer models (e.g. each call may be associated with
+a mapping between return states and re-entry states capturing constrained returns as above). We chose
+this simpler model as it allows for simpler notation and clearer presentation of the underlying ideas.
+To simplify the notation, we ﬁx a number nCand assume every component in the library has exactly
+nCcalls. Similarly, we ﬁx a number nRand assume every component in the library has exactly nRreturn
+points, as well as exactly nRpoints to which the control is passed upon return.
+ARecursive Library Component (RLC) is a ﬁnite transducer with call, return and re-entry states.
+Formally, an RLC is a tuple M=/angbracketleftΣI,ΣO,S,s0,sR
+e,SC,SR,δ,L/angbracketrightwhere: (1) ΣIandΣOare ﬁnite input
+and output alphabets. (2) Sis a ﬁnite set of states. (3) s0∈Sis an initial state. When called by another
+component, the component Menters s0. (4) sR
+e⊆Sis a set of re-entry states. When the control returns
+from a call to another component, Menters one of the re-entry states in sR
+e. We denote sR
+e={s1
+e,..., snRe}
+(5)SC⊆Sis a set of call states. When Menters a state in SC, another component M/primeis called, and the
+control is transferred to M/primeuntil control is returned. We denote SC={s1
+C,..., snC
+C}(6)SR⊆Sis a set
+of return states. When Menters a return state, the control is returned to the component that called M.
+We denote SR={s1
+R,..., snR
+R}. When the i-th return state, i.e. si
+R, is entered, control is returned to the
+caller component M/prime, which is entered at his i-th re-entry state (i.e., M/prime’s state si
+e). (7) δ:S×ΣI→Sis a
+transition function. (8) L:S→ΣOis an output function, labeling each state by an output symbol.
+The setting we consider is the one in which we are given a library L={C1, ..., Cl}of RLC compo-
+nents. A composition overLis a tuple /angbracketleft(1,C1,f1),(2,C2,f2),..., (k,Ck,fk)/angbracketrightofkcomposition elements,
+in which each composition element is a triple composed of an index i, an RLC Ci∈L, and an interface
+function fi:SC→[k]that maps each of Ci’s call states into the composition element that is called upon
+entry to the call state. Note that the same RLC can be instantiated in different elements of the com-
+position, but with different interface functions, and the size of the composition is a priori unbounded.2
+While we consider here only ﬁnite compositions, we could have considered, in principle, also inﬁnite
+compositions. As we shall see, for NWBA speciﬁcations, ﬁnite compositions are sufﬁcient.
+A run of the system begins in state s0ofC1. When the run is in a state of the component Cwe say
+that the component Cis in control. For example, a run begins when the component C1is in control. For
+every i≤k, as long as a component Ciis in control, the system behaves as Ciuntil an exit state (i.e. a call
+state or a return state) is entered. If a call state sj
+C∈SCofCiis entered then the component Cfi(j)is called.
+That is, the control is passed to the fi(j)-th component in the composition. The run proceeds from the
+start state of Cfi(j). If a return state sj
+R∈SRofCiis entered (when Ciis in control), then Cireturns the
+control to the component that called Ci. If, for example, Ciwas called by Cjthen when sm
+Ris entered, the
+run proceeds from the re-entry state sm
+eofCj. We now deﬁne the composition formally.
+2If we had bounded the number of elements in a composition, then the number of ways in which these elements can be
+composed would have been ﬁnite and the search for a composition that satisﬁes some speciﬁcation would have turned into a
+combinatorial search, analogously, for example, to bounded synthesis [10].
+
+--- Page 8 ---
+8 Synthesis from Recursive-Components Libraries
+Formally, a composition C=/angbracketleft(1,C1,f1),(2,C2,f2),..., (k,Ck,fk)/angbracketright, where
+Ci=/angbracketleftΣI,ΣO,S[i],s0[i],sR
+e[i],SC[i],SR[i],δ[i],L[i]/angbracketright, induces a (possibly inﬁnite) transducer
+M={ΣI,SO,sM
+0,δM,LM}, where:
+1. The input alphabet is ΣIand the output alphabet is ΣO.
+2. The states of Mare ﬁnite sequences of the form /angbracketlefti1,i2,..., im,s/angbracketright, where for every j≤mwe have
+ij∈[k], and the ﬁnal element is a state s∈S[im]ofCim. Intuitively, such a state stands for the
+computation being in the state sof the RLC Cim, where the computation call stack is i1,i2,..., im.
+The initial state of Mis/angbracketleft1,s0[1]/angbracketrightwhere s0[1]is the initial state of C1. Formally, SM= [k]∗·(/uniontext
+i∈[k]i·
+S[i]).
+3. Next, we deﬁne the transition function δM. Let v=/angbracketlefti1,i2,..., im,s/angbracketrightbe a state of M. Then,
+δM(v,σ) =v/primeif one of the following holds:
+(a)internal transition : Ifδ[im](s,σ) =s/primefor some state s/prime∈S[im]\(SC[im]∪SR[im])ofCim, then
+v/prime=/angbracketlefti1,..., ir,s/prime/angbracketright, where
+(b)call transition : Ifδ[im](s,σ) =s/primewhere s/prime∈SC[im]is the j-th call state of Cim(i.e., s/prime=
+sj
+C[im]), then v/prime=/angbracketlefti1,..., im,fim(j),s0[fim(j)]/angbracketright,
+(c)return transition : Ifδ[im](s,σ) =s/primewhere s/prime∈SR[im], is the j-th return state of Cim(i.e.,
+s/prime=sj
+R[im]), then v/prime=/angbracketlefti1,..., im−1,sj
+e[im−1]/angbracketright.
+4. The ﬁnal state set FM=/angbracketleft1,SR[1]/angbracketright. Intuitively, the computation terminates when the ﬁrst compo-
+nent returns.
+5. The output function Lmis deﬁned by Lm(/angbracketlefti1,..., im,s/angbracketright) =L[im](s).
+For an input word wI=wI
+0,wI
+1...∈Σ∞
+I, the transducer Minduces an output word wO=wO
+0,wO
+1,...∈
+Σ∞
+O. We denote by w= (wI
+0,wO
+0),(wI
+1,wO
+1)...the combined input-output sequence induced by wI. Fur-
+thermore, on the input word wI, the composition Cinduces a nested word w=/angbracketleftw,call,ret,µ/angbracketrightin which w
+is the input-output induced word, callholds in positions in which a component made a call, retholds in
+positions in which a component returned, and µmaps each call to its return. We sometime abuse notation
+and refer to the word wrather than the nested word w. Similarly we might refer to a computation of,
+or in, a composition meaning a nested word induced by the composition. Similarly, we may refer to a
+computation segment meaning a substructure w[i,j], for some positions i,j, of a computation.
+A composition C realize an NWTL speciﬁcation ϕif all computations induced by Csatisfy ϕ. The
+recursive-library-components realizability problem is: given a library of RLCs L={Mj}n
+j=1and an
+NWTL speciﬁcation ϕ, decide whether there exists a composition of components from the library that re-
+alize ϕ. The recursive-library-components-synthesis problem is: given a library of RLCs L={Mj}n
+j=1
+and an NWTL speciﬁcation ϕ, decide whether ϕis realizable by a composition of RLCs from Land if
+so, output a composition realizing ϕ.
+Composition trees Next, we deﬁne the notion of a composition tree , which is the analog of a control-
+ﬂow tree in [12]. Fixing a library Lof RLCs, composition trees represent compositions. A composition
+tree is labeled tree τ=/angbracketleftT,λ/angbracketright, where T, the tree structure, is the set [nC]∗, and λ:T→Lis a mapping of
+the tree vertexes into L. Every composition C=/angbracketleft(1,C1,f1),(2,C2,f2),..., (k,Ck,fk)/angbracketright, induces an L-
+labeled composition tree τC. We ﬁrst show that Cinduces a [k]-labeled tree that we call intermediate tree .
+A labeled tree /angbracketleft[nC]∗,κ/angbracketright, where κ:[nC]∗→[k], is the intermediate mapping induced by C, ifκ(ε) =1,
+and, for every v∈[nC]∗and j∈[nC], we have that κ(v·j) =fκ(v)(j). The composition tree induced
+byCis/angbracketleft[nC]∗,λ/angbracketrightwhere for every v∈[nC]∗we have that λ(v) =Cκ(v). A node v=i1···ikrepresents a
+call-stack conﬁguration. The node’s label λ(v)is the component in control, while the labels of the node’s
+successors, i.e., λ(v·1),...,λ(v·nC), stand for the components that are called if a call state is entered.
+Intuitively, the control ﬂow of an actual computation is a represented by a traversal in a composition
+tree. The control is ﬁrst given to the component labeled by the root. For a node v, a call corresponds to a
+
+--- Page 9 ---
+Yoad Lustig and Moshe Y . Vardi 9
+descent to a successor (where a call from the i-th call state corresponds to a descent to the i-th successor).
+Similarly, a return from a node vcorresponds to an ascent to the predecessor of v.
+Thus, a composition induces a composition tree. On the other hand, a composition tree can be seen as
+an “inﬁnite composition” in which each node vstands for a composition element in which the component
+is the label of v, and the interface function fvmaps the call states to the successors (i.e., for every v∈[nC]∗
+andi∈[nC]we have fv(i) =v·i). So a composition tree induces an inﬁnite composition. We abuse
+terminology and refer to computations of a composition tree, where we mean to refer to computations of
+the induced inﬁnite composition. Furthermore, in Theorem 4.2 we show how a ﬁnite composition can be
+extracted from a regular composition tree. Another abuse of terminology we make is to refer to a labeled
+subtree of a composition tree as a composition tree.
+4 Recursive-library-components synthesis algorithm
+Our approach to the solution of the RLC synthesis problem, is ﬁrst to construct a tree-automaton Ab
+that accepts composition trees that do notsatisfy the speciﬁcation. Once that is achieved, Abcan be
+complemented to get an automaton Awhich is accepts composition trees that dosatisfy the speciﬁcation.
+Finally, A’s language can be checked for emptiness and if not empty, a system can be extracted from
+a witness (similar to the algorithm in [12]). Thus, the main ingredient in the solution is the following
+theorem (that allows the construction of Ab).
+Theorem 4.1 : LetLbe a library of RLC components, each with n Rreturn states, and let Aϕbe a NWBA.
+There exists an alternating B ¨uchi automaton on trees (ABT) A, with at most O (|Aϕ|2·nR)states, whose
+language is the set of composition trees for which there exists a computation in the language of Aϕ.
+Our main result follows from Theorem 4.1.
+Theorem 4.2: The recursive library components realizability problem and the recursive library compo-
+nents synthesis problem are 2EXPTIME-complete.
+Proof: The algorithm proceeds as follows. We ﬁrst translate ¬ϕinto an equivalent NWBA A¬ϕ, with
+an exponential blow-up [3]. We then construct an ABT AforA¬ϕaccording to Theorem 4.1, dualize A
+into an an alternating co-B ¨uchi automaton on trees (ACT) A/prime, and check A/prime’s language for nonemptiness
+as in [11]. If the speciﬁcation is realizable, then the language of A/primecontains a regular composition
+tree, for which all computations satisfy ϕ. Otherwise, the language of A/primeis empty. Given a regular
+composition tree /angbracketleft[nC]∗,τ/angbracketright, it is induced by a transducer (without ﬁnal states) T=/angbracketleft[nC],L,Q,q0,δ,L/angbracketright,
+such that for every w∈[nC]∗, we have τ(w) =L(δ∗(w)). We assume, w.l.o.g. that the set Qis the set
+[|Q|]of natural numbers, and that q0is the number 1. A ﬁnite composition can now be constructed in the
+following way: For every state q∈Qthere is a composition element /angbracketleftq,Cq,fq/angbracketrightin which Cq=L(q), and
+for every j∈[nC]we have fi(j) =δ(i,j). It can then be shown that the constructed composition induces
+the same inﬁnite-state transducer as the regular composition tree (up to component names) and therefore
+satisﬁes ϕ.
+As for complexity, A’s number of states is quadratic in |Aϕ|and linear in nandb(upper bounding nR
+byb). (Note that quadratic in |Aϕ|is exponential in |ϕ|). The complementation of AintoA/primeincurs no
+complexity cost. Finally, checking A/primefor emptiness is exponential in its number of states. This provides
+a 2EXPTIME upper bound. For a lower bound, note that a “goto” can be seen as a call without a return
+and LTL is a fragment of NWTL. Thus, a 2EXPTIME lower bound follows from the 2EXPTIME lower
+bound in [12].
+
+--- Page 10 ---
+10 Synthesis from Recursive-Components Libraries
+We now prove Theorem 4.1. There are two sources of difﬁcilty in the construction. First, we have
+to handle here call-and-return computations in composition trees. While computations in composition
+trees in [12] always go down the tree, computations here go up and down the tree. Second, here we have
+to emulate NWBA on the computations of composition trees, but we want to end up with standard tree
+automata, rather then nested-word automata.
+Intuitively, given a computation tree as input, our construction would guess a computation of the
+input tree, in the language of Aϕ, together with an accepting run of Aϕ, on the guessed computation. As
+mentioned in in the discussion of Composition trees, however, a computation of the composed system
+corresponds to a traversal in the composition tree. Therefore, to guess the computation, i.e., the traversal
+in the input tree, and the computation of Aϕon it, we employ 2-way-automata techniques.
+LetAϕ=/angbracketleftQ,Q0,Qf,P,P0,Pf,δc,δi,δr/angbracketright. The construction of Ais quite technical. Below we present
+the construction of A, where the introduction of each part begins in an informal/intuitive discussion and
+ends in a formal deﬁnition.
+The states of A: Intuitively, Areads an input tree τand guesses an accepting run of Aϕon a compu-
+tation of that input tree. The difﬁculty is that a computation cannot be guessed node by node, since when
+a computation enters a call node, we need to consider the return to that node. Thus, when reading a node
+vlabeled by component C, the ABT Aguesses an augmented computation ofCin which there are call
+transitions from call states to re-entry states, and a corresponding augmented run ofAϕ(in which Aϕ’s
+state changes at the end of a call transition of C). Of course, when Aguesses a call transition it should
+also verify that there exists a computation segment and a run segment of Aϕ, corresponding to that call
+transition. To verify a call transition from sj
+Ctosk
+R, the ABT Asends a copy of itself, in an appropriate
+state, to j-child son of the component being read.
+In general, Ahas two types of states: states for verifying call transition (i.e. computations segments
+between a call and its return), and states for verifying the existence of computation sufﬁxes that do not
+return. An example of a computation sufﬁx that does not return is a computation that follows a pending
+call. States of the ﬁrst type verify the feasibility of a computation segment, and there exists such a state
+every triple /angbracketleftq,q/prime,i/angbracketright ∈Q2×[nR]. IfAreads a tree node vin state /angbracketleftq,q/prime,i/angbracketrightit has to verify the existence
+of a computation in which a call was made to v’s component when Aϕwas in state q, and the ﬁrst return
+from v’s component is from the i-th return state si
+R, whenAϕis in state q/prime. States of the second type exist
+for every state q∈Q. IfAreads a tree node vin state qit has to verify the existence of a computation
+sufﬁx in which a call was made to v’s component when Aϕwas in state q, andAq
+ϕhas an accepting run
+on that sufﬁx. The initial state of Ais of the second type: the initial state q0ofAϕ.
+In fact, the state space of Amust reﬂect one more complication. The ABT Anot only has to guess a
+computation of a system and a run of Aϕon it, the run of Aϕmust be accepting . For that reason we also
+need to preserve information regarding Aϕ’s passing through an accepting state during a run segment.
+In particular, when considering a call transition that stand for a computation segment during which Aϕ
+moved from qtoq/prime, it is sometimes important whether during that run segment Aϕpassed through an
+accepting state. For that reason, states of the ﬁrst type (that verify call transitions) come in two ﬂavors:
+First, states /angbracketleftq,q/prime,i,0/angbracketrightthat retain the meaning explained above. Second, states /angbracketleftq,q/prime,i,1/angbracketrightin which Ahas
+to verify that in addition to the existence of a computation segment and an Aϕrun segment as above, the
+run segment of Aϕmust pass through an accepting state. Similarly, when Areads a component Cwhile
+in state q, it has to verify there is a computation that does not return on which Aq
+ϕhas an accepting run.
+One of the ways this might happen, is that the Cwould make a pending call to some other component
+C/prime. If this is the case, we need to keep track of whether an accepting state was seen from the entrance to
+Cuntil the call to C/prime. For that reason, states of the type qalso have two ﬂavors: /angbracketleftq,0/angbracketrightand/angbracketleftq,1/angbracketright(where
+
+--- Page 11 ---
+Yoad Lustig and Moshe Y . Vardi 11
+the second type stands for the constrained case in which an accepting state must be visited). Thus, the
+formal deﬁnition of A’s states set is QA=Q2×[nR]×{0,1}/uniontextQ×{0,1}.
+The transitions of A: Intuitively, when Areads an input-tree node vand its labeling component C,
+the ABT Aguesses an augmented computation and a corresponding augmented run that take place in
+C. Furthermore, for every call transition in the guessed augmented computation, the ABT Asends a
+copy of itself to the direction of the call to ensure the call transition corresponds to an actual computation
+segment. Thus, if the call transition is from sj
+Ctosk
+RandAϕis moves from qtoq/primeon that transition,
+then for some b∈ {0,1}the ABT Asends a state /angbracketleftq,q/prime,k,b/angbracketrightto the j-th direction (how bis chosen is
+explained below). The transition relation, therefore, has the following high level structure: a disjunction
+over possible augmented computations and runs, where for each augmented run a conjunction over all
+call transitions sending the corresponding A’s states to the correct directions.
+Before going into further detail, we introduce some notation: Given an augmented computation of
+Cthat begins in state sand ends in state s/primeand an augmented run of Aϕon it that begins in state qand
+ends in state q/primewe say that the beginning conﬁguration is(s,q)and the ﬁnal conﬁguration is(s/prime,q/prime).
+Transitions of Aϕthat have to do with calls or returns have a hierarchical symbol associated with them.
+If the composition Cis in state s, the ABT Ais in state qand a hierarchical symbol pis associated then
+theconﬁguration is(s,q,p). Given two conﬁguration c1andc2then c2isreachable in C from c1if there
+exists computation segment of C, that contain no call transitions, that begins in c1and ends in c2. The
+conﬁguration c2isreachable through accepting state in C from c1if there exists computation segment of
+C, that contain no call transitions, that begins in c1and ends in c2, and on which Aϕvisits an accepting
+state.
+Next, we describe the transitions out of a state /angbracketleftq,q/prime,k,0/angbracketright. This is the simplest case as it does not
+involve analyzing whether an accepting state of Aϕis visited. Assume Ais in state /angbracketleftq,q/prime,k,0/angbracketrightwhen
+it reads a component C. Intuitively, this means that Ahas to guess an augmented computation of C
+that begins at C’s initial state, and ends in C’sk-th return state, and an augmented run of Aϕon that
+computation that begins in state qand ends in state q/prime. In fact, instead of explicitly guessing the entire
+augmented computation and run, what Aactually guesses are only the call transitions appearing in the
+computation, and the state transitions of Aϕcorresponding to these call transitions. These are needed
+as they deﬁne the states of Athat will be sent in the various directions down the tree. The computation
+begins when Cis in its initial state s0, andAϕis in state q. Thus the beginning conﬁguration is (s0,q).
+The ﬁrst call transition source is some call state sj1
+CofC, some state q1ofAϕand a hierarchical symbol
+p1ofAϕ. Thus the ﬁrst computation segment ends in conﬁguration (sj1
+C,q1,p1). Note that it must be
+the case that the conﬁguration (sj1
+C,q1,p1)is reachable in Cfrom (s0,q). The target of the call transition
+is some conﬁguration (sk1
+R,q/prime
+1,p1). At this stage, i.e. when Areads C, the target conﬁguration is only
+constrained by sharing the hierarchical symbol with the call transition source. The constraints on the
+possible states in the target conﬁgurations depend on components down the tree that Awill read only at
+a later stage of its run. The conﬁguration which is the source of the next call transition, however, again
+has to be reachable from (sk1
+R,q/prime
+1,p1).
+Our approach, therefore is to deﬁne a graph GCwhose vertexes are conﬁgurations, and there exists
+an edge from a source conﬁguration to a target conﬁguration if it is possible to reach the target from the
+source (see earlier discussion of conﬁgurations). Recall the notation C=/angbracketleftΣI,ΣO,S,s0,sR
+e,SC,SR,δ,L/angbracketright,
+where sR
+e={si
+e}nR
+i=1,SC={si
+C}nC
+i=1, and SR={si
+R}nR
+i=1. The vertex set VCofGCis the union of four
+sets: (1) Initial conﬁgurations {s0}×Q. (2) Call conﬁgurations SC×Q×P. (3) Re-entry conﬁgurations
+sR
+e×Q×P. (4) Final conﬁgurations {sk
+R}×Q.
+
+--- Page 12 ---
+12 Synthesis from Recursive-Components Libraries
+There are two types of edges in GC.Component edges reﬂect reachability in C. There is a component
+edge in GCfrom conﬁguration c1to conﬁguration c2iffc2is reachable in Cfrom c1.Call edges capture
+call transitions and the corresponding state changes in Aϕ. There is a call edge in GCbetween c1=
+(s,q,p)andc2= (s/prime,q/prime,p/prime)ifsis a call state, s/primeis a re-entry state, and p=p/prime.
+An augmented computation and run of Aϕon it, correspond to a path in GC. When Ais in state
+/angbracketleftq,q/prime,k,0/angbracketrightand reads a component Cit guess a path in GCfrom/angbracketlefts0,q/angbracketrightto/angbracketleftsk
+R,q/prime/angbracketright. If there exists such
+a path in GCthere exists a short path of length bounded by |VC|, i.e. the number of vertexes in G.
+We denote by Path (q,q/prime,sk
+R)the set of paths from (s0,q)to(sk
+R,q/prime)of length bounded by |VC|. For
+each path π∈Path (q,q/prime,sk
+R), we denote by EC(π)the set of call edges appearing in π. For a call edge
+e=/angbracketleft(si
+C,q,p),(sj
+e,q/prime,p)/angbracketright, we denote sC(e) =i,s0(e) =j,q(e) =q, and q/prime(e) =q/prime. The transitions from
+/angbracketleftq,q/prime,k,0/angbracketrightare deﬁned:
+δ(/angbracketleftq,q/prime,k,0/angbracketright,C) =/logicalordisplay
+π∈Path (q,q/prime,sk
+R)/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),0/angbracketright).
+Intuitively, a path in GCis guessed and for each call edge e, the state /angbracketleftq(e),q/prime(e),s0(e),0/angbracketrightis sent in
+the direction of the call, i.e. sC(e).
+Next, we describe the transitions out of a state /angbracketleftq,q/prime,k,1/angbracketright. This case a very similar to the case of
+transitions out of /angbracketleftq,q/prime,k,0/angbracketrightoutlined above. The difference is that in this case Aϕmust visit an accepting
+state during its augmented run. There is no restriction, however, that the accepting state will be visited
+when the control is held by the component C. It is possible that the accepting state will be visited when
+some other (called) component is in control. Intuitively, as in the /angbracketleftq,q/prime,k,0/angbracketrightcase, the ABT Aguesses
+a path in GCfrom the initial to the ﬁnal conﬁguration, in addition, Aguesses an edge from the path in
+which an accepting state should be visited. For component edges, it is possible to make sure that guessed
+edges represent computations on which Aϕvisits an accepting state. For call edges, the task of verifying
+that an accepting state is visited, is delegated to the state of Athat is sent in the direction of the call (by
+sending a state whose last bit bis 1).
+Formally, a component edge in GCfrom conﬁguration c1to conﬁguration c2is an accepting edge
+iffc2is reachable in Cthrough an accepting state from c1. Note that if there exists a path from a
+conﬁguration c1to conﬁguration c2that visits an accepting edge, then there exists one of length at most
+2|VG|(a simple path to the accepting edge and a simple path from it). For q,q/prime∈Q,sk
+R∈SR, we denote
+byPath a(q,q/prime,sk
+R)a set of pairs in which the ﬁrst element is a path πof length at most 2 |VC|from (s0,q)
+to(sk
+R,q/prime), and the second element is a function fmapping the edges in πinto{0,1}such that:
+1. Exactly one edge is mapped to 1, and
+2. If the edge mapped to 1 is a component edge then it is also an accepting edge.
+Finally,
+δ(/angbracketleftq,q/prime,k,1/angbracketright,C) =/logicalordisplay
+(π,f)∈Path a(q,q/prime,sk
+R)/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),f(e)/angbracketright).
+Next, we describe the transitions out of a state /angbracketleftq,b/angbracketright, for b∈ {0,1}, in which Ahas to verify there
+exists an accepting augmented computation of Cthat does not return, and a run of Aq
+ϕon it. There are
+three distinct forms such a computation might take. (1) First, it is possible that the computation has a
+inﬁnite sufﬁx in which Cremains in control. (2) Second, it is possible that the eventually the component
+makes some pending call. (3) Finally, it is possible that the computation contains inﬁnitely many calls
+to, and returns from, other components. We deal with each of the case separately, we construct a partial
+transition relation for each case, the transition relation itself is the disjunction of these three parts.
+
+--- Page 13 ---
+Yoad Lustig and Moshe Y . Vardi 13
+First, to deal with inﬁnite (sufﬁxes) of computations that never leave the component, we modify
+the graph GCto consider such runs. We introduce a new vertex ⊥that intuitively stand for “an inﬁnite
+(sufﬁx) of a computation in C, and an accepting run of Aϕon it”. There is an edge from a conﬁguration
+cto⊥, if there is an exists an inﬁnite computation of Cthat begins in conﬁguration c, never enters an
+exit state, and there exists an accepting run of Aϕon it. There are no edges from ⊥.
+The ﬁrst part of the transition relation is
+δ1(/angbracketleftq,b/angbracketright,C) =/logicalordisplay
+π∈Path (q,⊥)/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),0/angbracketright)
+Second, we have to deal with computation segments that end in a pending call. These types of
+computations are easily dealt with in terms of paths in GCto a conﬁguration in which the state is a call
+state. We would like to note two details. First, note that by the deﬁnition of an accepting run of an
+NWBA, the hierarchical symbols associated with pending calls must be from the set Pf. Second, note
+the difference between states of type /angbracketleftq,0/angbracketrightand type /angbracketleftq,1/angbracketright. In the /angbracketleftq,0/angbracketrightcase there is no constraint that
+has to do with Aϕ’s accepting states. Therefore, the second part of the transition relation is
+δ2(/angbracketleftq,0/angbracketright,C) =/logicalordisplay
+sk
+C∈SC,
+q/prime∈Q,
+p∈Pf/logicalordisplay
+π∈Path (skc,q,q/prime,p)/logicalordisplay
+b∈{0,1}((k,/angbracketleftq,b/angbracketright)∧/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),0/angbracketright))
+In the /angbracketleftq,1/angbracketright, case an accepting state of Aϕmust be visited, therefore the second part of the transition
+relation is
+δ2(/angbracketleftq,1/angbracketright,C) =/logicalordisplay
+sk
+C∈SC,
+q/prime∈Q,
+p∈Pf/logicalordisplay
+(π,f)∈Path a(skc,q,q/prime,p)/logicalordisplay
+b∈{0,1}((k,/angbracketleftq,b/angbracketright)∧/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),f(e)/angbracketright))
+We have to deal with sufﬁxes of computation that contain inﬁnitely many call to, and return from,
+other components. Such computations must contain a conﬁguration that appears twice. A ρ-path inGCis
+a path in GCin which the last vertex is visited more then once along the path (intuitively, closing a cycle).
+The part of the path between the ﬁrst and last occurrences of the last vertex is the cycle . As we require
+Aϕ’s run to accept, an accepting state from Qfshould be visited during a segment of a computation that
+correspond to an edge on the cycle. An accepting ρ-path is a path in which one of the edges along the
+cycle is accepting. There exists an accepting ρ-path iff there exists an accepting ρ-path of length at most
+3|VC|(a simple path to the cycle, and a cycle of length at most 2 |VC|).
+Forq,∈Qwe denote by ρ-Path (q)a set of pairs in which: (1) the ﬁrst element πis aρ-path of length
+at most 3 VCstarting at (s0,q); (2) the second element is a function fmapping the edges in πinto{0,1}
+such that: (1) exactly one edge is mapped to 1, this edge is on the cycle, and (2) if the edge mapped to 1
+is a component edge then it is also an accepting edge. The third part of the transition relation is
+δ3(/angbracketleftq,b/angbracketright,C) =/logicalordisplay
+(π,f)∈ρ-Path (q)/logicalanddisplay
+e∈EC(π)(sC(e),/angbracketleftq(e),q/prime(e),s0(e),f(e)/angbracketright)
+Finally, for a state /angbracketleftq,b/angbracketrightthe transition relation is
+δ(/angbracketleftq,b/angbracketright,C) =δ1(/angbracketleftq,b/angbracketright,C)∨δ2(/angbracketleftq,b/angbracketright,C)∨δ3(/angbracketleftq,b/angbracketright,C)
+
+--- Page 14 ---
+14 Synthesis from Recursive-Components Libraries
+This concludes the deﬁnition of the transition relation
+Accepting states of A: Finally, the set FofA’s accepting states is the set Q×{1}. Intuitively, in an
+accepting run tree of A, each path is either ﬁnite, i.e. ends a nodes whose transition relation is true, or
+an inﬁnite path of states that correspond to pending calls. For the run to be accepting, an accepting state
+must be visited inﬁnitely often along such inﬁnite path of pending calls. As we deﬁned the accepting-
+states set to be Q× {1}, an inﬁnite path of pending calls is accepted iff in the run of Aϕvisits an Aϕ
+accepting state inﬁnitely often. This concludes the main construction,
+We now prove the correctness in several stages. First, we prove a claim regarding states of the form
+/angbracketleftq,q/prime,i,b/angbracketright.
+Claim 4.3 For a composition tree T, there exists a ﬁnite accepting run tree of A/angbracketleftq,q/prime,i,b/angbracketrightonTiff there
+exits a computation πof the composition induced by T, such that:
+1.πends by returning from the i-th return state si
+RofT’s root.
+2. there exists a run rofAq
+ϕon the word induced by πthat ends in q/prime.
+Furthermore, for states /angbracketleftq,q/prime,i,1/angbracketrightthe iff statement is true for a run rthat visits an accepting state from
+Qf.
+Proof: Assume ﬁrst that there exist computation πand run ras claimed. We prove that there exists a
+ﬁnite accepting run tree of A/angbracketleftq,q/prime,i,b/angbracketrightonT. As the computation πreturns from the root, the depth hof the
+subtree traversed by πinTis bounded. The proof is by induction on the depth h. The base case is a depth
+1, i.e., only the root component is traversed. Then, the existence πimplies there exists an edge in GC
+from/angbracketlefts0,q/angbracketrightto/angbracketleftsi
+R,q/prime/angbracketright. Therefore, there exists a path in GC, between these vertexes, that does not contain
+any call edges. Thus, the transition relation evaluates to true, implying that there exists a ﬁnite accepting
+run ofA/angbracketleftq,q/prime,i,0/angbracketrightonT. Furthermore, if rvisits a state from Qfthen the relevant edge is an accepting edge
+and there is an accepting run of A/angbracketleftq,q/prime,i,1/angbracketrightonT. Assume now, the induction hypothesis for traversal of
+maximal depth h, we prove it for traversals of maximal depth h+1. The computation πcan be broken
+into segments in which the control is in the root component and segments in which some other (called)
+components are in control. Each segment corresponds to an edge of GC, where segments of computation
+in which the root is in control, correspond to component edges, and the rest of the segments correspond
+to call edges. Each call edge, correspond to a successor of the root in the composition tree, and for
+each call edge, the induction hypothesis implies the existence of accepting run tree on the corresponding
+composition subtree. Thus there exists an accepting run tree as claimed. Furthermore, if rvisits Qf
+then the visit is made during some computation segment. The edge corresponding to that computation
+segment can be mapped to 1 by the function ffrom the deﬁnition of the transition relation for /angbracketleftq,q/prime,i,1/angbracketright.
+It follows that if rvisits a state from Qfthen there exists a an accepting run of A/angbracketleftq,q/prime,i,1/angbracketrightonT.
+Assume now a ﬁnite accepting run tree of A/angbracketleftq,q/prime,i,b/angbracketrightexists, we prove the existence of a computation
+πand a run ras needed. The proof is by induction on the height hof the accepting run tree. The base
+case is a run tree of height 1. Then, the transition relation δmust evaluate to true on the root. Thus, the
+path in GCcontains no call edges, and therefore by the deﬁnition of δthere exist π, and ras claimed.
+Furthermore, if b=1, the component edge must be an accepting edge implying that rvisits Qf. Assume
+now, the induction hypothesis for run trees of height h, we prove it for run trees of height h+1. The run-
+tree root is labeled by some set Sof pairs of directions and A-states that satisfy δ. This choice of states
+and directions corresponds to a path in GC, in which some edges are call edges and some are component
+edges. By the deﬁnition of δthere exist computation segments corresponding to component edges, and
+by the induction hypothesis there exist computation segments corresponding to call edges. Splicing these
+computation segments together we get the a computation π, and ras claimed. Furthermore, if b=1 then
+one of the edges is an accepting edge and therefore, rvisits Qf.
+
+--- Page 15 ---
+Yoad Lustig and Moshe Y . Vardi 15
+By very similar reasoning, we can show that there exists a ﬁnite accepting run tree of A/angbracketleftq,b/angbracketrighton a
+composition tree T, iff there exists a computation πofTsuch that: (1) π’s traversal is bounded in a ﬁnite
+subtree of the composition tree ; (2) πnever returns from the root of T; and (3) there exists an accepting
+runrofAϕonπ. Unlike, the /angbracketleftq,q/prime,i,b/angbracketright, however, we have also to consider runs that are not bounded in
+a ﬁnite subtree of T. Next, we show that it is enough to consider computations that make inﬁnitely many
+pending calls.
+Observation 4.4 For a library L, an NWBA Aϕand a composition tree T if there exists a computation
+πof T , in L (Aϕ), in which a node v ∈T is visited inﬁnitely often then there exists computation π/primeof T ,
+in L(Aϕ), that only traverses a ﬁnite subtree of T .
+Proof: First, note that it is enough to show that there exists a computation π/primeofT, inL(Aϕ), such
+thatπ/primeonly traverses a ﬁnite subtree of the subtree rooted at v(regardless of what happens outside that
+subtree). The reason is w.l.o.g. vcan be assumed to be a node of minimal depth that is visited inﬁnitely
+often by π. As such, the computation must eventually remain in the subtree rooted at v(since if vis not
+the root, v’s predecessor is visited only ﬁnitely often).
+Next, let π1,π2be two computation segments of π, and r1,r2be the corresponding parts of Aϕ’s
+accepting run on πsuch that:
+1.π1andπ2begin by entering the same call state si
+C.
+2.r1andr2begin by the same Aϕstate q.
+3.π1andπ2end when the control is returned to vby the same re-entry state sj
+e.
+4.r1andr2end in the same Aϕstate q/prime.
+5.r1visits Qfiffr2visits Qf.
+Then, π1andπ2are interchangeable while the resulting computation still satisﬁes ϕ. Thus, while vis
+returned to inﬁnitely often, there are only ﬁnitely many equivalence class of interchangeable computation
+segments. Choosing a single representative from each equivalence class, we can splice a computation
+whose traversal depth is bounded by the traversal depths of the representatives.
+Observation 4.4 implies that if there is a computation, in L(Aϕ), that traverses an unbounded subtree
+of the composition tree, and does not make inﬁnitely many pending calls, then there is also a compu-
+tation, in L(Aϕ), that traverses a ﬁnite subtree of the composition tree. Therefore, when considering
+computations that traverse an unbounded depth subtree of a composition tree, it is enough to consider
+compositions in which the computation, whose word is in L(Aϕ), has inﬁnitely many pending calls. The
+deﬁnition of A’s accepting states set ensures correctness with respect to such computations. An accept-
+ing run tree, of AϕonT, with an inﬁnite path, must visit inﬁnitely often an accepting state (i.e., a state
+/angbracketleftq,1/angbracketright) which means it is possible to construct a computation of Tthat makes inﬁnitely many pending
+calls, and on which Aϕwould have an accepting run. On the other hand, an accepting computation of
+Aϕthat makes inﬁnitely many pending calls, implies the existence of an accepting run tree of A, with
+an inﬁnite path that visits an accepting state inﬁnitely often.
+Finally we provide a complexity analysis. For a NWBA Aϕ, with nAϕstates, and a library Lwith
+mLcomponents in which the components are of size mC, the construction presented here, creates an ABT
+Awith at most O(n2
+Aϕ·mC)states. Note, however, that the number of states does not tell the entire story.
+First, the computation of δinvolves reachability analysis of the components. Luckily, the reachability
+analysis is done separately on each component (in fact, the Cartesian product of each component with
+Aϕ) and therefore the complexity is O(nAϕ·mC·mL). On the other hand, Ais an alternating automaton
+with a transition relation that may be exponential in the size of the its state space. Thus, Acannot
+be computed in space polynomial in the parameters. The computation of Ainvolves an analysis of the
+paths in GCand requires space polynomial in nAϕandmC.
+
+--- Page 16 ---
+16 Synthesis from Recursive-Components Libraries
+5 Discussion
+We deﬁned the problem of NWTL synthesis from library of recursive components, solved it, and shown
+it to be 2EXPTIME-complete. We now note that the ideas presented above are quite robust with respect
+to possible variants of the basic problem.
+The model was chosen for simplicity rather than expressiveness, and can be extended and general-
+ized. First, we can consider several call values per component. This translates to each component having
+a set S0⊆Sof initial states (rather than a single initial state s0∈S). Next, we can add greater ﬂexibil-
+ity with respect to return values. A single return value may have different meanings on different calls.
+Therefore, compositions might be allowed to perform some “return-value translation”; matching return
+states to re-entry states per call, rather than matching return states to re-entry states uniformly. This can
+be modeled by augmenting each composition element /angbracketlefti,Ci,fi/angbracketrightby another function ri:SC→([nR]→sR
+e)
+that maps each call state into a matching of return values to re-entry states. The synthesis algorithm, for
+the augmented model, remains almost the same. In the augmented model, a component implementation
+depends on the call value s0∈S0and the rifunction. Therefore, instead of working with composition
+trees, labeleded by L, we’d work with augmented composition trees, labeled by tuples /angbracketleftC,s0,ri/angbracketright. Our
+algorithm and analysis can then be extended appropriately.
+Another possible extension might be to consider bounded call stacks. Theoretically, “call and return”
+models allow for unbounded call stacks. Real life systems, however, have bounded call stacks. One can
+consider a variant of the synthesis problem, in which the output must have bounded call stack, where the
+bound is an output of the synthesis algorithm, rather then an apriori given input. To adapt the algorithm
+to this case, we have to ﬁnd a ﬁnite composition tree in which all computations satisfy ϕ, as well as no
+computation makes a call from a leaf (ensuring bounded stack). To that end, we construct two alternating
+automata on ﬁnite trees (AFTs). First, an AFT A1for ﬁnite composition trees in which there exists a
+computation violating ϕ. The AFT A1is simply the ABT from Theorem 4.1, when considered as an
+AFT, and in which no state is considered accepting. In addition, we construct an AFT A2that accepts
+trees that may perform a call from one of the leaves (see Appendix A). The union of the languages of
+A1andA2contain all ﬁnite composition trees that do not realize ϕ. An AFT for the union can then be
+complemented and checked for emptiness as in the inﬁnite case. Thus, the solution techniques presented
+in this paper are quite robust and extend to natural variants of the basic model.
+Acknowledgements Work supported in part by NSF grants CCF-0728882, and CNS 1049862, by BSF
+grant 9800096, and by gift from Intel.
+References
+[1] L. de Alfaro & T.A. Henzinger (2005): Interface-based design . In M. Broy, J. Gr ¨unbauer, D. Harel & C.A.R.
+Hoare, editors: Engineering Theories of Software-intensive Systems , NATO Science Series: Mathematics,
+Physics, and Chemistry 195, Springer, pp. 83–104.
+[2] R. Alur (2007): Marrying words and trees . In: Proc. 26th ACM Symp. on Principles of Database Systems ,
+pp. 233–242.
+[3] R. Alur, M. Arenas, P. Barcel ´o, K. Etessami, N. Immerman & L. Libkin (2008): First-Order and Temporal
+Logics for Nested Words .Logical Methods in Computer Science 4(4).
+[4] R. Alur, M. Benedikt, K. Etessami, P. Godefroid, T. W. Reps & M. Yannakakis (2005): Analysis of recursive
+state machines .ACM Transactions on Programming Languagues and Systems 27(4), pp. 786–818.
+
+--- Page 17 ---
+Yoad Lustig and Moshe Y . Vardi 17
+[5] R. Alur, K. Etessami & P. Madhusudan (2004): A temporal logic of nested calls and returns . In: Proc. 10th
+Int. Conf. on Tools and Algorithms for the Construction and Analysis of Systems ,Lecture Notes in Computer
+Science 2725, Springer, pp. 67–79.
+[6] R. Alur & P. Madhusudan (2009): Adding nesting structure to words .Journal of the ACM 56(3), pp. 1–43.
+[7] T. Ball, B. Cook, V . Levin & S.K. Rajamani (2004): SLAM and Static Driver Veriﬁer: Technology Transfer
+of Formal Methods inside Microsoft . In: Integrated Formal Methods , pp. 1–20.
+[8] D. Berardi, D. Calvanese, G. De Giacomo, M. Lenzerini & M. Mecella (2003): Automatic Composition of
+E-services That Export Their Behavior . In: ICSOC , pp. 43–58.
+[9] G.J. Holzmann (1997): The Model Checker SPIN .IEEE Transactions on Software Engineering 23(5), pp.
+279–295.
+[10] O. Kupferman, Y . Lustig, M.Y . Vardi & M. Yannakakis (2011): Temporal Synthesis for Bounded Systems and
+Environments . In: Proc. 28th Symp. on Theoretical Aspects of Computer Science , pp. 615–626.
+[11] O. Kupferman & M.Y . Vardi (2005): Safraless Decision Procedures . In: Proc. 46th IEEE Symp. on Founda-
+tions of Computer Science , pp. 531–540.
+[12] Y . Lustig & Moshe Y . Vardi (2009): Synthesis from Component Libraries . In: Proc. 12th International
+Conference on Foundations of Software Science and Computational Structures (FOSSACS) ,Lecture Notes
+in Computer Science 5504, Springer, pp. 395 – 409.
+[13] N. Piterman & M. Vardi (2001): From Bidirectionality to Alternation . In: 26th Int. Symp. on Mathematical
+Foundations of Computer Science ,Lecture Notes in Computer Science 2136, Springer, pp. 598–609.
+[14] A. Pnueli & R. Rosner (1989): On the Synthesis of a Reactive Module . In: Proc. 16th ACM Symp. on
+Principles of Programming Languages , pp. 179–190.
+[15] S. Sardi ˜na, F. Patrizi & G.e De Giacomo (2007): Automatic Synthesis of a Global Behavior from Multiple
+Distributed Behaviors . In: AAAI , pp. 1063–1069.
+[16] J. Sifakis (2005): A Framework for Component-based Construction Extended Abstract . In: Proc. 3rd Int.
+Conf. on Software Engineering and Formal Methods (SEFM 2005) , IEEE Computer Society, pp. 293–300.
+[17] M.Y . Vardi (1998): Reasoning about the past with two-way automata . In: Proc. 25th Int. Colloq. on Au-
+tomata, Languages, and Programming ,Lecture Notes in Computer Science 1443, Springer, Berlin, pp. 628–
+641.
+[18] M.Y . Vardi & P. Wolper (1994): Reasoning about Inﬁnite Computations .Information and Computation
+115(1), pp. 1–37.
+
+--- Page 18 ---
+18 Synthesis from Recursive-Components Libraries
+A Reachability construction
+Theorem A.1: For a library of RLCs L={Mj}n
+j=1, of components with n Rreturn states, it is possible to
+construct an AFT A =/angbracketleftL,Q,Q0,δ,F/angbracketright, with n R+1states, that accepts ﬁnite composition trees in which
+there exists a computation that makes a call from one of the composition-tree leaves.
+Proof: The construction intuition is similar to, and simpler than, the construction in Theorem 4.1.
+Intuitively, the automaton guesses a computation that reaches one of the leaves and tries to make a call.
+We set Q= [nR]∪{⊥} where intuitively, a state from [nR]stands for the expected return state to return
+from, and ⊥stands for no return. The initial state is ⊥.
+For a component Swe deﬁne a graph GSwhose vertexes are the initial state, call states and re-entry
+states of S. There exist an edge from an initial state or a re-entry state vto a call ustate iff there exists a
+computation of the component, beginning in vand ending in u. These edges are called component edges.
+In addition, there is an edge from every call state to every re-entry state. These edges are called call
+edges. For two vertexes v,uinGSWe denote the set of paths in GSfrom vtoubyPath (v,u). For a path
+πinGSwe denote the set of call edges in πbyEC(π).
+For a state i∈[nR]and a component C, we denote
+δ(i,C) =/logicalordisplay
+π∈Path (s0,si
+R)/logicalanddisplay
+/angbracketleftsj
+C,ske/angbracketright∈EC(π)(j,k).
+Similarly,
+δ(i,⊥) =/logicalordisplay
+j∈[nC](⊥,j)∧(/logicalordisplay
+π∈Path (s0,sj
+C)/logicalanddisplay
+/angbracketleftsl
+C,sme/angbracketright∈EC(π)(l,m)).
+Note that as we are only interested in computations that perform a call from a leaf, we can ignore sufﬁxes
+of computation that remain trapped in the component.
+The set of accepting states is F={⊥}. The proof of correctness is by induction on the height of the
+composition tree read. The induction hypothesis is that Aqaccepts a tree of height hiff
+1.q=⊥and there is a computation of the composition that makes a call from a leaf.
+2.q∈[nR]and there exists a computation of the composition in which the ﬁrst return from the root
+component is from return state sq
+R.
+The base case is a tree of height 1. First, if q=⊥the composition should accept iff there is a
+computation of the component that leads to a call state si
+C. Indeed, if there is such a computation then the
+transition relation δcan be satisﬁed by {(i,⊥)}(otherwise the root cannot have accepting continuation).
+If, on the other hand, q∈[nC], then the only way the root can have accepting continuation is if there is a
+computation that enters sq
+Rwithout visiting a call state.
+For the induction step, assume the i.h. for h=n. We prove the q=⊥case, the case q∈[nC]has a
+similar proof. If there is a computation that makes a call from one of the leaves, let cbe such computation
+in which the call is made after a minimal number of returns to the root. The computation pcorresponds to
+a path πinGSwhere segments of the computation made in the root component correspond to component
+edges, while segments of the computation made outside the root correspond to call edges. The transition
+function δcan be satisﬁed by the set of call edges in π. By the induction hypothesis, each of the states
+sent to the root successors has an accepting computation.
+If, on the other hand, there exists an accepting computation of Aon a composition tree then look at
+the set of pairs satisfying δon the root. This set correspond to the set of call edges of a path πinGS.
+Since the entire run is accepting, by the induction hypothesis, each call edge corresponds to a computa-
+tion segment made by a composition subtree below the root. By the deﬁnition of GScomponent edges
+
+--- Page 19 ---
+Yoad Lustig and Moshe Y . Vardi 19
+correspond to computation segments made in the root component. All of these computation segments
+can be spliced together into a computation that makes a call from a leaf.

@@ -1,0 +1,175 @@
+--- Page 1 ---
+T-U PPAAL: Online Model-based Testing of Real-time Systems
+Marius Mikucionis Kim G. Larsen Brian Nielsen
+{marius,kgl,bnielsen }@cs.auc.dk
+Department of Computer Science, Aalborg University, Fredrik Bajers Vej 7B, 9220 Aalborg Øst, Denmark
+1. Introduction
+The goal of testing is to gain conﬁdence in a physical com-
+puter based system by means of executing it. More than one
+third of typical project resources is spent on testing embed-
+ded and real-time systems, but still it remains ad-hoc, based
+on heuristics, and error-prone. Therefore systematic, theoret-ically well-founded and effective automated real-time testing
+techniques are of great practical value.
+Testing conceptually consists of three activities: test case
+generation , test case execution and verdict assignment .W e
+present T-U
+PPAAL—a new tool for model based testing of em-
+bedded real-time systems that automatically generates and ex-
+ecutes tests “online” from a state machine model of the imple-
+mentation under test ( IUT) and its assumed environment which
+combined specify the required and allowed observable (real-
+time) behavior of the IUT.T - U PPAALimplements a sound and
+complete randomized testing algorithm, and uses a formally de-
+ﬁned notion of correctness (relativized timed input/output con-
+formance) to assign verdicts. Using online testing, events are
+generated and simultaneously executed.
+2. Modeling Embedded Systems
+An embedded system interacts closely with its environment
+which typically consists of the controlled physical equipment
+(the plant) that is accessible via sensors and actuators, other
+computer based systems or digital devices accessible via com-
+munication networks using dedicated protocols, and humanusers. An embedded system must work correctly in this spe-
+ciﬁc environment. The IUT and its environment communicate
+by exchanging input and output signals (seen from the IUT).
+When the IUT is being tested, the tester plays the role of the en-
+vironment. The IUT is connected to T-U
+PPAALvia an adapter
+component that translates the abstract in/out actions into their
+real representation, and sends/receives them to/from the IUT,
+see Figure 1(a). Factoring in the explicit environment model al-lows T-U
+PPAALto only generate realistic event sequences. Fur-
+ther, the user can exploit it to guide the T-U PPAALto particu-
+larly interesting test situations.
+Timed Automata is an expressive and popular formalism for
+modeling real-time systems. Intuitively, a timed automaton is
+Simulated EnvironmentImplementation Environment
+assumptions specification
+out?
+in!out!
+in?"in"
+"out"Under TestImplementation
+outputinput
+Physical APIAdapterAdapter APIT−UPPAAL engine
+(a) Automated testing of an embedded system.
+coin!
+req!
+strongCoffee?weakCoffee?
+k2k1k0
+x≥60x:= 0
+x:= 0
+(b) Example envi-
+ronment Ecreq? req?
+strongCoffee!weakCoffee!coin?
+l2l1
+l3l0
+x:= 0x< 50 x> 30
+x:= 0x> 10
+x> 30
+x:= 0
+x< 30x< 50
+(c) Example Speciﬁcation Sc.
+Figure 1. Embedded system and example mod-
+els.
+an extended ﬁnite state machine equipped with a set of special
+real-valued variables called clocks whose value automaticallyincrease as time progresses. Clocks may be used in enabling
+conditions on transitions and may be reset when a transition is
+executed. In addition, a clock invariant condition in a locationlimits how long the automaton may remain in that location. Fig-
+ure 1(c) shows a timed automaton specifying the requirements
+to a coffee machine. It has a facility that allows the user, af-
+ter paying, to indicate his eagerness to get coffee by pushing a
+request button on the machine forcing it to output coffee. How-ever, allowing insufﬁcient brewing time results in a weak cof-
+fee. Waiting less then 30 time units deﬁnitely results in weak
+coffee, and waiting more than 50 deﬁnitely in strong coffee.
+
+--- Page 2 ---
+Between 30 and 50 time units the choice is non-deterministic,
+meaning that the implementation/implementor may decide what
+to produce. After the request, it takes the machine an additional
+(non-deterministic) 10 to 30 (30 to 50) time units to produceweak coffee (strong coffee). The timed automata in Figure 1(b)
+models a potential (nice) user of the machine that pays before
+requesting coffee and that wants strong coffee thus requesting
+only after 60 time units.
+3. Online Testing
+Test cases can be generated from the model ofﬂine where the
+complete test scenarios and verdicts are computed a-priori and
+before execution. In contrast, online testing [1, 3, 2] combines
+test generation and execution: only a single test primitive is gen-erated from the model at a time which is then immediately exe-
+cuted on the IUT. An observed test run is a timed trace consist-
+ing of an alternating sequence of (input or output) actions andtime delays.
+There are several advantages of online testing. First, testing
+may potentially continue for a long time (a single test run may
+take hours or even days), and therefore very long, intricate, and
+stressful test cases may be executed. Second, the state-space-explosion problem experienced by many ofﬂine test generation
+tools is reduced because only a very limited part of the state-
+space need to be stored at any point in time. Third, online testgenerators often allow more expressive speciﬁcation languages,
+especially wrt. allowed non-determinism in real-time models,
+e.g., allowing timing uncertainty where an output event is ex-
+pected in some interval of time, say between 1 and 5 time units
+from now. An online test generation algorithm is automaticallyadaptive to this non-determinism.
+T-U
+PPAALimplements the algorithm shown in Algorithm 1.
+The main idea is to continually compute the set of states Z(con-
+sisting of state pairs (s, e)representing respectively the state of
+the speciﬁcation- and the environment) that the speciﬁcation canpossibly occupy after the test run observed so far. The tester can
+perform three basic actions: either send an input (enabled out-
+put in the environment) to the IUT, wait for an output for some
+time, or reset the IUT and restart. If the tester observes an out-
+put or a time delay it checks whether this is legal according the
+state set. The state set is updated whenever an input is offered, or
+an output or delay is observed. Illegal occurrence or absence of
+an output is detected if the state set becomes empty which is theresult if the observed trace is not in the speciﬁcation. The func-
+tionZAfterαcomputes the set of states that can be reached
+after an observable action or after a time delay.
+The algorithm manipulates large (even inﬁnite) sets of states
+containing (real-valued) clock valuations. T-U
+PPAALimple-
+ments the required operations and analyses timed automata
+speciﬁcation models using efﬁcient symbolic algorithms based
+on solving clock inequations, so-called zones .
+Algorithm 1 Initially Z:={(s0,eo)}.
+while Z/negationslash=∅∧/sharpiterations ≤Tdorandomly choose:
+action : // offer an input
+ifEnvOutput (Z)/negationslash=∅
+randomly choose a∈EnvOutput (Z)
+sendatoIUT
+Z:=ZAftera
+delay : // wait for an output
+randomly choose δ∈Delays (Z)
+sleep for δtime units and wake up on output o
+ifooccurs at δ/prime≤δthen
+Z:=ZAfterδ/prime
+ifo/∈ImpOutput (Z)then return fail
+elseZ:=ZAftero
+else // no output within δdelay
+Z:=ZAfterδ
+restart : //reset and restart
+Z:={(s0,e0)}
+reset IUT
+ifZ=∅then return fail
+else return pass
+4. Implementation
+UPPAALis a mature (10 years;version 3.4.5), widely used,
+efﬁcient model-checking tool for densely timed automata net-
+works using symbolic reachability analysis. U PPAALincludes
+a graphical timed automata editor, a simulator, MSC visual-
+ization, and a veriﬁcation engine. We have implemented T-
+UPPAALby (non-trivially) extending the U PPAALengine. T-
+UPPAALcurrently runs on Solaris and Linux, with a Win-
+dows port being developed. Unlike U PPAAL, our implementa-
+tion does not store the reached state space, but only the current
+symbolic state set. U PPAALis available in various binary forms
+at [5], and a ﬁrst ofﬁcial release T-U PPAALat [4]. Both tools
+are free for non-commercial use.
+References
+[1] A. Belinfante, J. Feenstra, R. d. Vries, J. Tretmans, N. Goga,
+L. Feijs, S. Mauw, and L. Heerink. Formal test automation: A sim-
+ple experiment. In 12thInt. Workshop on Testing of Communicat-
+ing Systems , pages 179–196, 1999.
+[2] M. Krichen and S. Tripakis. Black-box Conformance Testing for
+Real-Time Systems. In Model Checking Software: 11th Interna-
+tional SPIN Workshop , volume LNCS 2989. Springer, april 2004.
+[3] M. Mikucionis, K. Larsen, and B. Nielsen. Online on-the-ﬂy test-
+ing of real-time systems. Technical Report RS-03-49, Basic Re-search In Computer Science (BRICS), Dec. 2003.
+[4] T-U
+PPAAL. W. S. www.cs.auc.dk/ ∼marius/tuppaal.
+[5] U PPAAL . W. S. www.uppaal.com.

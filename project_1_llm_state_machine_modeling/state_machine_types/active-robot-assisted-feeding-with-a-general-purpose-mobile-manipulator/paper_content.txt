@@ -1,0 +1,1576 @@
+--- Page 1 ---
+RoboticsandAutonomousSystems124(2020)103344
+Contents lists available at ScienceDirect
+RoboticsandAutonomousSystems
+journal homepage: www.elsevier.com/locate/robot
+Activerobot-assistedfeedingwithageneral-purposemobile
+manipulator:Design,evaluation,andlessonslearned
+DaehyungParka,∗,YuunaHoshia,HarshalP.Mahajanb,HoKeunKima,
+ZackoryEricksona,WendyA.Rogersc,CharlesC.Kempa
+aHealthcare Robotics Lab, Georgia Institute of Technology, Atlanta, GA, USA
+bGeorgia Institute of Technology, Atlanta, GA, USA
+cUniversity of Illinois Urbana-Champaign, Champaign, IL, USA
+a r t i c l e i n f o
+Article history:
+Received2September2018
+Receivedinrevisedform7September2019
+Accepted25October2019
+Availableonline30October2019
+Keywords:
+Assistiverobots
+Manipulation
+Assistivefeeding
+Mealassistancea b s t r a c t
+Eatingisanessentialactivityofdailyliving(ADL)forstayinghealthyandlivingathomeindependently.
+Althoughnumerousassistivedeviceshavebeenintroduced,manypeoplewithdisabilitiesarestill
+restrictedfromindependenteatingduetothedevices’physicalorperceptuallimitations.Inthiswork,
+wepresentanewmeal-assistancesystemandevaluationsofthissystemwithpeoplewithmotor
+impairments.Wealsodiscusslearnedlessonsanddesigninsightsbasedontheevaluations.Themeal-
+assistancesystemusesageneral-purposemobilemanipulator,aWillowGaragePR2,whichhasthe
+potentialtoserveasaversatileformofassistivetechnology.Our active feedingframeworkenablesthe
+robottoautonomouslydeliverfoodtotheuser’smouth,reducingtheneedforheadmovementbythe
+user.Theuserinterface,visually-guidedbehaviors,andsafetytoolsallowpeoplewithseveremotor
+impairmentstosuccessfullyusethesystem.Weevaluatedoursystemwithatotalof10able-bodied
+participantsand9participantswithmotorimpairments.Bothgroupsofparticipantssuccessfullyate
+various foods using the system and reported high rates of success for the system’s autonomous
+behaviors.Ingeneral,participantswhooperatedthesystemreportedthatitwascomfortable,safe,
+andeasy-to-use.
+©2019TheAuthors.PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBY-NC-ND
+license(http://creativecommons.org/licenses/by-nc-nd/4.0/).
+1. Introduction
+Activitiesofdailyliving(ADLs),suchaseating,toileting,and
+dressing,areimportantforqualityoflife[1].Yetformanypeople
+withdisabilities,includingpeoplewithupperlimbimpairments,
+suchtasksprovechallengingwithoutassistancefromahuman
+caregiver.However,shortagesofhealthcareworkersandrising
+healthcarecostscreateapressingneedforinnovationsthatmake
+assistancemoreaffordableandeffective.
+Technologyinterventionscanbeasolutionbybridgingthegap
+betweenphysicalcapabilityandnecessaryfunctionalability[2].
+Numerous specialized assistive devices, including robots, have
+beendevelopedtohelppeoplewithdisabilitiesperformADLs
+ontheirown[3].Eachdevicetypicallyprovidesanarrowform
+of assistance suitable for people with particular impairments.
+Alternatively,researchershaveappliedgeneral-purposemobile
+manipulators to a variety of applications, such as rescue, as-
+sistance,andresidentialservice[4,5].Therobotsoftenhavea
+mobilebaseandhuman-likearms(e.g.,PR2robotfromWillow
+∗Correspondingauthor.
+E-mail address: daehyung@csail.mit.edu(D.Park).Garage[6]andJacoarmwithamobilebasefromFattaletal.[7]),
+andhelppeopletoovercometheirphysicalorperceptuallimi-
+tationsviateleoperation[8].Althoughmobilemanipulatorshave
+thepotentialtoprovideawidevarietyofassistiveservices[9],
+their complexity creates challenges, including the risk of low
+usability.
+A representative assistive task is meal assistance, which is
+an essential ADL for staying healthy. People with upper-body
+andlimbimpairmentsoftenhavedifficultyfeedingthemselves.
+Although a number of specialized meal-assistance robots are
+commercially available (e.g., My Spoon [10], Bestic arm [11],
+andMealtimepartner[12]),theserobotsprovidelimitedmeal
+assistance.Notably,werefertothetypeofassistancetheserobots
+provideas passive feedingassistance,wheretherobotdelivers
+foodtoapredefinedlocationoutsidetheusers’mouthandusers
+takethefoodbyusingtheirupperbodyandlimbmovement.This
+isdueinparttotherobots’(desk-mountable)fixedbases,low
+degree-of-freedom(DoF)arms,andlimitedsensingcapabilities.
+Instead,weuseageneral-purposemobilemanipulatortoprovide
+active feedingassistancethatautonomouslydeliversfoodinside
+auser’smouth,takingadvantageoftherobot’sgreaterphysical
+andsensingcapabilities.
+https://doi.org/10.1016/j.robot.2019.103344
+0921-8890/ ©2019TheAuthors. PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBY-NC-NDlicense(http://creativecommons.org/licenses/by-
+nc-nd/4.0/).
+
+--- Page 2 ---
+2 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Fig. 1.Peoplewithmotorimpairmentseatfoodusingtherobot-assistedfeeding
+systemattheHealthcareRoboticsLabatGeorgiaTech.
+In this paper, we introduce a meal-assistance system that
+enablesageneral-purposemobilemanipulator,aPR2robot,to
+providesafe,easy-to-useassistancewithfeeding(seeFig.1).The
+systemprovides active feedingassistanceinwhichthePR2uses
+visually-guidedmovementstoautonomouslyscoop/stabfoodand
+deliverthefoodinsideauser’smouth.Thesystemalsoprovidesa
+graphicaluserinterface(GUI)forpeoplewithvariousmotorim-
+pairmentstoeasilycommandthreeindependentsubtasks:scoop-
+ing/stabbing(foodacquisition),spoon-wiping(removingexcess
+food), and delivery (feeding). Note that we group the scoop-
+ingandstabbingsubtasksintermsoftheirsimilarfunctionality
+(i.e.,foodacquisition),butthesubtasksusedifferenttools,mo-
+tions, and foods. Further, our system provides state-of-the-art
+safetyfunctionsthatproactivelymonitorandpreventpotential
+anomalousexecutions.
+Ourprimarycontributionisthatinsteadofaspecializedmeal-
+assistancedevice,oursystemusesageneral-purposemobilema-
+nipulatortoprovide active feedingassistancethataddressescon-
+siderationsfoundintheliterature:convenience,comfort,speed,
+andsafetyaswellasfoodacquisitionanddeliveryfunctions[13,
+14].Forconvenience,oursystemallows5utensilsand2types
+ofbowlstoadaptthefunctionstotheuser-selectedfood.The
+systemhassoftwareandhardwareinterfacestoallowcaregivers
+toreplacetheutensilandbowldependingonthetypeoffood.
+Thesystemalsoallowsuserstoaccessitsinterfacefromaweb
+browser,enablingtheuseofavarietyofdevicesandincreasing
+accessibility[8].Toimprovesafety,wedesignedthesystemto
+usecompliantarmmotionswithalow-gaincontrolleraswellas
+amultimodalexecutionmonitortodetectandreacttoanomalous
+eventsduringassistance[15,16].
+Another contribution is the evaluation of the system with
+twogroups,able-bodiedparticipantsandparticipantswithmotor
+impairments,forcomparingthedesignfactors.Asasteptowards
+usebypeoplewithmotorimpairments,wefirstevaluatedour
+systemwith9able-bodiedparticipants.Wethenevaluatedthe
+system with 8 people for whom unassisted feeding was diffi-
+cultduetophysicaldisabilities.Wecomparethetwogroupsof
+evaluationresultsandshowthesystemissafe,convenient,and
+easy-to-use.Inadditiontothesetwolaboratorystudies,thefirst
+authorperformedalong-termselfevaluationwhiledeveloping
+thesystem, and weevaluated thesystem withHenry Evans,1
+a person with quadriplegia, who operated the system to feed
+1HenryEvansbecamequadriplegicandmuteafterastrokein2003.Asour
+maincollaborator,hehasparticipatedinseveralofourassistiveroboticsstudies
+since2010.himselfathishome.Wealsodiscusslearnedlessonsandde-
+signinsightstowardpotentialmeal-assistancesystemsforpeople
+withmotorimpairments.
+Thenewandpreviouslyunpublishedcontentinthecurrent
+paperincludesthefollowing:
+•We present a detailed description of an improved meal-
+assistance system with visually-guided behaviors for au-
+tonomous food acquisition and delivery, and an updated
+graphicaluserinterface(GUI).
+•Wepresentawhollynewevaluationofthemeal-assistance
+systemwith8peoplewithdisabilitieswhohavedifficulty
+feedingthemselves.
+•We present new results and analyses based on the new
+studywith8peoplewithdisabilities,anewlong-termself
+evaluation,andapreviousstudywith9able-bodiedpartic-
+ipants[15].
+•Wesharelearnedlessonsanddesigninsightsforassistive
+robots.
+Therestofthispaperisorganizedasfollows:Section2shows
+relatedworkincludingtheexamplesofassistiverobots,particu-
+larlyassistivefeedingdevices.Section3presentstheoutlineof
+ourmeal-assistancesystem.Section4describestheindividual
+components of the system. Then, Sections 5 and 6 show our
+experimentalsetupandresults,respectively.Finally,wepresent
+designinsightsandconclusionsinSections7and8,respectively.
+2. Related work
+Assistiverobotsareatypeofdevicesthatcanprovidephys-
+ical, mental, or social assistance to people with disabilities or
+seniors[17,18].Inthissection,wereviewassistiverobots,partic-
+ularlymanipulators,forADLs.Wethengoovermeal-assistance
+devicesincludingfeedingrobots.
+2.1. Our prior work on robot-assisted feeding
+Thispaperrepresentstheculminationofworkthatwebegan
+in2014todevelopanintelligentmeal-assistancesystem.Awork-
+shoppublicationdescribedanearly,less-capableversionofthe
+meal-assistancesystemthatrequiredfiducialmarkersplacedon
+theperson’sheadandthebowl[28].Otherwise,ourpublications
+involving meal-assistance have focused on execution monitor-
+ing [15,16,29,30]. The newer meal-assistance system that we
+presentnowwasusedinaconferencepaper[15]toevaluatean
+executionmonitoringsystem,butthepaperprovidednodetails
+aboutthemeal-assistancesystem.Priortoournewstudywith8
+peoplewithdisabilitiesthatwepresenthereforthefirsttime,
+we had only evaluated the system with a single person with
+disabilities(i.e.,HenryEvans)whowasinvolvedinthesystem’s
+development.The8participantsinournewstudyhadnoprior
+involvementwiththesystem.
+2.2. Assistive manipulators
+Researchers have introduced a wide variety of assistive
+manipulators–suchas7-DoFarmsmountedonawheelchairor
+desk–toprovidegeneralassistancenearthehuman[31–35].We
+categorizethetypesofmanipulatorsintermsofmobility:fixed-
+andmobile-basemanipulators.
+
+--- Page 3 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 3
+Table 1
+Asurveyofrecentrobot-assistedfeedingsystems.
+Platform InterfaceaToolbTeaching/Movementtype Base Safetytool
+Scooping DeliveryCommercialMyspoon[10] Joystick sf Predefined – Fixed –
+Besticarm[11] Button s Predefined – Fixed –
+Mealbuddy[19] Joystick s Predefined – Fixed –
+Mealtime[12] Button s Predefined – Fixed Ashatterproofspoon
+Obi[20] Button s Predefined Kinesthetic Fixed CollisiondetectionAcademicYamazakiandMasuda[21] GUI(H) sfc User-selectedcPredefined Fixed Forcedetection
+SongandKim[14] Joystick&Button sg Predefined Predefined Fixed –
+Schroeretal.[22]dBCIeN/A N/A Vision Movable –
+Kobayashietal.[23] Touchsensor sc Vision Predefined Fixed Springjoint
+Pereraetal.[24,25] BCI s Predefined Predefined Fixed –
+AdmoniandSrinivasa[26] Joystick&Gaze f User-selected Predefined Fixed –
+Candeiasetal.[27] N/A s Predefined Vision Fixed –
+Ourwork GUI(H) sf Vision Vision Movable Executionmonitor
+aH:Aheadtrackerisusedasapointingdevice,E:Aneyetrackerisusedaspointingdevice.
+bs:spoon,f:fork,c:chopstick,g:gripper.
+cAusermanuallyselectsatargetlocationonascreen.
+dDrinkingtaskonly.
+eBrain-computerinterface(BCI).
+Fixed-base robots .Fixed-baseassistiverobotsareoftenplaced
+nearauseroratargetedworkspace.Researchersmountedearly
+assistive robots to desktops for assistance with feeding, cos-
+metics,andhygiene.Theprofessionalvocationalassistiverobot
+(ProVAR)isarepresentativedesktopmanipulatorplacedinanof-
+ficeworkspace[32].Handy-1isanotheradjustabletable-mounted
+manipulator for ADLs such as eating, drinking, and washing
+applications[36].Themountedrobotsweredesignedtoperform
+variousADLsusingageneral-purposemanipulator.However,the
+limited workspaces of the robots restricts the range of avail-
+ableactivities.Alternatively,researchershaveintroducedvarious
+wheelchair-mountedroboticarms(WMRAs).Formealassistance,
+Maheuetal.showedthatpeoplewithdisabilitiescanfeedthem-
+selves using a manually controlled JACO arm mounted on a
+wheelchair[37].Schroeretal.showeddrinkingassistanceusing
+a7-DoFKUKAarm[22].Forobjectfetching,Kimetal.introduced
+theUCF-MANUSrobot,consistingofawheelchair-mountedma-
+nipulatorandinterface[38].
+Mobile-base robots .Amobilebasecanincreasetheworkspace
+ofarobotandthenumberoftasksitcanperform.Hawkinsetal.
+foundthatmovementofamobilemanipulator’sbasewasneeded
+toprovideassistancewithashavingtask,sincethePR2thatthey
+usedcouldnototherwisereachtherelevantlocations[39].In
+feeding,thefixed-baserobotoftenrequirestherelocationofthe
+robotoruserbycaregiversinthebeginningorduringthetask.
+Afixedbaserestrictsthescopeofassistivetasks[40].Without
+mobility,robotsarerestrictedtoanarrowsetoftasksandare
+unabletoleavetheimmediatevicinityofthehumantoprovide
+assistance elsewhere. Recent studies have introduced general-
+purposemobilemanipulatorsforvariousassistiverobotictasks,
+includingshaving[9,39],dressing[41–43],fetch-and-carry[44–
+47],andguidingtasks[48].Ourmeal-assistancesystemhasa
+mobile base that has the potential to enhance the quality of
+feedingassistance.
+2.3. Meal-assistance devices
+Researchersandcompanieshaveintroducedvariousassistive
+devicesforfeeding.Wefocusonstabilizing/levelinghandles,arm
+supports,androbots.
+Stabilizing & Leveling handle .Tremoroftencausesspillingfood
+ordrink.Stabilizinghandlescanbeusedfordampingtremorand
+smoothlytransferringfoodonanattachedspoon(e.g.,Liftware
+Steady[49]).Pathaketal.reportedanelectronicallycontrolledhandlecouldimproveholding,transferring,andeatingqualities
+duringtremor-inducedmovements[50].Theself-stabilizingde-
+viceisbeneficialtopeoplewithParkinson’sdisease.However,
+thistypeofdevicemaynotbesuitableforpeoplewithsevere
+tremororothermotorimpairments.
+Thereducedhandandarmmobilityduetoweakmusclesalso
+causedifficultylevelingfoodonautensil.Levelinghandlessuch
+asLiftwareLevel[49]canbeusedforaligninganattachedutensil
+withgravity.However,thisisforacertainrangeofpeoplewho
+canstilllifttheirarm.
+Arm support .Alternatively,armsupportdevicesenableusersto
+usetheirupperlimbbysupportingtheirweakarm,suppress-
+ingtremor,orexpandingtheirlimitedarmmovement.Several
+makershavedevelopedwheelchair-ortable-mountedarmsup-
+ports:Neater[51]andNelson[52].Bymovingaspoonattached
+onthedevice,userscanscoopfoodandfeedthemselveswhile
+suppressingtremororuncontrolledmovements.Thedevicescan
+bepoweredorunpowered,butrequireusers’manualmovements
+usingtheirupperlimb.Thus,thecomfortandefficiencyoffeeding
+dependsonanindividual’smovementandwouldnotbesuitable
+forsomeusers.
+Robot .Theuseofmeal-assistancerobotsisanalternativeso-
+lutionforpeoplewithvariouslevelsofmotorimpairments.Ta-
+ble1showsacomparisonresultoffeaturesincurrentlyavail-
+ablemealassistancerobotsthatprovidebothfoodgraspingand
+feedingfunctions.Anumberofcommerciallyavailablesolutions
+exist:Handy-1[36],Winsfordfeeder[53],MySpoon[10],Bestic
+arm [11], Mealtime partner [12], and Meal buddy [19]. These
+robotsaredesignedforaparticularpurpose(i.e.,mealassistance),
+oftenhavingadesk-mountablefixedbaseandalowDoFarm.
+A user can command a sequence of scooping-delivery mo-
+tions via a joystick or a button. The robots follow predefined
+trajectories where food and mouth locations are hard coded.
+A recently released robot, Obi [20], uses kinesthetic teaching
+fromcaregivers,butitstillprovidespassiveassistanceinthatit
+onlymovestothespecifiedlocationratherthanadaptingtothe
+locationoftheuser’smouth.Tothebestofourknowledge,there
+arenocommercialfeedingrobotswithadaptivemovements,a
+poweredmobilebase,orhumanmouthtracking.
+Researchers have introduced advanced meal-assistance sys-
+temswithvariousfunctionalities[54].SongandKimdesigneda
+feedingrobotwithaspecializedgripperforculturalfood[14].
+Yamazaki and Masuda introduced a 5-DoF chopstick-equipped
+robot that provides various motions to pick foods of various
+
+--- Page 4 ---
+4 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Fig. 2.The outline of our meal-assistance system using a general-purpose mobile manipulator. The system provides active feedingassistance by delivering food
+fromabowltoauser’smouth.Ausercanselectapreferredsubtaskviathegraphicaluserinterface.Therobotthenautomaticallyestimatesthelocationoffood,
+scoops/stabsitdependingonthecurrentfeedingtool,andplacesitinsideauser’smouth.Theimagesshowable-bodiedusers.
+characteristics[21,55].Therobotalsoallowseachusertoselecta
+desiredfood-takinglocationviaagraphicaluserinterface(GUI).
+Recently,AdmoniandSrinivasaintroducedagaze-basedshared
+autonomy framework to predict a user’s target piece of food
+and retrieve it [26]. Javdani et al. presented a shared-control
+teleoperationapproachtoorienttheutensil[56].Unlikethese
+manualorsemiautonomoussystems,Kobayashietal.introduced
+anautomaticremnantfoodscoopingmethodusingalaserrange
+finder[23].Similarly,oursystemselectsascoopinglocationusing
+anRGB-Dcameraandautonomouslyretrievesit.
+Intermsofdeliveringfood,mostroboticsystemsuse passive
+feedingexecutionsinwhicharobotconveysfoodtoapredefined
+location,typicallyinfrontoftheuser’smouth.Thesesystems
+dependontheusers’upperbodymovementtoreachthefood.
+TakahashiandSuzukawa,ontheotherhand,introducedaninter-
+faceenablingauserwithquadriplegiatomanuallyadjustdelivery
+locations[57].Similartoourwork,Schroeretal.proposedan
+adaptivedrinkingassistancerobotthatfindstheuser’smouth
+locationwithanexternalvisionsystem[22].Recently,Candeias
+etal.introducedavisually-guidedfeedingsystemthatalsofinds
+theuser’smouthaswellaschecksfoodacquisitionsuccessusing
+cameras[27].Weleveragesuchvisualinputtodetectanomalies
+aswellastheuser’smouth.Inaddition,researchershaveadapted
+feedingtaskmovementstousers’preferencesbyincrementally
+updatingmovementprimitives[58,59].
+3. Outline of system
+Webrieflyintroduceourrobot-assistedfeedingsystemwith
+high-leveloperatingproceduresanditscomponents.
+3.1. System configuration
+Our robot-assisted feeding system hardware consists of a
+PR2robot,toolholders,andadditionalsensors.Fig.2showsan
+overviewofthesystem.Whileprovidingvisually-guidedfeeding
+assistance, the PR2 holds a bowl with its right end effector
+and a utensil in its left end effector. A user can command apreferredsubtaskviaagraphicaluserinterface(GUI)(seeFig.3).
+The PR2 is a 32-DoF mobile manipulator that consists of an
+omni-directionalmobilebase,a1-DoFtelescopingspine,andtwo
+7-DOFback-drivablearmsthatarecontrolledby1kHzlow-gain
+PIDcontrollers.Itsmaximumpayloadandgripforcearelistedas
+1.8kgand80N,respectively.Theseareenoughtofirmlyholda
+bowlorautensilduringassistance.
+Thesystemcanperformthreeindependentsubtasks:scoop-
+ing/stabbing,spoonwiping,anddelivery.Forscooping,thesys-
+tem finds the highest food location in a bowl using a head-
+mountedRGB-Dcamera,MicrosoftKinectV2,andthenscoops
+aspoonfuloffoodfromthebowl.For active feeding,thesystem
+estimatestheuser’sfaceandmouthposeusinganIntelSR300
+RGB-Dcameramountedontopoftherightwrist.Whilerunning
+thesubtasks,thesystemrunsamultimodalexecutionmonitor
+todetectanomalousbehaviorsusing6differentsensors.Wewill
+discusshowtousethesemultimodalsensorysignalstodetect
+anomalousbehaviorsinSection4.5.Werunallsoftwarecompo-
+nentsontopoftheRobotOperatingSystem(ROS)[60](seeFig.4).
+Alloursourcecodeisavailableonline.2
+3.2. Operating procedure
+Inthissection,wediscussthehigh-leveloperatingprocedure
+takenbytherobotwhenapersonwithmotorimpairmentswants
+toeatfood,suchaseatingyogurtwithaspoon.Weassumethe
+robotisplacedatalocationfromwhichitcanreachtheuser’s
+mouthwhileholdingautensilandabowl.Wealsoassumethe
+usercanmoveandclickamousepointerusingafingerorahead
+(oreye)tracker.Ausercanthencommandapreferredsubtask
+usingtheGUI.Table2showsthesummaryoftypicaloperations
+andalistofnecessarysensors.Duringtheoperations,theusercan
+stopandruntherobotagainwheneverheorshewantsusingthe
+interface.
+Ourmultimodalexecutionmonitorrunsinparallelwiththe
+scoopinganddeliverysubtasks.Whenitdetectsananomalous
+2Code:www.github.com/gt-ros-pkg/hrl-assistive.
+
+--- Page 5 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 5
+Table 2
+Thesummaryofhigh-leveloperatingprocedures.Ourmeal-assistancesystemcanperformthreeindependentsubtasks:scooping/stabbing,spoonwiping,anddelivery.
+Themultimodalinformationfromthelistedsensorsenablesthesystemtoprovide activeand safefeedingassistance.ThelocationofsensorsarevisualizedinFig.12.
+Subtasks Details Sensors
+Scooping/
+StabbingTheuserclickstheScoopingbuttonontheGUIdescribedinSection4.1.The
+robotthenautonomouslyscoopsaspoonfulofyogurtfromarandomor
+visuallyselectedlocationinthebowlusingourvisualfood-locationestimator
+describedinSections4.2and4.4.Ahead-mountedcamera
+andjointencoders
+Spoonwiping TheuserclickstheWipingbuttonifthescoopingtaskresultsinexcessfood
+onthetoporbottomofthespoon.Therobotwipesoffthesurfaceofthe
+spoonusingthewipingbaronthebowl(seedetailsinSection4.2).Jointencoders
+Delivery TheuserclickstheFeedingbuttonontheGUIwhenanadequateamountof
+yogurtispresentonthespoon.Theuserturnshisorherheadtowardthe
+cameraontherobot’srightwrist.Therobotthenestimatestheposeofthe
+user’smouthanddeliversyogurtinsidethemouth.Itthenpullsthespoon
+backfromthemouth.(seedetailsinSection4.2)Topreventpotentialinjuries
+duetotherobot’sanomalousexecution,therobotmonitorsthepatternof
+multi-modalsensorysignals(seedetailsinSection4.5).Wealsorunan
+optimization-basedlow-gainimpedancecontroller(seedetailsinSection4.3).Awrist-mountedcamera,
+jointencoders,a
+microphonearray,tactile
+skinsensors,aforce–torque
+sensor,andcurrentsensors
+Fig. 3.Screencapturesofourweb-basedgraphicaluserinterface(GUI). TopA
+mainpagewhenthesystementersanidlestate.Ausercantriggeradesired
+subtaskbyclickingoneofthreeoperationbuttonsontherightside.TheGUI
+displays the visual outputs from a selected camera with the direction of the
+user’s face and whether the mouth is open or closed. Our system uses this
+information to monitor anomalous task executions. MiddleA full-screen stop
+buttonforquicklyandeasilystoppingarunningoperation.Wealsoprovidetask-
+statetransitioninformationonthebottomforusers. BottomAdelivery-position
+calibration tab where users can add an offset to their preferred direction.
+Thispagealsoallowstoexecuteadryrunwithoutfood.Theseimagesshow
+able-bodiedusersonly.
+executionthatlargelydiffersfromtypicalnon-anomalousexe-
+cutions,thesystempausesthecurrenttaskexecutionandthen
+movesthearmbacktothestartinginitialposeofthecurrent
+subtask.Notethattherobotkeepsthespoonlevel(paralleltothe
+ground)toavoidfoodspillsduringthereturningmotions.
+Fig. 4.The software architecture of our meal-assistance system. Users can
+commandeachsubtaskviatheGUI.Throughtherobotoperatingsystem(ROS),
+oursystemexecutesandmonitorstheselectedsubtask.
+4. System components
+In this section, we introduce individual components of the
+feedingassistancesystemforpeoplewithdisabilities.
+4.1. User Interface
+Weintroduceanimprovedversionofaweb-basedGUI.Our
+previouswork[15,28]introducedanearlierGUI.ThisGUIwas
+basedonaweb-basedGUIthattransmitstaskcommandsand
+displaysvideofromthecameraforself-caretasksaroundauser’s
+
+--- Page 6 ---
+6 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Fig. 5.Estimated mouth poses from our vision-based mouth-pose estimator.
+(Forinterpretationofthereferencestocolorinthisfigurelegend,thereaderis
+referredtothewebversionofthisarticle.)
+head[39].Forthemostrecentversionofthesystem,weim-
+proved the GUI to transmit calibration options, display task-
+relevantinformation,andcollectfeedbackfromusers(seeFig.3).
+Toprovidethesefunctions,wecreatedwebpagesusingstan-
+dardwebtechnologiessuchasHTML5,CSS3,andJavaScript.We
+thenenabledthepagestointeractwithROSusinga rosbridgeROS
+Javascriptlibrary[61],which,usinga Node.jsclient,providesa
+JSON-basedbidirectionalcommunicationinterfacebetweenthe
+webpages(i.e.,client)andserversoverWeb-sockets.OurGUI
+alsousesanHTTP-basedMotionJPEG(MJPEG)serverthattrans-
+ferslivevideostreamfromtherobot’scameras.Weoverlaythe
+taskstateanditstransitionontopofthevideostream.Theoverall
+dataflowisvisualizedintheuserandtasklayersshowninFig.4.
+TheGUIisadevice-agnosticinterfacethatisusedviaaweb
+browser.Inourstudies,peoplewithdisabilitieshaveusedthe
+sameinterfaceviaatabletandalaptop.Theinterfaceconsistsof
+alivevideoscreenthatdisplaysthevideooutputfromthehead-
+orwrist-mountedcamerasandatasktabthatprovidesbuttons
+orbarstocommandasubtaskoradjustinternalparametersof
+thesystem.
+Inthefeedingtasktab,theusercanselectoneofthreesubtask
+buttons:Scooping/Stabbing,Cleanspoon,andFeeding(Delivery).
+Thesystemthenexecutestheselectedsubtaskuntilfinishingthe
+subtaskorreceivingastopcommand.Theusercanforcetherobot
+tostopatanymomentbyclickingafull-screenstopbutton(see
+Fig.3 Middle)thatappearsduringtaskexecutions.Thestopcom-
+mandistreatedasananomalouseventwhichtriggersacorrective
+actionfollowingtransition TAinthefinite-statemachine(FSM)
+describedinSection4.2.Aftertaskcompletion,theusersmay
+thenenterfeedback(i.e., successorfailure).Weusedthisuser
+feedbacktolabeltheexecutiondatafortrainingandtestingthe
+executionmonitorandtuningtheperformanceofthesystem.
+Inaddition,userscanadjustthedeliverylocationwherethe
+robotplacestheutensilwithfoodinsidetheuser’smouth.By
+default,therobotplacesthetipofautensil4cminsidefrom
+the center of the estimated mouth plane (red–green plane in
+Fig.5).Fig.3 Rightshowsthedeliverycalibrationtabwherea
+usercanadjusttheirpreferreddeliverylocationwithrespectto
+theestimatedposeoftheirmouthusing6arrowbuttonstoadd
+±1cmoffsets.
+4.2. Task manager
+The Task Manager, shown in the task layer of Fig. 4, se-
+quencesaction/observationstatesinthreesubtasks(i.e.,scoop-
+ing/stabbing,wiping,anddelivery)usingafinite-statemachine
+(FSM).
+Finite-state machine .An FSM is a deterministic finite graph,
+whichconsistsofstates,transitions,andevents.FSMshavefre-
+quently been used in robotic manipulation tasks due to their
+clearandeasilyimplementablestructure[62–64].Fig.6shows
+thesystem’sFSM.
+Fig. 6.Finite-state machine for meal assistance. Each box represents a state,
+whereasarrowsindicatestatetransitions.
+Weincorporatedtwotransitiontriggerstoswitchbetween
+states. The GUI enables the user to trigger the transitions TN
+and TA, which are for non-anomalous and anomalous events,
+respectively. For example, the subtask buttons trigger TNand
+thefull-screenstopbuttontriggers TA.Themultimodalexecution
+monitorin canalsotriggerthetransitionforan anomaly,TA,
+whenananomalyisdetected.Otherwise,ausercanmanually
+triggeritbyclickingthefull-screenstopbutton.Thesystemthen
+transitions to a state in which the robot halts or performs a
+correctiveaction.Forinstance,ifaloudandunexpectedsoundis
+detectedwhilefeeding, TAistriggeredandtherobotwillretract
+itsarmtoavoidharmingtheuser.
+Intheidlestate,therobotwaitsforauser’scommandviathe
+interface.Giveneachsubtaskcommand,therobotfirstinitializes
+itsconfigurationtoapre-definedconfigurationandthenbegins
+to execute the commanded subtask. For example, to perform
+thescoopingsubtask,therobotfirstinitializesitsconfiguration
+to a scooping pose and estimates the location of food in the
+bowlusingafoodlocationdetectordescribedinSection4.After
+selecting a scooping location within the bowl, the robot then
+approachesthelocationtoscoopaspoonfulofsoftfoodorstab
+achunkofsolidfood.Theusercanthenselecttoproceedto
+thedeliverysubtaskifanadequateamountoffoodispresent
+onthespoon.Otherwise,theusercancommandtherobotto
+re-scoop/re-stabfoodorwipeoffthespoontoremoveexcessive
+food.
+Scooping/stabbing subtask .Thescoopingandstabbingsubtasks
+aim to pick up and hold food. The system produces visually
+adaptedscooping/stabbingmotionsusingasequenceofmotion
+primitivesinwhicheachprimitivehasasetofmotionparam-
+eters, {xg,TDuration , κ}.xgisagoalpose( ∈R6),whichconsists
+ofpositionandorientation,( pg∈R3,qg∈R3).TDurationisthe
+durationofthemotionfromitsstartposeto xg(e.g.,3sec). κ
+isoneofthreetypicalmotions:‘‘pointtopoint’’motioninjoint
+space,‘‘pointtopoint’’motioninCartesianspace,and‘‘linear’’
+end-effectormotioninCartesianspace.Ourcontrolsysteminthe
+functionallayergeneratesajointspace/Cartesianspacetrajectory
+thatsatisfiestheparameters.
+Therobotcanalsotranslatethegoalposewithrespecttothe
+estimatedfoodlocation.Inthiswork,therobotcanvarythetar-
+getscoopinglocationbyvisuallyestimatingfoodlocationswithin
+thebowl.Forvisualselection,weuseafood-locationestimator
+describedinSection4.4.Notethatwepreregisteredthesizeof
+
+--- Page 7 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 7
+Fig. 7. Left:A bowl with an attached handle and guard/wiping bar to avoid
+spillingfood. Right:Fiveutensils:aflexiblesiliconespoon,small/largeplastic
+spoons,aplasticfork,andametalforkattachedtoaforce–torquesensor.
+thebowlsothesystemisabletoestimatethescooping/stabbing
+areaandrestrictitsmotionstothisregion.
+To account for various types of foods, a person, such as a
+caregiver,canmountavarietyofutensilsandbowlstotherobot.
+Fig. 7 Rightshows 5 representative utensils we used in our
+evaluation:asiliconespoon,small/largeplasticspoons,aplastic
+fork,andametalfork.Apersoncanmountapreferredutensil
+intothe3D-printedtool-changerheldbytherobotandregister
+transformation information from the tool to the utensil tip. 5
+utensilsarealreadypreregisteredinthesystem.Fig.7 Leftshows
+abowlourrobottypicallyheldduringourevaluation.Wealso
+attachedahandletothebowltoenableaPR2toeasilygraspand
+holdit.
+Foodspillingcanoccurduringscoopingorstabbingduetoex-
+cessiveamountsoffoodandimperfectmanipulation.Toprevent
+spillingfromthebowl,wemounteda3D-printedbowlguard(see
+Fig.7 Left).Wealsoprovidedacylindricalbartowipeoffexcess
+foodfromthebottomofthespoon.
+Wiping subtask .Thescoopingsubtaskoftenscoopsexcessfood
+onthetopofthespoonorsomefoodatthebottomofthespoon.
+Bothscenariosmayresultinfoodspillsduringfeeding.Anumber
+ofcommercialrobotsusetheedgeofabowltocleanexcessfood.
+MealBuddyusesawipingbartowipeoffexcessfoodfromthe
+spoonandwipedripsfromthebottom[19].Oursystemaddresses
+theseissuesbyattaching3D-printedfoodguardandwipingbar
+onthebowl(seeFig.7 Left).Thespillguardsurroundingthe
+bowlis3cmhighanditisusedtoblockfoodspillingfromthe
+bowlwhileperformingthescoopingmotions.Thewipingbaris
+13.5cmlongandisusedtoremoveexcessfoodatthebottomof
+thespoon.Theusercanactivatethewipingsubtaskbyclicking
+theCleanSpoonbuttononthesystem’sGUI.Therobotdragsthe
+bottomsurfaceofthespoononthebarfollowingapredefined
+lineartrajectory.Notethattherelativedisplacementbetweenthe
+rightendeffectorandthebarisfixedduetotherobotrigidly
+graspingthebowl.
+Feeding subtask .The feeding subtask aims to provide easily
+accessible and safe meal-assistance to a wide range of users,
+such as people with quadriplegia. Unlike conventional passive
+feedingsystemsintheliterature,our active feedingsystemdoes
+notrequireausertohaveupperbody/limbmovementinorderto
+eatfoodofftheutensil.Incomparison,oursystemautomatically
+deliversfoodinsidetheuser’smouth.
+Toputfoodinsidethemouth,therobotusesa3Dmouth-
+poseestimatoralongwithawrist-mountedRGB-Dcamerathat
+allowstherobottoobservetheuser’sface,asdetailedin.After
+estimatingthemouthpose,thesystemselectsadeliveryposition
+insidethemouthwithapredefinedoruser-selectedoffset,as
+discussedinSection4.1.Afterthefirstsuccessfulfeedingattempt,
+therobotstoresandre-usestheestimatedmouthposetoshorten
+consecutive feeding times. Our system also provides a buttontore-estimatethemouthposewhentheuserwants(seeFig.3
+Right).
+Oursystemdoesnotrequireposeteachingbyusersorcare-
+givers.Thesysteminsteadusesasetofpredefinedend-effector
+trajectories,linearlyinterpolatingpredefinedend-effectorposes
+withrespecttoapredefinedmouthcoordinateframevisualized
+in Fig. 5. After estimating a person’s mouth pose, the system
+transformsthetrajectoriesfromthemouthcoordinatesystemto
+theworldcoordinatesystem.Forsomeutensils,suchasthelarge
+plasticspoon,weobservedthatduringourpilotstudiessome
+usersexperienceddifficultyeatingfoodoffthespoonduetoits
+deepconcaveshape.Asaresult,oursystemalsoperformsspoon
+tiltingmotionsoncethespoonhasenteredauser’smouthto
+makeeatingfromsuchutensilseasier.
+Forsafety,thesystemobservestheuser’sfaceandtheutensil
+duringfeeding.However,therobotmaynotfullyobservethe
+faceduetoocclusionbytheotherendeffectorandtheutensil
+itholds.Toreducesomeoftheseocclusions,oursystemliftsup
+thecamerawhilefeeding,whichenablesthelandmarkestimator,
+describedinSection4.4,tomoreaccuratelypredictfacialpoints
+(seeFig.8).
+4.3. Control
+Ourmanipulationmodule,showninthefunctionallayerof
+Fig.4,executesplannedmotionprimitivesbygeneratingjoint
+torquecommands τ∈Rn,where nisthenumberofjoints.To
+avoid having a stiff arm make contact with the human body,
+weusea50Hzmid-levelmodelpredictivecontroller(MPC)[65]
+followedbya1kHzlow-levelPIDcontrollerwithlowgains.The
+MPC outputs a desired change of joint angles ∆θ∗that mini-
+mizesaquadraticobjectivefunctionincludingcontactforceand
+positionerror.
+WeimprovedtheoriginalMPCbyaddingorientationcontrol
+intheobjectivefunction:
+∆θ∗=argmin
+∆θ(∆pd
+∆qd)
+−Jee(
+K+m∑
+i=1JT
+ciKciJci)−1
+K∆θ2
+(1)
+subjectto ∆θmin≤∆θ≤∆θmax
+θd=θ+∆θ,
+where ∆θ,∆pd,and ∆qdarethechangesofjointangles,end-
+effectorposition,andend-effectororientationchanges,respec-
+tively. We obtain the orientation changes via spherical linear
+interpolationplanningforanend-effectortrajectory. Jee∈R6×n,
+K∈Rn×n,Kci∈R3×3,and Jci∈R3×naretheJacobianmatrixat
+theendeffector,thejointstiffnessmatrix,thecontactstiffness
+matrices,andtheJacobianmatricesatthe ithcontactpointon
+therobot’sskinsensor,respectively.Furtherdetailsareavailable
+in[65].
+Inthiswork,weset Kcitozerotoachieveconsistentmotions.
+Thispreventedthepossibilityofthearm’smotionbeingchanged
+duetoafalsepositivedetectionofcontactbythetactilesensing
+sleeve.ThisresultsinthefollowingsimplifiedformofEq.(1).
+∆θ∗=argmin
+∆θ(∆pd
+∆qd)
+−Jee∆θ2
+(2)
+subjectto ∆θmin≤∆θ≤∆θmax
+θd=θ+∆θ.
+Thelow-levelPIDcontrollerenablestherobottotrackthe
+desiredjointangle θd∈Rn:
+τ=K(θd−θ)−D˙θ+ ˆτg, (3)
+where D,θ,˙θ,and τg∈Rnarethedampingmatrix,thecurrent
+joint angles, the current joint velocity, and a gravity-
+
+--- Page 8 ---
+8 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Fig. 8.Visualizationsoffaciallandmarksandocclusions.Oursystemestimatesthefaciallandmarksthatmaybeoccludedbytheutensilortherobot’sendeffector.
+Toreduceocclusions,thesystemliftsupthewrist-mountedcameraduringdelivery.
+Fig. 9.Thefood-locationestimatorfindsalocationwithrelativelymorefood
+usingthepointcloud.Bluepointsindicatethetopsurfaceoffoodinsidethe
+bowl.Yellowpointsrepresent5potentialscooping/stabbinglocationsandthe
+selectedlocationisshowninred.(Forinterpretationofthereferencestocolor
+inthisfigurelegend,thereaderisreferredtothewebversionofthisarticle.)
+compensation torque vector, respectively. For safety, we use
+empiricallydeterminedlowgainmatrices, Kand D.Thediagonal
+entriesof Kand Dlistedinorderfromthemostproximalto
+themostdistaljointofanarmwere [90,80,20,22,12,27.5,20]
+Nm/radand [10,10,2,1,1,2,2]Nmsec /rad,respectively.These
+valuesresultinlowstiffnessofthearms.
+4.4. Estimators
+Ourperceptioncomponent,showninthefunctionallayerof
+Fig.4,consistsoftwoindependentmodulesthatestimatethe
+foodandusermouthstates.
+A food-location estimator .Thefood-locationestimatorfindsa
+locationwheretherobotcanscooporstabfoodfromabowl.
+Thisestimatormitigatesthechanceoftherobotmakingseveral
+scooping attempts without getting any food. An example of a
+differentstrategyitprovidedbythecommercialfeedingrobot,
+iEAT [66], which rotates its food plate to adjust the scooping
+pointusingfixed,pre-definedmotions.Incontrast,weaddress
+thisissuewithavisually-guidedmotionbasedontheoutputofa
+vision-basedestimator.
+Thefood-locationestimatorattemptstofindthebestscooping
+orstabbinglocation s∗∈R3givenafoodpointcloud, Υ,from
+thehead-mountedRGB-Dcamera(seeFig.9)andthegeometry
+ofthebowl,suchasitscenteranddiameter,aspriorknowledge.
+We discretize the space of locations into five locations, S=
+{s1,s2,s3,s4,s5},displayedasyellowmarkersinFig.9.Toexclude
+anirrelevantpartofthepointcloudlikethecurvatureofthe
+bowl,wedefineabinarydecisionfunction, Ψ:x→ {0,1},that
+returns0ifapointlocation x∈R3isoutsideanellipsoidalarea
+inthebowl.
+Fig. 10.Estimationframeworkformouth-pose.WeuseRGB-Dinputtoestimate
+the6Dposeofauser’smouth.
+Wethencomputethescoreofthescoopingorstabbingloca-
+tionasaweightedsumoffoodpointcounts.Theweightisthe
+multivariateGaussianprobabilitydensityscorecenteredateach
+location siwithasampleco-variancematrixofthefoodpoint
+cloud ¯Σ(Υ).Wethenfindalocationwiththehighestscore:
+s∗=argmax
+si∈S∑
+xexp(
+−1
+2(x−si)T¯Σ(Υ)−1(x−si))
+√
+(2π)k|¯Σ(Υ)|Ψ(x).(4)
+A mouth-pose estimator .Next,wedescribeamouth-posees-
+timatorwithimplementationdetails.Theestimationofauser’s
+mouth pose plays an important role in enabling the robot to
+provide active feedingassistancetodiverseusers.Inourprevious
+work [28], the robot first estimated the location of an ARTag
+attachedtotheuser’sforeheadandthenestimatedthelocation
+oftheuser’smouthwithapredefinedrigidtransformfromthe
+ARTag’spose.Inthiswork,ourmouth-poseestimatordoesnotre-
+quireanARTagandrigidtransform.Instead,itdirectlyestimates
+thelocationoftheuser’smouthfromanRGB-Dimage.
+AsseeninFig.10,ourestimatorfirstusesinputfromthewrist-
+mountedcameratoextractfaciallandmarks[67],keypointsof
+interesttolocalizefacialregionssuchasthemouth,nose,left
+eye,righteye,andjaw(seeFig.8).Thisprocessusesthefrontal
+facedetectorintheopensource dliblibrary[68,69]inwhichthe
+methodlocalizesauser’sfacefromanRGBimageanddetects68
+landmarksfromafrontalfaceusingtheHistogramofOriented
+Gradients(HOG)featurecombinedwithalinearclassifierand
+sliding window detector. The process is made robust to light
+variationsbynormalizingeachwindowofthehistogram.
+Ouralgorithmconvertsthese2Dlocationsto3Dpointsby
+projectingthemontoadepthimage.Thisprocesscanproduce
+
+--- Page 9 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 9
+Fig. 11.Overview of the multimodal execution monitor, which estimates the
+task execution state, detect an anomaly [30], and classify the cause of the
+anomaly[15]forsafefeedingassistance.
+largeerrorsduetothenoiseinthedepthdataandpoortime-
+synchronizationbetweentheRGBanddepthimages.Thus,our
+algorithm rejects landmarks that (1) have large 3D distances
+fromfrontal-facereferencelandmarksdefinedwithrespecttothe
+currentmouthcoordinateframeand(2)havelargedisplacements
+(≤5cm)overtime( ≤10Hz).Toobtainthereferencelandmarks,
+thesystemregistersauser’sfaceduringthefirstfeedingexecu-
+tionbycollectingasetof20referencelandmarks.Then,following
+themodel-basedfacelocalizationmethodin[70],ouralgorithm
+alsorejectslandmarksthatdifferlargelyfrompre-modeledland-
+markslocatedneartheeyesasfalsepositives.Afterthisrejection
+process,ouralgorithmcomputesaDelaunaytriangulationofthe
+landmarkstoapproximatethesurfaceoftheface[71]andthen
+groupsthelandmarksinthemodelintothreegroups:cheek,eye,
+andmouth.Finally,theestimatordeterminesthepositionand
+orientationofthemouthatthecenterofthemouthgroupand
+perpendiculartotheplanedefinedbythecenterpointsofthe
+threegroups.
+4.5. Safety system
+Safety is an important consideration for feeding assistance.
+Ideally,robot-assistedfeedingwouldbesafeandeffectivewith-
+outclosesupervisionbyacaregiver.Thiscouldenablepeople
+withdisabilitiestohavegreaterindependenceandreducecare-
+giverburden.Whencomparedtoasimplespecializedassistive
+feedingdevice,thegreaterautonomyandcomplexityofour active
+feedingsystemincreasesthechanceofanerroroccurring.Inthis
+section,wedescribeaspectsofoursystemthatwehavedesigned
+toimprovesafety.
+Hardware .ThePR2armsarebackdrivableandcontrolledbya
+1kHzlow-gainPIDcontrollertoreducetheforcesappliedinthe
+eventofacollision.ThePR2alsoprovidesanrunstopbutton
+thatauseroracaregivercanpresstocutoffpowertothePR2’s
+motors. In the event that the system loses powers, the PR2’s
+passive spring counterbalance system helps to keep the arms
+fromdescendingrapidlyduetogravity[72].
+Interface .OurGUIprovidesafull-screenstopbutton(seeFig.3
+Middle)forpeoplewithmotorimpairmentstoconvenientlyand
+quicklycancelthecurrentsubtaskandstoptherobot’scurrent
+motion.Duringtaskexecutions,thebuttonexpandstotheentire
+webbrowserand,iftheuserclicksanywhereonthebrowser,
+the rosbridgeserverfortheGUIsendsastopcommandtothe
+system.Thecommandthentriggersthe TAtransitionontheFSM
+(Fig.6),whichinstructstherobottoreturntotheinitialposeof
+thecurrentsubtask.
+Fig. 12.Thevarioussensorsweusedtomonitortaskexecutionsandanoma-
+lies. This figure shows a meal-assistance demonstration for a person with a
+self-feedingdisabilityduetomotorimpairments.
+Multimodal execution monitor .Wehavepreviouslypresented
+our research on a multimodal execution monitor [15,30] that
+enablesarobottodetectandclassifyanomaliesduringrobot-
+assistedfeeding(seeFig.11).Bydetectingandclassifyinganoma-
+lies,arobothasthepotentialtooperatemoresafely,suchas
+bystoppingandalertingacaregiverifananomalyhasoccurred.
+Thesystemwedescribeinthispaperincludesaversionofour
+multimodalexecutionmonitorthatdetectsandclassifiesanoma-
+lies.However,weadjustedthedetectionthresholdtoreducethe
+sensitivityoftheanomalydetectorduringourstudywith8peo-
+plewithmotorimpairments.Wemadethisadjustmenttoavoid
+false detections of anomalies during the study, since anomaly
+detectionwasnotthefocusofthisstudyandanexperimenter
+wasalwayspresentandreadytopressabuttontostoptherobot.
+Afterdetectingananomaly,themonitoringsystemforcesthe
+systemtostopandmoveitsarmbacktotheinitialposeforsafety,
+asdefinedbytheFSM.Ananomalyclassifierthenfusesavailable
+featuresandestimatesthemostprobabletypeandcauseof12
+commonanomalies.Thefeaturescomefromthemultiplesensors
+mountedonthePR2:SR300RGB-Dcamerawithatwo-channel
+microphone,jointencoders&currentsensors,fabric-basedtactile
+skinsensors,andanATIforce/torquesensor(seeFig.12).Our
+classifierconsistsofamultilayerperceptron(MLP)whichtakesas
+inputtemporalfeaturesextractedfromHMMsandconvolutional
+featuresfromaconvolutionalneuralnetwork(CNN).Theresult-
+inginformationissenttotherobot’ssystemtocorrectthecurrent
+execution,planarecoverystrategy,orpotentiallyimprovethe
+roboticassistance system. The classifiercan enablea robotto
+detect,classify,andrespondappropriatelytocommonanomalies
+foreffectiveandsaferassistance.Furtherdetailsaredescribed
+in[15].
+5. Experimental setup
+Priortoourmainstudywithpeoplewithmotorimpairments,
+weconductedanevaluationofthemeal-assistancesystemwith
+9able-bodiedparticipants( N=9),thefirstauthorperformeda
+long-termselfevaluation,andweperformedathree-dayevalu-
+ationwithHenryEvansinhishomeinCalifornia,USA.Through
+theseevaluationswedevelopedandconfirmedtheusabilityand
+safetyofthe active feedingsystem.Wethenevaluatedthesystem
+with8peoplewithmotorimpairmentsthatrestrictedtheirself-
+feedingability( N=8)intheHealthcareRoboticsLabatGeorgia
+Tech,Georgia,USA.Weconductedalloftheseevaluationswith
+approvalfromtheGeorgiaTechInstitutionalReviewBoard(IRB).
+Participantscontrolledtherobottoscoop/stabfoodandfeed
+themselvesthroughourweb-enabledGUI.Forallofthestudies
+
+--- Page 10 ---
+10 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Fig. 13.Examplesoffoodsweusedduringthelong-termevaluation.
+Fig. 14.Therobot-assistivefeedingsystemwasdeployedandtestedinthehome
+ofHenryEvans,apersonwithseveremotorimpairments.Henryusedthesystem
+fortwosessionsperdayundervariousconditions.
+otherthanthein-homeevaluationwithHenryEvans,participants
+accessedtheinterfacethrougha7inchGoogleTangotabletwith
+aChromebrowser,whilesittingnexttothePR2robot.Henry
+usedhispersonallaptop,headtracker,andmousetoaccessthe
+interfacewithaChromebrowser.Beforestartingthisevaluation,
+we briefly trained the participants to use the meal-assistance
+system.Aspartofthistraining,theypracticedusingthesystem
+threetimes.Eachpracticeruntookaboutoneminute.Theyfreely
+controlledtherobottowipeoffthebottomofthespoonbefore
+theyatefood.Forsafetyduringourevaluations,anexperimenter
+wasalwayspresentwitharunstopbutton.
+5.1. Evaluation with able-bodied participants
+9 Able-bodied participants .Werecruited9able-bodiedpartici-
+pantsandperformedevaluationsintheHealthcareRoboticsLab
+betweenApril28thandMay12th,2017.Allparticipantswere
+GeorgiaTechstudentsconsistingof1femaleand8males,aged
+22–29.Wedividedtheparticipantsinto3groupsofequalsize
+whereeachgroupofparticipantsusedadifferentutensilandtype
+offood: cottage cheese and silicone spoon ,watermelon chunks and
+metal fork,and fruit mix and plastic spoon .Eachparticipantper-
+formed60non-anomalousfeedingexecutionsspreadacrossthree
+sessions.Eachsessionlastedlessthanonehourandconsisted
+of20non-anomalousfeedingexecutions.Theparticipantsper-
+formed540non-anomalousexecutionsand19extraexecutions.
+The participants also answered 11 post-experiment questions(five-pointLikerttypequestionnaireitems)aftertheexperiment.
+Participantsrecordedtheirperceivedcomfort,risk,andconve-
+nienceofthe active feedingsystemthroughthepost-experiment
+questionnaire.
+Long-term self evaluation .Wealsodesignedalong-termeval-
+uationtoobservethesystem’sdailyassistancecapability.The
+firstauthor,anable-bodiedparticipant,conductedatotalof428
+feedingexecutionsacross22daysbetweenApril3rdandJuly
+28th,2017.Theparticipantate6typesoffoods(i.e.,yogurt,rice,
+fruitmix,watermelonchunks,cereal,andcottagecheese)and
+used5utensils(i.e.,small/largeplasticspoons,asiliconespoon,
+andplastic/metalforks)forlunchordessertintheHealthcare
+RoboticsLabatGeorgiaTech.Theparticipantusedthetouch-
+basedGUIthroughoutallfeedingtrials,witheachfeedingsession
+lastingatmost30min.Fig.13showsthe6examplesoffoodswe
+usedinthisevaluation.Foreachsession,therobotwouldcontin-
+uallyprovidefeedingassistanceuntiltherobothadsuccessfully
+fedallfoodfromthebowl.InSection6,wediscussthesuccess
+andfailureofthevariousfeedingtasks.
+5.2. Evaluation with people with motor impairments
+In-home evaluation .WealsodeployedthesystemtoHenry’s
+homeinCalifornia,USA(seeFig.14).Asapartofthemonitoring
+systemevaluationfor[15],heusedthemeal-assistancesystem
+forsixsessionsfromFebruary11ththroughFebruary13th,2017.
+Heperformedover130feedingexecutionsundervariouslight
+conditions(e.g.,morning,evening,andnighttimes).Wedesigned
+thisstudytoobserveifhecouldusethesystemwithoutassis-
+tancefromexperimentersorcaregivers.Forthisevaluation,we
+usedadistinctPR2robotfromGeorgiaTechinhishomeand
+mountedthesameequipmentthatweusedinthelaboratory.We
+usedyogurtandasiliconespoon.Duringtheevaluation,therobot
+heldabowlandaspoonandwaslocatedbesidehiswheelchair.
+Heusedalaptopwithanoff-the-shelfheadtrackertomovethe
+mousecursorandaone-buttonmousetosuccessfullycontrolthe
+robotthroughtheweb-basedGUI.WedidnotprovideHenrywith
+ascriptedactionsequenceandinsteadallowedhimtofreelyuse
+thesystemtoeatyogurtusingtheScooping,Wiping,andFeeding
+buttons.Attheendofourevaluation,weaskedHenrytofillout
+asurveywith22questions(five-pointLikerttypequestionnaire
+items)basedon[73],and2open-endedquestions.Furtherdetails
+aredescribedin[15].
+8 People with motor impairments .Afterconfirmingtheusabil-
+ityandsafetyofthesystemthroughthepreliminaryevaluations,
+werecruited8potentialendusersoverthecourseof5months
+startinginNovember,2017.All8participantshadmotorimpair-
+mentswhichmadeitdifficultforthemtoeatbythemselvesusing
+hand-heldutensils.4participantsweremale,and4participants
+werefemale.Theagerangewas23–72(avg. =49.4,std.=21.4).
+Participantshadself-reportedmotorimpairments,butwerecom-
+fortablewithoperatingatouchscreentablet.AsshowninFig.15,
+theyparticipatedinthestudyontheirpowerwheelchairsandfed
+themselvesthroughthetabletable-bodiedparticipantsused.For
+eachparticipant,weconducted1sessionlastingapproximately
+2h.Aftersafetytrainingand3practicetrials,theparticipants
+wereaskedtousetherobottofreelyfeedthemselves10spoons
+ofyogurtand10forksofmixedfruitusingtheweb-basedGUI.
+Experimentersrefilledthebowlwithfoodafterevery5feeding
+executionstoensuretherobotconsistentlyservedanadequate
+amountoffood.Oursystemgraduallytakessmalleramountsof
+foodasthefoodinthebowlisreduced.Wediscussinsightsabout
+providinganadequateamountoffoodinSection7.1.Attheend
+oftheexperiment,weadministeredquestionnairesbasedonthe
+NASATLXsubjectiveworkloadmeasure[74]andfive-pointLikert
+
+--- Page 11 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 11
+Fig. 15.EvaluationwithapersonwithmotorimpairmentsinanexperimentroomatGeorgiaTech.
+Fig. 16.In-labevaluationwithpeoplewithmotorimpairments,whohaveaself-feedingdisability.Theevaluationincludesthepre/postinterviewsandself-feeding
+studiesaswellastherunningtests.
+typequestionnaireitemsaswellas2open-endedquestions.In
+additiontotheformalquestionnaires,weengagedparticipants
+infreediscussionaboutthedesignofthemeal-assistancesystem
+to gain insights from the targeted user group. Fig. 16 shows
+photographsfromthisin-labevaluation.
+6. Results
+6.1. Evaluation with able-bodied participants
+In this preliminary evaluation, we confirmed the usability
+andsafetyofthisprototypemeal-assistancesystemwith9able-
+bodiedparticipants.Table3shows11five-pointLikerttypeques-
+tionnaireitems.Basedonscoresfromthequestionnaire,wefound
+thatthe9able-bodiedparticipantsbelievedthattheywereable
+tosuccessfullyfeedthemselvesusingthesystemwithanaver-
+agescoreof4.67(outof5)and7.14%relativestandarderror
+(RSE).3Participantsalsoreportedthatthesystemwassafeand
+easy-to-usewithscoresof4.22and4.0,respectively.Notethat
+theparticipantsweremostlyfamiliarwithroboticapplications
+withascoreof4.89,sotheanswersmaynotbesimilartothe
+acceptanceoftheend-usergroup.Aninterestingresultisthat
+the participants neither agreed nor disagreed that the system
+providedanadequateamountoffoodorthatthesystemdelivers
+foodwithadequatespeed.However,asdiscussedinthefollow-
+ingsection,peoplewithmotorimpairmentsmostlyagreedthat
+thespeedwasadequate,despitethespeedofthesystembeing
+approximatelythesame.
+Fig.17showsthenumberofdailysuccessfulandfailedexe-
+cutionsduringthelong-termselfevaluation.Eachday,thepar-
+ticipantselectedautensilfromthe5utensilsandatypeoffood
+tobefed:yogurt(6days),rice(6days),fruit(6days),cereal(1
+day),cheese(3days).Theparticipantalsorecordedthedifferent
+kindsoffailuresthatoccurredduringtheexperiment.Throughout
+thisevaluation,thesystemresultedinanaverageof16(3 .6%)
+feedingfailuresoutofatotalof444executionsdueto a camera
+fault,false alarms from the execution monitor ,tool collisions by
+system fault,a system freeze,and unknown reasons .Throughthis
+long-termevaluation,wewereabletostabilizethesystemand
+3AnRSElessthan25%indicatesthattheanswershowsreasonableaccuracy.
+Fig. 17.The number of daily successful and failed executions during the
+long-termselfevaluation.
+improvesafetybeforeproceedingtotheevaluationwithpeople
+withmotorimpairments.
+6.2. Evaluation with people with motor impairments
+Forthein-homeevaluation,anenduser,HenryEvans,success-
+fullyfedhimselfwiththerobotforallconsecutivetrials.Henry
+reportedthathefoundthesystemtobeeffective,safe,andeasy
+to use. Further details are described in [15]. We discuss new
+observationsinSections6.3and7.
+Weconductedevaluationswith8peoplewithmotorimpair-
+ments.Thesystemsucceededatfeeding99timesoutofatotal
+of 100 attempts (task success). The only failure was due to a
+participant’saccidentalstopbuttonclick.Theparticipantsalso
+answeredthatthesystemsuccessfullyfedthemwithanaverage
+score of 4.52 out of 5 (user success). Participants’ responses
+suggestthattheroboticsystemcouldincreasetheirperceptions
+ofcomfortandindependenceovertheircurrentfeedingsystems.
+Theygaveaveragescoresof2.88and3.25tocomfortandinde-
+pendencequestionsabouttheircurrentfeedingsystemsversus
+
+--- Page 12 ---
+12 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+Table 3
+Five-pointLikerttypequestionnaireitemsfor9able-bodiedparticipants.Thelastcolumnprovidestheaverageandstandarddeviation
+ofscoreswith1 =stronglydisagree,2 =disagree,3 =neither,4 =agree,and5 =stronglyagree.Resultsareconsideredtohave
+reasonableaccuracywhenrelativestandarderror(RSE)is25%orless.
+Questionnaires Score
+Avg. Std. RSE
+Iamfamiliarwithengineering. 4.78 0.67 4.65%
+Iamfamiliarwithroboticapplications. 4.89 0.33 2.27%
+Isuccessfullyatefoodusingthesystem. 4.67 1.00 7.14%
+Iamsatisfiedwithusingthesystem. 3.89 0.93 7.95%
+Thesystemwaseasy-to-use. 4.00 1.00 8.33%
+Ifeltsafewhileusingthesystem. 4.22 0.83 6.58%
+Iwascomfortablewhileusingthesystem. 4.33 0.71 5.44%
+Thesystemdeliveredanadequateamountoffood. 3.00 1.58 17.57%
+Thesystemdeliveredfoodwithadequatespeed. 3.11 1.69 18.12%
+Thesystemaccuratelyplacedfoodinmymouth 4.00 0.87 7.22%
+Thesystemprovidessufficientsafetytoolsorfunctionstopreventhazards. 4.56 0.89 6.45%
+Table 4
+Five-pointLikerttypequestionnaireitemsfor8peoplewithmotorimpairments.Thelastcolumnprovidestheaverageandstandard
+deviationofscoreswith1 =stronglydisagree,2 =disagree,3 =neither,4 =agree,and5 =stronglyagree.
+Questionnaires Score
+Avg. Std. RSE
+Ifeelcomfortableusingmycurrentfeedingsystem. 2.88 1.64 20.19%
+Ifeelindependentusingmycurrentfeedingsystem. 3.25 1.49 16.19%
+Iexpectthismeal-assistancesystemtoincreasetheindependenceoftheuser. 4.14 0.90 7.68%
+Iexpectthismeal-assistancesystemtobesatisfactory. 4.38 0.74 6.01%
+Iexpectthismeal-assistancesystemtobecomfortable. 4.38 0.74 6.01%
+Iamcomfortablewithusingtechnology. 4.57 0.53 4.13%
+Ifeltcomfortableusingthemeal-assistancesystem. 4.75 0.46 3.45%
+Ifeltindependentusingthemeal-assistancesystem. 4.50 1.07 8.40%
+Themeal-assistancesystemprovidedsignificanthelpineating. 4.88 0.35 2.56%
+Themeal-assistancesystemsuccessfullyaccomplishedtasks. 4.38 0.52 4.18%
+Themeal-assistancesystemwassimpleandeasytouse. 4.75 0.71 5.26%
+Ifeltsafewhileusingthemeal-assistancesystem. 4.50 0.76 5.94%
+Table 5
+QuestionnaireitemsbasedonNASA-TLXfor8peoplewithmotorimpairments.Participantschoseanumberbetween1and20foreachquestion.
+1indicates‘‘VeryLow’’forMental,Physical,Temporal,Effort,andFrustration,and‘‘Perfect’’forPerformance.20indicates‘‘VeryHigh’’forMental,
+Physical,Temporal,Effort,andFrustration,and‘‘Failure’’forPerformance.
+Questionnaires Score
+Avg. Std. RSE
+Mentaldemand Howmentallydemandingwasthetask? 2.88 2.03 23.55%
+Physicaldemand Howphysicallydemandingwasthetask? 4.00 5.01 41.79%
+Temporaldemand Howhurriedorrushedwasthepaceofthetask? 2.25 2.38 35.17%
+Performance Howsuccessfulwereyouinaccomplishingwhatyouwereaskedtodo? 4.50 4.34 32.17%
+Effort Howharddidyouhavetoworktoaccomplishyourlevelofperformance? 3.38 4.50 44.46%
+Frustration Howinsecure,discouraged,irritated,stressed,andannoyedwereyou? 5.25 5.31 33.73%
+4.75and4.5fortheroboticsystem(seeTable4).Thepartici-
+pantsagreedthatthesystemhelpsfeedingsignificantlywithan
+averagescoreof4.88.FurtheranalysesareinSection6.3.We
+additionallymeasuredNASATLXsubjectiveworkloadtoassess
+theparticipants’mental,physical,temporal,effort,andfrustration
+whileusingthesystem(seeTable5).Theresultindicatesthatour
+systemrequiresanoveralllowworkload.Inparticular,thesimple
+interfaceofsystemresultedverylowmentaldemand.However,
+theaverageoffrustrationishigherthanotherdemands.Weleave
+theinvestigationoftherelationbetweenthefrustrationandthe
+systemasourfuturework.
+6.3. Analyses
+Wecomparedevaluationresultsfromable-bodiedpeopleand
+peoplewithmotorimpairmentsintermsoffiveselectedfactors.
+Completion time .Fig. 18 shows the distributions of meal-
+assistancecompletiontimefrom3able-bodiedparticipantsand
+8participantswithmotorimpairments,wherethe3able-bodied
+participantsarethegroupwhousedthesametypeoffoodand
+Fig. 18.Distributions of meal-assistance completion time from 3 able-bodied
+participantsand8peoplewithmotorimpairments( p-value =0.0004witha
+two-sidedWelch’s t-test).Theparticipantsateyogurtwithasiliconespoon.
+
+--- Page 13 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 13
+utensil (i.e., yogurt and a silicone spoon) as participants with
+motorimpairmentsdid.Inthisgraph,eachparticipantateyogurt
+usingasiliconespoon.Thecompletiontimeisanelapsedtime
+thathaspassedbetweentheclickofthescoopingbuttonand
+the end of feeding motion including spoon wiping executed
+byindividuals’preference.Therewasnospeed-relevantsystem
+changebetweentwoexperiments.Able-bodiedparticipantsand
+thosewithmotorimpairmentstookabout39 ±4.5secand41 ±
+5.2sec,respectively.WeperformedWelch’s t-test,alsoknownas
+unequalvariances t-test,totestwhethertwosamplesdiffersig-
+nificantly.Thetestresultedin p-value=0.0004,whichindicates
+thedifferencebetweentwoparticipantgroups’completiontimes
+isstatisticallysignificant.AlikelycauseisthedifficultyofGUI
+manipulationduetoupper-limbimpairments.
+HenryEvansalsotookabout78sforonetimeofmealassis-
+tancethatisabout39slongerthantheable-bodiedparticipants’
+duration.Alikelycausewasfrommousepointingtimeusingthe
+headtrackerandtheuseofthewipingsubtask,sinceHenryEvans
+used it 0.85 times per meal assistance but other participants
+mostlydidnotuseit.Notethatthewipingsubtaskusuallytook
+17sandtherewereadjustmentsinmotionbetweenthein-home
+andin-labevaluations.However,therewasnochangeinspeed.
+Ease of use .Toassesseaseofuse,weaskedaquestionabout
+easeofusetobothable-bodiedpeopleandthosewithmotor
+impairments.Fig.19(a)showstheirresponseswherethemedian
+responsesare‘agree’forable-bodiedpeopleand‘stronglyagree’
+forthosewithmotorimpairments.TheWelch’s t-testresultedin
+p-value=0.901,sowecannotconcludethattheiragreements
+significantlydiffer.
+Comfortable assistance .Weassessedagreementwith‘thesys-
+temiscomfortabletoperformself-feedingtask’.Fig.19(b)shows
+the participants’ responses where the median responses are
+‘agree’forable-bodiedpeopleand‘stronglyagree’forthosewith
+motor impairments. The Welch’s t-test resulted in p-value=
+0.897,sowecannotconcludethattheiragreementssignificantly
+differ.
+Successful assistance .Self-assessmentofsuccesswasmeasure
+withtheitem‘thesystemissuccessfultoperformself-feeding
+task’.Fig.19(c)showstheparticipants’responseswheretheme-
+dianresponsesare‘agree’forboth.TheWelch’s t-testresultedin
+p-value=0.879,sowecannotconcludethattheiragreements
+significantlydiffer.
+Safety .Safetyconcernsweremeasuredwiththestatement‘the
+systemissafetoperformself-feedingtask’.Fig.19(d)showsthe
+participants’responseswherethemedianresponsesare‘strongly
+agree’forboth.TheWelch’s t-testresultedin p-value=0.907,
+sowecannotconcludethattheiragreementssignificantlydiffer.
+Throughouttheevaluations,ourmeal-assistancesystemsuc-
+cessfully fed foods to both able-bodied participants and those
+with motor impairments. Participants agreed that the system
+comfortably,successfully,andsafelyprovidesthemealassistance
+witheasy-to-useinterface.Overall,ourresultssuggestthatitis
+feasibleforgeneral-purposemobilemanipulatorstoprovidemeal
+assistance.
+7. Discussion
+7.1. Design insights
+Wediscusslearnedlessonsandinsightsaboutthedesignof
+potentialmeal-assistancesystemsforpeoplewithmotorimpair-
+mentsthatresultinaself-feedingdisability.
+Fig. 19.9able-bodiedparticipants(Left)and8participantswithmotorimpair-
+ments(Right)reportedthelevelofagreementwiththestatementineachsub
+captionwheresd =stronglydisagree,d =disagree,n =neither,a =agree,
+andsa =stronglyagree. p-valueiscomputedfromthetwo-sidedWelch’s t-test
+betweentwographs.
+•Robot Appearance: Participants responded that they felt
+safeaftertheevaluation.However,severalparticipantswere
+overwhelmedorintimidatedatfirstbythelargesizeofthe
+robot(aPR2).Aparticipantwithmotorimpairmentsstated
+thatshefeltthreatenedwhenthethickarmapproachedher
+
+--- Page 14 ---
+14 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+inthebeginningoftheevaluation.Anotherparticipantwith
+motorimpairmentssaidthatarobotwhichisbiggerthan
+herselfisintimidating.Asforpossiblesolutionstothisprob-
+lem,oneparticipantwithmotorimpairmentssuggestedto
+maketherobotlookmore‘‘friendly’’,suchasbyusingmore
+naturalcolorsratherthanthecurrentmetallicexterior.
+•User Interface (UI): Inourstudywith8peoplewithdisabil-
+ities,theuserswererequiredtousethesametouchscreen
+device.Havingalternativedevicesormethodsofproviding
+input to the device would be useful. A participant with
+numbnessinherfingersoftenhadtroubleusingthetouch-
+screen,andpreferredphysicalbuttons.Anumberofpar-
+ticipantsclickedthetouchscreenmultipletimesduetono
+buttonfeedback.However,anotherparticipantdidnothave
+much strength in her hands, and therefore preferred the
+touchscreentoothermethods.Oursystem’sweb-basedin-
+terfacecansupportalternatives,asdemonstratedbyHenry
+Evans.
+•Slicing food:Many participants with motor impairments
+statedthatslicing/cuttingfoodissomethingthatcouldbe
+improvedabouttheircurrentfeedingmethod,sincethey
+havedifficultyapplyingsufficientforceanddexterouslyma-
+nipulatingknives.Anassistiverobotthatslicesfoodhasthe
+potentialtofacilitateindependenteatingwithavarietyof
+foodsandreducecaregiverburden.
+•Amount of Food: Serving an adequate amount of food
+would help to increase the satisfaction of users and the
+efficiencyoftaskexecutions.Intheevaluations,theamount
+of food the robot scooped/stabbed varied. An excessive
+amountoffoodwasusuallyconnectedtofoodspillswhile
+deliveringfood,andwouldsometimesrequiremorethan
+onetaskexecutiontofinishallofthefoodonthespoon.
+Atothertimes,thesystemscoopedaverysmallamountof
+solidfood(e.g.,fruit)orfailedtoscoop.
+•Speed:Providingadjustablespeedmaybebeneficial.The
+desired speed varied across participants and participant
+groups. Able-bodied participants neither agreed nor dis-
+agreedthatthecurrentsystem’sspeed(about40spercycle)
+wasadequate.Incontrast,theresponsesfrompeoplewith
+motorimpairmentsindicatedtheyweresatisfiedwiththe
+speedonaverage,althoughHenryEvansdesiredafasterrate
+offeeding.Henry’spreferencemaybeduetohimbeingan
+expertuser.
+•Delivery Motion: Tiltingaspoonwhenitisleavingauser’s
+mouthcanbebeneficial.Dependingonthespoon’sdepth
+andtheuser’sdisability,ahorizontalretractingmotionmay
+notbesufficienttomoveallofthefoodfromthespoon
+into the user’s mouth. For example, in the first author’s
+longtermevaluation,theparticipanthaddifficultyeating
+allfoodscoopedbythelargeplasticspooninFig.7.Adding
+ahuman-likespoonfeedingmotion(i.e.,tiltingandretract-
+ing)enabledtheparticipanttocomfortablyeatallfoodfrom
+thespoonwithease.
+•Emergency Alarm: Weinvitedparticipantswhodonothave
+difficultieseatingtheselectedfood(e.g.,dysphagia).Onthe
+otherhand,theparticipant,HenryEvans,forin-homeeval-
+uationhasseveremotorimpairments,isunabletospeak,
+andhasdifficultychewingandswallowingfood.Toreduce
+anyriskforaspiration,wemadehimsituprightandpro-
+videdyogurtasapureedfoodfollowingknownaspiration
+precautions.Foruserswhocannotresolveaspirationissues
+bythemselves,assistiverobotspotentiallyneedtoprovide
+anemergencyalarmfunctiontoalertnearbycaregiversin
+thefuture.7.2. Assistive robots
+•Thecostofageneral-purposerobotisdecreasingrapidly
+duetogrowingcommercialinterest.In2010,WillowGarage
+releasedawheeleddualmanipulator,thePR2,for$400,000
+[6]. In 2017, PAL Robotics started to offer the noticeably
+lower cost 14-DoF mobile manipulator, TIAGo Steel, for
+e49,900[75],whiletheObifeedingrobot,asingle-purpose
+robot,stillcosts$5,950[20].Inaddition,open-sourcesoft-
+wareandhardwarehaverapidlyimprovedinavailability
+andqualityoverthelastdecade.Thedevelopmentofas-
+sistiveapplicationsusinggeneral-purposemobilemanipula-
+torscouldpotentiallybeeconomicallyaffordableinthenear
+future.Itcouldhelpaddresschallengesassociatedwiththe
+agingpopulation,risinghealthcarecosts,andshortagesof
+healthcareworkersintheUnitedStatesandothercountries.
+Theseinventionsalsohavethepotentialtoreducefamily
+caregivers’prolongedstress,physicaldemands,anddecline
+in quality of life while reducing the healthcare costs for
+householdswithpeoplewithdisabilities.
+•The system we have presented is focused on assistance
+ratherthanrehabilitation.Automatedassistancecanenable
+peoplewithdiversedisabilitiestoperformdailyactivitiesby
+themselves.However,roboticassistancecouldalsopoten-
+tiallydiscouragepeoplefromusingtheirphysicalabilitiesin
+activitiesthattheycouldperformwithlessassistance.There
+isalsothepotentialforroboticassistancetoaffectpeoples’
+rehabilitationstatusorworsentheirhealththroughreduced
+physical activity. These are risks that merit attention as
+roboticassistancebecomesmorecommon.Inadditionto
+assistance, general-purpose robots could potentially help
+during rehabilitation or modify their assistive actions to
+encourageexercisebyusers.
+8. Conclusion
+We introduced a proof-of-concept of meal-assistance sys-
+temusingageneral-purposemobilemanipulator,aPR2robot.
+The system can perform three independent subtasks: scoop-
+ing/stabbing,spoonwiping,anddelivery,whereausercancom-
+mand a preferred subtask via a web-based GUI. Unlike con-
+ventionalfeedingdevices,ournovelsystemdesignenabledthe
+mobilemanipulatortoprovidevisually-guided active feedingas-
+sistancethatautonomouslydeliversfoodinsideauser’smouth
+aftervisually-guidedscooping/stabbingoffood.Wealsodesigned
+thesystemtoprovidesaferassistanceusingvarioushardwareand
+softwaretoolsincludingahigh-levelexecutionmonitor.Overall,
+thedesignimprovedtheaccessibilityandusabilityofthemeal-
+assistancesystemforpeoplewithmotorimpairmentsthatledto
+self-feedingdisability.
+Weevaluatedthesystemwithtotal10able-bodiedpartici-
+pantsand9participantswithmotorimpairments.Inoureval-
+uationwith9able-bodiedparticipants,thesystemsuccessfully
+performedroughly2000feedingexecutionswith5utensilsand
+6typesoffooditems.Throughoutourlongertermselfevalu-
+ation,weconfirmedthesafetyandusabilityofthesystem.In
+ourevaluationwiththeend-usergroup,theparticipantswith
+motor impairments were able to use the system successfully
+tofeedthemselves.Theirresponsesweregenerallypositiveand
+similartothoseofable-bodiedparticipantstoquestionsaboutthe
+ease-of-use,comfort,safety,andsuccessofthesystem.Wealso
+deployedthesystematHenryEvans’houseinCalifornia,USA.He
+wasabletousethesystemtofeedhimselfsuccessfullywith70
+non-anomalousfeedingexecutionsforthreedaysinhisresiden-
+tialhomesetting.Wedemonstratedthefeasibilityofthenew
+meal-assistancesystem.Finally,weshareddesigninsightsand
+
+--- Page 15 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 15
+lessonswelearnedthroughthedesignandevaluation.Ourrobot-
+assistedfeedingsystemhasthepotentialtoreduceself-feeding
+limitationsinpeoplewithmotorimpairmentsbyprovidingthem
+thesupporttheyneedtoperformfeedingtasks.
+Declaration of competing interest
+Dr.Kempisacofounder,aboardmember,anequityholder,
+andtheCTOofHelloRobot,Inc.,whichisdevelopingproducts
+relatedtothisresearch.Thisresearchcouldaffecthispersonalfi-
+nancialstatus.Thetermsofthisarrangementhavebeenreviewed
+andapprovedbyGeorgiaTechinaccordancewithitsconflictof
+interestpolicies.
+Acknowledgments
+We thank Mark Killpack who provided the control library.
+ThisworkwassupportedbyNSFAwardIIS-1150157,NIDILRR
+grant90RE5016-01-00viaRERCTechSAge,andaGoogleFaculty
+ResearchAward.
+Appendix A. Supplementary data
+Theevaluationprocessandinterviewscenesareattachedasa
+supplementaryvideo.
+Supplementarymaterialrelatedtothisarticlecanbefound
+onlineathttps://doi.org/10.1016/j.robot.2019.103344.
+References
+[1] J.M.Wiener,R.J.Hanley,R.Clark,J.F.VanNostrand,Measuringtheactivities
+of daily living: Comparisons across national surveys, J. Gerontol. 45 (6)
+(1990)S229–S237.
+[2] T.L. Mitzner, J.A. Sanford, W.A. Rogers, Closing the capacity-ability gap:
+Using technology to support aging with disability, Innov. Aging 2 (1)
+(2018).
+[3] P.Rashidi,A.Mihailidis,Asurveyonambient-assistedlivingtoolsforolder
+adults,J.Biomed.HealthInform.17(3)(2013)579–590.
+[4] M. Schwarz, T. Rodehutskors, D. Droeschel, M. Beul, M. Schreiber, N.
+Araslanov, I. Ivanov, C. Lenz, J. Razlaw, S. Schüller, et al., NimbRo res-
+cue:Solvingdisaster-responsetaskswiththemobilemanipulationrobot
+Momaro,J.FieldRobotics34(2)(2017)400–425.
+[5] P.Deegan,R.Grupen,A.Hanson,E.Horrell,S.Ou,E.Riseman,S.Sen,B.
+Thibodeau,A.Williams,D.Xie,Mobilemanipulatorsforassistedlivingin
+residentialsettings,Auton.Robots24(2)(2008)179–192.
+[6] Willow Garage, Pr2 robot system, 2010, http://www.willowgarage.com/.
+(Accessed6September2019).
+[7] C.Fattal,V.Leynaert,I.Laffont,A.Baillet,M.Enjalbert,C.Leroux,SAM,an
+assistive robotic device dedicated to helping persons with quadriplegia:
+Usabilitystudy,Int.J.Soc.Robot.(2018)1–15.
+[8] P.M.Grice,C.C.Kemp,In-homeandremoteuseofroboticbodysurrogates
+bypeoplewithprofoundmotordeficits,PLoSOne14(3)(2019)1–28.
+[9] T.L.Chen,M.Ciocarlie,S.Cousins,P.M.Grice,K.Hawkins,K.Hsiao,C.C.
+Kemp,C.-H.King,D.A.Lazewatsky,A.E.Leeper,etal.,Robotsforhumanity:
+usingassistiveroboticstoempowerpeoplewithdisabilities,Robot.Autom.
+Mag.20(1)(2013)30–39.
+[10] Secom,Meal-assistancerobot,myspoon,2017,https://www.secom.co.jp/
+english/myspoon/.(Accessed15July2017).
+[11] Camanio Care AB, Bestic, increase your mealtime independence, 2017,
+http://www.camanio.com/.(Accessed15July2017).
+[12] MealtimePartners,Specializinginassistivedininganddrinkingequipment,
+2017,http://www.mealtimepartners.com/.(Accessed15July2017).
+[13] N.Tejima,Rehabilitationmanipulatorforeating,J.Robot.Soc.Japan14(5)
+(1996)624–627.
+[14] W.-K.Song,J.Kim,NovelAssistiveRobotforSelf-Feeding,INTECH,2012.
+[15] D.Park,H.Kim,Y.Hoshi,Z.Erickson,A.Kapusta,C.C.Kemp,Amultimodal
+executionmonitorwithanomalyclassificationforrobot-assistedfeeding,
+in: Proceedings of the IEEE/RSJ International Conference on Intelligent
+RobotsandSystems(IROS),IEEE,2017.
+[16] D.Park,Y.Hoshi,C.C.Kemp,Amultimodalanomalydetectorforrobot-
+assisted feeding using an LSTM-based variational autoencoder, Robot.
+Autom.Lett.3(3)(2018)1544–1551.
+[17] D. Feil-Seifer, M.J. Mataric, Defining socially assistive robotics, in: Pro-
+ceedingsoftheIEEEInternationalConferenceonRehabilitationRobotics
+(ICORR),IEEE,2005,pp.465–468.[18] P.Maciejasz,J.Eschweiler,K.Gerlach-Hahn,A.Jansen-Troy,S.Leonhardt,
+A survey on robotic devices for upper limb rehabilitation, J. Neuroeng.
+Rehabil.11(1)(2014)3.
+[19] Patterson Medical, Meal buddy, 2017, http://pattersonmedical.com/.
+(Accessed15July2017).
+[20] EclipseAutomation,MeetObi,arobotthathelpsdisabledindividualseat
+unassisted,2016,https://meetobi.com/.(Accessed6September2019).
+[21] A.Yamazaki,R.Masuda,Variousfoodshandlingmovementofchopstick-
+equippedmealassistantrobotandthereevaluation,in:Proceedingsofthe
+InternationalConferenceonSocialRobotics,Springer,2012,pp.158–167.
+[22] S.Schroer,I.Killmann,B.Frank,M.Volker,L.Fiederer,T.Ball,W.Burgard,
+Anautonomousroboticassistantfordrinking,in:ProceedingsoftheIEEE
+InternationalConferenceonRoboticsandAutomation,ICRA,2015.
+[23] Y.Kobayashi,Y.Ohshima,T.Kaneko,A.Yamashita,Mealsupportsystem
+withspoonusinglaserrangefinderandmanipulator,Int.J.Robot.Autom.
+31(3)(2016).
+[24] C.J.Perera,I.Naotunna,C.Sadaruwan,R.A.R.C.Gopura,T.D.Lalitharatne,
+SSVEP based BMI for a meal assistance robot, in: Proceedings of the
+International Conference on Systems, Man, and Cybernetics (SMC), IEEE,
+2016,pp.002295–002300.
+[25] C.J. Perera, T.D. Lalitharatne, K. Kiguchi, EEG-controlled meal assistance
+robotwithcamera-basedautomaticmouthpositiontrackingandmouth
+open detection, in: Proceedings of the IEEE International Conference on
+RoboticsandAutomation(ICRA),IEEE,2017,pp.1760–1765.
+[26] H.Admoni,S.Srinivasa,Eyegazerevealsintentionsinsharedautonomy,
+in:ProceedingsoftheACM/IEEEInternationalConferenceonHuman-Robot
+Interaction(HRI)-WorkshoponIntentions,ACM/IEEE,2017.
+[27] A. Candeias, T. Rhodes, M. Marques, J.P. ao Costeira, M. Veloso, Vision
+augmented robot feeding, in: The European Conference on Computer
+Vision(ECCV)Workshops,2018.
+[28] D.Park,Y.K.Kim,Z.Erickson,C.C.Kemp,Towardsassistivefeedingwitha
+general-purposemobilemanipulator,in:IEEEInternationalConferenceon
+RoboticsandAutomation(ICRA)-WorkshoponHuman-RobotInterfaces
+forEnhancedPhysicalInteractions,2016.
+[29] D. Park, Z. Erickson, T. Bhattacharjee, C.C. Kemp, Multimodal execution
+monitoringforanomalydetectionduringrobotmanipulation,in:Proceed-
+ings of the IEEE International Conference on Robotics and Automation
+(ICRA),IEEE,2016.
+[30] D. Park, H. Kim, C.C. Kemp, Multimodal anomaly detection for assistive
+robots,Auton.Robots43(3)(2018)611–629.
+[31] J.Hammel,K.Hall,D.Lees,L.Leifer,M.VanderLoos,I.Perkash,R.Crigler,
+Clinicalevaluationofadesktoproboticassistant,J.Rehabil.Res.Dev.26
+(3)(1989)1–16.
+[32] H.M.VanderLoos,J.J.Wagner,N.Smaby,K.Chang,O.Madrigal,L.J.Leifer,
+O.Khatib,ProVARassistiverobotsystemarchitecture,in:Proceedingsof
+theIEEEInternationalConferenceonRoboticsandAutomation(ICRA),Vol.
+1,IEEE,1999,pp.741–746.
+[33] M. Hillman, K. Hagan, S. Hagan, J. Jepson, R. Orpwood, A wheelchair
+mounted assistive robot, in: Proceedings of the Rehabilitation Engineer-
+ing and Assistive Technology Society of North America (RESNA) Annual
+Conference:SpotlightonTechnology,ERIC,1999,p.125.
+[34] J. Dietsch, A. Jardon, A. Gimenez, R. Correal, R. Cabas, S. Martinez, C.
+Balaguer, A portable light-weight climbing robot for personal assistance
+applications,Int.J.Ind.Robot33(4)(2006)303–307.
+[35] Y.Wakita,W.-K.Yoon,N.Yamanobe,Userevaluationtoapplytherobotic
+arm RAPUDA for an upper-limb disabilities patient’s daily life, in: Pro-
+ceedingsoftheIEEEInternationalConferenceonRoboticsandBiomimetics
+(ROBIO),IEEE,2012,pp.1482–1487.
+[36] M.Topping,AnoverviewofthedevelopmentofHandy1,arehabilitation
+robottoassisttheseverelydisabled,J.Intell.Robot.Syst.34(3)(2002)
+253–263.
+[37] V. Maheu, P.S. Archambault, J. Frappier, F. Routhier, Evaluation of the
+JACOroboticarm:Clinico-economicstudyforpoweredwheelchairusers
+withupper-extremitydisabilities,in:ProceedingsoftheIEEEInternational
+ConferenceonRehabilitationRobotics(ICORR),IEEE,2011,pp.1–5.
+[38] D.-J.Kim,Z.Wang,N.Paperno,A.Behal,Systemdesignandimplemen-
+tationofUCF-MANUS-anintelligentassistiveroboticmanipulator,Trans.
+Mechatron.19(1)(2014)225–237.
+[39] K.P.Hawkins,P.M.Grice,T.L.Chen,C.-H.King,C.C.Kemp,Assistivemobile
+manipulationforself-caretasksaroundthehead,in:Proceedingsofthe
+IEEESymposiumonComputationalIntelligenceinRoboticRehabilitation
+andAssistiveTechnologies,IEEE,2014,pp.16–25.
+[40] A. Kapusta, D. Park, C.C. Kemp, Task-centric selection of robot and en-
+vironmentinitialconfigurationsforassistivetasks,in:Proceedingsofthe
+IEEE/RSJInternationalConferenceonIntelligentRobotsandSystems(IROS),
+2015,pp.1480–1487.
+[41] K.Yamazaki,R.Oya,K.Nagahama,K.Okada,M.Inaba,Bottomdressing
+by a life-sized humanoid robot provided failure detection and recovery
+functions, in: Proceedings of the International Conference on System
+Integration(SII),IEEE,2014,pp.564–570.
+
+--- Page 16 ---
+16 D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344
+[42] S.D.Klee,B.Q.Ferreira,R.Silva,J.P.Costeira,F.S.Melo,M.Veloso,Person-
+alized assistance for dressing users, in: Proceedings of the International
+ConferenceonSocialRobotics,Springer,2015,pp.359–369.
+[43] Z.Erickson,M.Collier,A.Kapusta,C.Kemp,Trackinghumanposeduring
+robot-assisted dressing using single-axis capacitive proximity sensing,
+Robot.Autom.Lett.(2018).
+[44] A. Kargov, T. Asfour, C. Pylatiuk, R. Oberle, H. Klosek, S. Schulz, K. Re-
+genstein,G.Bretthauer,R.Dillmann,Developmentofananthropomorphic
+handforamobileassistiverobot,in:ProceedingsoftheIEEEInternational
+ConferenceonRehabilitationRobotics(ICORR),IEEE,2005,pp.182–186.
+[45] A. Jain, C.C. Kemp, EL-E: An assistive mobile manipulator that au-
+tonomouslyfetchesobjectsfromflatsurfaces,Auton.Robots28(1)(2009)
+45.
+[46] B.Graf,U.Reiser,M.Hägele,K.Mauz,P.Klein,RobotichomeassistantCare-
+O-botR⃝3-productvisionandinnovationplatform,in:IEEEWorkshopon
+AdvancedRoboticsandItsSocialImpacts(ARSO),IEEE,2009,pp.139–144.
+[47] M.Ciocarlie,K.Hsiao,A.Leeper,D.Gossow,Mobilemanipulationthrough
+an assistive home robot, in: Proceedings of the IEEE/RSJ International
+ConferenceonIntelligentRobotsandSystems(IROS),IEEE,2012.
+[48] Y.Jia,Y.Liu,N.Xi,H.Wang,P.Stürmer,Designofrobotichumanassistance
+systemsusingamobilemanipulator,Int.J.Adv.Robot.Syst.9(5)(2012)
+165.
+[49] Liftware, Liftware, 2014, https://www.liftware.com/. (Accessed 15 July
+2017).
+[50] A. Pathak, J.A. Redmond, M. Allen, K.L. Chou, A noninvasive handheld
+assistive device to accommodate essential tremor: a pilot study, Mov.
+Disorders29(6)(2014)838–842.
+[51] NeaterSolutions,Neatereaters,2017,http://www.neater.co.uk/.(Accessed
+15July2017).
+[52] FocalMeditech,Nelson,2010,https://www.focalmeditech.nl/.(Accessed4
+August2018).
+[53] R.P. Hermann, A.C. Phalangas, R.M. Mahoney, M. Alexander, Powered
+feedingdevices:anevaluationofthreemodels,Arch.Phys.Med.Rehabil.
+80(10)(1999)1237–1242.
+[54] I.Naotunna,C.J.Perera,C.Sandaruwan,R.Gopura,T.D.Lalitharatne,Meal
+assistance robots: A review on current status, challenges and future
+directions, in: Proceedings of the IEEE/SICE International Symposium on
+SystemIntegration(SII),IEEE,2015,pp.211–216.
+[55] A. Yamazaki, R. Masuda, Autonomous foods handling by chopsticks for
+meal assistant robot, in: Proceedings of the German Conference on
+Robotics(ROBOTIK),VDE,2012,pp.1–6.
+[56] S. Javdani, H. Admoni, S. Pellegrinelli, S.S. Srinivasa, J.A. Bagnell, Shared
+autonomyviahindsightoptimizationforteleoperationandteaming,Int.J.
+Robot.Res.37(7)(2018)717–742.
+[57] Y.Takahashi,S.Suzukawa,Easyhumaninterfaceforseverelyhandicapped
+persons and application for eating assist robot, in: Proceedings of the
+InternationalConferenceonMechatronics,2006,pp.225–229.
+[58] G. Canal, G. Alenyà, C. Torras, Personalization framework for adaptive
+roboticfeedingassistance,in:ProceedingsoftheInternationalConference
+onSocialRobotics,Springer,2016,pp.22–31.
+[59] T. Rhodes, M. Veloso, Robot-driven trajectory improvement for feed-
+ing tasks, in: Proceedings of the IEEE/RSJ International Conference on
+IntelligentRobotsandSystems,IROS,Madrid,Spain,2018.
+[60] M. Quigley, K. Conley, B. Gerkey, J. Faust, T. Foote, J. Leibs, R. Wheeler,
+A.Y.Ng,ROS:Anopen-sourcerobotoperatingsystem,in:Proceedingsof
+theIEEEInternationalConferenceonRoboticsandAutomation,ICRA,vol.
+3,no.3.2,2009,p.5.
+[61] C. Crick, G. Jay, S. Osentoski, B. Pitzer, O.C. Jenkins, Rosbridge: ROS for
+non-ROSusers,in:RoboticsResearch,Springer,2017,pp.493–504.
+[62] H. Nguyen, M. Ciocarlie, K. Hsiao, C.C. Kemp, ROS commander (ROSCo):
+Behavior creation for home robots, in: IEEE International Conference on
+RoboticsandAutomation,ICRA,2013.
+[63] P.Hebert,M.Bajracharya,J.Ma,N.Hudson,A.Aydemir,J.Reid,C.Bergh,
+J. Borders, M. Frost, M. Hagman, J. Leichty, P. Backes, B. Kennedy, P.
+Karplus,B.Satzinger,K.Byl,K.Shankar,J.Burdick,Mobilemanipulation
+and mobility as manipulation—Design and algorithms of robosimian, J.
+FieldRobotics32(2)(2015)255–274.
+[64] N.G. Tsagarakis, D.G. Caldwell, F. Negrello, W. Choi, L. Baccelliere, V.-G.
+Loc,J.Noorden,L.Muratore,A.Margan,A.Cardellino,etal.,Walk-man:
+Ahigh-performancehumanoidplatformforrealisticenvironments,J.Field
+Robotics34(7)(2017)1225–1259.
+[65] A. Jain, M.D. Killpack, A. Edsinger, C.C. Kemp, Reaching in clutter with
+whole-armtactilesensing,Int.J.Robot.Res.(2013).
+[66] Assistive Innovations, iEAT feeding robot, 2016, https://www.assistive-
+innovations.com.(Accessed6December2017).
+[67] 300facesIn-The-WildChallenge:databaseandresults,ImageVis.Comput.
+47 (2016) 3–18, 300-W, the First Automatic Facial Landmark Detection
+in-the-WildChallenge.
+[68] D.E. King, Dlib-ml: A machine learning toolkit, J. Mach. Learn. Res. 10
+(2009)1755–1758.[69] V.Kazemi,J.Sullivan,Onemillisecondfacealignmentwithanensembleof
+regressiontrees,in:ProceedingsoftheIEEEComputerSocietyConference
+onComputerVisionandPatternRecognition,CVPR,2014,pp.1867–1874.
+[70] G. Garcia-Mateos, A. Ruiz, P.E.L. de-Teruel, A.L. Rodriguez, L. Fernandez,
+Estimating 3D facial pose in video with just three points, in: IEEE
+ComputerSocietyConferenceonComputerVisionandPatternRecognition
+Workshops,2008,pp.1–8.
+[71] Itseez, Open source computer vision library, 2015, https://github.com/
+itseez/opencv.
+[72] W.Garage,PR2usermanual,2012.
+[73] A. Weiss, R. Bernhaupt, M. Lankes, M. Tscheligi, The USUS evaluation
+frameworkforhuman-robotinteraction,in:ProceedingsoftheSymposium
+on New Frontiers in Human-Robot Interaction, AISB, vol. 4, 2009, pp.
+11–26.
+[74] S.G. Hart, L.E. Staveland, Development of NASA-TLX (task load index):
+Resultsofempiricalandtheoreticalresearch,in:AdvancesinPsychology,
+Vol.52,Elsevier,1988,pp.139–183.
+[75] PALRobotics,TIAGo-SciRoc-Callforloan,2017,http://erl.pal-robotics.
+com/.(Accessed6September2019).
+Daehyung Park is a Postdoctoral Associate in Com-
+puter Science and Artificial Intelligence Laboratory at
+Massachusetts Institute of Technology. He received a
+doctorate in the School of Interactive Computing at
+theGeorgiaInstituteofTechnology,USA(2018),where
+he worked on assistive manipulation and machine
+learning.HeearnedanM.S.fromUniversityofSouthern
+California,USA,andB.E.fromOsakaUniversity,Japan.
+HealsoworkedasaRobotEngineerwiththeMecha-
+tronicsCenter,SamsungElectronicsInc.Suwon,Korea
+His research interests include manipulation, machine
+learning,andassistivedevices.
+Yuuna Hoshiis an undergraduate student in the
+College of Computing at the Georgia Institute of
+Technology. She is majoring in Computer Science
+with concentrations in Systems/Architecture and In-
+telligence. She is planning to graduate in December,
+2019.Herinterestsincludemachinelearning,computer
+vision,andhumancomputerinteraction.
+Harshal P. Mahajan isaresearchscientistatGeorgia
+Institute of Technology. He received his Ph.D. in Re-
+habilitationSciencefromtheUniversityofPittsburgh,
+PA where he worked on human centered design of
+smart assistive technologies for people with physical
+disabilities and cognitive impairments. His research
+interests also include understanding person specific
+andenvironmentspecificbarriersandfacilitatorsthat
+influence health and function in people with disabil-
+ities and validating smart rehabilitation intervention
+strategies.
+Ho Keun Kim is a software engineer working in
+Rubrik Inc. He received a Bachelor’s degree in Com-
+puterScienceandMathematicsatGeorgiaInstituteof
+Technology.Hisinterestsincludeartificialintelligence,
+dataanalysis,andmachinelearning.
+Zackory Erickson isaPh.D.studentatGeorgiaInsti-
+tuteofTechnology,whereheworksintheHealthcare
+RoboticsLabandisadvisedbyProfessorCharlieKemp.
+His research focuses on enable robots to more in-
+telligently interact with and assist people through
+physics-basedsimulation,hapticperception,anddata-
+driven learning. He received a B.S. at the University
+ofWisconsin-LaCrossewithmajorsinbothcomputer
+scienceandmathematics.
+
+--- Page 17 ---
+D. Park, Y. Hoshi, H.P. Mahajan et al. / Robotics and Autonomous Systems 124 (2020) 103344 17
+Wendy A. Rogers , Ph.D., is Shahid and Ann Carlson
+KhanProfessorofAppliedHealthSciencesintheDe-
+partmentofKinesiologyandCommunityHealthatthe
+UniversityofIllinoisUrbana-Champaign.SheistheDi-
+rectoroftheHealthTechnologyEducationProgram;the
+Program Director of CHART: Collaborations in Health,
+Aging,Research,andTechnology;andtheDirectorof
+theHumanFactorsandAgingLaboratory.Herresearch
+interests include design for aging; technology accep-
+tance; human-automation interaction; aging-in-place;
+human-robot interaction; and aging with disabilities.
+SheisfundedbytheNationalInstituteonAgingthroughtheCenterforResearch
+and Education on Aging and Technology Enhancement (CREATE); and the
+NationalInstituteonDisability,IndependentLiving,andRehabilitationResearch
+through the RERC on Technologies to Support Aging-in-Place for People with
+Long-TermDisabilities(TechSAge).
+Charles C. Kemp is an Associate Professor at the
+GeorgiaInstituteofTechnologyintheDepartmentof
+Biomedical Engineering. He also has adjunct appoint-
+ments in the School of Interactive Computing and
+the School of Electrical and Computer Engineering.
+He earned a doctorate in Electrical Engineering and
+Computer Science (2005), an M.Eng., and B.S. from
+MIT.In2007,hefoundedtheHealthcareRoboticsLab
+atGeorgiaTech(http://healthcare-robotics.com),which
+focusesonmobilemanipulationandhuman–robotin-
+teraction. He is an active member of the Institute
+for Robotics and Intelligent Machines ([IRIM@GT]) and Georgia Tech’s multi-
+disciplinaryRoboticsPh.D.program.Hehasreceivedthe3MNon-tenuredFaculty
+Award, the Georgia Tech Research Corporation Robotics Award, and the NSF
+CAREERaward.

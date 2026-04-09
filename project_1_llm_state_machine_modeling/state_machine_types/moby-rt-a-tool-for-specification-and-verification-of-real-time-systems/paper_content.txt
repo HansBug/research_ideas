@@ -1,0 +1,673 @@
+--- Page 1 ---
+Moby/RT :AT o o lf o r
+Speciﬁcation and Veriﬁcation of Real-Time Systems
+Ernst-R¨ udiger Olderog
+(Department of Computing Science
+University of Oldenburg
+olderog@informatik.uni-oldenburg.de)
+Henning Dierks
+(Department of Computing Science
+University of Oldenburg
+dierks@informatik.uni-oldenburg.de)
+Abstract: The tool Moby/RT supports the design of real-time systems at the
+levels of requirements, design speciﬁcations and programs. Requirements are ex-
+pressed by constraint diagrams [Kleuker, 2000], design speciﬁcations by PLC-Autom-ata [Dierks, 2000], and programs by Structured Text, a programming language dedi-cated for programmable logic controllers (PLCs), or by programs for LEGO Mindstormrobots. In this paper we outline the theoretical background of Moby/RT by discussing
+its semantic basis and its use for automatic veriﬁcation by utilising the model-checker
+UPPAAL [Larsen et al., 1997].
+Key Words: real-time, speciﬁcation, formal veriﬁcation, requirements’ capture, Con-
+straint Diagrams, PLC-Automata
+Category: D2.1, D2.2, D2.4, D4.7, F3.1, F4.1
+1 Introduction
+Real-time systems are reactive systems where reactions to certain inputs have to
+occur within given time intervals. When designing real-time systems one has
+to bridge several levels of abstraction: requirements, speciﬁcations, software,
+and hardware. For these levels diﬀerent computational models for real-time sys-
+tems have been proposed. At the requirements and speciﬁcation level models
+based on the continuous time domain Time =R≥0are prevailing. Suitable log-
+ics for describing properties of such models are higher-order logic or Timed
+Computation Tree Logic (TCTL, [Henzinger et al., 1994]) or Duration Cal-
+culus [Zhou Chaochen et al., 1991, Hansen and Zhou Chaochen, 1997]. Opera-
+tional descriptions for such models are Timed Automata [Alur and Dill, 1994].
+At the software level models based on the discrete time domain Time =
+Nare often used. Declarative descriptions use Computation Tree Logic (CTL,
+[Clarke et al., 1986]), operational descriptions use Kripke structures. Discretetime models also underly synchronous languages like ESTEREL [ESTEREL].
+At the hardware level task systems are used as a basis for scheduling analysis.
+Our approach to modelling real-time systems is based on the following
+choices. We use continuous time Time =R
+≥0and model real-time systems by aJournal of Universal Computer Science, vol. 9, no. 2 (2003), 88-105
+submitted: 14/10/02, accepted: 14/2/03, appeared: 28/2/03   J.UCS
+
+--- Page 2 ---
+set of observables obs:Time →Dobs. As demonstrated in the research project
+ProCoS [He Jifeng et al., 1994, Schenke and Olderog, 1999] this approach is ﬂex-ible to describe systems at various level of detail. Properties of these observ-
+ables we describe in the Duration Calculus, an interval-based logic and calculus
+for real-time systems. Duration Calcul us serves both as a high-level speciﬁca-
+tion language for real-time systems and as a basis for giving the semantics of
+other speciﬁcation languages. At the implementation level we assume that re-
+actions take time . To formalise this, we use PLC-Automata [Dierks, 2000] as
+design speciﬁcations. Unlike Timed Automata, PLC-Automata can be imple-
+mented directly on a widespread hardware platform, the Programmable Logic
+Controllers (PLCs for short). To verify properties of PLC-Automata we rely on
+their translation into Timed Automata and use the model-checker UPPAAL
+[Bengtsson et al., 1996, Larsen et al., 1997].
+This paper is organised as follows. Section 2 gives a brief introduction to Du-
+ration Calculus. Section 3 describes how real-time requirements are described by
+constraint diagrams. Sectio n 4 presents PLC-Automata as a means for describing
+design speciﬁcations. Section 5 explains how to verify that PLC-Automata sat-
+isfy constraint diagrams by using Timed Automata. Section 6 gives an overview
+of the tool Moby/RT . Finally, Section 7 concludes the paper.
+2 Duration Calculus
+Duration Calculus (DC for short) is a real-time logic and calculus for
+interval-based properties of observables [Zhou Chaochen et al., 1991,
+Hansen and Zhou Chaochen, 1997]. From interval temporal logic
+[Moszkowski, 1985] the DC inherits the chop operator “ ;”a n dt h e length
+operator /lscript.Af o r m u l a F;Gh o l d so na ni n t e r v a l[ b,e] if this can be chopped into
+two adjacent subintervals [ a, m]a n d[ m, e] such that Fholds on [ a, m]a n d G
+holds on [ m, e]. Using the chop the two modalities 3(for some subinterval) and
+2(for all subintervals) can be introduced as abbreviations:
+3Fdf=true;F;true and 2Fdf=¬3¬F
+For a given interval [ b,e] the operator /lscriptmeasures its length e−b. Addi-
+tionally, DC has the integral (orduration )o p e r a t o r/integraltext
+. For illustration con-
+sider the gas burner example studied in the ProCoS project [Ravn et al., 1993,
+He Jifeng et al., 1994].
+Example 1. A gas burner is safety critical because a gas leak might lead to an
+explosion. Thus the controller of a gas burner must be constructed in such a way
+that the leak time of gas is only a small percentage of the overall operation time.
+Using a Boolean observable Leak:Time −→ {0,1}the top level safety property89Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 3 ---
+can be formalised in DC as the following real-time requirement R:
+Rdf=2(/lscript≥60 =⇒20·/integraltext
+Leak≤/lscript)
+This requirement states that f or every subinterval (operator 2) which has a
+length (operator /lscript) of at least 60 seconds the accu mulated duration of leaks
+(formalised by the integral operator/integraltext
+applied to the observable Leak) should be
+at most 5% of the length of the considered subinterval (or equivalently, 20 times
+the duration should be at most the length of the subinterval). Figure 1 exhibitstiming diagrams for the observable Leakdepending on the observables Gasand
+Flame by the expression Gas∧¬Flame .
+/0/0/0/0 /0 /0/0 /0 /0/0/0/0
+/1/1/1/1 /1 /1/1 /1 /1/1/1/1
+010101
+/0/0/0/0/0 /0/0 /0/0 /0/0 /0/0/0/0/0
+/1/1/1/1/1 /1/1 /1/1 /1/1 /1/1/1/1/1Gas
+Flame
+Leak
+60
+Figure 1: Gas burner safety requirement
+We pursue a logic-based approach where the semantics is given by DC for-
+mulae. Thus for both requirements reqand design speciﬁcations specwe shall
+deﬁne a corresponding DC semantics DC(req)a n d DC(spec). This is trivial if
+a requirement is already given as a DC formula as in the case of Rabove, but
+in the following sections we shall meet graphical languages for requirements and
+speciﬁcations where separate s emantics needs to be deﬁned.
+An advantage of this setting is that correctness orsatisfaction can be mod-
+elled by logical implication: for any speciﬁcation specand requirement req
+specsatisﬁes reqiﬀDC(spec)⇒DC(req).
+In general, when the DC formulae for specandrequse diﬀerent sets of (abstract
+and concrete) observables aandc, we need a data invariant between aandc
+expressed as a DC formula link a,c.T h e n
+specsatisﬁes reqiﬀDC(spec)c∧link a,c⇒DC(req)a.90Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 4 ---
+High-level DC formulae like Rare easy to understand but diﬃcult to imple-
+ment. For a lower level of abstraction that is more easily implementable, DC
+implementables have been introduced in [Ravn, 1995] as a subset of DC. This
+subset makes use of the following abbreviations where Sis a state expression, F
+is an arbitrary DC formula, and s, t∈Time:
+point interval : ⌈⌉df=/lscript=0
+everywhere : ⌈S⌉df=/integraltext
+S=/lscript∧/lscript>0
+followed-by : F−−→⌈S⌉df=2¬(F;⌈¬S⌉)
+timed up-to : F≤s−−→⌈S⌉df=(F∧/lscript≤s)−−→⌈S⌉
+timed leads-to :Ft−−→⌈S⌉df=(F∧/lscript=t)−−→⌈S⌉
+Informally, ⌈S⌉requires that the state expression Sholds almost everywhere
+on a non-point interval. F−−→⌈S⌉requires that whenever a pattern given by a
+formula Fis observed, it will be “followed by” an interval where Sholds. In the
+“up-to” form the pattern is bounded by a length “up to” s, and in the “leads-to”
+form this pattern is required to have a length t.
+DC-Implementables are certain patterns where πis a state expression in some
+observable Xandϕis a state expression in observables Ydistinct from X.
+Initialisation : ⌈⌉ ∨ ⌈π⌉;true
+Sequencing : ⌈π⌉−−→⌈π∨π1∨...∨πn⌉
+Progress : ⌈π⌉t−−→⌈¬π⌉
+Synchronisation : ⌈π∧ϕ⌉t−−→⌈¬π⌉
+Stability : ⌈¬π⌉;⌈π∧ϕ⌉−−→⌈π∨π1∨...∨πn⌉
+and⌈¬π⌉;⌈π∧ϕ⌉≤t−−→⌈π∨π1∨...∨πn⌉
+The sequencing pattern requires that wh en the real-time system is currently in
+phase πit may stay there or evolve to one of the phases π1, ..., π n.S y n c h r o n i -
+sation requires that when phase πand condition ϕhold for tseconds then the
+system has to leave the phase π.W i t h ϕbeing true, synchronisation specialises
+to progress. Stability observes the system from the moment when the phase π
+starts and assumes condition ϕto hold. In the ﬁrst case of unbounded stability
+it requires a future behaviour as the sequencing constraint. In the second case
+ofbounded stability the sequencing behaviour is guaranteed only for tseconds.
+3 Requirements: Constraint Diagrams
+To help non-specialists using our approach we conceal the details of DC as much
+as possible. Therefore we use a graphic notation called constraint diagrams ,
+abbreviated CDs, to formalise real-time requirements. These diagrams were in-
+troduced in [Dietz, 1996] and further investigated in [Kleuker, 2000]. A CD de-
+scribes the required real-time behaviour of observables using an assumption-
+commitment paradigm.91Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 5 ---
+Example 2. Awatchdog continuously checks an input signal S.I fShas been
+absent for more than 10 seconds an alarm Ashould be raised within 1 second.
+To model this system we consider two Boolean observables
+S:Time −→ {0,1}and A:Time −→ {0,1}.
+The following CD speciﬁes the behaviour required for these two observables:
+S
+¬S
+10
+A
+A
+s
+[0,1]
+The two horizontal lines describe the behaviour of SandAin isolation. The
+arrow gives the link between SandA. Informally, the diagram represents an
+implication: if for a duration of 10 seconds ¬Swas observed ( assumption )t h e n
+within 1 second a period where Aholds has to occur ( commitment ). The boxes
+around Aand [0 ,1] indicate that these are commi tments whereas the remaining
+parts are all assumptions. The dashed parts of the lines represent arbitrary
+behaviour of SandAand abbreviate the predicate true.
+The general form of CDs is illustrated by the following diagram about observables
+Xi, ..., X j.
+Xi
+πi
+1
+˜πi
+1
+ πi
+2
+˜πi
+2
+[c, d]
+πi
+m
+˜πi
+m
+...
+Xj
+πj
+1
+˜πj
+1
+ πj
+2
+˜πj
+2
+ πj
+n
+˜πj
+n
+
+[a, b]
+^
+[e,f]
+For each of these observables a sequence of phases is displayed where for each
+phase an assumption πi
+kand a commitment ˜ πi
+kwithk∈{1, ..., n}may be stated.
+Arrows with assumed time intervals like [ a, b] or committed time intervals like
+[e,f] may link these phases. Also the phases may have assumed lengths like [ c, d]
+or committed lengths.
+3.1 DC Semantics of CDs
+The formal semantics of a CD is deﬁned by a DC formula of the form
+∀x∈Time •Assumptions (x)=⇒∃y∈Time •Commitments (x,y)92Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 6 ---
+where xandyare (lists of) variables ranging over Time. The details of this
+deﬁnition can be found in [Kleuker, 2000].
+Example 3. The semantics of the watchdog CD of Example 2 is given by the
+following DC formula:
+∀x∈Time •/lscript=x;(⌈¬S⌉∧/lscript= 10) ;true (1)
+=⇒∃y∈Time •Pref(/lscript=y;⌈A⌉;true)∧ (2)
+y−(x+ 10) ∈[0,1] ) (3)
+Line (1) describes the assumed phase sequence for the observable Sstarting in
+a phase of unknown length x, followed by a phase of length 10 where ¬Sholds,
+followed by an arbitrary phase. Line (2) describes the committed phase sequence
+for the observable A, namely that after a phase of length ya phase occurs where
+Aholds. Line (3) represents the committed time interval [0,1] at the arrow from
+¬StoAby requesting that the length diﬀerence y−(x+ 10) is in this time
+interval. We have not yet explained the meaning of the operator Prefin line (2).
+It requests that only a preﬁx of the commitment /lscript=y;⌈A⌉;truehas to match
+the assumption /lscript=x;(⌈¬S⌉∧/lscript= 10) ;true. This is relevant in case the ﬁnal
+phase truein the assumption is too short to accommodate the maximal delay
+time of 1 for the alarm Ato hold. In other words, only when we have observed
+the observables Slong enough, the commitment guarantees that Aoccurs.
+3.2 Expressiveness
+In [Kleuker, 2000] it is shown that conjunctions of CDs are Turing powerful. More
+precisely, by exploiting the density of the continuous time domain Time =R≥0,
+it is shown that conjunctions of CDs can express the behaviour of any given two
+counter machine. This is shown by giving CDs for all the DC formulae used in the
+proof of [Zhou Chaochen et al., 1993] that the DC can express the behaviour of
+any given two counter machine. As a consequence, it is not decidable whether a
+given set of CDs represents a satisﬁable real-time requirement. In [Kleuker, 2000]also the following speciﬁc result on expressiveness is shown.
+Theorem 1. DC-Implementables can be expressed by CDs.
+For illustration we exhibit two cases treated in the proof of this theorem. We
+assume that πis a state expression in the observable Xand that ϕis a state
+expression in observables Ydistinct from X.
+–Initialisation : the implementable ⌈⌉ ∨ ⌈π⌉;
+trueis expressed by the CD
+X
+π
+93Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 7 ---
+–Synchronisation : the implementable ⌈π∧ϕ⌉t−−→⌈¬π⌉is expressed by the
+CD
+X
+π
+t
+¬π
+Y
+ϕ
+?0
+?0
+4 Design Speciﬁcations: PLC-Automata
+Participation in the research project UniForM [Krieg-Br¨ uckner et al., 1999]
+triggered our interest in Programmable Logic Controllers , abbreviated PLCs
+[IEC, 1993, Lewis, 1995]. This simple type of processor is widespread in automa-
+tion industry. The characteristics of PLCs are interesting because they provide
+a means of implementing real-time systems. A PLC performs the following non-
+terminating cycle:
+loop forever do
+•pollsensors: input;
+•compute next state; ←−timers
+•update actuators: output
+od
+PLCs oﬀer timers that can be set to a cer tain desired time and tested whether
+this time has elapsed. The computation of the next state can depend on these
+timers. We assume an upper bound εPLCfor the cycle time. The timing be-
+haviour of a PLC can be depicted in Figure 2.
+In [Dierks, 2000] a formal model for specifying the body of the PLC cycle
+was introduced, the PLC-Automaton, which can be represented graphically.
+Example 4. The PLC-Automaton in Figure 3 models a watchdog. It has three
+states q0,q1,q2and reacts to inputs sandn(abbreviating signal andno signal )
+with outputs OK,Test,a n d Alarm . Every state has two annotations in the
+graphical representation. The upper one denotes the output of the state, forinstance in state q
+0the output is OKa n di ns t a t e q2the output is Alarm .T h e
+lower annotation is either 0 or a pair ( d, S) consisting of a real number d>0
+and a subset Sof inputs.
+We formalise this graphic notation using an automata-like structure extended
+by some components.
+Deﬁnition 2. APLC-Automaton is a tuple A=(Q,Σ,δ,q 0,ε,S t,Se,Ω,ω)w i t h
+the following components:94Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 8 ---
+Input
+PLC
+Outputcomputing computing
+computingpolling
+polling
+pollingupdating
+updating
+updating
+polling
+max. cycle time max. cycle time max. cycle timeinput values
+output values
+Time
+Figure 2: Cyclic behaviour of a PLC
+q1q20OKs
+sAlarm
+0s,n
+Test
+q0nn  9,{  }n
+Figure 3: An example of a PLC-Automaton.
+–Qis a nonempty, ﬁnite set of states,
+–Σis a nonempty, ﬁnite set of inputs ,
+–δ:Q×Σ−→Qis the transition function ,
+–q0∈Qis the initial state ,
+–ε>0i st h e upper bound for a cycle,
+–St:Q−→R≥0is a function assigning to each state qadelay time ,
+–Se:Q−→ P (Σ) is a function assigning to each state a set of delayed inputs ,1
+–Ωis a nonempty, ﬁnite set of outputs ,a n d
+–ω:Q−→Ωis the output function .
+1IfSt(q)=0t h es e t Se(q) can be arbitrarily chosen. The single 0 represents this in
+the graphical notation (cf. Figure 3).95Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 9 ---
+The components Q,Σ,δ,q0,Ωandωare as in ﬁnite state Moore automata. The
+additional components are needed to model a polling behaviour and to enrichthe language for dealing with real-time aspects. The εrepresents the upper time
+bound for a polling cycle and enables us to model this cycle in the semantics.
+The delay function S
+tandSerepresent the annotations of the states. In the case
+ofSt(q)=0n od e l a yt i m ei sg i v e na n dt h ev a l u e Se(q) is arbitrary. If the delay
+timeSt(q) is greater than 0 the set Se(q) denotes the set of inputs for which the
+delay time is valid.
+4.1 DC Semantics of PLC-Automata
+A PLC-Automaton describes the behaviour of the system in the computation
+phase. The operational behaviour is similar to a ﬁnite state machine, i.e. depend-
+ing on the polled input value the system changes both its state and its output.
+The behaviour is modiﬁed in only one case: if
+–the annotation of the current state is ( d, S)and
+–the polled input is in Sand
+–the current state does not hold longer than dseconds,
+then no transition is executed.
+Example 5. The PLC-Automaton of Figure 3 should raise an alarm when the
+signal shas been absent for more than 10 seconds. To do so it starts in state q0
+outputting OKand remains there as long as it reads the input s(signal present).
+T h eﬁ r s tt i m ei tr e a d s n(no signal ) it switches to state q1outputting Test.I nq1
+the automaton reacts to the input sby moving back to state q0independently
+of the time it stayed in state q1. It reacts to the input nby switching to state q2
+provided that q1holds longer than 9 seconds. Once the automaton has entered q2
+it remains there forever. Hence, we know that the automaton changes its output
+toAlarm when the input nholds a little bit longer than 9 seconds (the cycle
+time has to be considered, see subsection 4.2).
+Given a PLC-Automaton A=(Q, Σ, δ, q 0,ε ,S t,Se,Ω ,ω ), its formal
+semantics is expressed in terms of the observables
+inputA:Time −→Q,state A:Time −→Σ,outputA:Time −→Ω
+by a DC formula of the form DC(A)df=/logicalandtext11
+j=1DCjwhere e.g.
+DC1df=⌈⌉ ∨ ⌈state A=q0⌉;true
+states that the initial state is q0,a n d
+DC3df=⌈state A=q∧inputA∈A⌉ε−−→⌈state A=q∨state A∈δ(q,A)⌉96Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 10 ---
+formalises that state change depends only on the inputs during the last cycle
+period of εseconds. For more details we refer the reader to [Dierks, 2000].
+4.2 Timing Analysis
+Based on the DC semantics we can calculate upper bounds of the reaction time
+of PLC-Automata to particular input stimuli. For n≥0 the notation δn(Q0,Σ0)
+describes the set of all states that are reachable from states of the set Q0byn
+steps of the transition function δusing inputs from set Σ0.F o r n= 0 we put
+δ0(Q0,Σ0)=Q0.
+Theorem 3. For a PLC-Automaton A=(Q, Σ, δ, q 0,ε ,S t,Se,Ω ,ω )with
+Q0⊆Q, Σ 0⊆Σ,δ(Q0,Σ0)⊆Q0,andn≥0the following holds:
+⌈state A∈Q0∧input A∈Σ0⌉cn−−→⌈state A∈δn(Q0,Σ0)⌉
+where the upper bound of the reaction time is
+cn=ε+m a x
+
+k/summationdisplay
+i=1s(qi,Σ0)/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsinglek≤n∧
+∃q
+1,...,q k∈Q0\δn(Q0,Σ0):
+∀1≤j<k :qj+1∈δ(qj,Σ0)
+
+(4)
+with
+s(q,Σ 0)=/braceleftbiggSt(q)+2·εifSt(q)>0∧Σ0∩Se(q)/negationslash=∅
+ε otherwise(5)
+Proof. Intuitively, the formula (4) calculates the worst case reaction time of all
+paths from Q0toδn(Q0,Σ0). For each transition step in such a path starting
+in a state qthe formula (5) checks whether there is a delay input in Σ0and
+calculates the reaction times accordingly. For details see [Dierks, 2000]. 2
+Example 6. For the PLC-Automaton of Figure 3 the above theorem yields
+⌈state A∈Q∧inputA=n⌉9+4·ε−−−−→⌈state A∈{q2}⌉.
+Thus by choosing ε≤1
+4for the cycle time of the PLC-Automaton the desired
+reaction time of 10 seconds to the absence of a signal sis guaranteed.
+4.3 Synthesis
+Starting from requirements given as a set of DC implementables – which by
+Theorem 1 can be expressed by CDs – it is possible to synthesise a PLC-Autom-
+aton satisfying these requirements provided they are consistent.97Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 11 ---
+Theorem 4. There is an eﬃcient algorithm which for a given ﬁnite set
+Req⊆DC-Implementables
+in the observables input Aandoutput A
+–decides whether Reqis satisﬁable and if so
+–outputs a PLC-Automaton Asatisfying Req, i.e. with DC(A)⇒Req.
+Proof. See [Dierks, 1999].
+4.4 PLC-Software
+For PLCs several dedicated programming notations have been devised
+[IEC, 1993, Lewis, 1995]. Closest to conventional imperative programming lan-guages is the Structured Text , abbreviated ST. PLC-Automata can be easily
+compiled into ST.
+Example 7. Below we show an ST program PRG
+WATCH implementing the PLC-
+Automaton of Figure 3. In ST timers are declared as variables of a special type
+TP. The program PRG
+WATCH contains a declaration of such a variable called
+timer . The statement timer(IN:=TRUE,PT:=t#9.0s) switches the timer on and
+sets it to 9 seconds. This statement is executed when entering state 1. The
+condition NOT timer.Q is true as soon as the timer has expired. This condition
+has to be met in order to react to the input nby switching to the alarm state
+2. The statement timer(IN:=FALSE,PT:=t#0.0s) switches the timer oﬀ. It is
+executed when leaving state 1.
+PROGRAM PRG
+ WATCH
+VAR
+state : INT := 0; (* 0 for OK, 1 for Test, 2 for Alarm *)timer : TP;
+ENDVAR
+IF state=0 THEN
+%output:=OK;IF %input = n THEN
+state:=1; %output:=Test;
+ENDIF
+ELSIF state=1 THEN
+timer(IN:=TRUE,PT:=t#9.0s);IF (%input = n AND NOT timer.Q) THEN
+state:=2; %output:=Alarm;timer(IN:=FALSE,PT:=t#0.0s);
+ELSIF %input = s THEN
+state:=0; %output:=OK;timer(IN:=FALSE,PT:=t#0.0s);
+ENDIF
+(* do nothing if state=2 *)
+ENDIF98Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 12 ---
+5 Veriﬁcation: Timed Automata
+Since the tool support for DC with continuous time is not very much developed
+(see, however, [Tapken, 2001, Dierks and Tapken, 2003]), we verify properties
+of PLC-Automata with the help of existing tools for Timed Automata. Thisrequires an alternative semantics of PLC-Automata and constraint diagrams in
+terms of Timed Automata.
+5.1 TA Semantics of PLC-Automata
+We represent the semant ics of a PLC-Automaton Aby a Timed Automaton
+TA(A). To this end, TA(A) uses three clocks, the ﬁrst one measures how long the
+current input is stable, the second measures the time spent in the current state,
+a n dt h et h i r dm e a s u r e st h et i m ee l a p s e d in the current cycle. The equivalence
+of the two semantics can be stated as follows:
+Theorem 5. For every PLC-Automaton Aits TA semantics is equivalent to a
+strong version of its DC semantics:
+TA(A)≈DC
+strong(A)where DCstrong(A)⇒DC(A)
+Proof idea. The equivalence ≈relates the runs of TA(A) with the interpreta-
+tions satisfying DCstrong(A), which is like DC(A) but with more DC formulae
+conjoined. For details see [Dierks et al., 1998]. 2
+5.2 Automatic Veriﬁcation
+For certain patterns of constraint diagrams C– among them DC implementables
+– timed test automata TA(C) can be generated. These test automata have a
+distinguished state bad.
+Theorem 6. For PLC-Automata Aand constraint diagrams Cof the considered
+patterns the following holds:
+DC(A)⇒DC(C)iﬀTA(A)||TA(C)/negationslash|=∃3atbad
+Proof. Thus Asatisﬁes the requirement Cif the state badis not reachable in
+the parallel composition of the timed automata for AandC.U s i n gt h em o d e l -
+checker UPPAAL this reachability question can be veriﬁed automatically. For
+details see [Lettrari, 2000, Dierks and Lettrari, 2002]. 2
+Example 8. We reconsider the speciﬁcation g iven in Figure 3 and require the
+system to satisfy
+⌈outputA/negationslash=Alarm ∧inputA=n⌉10−−→⌈outputA=Alarm ⌉.99Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 13 ---
+This formula is a synchronisation property as deﬁned in Section 2 (with πdf=
+(outputA/negationslash=Alarm ),ϕdf=(inputA=n), and t=1 0 .A se x p l a i n e di nS e c t i o n3
+the following CD expresses this property:
+outputA
+¬Alarm
+10
+Alarm
+inputA
+n
+?0
+?0
+The CD forbids periods in which the signal is not present ( inputA=n)a n dt h e
+alarm is not set that hold more than 10 seconds. The test automaton generated
+for this CD is sketched in Figure 4.
+init badtrue
+¬Alarm ∧n
+c:=0¬Alarm ∧n
+¬Alarm ∧c=1 0
+c:=0¬Alarm
+¬Alarm ∧c>0
+Figure 4: Sketch of a test automaton for a synchronisation.
+6O v e r v i e w o f Moby/RT
+The tool Moby/RT implements all theoretical resu lts presented in the previous
+sections within a single framework. It comprises
+–graphical editors for CDs and PLC-Automata,
+–a simulator for networks of PLC-Automata with recording and playback
+functionality,
+–compilers generating code from (networks of) PLC-Automata into the pro-
+gramming language ST for (networks of) PLCs and for (infrared networks
+of) LEGO Mindstorms (so-called RCX bricks)2,
+–an algorithm for the analysis of reaction times as described in Section 4.2,
+–a synthesis algorithm for generating PLC-Automata from DC implementa-
+bles as described in Section 4.3,
+2Actually, for Mindstorms Moby/RT generates C++ code that can be compiled into
+executable code for the open source operating system “brickOS” (formerly known as“legOS”) for Mindstorms.100Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 14 ---
+–algorithms exploiting Theorem 6 enabling the user to verify speciﬁcations
+(PLC-Automata) against requirements (CDs) even without knowing the the-ory behind it.
+For the last point the tool oﬀers the translation of an arbitrary set of PLC-
+Automata together with a CD into the input syntax of UPPAAL. Moreover, the
+necessary invocation is done automatically and the results of the model-checker
+are presented to the user appropriately: ei ther the requirement is satisﬁed or the
+model-checker returns a counter exampl e. In the latter case the counter example
+can be executed by the simulator of Moby/RT .
+The art of model-checking is to avoid the state explosion. Moby/RT helps
+to do this by applying abstractions on the timed automata models. These ab-
+stractions are speciﬁed by the user by se lecting entities of PLC-Automata like
+variables or delays before the translation into UPPAAL input takes place. If
+these abstractions are applied, there are three possible outcomes of the model-checking process:
+–The property (a CD) is satisﬁed for t he abstracted model. Then the CD
+holds also for the full model due to the construction of the abstractions.
+–The property does not hold for the abstracted model and the model-checker
+returns an abstract counter example. In this case Moby/RT invokes UP-
+PAAL again with the fullmodel together with a special test automaton
+which is generated from th e (abstract) counter exam ple. The outcome of the
+second model-checking process determines the ﬁnal result:
+•If UPPAAL returns another counter example, then it is a counter exam-
+ple of the full model for the original CD due to the construction of the
+special test automaton.
+•Otherwise the abstractions applied to the model were too coarse.
+All this can be done by the user without learning to use UPPAAL. The archi-
+tecture of Moby/RT is given in Figure 5.
+Figure 6 demonstrates the “look and feel” of Moby/RT . It shows a screen-
+shot of a system that consists of a single PLC-Automaton (uppermost box) that
+corresponds to the automaton in Figure 3. The diﬀerences are the additional
+concept of typed variables and assignments to them when transitions are taken.
+M o r e o v e r ,l o o pt r a n s i t i o n sc a nb eo m i t t e di n Moby/RT .I ti se v e na l l o w e dt o
+structure the PLC-Automata and their states hierarchically as in state charts[Harel, 1987] (not shown in Figure 6).
+Each of the two boxes in the middle represent a CD. Since both CDs belong
+to the patterns for which a TA semantics is given (“testable”), model-checking
+is possible. The results are displayed in the nodes below the CDs, saying that101Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 15 ---
+Design Analysis
+RequirementsEditor
+for CDsUPPAAL
+SpeciﬁcationsEditor for
+PLC-AutomataSimulator
+Programs ST C++
+Hardware PLCs RCXSynthesisCounter
+examples
+Visuali-
+sation
+Figure 5: Architecture of Moby/RT
+the current model has not changed semantically since the last model-checking
+attempt (“Export: valid”), that the result of the model-checking was positive
+(“Result: passed”), and that hence no simulation of a counter example is available
+(“Simﬁle: no”). The CD on the left requires the system to hold output Testless
+than 9.5 seconds. The CD on the right is the one of Example 8.
+7C o n c l u s i o n
+During the UniForM project [Krieg-Br¨ uckner et al., 1999] Moby/RT has been
+successfully used to model and simulate two industrial case studies for railwaycontrol [Dierks, 2000]. Recently Moby/RT has been applied to specify and gen-
+erate code for the LEGO Mindstorm platform [LEGO]. In the future we plan to
+extend this work to cooperating autonomous systems.
+Model checking in the continuous time domain using UPPAAL is eﬃcient
+but nevertheless quickly meets its limits as the number of clocks grow. In
+[Toben, 2001] ﬁrst results were obtained on how to apply discrete time model
+checkers for verifying properties of PLC-Automata, without loosing any infor-mation about the underlying continuous time model.
+Acknowledgements
+Moby/RT has been developed on top of two student projects and several Mas-
+ter and PhD theses. We are particularly grateful to the following people: Hans102Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 16 ---
+Figure 6: Screen-shot of Moby/RT
+Fleischhack, Cheryl Kleuker, Marc Lettrari, Marco Oetken, Josef Tapken and
+Tobe Toben.
+References
+[Alur and Dill, 1994] Alur, R. and Dill, D. (1994). A theory of timed automata. TCS ,
+126:183–235.
+[Bengtsson et al., 1996] Bengtsson, J., Larsen, K., Larsson, F., Pettersson, P., and
+Wang Yi (1996). Uppaal – a Tool Suite for Automatic Veriﬁcation of Real-Time
+Systems. In Alur, R., Henzinger, T., and Sontag, E., editors, Hybrid Systems III ,
+volume 1066 of LNCS . Springer. 232–243.
+[Clarke et al., 1986] Clarke, E., Emerson, E., and Sistla, A. (1986). Automatic veri-
+ﬁcation of ﬁnite-state concurrent systems using temporal logic speciﬁcations. ACM
+TOPLAS , 8:244–263.
+[Dierks, 1999] Dierks, H. (1999). Synthesizing Controllers from Real-Time Speciﬁ-
+cations. IEEE Transactions on Computer-Aided Design of Integrated Circuits and
+Systems , 18(1):33–43.
+[Dierks, 2000] Dierks, H. (2000). PLC-Automata: A New Class of Implementable Real-
+Time Automata. TCS , 253(1):61–93.
+[Dierks et al., 1998] Dierks, H., Fehnker, A., Mader, A., and Vaandrager, F. (1998).
+Operational and Logical Semantics for Polling Real-Time Systems. In Ravn, A.
+and Rischel, H., editors, FTRTFT’98 , volume 1486 of LNCS , pages 29–40, Lyngby,
+Denmark. Springer.
+[Dierks and Lettrari, 2002] Dierks, H. and Lettrari, M. (2002). Constructing Test Au-
+tomata from Graphical Real-Time Requirements. In Damm, W. and Olderog, E.-R.,103Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 17 ---
+editors, FTRTFT 2002 , volume 2469 of LNCS , pages 433–453, Oldenburg, Germany.
+Springer.
+[Dierks and Tapken, 2003] Dierks, H. and Tapken, J. (2003). Moby/DC — A Tool for
+Model-Checking Parametric Real-Time Speciﬁcations. In Tools and Algorithms for
+the Construction and Analysis of Systems (TACAS) , LNCS. Springer.
+[Dietz, 1996] Dietz, C. (1996). Graphical Formalization of Real-Time Requirements.
+In Jonsson, B. and Parrow, J., editors, Formal Techniques in Real-Time and Fault-
+Tolerant Systems , volume 1135 of LNCS , pages 366–385, Uppsala, Sweden. Springer.
+[ESTEREL] ESTEREL. The ESTEREL language.
+Seehttp://www-sop.inria.fr/meije/esterel/esterel-eng.html .
+[Hansen and Zhou Chaochen, 1997] Hansen, M. and Zhou Chaochen (1997). Duration
+Calculus: Logical Foundations. FAC , 9:283–330.
+[Harel, 1987] Harel, D. (1987). Statecharts: A Visual Formalism for Complex Systems.
+Science of Computer Programming , 8(3). 231–274.
+[He Jifeng et al., 1994] He Jifeng, Hoare, C., Fr¨ anzle, M., M¨ uller-Olm, M., Olderog,
+E.-R., Schenke, M., Hansen, M., Ravn, A., and Rischel, H. (1994). Provably CorrectSystems. In Langmaack, H., de Roever, W.-P., and Vytopil, J., editors, Formal
+Techniques in Real-Time and Fault-Tolerant Systems , volume 863 of LNCS , pages
+288–335, L¨ ubeck, Germany. Springer.
+[Henzinger et al., 1994] Henzinger, T., Nicollin, X., Sifakis, J., and Yovine, S. (1994).
+Symbolic Model Checking for Real-Time Systems. Information and Computation ,
+111:193–244.
+[IEC, 1993] IEC (1993). IEC International Standard 1131-3, Programmable Con-
+trollers, Part 3, Programming Languages.
+[Kleuker, 2000] Kleuker, C. (2000). Constraint Diagrams . PhD thesis, University of
+Oldenburg.
+[Krieg-Br¨ uckner et al., 1999] Krieg-Br¨ uckner, B., Peleska, J., Olderog, E.-R., and
+Baer, A. (1999). The UniForM Workbench, a Universal Development Environment
+for Formal Methods. In Wing, J., Woodcock, J., and Davies, J., editors, FM’99 –
+Formal Methods , volume 1709 of LNCS , pages 1186–1205. Springer.
+[Larsen et al., 1997] Larsen, K., Petterson, P., and Wang Yi (1997). Uppaal in a nut-
+shell. STTT , 1(1+2):134–152.
+[LEGO] LEGO. PLC-Automata and LEGO mindstorms.
+Seehttp://semantik.Informatik.Uni-Oldenburg.DE/
+teaching/fp
+realzeitsys
+ ws0001/result/eindex.html .
+[Lettrari, 2000] Lettrari, M. (2000). Eine Testautomatensemantik f¨ ur Constraint Di-
+agrams und ihre Anwendung. Master’s thesis, University of Oldenburg, Departmentof Computer Science, Oldenburg, Germany.
+[Lewis, 1995] Lewis, R. (1995). Programming industrial control systems using IEC
+1131-3 . The institution of Electrical Engineers.
+[Moszkowski, 1985] Moszkowski, B. (1985). A Temporal Logic for Multilevel Reason-
+ing about Hardware. IEEE Computer , 18(2):10–19.
+[Ravn, 1995] Ravn, A. (1995). Design of Embedded Real-Time Computing Systems.
+Technical Report 1995-170, Technical University of Denmark.
+[Ravn et al., 1993] Ravn, A., Rischel, H., and Hansen, K. (1993). Specifying and Ver-
+ifying Requirements of Real-Time Systems. IEEE Transactions on Software Engi-
+neering , 19:41–55.
+[Schenke and Olderog, 1999] Schenke, M. and Olderog, E.-R. (1999). Transforma-
+tional design of real-time systems – Part I: From requirements to program speci-
+ﬁcations. Acta Informatica , 36:1–66.
+[Tapken, 2001] Tapken, J. (2001). Model-Checking of Duration Calculus Speciﬁcations .
+PhD thesis, University of Oldenburg.
+[Toben, 2001] Toben, T. (2001). Diskretes Model-Checking f¨ ur SPS-Automaten. Mas-
+ter’s thesis, University of Oldenburg, Department of Computer Science, Oldenburg,
+Germany.104Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...
+
+--- Page 18 ---
+[Zhou Chaochen et al., 1993] Zhou Chaochen, Hansen, M., and Sestoft, P. (1993). De-
+cidability and undecidability r esults for duration calculus. In Enjalbert, P., Finkel,
+A., and Wagner, K., editors, Symposium on Theoretical Aspects of Computer Science
+(STACS 93) , volume 665 of LNCS , pages 58–68. Springer.
+[Zhou Chaochen et al., 1991] Zhou Chaochen, Hoare, C., and Ravn, A. (1991). A Cal-
+culus of Durations. IPL, 40/5:269–276.105Oderog E.-R., Dierks H.: Moby/RT: A Tool for Specification and Verification ...

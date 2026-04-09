@@ -1,0 +1,700 @@
+--- Page 1 ---
+Innovations in Systems and Software Engineering (2022) 18:417–426
+https://doi.org/10.1007/s11334-022-00449-3
+S.I. : ATVA 2021
+AALpy: an active automata learning library
+Edi Muškardin1,2·Bernhard K. Aichernig1·Ingo Pill2·Andrea Pferscher1·Martin Tappler1,2
+Received: 21 October 2021 / Accepted: 19 February 2022 / Published online: 26 March 2022
+© The Author(s) 2022
+Abstract
+AALpy is an extensible open-source Python library providing efﬁcient implementations of active automata learning algorithms
+for deterministic, non-deterministic, and stochastic systems. We put a special focus on the conformance testing aspect in active
+automata learning, as well as on an intuitive and seamlessly integrated interface for learning automata characterizing real-world
+reactive systems. In this article, we present AALpy ’s core functionalities, illustrate its usage via examples, and evaluate its
+learning performance. Finally, we present selected case studies on learning models of various types of systems with AALpy .
+Keywords Active automata learning ·Model inference ·Testing ·Python
+1 Introduction
+Whenever facing an unknown system, we strive to learn more
+about its behavior, which in computer science terms oftentranslates to learning its language . Regular language infer-
+ence, a.k.a. automata learning or model mining, is thus a
+well-studied topic and has been an active ﬁeld ever sinceAnguin’s seminal paper [ 6]. Under appropriate abstraction,
+the input–output traces of a reactive system form a regular
+language. Consequently, a reactive system can be abstractlymodeled as a ﬁnite-state machine [ 17]. For this reason, the
+topic has gained special interest in the context of model
+checking [ 26] and software testing [ 3] of black-box systems.
+By providing formal models of black-box systems, automatalearning extends the applicability of model-based veriﬁca-
+tion techniques to a class of systems that would otherwise be
+inaccessible.
+B Martin Tappler
+martin.tappler@ist.tugraz.at
+Edi Muškardin
+edi.muskardin@student.tugraz.at
+Bernhard K. Aichernig
+aichernig@ist.tugraz.at
+Ingo Pill
+ingo.pill@silicon-austria.com
+Andrea Pferscher
+andrea.pferscher@ist.tugraz.at
+1Institute of Software Technology, Graz University ofTechnology, Graz, Austria
+2TU Graz - SAL DES Lab, Silicon Austria Labs, Graz, AustriaDespite the growing interest, there are few available
+libraries or frameworks for automata learning. The most
+notable one is LearnLib [ 18], an open-source Java library that
+is the de facto standard when it comes to tools. Compared toLearnLib, our AALpy
+1extends the scope to learning deter-
+ministic Moore machines (ONFSMs) and stochastic models.
+In addition to the support for a wide range of systems, AALpy
+aims to provide an easy-to-use API.
+Due to Python’s popularity in software engineering and
+AI, we chose to implement AALpy in Python such as to
+target a wide audience, supported also by an open-source
+MIT license. Especially important for learning models of
+black-box systems is the fact that Python increasingly servesas interface language for a wide range of software andembedded systems. Popular and inﬂuential software, like
+the machine-learning libraries Keras [ 9] and PyTorch [ 25],
+mainly provide Python APIs, and the Python ecosystemprovides a vast amount of libraries, such as Scapy [ 31]t o
+communicate with and test (embedded) software systems.
+At the time of writing, Python has just become the most pop-ular programming language according to the TIOBE index
+October 2021 [ 40].
+This article is an extended version of our tool paper [ 22]
+presented at the 19
+thInternational Symposium on Auto-
+mated Technology for Veriﬁcation and Analysis (ATV A
+2021). Additional content presented in this article covers
+applications of AALpy in several case studies (Sect. 4), an
+experimental comparison with LearnLib [ 18], and extended
+1Code, documentation, interactive examples, and a comprehensive
+Wiki can be found at https://github.com/DES-Lab/AALpy .
+123
+
+--- Page 2 ---
+418 E. Muvskardin et al.
+Black-box
+SULSUL
+Adapter
+SUL ImplementationSUL
+Interface
+Learning
+AlgorithmEquivalence
+Oracle
+Learner
+Algorithm
+ImplementationsOracle
+Implementationsparameterize algorithm
+and oracleimplements step
+and reset
+implementsprovide inputs
+and observe output
+perform steps
+and resetsprovide SUL
+outputs
+perform eq.
+queries
+User AALpy
+Fig. 1 AALpy ’s Interface and structure
+Listing 1 Learning regural expressions with AALpy
+1 class RegexSUL(SUL) :
+2 # System under learning for regular expressions
+3 def __init__(self , regex: str ):
+4 super(). __init__()
+5 self .regex = regex ifregex[ −1] == ’$’ else regex + ’$’
+6 self.test_string = ""
+7
+8 def pre( self ):
+9 self.test_string = ""
+10
+11 def post(self ):
+12 pass
+13
+14 def step(self , letter):
+15 ifletter is not None:
+16 self.test_string + = str(letter)
+17 return True ifre .match( self . regex , self . test_string ) else False
+18
+19 regex = ’((0|1) ∗0)∗1(11)∗(0(0|1) ∗1)∗0(00)∗(1(0|1) ∗)∗’\\# complement of Tomita 3 grammar
+20 alphabet = [0, 1]
+21 regex_sul = RegexSUL(regex)
+22 eq_oracle = Ra ndomWMethodEqOracle( alphabet , regex_sul )
+23 learned_automaton = run_Lstar(alphabet , regex_sul , eq_oracle , automat on_type= ’dfa’ )
+24 visualize_automaton(learned_automaton)
+descriptions of AALpy ’s features, such as the supported
+learning algorithms and equivalence oracles, both of which
+have been extended since the presentation at ATV A 2021.
+2 AALpy – Intuitive automata learning in
+python
+Key features of our library are its modular design, a
+seamlessly integrated deployment process, and support for
+learning various types of system models. Efﬁcient imple-mentations of state-of-the-art learning algorithms for deter-ministic, non-deterministic, and stochastic automata paired
+with efﬁcient conformance testing enables automata learn-
+ing in a wide variety of environments. AALpy ’s accessibility
+and usability are enhanced via extensive documentation andmultiple demonstrating examples for each of the library’s
+functionalities—complemented by visualization and logging
+capabilities. The latter may be of special interest for educa-tional purposes.
+The query-based automata learning algorithms imple-
+mented in AALpy are based on the minimally adequate
+teacher (MAT) framework by Angluin [ 6]. We particu-
+larly focus on learning models of reactive systems, whose
+123
+
+--- Page 3 ---
+AALpy: an active automata learning library 419
+input–output behavior under appropriate abstraction can be
+captured by regular languages. Learning models of suchsystems in the MAT framework lends itself nicely to a
+test-based implementation, as demonstrated in various case
+studies [ 5,11,30,35]. Algorithms in this framework alternate
+between two phases. In an exploitation phase, membershipqueries are issued to gain new information about the SUL
+related to known data. At the end of such a phase, a hypothesis
+automaton is formed from the queried data. The hypothesisand the SUL are checked against each other in an exploration
+phase via so-called equivalence queries. These queries shall
+return counterexamples to equivalence between the SUL andthe current hypothesis to falsify the latter. A counterexam-
+ple serves to reﬁne the hypothesis and to progress learning.
+Learning terminates with the ﬁnal learned hypothesis as out-put once it is not possible to falsify said hypothesis, that is,an equivalence query returns that SUL and hypothesis are
+equivalent.
+When learning models of reactive systems, membership
+queries ask for the outputs produced by the SUL in response
+to a given sequence of inputs. From a testing point of
+view, such queries can be implemented through a singletest of the SUL with the query inputs. There is no test
+verdict, but the SUL outputs are recorded by the learn-
+ing algorithm. In test-based automata learning, equivalencequeries are implemented via conformance testing—we referto implementations as equivalence oracles. Conformance
+testing derives a set of test cases from the current hypothesis
+and executes them on both SUL and hypothesis. A test caserevealing a difference in their input–output behavior is a wit-
+ness of inequivalence. Like a membership query, a test case
+essentially asks for the SUL outputs produced in responseto a sequence of inputs. Thus, we uniformly refer to both as
+queries, while using more speciﬁc terms, like “equivalence
+query,” where necessary.
+The active approach to learning in the MAT framework
+combines well with online testing, where test-case execution
+proceeds in a step-wise manner. At the beginning of each
+query, the SUL is reset to a known initial state. Then, eachinput is performed as an individual step, with the output pro-
+duced by the SUL being the result of the step. The ﬁnal result
+of a query is the sequence of outputs produced in a sequenceof steps.
+To this end, AALpy interfaces the SUL and a selected
+learning algorithm via a step-based interface. Thus, in anindividual step, an input stimulus is provided to the SUL andthen the resulting output is observed. For real-world SULs,
+interfacing the SUL and the algorithm may involve some
+abstraction and concretization, for instance, implemented viaa mapper [ 1]. When employing AALpy , a user thus in prin-
+ciple only has to deﬁne the functionality for a step, as well as
+a proper reset for the SUL in order to be able to start queriesfrom a known initial state. AALpy implements queries ass0 0
+s111
+s20
+s31
+s40
+010
+1Hypothesis 1: 1 states.
+Hypothesis 2: 4 states.Hypothesis 3: 5 states.--------------------------------Learning Finished.Learning Rounds: 3
+Number of states: 5
+Time (in seconds)Total : 0.01
+Learning algorithm : 0.0Conformance checking : 0.01
+Learning Algorithm
+# Membership Queries : 20
+# MQ Saved by Caching : 18
+# Steps : 77
+Equivalence Query
+# Membership Queries : 100
+# Steps : 1169
+--------------------------------
+Fig. 2 Output of Listing 1 Showing the visualization of the learned
+automaton (left) and learning statistics (right).
+sequences of steps and resets. If required, a user can imple-
+ment queries directly.
+When employing AALpy , a user follows a three-stage
+process:
+(a) deﬁne the SUL interface for the learning engine,
+(b) select an equivalence oracle, and(c) select, customize, and run the learning algorithm.
+In (a), three methods are to be deﬁned: pre ,post ,
+andstep (see also Listing 1). With pre , we initialize
+and setup the SUL, while post shall support a graceful
+shutdown/memory cleanup. As informally suggested above,
+step encapsulates a single step in the query execution, such
+that formally some σ∈/Sigma1from the input alphabet /Sigma1is
+mapped to a concrete input/or action for the SUL, and the
+SUL’s output is observed and reported back as a letter γin
+some output alphabet /Gamma1. Note that we do not limit alpha-
+bets to integers, characters, or strings. In particular, /Sigma1and/Gamma1
+can be lists of hashable objects, or even class methods with
+appropriate arguments.
+In (b), the user selects and parameterizes one of the equiv-
+alence oracles. The choice of oracle and its parameters will
+determine the amount and type of testing performed in theequivalence query. Hence, this oracle conﬁguration can beperformed based on the available testing budget. More details
+on available oracles can be found in Sect. 2.4.
+Finally, in (c) the user provides parameters to the appro-
+priate learning algorithm. Some of the common parameters
+are the maximum number of learning rounds, a counterex-
+ample processing strategy, and the amount of informationprinted during the learning process. Other parameters vary
+based on the chosen algorithm. Available learning algorithms
+are described in the remainder of the section.The tree-stage setup process, as well as the overall high-
+123
+
+--- Page 4 ---
+420 E. Muvskardin et al.
+level library architecture, can be seen in Fig. 1. The user
+implements an SUL adapter with the three SUL-interfacemethods described above, that is, step ,pre , and post .
+Additionally, the user conﬁgures a learning algorithm and an
+equivalence oracle that interface with the SUL via the SULinterface.
+Example 1. Learning a regular expression. Listing 1
+implements active learning of a DFA conforming to a regular
+expression.
+In Lines 1-17, we show a simple SUL that parses any
+regular expression. In Lines 19 and 20, we deﬁne a regular
+expression over a binary alphabet. In Line 22, we select theequivalence oracle used for answering equivalence queries
+via conformance testing, and in Line 23 we select the learning
+algorithm and execute it. When ﬁnished, AALpy prints the
+learning statistics and visualizes the automaton as shown inFig. 2.
+2.1 Learning deterministic models
+Let us now describe the supported learning algorithms, start-
+ing with the support of deterministic learning of DFA,
+Mealy and Moore machines .
+We extended the original L∗algorithm [ 6] with two coun-
+terexample processing techniques [ 29,32]. Both techniques
+extract so-called distinguishing sufﬁxes from counterexam-
+ples. These are sequences that distinguish two states of the
+SUL that map to the same state in an intermediate learnedhypothesis automaton, thus revealing an error in the hypoth-esis. The ﬁrst technique [ 29] analyzes the counterexample
+and ﬁnds a single distinguishing sufﬁx at the cost of a log-
+arithmic number of queries with respect to counterexamplelength, while the latter ﬁnds the distinguishing sufﬁx that will
+avoid consistency violations without posing any queries. As
+reported in our previous work [ 4], counterexample process-
+ing is essential for efﬁcient learning.
+In addition, AALpy implements query caching. The cache
+reduces the number of SUL interactions performed for mem-bership queries. It encodes membership query results as atree that is updated during learning as well as equivalence
+checking. Via this cache we can avoid posing duplicate
+membership queries and membership queries for preﬁxes ofalready seen traces.
+2.2 Learning non-deterministic models
+The assumption of deterministic SUL behavior limits theapplicability of active automata learning. Non-determinismmight result from input and output alphabet abstraction or
+from ignoring system properties, such as timed behavior.
+To manage such circumstances, AALpy also offers learning
+algorithms for non-deterministic and stochastic systems.AALpy provides two algorithms for learning observ-
+able non-deterministic ﬁnite-state machines (ONFSM) .
+These algorithms assume observable non-deterministic SUL
+behavior, meaning that the SUL may produce outputs non-
+deterministically, while non-deterministic state changes areonly possible with different outputs.
+The notion of observable non-determinism should not
+be confused with our general black-box view. We cannot
+observe the system state directly, but we assume that there isa uniquely deﬁned target state for each triple of source state,
+input, and output.
+The ﬁrst learning-algorithm implementation follows the
+proposed learning algorithm of El-Fakih et al. [ 10]. However,
+this algorithm is based on an “all-weather condition,” that is,
+all possible outputs can be observed immediately. AALpy
+replaces this assumption with a more practical implemen-tation using sampling. Recently, Pferscher and Aichernig
+[27] proposed an extension of the classic ONFSM learn-
+ing algorithm. Their extension learns abstracted ONFSMsby introducing equivalence classes for outputs. This abstrac-
+tion mechanism enables the creation of smaller models and
+faster learning.
+2.3 Learning stochastic models
+AALpy ’s support of active learning of stochastic systems
+draws on L∗
+MDP[36,38] and L∗
+SMM[39], an improved
+adaptation of L∗
+MDP. The learning algorithms formalize the
+behavior of stochastic systems as either (SMMs) or (MDPs).Both types of models can be controlled by its environmentthrough inputs and react stochastically through state changes
+and by producing outputs.
+While the previously discussed learning approaches rely
+on membership and equivalence queries, L
+∗
+SMMimplements
+a “stochastic” teacher that is able to answer tree queries and
+equivalence queries . Tree queries serve the same purpose as
+membership queries in gathering additional information on
+the SUL’s behavior. Stochastic behavior makes it inefﬁcient
+to ask membership queries on individual sequences s, since
+the SUL may or may not produce sor any of its preﬁxes.
+Asking for information related to a tree created by merg-
+ing a set of sequences accounts for that. Compared to the
+original implementation of L∗
+MDP[34],L∗
+SMMas available
+inAALpy requires fewer parameters and is more robust to
+sparse observations. In practice, users only have to imple-
+ment the SUL interface as discussed in Sect. 2. That is, there
+are no additional requirements on stochastic SULs.
+Models learned by L∗
+SMMconverge to the canonical model
+underlying the input–output behavior of the SUL. To the bestof our knowledge, there are currently no automata learning
+123
+
+--- Page 5 ---
+AALpy: an active automata learning library 421
+algorithms for MDPs and similar formalisms2that provide
+accuracy guarantees for models learned from ﬁnite samplesof system traces. Moreover, different learning algorithms cre-
+ate models with different properties, even though they may
+converge to the same models in the limit. For instance, weobserved in previous work [ 38] that IoAlergia [20] creates
+smaller models than L
+∗-based learning. Such models may be
+desirable in certain application scenarios, as well as the fact
+that IoAlergia learns passively from given traces. For this
+reason, AALpy implements Alergia [20], adding support
+forpassive learning of Markov Chains and MDPs .G i v e n
+traces for passive learning can be extended through activelearning extensions of Alergia [2,8]. We are currently work-
+ing on adding one of the extensions to AALpy , which adds
+support for probabilistic black-box reachability checking
+[2].
+2.4 Conformance testing
+We address equivalence queries via conformance testing. As
+outlined at the beginning of this section, we apply confor-mance testing to check whether a hypothesis automaton is
+equivalent to an SUL. To this end, we generate a test suite
+from the hypothesis and execute it on both the SUL andthe current hypothesis. A test case revealing a differencebetween them serves as a counterexample to equivalence.
+Most equivalence oracles available in AALpy apply the
+guiding principle suggested by Howar et al.: Equivalencechecking in automata learning should try “ﬁnding coun-
+terexamples fast” instead of “trying to prove equivalence”
+between the SUL and a hypothesis [ 16]. Therefore, we focus
+on efﬁcient random-testing heuristics rather than expensive
+deterministic conformance testing, such as the W-method.
+AALpy provides eleven equivalence oracles, and new ones
+can be added easily. To this end, AALpy supports a user by
+providing a (not necessarily minimal) characterization set of
+the hypothesis, a shortest path to each state, and a set of previ-
+ously observed traces (cache). Currently, AALpy implements
+the following equivalence oracles:
+•W-method: Formal testing method of proving equiva-
+lence between an implementation and a speciﬁcation
+FSM up to predeﬁned maximum number of implemen-
+tation states. Here, a hypothesis automaton serves asspeciﬁcation for the purpose of test-case generation.
+•Random word: Test cases consist of a sequence of random
+inputs of uniformly distributed length.
+2Note that we generally consider models that are controllable through
+non-deterministically chosen inputs that support active software testing.Learning of uncontrollable models, like probabilistic ﬁnite automata,has been studied in the PAC framework [ 7].•Random walk: Test cases consist of a sequence of random
+inputs with geometric length distribution.
+•Random W-method: Each test case consists of a preﬁx
+to a randomly chosen state, a random walk, and a ran-
+dom element of the characterization set of the currenthypothesis.
+•Probably approximately correct (PAC) oracle : Random-
+word-based oracle providing the guarantee that the
+returned hypothesis is an /epsilon1-approximation of the correct
+hypothesis with the probability of at least 1 - δ.T h i si s
+achieved by setting the number of test cases in the learn-
+ing round ris deﬁned as
+1
+/epsilon1×(log(1
+δ)+r×log(2)), where
+/epsilon1is the generalization error and δthe conﬁdence [ 21].
+•Fixed preﬁx random walk: Test cases consists of a preﬁx
+to a randomly chosen state and a random walk.
+•Cache-tree based exploration: Each test case corre-
+sponds to a path from the root of the cache to one of
+its leaves concatenated with a random walk. In this way
+we extend the boundary of the already explored searchspace.
+•k-Way transition coverage: Selects test cases based on
+random testing and optimizing k-way transitions cov-erage of the hypothesis. The oracle follows a two-step
+process, in which it ﬁrst generates a large number of ran-
+dom walks. In the second step, it greedily selects a subsetof these tests to optimize coverage.
+•Transition/same state focus: Each test case is created by a
+guided random walk. Based on a parameter /epsilon1, each input
+either leads to the same state with a probability of /epsilon1or to
+a new state with a probability of 1 −/epsilon1.
+•Breath-ﬁrst exploration: This oracle creates test cases
+through a complete breadth-ﬁrst exploration up to prede-ﬁned depth.
+•User input oracle: Interactive oracle in which a user pro-
+vides inputs and obtains the corresponding outputs fromthe SUL and the current hypothesis.
+•Eq. Oracles for Stochastic Setting: AALpy implements
+random walk and random word equivalence oracles for
+the stochastic setting. Aside from ﬁnding counterexam-ples, they also update the hypothesis based on observed
+input–output pairs.
+We refer the interested reader to AALpy ’s documenta-
+tion and Wiki
+3for more detailed descriptions, suggested use
+cases, and parameter explanations for each of these oracles.
+2.5 Additional features
+For an enhanced user experience, AALpy can save learned
+automata to ﬁles following the community’s syntax [ 24],
+3https://github.com/DES-Lab/AALpy/wiki.
+123
+
+--- Page 6 ---
+422 E. Muvskardin et al.
+visualize them, and display information about the learn-
+ing progress and the observation table. AALpy implements
+several data parsers easing the passive learning process
+with Alergia . For evaluation, a user may generate random
+automata, deﬁne them as an SUL and then learn them. Forveriﬁcation of stochastic systems, AALpy provides a trans-
+lation of MDPs into the format of the probabilistic model
+checker Prism [19].
+3 Experimental evaluation
+In order to showcase AALpy ’s performance, we con-
+ducted several experiments on a Dell Lattitude 5410 withan Intel Core i7-10610U processor, 8 GB of RAM running
+Windows 10 and using PyPy
+43.9. In particular, we experi-
+enced a performance beneﬁt of using PyPy over CPython.5
+Learning of deterministic models. The efﬁciency of
+AALpy for learning deterministic models was evaluated with
+extensive experiments on random automata. We conductedtwo types of experiments, one in which we increased thenumber of states of the target automata while keeping the size
+of the input alphabet constant, and one where we increased
+the size of the input alphabet whilst keeping the size of thetarget automata constant. Each experiment was repeated 20
+times to obtain average values. Figure 3shows the results.
+We observed that the automaton size affects DFA learningmore than Mealy machine learning. On the other hand, DFA
+learning is least affected by the increase in the input alpha-
+bet. Furthermore, we see that the runtime increases linearlywith the number of states and almost linearly with the sizeof the alphabet. We also performed experiments on learning
+random Moore machine, where we observed similar behav-
+ior as for Mealy machines; therefore, we do not include theresults in the ﬁgures.
+To compare with the state of the art in active automata
+learning, both experiments were repeated with Learnlib[18], with the results of these experiments being shown in
+Fig. 3. Our ﬁndings are consistent with those presented by
+LearnLib’s developers [ 18]. We observe that learning of ran-
+dom automata is slightly faster with LearnLib. This minordifference can be attributed to the execution speed differ-
+ences between statically and dynamical typed languages and
+potentially differences in internal data structures. However,AALpy performed slightly better on DFA with bigger alpha-
+bets.
+These experiments ignore SUL interaction time, which is
+the most resource-intensive part of the learning process on
+non-simulated systems, such as network protocols [ 11,35].
+To account for that, we performed a second experiment where
+4https://www.pypy.org/
+5https://github.com/python/cpython.we compared the number of learning steps and the actuallearning time needed to learn systems requiring an assumedtime of 25 milliseconds to complete a learning step. The
+results of the experiments with both, AALpy and LearnLib,
+are shown in Fig. 4. We observe that both libraries required
+similar numbers of steps to learn the complete model ofthe system. Under the assumption that each step requires a
+constant time of 25 milliseconds to execute, the runtime dif-
+ferences of the learning-algorithm implementations shown inFig. 3become negligible compared to the system-interaction
+time. This can be attributed to the usage of equivalent algo-
+rithms, with minor differences in the numbers of steps due torandomness found in equivalence oracles. We conclude that
+there is no practical difference in speed between AALpy and
+LearnLib for learning in practice.
+Learning of stochastic models. We evaluated AALpy on
+learning stochastic models with the same experiments as the
+original Java version of L
+∗
+MDP[38]. That is, we learned
+MDPs by simulating known ground-truth MDP models asblack boxes and measured the learning runtime and accuracy.
+To measure accuracy, we used a probabilistic model-checker
+to compute probabilities for satisfying temporal propertieswith the ground-truth models and the learned models. The
+model-checking error then quantiﬁes accuracy, which we
+compute as the absolute difference between the results on theground truth and the results on the learned models. Figure 5
+shows the average runtime and the average model-checking
+errors measured in the experiments. We can see that AALpy
+and the Java implementation are generally similarly fast andproduce similarly accurate models. Evaluation differences
+can be attributed to minor implementation details.
+4 Applications of AALpy
+Since AALpy’s ﬁrst release in April 2021, we and others have
+used AALpy in a number of applications spanning various
+application domains and ﬁelds of research related to testing.
+The variety of domains highlights the ﬂexibility and ease ofuse of AALpy as well as the potential of rapid development
+of testing tools in a Python environment. In this section, we
+provide an overview of these applications.
+4.1 Fuzzing Bluetooth low energy
+Automata learning proved itself as a useful technique to ana-lyze communication protocols, e.g., MQTT [ 35], SSH [ 12],
+TCP [ 11], TLS [ 13,30], or the 802.11 4-Way Handshake
+[33]. The literature frequently denotes learning-based test-
+ing techniques on communication protocols as state fuzzing.
+Recently, Pferscher and Aichernig [ 28]u s e d AALpy to learn
+the connection interface of BLE devices. Using a learn-ing library implemented in Python creates the opportunity
+123
+
+--- Page 7 ---
+AALpy: an active automata learning library 423
+100 1000 2000 3000 4000 5000
+Automaton Size0.010.501.001.501.82Time (s)DFA(AALpy)
+DFA(LearnLib)
+Mealy(AALpy)
+Mealy(Learnlib)
+5 25 50 75 100
+Alphabet Size0.0241.0002.5004.0005.218Time (s)DFA(AALpy)
+DFA(LearnLib)
+Mealy(AALpy)
+Mealy(Learnlib)
+Fig. 3 Runtime of the deterministic L∗with respect to automata size (for an alphabet of size 10) and alphabet size (for an automaton with 1000
+states. Interaction time with the SUL is minimal as learning is performed on simulated systems.
+Fig. 4 Comparison between
+AALpy and LearnLib with
+respect to the number of stepsperformed and total runtimeduring automata learning of adeterministic system. Each stepon the system takes 25ms tocomplete.
+0 20 40 60 80 100
+Automaton Size050001000015000200002500030000Number of Learning Steps
+0.00.20.40.60.81.01.21.4
+Total Learning Time (ms)1e6
+DFA (AALpy)
+DFA (LearnLib)
+Mealy (AALpy)
+Mealy (LearnLib)
+35 state
+Grid72 state
+GridShared
+CoinSlot
+Machine050100150200250300Time (s)AALpy
+Java
+35 state
+Grid72 state
+GridShared
+CoinSlot
+Machine0.000.010.020.030.040.050.060.07Average errorsAALpy
+Java
+Fig. 5 Runtime measurements and probabilistic model-checking errors on learned models for the AALpy implementation and the Java implemen-
+tation of L∗
+MDP.
+123
+
+--- Page 8 ---
+424 E. Muvskardin et al.
+for a smooth integration of handy communication package
+libraries like Scapy [31]. In this application, Scapy was used
+to construct BLE packages also on lower levels of the BLE
+protocol stack. Furthermore, the case study on the BLE pro-
+tocol shows that AALpy can be extended by a fault-tolerant
+interface to the SUL. Considering fault tolerance is espe-cially necessary in the learning of communication protocols
+since requests or responses might be delayed or lost. Addi-
+tionally, AALpy s caching mechanism reduces the costs of
+time-expensive network communication. In their presented
+case study, they learned the behavioral models of ﬁve BLE
+devices. They also discussed countermeasures in the caseof non-deterministic behavior. The learned models were dif-
+ferent for every device. Considering the differences in the
+behavioral models, a ﬁngerprinting sequence could be gen-erated that uniquely identiﬁes the BLE device. In future work,the learned models can be used to generate a stateful black-
+box fuzzing technique as proposed by Aichernig et al. [ 5].
+4.2 Model-based diagnosis
+Model-based diagnosis is a technique that detects and isolates
+the causes of faults. However, the lack of a diagnostic model
+often prohibits us from deploying diagnostic reasoning for
+reasoning about the root causes of encountered issues. In[23], we examined how to exploit active automata learning
+for learning deterministic and stochastic models from black-
+box reactive systems for diagnostic purposes.
+With AALpy , we can learn models of faulty systems for
+being able to deploy model-based reasoning. Furthermore,
+we showed how to exploit fault models in the learning pro-cess, such as to derive a behavioral model describing theentire corresponding diagnosis search space.
+4.3 Extracting models from recurrent neural
+networks
+We applied AALpy to extract automata out of recurrent neu-
+ral networks that have been trained to recognize regular
+languages.6In particular, we observed that sufﬁcient allo-
+cation of testing resources in the equivalence check will leadto counterexamples that state-of-the-art white-box methods
+were unable to ﬁnd. This further reinforces the need for the
+development of advanced equivalence checking testing tech-niques.
+Furthermore, we showed how learning-based testing can
+be used to extended the RNNs training set by obtaining newsamples from the ground truth model and how a mapper canbe used to learn abstracted models of RNN’s input–output
+behavior.
+6https://github.com/DES-Lab/Extracting-FSM-From-RNNs .4.4 Finding bugs in VIM
+AALpy has been used as a debugger tool for software that
+is internally based on a state machine, more speciﬁcally for
+the text editor Vim and its feature-enriched fork Neovim.A group of researchers used AALpy to generate a graph of
+newly introduced modes, and during the learning process
+encountered non-determinism. After the examination of non-
+deterministic sequences, they were able to isolate the rootcauses and submit a bug report. The bugs found were later
+ﬁxed by the community
+7.
+5 Conclusion
+We presented AALpy , the ﬁrst active automata learning
+library implemented in Python. AALpy efﬁciently learns
+deterministic, non-deterministic, and stochastic systems.
+AALpy provides its users with a set of equivalence oracles,
+different conﬁgurations of learning algorithms, and the abil-ity to visualize the learning process and results. AALpy has
+been successfully used to learn the protocols of MQTT and
+Bluetooth. These learned models serve as a basis for learning-based testing [ 3] and fuzzing [ 5].
+AALpy is for researchers, educators, and industry alike.
+Its modular design provides a solid basis for experimentationwith new learning algorithms, equivalence oracles, and coun-terexample processing. In future, we intend to extend these
+functionalities, with SAT-based learning [ 15] and learning
+without reset [ 14]. We hope that the community will recog-
+nize AALpy as an attractive foundation for further research,
+and welcome suggestions and extensions.
+Funding Open access funding provided by Graz University of Tech-
+nology.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,
+unless indicated otherwise in a credit line to the material. If material
+is not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+7https://github.com/DES-Lab/AALpy/discussions/13.
+123
+
+--- Page 9 ---
+AALpy: an active automata learning library 425
+References
+1. Aarts F, Jonsson B, Uijen J (2010) Generating models of
+inﬁnite-state communication protocols using regular inference withabstraction. In: ICTSS 2010
+2. Aichernig BK, Tappler M (2019) Probabilistic black-box reach-
+ability checking (extended version). Formal Methods Syst Des54(3):416–448
+3. Aichernig BK, Mostowski W, Mousavi MR, Tappler M, Taromirad
+M (2018) Model learning and model-based testing. In: BennaceurA, Hahnle R, Meinke K (eds) Machine Learning for DynamicSoftware Analysis: Potentials and Limits - International DagstuhlSeminar 16172, Dagstuhl Castle, Germany, April 24-27, 2016,Revised Papers, Springer, Lecture Notes in Computer Science, vol11026, pp 74–100. https://doi.org/10.1007/978-3-319-96562-8_3
+4. Aichernig BK, Tappler M, Wallner F (2020) Benchmarking com-
+binations of learning and testing algorithms for active automatalearning. TAP 2020:3–22
+5. Aichernig BK, Muškardin E, Pferscher A (2021) Learning-based
+fuzzing of IoT message brokers. In: 14th IEEE Conference on Soft-ware Testing, Veriﬁcation and Validation, ICST 2021, Porto deGalinhas, Brazil, April 12-16, 2021, IEEE, pp 47–58. https://doi.
+org/10.1109/ICST49551.2021.00017
+6. Angluin D (1987) Learning regular sets from queries and coun-
+terexamples. Inf Comput 75(2):87–106
+7. Castro J, Gavalda R (2016) Learning probability distributions gen-
+erated by ﬁnite-state machines. In: Heinz J, Sempere JM (eds)Topics in Grammatical Inference, Springer, Berlin, Heidelberg, pp113–142. https://doi.org/10.1007/978-3-662-48395-4_5
+8. Chen Y , Nielsen TD (2012) Active learning of Markov decision
+processes for system veriﬁcation. In: 11th International Conferenceon Machine Learning and Applications, ICMLA, Boca Raton, FL,USA, December 12-15, 2012. V olume 2, IEEE, pp 289–294. https://
+doi.org/10.1109/ICMLA.2012.158
+9. Chollet F, et al. (2015) Keras. https://github.com/fchollet/keras
+10. El-Fakih K, Groz R, Irfan MN, Shahbaz M (2010) Learning ﬁnite
+state models of observable nondeterministic systems in a testingcontext. ICTSS 2010:97–102
+11. Fiterau-Brostean P, Janssen R, Vaandrager FW (2016) Combining
+model learning and model checking to analyze TCP implementa-
+tions. In: Chaudhuri S, Farzan A (eds) Computer Aided Veriﬁcation
+- 28th International Conference, CA V 2016, Toronto, ON, Canada,July 17-23, 2016, Proceedings, Part II, Springer, Lecture Notes inComputer Science, vol 9780, pp 454–471. https://doi.org/10.1007/
+978-3-319-41540-6_25
+12. Fiterau-Brostean P, Lenaerts T, Poll E, de Ruiter J, Vaandrager FW,
+Verleg P (2017) Model learning and model checking of SSH imple-mentations. In: Erdogmus H, Havelund K (eds) Proceedings of the24th ACM SIGSOFT International SPIN Symposium on ModelChecking of Software, Santa Barbara, CA, USA, July 10-14, 2017,ACM, pp 142–151. https://doi.org/10.1145/3092282.3092289
+13. Fiterau-Brostean P, Jonsson B, Merget R, de Ruiter J, Sagonas
+K, Somorovsky J (2020) Analysis of DTLS implementations usingprotocol state fuzzing. In: Capkun S, Roesner F (eds) 29th USENIXSecurity Symposium, USENIX Security 2020, August 12-14,2020, USENIX Association, pp 2523–2540. https://www.usenix.
+org/conference/usenixsecurity20/presentation/ﬁterau-brostean
+14. Groz R, Bremond N, Simao A, Oriat C (2020) hW-inference: A
+heuristic approach to retrieve models through black box testing.JSS 159:110426
+15. Heule MJH, Verwer S (2010) Exact DFA identiﬁcation using SAT
+solvers. In: Sempere JM, Garcia P (eds) ICGI 2010, pp 66–79
+16. Howar F, Steffen B, Merten M (2010) From ZULU to RERS –
+lessons learned in the ZULU challenge. In: ISoLA 2010, LNCS,vol 6415, pp 687–70417. Hungar H, Niese O, Steffen B (2003) Domain-speciﬁc optimization
+in automata learning. In: Jr W AH, Somenzi F (eds) Computer AidedVeriﬁcation, 15th International Conference, CA V 2003, Boulder,CO, USA, July 8-12, 2003, Proceedings, Springer, Lecture Notesin Computer Science, vol 2725, pp 315–327. https://doi.org/10.
+1007/978-3-540-45069-6_31
+18. Isberner M, Howar F, Steffen B (2015) The open-source LearnLib –
+a framework for active automata learning. In: CA V 2015 (I), LNCS,vol 9206, pp 487–495
+19. Kwiatkowska MZ, Norman G, Parker D (2011) PRISM 4.0: Veri-
+ﬁcation of probabilistic real-time systems. In: CA V 2011, LNCS,vol 6806, pp 585–591
+20. Mao H, Chen Y , Jaeger M, Nielsen TD, Larsen KG, Nielsen B
+(2016) Learning deterministic probabilistic automata from a modelchecking perspective. Mach Learn 105(2):255–299
+21. Mohri M, Rostamizadeh A, Talwalkar A (2012) Foundations of
+Machine Learning. Adaptive computation and machine learning,MIT Press. http://mitpress.mit.edu/books/foundations-machine-
+learning-0
+22. Muskardin E, Aichernig BK, Pill I, Pferscher A, Tappler M (2021)
+Aalpy: An active automata learning library. In: Hou Z, GaneshV (eds) Automated Technology for Veriﬁcation and Analysis -
+19th International Symposium, ATV A 2021, Gold Coast, QLD,
+Australia, October 18-22, 2021, Proceedings, Springer, LectureNotes in Computer Science, vol 12971, pp 67–73. https://doi.org/
+10.1007/978-3-030-88885-5_5
+23. Muškardin E, Pill I, Tappler M, Aichernig BK (2021) Automata
+learning enabling model-based diagnosis. In: 32nd InternationalWorkshop on Principle of Diagnosis, Hamburg-Germany, Septem-ber 13th-15th
+24. Neider D, Smetsers R, Vaandrager F, Kuppens H (2019) Bench-
+marks for automata learning and conformance testing. In: Models,Mindsets, Meta: The What, the How, and the Why Not?, LNCS,vol 11200, pp 390–416
+25. Paszke A, Gross S, Massa F, Lerer A, Bradbury J, Chanan G,
+Killeen T, Lin Z, Gimelshein N, Antiga L, Desmaison A, Kopf A,Yang E, DeVito Z, Raison M, Tejani A, Chilamkurthy S, Steiner B,Fang L, Bai J, Chintala S (2019) Pytorch: An imperative style, high-performance deep learning library. In: Wallach HM, Larochelle H,Beygelzimer A, d’Alche-Buc F, Fox EB, Garnett R (eds) Advancesin Neural Information Processing Systems 32, Curran Associates,Inc., pp 8024–8035
+26. Peled DA, Vardi MY , Yannakakis M (2002) Black box checking. J
+Autom Lang Comb 7(2):225–246
+27. Pferscher A, Aichernig BK (2020) Learning abstracted non-
+deterministic ﬁnite state machines. In: Casola V , Benedictis AD,Rak M (eds) Testing Software and Systems - 32nd IFIP WG 6.1
+International Conference, ICTSS 2020, Naples, Italy, December
+9-11, 2020, Proceedings, Springer, Lecture Notes in ComputerScience, vol 12543, pp 52–69. https://doi.org/10.1007/978-3-030-
+64881-7_4
+28. Pferscher A, Aichernig BK (2021) Fingerprinting Bluetooth Low
+Energy devices via active automata learning. In: Formal Methods -24th International Symposium, FM 2021, Beijing, China, Novem-ber 20-26, 2021, Accepted, Springer
+29. Rivest RL, Schapire RE (1993) Inference of ﬁnite automata using
+homing sequences. Inform. Comput. 103(2):299–347
+30. de Ruiter J, Poll E (2015) Protocol state fuzzing of TLS imple-
+mentations. In: Jung J, Holz T (eds) 24th USENIX SecuritySymposium, USENIX Security 15, Washington, D.C., USA,August 12-14, 2015, USENIX Association, pp 193–206. https://
+www.usenix.org/conference/usenixsecurity15/technical-sessions/presentation/de-ruiter
+31. Scapy (2021) Scapy. https://github.com/secdev/scapy/ , Accessed
+Sept 10 2021
+123
+
+--- Page 10 ---
+426 E. Muvskardin et al.
+32. Shahbaz M, Groz R (2009) Inferring Mealy machines. In: FM 2009,
+LNCS, vol 5850, pp 207–222
+33. Stone CM, Chothia T, de Ruiter J (2018) Extending automated
+protocol state learning for the 802.11 4-way handshake. In: opezJ, Zhou J, Soriano M (eds) Computer Security - 23rd Euro-pean Symposium on Research in Computer Security, ESORICS2018, Barcelona, Spain, September 3-7, 2018, Proceedings, PartI, Springer, Lecture Notes in Computer Science, vol 11098, pp325–345. https://doi.org/10.1007/978-3-319-99073-6_16
+34. Tappler M (2019) Evaluation material for L
+∗-based learning of
+Markov decision processes (37). Available via https://doi.org/10.
+6084/m9.ﬁgshare.7960928.v1 , Accessed Sept 10 2021
+35. Tappler M, Aichernig BK, Bloem R (2017) Model-based test-
+ing IoT communication via active automata learning. In: 2017IEEE International Conference on Software Testing, Veriﬁcationand Validation, ICST 2017, Tokyo, Japan, March 13-17, 2017,IEEE Computer Society, pp 276–287. https://doi.org/10.1109/
+ICST.2017.32
+36. Tappler M, Aichernig BK, Bacci G, Eichlseder M, Larsen KG
+(2019a) L*-based learning of Markov decision processes. In: terBeek MH, McIver A, Oliveira JN (eds) Formal Methods - The Next30 Years - Third World Congress, FM 2019, Porto, Portugal, Octo-
+ber 7-11, 2019, Proceedings, Springer, Lecture Notes in Computer
+Science, vol 11800, pp 651–669. https://doi.org/10.1007/978-3-
+030-30942-8_3837. Tappler M, Aichernig BK, Bacci G, Eichlseder M, Larsen KG
+(2019b) L
+∗-based learning of Markov decision processes. In: FM
+2019, LNCS, vol 11800, pp 651–669
+38. Tappler M, Aichernig BK, Bacci G, Eichlseder M, Larsen KG
+(2021a) L*-based learning of Markov decision processes (extendedversion). FAOC
+39. Tappler M, Muškardin E, Aichernig BK, Pill I (2021b) Active
+learning of stochastic reactive systems. In: Software Engineeringand Formal Methods - 19th International Conference, SEFM 2021,Lecture Notes in Computer Science
+40. Tiobe (2018) https://www.tiobe.com/tiobe-index/ , Accessed Sept
+10 2021
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123

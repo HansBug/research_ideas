@@ -1,0 +1,1003 @@
+--- Page 1 ---
+1
+On Multi-Robot Path Planning based on
+Petri Net Models and LTL Speciﬁcations
+Soﬁa Hustiu, Cristian Mahulea, Marius Kloetzer, and Jean-Jacques Lesage
+Abstract —This paper proposes a method exploiting the advan-
+tages of Petri net (PN) and B ¨uchi automata models, by joining
+them in a newly deﬁned Composed Petri net representation. Based
+on the latter model, collision-free trajectories are computed for
+a team of robots. The path planning algorithm is divided into
+two steps: computing a solution in a reduced PN model, and
+projecting it to the PN assigned to the environment. The results,
+given by a set of Mixed Integer Linear Programming (MILP)
+problems, yield lower computational complexity when compared
+with previous approaches.
+Index Terms —High-level speciﬁcations, formal methods, Petri
+nets, autonomous robots
+I. I NTRODUCTION
+The signiﬁcance of developing path planning methods for
+a team of mobile robots (also known as agents ) has inten-
+siﬁed in recent years. Different models are used for robots’
+movements in a given environment, such as transition systems
+(TS) [1], [2] or Petri net (PN) models [3], [4]. In multiple
+scenarios, robots are required to fulﬁll a global goal. Known
+formalisms expressing the mission for the team of robots are
+based on high-level speciﬁcations, such as Linear Temporal
+Logic (LTL) [5]. Motion planning should ensure the given
+mission by computing collision-free trajectories. Certainly, the
+association between the robots and the speciﬁcation can be
+computed in various ways to return a solution, e.g., use of
+TS abstractions for heterogeneous robotic systems and model-
+checking algorithms for the LTL mission, modeled by a B ¨uchi
+automaton (BA).
+As far as we know, there is no method to decompose a
+global LTL mission, without considering certain assumptions
+or particular classes of the LTL formalism, a fact explored
+through the current work. [1] proposes to distribute the speciﬁ-
+cation into individual tasks solved by only one robot, resulting
+in a smaller number of states compared to the centralized
+approach with an exponential increase of discrete state w.r.t.
+the number of robots. Another planning strategy relies on PN
+representations [6], which have the beneﬁts of a graph-like
+topology for the motion of the entire team, and an invariant
+model w.r.t. number of robots. Work [6] aims to compute
+S. Hustiu and M. Kloetzer are with the Dept. of Automatic Control
+and Applied Informatics, Technical University “Gheorghe Asachi” of Iasi,
+Romaniaffhustiu.soﬁa,kmarius g@ac.tuiasi.rog.
+C. Mahulea is with the Arag ´on Institute of Engineering Research
+(I3A), University of Zaragoza, Maria de Luna 1, 50018 Zaragoza, Spain
+fcmahulea@unizar.es g.
+J.J. Lesage is with Universit ´e Paris-Saclay, ENS Paris-Saclay, LURPA,
+91190, Gif-sur-Yvette, France fjean-jacques.lesage@ens-paris-saclay.fr g
+The work of C. Mahulea has been partially supported by the MINECO
+“Salvador de Madariaga” program. This work was partially supported
+by Grants PID2021-125514NB-I00 and TED2021-130449B-I00 funded by
+MCIN/AEI/10.13039/501100011033 and by the “European Union NextGen-
+erationEU/PRTR”.robots’ trajectories in the PN model that follows a speciﬁc
+run (path) in the BA associated with the LTL formula. The
+algorithm considers a set of kruns in the form of preﬁx and
+sufﬁx in BA using the k shortest path algorithm, where k2N
+is a design parameter. One inconvenience that appears is the
+reiteration of the procedure whenever a run in BA cannot be
+followed due to the generation of different observations based
+on robotic movement in the workspace.
+This work considers a parallel approach compared to the se-
+quential one of [6]. We propose a sound algorithm that ensures
+the attainment of a correct solution (expressed as collision-free
+robot trajectories). The contributions of the current work are
+as follows:
+Deﬁning the Composed Petri net , which joins the multi-
+agent system with the given global LTL mission. A re-
+duced model (Quotient PN) is computed w.r.t. the original
+PN of the environment, which is further combined with a
+B¨uchi PN model associated with the LTL speciﬁcation’s
+BA. The movement sequence for the team of robots is
+returned by an algorithm that includes the solution of
+two Mixed Integer Linear Programming problems;
+Providing a sound algorithm ensuring collision-free tra-
+jectories that accomplish the LTL mission;
+Scalability of the model for the robotic system, with
+the total number of places of the composed PN being
+represented by a sum, rather than a product, e.g., as for
+automaton product [7].
+The paper captures the challenges in the ﬁeld of robot
+motion planning based on related work (Section II), asserts
+the problem statement (Section III), seizes the mathematical
+notation (Section IV), and deﬁnes the contributions of the new
+proposed framework (Sections V, VI). The effectiveness of
+the current work is assessed through numerical simulations
+and comparisons (Section VII), while the last section contains
+conclusions and further improvements.
+II. R ELATED WORK
+Path planning for mobile robots started from point-to-
+point trajectory for a single agent [8], being extended to
+multiple agents (often assumed to be identical) to ensure
+given mission(s). An intuitive high-level language is LTL,
+which encodes human representation in a logical and temporal
+formalism, e.g., “visit region A, then region B and always
+avoid region C”, for which a Rabin automaton [9], or a B ¨uchi
+automaton [6] is associated.
+This formalism is efﬁcient in expressing both local (one
+agent) [10] and global (the entire team) [11] missions, being
+suitable to plan optimal motion trajectories [12]. Sampling-
+based planning methods operate effectively for a single agent,
+
+--- Page 2 ---
+e.g., using the Rapidly Exploring Random Graph (RRG) al-
+gorithm applied to an incremental transition system modeling
+the robot [13], and for multi-agent systems, e.g., considering
+stochastic optimization techniques and excluding synchroniza-
+tions [14].
+Multi-robot navigation ﬁeld is directed towards concepts as
+(1) types of approaches: centralized, decentralized, distributed;
+(2) problem formulation with one global or a set of individual
+missions. Some LTL formulae given as global missions can
+be decomposed for PN-based [11] and automata-based [15]
+approaches, while other works focus on cooperation of agents
+ensuring local LTL tasks [10].
+As mentioned in Section I, one mechanism to combine an
+LTL formula with a representation of the robotic system is
+based on TS associated for each agent, based on a partitioned
+environment [2], [3]. A different approach is illustrated in
+[16], where the nodes illustrate the kinematics of individual
+agents and the edges capture the interagent constraints. These
+approaches encounter the same problem of model complexity
+due to TS products [7]. One solution to overcome this down-
+side is to decompose the problem into multiple ﬁnite-horizon
+planning issues and solve them iteratively [1]. Other works
+consider a ﬁxed topology w.r.t. the number of agents, based
+on PN models, e.g., [17] proposed a PN path planning method
+considering partially unknown environments. In [18], the PN
+model is subject to three characteristics, representing (i) the
+environment, (ii) the changes in the workspace, and (iii) the
+task plan based on the compositions of different types of events
+and actions towards the goal.
+Work [19] proposes a PN-based method through a “high-
+level” framework enforcing parallel execution of transitions
+in the PN of the workspace and the BA of the LTL formula,
+based on the construction of a new PN supervisor model, such
+that a transition in the PN of the environment is ﬁred only
+if a transition in the B ¨uchi automaton is satisﬁed. The main
+idea in [6] computes an accepted run in the B ¨uchi automaton,
+and then searches the trajectories in the PN to follow the
+imposed run of BA through generation of observations. This
+sequential process may produce robot movements deviating
+from the imposed run, the effect requiring the iteration of the
+entire algorithm, which is based on solving MILP problems.
+Compared to the latter work, the current one proposes a faster
+computational time solution based on a parallel approach,
+mentioned in the contributions from Section I.
+III. P ROBLEM STATEMENT
+Let us consider a set of identical and omnidirectional point
+robots denoted R=fr1;r2;:::;rjRjg, initially placed in
+the free space of a known and static 2D workspace. The
+environment captures several convex polygonal shapes that
+could overlap, be denoted as regions of interest (ROI) and
+labeled with elements from the set Y=fy1;y2;:::;yjYjg.
+Furthermore, we assume that the environment is partitioned
+into a set of regions called cells, e.g., using a cell decompo-
+sition method [3], [20]. Each cell belongs entirely to one or
+more regions of interest, or it is included in the free space.
+The partitioned workspace can be further handled by a Petri
+net model, which is invariant w.r.t. the number of robots.
+(a) The environment used in Example 3.2.
+pM
+1tM
+1
+pM
+4
+tM
+2tM
+4
+tM
+5pM
+5tM
+3
+pM
+3
+tM
+6tM
+8
+tM
+9tM
+7
+tM
+10pM
+2
+(b) Quotient Petri net of the RMPN
+Fig. 1: Environment and the corresponding RMPN’s quotient
+The set of cells is denoted by P=fp1;p2;:::;pjPjgand
+the set of labels assigned to a cell is given by a function
+h:P!2YIf the cellpiis included in the intersection of
+ROIsyjandyk, thenh(pi) =fyj;ykg, while ifpllies in the
+free space, then h(pl) =;.
+Problem 3.1: Assume that the movement of a robotic team
+is abstracted to a Robot Motion Petri Net (RMPN) model to
+be deﬁned in Def. 4.1. Given a global LTL speciﬁcation over
+the setY, automatically compute the robots’ trajectories to
+fulﬁll the speciﬁcation.
+Example 3.2: Let us consider the environment in Fig. 1(a),
+and the following mission:
+'=}(y1^y2^y3)^:(y1_y2)U(y1^y2) (1)
+This task means eventually visiting regions y1,y2andy3,
+while reaching y1andy2simultaneously. 
+IV. N OTATIONS AND DEFINITIONS
+Deﬁnition 4.1: [3] A Robot Motion Petri Net system
+(RMPN) is a tuple Q=hN;m0;Y;hi, where:N=
+hP;T;Post;Preiis a Petri net, m0is the initial marking,
+wherem0[p]gives the number of robots initially deployed in
+cellp2P;Y[f;g is the set containing the output symbols;
+h:P!2Yis the observation map, deﬁned above. Thus, if
+pihas at least one token (i.e., at least one robot is currently
+in cellpi), then ROI(s) h(pi)is (are) visited. The tuple N
+is composed from a set of places (one for each cell) P; a
+set of transitions Tmodeling the movement of the robots;
+Post;Pre2f0;1gjPjjTjis the post-incidence, respectively
+pre-incidence matrix, deﬁning the arcs from transitions to
+places and vice-versa, e.g. Pre[p;t] = 1 ifp2Pis connected
+with placet2T, otherwisePre[p;t] = 0 .
+Example 4.2: Let us consider the environment in Fig. 1(a),
+with three ROIs (Y=fy1;y2;y3g) and two robots, initially
+located inp2andp20. Therefore, h(p11) =h(p23) =y1,
+
+--- Page 3 ---
+h(p17) =h(p18) =h(p24) =h(p26) =y2,h(p4) =h(p10) =
+y3,h(p13) =fy1;y2g, andh(pi) =;otherwise.
+The RMPN models the movement capabilities of this team
+of 2 robots, including a set of 26 places and 74 transitions. The
+set of outputsYand the observation map hare given above.
+The initial marking m0is a vector of dimension 26 having
+all elements equal to zero except m0[p2] =m0[p20] = 1 .
+Each token in the RMPN models the current location (cell)
+of a robot, thus the total number of tokens is equal to jRj.
+Notice that the structure of the model (number of places,
+transitions, and arcs) does not change if robots are added or
+removed, only the marking (state) of the RMPN.
+RMPN1is captured by the token ﬂow matrix C=Post
+Pre , the ﬁring of a transition tjcorresponds to the movement
+of a robot from an input place towards an output place w.r.t.
+totj, by applying a control law that drives the robot from
+associated input and output cells. There exist approaches to
+designing such continuous laws in speciﬁc scenarios [21], [22].
+We will be interested in ﬁnding sequences of transitions to
+be ﬁred such that the team fulﬁlls a given speciﬁcation. If a
+RMPN marking ~mcan be reached from mthrough a ﬁnite
+sequence of transitions , we denote by 2NjTj
+0the ﬁring
+count vector, i.e., its jthelement is the cumulative number of
+ﬁrings oftj. The state (or fundamental) equation is satisﬁed:
+~m=m+C (2)
+A ﬁring vector can be found, having a minimum number
+of transitions that drives the live2RMPN to the desired mark-
+ing~m, i.e., by solving the optimization problem min1T.
+The details of transforming the ﬁring vector into a sequence
+of robot movements are captured in [3].
+LTL formulae and B ¨uchi automata. The global motion
+task that the robot team should fulﬁll is speciﬁed as an
+LTLXformula [23] containing recursive formulae deﬁned
+over a set of atomic propositions Y, by using Boolean
+operators (:- negation,^- conjunction,_- disjunction,
+)- implication, and ,- equivalence) and some temporal
+operators (U- until,}- eventually, and - always), while
+excluding- the next operator. For simplicity of notation,
+we write LTL instead of LTLX[23], [24], [25].
+Any LTL formula can be automatically transformed into
+a nondeterministic B ¨uchi automaton using the available tools
+[26], [27]. The property of LTL being close under stuttering
+[27] is exploited in Section VI (any ﬁnite repetition of the same
+input does not modify the truth value of the input string).
+Deﬁnition 4.3: The B ¨uchi automaton (BA) correspond-
+ing to an LTL formula on the set Yhas structure B=
+(S;S 0;B;!B;F), where:Sis a ﬁnite set of states; S0S
+is the set of initial states (assumed singleton); Bis the ﬁnite
+set of inputs;!BSBSis the transition relation and
+FSis the set of ﬁnal states. 
+We denote by (si;sj)the set of all inputs that enable a
+transition from sitosj, expressed as a Boolean formula over
+the setY, reduced to a Disjunctive Normal Form (DNF), where
+1By deﬁnition, RMPN systems considered in this paper belongs to the class
+of state-machine, i.e., each transition has one input and one output place.
+2A Petri net is live if independently by the actually reachable marking, all
+transitions can ﬁre in the future.
+(a) B ¨uchi automaton for the LTL formula in Ex. 3.2.
+(b) B ¨uchi Petri net corresponding to the B ¨uchi automaton
+Fig. 2: Example of B ¨uchi automaton and B ¨uchi Petri net
+a single conjunctive element is denoted by k. Alternatively,
+the input can be expressed as a combination of active obser-
+vations from the set 2Y, where;represents the free space.
+Aninﬁnite accepted run inBdrives the automaton towards
+a ﬁnal state from an initial state through (i) preﬁx and (ii) sufﬁx
+(path towards the same ﬁnal state reached by the preﬁx). The
+run can be written as preﬁx, sufﬁx, sufﬁx . . . [28].
+Example 4.4: Let us recall Example 3.2. The BA corre-
+sponding to this LTL task is given in Fig. 2(a), where symbol
+>(True) means any observation from 2Y. On the other hand,
+Fig. 2(b) illustrates the B ¨uchi Petri net model, having the
+Boolean formula of transitions represented with red color. This
+model will be described in Section V. An accepted run that
+satisﬁes the formula could be s1; s3; s3;::: with the preﬁx
+s1and the sufﬁx s3. Note that the unique ﬁnal state s3is
+visited inﬁnitely often. However, as may be observed in the
+environment of Fig. 1(a), this run cannot be generated by the
+two robots, because the two robots should evolve only through
+cells belonging to free space until one enters p13, while the
+other simultaneously enters p4orp10. Clearly, entering p13
+directly is not possible, since it would require ﬁrst activating
+y1ory2and would violate '(1).
+A possible run generated by the robots is: s1; s2; s3; s3;:::
+with preﬁx s1; s2and sufﬁxs3. For this, robots should ﬁrst
+entery1andy2synchronously (generating (s1;s2) =y1^
+y2), then one robot should go to p13(the intersection of y1
+andy2). Finally, a robot should enter y3while crossing the
+free space to enable the transition to s3in BA. The solution
+is not unique since the self-loop transition in s2can be taken
+with any possible input. 
+Table I provides a summarized description of the following
+notations throughout the paper, using <>as a placeholder
+for components of various representations.
+V. S OLUTION STEP 1: C OMPOSED PETRI NET MODEL
+Fig. 3 provides a general overview of the entire proposed
+solution of the Problem 3.1. The ﬁrst phase is responsible
+
+--- Page 4 ---
+Notation Description
+<M>Notation for Quotient RMPN (Sub-step 1.1)
+<B> Notation for B ¨uchi RMPN (Sub-step 1.2)
+<C> Notation for Composed Petri net (Sub-step 1.3)
+TABLE I: Notations for various PNs to be used
+for computing the newly deﬁned Composed Petri net model
+based on a reduced representation of the environment (sub-
+step 1.1) and the B ¨uchi automaton associated with the LTL
+speciﬁcation (sub-step 1.2). The second phase focuses on an
+iterative algorithm that requires two actions, expressed by sub-
+steps 2.1 and 2.2.
+Fig. 3: Diagram for the global algorithm
+Sub-step 1.1. Quotient of the RMPN in Def. 4.1 . Given
+an RMPN system Qas in Def. 4.1, the idea of obtaining
+the quotientQMis to iteratively combine any piandpj
+places ofPthat satisfypj2(pi)andh(pi) =h(pj). This
+reduction technique is synthesized in [29], and the reduced PN
+modelQMhas the property that its output is changed when a
+transition is ﬁred. Thus, after ﬁring one transition in QM, one
+transition in B ¨uchi should also be ﬁred. A transition of QM
+corresponds to a set of trajectories in Q.
+Example 5.1: Consider the RMPN of the environment
+as in Fig. 1(a). By aggregating the states with the same
+observation, the quotient PN QMin Fig. 1(b) is obtained,
+also being an RMPN model according to Def. 4.1. The
+correspondence between the reduced and the original RMPN
+models of the environment is captured by a projection matrix
+Pr with size 526, having all elements equal to zero
+except adjacent places sharing the same observation, e.g.,
+Pr[pM
+1;p4] =Pr[pM
+1;p10] = 1 .
+Sub-step 1.2. B ¨uchi Petri net . Starting from the B ¨uchi
+automatonB=hS;S 0;B;!B;Fias in Def. 4.3, Alg. 1
+obtains the corresponding B ¨uchi Petri net system QB. For each
+statesi2S, a new place pB
+iis added to the PN (line 1). The
+ﬁrst loop (lines 3 - 7) is executed for each transition from si
+tosjin the B ¨uchi automaton. The second loop (lines 4 - 7) is
+executed for each conjunctive element kfrom(si;sj)and
+adds a new transition tkto the B ¨uchi PN from pB
+itopB
+j. Note
+that all transitions corresponding to the conjunctive elements
+in(si;sj)have the same input, respectively, output place of
+the B ¨uchi PN. In line 8, the marking vector is initialized, with
+pB
+0associated with s2S0. Observe that one token in B ¨uchiAlgorithm 1: B¨uchi Petri net
+Input:B=hS;S 0;B;!B;Fi
+Output:QB=hhPB;TB[TV;[PreBPreV];
+[PostBPostV]i;mB
+0;Y;hi
+1LetPB=fpB
+1;pB
+2;:::;pB
+jSjgbe the set ofjSjplaces;
+2LetTB=TV=;;PreB=PostB=;;PreV=
+PostV=;;
+3forall (si;;sj)2!Bdo
+4 forall conjuctive element kof(si;sj)do
+5TB=TB[tk;
+6 Add a new column to PreBand toPostB
+corresponding to tk;
+7PreB[pB
+i;tk] =PostB[pB
+j;tk] = 1 ;
+8LetmB
+0=0jSj1;
+9mB
+0[pB
+0] = 1 ;
+10forallsf2Fdo
+11TV=TV[tsf;
+12 Add a new column to PreVand toPostV
+corresponding to tsf;
+13PreV[pB
+f;tsf] =PostV[pB
+f;tsf] = 1 ;
+PN is sufﬁcient to mark the current state of the automaton B,
+sincejS0j= 1. Alg. 1 returns also virtual transitions TV, by
+adding ontV
+i2TVto each ﬁnal state B ¨uchi PN, expressed
+inPreVandPostV. These transitions will have zero ﬁring
+cost when the solution of MILP (3) is computed, to maintain
+the B ¨uchi PN in the ﬁnal state when possible.
+Example 5.2: Consider the B ¨uchi automaton in Fig. 2(a).
+Applying Alg. 1, the B ¨uchi PN in Fig. 2(b) is obtained. In this
+example, the places pB
+2andpB
+3are connected with a single
+transition corresponding to input (s2;s3) =y1^y2^y3,
+visualized in red. Fig. 2(b) illustrates the addition of the virtual
+transitiontV
+1connected to the ﬁnal state s3by a reading
+(bidirectional) arc. 
+Sub-step 1.3. Composition of Quotient RMPN and B ¨uchi
+Petri net systems . Alg. 2 includes the full strategy to return
+theComposed PN systemQC, by the composition of the
+robotic team model QMwith the one of the speciﬁcation QB.
+For this, a number of 2jYj places are needed, from which
+half models the active observations, given by the set PO, while
+the otherjYjplaces model inactive observations P:O. Initially,
+placespO
+ihave zero tokens, while places p:O
+ihave the number
+of tokens equal with jRj, denoting no active observation in the
+initial marking line (3). The sum of the tokens in p:O
+iandpO
+i
+is always equal tojRj. The lines 1 - 2 deﬁne the sets of places,
+respectively, transitions for the Composed PNQC.
+MatricesPreCandPostCare initialized in lines 4 - 5.
+Lines 6 - 10 are executing for each observation yi. Input
+arcs are added to place pO
+ifor eachpk2PM,yi2h(pk).
+Additionally, arcs from pO
+ito all output transitions of pkare
+added. In this way, when a robot enters a region pkwith output
+yi, one token is added to pO
+i. Ifm[pO
+i]>0then observation
+yiis active. The place p:O
+iis the complementary place of
+pO
+i, therefore is connected with the same transitions as pO
+ibut
+with arcs oriented in the other sense. If m[p:O
+i] =jRjthen
+
+--- Page 5 ---
+observation yiis not active. Finally, loop in lines 11 to 17
+connects the places pO
+i, respectively p:O
+iwith the transitions
+tB
+by a reading arc, according to the assigned Boolean formula
+(conjunction), considering weights 1, respectively jRj.
+Algorithm 2: Composed Petri net system
+Input:PO;P:O,QM=
+hhPM;TM;PreM;PostMi;mM
+0;Y;hi,
+QB=hhPB;TB[TV;
+[PreBPreV];[PostBPostV]i;mB
+0;Y;hi,
+Output:QC=hhPC;TC;PreC;PostCi;mC
+0;Y;hi
+1LetPC=PM[PB[PO[P:O;
+2LetTC=TM[TB[TV;
+3mC
+0=
+mM
+0;mB
+0;mO
+0
+;
+4LetPreC=2
+6664PreM0jPMjjTBj0jPMjjTVj
+0jPBjjTMjPreBPreV
+0jPOjjTMj0jPOjjTBj0jPOjjTVj
+0jP:OjjTMj0jP:OjjTBj0jPBjjTVj3
+7775;
+5LetPostC=2
+6664PostM0jPMjjTBj0jPMjjTVj
+0jPBjjTMjPostBPostV
+0jPOjjTMj0jPOjjTBj0jPOjjTVj
+0jP:OjjTMj0jP:OjjTBj0jPOjjTVj3
+7775;
+6forallyi2Y do
+7 LetP0=fp2PMjyi2h(p)g;
+8 forallpk2P0do
+9PostC[pO
+i;pk] =PreC[pO
+i;pk] = 1 ;
+10PreC[p:O
+i;pk] =PostC[p:O
+i;pk] = 1 ;
+11foralltB
+2TBdo
+12 Letibe the DNF formula assigned to tB
+;
+13 ifi6=>then
+14 forall atomic propositions yiappearing not
+negated inido
+15 PreC[pO
+i;tB
+] =PostC[pO
+i;tB
+] = 1 ;
+16 forall atomic propositions yiappearing
+negated inido
+17 PreC[p:O
+i;tB
+] =PostC[p:O
+i;tB
+] =jRj;
+Fig. 4 depicts a part of Composed Petri net with its initial
+marking, returned by Alg. 2. For the sake of clarity, Fig. 4
+considers only the arcs for one region on interest ( y3). When
+a transition inQMﬁres and the observation changes, the QM
+deposits one token to the respective active observation, e.g.,
+tM
+2is enabled when y3is not active (the robots being in the
+free space initially), and if it ﬁres, a token is produced to
+bothpM
+1andpO
+3. InQB, the transitions are ﬁred based on the
+assigned Boolean formula, being triggered by the reading arcs
+ofPO;P:O, e.g.,tB
+5andtB
+2depend on active observation y3.
+The transitions in B ¨uchi PN from Fig. 4 are colored according
+to the required active observations, i.e., red - y1, blue -y2,
+green -y3. This rationale is maintained towards the rest of
+active and inactive intersection y1^y2.
+Remark. Quotient PN is polynomial in ( O(jPj2)), subject
+Fig. 4: Part of the Composed Petri net, based on active and
+inactive observations of y3
+to the partitioned environment. Alg. 1 is polynomial w.r.t. the
+inputs!Bof the B ¨uchi automatonBand the number of
+atomic propositions over set Y. In general, the LTL formulae
+have a reduced number of atomic propositions, the exponential
+upper-bound of 2jYjbeing seldom achieved. Lastly, Alg. 2 is
+polynomial over cardinality of sets YandTB.
+VI. S OLUTION STEP 2: A LGORITHM
+The robot navigation algorithm requires two actions to be
+achieved: (i) compute a solution on the reduced model QC,
+(ii) project the searched solution in the original PN of the
+environment, outputting the multi-robot system trajectories.
+The proposed algorithm rules out solutions that cannot be
+projected into the PN of the environment, by imposing in the
+ﬁrst step to obtain a different solution in the reduced model.
+This idea is similar to the one in [30], being here applied to
+a PN-based approach, rather than a graph-based approach.
+Global algorithm. Alg. 3 computes robots’ movements
+while ensuring the mission '. The algorithm stops when a
+set of trajectories is returned for a place pB
+fi2Setf, with
+Setfmodeling the ﬁnal states in B(line 15). The main idea
+is to ﬁrst search for a feasible run in QC(lines 3 - 12) based
+on MILP (3), which is individually called for preﬁx andsufﬁx ,
+with different initial marking. The sufﬁx is computed through
+MILP (3) only when the last active observation of a ﬁnal place
+pB
+fiis included in its self-loop ( pO
+jfor observation yjhas at
+least one token). A feasible Run is obtained when both preﬁx
+andsufﬁx are not empty (lines 11 - 15), for which a projection
+of this solution is explored based on MILP (4).
+IfRun cannot be projected into the original RMPN, then
+we memorize the previous solutions returned by MILP (3) for
+both preﬁx andsufﬁx considering only the transitions in QM.
+Line 17 appends these solutionsPk
+i=1M
+iof preﬁx (subscript
+p), respectively for sufﬁx (subscript s) to sets of bad solutions
+CEpjs. These sets will be considered counterexamples in
+MILP (3), imposing to compute a different Run . When no
+overall solution is outputted for any pfi, the entire process is
+iterated by increasing the number of steps k.
+Sub-step 2.1. Solution on the reduced model . The main
+idea of MILP (3) is to drive the PN to a state corresponding
+to a ﬁnal state in B ¨uchi (marking mC
+2k). The MILP is solved
+
+--- Page 6 ---
+Algorithm 3: Global solution for robot’s trajectories
+Input: RMPNQ,Composed Petri net QC, setY,jRj,
+set of active observations PO, set of ﬁnal
+placesSetf, ﬁnite horizon k
+Output:Traj =Sequence of ﬁring transitions
+1LetCEpjs=;andflag =False ;
+2while (kU) OR (k>U ANDflag =True )do
+3 forallpB
+fi2Setfdo
+4 Compute preﬁx forpB
+fiwith MILP (3);
+5 ifpreﬁx6=;then
+6 LetPO
+fbe last active observation for pB
+fi;
+7 ifPO
+fj=(sf;sf)then
+8 Compute sufﬁx with MILP (3), where
+mC
+0=mC
+k;
+9 else
+10 sufﬁx =sf;
+11 if(preﬁx6=;AND sufﬁx6=;)then
+12 Run =preﬁx sufﬁx sufﬁx . . . ;
+13 ProjectTraj with MILP (4);
+14 ifTraj6=;then
+15 ReturnTraj ;
+16flag =True ;
+17CEpjs=CEpjs[Pk
+i=1M
+i
+18 Increasek;
+individually for preﬁx andsufﬁx , each forksteps, withk1
+being a design parameter. For each odd, respectively even step,
+a transition in Quotient PN, respectively in B ¨uchi PN is ﬁred.
+The upper-bound of kisU=
+jPMj1
+
+jPBj1
+, as
+it may be necessary to move a token through all places PM
+to produce a token in the next place B ¨uchi PN.
+Parameters:jRj- number of robots; pB
+f- place modeling
+a ﬁnal state in B ¨uchi;CC- token ﬂow matrix of QC;PreC
+- pre-incidence matrix of QC;CEpjs- set of bad solutions
+for both preﬁx and sufﬁx.
+Variables:
+mC
+i=
+mM
+imB
+imO
+im:O
+iT- marking column vec-
+tor at stepiofQCcomposed by the marking of Quotient
+PN (mM
+i), B¨uchi PN (mB
+i), active observation places
+(mO
+i) and inactive observation places ( m:O
+i);
+C
+i=2
+4M
+i
+B
+i
+V
+i3
+5- ﬁring vector at step iof the Composed
+PN, composed by the ﬁring vector of Quotient PN ( M
+i),
+B¨uchi PN (B
+i) and of virtual transitions ( V
+i);
+z1;z22f0;1gjTMj- binary vectors with z1[j] = 1 if
+Pk
+i=1M
+i1, andz1[j] = 0 otherwise, respectively
+z2[j] = 1 ifPk
+i=1M
+i1, otherwisez2[j] = 0 ,
+with2CEpjs.
+Objective:
+min2kX
+i=1i
+1TM
+i+1TB
+i
+(3a)Constraints:
+mC
+imC
+i1CCC
+i= 0; i=1;2k(3b)
+mC
+iPreCC
+i
+1TM
+i
+1TB
+i+1TV
+i0;
+jRj;
+= 0;9
+=
+;i=2j+1
+j=0;k1
+(3c)
+1TM
+i
+1TB
+i
+1TV
+i= 0;
+= 1;
+= 0;9
+=
+;i=2 (3d)
+1TM
+i
+1TB
+i+1TV
+i= 0;
+= 1;
+i=2j
+j=2;k
+(3e)
+mC
+i[pB
+f] = 1; i=2k(3f)
+Pk
+i=1M
+i
++Pk
+i=1M
+iN(1zj);
+1+Nzj;
+82CEpjs
+i=1;2k;j=1;2
+(3g)
+1T(z1+z2)1 (3h)
+Explanations on MILP (3) are as follows: (3a) the cost func-
+tion minimizes the number of ﬁred transitions of sets TM;TB,
+enforcing to reach a solution during the ﬁrst steps of ksteps,
+when it is possible; (3b) correspond to the state equation (2);
+(3c) allow robots to advance at most one place in Quotient
+PN, which lead to a change in observation ( h(pM
+i)6=;) such
+that, in the following step (when iis even) one transition in
+B¨uchi should be ﬁred; (3d) imposes ﬁring a transition of set
+TB, forcing the leave from the initial state; (3e) allows ﬁring
+of one transition in B ¨uchi PN; (3f) ensures the marking after k
+steps is the ﬁnal state in B ¨uchi, denoted as pB
+f; (3g) and (3h)
+guarantee that the current solution is different than any other
+previous bad solution from setCEpjs, using a big number
+(N) method [31].
+Sub-step 2.2. Projecting the solution . LetM =
+hmM
+1;mM
+2;:::;mM
+2kibe the sequence of markings returned
+by MILP (3). Successive identical markings are removed.
+Let us addmM
+0as the ﬁrst element in M. Furthermore,
+letG=hg1;g2;:::;g2kibe a sequence of 2kvectors s.t.
+gi2f0;1gjPMjwithgi[j] = 1 ifmM
+i[j] = 0 , andgi[j] = 0
+otherwise. This vector will be used in MILP (4) to not allow
+activation of other observations between two steps.
+The following MILP extends every marking from the Quo-
+tient RMPN into a string of markings in the original RMPN.
+The string has the same active observations, to ensure the
+validity of the LTL formula when exist ﬁnite repetitions. To
+avoid collisions,jRjintermediate markings are additionally
+introduced between two successive markings, to ensure that a
+maximum one robot crosses each region.
+Parameters: M- sequence of markings returned by (3);
+Pr- projection matrix between QBand RMPN;C- token
+ﬂow matrix of the RMPN; Pre;Post - pre/post-incidence
+matrices of RMPN; mM
+i- marking at step iofQM.
+Variables:mi;j- marking at step iof RMPN, considering
+the intermediate marking j;i;j- ﬁring vector at step iof
+RMPN, for the intermediate marking jwithi=0;jMj;j=
+1;jRj+ 1.
+
+--- Page 7 ---
+Objective:
+min1TX
+i;ji;j (4a)
+Constraints:
+mi;jmi;j1Ci=0;i=0;jMj;j=1;jRj+1 (4b)
+mi;0mi1;jRj+1=0; i=1;jMj(4c)
+Prmi;jmM
+i=0;i=0;jMj;j=1;jRj(4d)
+Post [giPr;]i;j=0;i=0;jMj;j=1;jRj+1 (4e)
+Posti;j+mi;j11;i=0;jMj;j=1;jRj+1 (4f)
+mi;jRj+1Prei;jRj+10; i=0;jMj(4g)
+The constraints in MILP (4) are as follows: (4b) is the state
+equation (2); (4c) ensures that the last intermediate marking
+is the same as the initial marking in the next step; (4d) keeps
+the same observations during the mi;1tomi;jRj, since the
+jRjintermediate markings are introduced to avoid collisions
+betweenmM
+iandmM
+i+1; (4e) ensure that the corresponding
+ﬁring vectors of the intermediate markings from mi;1to
+mi;jRjshould not activate other observations; (4f) ensures
+the collision avoidance between successive markings of the
+original RMPN by imposing each region to be crossed by a
+maximum one agent between two intermediate markings; (4g)
+impose that the movements of robots from substep mi;jRj
+to substepmi;jRj+1is done synchronously by all robots
+(each robot ﬁres only one transition) such that the generated
+observation ofQMchanges according to the transitions ﬁred
+in B ¨uchi.
+Complexity. The algorithm is NP-hard, justiﬁed by the use
+of MILP problems. The total number of unknown variables in
+both MILPs is given by the number of markings and transitions
+in bothQCandQ, and a set of binary variables of size 2
+jTMjjCEpjsj, bounded by U. The total number of constraints
+depends on the design parameter kfor MILP (3), while for
+MILP (4) it depends on the previous solution.
+Remark. Alg. 3 is not complete due to the possibility of
+spurious transitions as a result of MILP (3) and the collision
+avoidance restrictions of MILP (4), but it is sound, as the
+returned solution satisﬁes the LTL formula.
+VII. S IMULATION RESULTS AND COMPARISONS
+The proposed solution is implemented and integrated into
+RMTool - MATLAB [32], using the CPLEX Optimizer solver
+for both MILPs, while herein the results were obtained on a
+laptop with i7 - 8thgen. CPU @ 2.20GHz and 8GB RAM.
+Example 7.1: Let us recall the environment from Fig. 1
+(a) and the LTL mission from (1). The robots need to reach
+all three regions of interest at the same time, ensuring y1
+andy2are reached simultaneously. Figure 1(a) illustrates the
+robot trajectories returned by Alg. 3. It can be observed that
+both robots move toward regions y1andy2to complete the
+concurrent requirement. Afterwards, r1advances and enters
+the last region of interest y3, while the second robot enters
+p13=fy1;y2g. For this result, the Quotient PN model with 5
+places and 10 transitions was computed in 0.02 seconds, and
+theComposed PN model with 14 places and 16 transitions(out of which one is a virtual one) was computed in 0.02
+seconds. MILP (3) reaches the ﬁnal state in B ¨uchi in 0.05
+seconds, using 180 unknown variables (for k= 6). MILP (3)
+returns the preﬁxs1s2, without the necessity of being called
+to compute the sufﬁx , because the ﬁnal state s3was True>
+for its self-loop. The run time to project the solution is 0.05
+seconds for 900 unknown variables, having the cost function
+equal to 11 (number of cells crossed by the robots). 
+Example 7.2: We now consider the LTL formula
+' = (}y1^}y3^}y5^}y6^}y7^}y8)^
+:(y5_y6)U(y5^y6)^ : (y4_y7)U(y4^y7):This
+speciﬁcation imposes the visit of several ROIs in an
+environment with 8 regions of interest, while the regions y5
+andy6are simultaneously reached, respectively y4andy7.
+Fig. 5 exempliﬁes robot’s trajectories for 6 robots, with black
+stars being represented the synchronization points of the team
+necessary when fulﬁlling '. 
+TABLE II: Comparison between current approach with B ¨uchi
+andfollowing B ¨uchi captured in [6] for Example 7.2
+Number
+of robotsRun time to return a
+solution [sec]Cost function value
+following
+B¨uchiwith B ¨uchi
+MILP (3)following
+B¨uchiwith B ¨uchi
+4 9.56 0.75 37 39
+5 2.22 0.26 23 28
+6 0.77 0.11 20 21
+10 1.2 0.78 13 13
+Table II contains a result analysis of the current approach
+of Alg. 3 in contrast with our previous work [6], focused
+on running time and value of the cost function (number of
+crossed cells of all robots) computed for k= 10 intermediate
+markings. Let us recall that [6] examines a transition sequence
+in the PN model of the environment while following an entire
+run computed in B ¨uchi automaton. One can refer to the present
+work having a parallel approach (denoted here as with B ¨uchi),
+while the previous one can be considered as a sequential
+approach (denoted as following B ¨uchi). It should be noted
+that the collision avoidance strategy is ensured through the
+current work (restrictions (4f) of MILP (4)), contrary to the
+previous work out of which collision-free trajectories cannot
+be guaranteed.
+Discussion. Based on the run simulations, this work yields
+lower computational time and model size w.r.t. previous works.
+The procedure with B ¨uchi returns a scalable PN model w.r.t.
+the number of robots, having maximum number of places
+jPMj+jPBj+ 2jYj. On the other hand, the model returned
+by the procedure following B ¨uchi contains the number of
+places given by the RMPN Q, while approaches based on
+transition systems [7] are highly dependent on the size of the
+team. For example, the size of models in Example 7.2 are as
+follows: 37 places ( with B ¨uchi), 62 places ( following B ¨uchi),
+11jRj10(quotient transition systems), as 11, respectively
+10, represent the number of states in the reduced transition
+system, respectively in BA.
+
+--- Page 8 ---
+Fig. 5: Returned trajectories for Example 7.2 (red - r1; green -r2, blue -r3, magenta - r4, black -r5, yellow -r6)
+VIII. C ONCLUSION
+This paper proposes a framework under Petri net formalism,
+for which an algorithm provides a collision-free planning
+strategy for multi-robot systems. The team of agents receives
+a global LTL speciﬁcation requiring to reach and/or avoid
+several regions of interest in the environment. The newly
+deﬁned Composed Petri net model values the advantages of
+two models: (1) Robot Motion Petri net (RMPN) model for
+the environment, and (2) B ¨uchi automaton of the LTL formula.
+The numerical evaluation of the proposed method demon-
+strates a computationally attractive solution (slower decrease
+of run time and smaller overall model) when compared with
+both the transition system and Petri net previous approaches.
+REFERENCES
+[1] J. Tumova and D. V . Dimarogonas, “Multi-agent planning under lo-
+cal LTL speciﬁcations and event-based synchronization,” Automatica ,
+vol. 70, pp. 239–248, 2016.
+[2] P. Yu and D. V . Dimarogonas, “Distributed motion coordination for
+multi-robot systems under LTL speciﬁcations,” IEEE Trans. on Robotics ,
+vol. 38, no. 2, pp. 1047–1062, 2021.
+[3] C. Mahulea, M. Kloetzer, and R. Gonz ´alez, Path Planning of Coopera-
+tive Mobile Robots Using Discrete Event Models . Wiley-IEEE Press,
+2020.
+[4] B. Lacerda and P. U. Lima, “Petri net based multi-robot task coordination
+from temporal logic speciﬁcations,” Robotics and Autonomous Systems ,
+vol. 122, pp. 343–352, 2019.
+[5] M. H. Cohen and C. Belta, “Model-based reinforcement learning for
+approximate optimal control with temporal logic speciﬁcations,” in
+Proceedings of the 24th International Conference on Hybrid Systems:
+Computation and Control , 2021, pp. 1–11.
+[6] M. Kloetzer and C. Mahulea, “Path planning for robotic teams based
+on LTL speciﬁcations and Petri net models,” Discrete Event Dynamic
+Systems , vol. 30, no. 1, pp. 55–79, 2020.
+[7] X. C. Ding, M. Kloetzer, Y . Chen, and C. Belta, “Automatic deployment
+of robotic teams,” IEEE Robotics & Automation Magazine , vol. 18, no. 3,
+pp. 75–86, 2011.
+[8] S. M. LaValle, Planning algorithms . Cambridge university press, 2006.
+[9] J. Esparza, J. K ˇret´ınsk`y, and S. Sickert, “One theorem to rule them all: A
+uniﬁed translation of LTL into !-automata,” in 33rd Annual ACM/IEEE
+Symposium on Logic in Computer Science , 2018, pp. 384–393.
+[10] M. Guo and D. V . Dimarogonas, “Multi-agent plan reconﬁguration
+under local LTL speciﬁcations,” The International Journal of Robotics
+Research , vol. 34, no. 2, pp. 218–235, 2015.
+[11] I. Hustiu, M. Kloetzer, and C. Mahulea, “Distributed path planning of
+mobile robots with LTL speciﬁcations,” in 24th Int. Conf. on System
+Theory, Control and Computing (ICSTCC) , 2020, pp. 60–65.
+[12] E. M. Wolff, U. Topcu, and R. M. Murray, “Optimization-based trajec-
+tory generation with linear temporal logic speciﬁcations,” in IEEE Int.
+Conf. on Robotics and Automation (ICRA) , 2014, pp. 5319–5325.
+[13] C. I. Vasile and C. Belta, “Sampling-based temporal logic path plan-
+ning,” in 2013 IEEE/RSJ International Conference on Intelligent Robots
+and Systems . IEEE, 2013, pp. 4817–4822.[14] C. Banks, S. Wilson, S. Coogan, and M. Egerstedt, “Multi-agent task
+allocation using cross-entropy temporal logic optimization,” in 2020
+IEEE International Conference on Robotics and Automation (ICRA) .
+IEEE, 2020, pp. 7712–7718.
+[15] P. Schillinger, M. B ¨urger, and D. V . Dimarogonas, “Decomposition of
+ﬁnite LTL speciﬁcations for efﬁcient multi-agent planning,” in Dis-
+tributed Autonomous Robotic Systems: The 13th International Sympo-
+sium . Springer, 2018, pp. 253–267.
+[16] P. Tabuada, G. J. Pappas, and P. Lima, “Motion feasibility of multi-agent
+formations,” IEEE Trans. on Robotics , vol. 21, no. 3, pp. 387–392, 2005.
+[17] E. Montijano and C. Mahulea, “Probabilistic Multi-Robot Path Planning
+with High-Level Speciﬁcations using Petri Net Models,” in 2021 IEEE
+17th International Conference on Automation Science and Engineering
+(CASE) . IEEE, 2021, pp. 2188–2193.
+[18] H. Costelha and P. Lima, “Robot task plan representation by Petri nets:
+modelling, identiﬁcation, analysis and execution,” Autonomous Robots ,
+vol. 33, no. 4, pp. 337–360, 2012.
+[19] B. Lacerda and P. U. Lima, “Petri net based multi-robot task coordination
+from temporal logic speciﬁcations,” Robotics and Autonomous Systems ,
+vol. 122, p. 103289, 2019.
+[20] H. Choset, K. M. Lynch, S. Hutchinson, G. Kantor, W. Burgard, L. E.
+Kavraki, and S. Thrun, Principles of Robot Motion: Theory, Algorithms,
+and Implementations . Boston: MIT Press, 2005.
+[21] L. C. G. J. M. Habets, P. J. Collins, and J. H. van Schuppen, “Reach-
+ability and control synthesis for piecewise-afﬁne hybrid systems on
+simplices,” IEEE Transactions on Automatic Control , vol. 51, pp. 938–
+948, 2006.
+[22] C. Belta and L. Habets, “Controlling a class of nonlinear systems on
+rectangles,” IEEE Transactions on Automatic Control , vol. 51, no. 11,
+pp. 1749–1759, 2006.
+[23] C. Baier and J.-P. Katoen, Principles of model checking . MIT Press,
+2008.
+[24] C. Belta, A. Bicchi, M. Egerstedt, E. Frazzoli, E. Klavins, and G. Pappas,
+“Symbolic planning and control of robot motion,” IEEE Robotics and
+Automation Magazine , vol. 14, no. 1, pp. 61–71, 2007.
+[25] G. E. Fainekos, A. Girard, H. Kress-Gazit, and G. J. Pappas, “Temporal
+logic motion planning for dynamic robots,” Automatica , vol. 45, no. 2,
+pp. 343–352, 2009.
+[26] G. Holzmann, The Spin Model Checker, Primer and Reference Manual .
+Reading, Massachusetts: Addison-Wesley, 2004.
+[27] P. Gastin and D. Oddoux, “Fast LTL to B ¨uchi automata translation,”
+in13th Conference on Computer Aided Veriﬁcation (CAV’01) , H. C.
+G. Berry and A. Finkel, Eds., no. 2102, 2001, pp. 53–65.
+[28] P. Wolper, M. Vardi, and A. Sistla, “Reasoning about inﬁnite computa-
+tion paths,” in Proceedings of the 24th IEEE Symposium on Foundations
+of Computer Science , E. N. et al., Ed., Tucson, AZ, 1983, pp. 185–194.
+[29] E. Vitolo, C. Mahulea, and M. Kloetzer, “A computationally efﬁcient
+solution for path planning of mobile robots with boolean speciﬁcations,”
+inICSTCC’2017: 21st International Conference on System Theory,
+Control and Computing , Sinaia, Romania, 2017, pp. 63–69.
+[30] S. F. Roselli, P.-L. G ¨otvall, M. Fabian, and K. ˚Akesson, “A compositional
+algorithm for the conﬂict-free electric vehicle routing problem,” IEEE
+Transactions on Automation Science and Engineering , vol. 19, no. 3,
+pp. 1405–1421, 2022.
+[31] M. S. Bazaraa, J. J. Jarvis, and H. D. Sherali, Linear programming and
+network ﬂows . John Wiley & Sons, 2011.
+[32] R. Gonz ´alez, C. Mahulea, and M. Kloetzer, “A matlab-based interactive
+simulator for mobile robotics,” in IEEE CASE’2015: Int. Conf. on
+Autom. Science and Engineering , 2015.

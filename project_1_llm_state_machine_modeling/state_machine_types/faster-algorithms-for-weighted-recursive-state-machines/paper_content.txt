@@ -1,0 +1,1796 @@
+--- Page 1 ---
+Faster Algorithms for
+Weighted Recursive State Machines
+Krishnendu Chatterjee1, Bernhard Kragl1,
+Samarth Mishra2, and Andreas Pavlogiannis1
+1IST Austria, Klosterneuburg, Austria
+2IIT Bombay, Mumbai, India
+Abstract. Pushdown systems (PDSs) and recursive state machines
+(RSMs), which are linearly equivalent, are standard models for interpro-
+cedural analysis. Yet RSMs are more convenient as they (a) explicitly
+model function calls and returns, and (b) specify many natural param-
+eters for algorithmic analysis, e.g., the number of entries and exits. We
+consider a general framework where RSM transitions are labeled from
+a semiring and path properties are algebraic with semiring operations,
+which can model, e.g., interprocedural reachability and dataow analysis
+problems.
+Our main contributions are new algorithms for several fundamental prob-
+lems. As compared to a direct translation of RSMs to PDSs and the
+best-known existing bounds of PDSs, our analysis algorithm improves
+the complexity for nite-height semirings (that subsumes reachability
+and standard dataow properties). We further consider the problem of
+extracting distance values from the representation structures computed
+by our algorithm, and give ecient algorithms that distinguish the com-
+plexity of a one-time preprocessing from the complexity of each individ-
+ual query. Another advantage of our algorithm is that our improvements
+carry over to the concurrent setting, where we improve the best-known
+complexity for the context-bounded analysis of concurrent RSMs. Fi-
+nally, we provide a prototype implementation that gives a signicant
+speed-up on several benchmarks from the SLAM/SDV project.
+1 Introduction
+Interprocedural analysis. One of the classical algorithmic analysis problems
+in programming languages is the interprocedural analysis. The problem is at the
+heart of several key applications, ranging from alias analysis, to data dependen-
+cies (modication and reference side eect), to constant propagation, to live and
+use analysis [32,35,10,15,23,18,13,14,17]. In seminal works [32,35] it was shown
+that a large class of interprocedural dataow analysis problems can be solved in
+polynomial time.
+Models for interprocedural analysis. Two standard models for interpro-
+cedural analysis are pushdown systems (or nite automata with stacks) and
+recursive state machines (RSMs) [4,5]. An RSM is a formal model for controlarXiv:1701.04914v1  [cs.PL]  18 Jan 2017
+
+--- Page 2 ---
+ow graphs of programs with recursion. We consider RSMs that consist of mod-
+ules, one for each method or function that has a number of entry nodes and
+a number of exit nodes, and each module contains boxes that represent calls
+to other modules. A special case of RSMs with a single entry and a single exit
+node for every module ( SESE RSMs , aka supergraph in [32]) has also been con-
+sidered. While pushdown systems and RSMs are linearly equivalent (i.e., there
+is a linear translation from one model to the other and vice versa), there are
+two distinct advantages of RSMs. First, the model of RSMs closely resembles
+the problems of programming languages with explicit function calls and returns,
+and hence even its special cases such as SESE RSMs has been considered to
+model many applications. Second, the model of RSMs provides many parame-
+ters, such as the number of entry and exit nodes, and the number of modules,
+and better algorithms can be developed by considering that some parameters are
+small. Typically the SESE RSMs can model data-independent interprocedural
+analysis, whereas general RSMs can model data dependency as well. For most
+applications, the number of entries and exits of a module, usually represents the
+input parameters of the module.
+Semiring framework. We consider a general framework to express computa-
+tion properties of RSMs where the transitions of an RSM are labeled from a
+semiring. The labels are referred to as weights. A computation of an RSM exe-
+cutes transitions between congurations consisting of a node (representing the
+current control state) and a stack of boxes (representing the current calling con-
+text). To express properties of interest we need to dene how to assign weights
+to computations, i.e., to accumulate weights along a computation, and how to
+assign weights to sets of computations, i.e., to combine weights across a set of
+computations. The weight of a given computation is the semiring product of
+the weights on the individual transitions of the computation, and the weight of
+a given set of computations is the semiring plus of the weights of the individ-
+ual computations in the set. For example, (i) with the Boolean semiring (with
+semiring product as AND, and semiring plus as OR) we express the reachability
+property; (ii) with a Dataow semiring we can express problems from dataow
+analysis. One class of such problems is given by the IFDS/IDE framework [32,35]
+that considers the propagation of dataow facts along distributive dataow func-
+tions (note that the IFDS/IDE framework only considers SESE RSMs). Hence
+the large and important class of dataow analysis problems that can be ex-
+pressed in the IFDS/IDE framework can also be expressed in our framework.
+Pushdown systems with semiring weights have also been extensively considered
+in the literature [34,21,33,19].
+Problems considered. We consider the following basic distance problems .
+{Conguration distance. Given a set of source congurations and a target con-
+guration, the conguration distance is the weight of the set of computations
+that start at some source conguration and end in the target conguration. In
+theconguration distance problem the input is a set of source congurations
+and the output is the conguration distance to all reachable congurations.
+2
+
+--- Page 3 ---
+{Superconguration distance. We also consider a related problem of supercon-
+guration distance . Asuperconguration represents a sequence of modules,
+rather than a sequence of invocations. Intuitively, it does not consider the
+sequence of function calls, but only which functions were invoked. This is
+a coarser notion than congurations and allows for fast overapproximation.
+The superconguration distance problem is then similar to the conguration
+distance problem, with congurations replaced by supercongurations.
+{Node distance. Given a set of source congurations and a target node, the
+node distance is the weight of the set of computations that start at some
+source conguration and end in a conguration with the target node (with
+arbitrary stack). In the node distance problem the input is a set of source
+congurations and the output is the node distance to all reachable nodes.
+Symbolic representation. A core ingredient for solving distance problems is
+the symbolic representation of sets of RSM congurations and their manipu-
+lation. Given a symbolic representation of the set of initial congurations, we
+provide a two step approach to solve the distance problems. In step one we com-
+pute a symbolic representation of the set of all congurations reachable from
+the initial congurations. Furthermore, the transitions in the representation are
+annotated with appropriate semiring weights to capture the various distances de-
+scribed above. In step two we query the computed representation for the required
+distances. Thus we make the important distinction between the complexity of a
+one-time preprocessing and the complexity of every individual query .
+Concurrent RSMs. While reachability is the most basic property, the study of
+pushdown systems and RSMs with the semiring framework is the fundamental
+quantitative extension of the basic problem. An orthogonal fundamental exten-
+sion is to study the reachability property in a concurrent setting, rather than
+the sequential setting. However, the reachability problem in concurrent RSMs
+(equivalently concurrent pushdown systems) is undecidable [31]. A very rele-
+vant problem to study in the concurrent setting is to consider context-bounded
+reachability, where at most kcontext switches are allowed. The context-bounded
+reachability problem is both decidable [28] and practically relevant [25,26].
+Previous results. Many previous results have been established for pushdown
+systems, and the translation of RSMs to pushdown systems implies that similar
+results carry over to RSMs as well. We describe the most relevant previous
+results with respect to our results. For an RSM R, letjRjdenote its size, eand
+xthe maximum number of entries and exits, respectively, and fthe number
+of modules. The existing results for weighted pushdown systems over semirings
+of heightH[36,34] along with the linear translation of RSMs to pushdown
+systems [4] gives an O(HjRjexf)-time algorithm for the conguration
+and node distance problems for RSMs. The previous results for context-bounded
+reachability of concurrent pushdown systems [28] applied to concurrent RSMs
+gives the following complexity bound: O(jRkj5jj5
+xnkjGjk), wherejRkjis
+the size of the concurrent RSM, jj
+xis the number of exit nodes, nis the number
+of component RSMs, Gis the global part of the concurrent RSM, and kis the
+bound on the number of context switches.
+3
+
+--- Page 4 ---
+Sequential Concurrent
+ExistingHjRjexf [36,34]jRkj5jj5
+xnkjGjk[28]
+Our resultH(jRje+jCalljex) [Theorem 1]jRkjjj
+ejj
+xnkjGjk+2[Theorem 7]
+Table 1. Asymptotic time complexity of computing conguration automata.
+Semiring RSM
+General Boolean Constant size SizejDj*Sparsey
+Query Query Query Preprocess Query Preprocess Query
+n2
+ejRjen
+lognn2
+e
+logejRj1+"logjDj
+en2
+e
+"2log2ejRj!1
+exn
+2
+e
+logx
+Table 2. Asymptotic time complexity of answering a conguration/superconguration
+distance query of size n. Preprocess time refers to additional preprocessing after the
+conguration automaton is constructed.
+*For any xed ">0.
+yIn a sparse RSM every module only calls a constant number of other modules, and
+the result applies only to superconguration distances. The parameter xhas to
+satisfyx=O(poly(jRj)), and!is the smallest constant required for multiplying
+two square matrices of size mmin timeO(m!) (currently !'2:372).
+Our contributions. Our main contributions are as follows:
+1.Finite-height semirings. We present an algorithm for computing congura-
+tion and node distance problems for RSMs over semirings with nite height
+Hwith running time O(H(jRje+jCalljex)), wherejCalljis
+the number of call nodes. The algorithm we present constructs the sym-
+bolic representations from which the distances can be extracted. Thus
+our algorithm improves the current best-known algorithms by a factor of
+
+((jRjf)=(x+jCallj)) (Table 1) (also see Remark 3 for details).
+2.Distance queries. Once a symbolic representation is constructed, it can be
+used for extracting distances. We present algorithms which given a cong-
+uration query of size n, return the distance in O(n2
+e) time. Furthermore,
+we present several improvements for the case when the semiring has a small
+domain. Finally, we show that when the RSM has a sparse call graph, we
+can obtain a range of tradeos between preprocessing and querying times.
+Our results on distance queries are summarized in Table 2.
+3.Concurrent RSMs. For the context-bounded reachability of concurrent RSMs
+we present an algorithm with time bound O(jRkjjj
+ejj
+xnkjGjk+2). Thus our
+algorithm signicantly improves the current best-known algorithm (Table 1).
+4.Experimental results. We experiment with a basic prototype implementation
+for our algorithms. Our implementation is an explicit (rather than sym-
+bolic) one. We compare our implementation with jMoped [1], which is a
+leading and mature tool for weighted pushdown systems, on several real-
+world benchmarks coming from the SLAM/SDV project [6,7]. We consider
+the basic reachability property (representative for nite-height semirings)
+for the sequential setting. Our experimental results show that our algorithm
+provides signicant improvements on the benchmarks compared to jMoped.
+4
+
+--- Page 5 ---
+Technical contribution. The main technical contributions are as follows:
+{We show how to combine (i) the notion of conguration automata as a sym-
+bolic representation structure for sets of congurations, and (ii) entry-to-exit
+summaries to avoid redundant computations, and obtain an ecient dy-
+namic programming algorithm for various distance problems in RSMs over
+nite-height semirings.
+{Conguration and superconguration distances are extracted using graph
+traversal of conguration automata. When the semiring has small domain,
+we obtain several speedups by exploiting advances in matrix-vector mul-
+tiplication. Finally, the speedup of superconguration distance extraction
+on sparse RSMs is achieved by devising a Four-Russians type of algorithm,
+which spends some polynomial preprocessing time in order to allow com-
+pressing the query input in blocks of logarithmic length.
+All proofs are provided in Appendix A and C.
+2 Preliminaries
+In this section we present the necessary denitions of recursive state machines
+(RSMs) where every transition is labeled with a value (or weight) from an ap-
+propriate domain (semiring). Then we formally state the problems we study on
+weighted RSMs.
+Semirings. Anidempotent semiring is a quintuplehD;;
+;0;1i, whereDis a
+set called the domain ,0 and 1 are elements of D, and(the combine operation)
+and
+(the extend operation) are binary operators on Dsuch that
+1.hD;;0iis an idempotent commutative monoid with neutral element 0,
+2.hD;
+;1iis a monoid with neutral element 1,
+3.
+distributes over,
+4.0 is an annihilator for 
+, i.e.,a
+0 =0
+a=0 for alla2D.
+An idempotent semiring has a canonical partial order v, dened by
+avb()ab=a:
+Furthermore, this partial order is monotonic , i.e., for all a;b;c2D
+avb=)acvbc;
+avb=)a
+cvb
+c;
+avb=)c
+avc
+b:
+The heightHof an idempotent semiring is the length of the longest descending
+chain inv. In the rest of the paper we will only write semiring to mean an
+idempotent nite-height semiring.
+Remark 1. Instead of nite height, the more general descending chain condition
+would be sucient for our purposes. This only requires that there are no innite
+descending chains in v, but there is not necessarily a nite height H.
+5
+
+--- Page 6 ---
+Recursive State Machines (informally). Intuitively, an RSM is a collection
+of nite automata, called modules, such that computations consist of ordinary
+local transitions within a module as well as calls to other modules, and returns
+from other modules. For this, every module has a well-dened interface of entry
+and exit nodes. Calls to other modules are represented by boxes, which have call
+and return nodes corresponding to the respective entry and exit nodes of the
+called module.
+Unlike pushdown automata (PDAs), there is no explicit stack manipulation
+in RSMs. Instead a call stack is maintained implicitly along computations as
+follows. When a call node of a box is reached, the control is passed to the
+respective entry node of the called module and the box is pushed onto the top of
+the stack. When an exit node of a module is reached, a box is popped o from
+the top of the stack and the control is passed to the corresponding return node of
+the box. Hence, the stack is a sequence of boxes representing the current calling
+context and a conguration in a computation of an RSM is a node together with
+a sequence of boxes.
+Recursive State Machines (formally). Arecursive state machine (RSM)
+over a semiringhD;;
+;0;1iis a tupleR=hM1;:::;Mki, where every module
+Mi=hBi;Yi;Ni;i;wiiis given by
+{a nite set Biofboxes ,
+{a mapping Yi:Bi7!f1;:::;kg,
+{a nite set Ni=Ini[Eni[Exi[Calli[Retiofnodes , partitioned into
+internal nodes Ini,
+entry nodes Eni,
+exitnodes Exi,
+callnodes Calli=fhb;eijb2Biande2EnYi(b)g,
+return nodes Reti=fhb;xijb2Biandx2ExYi(b)g,
+{atransition relation i(Ini[Eni[Reti)(Ini[Exi[Calli),
+{aweight function wi:i7!D, withwi(u;x) =1 for every exit node x2Exi.
+We writeBforSk
+i=1Bi, and similarly for N,In,En,Ex,Call,Ret,,w. To
+measure the size of an RSM we let jRj= max(jNj;P
+ijij). A major source of
+complexity in analysis problems for RSMs is the number of entry and exit nodes
+of the modules. Throughout the paper we express complexity with respect to the
+entry bound e= max 1ikjEnijand the exit bound x= max 1ikjExij, i.e.,
+the maximum number of entries and exits, respectively, over all modules. Note
+that the restriction on the weight function to assign weight 1 to every transition
+to an exit node is wlog, as any weighted RSM that does not respect this can be
+turned into an equivalent one that does, with only a constant factor increase in
+its size.
+Stacks. Astack is a sequence of boxes S=b1:::br, where the rst box denotes
+the top of the stack; and "is the empty stack. The height ofSisjSj=r, i.e,
+the number of boxes it contains. For a box band a stack S, we denote with bS
+the concatenation of bandS, i.e., a push of bonto the top of S.
+Congurations and transitions. Aconguration of an RSM Ris a tuple
+hu;Si, whereu2In[En[Retis an internal, entry, or return node, and Sis
+6
+
+--- Page 7 ---
+a stack. For S=b1:::br, wherebi2Bjifor 1irand someji, we require
+thatYji(bi) =ji1for 1< ir, as well as u2NYj1(b1). This corresponds to
+the case where the control is inside the module of node u, which was entered via
+boxb1from moduleMj1, which was entered via box b2from moduleMj2, and
+so on.
+We dene a transition relation = )over congurations and a correspond-
+ing weight function w: =) 7!D, such thathu;Si=) hu0;S0iwith
+w(hu;Si;hu0;S0i) =vif and only if there exists a transition t2iinRwith
+wi(t) =vand one of the following holds:
+1.Internal transition: u02Ini,t=hu;u0i, andS0=S.
+2.Call transition: u0=e2EnYi(b)for some box b2Bi,t=hu;hb;eii, and
+S0=bS.
+3.Return transition: u0=hb;xi 2Rifor some box b2Biand exit node
+x2ExYi(b),t=hu;xi, andS=bS0.
+Note that we follow the convention that a call immediately enters the called
+module and a return immediately returns to the calling module. Hence, the
+node of a conguration can be an internal node, an entry node, or a return
+node, but not a call node or an exit node.
+Computations. Acomputation of an RSMRis a sequence of congurations
+=c1;:::;cn, such that ci=)ci+1for every 1i < n . We say that is
+a computation from c1tocn, of lengthjj=n1, and of weight 
+() =Nn1
+i=1w(ci;ci+1) (the empty extend is 1). We write :c=)c0to denote that
+is a computation from ctoc0of any length. A computation :c=)c0is
+called non-decreasing if the stack height of every conguration of is at least as
+large as that of c(in other words, the top stack symbol of cis never popped in
+). The computation is called same-context if it is non-decreasing, and cand
+c0have the same stack height. A computation that cannot be extended by any
+transition is called a halting computation. For a set of computations we dene
+its weight asL() =L
+2
+() (the empty combine is 0). For a conguration
+cand a set of congurations Rwe denote by (R;c) the set of all computations
+from any conguration in Rtoc. Here, and for similar purposes below, we will
+use the convention to write (c;c0) instead of (fcg;c0).
+Example 1. Figure 1 shows an RSM R=hM1;M2ithat consists of two mod-
+ulesM1andM2. The modules are mutually recursive, since box b1of module
+M1calls moduleM2, and boxb2of moduleM2calls moduleM1. A possible
+computation ofRis
+he1
+1;"iw1=)he2;b1iw5=)he1
+1;b2b1iw1=)he2;b1b2b1iw6=)he2
+1;b2b1b2b1iw2=)
+hu1;b2b1b2b1iw4=)hhb2;x1i;b1b2b1iw7=)hhb1;x2i;b2b1iw3=)hu1;b2b1iw4=)
+hhb2;x1i;b1iw7=)hhb1;x2i;"iw3=)hu1;"i:(1)
+Distance problems. Given a set of congurations R, the set of congurations
+that are reachable fromRis
+post(R) =fcj9c02R:c0=)cg:
+7
+
+--- Page 8 ---
+M1
+e1
+1
+e2
+1b1
+u1x1w1
+w2w3
+w4
+Y1(b1) = 2M2
+e2b2
+x2 w6w5 w7
+w8
+Y2(b2) = 1
+Fig. 1. Example of a weighted RSM that consists of two modules with mutual recursion.
+Instead of mere reachability, we are interested in the following distance metrics
+that aggregate over computations from Rusing the semiring combine and hence
+are expressed as semiring values.
+{Conguration distance. The conguration distance fromRtocis dened as
+d(R;c) =M
+((R;c)):
+That is, we take the combine over the weights of all computations from a
+conguration in Rtoc. Naturally, for congurations cnot reachable from R
+we haved(R;c) =0.
+{Superconguration distance. Asuperstack is a sequence of modules S=
+M1:::Mr. A stackS=b1:::brrenesSifbi2Bifor all 1ir, i.e.,
+thei-th box ofSbelongs to the i-th module of S. Asuperconguration ofR
+is a tuplehu;Si. Let Jhu;SiK=fhu;SijSrenesSg. The superconguration
+distance fromRto a superconguration cis dened as
+d(R;c) =M
+c2JcKd(R;c)
+The superconguration distance is only concerned with the sequence of mod-
+ules that have been used to reach the node u, rather than the concrete se-
+quence of boxes as in the conguration distance. This is a coarser notion
+than conguration and allows for fast overapproximation.
+{Node and same-context distance. The node distance of a nodeufromRis
+dened as
+d(R;u) =M
+c=hu;Sid(R;c)
+whereSranges over stacks of R. Finally, the same-context node distance of
+a nodeuin moduleMiis dened as
+d(Mi;u) =M
+e2Enid(he;"i;hu;"i):
+Intuitively, the node distance minimizes over all possible ways (i.e., stack
+sequences) to reach a node, and the same-context problem considers nodes
+in the same module that can be reached with empty stack.
+8
+
+--- Page 9 ---
+Relevance. We discuss the relevance of the model and the problems we consider
+in program analysis. A prime application area of our framework is the analysis
+of procedural programs. Computations in an RSM correspond to the interpro-
+cedurally valid paths of a program. The distance values dened above allow to
+obtain information at dierent levels of granularity, depending on the require-
+ment for a particular analysis. MEME (multi-entry, multi-exit) RSMs naturally
+arise in the model checking of procedural programs, where every node represents
+a combination of control location and data. Checking for reachability, usually of
+an error state, requires only the simple Boolean semiring. On the other hand,
+interprocedural data ow analysis problems, like in IFDS/IDE, are usually cast
+on SESE (single-entry, single-exit) RSMs (the control ow graph of the pro-
+gram) using richer semirings. Our framework captures both of these important
+applications, and furthermore allows a hybrid approach of modeling program
+information both in the state space of the RSM as well as in the semiring.
+3 Conguration Distance Algorithm
+In this section we present an algorithm which takes as input an RSM Rand a
+representation of a regular set of congurations R, and computes a representa-
+tion of the set of reachable congurations post(R) that allows the extraction
+of the distance metrics dened above. In Section 3.1 we introduce congura-
+tion automata as representation structures for regular sets of congurations. In
+Section 3.2 we present an algorithm for RSMs over nite-height semirings. The
+algorithm saturates the input conguration automaton with additional tran-
+sitions and assigns the correct weights via a dynamic programming approach
+that gradually relaxes transition weights from an initial overapproximation. We
+exploit the monotonicity property in idempotent semirings which allows to fac-
+tor the computation into subproblems, and hence corresponds to the optimal
+substructure property of dynamic programming. Although a transition might
+have to be processed multiple times, the nite height of the semiring prevents a
+transition from being relaxed indenitely. Here we show that the nal congu-
+ration automata constructed by our algorithms correctly capture conguration
+distances. The extraction of distance values is considered in Section 4.
+3.1 Conguration Automata
+In general, like R, the set post(R) is innite. Hence we make use of a represen-
+tation of regular sets of congurations as the language accepted by conguration
+automata, dened below. The main feature of a regular set of congurations R
+is its closure under post. That is, post(R) is also a regular set of congurations
+and can be represented by a conguration automaton.
+Intuition. Every state in a conguration automaton corresponds to a node in
+the RSM. In order to represent arbitrary regular sets of congurations we must
+allow the replication of states with the same node. Therefore we annotate every
+state with a mark (see Remark 2 for details). Transitions are of two types:
+9
+
+--- Page 10 ---
+(i)"-transitions pointing from a node uto an entry node eand labeled with ",
+denoting that a computation reaching uentered the module of uvia entrye,
+and (ii) b-transitions pointing from an entry node eto another entry node e0and
+labeled with a box b, corresponding to a call transition hu;hb;eiiin the module
+ofe0in the RSM. Reading the labels along a path in the automaton yields a
+stack.
+In addition to the labeling with boxes we label every transition of a cong-
+uration automaton with a semiring value. In the nal conguration automata
+constructed by our algorithms, every run generates a conguration cand thereby
+captures a certain subset (R;c) of computations from the initial set of
+congurations Rtoc. The weight of the run equals the combine over the weight
+of the computations in . The combine over the weights of all runs in the au-
+tomaton that generate cequals the combine over the weights of all computations
+fromRtoc, i.e., the conguration distance d(R;c). Since the transitions in a
+conguration automaton are essentially reversed transitions of the RSM (and
+the extend operation is not commutative), the weight of a run is given by the
+extend of the transitions in reversed order.
+Conguration automata. LetMbe a countably innite set of marks . Acon-
+guration automaton for an RSM R, also called anR-automaton , is a weighted
+nite automaton C=hQ;B; !;I;F;`i, where
+{Q(In[En[Ret)Mis a nite set of states ,
+{B(the boxes ofR) is the transition alphabet,
+{ !Q(B[f"g)Qis a transition relation, such that every transition
+has one of the following forms:
+b-transition:he;meib !he0;me0i, whereb2Bifor somei,e2EnYi(b),
+ande02Eni,
+"-transition:hu;mui" !he;mei, wheree2Enifor somei, and either
+u2Ini[Reti, oru=e,
+{IQis a set of initial states ,
+{FQandFEnMis a set of nal states ,
+{`: !7!Dis a weight function that assigns a semiring weight to every
+transition.
+Remark 2 (Marks). The marks in the states of a conguration automaton are
+introduced to support the general setting of representing an arbitrary set of
+congurations, e.g., with stacks that are not even reachable in the RSM. Since
+every state is tied to an RSM node, the marks allow to have multiple \copies" of
+the same node in unrelated parts of the automaton. Furthermore, our algorithm
+(Section 3.2) introduces a fresh mark to recognize when it can safely store entry-
+to-exit summaries . For the common setting of starting the analysis from the entry
+nodes of a main module with empty stack, marks are not necessary and can be
+elided.
+Runs and regular sets of congurations. Arunof a conguration automa-
+tonCis a sequence =t1;:::;tn, such that there are states q1;:::;qn+1and
+eachti=qii!qi+1is a transition of Clabeled with i. We say that is a
+10
+
+--- Page 11 ---
+run fromq1toqn+1, of lengthjj=n, labeled by S=1:::n, and of weight
+
+() =N1
+i=n`(ti) (note that the weights of the transitions are extended in
+reverse order). We write :qS=v!q0to denote that is a run from qto
+q0of any length labeled by Sand of weight v. We will also use the notation
+withoutvif we are not interested in the weight. The run isaccepting ifq2I
+andq02F. A conguration hu;Siisaccepted byCif there is an accepting run
+:hu;miS !qffor some mark m2M, and additionally 
+()6=0. We say
+that two runs are equivalent if they accept the same conguration with the same
+weight. For technical convenience we consider that for every state he;meiwith
+entry node e2Enthere is an "-self-loophe;mei" !he;meiwith weight 1.
+The set of all congurations accepted by Cis denoted byL(C). A set of
+congurations Ris called regular if there exists an R-automatonCsuch that
+L(C) =R. For a conguration clet(c) be the set of all accepting runs of cand
+deneC(c) =L
+2(c)
+() the weight that Cassigns toc.
+We note that, despite the imposed syntactic restrictions, our denition of
+conguration automata is most general in the following sense.
+Proposition 1. LetRbe a set of congurations such that their string repre-
+sentations is a regular language. Then there exists a conguration automaton C
+such thatL(C) =R.
+3.2 Algorithm for Finite-Height Semirings
+In the following we present algorithm ConfDist for computing the set post(R)
+of a regular set of congurations R. The algorithm operates on an R-automaton
+CwithL(C) =R. In the end, it has constructed an R-automatonCpostsuch
+thatL(Cpost) =post(R). Moreover, the conguration distance d(R;c) fromR
+to any conguration ccan be obtained from the labels of CpostasCpost(c).
+A computation is called initialized , if its rst conguration is accepted by the
+initial conguration automation C.
+Key technical contribution. In this work we consider the conguration dis-
+tance computation. Using the notion of conguration automata as a symbolic
+representation structure for regular sets of congurations, the solution of the
+conguration distance problem has been previously studied in the setting of
+(weighted) pushdown systems [36,34,9]. One of the main algorithmic ideas for
+the ecient RSM reachability algorithm of [4] is to expand RSM transitions and
+use entry-to-exit summaries to avoid traversing a module more than once. How-
+ever, the algorithm in [4] is limited to the node reachability problem. We combine
+the symbolic representation of conguration automata, along with the summa-
+rization principle, to obtain an ecient algorithm for the general conguration
+distance problem on RSMs.
+Intuitive description of ConfDist .The intuition behind our algorithm is
+very simple: it performs a forward search in the RSM. In every iteration it picks
+a frontier node uand extends the already discovered computations to uwith
+the outgoing transitions from u. Depending on the type of outgoing transitions,
+11
+
+--- Page 12 ---
+a new node discovered and added to the frontier can be (a) an internal node
+by following an internal transition, (b) the entry node of another module by
+following a call transition, and (c) a return node corresponding to a previously
+discovered call by following an exit transition.
+In summary, the algorithm simply follows interprocedural paths. However,
+the crux to achieve our complexity is to keep summaries of paths through a
+module. Whenever we discovered a full (interprocedural) path from an entry
+eto an exitx, we keep its weight as an upper bound. Now any subsequently
+discovered call reaching edoes not need to continue the search from e, but
+short-circuits to xby using the stored summary.
+Preprocessing. In order to ease the formal presentation of the algorithm, we
+consider the following preprocessing on the initial conguration automaton C.
+LetMMbe the set of marks in the initial automaton and bm2MnMafresh
+mark .
+1. For every node u2In[En[Ret, we add a new state hu;bmimarked with
+the fresh mark. Additionally, all these new states are declared initial.
+2. For every initial state hu;mui2Isuch that there is a call transition t=
+hu;hb;eii2iinR, for every statehe0;me0iwheree0is an entry node of the
+same module as u, we add a b-transition he;bmib !he;me0iwith weight 0.
+3. For every state he;meiwith entry node e2Eniand every internal or return
+nodeu2Ini[Retiin the same module as e, we add an "-transitionhu;bmi" !
+he;meiwith weight 0.
+Essentially the preprocessing a priori adds to Call possible states and transi-
+tions, so that the algorithm only has to relax those transitions (i.e., without
+adding them rst). Note that the preprocessing only provides for an easier pre-
+sentation of our algorithm. Indeed, in practice it would be impractical to do the
+full preprocessing and thus our implementation adds states and transitions to
+the automaton on the y.
+Technical description of ConfDist .We present a detailed explanation of the
+algorithm supporting the formal description given in Algorithm 1. We require
+that every transition in the input conguration automaton Chas weight 1, since
+the congurations in L(C) should not contribute any initial weight to the cong-
+uration distance. The algorithm maintains a worklist WLof weighted transitions
+either of the form hu;mui" !he;meiorhe;meib !he0;me0i, and a summary
+function sum : (EnM)Ex7!D. Initially, the worklist contains all such
+transitions where the source state hu;muiis an initial state in I, and sumis all
+0. In every iteration a transition tCis extracted from the worklist and processed
+as follows. Since every accepting run starting with tCcorresponds to a reach-
+able conguration hu;Si(whereSvaries over dierent runs), every transition
+tR=hu;u0iinRgives rise to another reachable conguration. More precisely,
+the run corresponds to a set of computations reaching hu;Sifrom the initial
+set of congurations, and tRallows to extend these computations by one step.
+The algorithm incorporates the newly discovered computations by relaxing a
+transition as follows, illustrated in Figure 2.
+12
+
+--- Page 13 ---
+tR=hu;u0i
+hu;m uihe;mei
+hu0;bmi" S
+"
+(a) Internal transition (Lines 8{9)tR=hu;hb;e0ii
+hu;m uihe;mei
+he0;bmi" S
+b
+(b) Call transition (Lines 10{12)
+tR=hu;xi
+hu;m uihe;meihe0;me0i
+hhb;xi;bmi" b S0
+"
+(c) Exit transition (Lines 13{17)sum(he;bmi;x)
+he;bmihe0;me0i
+hhb;xi;bmib S
+"
+(d) Using summary (Lines 18{21)
+Fig. 2. Relaxation steps of ConfDist .
+1. IftCis of the formhu;mui" !he;mei, then:
+(a) Ifu0is an internal node then the algorithm captures the internal transi-
+tionhu;Si=)hu0;Siby relaxing the transition hu0;bmi" !he;meiusing
+the weights `(tC) andw(tR).
+(b) Ifu0is a call nodehb;e0ithen the transition he0;bmib !he;meiis relaxed
+with the new weight `(tC)
+w(tR). Furthermore, an "-self-loop is stored
+in the worklist to continue exploration from the called entry node e0.
+(c) Ifu0is an exit node xthen the algorithm relaxes sum(he;mei;x) if a
+smaller computation to xhas been discovered. Note that for me=bmthis
+corresponds to valid entry-to-exit computations from etox. If another
+call toeis discovered later, the summary is used to avoid traversing the
+module again. For me6=bmthe summary does not necessarily correspond
+to valid entry-to-exit computations (e.g., because node uwas provided
+as an initial conguration) and is only stored to avoid redundant work.
+For a return transition from hu;Sithe stackShas to be non-empty.
+The algorithm looks for all possible boxes bat the top of Sby going
+along ab-transition fromhe;meito a statehe0;me0i. Then for any S=
+bS0, relaxing the transition hhb;xi;bmi" !he0;me0icaptures the return
+transitionhu;Si=)hhb;xi;S0i. Note that here we make use of the fact
+that the return transition itself has weight 1.
+2. IftCis of the formhe;meib !he0;me0i, then:
+(d) for every exit node xin the module of ethe summary function is used
+to relax the weight of the transition hhb;xi;bmi" !he0;me0ito the value
+`(tC)
+sum(he;bmi;x).
+The initial states of Cpostare the initial states of Ctogether with all states
+with the fresh mark added in the preprocessing. The nal states of Cpostare
+the unmodied nal states of C.
+13
+
+--- Page 14 ---
+Algorithm 1: ConfDist
+Input: RSMRandR-automatonCwith`(t) =1 for all transitions tinC
+Output:R-automatonCpostwithCpost(c) =d(L(C);c) for all congurations c
+1preprocessCas described in the main text
+// Initialization of worklist and summary function
+2WL:=ft=q" !q0jq2Iand`(t) =1g
+3sum(he;mei;x):=0 for all stateshe;meiandx2Ex
+// Main loop
+4while WL6=;do
+5 extracttCfrom WL
+6 iftC=hu;m ui" !he;meithen
+7 letMibe the module of node u
+// Internal transitions from u
+8 foreachtR=hu;u0i2iwhereu02Inido
+9 Relax (hu0;bmi" !he;mei;`(tC)
+wi(tR))
+// Call transitions from u
+10 foreachtR=hu;hb;e0ii2ido
+11 Relax (he0;bmib !he;mei;`(tC)
+wi(tR))
+12 addhe0;bmi" !he0;bmitoWL, if it was never added before
+// Exit transitions from u
+13 foreachtR=hu;xi2iwherex2Exido
+14 ifsum(he;mei;x)6v`(tC)then
+15 sum(he;mei;x):=sum(he;mei;x)`(tC)
+16 foreachhe;meib=v!he0;me0ido
+17 Relax (hhb;xi;bmi" !he0;me0i;v
+sum(he;mei;x))
+18 else iftC=he;meib !he0;me0ithen
+19 letMibe the module of node e
+// Using entry-to-exit summaries
+20 foreachx2Exido
+21 Relax (hhb;xi;bmi" !he0;me0i;`(tC)
+sum(he;bmi;x)
+22Procedure Relax (t;v)
+23 if`(t)6=`(t)vthen
+24`(t):=`(t)v
+25 addttoWL
+Example 2. In Figure 3 we illustrate an execution of ConfDist for the reach-
+ability problem in the RSM from Figure 1. The reader can verify that every
+conguration in the example computation (1) is accepted by a run of the con-
+structed automaton.
+14
+
+--- Page 15 ---
+Fig. 3. The conguration automa-
+tonCpostconstructed by ConfDist
+for the RSM in Figure 1 over the
+Boolean semiring hh0;1i;_;^;0;1i,
+expressing the reachability prob-
+lem. The initial input automaton C
+is given by the black states, whereas
+the gray states represent the newly
+added states with the fresh mark bm.
+The black/gray color gives a sim-
+ilar distinction for the transitions
+(i.e., the gray transitions have been
+added by the algorithm). The set of
+initial states ofCisI=fe1
+1;e2g,
+and the set of nal states is the sin-
+gleton set F=fe1
+1g. Transitions
+added in the preprocessing phase
+with value 0 are not shown.e2
+e1
+1e1
+1
+hb1;x2ie2e2
+1
+u1hb2;x1i
+b1"
+""""
+"b1
+b2b2
+b2b2"
+""
+"
+"
+Correctness. In the following we outline the correctness of the algorithm. We
+start with a simple observation about the shape of runs in the constructed con-
+guration automaton.
+Proposition 2. For every accepting run there exists an equivalent accepting
+run0that starts with an "-transition followed by only b-transitions. Further-
+more, all but the rst state contain an entry node.
+The following three lemmas capture the correctness of ConfDist . We start
+with completeness, namely that the distance computed for any conguration c
+is at most the actual distance from the initial set of congurations L(C) toc.
+The proof relies on showing that for any initialized computation :hu;Si=)
+hu0;S0ithere is a run acceptinghu0;S0isuch that
+()v
+(), and follows
+an induction on the length jj.
+Lemma 1 (Completeness). For every conguration cwe haveCpost(c)v
+d(L(C);c).
+We now turn our attention to soundness, namely that the distance computed
+for any conguration cis at least the actual distance from the initial set of cong-
+urationsL(C) toc. The proof is established via a set of interdependent invariants
+that state that the algorithm maintains sound entry-to-exit summaries and any
+run in the automaton has a weight that is witnessed by a set of computations.
+Lemma 2 (Soundness). For every conguration cwe haved(L(C);c)v
+Cpost(c).
+Complexity. Finally, we turn our attention to the complexity analysis of the
+algorithm, which is done by bounding the number of times the algorithm can
+15
+
+--- Page 16 ---
+perform a relaxation step. The complexity bound is based on the height of the
+semiringH, which implies that every transition can be relaxed at most Htimes.
+The contribution of the size of the initial automaton Cin the complexity is
+captured by the number of initial marks .
+Lemma 3 (Complexity). Letbe the number of distinct marks m2Mof
+the initial automaton C. Algorithm ConfDist constructsCpostin timeO(H
+(jRje2+jCalljex3)), andCposthasO(jRje2)transitions.
+We summarize the results of this section in the following theorem.
+Theorem 1. LetRbe an RSM over a semiring of height H, andCanR-
+automaton with marks. Algorithm ConfDist constructs in O(H(jRje2+
+jCalljex3))time anR-automatonCpostwith+ 1 marks, such that
+d(L(C);c) =Cpost(c)for every conguration c.
+Remark 3 (Comparison with existing work). We now relate Theorem 1 with
+the existing work for computing conguration distance (often called generalized
+reachability in the literature) in weighted pushdown systems (WPDS) [36,34].
+For simplicity we assume that the initial automaton is of constant size. A formal
+description of WPDS is omitted; the reader can refer to [4,34]. Let Pbe a WPDS
+where:
+1.nPis the number of states
+2.nis the size of the transition relation
+3.nspis the number of dierent pairs hp0;0isuch that there is a transition of
+the formhp;i !hp0;000i(i.e., from some state pwithon the top of
+the stack, the WPDS P(i) transitions to state p0, (ii) swaps and00, and
+(iii) pushes 0on the top of the stack).
+As shown in [34], given a WPDS Pwith weights from a semiring with height
+H, together with a corresponding automaton CPthat encodes congurations of
+P, an automatonCP
+postcan be constructed as a solution to the conguration
+distance problem for P. For ease of presentation we focus on the common case
+whereCPhas constant size (e.g., for encoding an initial conguration of Pwith
+empty stack). Then the time required to construct CP
+postisO(HnPn
+nsp) [36,34].
+A direct consequence of [4, Theorem 1] is that an RSM Rand a conguration
+automatonCRcan be converted to an equivalent PDS Pand conguration
+automatonCP, and vice versa, such that the following equalities hold:
+jRj=(n);x=(nP);fe=(nsp);
+wherefrepresents the number of modules. Hence, the bound we obtain by
+translating the input RSM to a WPDS and using the algorithm of [36,34] is
+O(HjRjexf). Our complexity bound on Theorem 1 is better by a factor
+
+((jRjf)=(x+jCallj)). Moreover, to verify such improvements, we have also
+constructed a family of dense RSMs, and apply our algorithm, and compare
+against the jMoped implementation of the existing algorithms, and observe a
+linear speed-up (see Section 6.1 for details).
+16
+
+--- Page 17 ---
+The above analysis considers an explicit model, where Rcomprises two parts,
+a program control-ow graph RCFGand the set of all data valuations V, where
+jVj=e=x. Hence,jRj=jRCFGjjVj2. In a symbolic model, where all the
+data valuations are tracked on the semiring, the input RSM is a factor jVj2
+smaller (i.e., the contribution of the data valuation to jRj), ande=x= 1.
+However, now each semiring operation incurs a factor jVj2increase in time cost,
+and the height of the semiring increases by a factor jVj2as well, in the worst
+case. Hence, existing symbolic approaches for PDSs have the same worst-case
+time complexity as the explicit one, and our comparison applies to these as
+well. For further discussion on symbolic extensions of our algorithm we refer to
+Appendix B.
+4 Distance Extraction
+The algorithm presented in Section 3 takes as input a weighted RSM Rover
+a semiring and a conguration automaton Cthat represents a regular set Rof
+congurations of R, and outputs an automaton Cpostthat encodes the distance
+d(R;c) to every conguration c. We now discuss the algorithmic problem of
+extracting such distances from Cpost, and present fast algorithms for this prob-
+lem. First we will consider the general case for RSMs over an arbitrary semiring.
+Then we present several improvements for special cases, like RSMs over a semi-
+ring with small domain, or sparse RSMs. As the correctness of the constructions
+is straightforward, our attention will be on the complexity.
+4.1 Distances over General Semirings
+Conguration distances. Given a conguration c=hu;Si,S=b1:::bjSj, the
+task is to extract d(R;c) =L((R;c)):This is done by a dynamic-programming
+style algorithm, which computes iteratively for every prex b1:::biofSand state
+he;meiwithe2Enjandbi2Bj, the weight
+whe;mei=M
+f
+()j:hu;muib1:::bi!he;meig:
+Since there are O(22
+e) transitions labeled with bi, every iteration requires
+O(22
+e) time, and the total time for computing d(R;c) isO(jSj22
+e).
+Superconguration distances. Given a superconguration c=hu;Si,S=
+M1:::MjSj, the task is to extract d(R;c) =L
+c2Jhu;SiKd(R;c):To handle such
+queries, we perform a one-time preprocessing of Cpost, so that the transitions are
+labeled with modules instead of boxes. That is, we create an automaton Cpost,
+initially identical to Cpost. Then we add a transition t=he;meiM!he0;me0i,
+withMbeing the module of e0, if there exists a b-transition he;meib !he0;me0i
+inCpost. The weight function `ofCpostis such that the weight of the transition
+tis
+`(t) =M
+t0:he;meib !he0;me0i`(t0)
+17
+
+--- Page 18 ---
+wheret0ranges over transitions of Cpost. This construction requires linear time
+in the number of b-transitions of Cpost, i.e.,O(jRje). It is straightforward to
+see thatM
+:hu;muiS !qf`() =M
+:hu;muiS !qf`()
+whereandrange over accepting runs of CpostandCpostrespectively, and S
+renesS. Then, given a superconguration c=hu;Si, the extraction of d(R;c)
+is done similarly to the conguration distance extraction, in O(jSj22
+e) time.
+Node distances. For node distances, the task is to compute d(R;u) =L
+c=hu;Sid(R;c) for every node uofR. This reduces to treating the automaton
+Cpostas a graph G, and solving a traditional single-source distance problem,
+where the source set contains all states with old marks (i.e., old states that ap-
+pear in the initial automaton C). This requires O(HjCpostj) time for semirings
+of heightH. An informal argument for these bounds is to observe that Gcan
+be itself encoded by a SESE RSM RGwith a single module, where the entry
+represents the source set of nodes with old marks. Then, running ConfDist for
+the corresponding semiring, we obtain a solution to the single-source distance
+problem in the aforementioned times, as established in Theorem 1. Finally, com-
+puting same-context node distances requires O(jRj) time in total (i.e., for all
+nodes). Hence, regardless of the semiring, all node distances can be computed
+with no overhead, i.e., within the time bounds required for constructing the re-
+spective conguration automaton Cpost. The following theorem summarizes the
+complexity bounds that we obtain for the various distance extraction problems.
+Theorem 2 (Distance extraction). LetRbe an RSM over a semiring of
+heightHandCanR-automaton with marks. After O(HjRjex3)
+preprocessing time
+1. conguration and superconguration distance queries hu;Siare answered in
+O(jSj2
+e2)time;
+2. node distance queries are answered in O(1)time.
+4.2 Distances over Semirings with Small Domain
+We now turn our attention to conguration and superconguration distance ex-
+traction for the case of semirings with small domains D. Such semirings express
+a range of important problems, with reachability being the most well-known
+(expressed on the Boolean semiring with jDj= 2). We harness algorithmic ad-
+vancements on the matrix-vector multiplication problem and Four-Russians-style
+algorithms to obtain better bounds on the distance extraction problem.
+Recall that given a box b, the conguration automaton Cposthas at most
+(e)2transitions labeled with b. Such transitions can be represented by a
+matrixAb2D(e)(e). Additionally, for every internal node uwe have one
+matrixAu2D()(e)that captures the weights of all transitions of the form
+18
+
+--- Page 19 ---
+hu;mui" !he;mei. Then, answering a conguration distance query hu;Siwith
+S=b1;:::;bjSjamounts to evaluating the expression
+1AuAb1AbjSj1>
+e(2)
+where 1zis a row vector of 1s and size z,>denotes the transpose, and matrix
+multiplication is taken over the semiring. The situation is similar in the case of
+superconguration distances, where we have one matrix AM;M0for each pair of
+modulesM,M0such thatMinvokesM0.
+Evaluating equation (2) from left to right (or right to left) yields a sequence of
+matrix-vector multiplications. The following two theorems use the results of [24]
+and [38] on matrix-vector multiplications to provide a speedup on the distance
+extraction problem when the semiring has constant size jDj=O(1).
+Theorem 3 (Mailman's speedup [24]). LetRbe an RSM over a semiring
+of constant size, and CanR-automaton with marks. After O(jRjex3)
+preprocessing time, conguration and superconguration distance queries hu;Si
+are answered in O
+jSj2
+e2
+log(e)
+time.
+Theorem 4 (Williams's speedup [38]). LetRbe an RSM over a semiring
+of sizejDj, andCanR-automaton with marks. For any xed " > 0, let
+X=jRjex3andZ=jRj(e)1+"log2jDj. AfterO(max(X;Z))
+preprocessing time, conguration and superconguration distance queries hu;Si
+are answered in O
+jSj2
+e2
+"2log2(e)
+time.
+Finally, using the Four-Russians technique for parsing on non-deterministic
+automata [27], we obtain the following speedup for the case of reachability. We
+note that although the alphabet is not of constant size (i.e., the number of
+boxes is generally non-constant) this poses no overhead, as long as comparing
+two boxes for equality requires constant time (which is the case in the standard
+RAM model).
+Theorem 5 (Four-Russians speedup [27]). LetRbe an RSM over a binary
+semiring, andCanR-automaton with marks. After O(jRjex3)pre-
+processing time, conguration and superconguration distance queries hu;Siare
+answered in O
+jRje2jSj
+log(jSj)
+time.
+4.3 A Speedup for Sparse RSMs
+We call an RSMRsparse if there is a constant bound rsuch that for all modules
+Miwe havejfYi(b)jb2Bigjri.e., every module invokes at most rother
+modules (although Mican have arbitrarily many boxes). Typical call-graphs of
+most programs are very sparse, e.g., typical call graphs of thousands of nodes
+have average degree at most eight [8,30]. Hence, an RSM modeling a typical
+program is expected to comprise thousands of modules, while the average mod-
+ule invokes a small number of other modules. Although this does not imply a
+19
+
+--- Page 20 ---
+constant bound on the number of invoked modules, such an assumption provides
+a good theoretical basis for the analysis of typical programs.
+Our goal is to provide a speedup for extracting superconguration distances
+w.r.t. a sparse RSM. This is achieved by an additional polynomial-time prepro-
+cessing, which then allows to process a distance query in blocks of logarithmic
+size, and thus oers a speedup of the same order.
+Given an RSMRofkmodules and an integer z, there exist at most krz
+valid module sequences M1:::;Mz+1which can appear as a substring in a
+module sequence Swhich is rened by some stack S. Recall the denition of
+the matrices AM;M02D(e)(e)from Section 4.2. For every valid sequence
+ofz+ 1 modules s=M1:::;Mz+1, we construct a matrix As=AM1;M2
+AM2;M3:::AMz;Mz+1in total time
+k(e)!zX
+i=1ri=O
+jRj!1
+e!rz
+(3)
+where (e)!=
+(22) is time require to multiply two D(e)(e)matrices
+(currently!'2:372, due to [39]).
+Observe that as long as z=O(logjRj), there are polynomially many such
+sequencess, and thus each one can be indexed in O(1) time on the standard
+RAM model. Then a superconguration distance query hu;Sican be answered
+by grouping SindjSj
+zeblocks of size zeach, and for each such block smultiply
+with matrix As.
+Theorem 6 (Sparsity speedup). LetRbe a sparse RSM over a semiring of
+heightH, andCanR-automaton with marks. Let X=HjRjex3,
+and given an integer parameter x=O(polyjRj), letZ=jRj!1
+e!x. After
+O(max(X;Z))preprocessing time, superconguration distance queries hu;Siare
+answered in O
+jSjl
+2
+e2
+logxm
+time.
+By varying the parameter z, Theorem 6 provides a tradeo between pre-
+processing and query times. Finally, the presented method can be combined
+with the preprocessing on constant-size semirings of Section 4.2 which leads to a
+(logz) factor improvement on the query times of Theorem 3, Theorem 4, and
+Theorem 5.
+5 Context-Bounded Reachability in Concurrent
+Recursive State Machines
+Context bounding, i.e., limiting the number of context switches considered dur-
+ing state space exploration, is an eective technique for systematic analysis of
+concurrent programs. The context-bounded reachability problem in concurrent
+pushdown systems has been studied in [28]. In this section we phrase the context-
+bounded reachability problem over concurrent RSMs and show that the pro-
+cedure of [28] using our algorithm ConfDist together with the results of the
+20
+
+--- Page 21 ---
+previous sections give a better time complexity for the problem. As the section
+follows closely the well-known framework of concurrent pushdown systems [28],
+we keep the description brief.
+Concurrent RSMs. Aconcurrent RSM (CRSM) Rkis a collection of RSMs
+Riequipped with a nite set of global states Gused for communication between
+the RSMs. To this end, the semantics of RSMs is lifted to Ri-congurations
+of the formhg;ui;Sii, carrying an additional global state g2G. Then, a global
+conguration ofRkis a tuplehg;hu1;S1i;:::;hun;Snii, wherehg;ui;Siiare con-
+gurations ofRi, respectively. The semantics of Rkover global congurations
+is the standard interleaving semantics, i.e., in each step some RSM Rimodies
+the global state and its local conguration, while the local conguration of every
+other RSM remains unchanged.
+Context-bounded reachability. For a positive natural number kand a xed
+initial global conguration c, thek-bounded reachability problem asks for all
+global congurations c0such that there is a computation from ctoc0that switches
+control between RSMs at most k1 times.
+An algorithm for context-bounded reachability. The procedure of [28] for
+solving the k-bounded reachability problem for concurrent pushdown systems
+(CPDSs) systematically performs postoperations on the reachable congu-
+ration set of every constituent PDS, while capturing all possible interleavings
+withinkcontext switches. The k-bounded reachability problem for CRSMs can
+be solved with an almost identical procedure, replacing the black-box invoca-
+tions of the PDS reachability algorithm of [36] with our algorithm ConfDist .
+However, using our algorithm for each postoperation, we obtain a complexity
+improvement over the method of [28].
+Key complexity improvement. The key advantage of our algorithm as com-
+pared to [28] is as follows: in the algorithm of [28], in each iteration the congura-
+tion automata, used to represent the reachable congurations of each component
+RSM, grows by a cubic term; in contrast, replacing with our algorithm the con-
+guration automata grows only by a linear term in each iteration. This comes
+from the fact that in our conguration automata every state corresponds to a
+node of the RSM, whereas such strong correspondence does not hold for the
+conguration automata of [28].
+Theorem 7. For a concurrent RSM Rk, and a bound k, the procedure of [28,
+Figure 2] using ConfDist for performing postoperations correctly solves the
+k-bounded reachability problem and requires O(jRkjjj
+ejj
+xnkjGjk+2)time.
+Compared to Theorem 7, solving the CRSM problem by translation to a CPDS
+and using the algorithm of [28] gives the bound O(jRkj5jj5
+xnkjGjk). Con-
+versely, solving the CPDS problem by translation to a CRSM and using our
+algorithm gives an improvement by a factor 
+(jPkj3=jGj2). We refer to Ap-
+pendix D for a detailed discussion.
+21
+
+--- Page 22 ---
+6 Experimental Results
+In this section we empirically demonstrate the algorithmic improvements
+achieved by our RSM-based algorithm over existing PDS-based algorithms on
+interprocedural program analysis problems. The main goal is to demonstrate
+the improvements in algorithmic ideas rather than implementation details and
+engineering aspects. In particular, we implemented our algorithm ConfDist in
+a prototype tool and compared its eciency against jMoped [1], which imple-
+ments the algorithms of [36,34] and is a leading tool for the analysis of weighted
+pushdown systems. In all cases we used an explicit representation of data valu-
+ations on the nodes of RSMs, as opposed to a symbolic semiring representation.
+All experiments were run on a machine with an Intel Xeon CPU and a memory
+limit of 80GB. We rst present our result on a synthetic example to verify the
+algorithmic improvements on a constructed family, and then present results on
+real-world benchmarks.
+6.1 A Family of Dense RSMs
+0 50 100 150 2000100200300400
+n=e=xSpeedup
+Fig. 4. Speedup of our algorithm over the al-
+gorithms of [36,34] implemented by jMoped on
+the RSM familyRn.For our rst experiments we con-
+structed a family of dense RSMs
+that can be scaled in size. The
+purpose of this experiments is to
+verify that (i) our algorithm in-
+deed achieves a speedup over the
+algorithms of [36,34], and (ii) the
+speedup scales with the size of
+the input to ensure that improve-
+ments on real-world benchmarks
+are not due to implementation de-
+tails, such as the used data types.
+LetRnbe a single-module RSM
+that consists of nentries and nex-
+its, and a single box which makes
+a recursive call. The transition re-
+lation is= (En(Call[Ex))[
+(RetEx), i.e., every entry node
+connects to every call and exit
+node, and every return node con-
+nects to every exit node. Hence
+jRnj=n2. The transition weights are irrelevant, as we will focus on reacha-
+bility. The initial conguration automaton Ccontains a single entry state. We
+consideredRnwithnin the range from 10 to 200. For each RSM, we used
+the standard translation to a PDS [4], and then applied our tool and jMoped
+to compute a conguration automaton that represents post(L(C)). Figure 4
+depicts the obtained speedup, which scales linearly with n. We have also exper-
+imented with other similar synthetic RSMs with dierent means of scaling; and
+22
+
+--- Page 23 ---
+in all cases the obtained speedups have the same qualitative behavior. This con-
+rms the theoretical algorithmic improvements of our algorithm on the synthetic
+benchmarks.
+6.2 Boolean Programs from SLAM/SDV
+Benchmarks. For our second experiments we used the collection of Boolean pro-
+grams distributed as part of the SLAM/SDV project [6,7]. These programs are
+the nal abstractions in the verication of Windows device drivers, and thus they
+represent RSMs obtained from real-world programs. From the Boolean programs
+we obtained RSMs where every node represents a control location together with
+a valuation of Boolean variables, and call/entry and exit/return nodes model
+the parameter passing between functions. Thus, the RSMs are naturally multi-
+entry-multi-exit. Overall we obtained 73 RSMs, which correspond to the largest
+Boolean programs possible to handle explicitly.
+Evaluation. To ensure a fair performance comparison, we applied two prepro-
+cessing steps to the benchmark RSMs.
+{First, to ensure that both tools compute the same result without any po-
+tential unnecessary work, we restricted the state space of the RSMs to the
+interprocedurally reachable states.
+{Second, to focus on the performance of interprocedural analysis, we elimi-
+nated all internal nodes by computing the intraprocedural transitive closure
+within every RSM module.
+The above two transformations ensure preprocessing steps like removal of un-
+reachable states and intraprocedural analysis is already done, and we compare
+the interprocedural algorithmic aspects of the algorithms. For each RSM, we used
+the standard translation to a PDS [4], and then applied our tool and jMoped to
+compute a conguration automaton that represents post(L(C)), whereCis an
+initial conguration automaton that contains the entry states of the main mod-
+ule. Table 3 shows for every benchmark the number of RSM transitions (Trans.),
+their ratio to nodes (D), the runtime for computing the intraprocedural transi-
+tive closure (TC), the runtime of jMoped (jMop), the runtime of our tool (Ours),
+and the speedup our tool achieved over jMoped (SpUp).
+Out tool clearly outperforms jMoped on every benchmark, with speedups
+from 3.94 up to 28.48. The runtimes of our tool range from 0.13 to 33.96 seconds,
+while the runtimes of jMoped range from 1.03 to 950.82 seconds. Thus, our
+experiments show that also for real-world examples our algorithm successfully
+exploits the structure of procedural programs preserved in RSMs. This shows
+the potential of our algorithm for building program analysis tools.
+Note that the benchmark RSMs are quite large, with millions of nodes and
+transitions, which even a basic implementation of our algorithm handled quite
+eciently. Moreover, in our experiments we observed that our tool uses consid-
+erably less memory than jMoped. While we set 80GB as the memory limit, the
+peak memory consumption of jMoped was 72GB, whereas our tool solved all
+benchmarks with less than 32GB memory.
+23
+
+--- Page 24 ---
+# Trans. D TC jMop Ours SpUp
+1 246,101 1.9 1:18 1:10 0:28 3:94
+2 216,021 0.8 0:70 1:03 0:26 3:96
+3 593,041 1.5 1:05 2:05 0:49 4:19
+41,043,217 1.2 3:01 4:67 1:11 4:20
+5 329,088 1.4 1:41 1:43 0:34 4:24
+610,281,149 3.0 11:36 52:00 10:61 4:90
+7 908,092 1.7 2:04 3:31 0:65 5:08
+8 969,388 2.2 2:00 33:71 6:60 5:11
+9 298,126 1.5 0:68 1:31 0:25 5:23
+101,780,776 1.3 5:82 6:44 1:20 5:35
+11 163,853 1.4 0:33 1:03 0:19 5:35
+12 205,608 1.0 0:50 4:62 0:86 5:36
+1328,568,561 1.7 23:21 102:54 18:82 5:45
+1421,911,277 1.8 15:79 80:41 14:64 5:49
+152,453,881 1.5 4:54 9:57 1:72 5:55
+165,833,574 1.8 6:97 21:14 3:80 5:56
+17 332,768 0.8 0:77 2:28 0:41 5:59
+181,782,697 1.3 5:79 6:70 1:20 5:60
+19 246,127 1.9 1:31 1:36 0:24 5:63
+2021,648,560 1.8 15:50 79:45 14:01 5:67
+217,033,834 2.1 8:23 23:97 4:21 5:70
+2228,944,391 1.7 24:26 105:00 18:15 5:78
+23 464,004 1.7 0:75 2:17 0:37 5:83
+24 424,916 1.6 1:20 2:94 0:49 5:96
+2522,186,326 1.6 17:77 63:27 10:56 5:99
+2611,719,007 5.2 20:36 52:29 8:55 6:11
+272,989,001 1.4 3:55 11:04 1:80 6:12
+281,952,647 1.3 3:83 7:98 1:30 6:13
+297,970,359 3.2 4:04 30:16 4:70 6:42
+30 682,435 2.1 2:14 4:88 0:76 6:42
+319,480,799 4.9 17:23 44:34 6:77 6:55
+32 845,867 2.4 1:59 3:22 0:48 6:67
+33 953,420 3.1 1:22 4:51 0:67 6:77
+341,205,731 2.0 3:31 4:68 0:68 6:84
+35 754,270 1.7 4:25 22:28 3:23 6:90
+361,463,749 2.0 2:38 6:10 0:88 6:95
+37 434,884 5.8 6:85 1:90 0:27 7:10# Trans. D TC jMop Ours SpUp
+3814,473,411 1.5 9:68 53:38 7:49 7:13
+3911,616,241 3.3 19:59 42:73 5:54 7:71
+40 300,401 2.6 0:74 1:05 0:14 7:79
+411,916,064 2.3 3:38 10:83 1:39 7:80
+42 216,070 1.7 0:56 1:37 0:17 7:83
+431,293,130 2.3 2:06 5:44 0:69 7:92
+448,364,920 2.1 6:31 32:95 4:09 8:05
+4518,733,065 4.9 10:84 62:14 7:63 8:15
+465,373,059 6.4 8:66 18:20 2:17 8:38
+471,342,348 1.6 4:75 5:02 0:58 8:73
+48 779,369 7.2 1:94 6:73 0:77 8:75
+4918,812,123 4.9 8:87 63:86 6:99 9:14
+5040,025,428 6.3 36:49 310:16 33:07 9:38
+512,503,668 15.3 21:53 10:17 1:08 9:44
+5240,084,249 6.2 36:37 320:70 33:96 9:44
+534,852,736 6.5 4:14 17:68 1:83 9:64
+5418,520,461 5.4 8:96 60:24 6:21 9:69
+556,796,783 7.0 9:78 21:33 2:16 9:87
+5640,026,391 6.3 35:69 327:66 33:05 9:91
+57 805,305 4.7 1:66 8:14 0:80 10:17
+584,532,440 26.4 7:49 33:46 3:15 10:61
+5918,374,693 5.8 8:99 60:54 5:52 10:96
+601,284,096 5.9 1:53 48:54 4:39 11:05
+613,862,954 6.3 3:44 12:94 1:14 11:38
+6252,269,131 3.4 44:45 177:98 15:53 11:46
+63 130,721 2.2 0:43 1:55 0:13 11:52
+64 545,063 16.4 6:88 2:27 0:16 13:85
+65 545,046 16.4 6:78 2:17 0:15 14:04
+66 829,090 12.3 9:60 3:40 0:24 14:17
+6763,918,783 267.0 115:87 244:01 16:00 15:25
+6820,382,912 3.3 15:78 76:69 4:80 15:98
+6929,689,784 6.2 11:18 120:82 7:16 16:88
+702,619,392 5.2 3:48 660:92 31:62 20:90
+712,575,360 5.7 3:03 589:87 25:69 22:96
+722,639,872 5.0 3:17 816:08 29:93 27:27
+732,691,072 4.5 3:43 950:82 33:39 28:48
+Table 3. Comparison of our tool against jMoped. Runtimes are given in seconds. The
+names of all benchmarks are given in Appendix E.
+6.3 Discussion
+In our experiments we compared the implementation of our algorithm with
+jMoped on sequential RSM analysis in an explicit setting. While our algorithm
+can be made symbolic in a straightforward way (see Appendix B), a symbolic
+implementation and eciency for large symbolic domains involve signicant en-
+gineering eorts. Moreover, the main goal of our work is to compare the algo-
+rithmic improvements over the existing approaches, which is best demonstrated
+in an explicit setting, since in the explicit setting the improvements are algorith-
+mic rather than due to implementation details of symbolic data-structures. Our
+experimental results show the potential of the new algorithmic ideas, and inves-
+tigating the applicability of them with a symbolic implementation is a subject
+of future work.
+24
+
+--- Page 25 ---
+7 Related Work
+Sequential setting. Pushdown systems are very well studied for interprocedu-
+ral analysis [32,35,10]. While the most basic problem is reachability, the weighted
+pushdown systems (i.e., pushdown systems enriched with semiring) can express
+several basic dataow properties, and other relevant problems in interprocedu-
+ral program analysis [34,21,33,19]. Hence weighted pushdown systems have been
+studied in many dierent contexts, such as [35,32,16,12], and tools have been
+developed, such as Moped [2], jMoped [1], and WALi [3]. The more convenient
+model of RSMs was introduced and studied in [4], which on the one hand explic-
+itly models the function calls and returns, and on the other hand species many
+natural parameters for algorithmic analysis. In this work, we improve the fun-
+damental algorithms for RSMs over nite-height semirings, as compared to the
+bounds obtained by translating RSMs to pushdown systems and applying the
+best-known bounds for the pushdown case. Along with general RSMs, special
+cases of SESE RSMs have also been considered, such as RSMs with constant
+treewidth, and only same context queries [11] (i.e., computation of node dis-
+tances between nodes of the same module). Our results apply to the general
+case of all RSMs and are not restricted to any special types of queries.
+Concurrent setting. The problem of reachability in concurrent pushdown sys-
+tems (or concurrent RSMs) is again a fundamental problem in program analysis,
+which allows for the interprocedural analysis in a concurrent setting. However,
+the problem is undecidable [31]. Motivated by practical problems, where bugs are
+discovered with few context switches, the context-bounded reachability problem,
+where there can be at most kcontext switches have been considered for concur-
+rent pushdown systems [28,25,26,22,20] as well as related models of asynchronous
+pushdown networks [9]. We present a new algorithm for concurrent pushdown
+systems and concurrent RSMs which improves the existing complexity when the
+size of the global component is small.
+8 Conclusion
+In this work we consider RSMs, a fundamental model for interprocedural analy-
+sis, with path properties expressed over nite-height semirings, that can express
+a large class of properties for program analysis. We present algorithms that im-
+prove the previous algorithms, both in the sequential as well as in the concurrent
+setting. Moreover, along with our algorithm, we present new methods to extract
+distances from the data-structure (conguration automata) that the algorithm
+constructs. We present a prototype implementation for sequential RSMs in an
+explicit setting that provides signicant improvements for real-world programs
+obtained from SLAM/SDV benchmarks. Our results show the potential of the
+new algorithmic ideas. There are several interesting directions of future work.
+A symbolic implementation is a direction for future work. Another direction of
+future work is to explore the new algorithmic ideas in the concurrent setting in
+practice.
+25
+
+--- Page 26 ---
+Acknowledgments. This research was supported in part by the Austrian
+Science Fund (FWF) under grants S11402-N23, S11407-N23, P23499-N23, and
+Z211-N23, and by the European Research Council (ERC) under grant 279307.
+References
+1. jMoped 2.0. https://www7.in.tum.de/tools/jmoped/ .
+2. Moped. http://www2.informatik.uni-stuttgart.de/fmi/szs/tools/moped/ .
+3. WALi. https://research.cs.wisc.edu/wpis/wpds/ .
+4. Rajeev Alur, Michael Benedikt, Kousha Etessami, Patrice Godefroid, Thomas W.
+Reps, and Mihalis Yannakakis. Analysis of Recursive State Machines. ACM Trans.
+Program. Lang. Syst. , 27(4), 2005.
+5. Rajeev Alur, Ahmed Bouajjani, and Javier Esparza. Model Checking Procedural
+Programs. In Handbook of Model Checking . Springer, 2016.
+6. Thomas Ball, Ella Bounimova, Vladimir Levin, Rahul Kumar, and Jakob Lichten-
+berg. The static driver verier research platform. In CAV , 2010.
+7. Thomas Ball and Sriram K. Rajamani. Bebop: A symbolic model checker for
+boolean programs. In SPIN , 2000.
+8. Pamela Bhattacharya, Marios Iliofotou, Iulian Neamtiu, and Michalis Faloutsos.
+Graph-based analysis and prediction for software evolution. In ICSE , 2012.
+9. Ahmed Bouajjani, Javier Esparza, Stefan Schwoon, and Jan Strej cek. Reachability
+analysis of multithreaded software with asynchronous communication. In FSTTCS ,
+2005.
+10. David Callahan, Keith D. Cooper, Ken Kennedy, and Linda Torczon. Interproce-
+dural constant propagation. In CC, 1986.
+11. Krishnendu Chatterjee, Rasmus Ibsen-Jensen, Andreas Pavlogiannis, and Prateesh
+Goyal. Faster algorithms for algebraic path properties in recursive state machines
+with constant treewidth. In POPL , 2015.
+12. Swarat Chaudhuri. Subcubic algorithms for recursive state machines. In POPL ,
+2008.
+13. P. Cousot and R Cousot. Static determination of dynamic properties of recursive
+procedures. In IFIP Conf. on Formal Description of Programming Concepts , 1977.
+14. Robert Giegerich, Ulrich M oncke, and Reinhard Wilhelm. Invariance of approxi-
+mate semantics with respect to program transformations. In ECI, 1981.
+15. Dan Grove and Linda Torczon. Interprocedural constant propagation: A study of
+jump function implementation. In PLDI , 1993.
+16. Susan Horwitz, Thomas Reps, and Mooly Sagiv. Demand interprocedural dataow
+analysis. SIGSOFT Softw. Eng. Notes , 1995.
+17. Jens Knoop and Bernhard Steen. The interprocedural coincidence theorem. In
+CC, 1992.
+18. Jens Knoop, Bernhard Steen, and J urgen Vollmer. Parallelism for free: Ecient
+and optimal bitvector analyses for parallel programs. ACM Trans. Program. Lang.
+Syst. , 1996.
+19. Akash Lal and Thomas W. Reps. Solving multiple dataow queries using wpdss.
+InSAS, 2008.
+20. Akash Lal and Thomas W. Reps. Reducing concurrent analysis under a context
+bound to sequential analysis. Formal Methods in System Design , 35(1), 2009.
+21. Akash Lal, Thomas W. Reps, and Gogul Balakrishnan. Extended weighted push-
+down systems. In CAV , 2005.
+26
+
+--- Page 27 ---
+22. Akash Lal, Tayssir Touili, Nicholas Kidd, and Thomas W. Reps. Interprocedural
+analysis of concurrent programs under a context bound. In TACAS , 2008.
+23. William Landi and Barbara G. Ryder. Pointer-induced aliasing: A problem classi-
+cation. In POPL , 1991.
+24. Edo Liberty and Steven W. Zucker. The mailman algorithm: A note on matrix{
+vector multiplication. Inf. Process. Lett. , 109(3), 2009.
+25. Madanlal Musuvathi and Shaz Qadeer. Iterative context bounding for systematic
+testing of multithreaded programs. In PLDI , 2007.
+26. Madanlal Musuvathi, Shaz Qadeer, Thomas Ball, G erard Basler, Pira-
+manayagam Arumuga Nainar, and Iulian Neamtiu. Finding and reproducing
+heisenbugs in concurrent programs. In OSDI , 2008.
+27. Gene Myers. A four russians algorithm for regular expression pattern matching.
+J. ACM , 39(2), 1992.
+28. Shaz Qadeer and Jakob Rehof. Context-Bounded Model Checking of Concurrent
+Software. In TACAS , 2005.
+29. Shaz Qadeer and Dinghao Wu. KISS: Keep It Simple and Sequential. In PLDI ,
+2004.
+30. Yu Qu, Xiaohong Guan, Qinghua Zheng, Ting Liu, Jianliang Zhou, and Jian Li.
+Calling network: A new method for modeling software runtime behaviors. ACM
+SIGSOFT Software Engineering Notes , 40(1):1{8, 2015.
+31. G. Ramalingam. Context-sensitive synchronization-sensitive analysis is undecid-
+able. ACM Trans. Program. Lang. Syst. , 22(2), 2000.
+32. Thomas Reps, Susan Horwitz, and Mooly Sagiv. Precise interprocedural dataow
+analysis via graph reachability. In POPL , 1995.
+33. Thomas W. Reps, Akash Lal, and Nicholas Kidd. Program analysis using weighted
+pushdown systems. In FSTTCS , 2007.
+34. Thomas W. Reps, Stefan Schwoon, Somesh Jha, and David Melski. Weighted
+Pushdown Systems and Their Application to Interprocedural Dataow Analysis.
+Sci. Comput. Program. , 58(1-2), 2005.
+35. Mooly Sagiv, Thomas Reps, and Susan Horwitz. Precise interprocedural dataow
+analysis with applications to constant propagation. Theor. Comput. Sci. , 1996.
+36. Stefan Schwoon. Model-Checking Pushdown Systems . Ph.D. Thesis, Technische
+Universit at M unchen, 2002.
+37. Dejvuth Suwimonteerabuth, Javier Esparza, and Stefan Schwoon. Symbolic
+context-bounded analysis of multithreaded java programs. In SPIN , 2008.
+38. Ryan Williams. Matrix-Vector Multiplication in Sub-Quadratic Time (Some Pre-
+processing Required). In SODA , 2007.
+39. Virginia Vassilevska Williams. Multiplying matrices faster than Coppersmith-
+Winograd. In STOC , 2012.
+27
+
+--- Page 28 ---
+A Proofs of Section 3
+Proposition 3. At all times, every run in the automaton contains at most
+one transition switching from the fresh mark to an old mark, and no transi-
+tion switching from an old mark to the fresh mark. Furthermore, every accepting
+run has to end in a state with an old mark.
+Lemma 1 (Completeness). For every conguration cwe haveCpost(c)v
+d(L(C);c).
+Proof. First we show that for every initialized computation :hu;Si=)hu0;S0i
+there is a run
+t1z}|{
+:hu0;mu0i" !he;meiS0
+!qf
+acceptinghu0;S0isuch that (1)
+()v 
+ (), and (2) t1was added to the
+worklist. We proceed by induction on the length of . Part (2) of the induction
+hypothesis is used to argue that t1will be extracted with its nal weight at some
+point in the algorithm. We do not explicitly prove this part below since it is an
+obvious consequence of the steps in the algorithm we refer to in order to prove
+part (1).
+As a base case, if jj= 0 thenu=u0,S=S0, and
+() = 1. Since
+hu;Si2L (C) there must be a C-runacceptinghu;Si, and since all transitions
+in the initial automaton have weight 1 we have
+() =1.
+For the induction step, if jj>0 there is a conguration hu1;S1isuch that
+:hu;Si=)hu1;S1i|{z}
+1=)hu0;S0i:
+By applying the induction hypothesis to 1we obtain an accepting run
+t1z}|{
+1:hu1;mu1i" !he;meiS1!qf|{z}
+0
+1
+such that
+
+(1) =
+(0
+1)
+`(t1)v
+(1):
+LetMibe the module of u1. We split cases according to the type of the last
+transition of .
+1.Internal transition: u02Ini,hu1;u0i2i, andS0=S1. We consider the
+iteration of the main loop where t1is extracted from WLwith its nal weight.
+Line 9 relaxes the transition t=hu0;bmi" !he;meiwith`(t1)
+wi(u1;u0)
+and hence
+`(t)v`(t1)
+wi(u1;u0):
+28
+
+--- Page 29 ---
+By combining tand0
+1we obtain the accepting run
+:hu0;bmi" !he;meiS0
+!qf
+and we derive
+
+() =
+(0
+1)
+`(t)
+v
+(0
+1)
+`(t1)
+wi(u1;u0)
+v
+(1)
+wi(u1;u0)
+=
+():
+2.Call transition: u0=e02EnYi(b)for some box b2Bi,hu1;hb;e0ii2i, and
+S0=bS1.
+Again, we consider the iteration of the main loop where t1is extracted from
+WLwith its nal weight. Line 11 relaxes the transition t=he0;bmib !he;mei
+with`(t1)
+wi(u1;hb;e0i) and hence
+`(t)v`(t1)
+wi(u1;hb;e0i):
+By combining tand0
+1we obtain the accepting run
+:he0;bmi" !he0;bmib !he;meiS0
+!qf
+and we derive
+
+() =
+(0
+1)
+`(t)
+v
+(0
+1)
+`(t1)
+wi(u1;hb;e0i)
+v
+(1)
+wi(u1;hb;e0i)
+=
+():
+3.Return transition: u0=hb;xi2Rifor someb2Biandx2ExYi(b),hu1;xi2
+Yi(b), andS1=bS0. First note that
+
+(1) =
+():
+We consider the iteration of the main loop, where tC=hu3;mu3i" !he;meiis
+the transition extracted from WLsuch that the if-condition sum(he;mei;x)6v
+`(tC) in line 14 holds for the last time. Then `(tC)v`(t1) and since line 15
+relaxes sum(he;mei;x) with`(tC) we have
+sum(he;mei;x)v`(t1):
+Now observe that we must have
+t2z}|{
+0
+1:he;meib=v!he2;me2iS0
+!qf:
+|{z}
+00
+1
+29
+
+--- Page 30 ---
+We distinguish whether the transition t2already had weight vin the current
+iteration of processing tCor not. If yes, then line 17 in the current iteration, if
+no, then line 21 in the later iteration where t2is extracted with weight vfrom
+WL, relaxes the transition t=hhb;xi;bmi" !he2;me2iwithv
+sum(he;mei;x)
+and hence
+`(t)vv
+sum(he;mei;x):
+By combining tand00
+1we obtain the accepting run
+:hhb;xi;bmi" !he2;me2iS0
+!qf
+and we derive
+
+() =
+(00
+1)
+`(t)
+v
+(00
+1)
+v
+sum(he;mei;x)
+=
+(0
+1)
+sum(he;mei;x)
+v
+(0
+1)
+`(t1)
+v
+(1)
+=
+():
+In all cases we obtain the desired run acceptinghu0;S0iwith
+()v
+().
+Now the claim of the lemma follows, as
+Cpost(c) =M
+2(c)
+()vM
+2(L(C);c)
+() =d(L(C);c) (4)
+were the inequality holds since, as shown above, the weight of any is bounded
+from below by the weight of a . u t
+Lemma 4 (Soundness invariants). Algorithm ConfDist maintains the fol-
+lowing loop invariants:
+I1The function sum maintains sound summaries, i.e., for every entry e2Eni
+and exitx2Exiof the same module Mi, and every box b2BjwithYj(b) =
+i, there exists a set of computations :he;bi=)hhb;xi;"isuch thatL() =sum(he;bmi;x).
+I2For every run :hu2;bmiS !hu1;bmi, there exists a set of computations
+:hu1;"i=)hu2;Si, such thatL() =
+().
+I3For every run accepting a conguration cthere exists a set of initialized
+computations ending in c, such thatL() =
+().
+Proof. Note that every accepting run has to end in a nal state with an old
+mark since we do not add nal states to the automaton. Moreover, we recall that
+Proposition 3 implies that every run contains at most one transition switching
+from the fresh mark to an old mark, and no transition switching from an old
+mark to the fresh mark.
+30
+
+--- Page 31 ---
+Initially, the invariants hold due to the initialization steps of the algorithm.
+Now we need to show that I1 is preserved by updates to the summary function
+in line 15, and that I2 and I3 are preserved by all possible relaxations performed
+in line 9, 11, 17, and 21.
+Since all cases follow the similar pattern of applying the invariants to sub-
+runs and combining the obtained sets of computations suitably, we only give the
+details of one case for I3.
+Consider the run
+tz}|{
+:hu2;bmiS2!he0;bmib=vt!he;meiS1!qf|{z} | {z}
+2 1
+withme6=bmand an iteration of the main loop where transition tC=hu;mui" !
+he;meiis extracted from WLand transition tis relaxed in line 11 due to a call
+transitiontR=hu;hb;e0ii.
+We apply I3 to tC;1to obtain a set of initialized computations ending in
+hu;S 1i. We extended each computation by tRto obtain the set 0
+1of initialized
+computations ending in he0;bS1i. We apply I3 to t;1to obtain a set 00
+1of
+initialized computations ending in he0;bS1i. We apply I2 to 2to obtain a set of
+computations from he0;"itohu2;S2i. We lift the stack of each computation by
+bS1to obtain the set 2of computations from he0;bS1itohu2;S2bS1i. Letbe
+the set of computations obtained by combining every computation in 0
+1[00
+1
+with every computation in 2. Thenis the desired set of initialized compu-
+tations ending in hu2;S2bS1i, such thatL() =
+() after the relaxation of
+t. u t
+Lemma 2 (Soundness). For every conguration cwe haved(L(C);c)v
+Cpost(c).
+Proof. Conversely to the inequality of equation (4) in the proof of Lemma 1we
+derive
+d(L(C);c) =M
+2(L(C);c)
+()vM
+2(c)
+() =Cpost(c) (5)
+were the inequality holds since, by invariant I3 from Lemma 4, the weight of any
+is bounded from below by the weight of a (L(C);c). u t
+Lemma 3 (Complexity). Letbe the number of distinct marks m2Mof the
+initial automaton C. Algorithm ConfDist constructsCpostin timeO(H(jRj
+e2+jCalljex3)), andCposthasO(jRje2)transitions.
+Proof. We bound the number of times that each loop will be executed.
+1. For a given node u, line 5 will be executed at most He(+ 1)2times.
+We denote by outi(u),outc(u),outx(u) the number of internal, call, and exit
+transitions from node uiniof moduleMi. For every iteration of line 4,
+the following upper bounds on each inner loop are straightforward:
+31
+
+--- Page 32 ---
+(a) Line 8: outi(u) times.
+(b) Line 10: outc(u) times.
+(c) Line 13: outx(u) times.
+Hence for a given pair hu;mithe algorithm spends O(He(outi(u) +
+outc(u) +outx(u))2) time in the above loops, and summing over all uwe
+obtainO(HejRj2) time.
+2. Given a pair of a state and an exit ( he;mei;x), Line 14 will hold true at
+mostHtimes. Summing over all possible such pairs, we obtain that Line 16
+will be executed O(HjCalljex3) times in total.
+3. Finally, line 21 will be executed O(HjCalljex2) times in total, since
+the total number of dierent edges of the form he;meib !he0;me0iadded
+in the worklist is bounded by the number of call nodes that were used in
+Line 10, times the maximum number of entries and exits in any module of
+the RSM.
+The desired result follows. u t
+B Symbolic Extensions
+Note that in our framework we deal with explicit RSMs, and our ConfDist
+algorithm is also explicit. However, our results carry over to symbolic extensions
+of RSMs, similar to symbolic PDS [5]. For the symbolic extension we describe
+the symbolic extension of the model and our algorithm.
+{Symbolic model. We consider the RSM to represent the control-ow structure
+of a program (represented explicitly), and the semiring capturing valuations
+on the variables (represented symbolically). The symbolic semiring opera-
+tions express the value changes along the program execution. In general the
+MEME RSMs can represent explicitly a combination of control-ow and
+some Boolean variables.
+{Symbolic algorithm. We observe that our algorithm for computation on the
+semiring uses the basic semiring operations. Hence our algorithm can be
+straightforwardly made symbolic on the semiring, and is only explicit on the
+RSM structure.
+C Proofs of Section 5
+Theorem 7. For a concurrent RSM Rk, and a bound k, the procedure of [28,
+Figure 2] using ConfDist for performing postoperations correctly solves the
+k-bounded reachability problem and requires O(jRkjjj
+ejj
+xnkjGjk+2)time.
+Proof. The algorithm of [28, Figure 3] for concurrent RSMs basically calls al-
+gorithm for sequential RSMs as a black-box procedure. Using our algorithm
+ConfDist we obtain an algorithm for concurrent RSM, and the correctness fol-
+lows from [28] and Theorem 1.
+We now sketch the complexity analysis. By Theorem 1, every execution of the
+algorithm ConfDist increases the number of marks of the input conguration
+32
+
+--- Page 33 ---
+automaton by 1. In the i-th iteration of [28, Figure 3] the algorithm will perform
+apostoperation on a conguration automaton of imarks, which by Theorem 1
+will require O(jRjjGj2exi3) time. Each such iteration will spawn njGj
+iterations in the inner loop of [28, Figure 3], one for each component RSM (among
+ncomponents) and state of the global component (among jGjpossible states).
+Then the total time is (up to constant factors)
+jRjjGj2exkX
+i=1i3(njGj)i=O
+jRjjGj2ex(njGj)k
+The desired result follows. u t
+D Comparison with existing work on k-bounded
+reachability
+We compare our results for CPDSs, CRSMs, and the related model of asyn-
+chronous pushdown networks (APNs).
+Comparison for CPDSs. As shown in [28], the k-bounded reachability prob-
+lem in a CPDSPkcan be solved in time
+O(jPkj5nkjGjk):
+The bisimulation relation of [4, Theorem 1] between PDSs and RSMs has a
+straightforward extension to CPDSs and CRSMs. In particular:
+1. Given a CPDS Pkwithncomponents and global set G, thek-bounded
+reachability problem for Pkcan be reduced to the k-bounded reachability
+problem for a CRSM Rkwithncomponents and global set G. Additionally,
+jRkj=(jPkj);jj
+e=(jj) =O(jPkj);jj
+x=(1)
+2. Given a CRSM Rkwithncomponents and global set G, thek-bounded
+reachability problem for Rkcan be reduced to the k-bounded reachability
+problem for a CPDS Pkwithncomponents and global set G. Additionally,
+jPkj=(jRkjjj
+x);
+It follows that our approach can solve the k-bounded reachability problem of a
+CPDSPkin time
+O(jPkj2nkjGjk+2):
+Note that typically kis very small, (e.g. k= 2 in [29], k= 3 in [37]). However,
+in real applications the size of Gis typically smaller than jPkj, e.g., when G
+encodes only the synchronization variables among threads. Our algorithm gives
+an improvement by a factor 
+(jPkj3=jGj2).
+Comparison for CRSMs. The naive upper bound for the k-bounded reach-
+ability problem of a CRSM Rkobtained using a modication of the standard
+33
+
+--- Page 34 ---
+method of [4] to reduce it to the CPDS case, and then apply the algorithm of [28],
+isO(jRkj5jj5
+xnkjGjk). In contrast, our bound is O(jRkjjj
+ejj
+xnkjGjk+2).
+Comparison for APNs. The problem of k-bounded reachability has also
+been studied in the closely related model of asynchronous pushdown networks
+(APNs) [9]. Informally, the main dierence of an APN from a CPDS is that in
+the former case, the stacks have an additional set of local control states, dierent
+from the common global nite control G. Hence APNs are more general than
+CPDS. As shown in [9], the k-bounded reachability problem for an APN Akofn
+components can be solved essentially in time O(nkjGjk+njGjk+2jAkj2jPj),
+wherePis the set of local control states. Since APNs are more general
+than CPDSs, our previous analysis implies that the algorithm of [9] can be
+used to solve the k-bounded reachability problem for a CRSM Rkin time
+O(nkjGjk+njGjk+2jRkj2jj
+x). This time is incomparable with what we obtain
+from Theorem 7. When the number of entries jj
+eand the number of components
+nis constant, the algorithm presented in this work has a better complexity.
+E Names of the Boolean programs used as benchmarks
+All listed benchmarks belong to the \bebop-itp" collection.
+1. src 7600 general toaster kmdf lter generic InvalidReqAccess
+2. src 7600 general toaster wdm lter devupper PnpSurpriseRemove
+3. src 7600 general event wdm MarkIrpPending2
+4. src 7600 storage soppy PagedCode
+5. src 7600 input kbltr sysInvalidReqAccess
+6. src 7600 general toaster wdm toastmon PendedCompletedRequest
+7. src 7600 general toaster wdm lter devupper CriticalRegions
+8. src 7600 network ndis athwi driver atheros IrqlSendRcv Function
+9. src 7600 general event wdm IrpProcessingComplete
+10. src 7600 general toaster wdm func featured1 WmiForward
+11. src 7600 general toaster wdm func featured1 IrqlKeWaitForSingleObject
+12. src 7600 network ndis athwi driver atheros IrqlTimer Function
+13. src 7600 general toaster wdm func featured1 IrqlIoPassive3
+14. src 7600 general toaster wdm func featured2 IrqlIoApcLte
+15. src 7600 general toaster wdm func featured2 WmiForward
+16. src 7600 general ioctl kmdf sysInitFreeDeviceCreateType4
+17. src 7600 general toaster wdm func incomplete2 IrqlReturn
+18. src 7600 general pcidrv wdm hwWmiForward
+19. src 7600 input moultr InvalidReqAccess
+20. src 7600 general toaster wdm func featured2 IrqlIoPassive3
+21. src 7600 general toaster kmdf lter sideband ControlDeviceInitAPI
+22. src 7600 general toaster wdm func featured1 IrqlIoApcLte
+23. src 7600 general toaster wdm func featured2 PnpSurpriseRemove
+24. src 7600 general amcc5933 sysKmdfIrql
+25. src 7600 general toaster wdm func incomplete1 IrpProcessingComplete
+34
+
+--- Page 35 ---
+26. src 7600 general toaster wdm lter devupper PendedCompletedRequest
+27. src 7600 general toaster wdm func incomplete1 TargetRelationNeedsRef
+28. src 7600 general toaster wdm func incomplete2 TargetRelationNeedsRef
+29. src 7600 general toaster wdm func featured1 PnpSurpriseRemove
+30. src 7600 bthbthecho bthcli sysRequestFormattedValid
+31. src 7600 general toaster wdm lter buslower PendedCompletedRequest
+32. src 7600 input hiddigi wacompen MarkIrpPending
+33. src 7600 general toaster wdm bus PnpSurpriseRemove
+34. src 7600 general toaster kmdf busstatic PdoInitFreeDeviceCreateType4
+35. src 7600 network ndis athwi driver atheros IrqlIrqlSetting Function
+36. src 7600 serial serenum IrqlIoApcLte
+37. src 7600 hidhidusbfx2 sysSyncReqSend2
+38. src 7600 general toaster wdm toastmon IrpProcessingComplete
+39. src 7600 general toaster kmdf lter sideband ControlDeviceDeleted
+40. src 7600 general cancel startio MarkIrpPending2
+41. src 7600 general toaster wdm func featured2 IrqlKeSetEvent
+42. src 7600 general toaster wdm func incomplete2 IrqlKeSetEvent
+43. src 7600 serial serenum IrqlIoPassive3
+44. src 7600 general toaster wdm lter devlower IrpProcessingComplete
+45. src 7600 general toaster wdm func featured1 IrqlExAllocatePool
+46. src 7600 general toaster wdm func featured2 CriticalRegions
+47. src 7600 general toaster wdm bus MarkIrpPending2
+48. src 7600 storage class cdrom WdfSpinlockRelease
+49. src 7600 general toaster wdm func featured2 IrqlKeWaitForSingleObject
+50. src 7600 network ndis xframeii sysndis6 MandatoryOid
+51. src 7600 general toaster kmdf lter sideband DeviceInitAllocate
+52. src 7600 network ndis xframeii sysndis6 NdisStallExecution Delay
+53. src 7600 bthbthecho bthsrv sysInvalidReqAccessLocal
+54. src 7600 general toaster wdm func featured2 IrqlKeApcLte2
+55. src 7600 general toaster wdm bus IrqlIoPassive3
+56. src 7600 network ndis xframeii sysndis6 SpinlockRelease
+57. src 7600 storage lters diskperf PnpIrpCompletion
+58. src 7600 storage lters diskperf TargetRelationNeedsRef
+59. src 7600 general toaster wdm func featured2 IrqlZwPassive
+60. src 7600 hidhidusbfx2 hidmapper ForwardedAtBadIrql
+61. src 7600 general pcidrv wdm hwDoubleCompletion
+62. src 7600 serial serenum MarkIrpPending2
+63. src 7600 general toaster wdm func incomplete2 MarkIrpPending2
+64. src 7600 input moultr SyncReqSend2
+65. src 7600 general toaster kmdf lter generic SyncReqSend2
+66. src 7600 input kbltr sysSyncReqSend2
+67. src 7600 input hiddigi wacompen SpinLock
+68. src 7600 general toaster wdm lter devupper IrpProcessingComplete
+69. src 7600 general pcidrv wdm hwIrqlIoPassive1
+70. src 7600 general toaster wdm func incomplete1 ForwardedAtBadIrql
+35
+
+--- Page 36 ---
+71. src 7600 general toaster wdm lter devlower ForwardedAtBadIrql
+72. src 7600 general toaster wdm toastmon ForwardedAtBadIrql
+73. src 7600 general toaster wdm lter devupper ForwardedAtBadIrql
+36

@@ -1,0 +1,889 @@
+--- Page 1 ---
+Symbolic Execution of UML-RT State Machines
+Technical Report 2011-578
+Karolina Zurowska and Juergen Dingel
+Modeling And Analysis in Software Engineering
+School of Computing
+Queen’s University
+Kingston, Canada
+June, 2011
+Copyright c/circlecopyrt2011 Karolina Zurowska, Juergen Dingel
+
+--- Page 2 ---
+Abstract
+One of the languages used in the industrial practice of the mod el-driven development
+(MDD) is UML-RT. The language is a proper proﬁle of UML 2 and it targets especially
+development of embedded systems. In UML-RT, UML-RT State Mac hines are used to model
+behavior. This paper presents a technique for a symbolic executi on of these machines, which
+introduces modular treatment of action code. This feature c learly separates the symbolic
+execution of the state machine itself from the symbolic executi on of its action code and thus
+facilitates support of diﬀerent action languages. The sepa ration is achieved via a formalization
+of UML-RT State Machines in which functions are used to repre sent the result of the symbolic
+execution of the action code. Key parts of the technique are form alized, an implementation is
+presented and an example is used to illustrate the symbolic exec ution itself and how it can be
+used for diﬀerent purposes including reachability analysis , invariant checking, output analysis
+and test case generation. The evaluation of our tool on two ca se studies is also discussed.
+1 Introduction
+Symbolic execution of programs was proposed more than 30 yea rs ago by King. In [21], symbolic
+values serve as placeholders for input parameters. These sy mbolic values are used in a traversal
+of the control-ﬂow graph (CFG), which results in a symbolic e xecution tree. The tree contains
+all execution paths and the constraints the symbolic values have to satisfy such that a particular
+path in the CFG is followed. Symbolic execution can be used to solve many problems related to
+program analysis, veriﬁcation and testing [11]. Recently, a lot of research has been devoted to
+the development of novel extensions to and applications of s ymbolic execution [27]. Most notably,
+combining symbolic and concrete execution has been very fru itful and led to testing techniques
+that are now in serious industrial use (e.g., [17]).
+Model-driven development (MDD) advocates the use of models as primary artifacts for software
+development (rather than code): models are iteratively reﬁ ned until code can be generated from
+them and model-level analyses provide early feedback regar ding the quality of the models. MDD
+has been used successfully for the development of, e.g., tel ecommunication, avionics, military, and
+automotive systems and is supported by several academic and commercial tools including Scade
+Suite [4], Motorola Mousetrap [35], IBM Rational Rhapsody R/circlecopyrt1[2], IBM Rational R/circlecopyrtRoseRT and
+IBMRational R/circlecopyrtSoftwareArchitectRealTimeEdition(IBMRSA-RTE)[3]. Ros eRTandRSA-RTE
+use UML-RT [31], a modeling language and proper proﬁle of UML 2 [5]. UML-RT features capsules
+as active objects with their behavior described with state m achines. UML-RT State Machines are
+a special case of UML 2 state machines with some added constra ints (e.g., no orthogonal regions,
+a.k.a, “and”-states) and reﬁnements (for executability) a nd are fully consistent with UML 2 State
+Machines. Just like state machines in UML 2, UML-RT State Mac hines typically contain action
+code, i.e., code written in some programming language (IBM R SA-RTE supports C++, Java, and
+Alf [26]) that can be associated with transitions or states ( as entry actions, do actions, or exit
+actions). Although it was recognized long ago that UML-RT le nds itself to formal analysis [36],
+current UML-RT tools still do not take advantage of this. The work presented in this paper is
+inspired by the recent success of symbolic execution of sour ce code and aims at, ultimately, making
+its beneﬁts available to the industrial practice of MDD in ge neral and MDD using UML-RT in
+particular.
+To this end, this paper makes the following contributions:
+1) An approach to the symbolic execution of UML-RT State Mach ines (see Figure 1) is presented.
+The approach is based on the traversal of the state space of an internal representation of the state
+machine, called Functional Finite State Machine (FFSM). Th e FFSM is built “on-the-ﬂy” during
+the traversal (procedure UMLRT2FFSM in Figure 1) and any action code encountered in the UML-
+RT State Machine is incorporated into the FFSM in a modular wa y in terms of “functions”. This
+modularity is a key distinguishing feature of our approach; the clear separation of the symbolic
+1IBM, Rational and Rhapsody are trademarks of International Business Machines Corporation, registered in
+many jurisdictions worldwide
+1
+
+--- Page 3 ---
+execution of the state machine itself from the action code no t only facilitates implementation and
+support for diﬀerent action languages (an external symboli c execution engine for the action code
+can be used in a “pluggable” way), but also optimization via r euse similar to the work in [16, 6, 34].
+We formally deﬁne FFSMs and provide algorithms for their sym bolic execution (Section 3) and
+construction from a UML-RT State Machine (Section 4).
+2) The implementation of the approach is described. The impl ementation consists of Eclipse plu-
+gins which can be integrated into IBM RSA-RTE, thus allowing further experimentation with
+the symbolic execution of UML-RT, including, e.g., variant s that combine symbolic and concrete
+execution. The use of the implementation is illustrated on a running example and a model we
+obtained from our industrial partner (Section 5).
+3) A demonstration of the utility of symbolic execution for d iﬀerent analyses of models of reac-
+tive systems including reachability analysis of state mach ine locations, invariant checking, output
+analysis, and test case generation (Section 5) is given.
+The literature on the analysis of state machines (expressed in, e.g., UML 2, UML-RT, or forms
+of labeled transition systems) is rich. However, as we will a rgue in Section 6, to the best of our
+knowledge, none of the existing approaches combines all the features listed above.
+2 Symbolic execution of state machines
+The goal of our work is to provide a technique for symbolic exe cution of UML-RT State Machines
+and to enable their subsequent analysis. Two key challenges are the reactive nature of UML-RT
+State Machines and their complex behavioral semantics base d on action code [31]. In order to deal
+with semantics we propose a formalization of UML-RT State Ma chines with functional ﬁnite state
+machines (FFSMs). To incorporate reactive features in the a nalysis of UML-RT State Machines
+we deﬁne the symbolic execution of FFSMs. Both of the above el ements are introduced below and
+presented in detail in the following sections.
+An example of an FFSM (deﬁned in Section 3) is shown in Figure 2 . FFSMs have input/output
+actionsand variables, which are divided into machine variables , common to all states, and vari-
+ables that store input and output values called input action variables andoutput action variables ,
+respectively. Additionally, transitions are labeled with three types of functions: guard,updateand
+output. The ﬁrst type is used to guard a transition and represents a c ondition deﬁned over machine
+variables and input variables of the input action. The other two types of functions are deﬁned over
+the same set of variables, but they represent updates of mach ine variables and sequences of output
+actions, respectively. Both of these functions, as justiﬁe d in Section 3, are deﬁned using cases and
+represented as pairs with the ﬁrst element being a condition that must be satisﬁed in order to
+apply a given update or to produce an output sequence.
+FFSMs capture the most important characteristics of UML-RT State Machines such as states
+(called locations), transitions, events and variables. Mo reover, functions represent the results of
+the symbolic execution of action code. The separation of act ion code analysis, along with the
+generality of FFSMs, make it possible to use them to represen t other kinds of state machines, for
+Figure 1: Symbolic execution of UML-RT State Machines.
+2
+
+--- Page 4 ---
+update functions: no updatedef= {(true, (v1 :=v1, v2:=v2))}
+updateV1def= {(true, (v1 :=i1, v2:=v2))}
+updateV2def= {(true, (v1 :=v1, v2:=i1))}
+output functions: no outputdef= {(true, []) }
+outputVdef= {(true, [(out,o1 :=v1)(out,o1 :=v2)])}
+outputinputdef= {((i2>0), [(out, o1 :=v1)]),
+((i2≤0), [(out, o1 :=i2)])}
+Figure 2: An example of an FFSM with machine variables v1, v2, input action vari-
+ables:i1, i2 and output action variables o1(labels of transitions are of the form
+inputaction(input actionvariables)? (guard) -> update [output] ).
+Figure 3: An initial part of a symbolic execution tree for the FFSM in Figure 2
+example the more general UML 2 State Machines [5].
+Figure 3 presents the ﬁrst states of the symbolic execution t ree of the FFSM in Figure 2. The
+initial symbolic state is L0and the initial values of the two machine variables are 0 for v1and
+10 forv2. In FFSMs, machine variables are always initialized. This a ssumption is motivated by
+the fact that machine variables represent attributes in UML -RT models (as presented in detail in
+Section 4), and attributes always have initial values. From the initial symbolic state, the transition
+toL1is executed. Next, there are two possible transitions from L1triggered by the action Input2
+with input variable i1. To take the transition to L2the input variable is given a symbolic value
+i11 that must be greater or equal to 0. This constraint is includ ed in the path constraint of the
+next symbolic state. The evaluation of the update function updateV1 yields an update of v1to
+the symbolic value i11. Symbolic processing of the output function outputV generates a sequence
+of output actions using the values of both machine variables .
+The symbolic execution of FFSMs conveniently represents th e reactive nature of UML-RT State
+Machines, because inputs and outputs are part of every trans ition in the symbolic execution tree.
+Additionally, variables of enabled input actions receive n ew symbolic values.
+3
+
+--- Page 5 ---
+3 Functional ﬁnite state machines and their symbolic exe-
+cution
+Functional ﬁnite state machines (FFSMs) are inspired by X-m achines [18] and by Input-Output
+Symbolic Transition Systems (IOSTSs) [13]. As in X-machine s, transitions in FFSMs are labeled
+with functions, but their deﬁnition is based on ﬁrst-order l ogic structures as in IOSTSs (although
+in our case inputs and outputs are on the same transition). Th e explicit speciﬁcation of functions
+capturing how the machine processes variables is crucial fo r the formulation of a symbolic execution
+algorithm. Also, as we will see in Section 4, FFSMs are deﬁned in such a way that they can express
+UML-RT State Machines, which then enables their symbolic ex ecution.
+3.1 Functional Finite State Machines
+To represent variables, their values and operations on them , the notion of a domain is used.
+Deﬁnition 1 introduces domains, which are similar to quanti ﬁer-free ﬁrst-order logic structures
+with functions and relations [32].
+Deﬁnition 1. Adomainis a tupleD= (U,F,R,X ), where:
+-Uis called universe and is a possibly inﬁnite set of elements,
+-Fis a set of functions and each function f∈Fhas an arity n∈Nand is deﬁned as
+f:Un→U. Givenx1,...,xn∈U,f(x1,...,xn) denotes an element of Urepresented by a
+functionf. If the arity of a function is 0, then the function represents aconstant,
+-Ris a set of relations : a relation r∈Rhas an arity n∈Nand isr⊆Un,
+-Xis a set of variables .
+We deﬁne termsandformulas in the usual manner. Terms are variables, constants or funct ions
+applied to other terms. We use Σ( D) to denote a set of all terms over a domain D. Formulas
+are either relations over terms or are composed with the stan dard boolean connectives ¬,∨,∧,⇒.
+The set of all formulas over a domain Dis denoted with Φ( D). We also use an operation vars:
+(Σ(D)∪Φ(D))→P(X) (Pis the powerset operator), which maps a term or a formula to th e
+set of variables that it contains. Interpretations of terms and formulas are similar to those in
+ﬁrst-order logic: for a given valuation of variables, a term denotes an element of a universe and a
+formula denotes either trueorfalse. Additionally we introduce predicates over multiple domai ns,
+which use standard boolean connectives to compose formulas . For a set of domains {D1,...,DN},
+Φ({D1,...,DN}) represents the set of all predicates composed from formula s overD1,...,DN.
+Variables have a valuation that maps them to elements in thei r universe. Deﬁnition 2 presents
+how a valuation is extended to a set of variables from multipl e domains.
+Deﬁnition 2. LetD1,...,DNbe domains with universes U1,...,UNand for a variable YletU(Y)
+denote its universe. A valuation of a set of variables X={X1,...,XM}is a function v:X→/uniontext
+i=1,...,NUi, such that ∀Xi∈X:v(Xi)∈U(Xi). The set of all possible valuations of variables in
+Xis denoted as Val[X].
+Deﬁnition 3 of functional ﬁnite state machines (FFSMs) uses variables and labels transitions
+with functions over their valuations.
+Deﬁnition 3. LetDoms={D1,...,DN}be a set of domains. A functional ﬁnite state machine is
+a tupleF= (L,V,AV,A, GF,UF,OF,T,l0,v0), where:
+-L={l1,...,lk}is a ﬁnite set of locations withl0∈Lbeing the initial location ,
+-V={v1,...,vl}is a ﬁnite set of machine variables . The function D:V→Domsassigns a
+type (domain) to a machine variable,
+4
+
+--- Page 6 ---
+-AVis a ﬁnite set of action variables with type assignments D:AV→Doms. Action
+variables are partitioned into sets of inputandoutput action variables AVI={ai1,...,ain}
+andAVO={ao1,...,aom}such thatAVI∩AVO=∅andAVI∪AVO=AV,
+-Ais a ﬁnite set of actionspartitioned into inputandoutput actions AIandAO. Each action
+is mapped to a set of action variables vars:A→P(AV) such that ∀a∈A:a∈AI⇒
+vars(a)⊆AVI∧a∈AO⇒vars(a)⊆AVO,
+-GFis a set of guard functions :gf∈GFis a function gf:Val[V]×Val[AV′
+I]→B, where
+AV′
+I⊆AVIandB={true,false}. So given valuations of machine variables ( v) and of input
+action variables ( vi),gf(v,vi) is either trueorfalse. For a function gf,varsall(gf) denotes
+the set of variables that its valuations range over, i.e., varsall(gf) =V∪AV′
+I,
+-UFis a set of update functions :uf∈UFisuf:Val[V]×Val[AV′
+I]→Val[V], where
+AV′
+I⊆AVI. So given valuations of machine variables ( v) and input variables ( vi),uf(v,vi)
+is a new valuation of machine variables. The operation varsall(uf) is deﬁned as for guard
+functions,
+-OFis a setoutput functions :of∈OFisof:Val[V]×Val[AV′
+I]→Seq(AO×Val[AV′
+O]),
+whereAV′
+I⊆AVI,AV′
+O⊆AVOandSeq(AO×Val[AV′
+O]) is the set of sequences of pairs
+that contain an output action and a valuation of the output va riables used in that action,
+i.e., each element of a sequence is of the form ( a,v) witha∈AOandv∈Val[vars(a)]. The
+operation varsall(of) is deﬁned as for guard functions,
+-Tis atransition relation :T⊆(L×AI×GF×UF×OF×L). We require that for a
+transitiont= (l,ai,gf,uf,of,l′) (denoted also as lai,gf,uf,of−→l′) all functions f∈ {gf,uf,of}
+are such that varsall(f) = (V∪vars(ai)), i.e., they are deﬁned only for machine variables
+and variables used in the input action ai,
+-v0is an initial valuation of machine variables, i.e., v0∈Val[V].
+Theset-theoreticdeﬁnitionofguard, updateandoutputfun ctionsisnotwellsuitedforsymbolic
+execution, because the tuples contained in the functions ar e explicitly enumerated, which makes
+such representation very verbose. Below, functions are deﬁ ned in a more succinct way with logical
+terms and predicates over the set of domains Doms. In update and output functions a notion
+of cases is introduced to allow for attaching conditions to e xecution paths of action code (see
+Section 4).
+Each guard function is deﬁned as a predicate over domains of a ll variables:
+gfdef=ψsuch that:ψ∈Φ(Doms)∧vars(ψ)⊆(varsall(gf))
+Update functions are deﬁned as a set of cases. Each case is lik e a conditional assignment and is
+represented as a pair consisting of a case condition (a predi cate) and a function that assigns to
+each machine variable a term denoting its new value:
+ufdef={uf1,...,ufn}
+∧ ∀ufk∈uf:ufk∈(Φ(Doms)×(V→/uniondisplay
+v∈VΣ(D(v))))
+For each ufk= (ψ,assign), the variables used in terms and predicates are a subset of varsall(uf).
+We will use the projections case(ufk) =ψandassign(ufk) =assign. In Figure 2 noupdate,
+updateV1 andupdateV2 are examples of update functions.
+The deﬁnition of output functions also uses cases, but the se cond element of each pair is a list
+of output actions with a valuation of output variables:
+ofdef={of1,...,ofm}
+∧∀ofk∈of:ofk∈(Φ(Doms)×Seq(AO×(AssignOut ))),
+5
+
+--- Page 7 ---
+whereassignOut ∈AssignOut ifassignOut :vars(ao)→/uniontext
+v∈vars(ao)Σ(D(v)) is a function that
+for a given output action ao∈AOassigns terms to its output variables.
+For each ofk= (ψ,seqo), the variables used in terms and predicates are a subset of varsall(of).
+We will use the projections case(ofk) =ψandseq(ofk) =seqo. There are examples of output
+functions in Figure 2: nooutput,outputVandoutputinput.
+The execution of FFSMs relies on the evaluation of functions . The evaluation is performed
+using valuations v∈Val[V] andiv∈Val[AV′
+I], whereVare machine variables of an FFSM and
+AV′
+Iis a subset of its input variables. In order to use these valua tions we deﬁne a substitution
+operation [ ]. For a term (or a predicate) pwe usep[v,iv] to denote an element of a universe (or
+a boolean value). The element (or the value) is obtained by re placing all variables in pwith their
+values given by valuations vandiv. Theconcrete evaluation of functions is deﬁned as follows:
+1. Guard functions: their evaluation returns trueorfalseand forgfdeﬁned with a predicate ψ
+we have:
+eval[gf](v,iv) =ψ[v,iv]
+2. Updatefunctions: theevaluationreturnsavaluationofm achinevariables V. Anewvaluation
+is returned if at least one of the cases evaluates to true. Suppose ufk∈ufwithcase(ufk) =φ
+andupdate(ufk) =u, then we have:
+eval[uf](v,iv) =v′∈Val[V] iﬀ
+∃ufk∈uf:φ[v,iv]∧∀x∈V:v′(x) =u(x)[v,iv]
+3. Output functions: the evaluation results in a sequence of output actions, which occurs only
+if one of cases evaluates to true. A sequence of output actions is generated with values of
+output variables given by the valuations vandiv. For a case ofkin an output function of,
+letcase(ofk) =ψandseq(ofk) = (o1,v1)(o2,v2)..., then:
+eval[of](v,iv) =siﬀ
+∃ofk∈of:φ[v,iv]∧s= (o1,v1[v,iv])(o2,v2[v,iv])...
+Evaluation results of update and output functions may not be uniquely deﬁned if more than one
+case evaluates to true.
+The concrete execution semantics of an FFSM is deﬁned using l abeled transition system (LTS).
+In such an LTS each state represents a location and a valuatio n of machine variables. Transitions
+between states contain input actions and sequences of outpu t actions along with values for their
+respective variables.
+Deﬁnition 4. LetF= (L,V,AV,A, GF,UF,OF,T,l0,v0) be an FFSM. Its concrete execution
+semantics is a tuple E(F) = (S,Tr,s 0), where:
+-Sis a set of execution states. Each state is a pair ( l,v) wherel∈Lis a location and
+v∈Val[V] is a valuation of machine variables;
+-Tris a transition relation Tr⊆(S×AI×Val[AV′
+I]×Seq(AO×Val[AV′
+o])×S), where
+AV′
+I⊆AVIandAV′
+O⊆AVO. The transition relation is generated by the following rule :
+li,gf,uf,of−→l′,iv∈Val[vars(i)],
+eval[gf](v,iv),v′=eval[uf](v,iv),seq=eval[of](v,iv)
+(l,v)i,iv,seq−→(l′,v′)
+The set of all paths is deﬁned as paths(E(F)) ={s0t0s1...|∀k≥0 :tk= (sk,i,iv,seq,s k+1)∧tk∈
+Tr}.
+Example 1. An example for an FFSM is presented in Figure 2 for a single dom ain of integers.
+The FFSM has locations L={L0,L1,L2,L3 }, machine variables V={v1,v2}, action variables for
+inputAVI={i1,i2}and for output AVO={o1}. Actions are AI={Input1, Input2, Input3 }
+andAO={out}. The initial location is L0and initial valuation is {v1= 0,v2= 10}. Figure 4
+presents the initial states of the concrete execution.
+6
+
+--- Page 8 ---
+Figure 4: An initial part of concrete execution of the FFSM in Figure 2.
+3.2 Symbolic execution of FFSMs
+Symbolic execution of FFSMs, as outlined in Section 2, follo ws the general approach of symbolic
+execution of programs [21]. This means that values of variab les are represented as terms over
+domains of the variables. Deﬁnition 5 introduces a notion of symbolic valuation for a set of
+variables.
+Deﬁnition 5. For a set of variables Xasymbolic valuation vsis a function that maps a variable
+to a term from its domain, that is vs:X→/uniontext
+v∈XΣ(D(v)) such that ∀v∈X:vs(v)∈Σ(D(v)).
+The set of all possible symbolic valuations of variables in Xis denoted as Vals[X].
+The central element of the symbolic execution of FFSMs is a sy mbolic evaluation of guard,
+update and output functions. The evaluation is conducted fo r a given symbolic valuation of
+machine variables vs∈Vals[V], path constraints pcand a symbolic valuation of input variables
+ivs∈Vals[AV′
+I], whereAV′
+I⊆AVI. During evaluation, variables are replaced by their values ,
+which are symbolic and represented with terms. To achieve th is, a replacement operator for terms
+and predicates is introduced. If pis a term (or a formula or a predicate) then p[vs,ivs] denotes
+a term (or a formula or a predicate) with all variables in psubstituted by their mapped symbolic
+values invsorivs. Additionally, evaluation of each function may update path constraints. This
+happensifaguardoracaseconditioncannotbeinferredfrom thecurrentpathconstraintsandmust
+be assumed. Symbolic evaluation of functions is given by ( pc⇒φabbreviates ((/logicalandtext
+ψ∈pcψ)⇒φ)):
+1. Guard functions: evaluation may result in an additional p ath constraint.
+evals[gf](vs,ivs,pc) =
+/braceleftBigg
+∅, ifpc⇒gf[vs,ivs]
+{gf[vs,ivs]},otherwise.
+2. Update functions: evaluation results in a pair containin g possibly a new path constraint and
+a new symbolic valuation. The evaluation is performed for ea ch case and for the kth case
+ufk= (φ,asgn) (φis a case constraint and asgn∈Vals[V] is a symbolic valuation) we have:
+evals[ufk](vs,ivs,pc) =
+/braceleftBigg
+(∅,asgn[vs,ivs]), ifpc⇒φ[vs,ivs]
+(φ[vs,ivs],asgn[vs,ivs]),otherwise.
+whereasgn[vs,ivs] is a valuation such that ∀v∈V:asgn[vs,ivs](v) =asgn(v)[vs,ivs].
+3. Outputfunctions: evaluationmayresultinapairwithase quenceofoutputactionsasthesec-
+ondelement. Evaluationisperformedforeachcase. Forthe kthcaseofk= (φ,(oa1,asgn1)(oa2,asgn2)...)
+we have:
+7
+
+--- Page 9 ---
+Table 1: An example of symbolic evaluation of the functions f rom Figure 2.
+Arguments:vs={(v1←i11),(v2←10)},
+ivs
+1={(i1←i12)},
+ivs
+2={(i2←i21)},
+pc={i11≥0}
+guard function: (i1 ≥0) evals[(i1≥0)](vs,ivs
+1,pc) ={(i12≥0)}
+update func.: updateV1def=
+{(true, (v1:=i1, v2:=v2)) }evals[updateV1 1](vs,ivs
+1,pc) =
+(∅,{(v1←i12),(v2←10)})
+output func.: outputinpdef={((i2>0), [(out,
+o1:=v1)]),
+((i2≤0), [(out, o1:=i2)]) }evals[output inp1](vs,ivs
+2,pc) =
+({i21>0},[(out,(o1←i11))]),
+evals[output inp2](vs,ivs
+2,pc) =
+({i21≤0},[(out,(o1←i21))])
+evals[ofk](vs,ivs,pc) =
+/braceleftBigg
+(∅,(oa1,asgn1[vs,ivs])...), ifpc⇒φ[vs,ivs]
+(φ[vs,ivs],(oa1,asgn1[vs,ivs])...),otherwise.
+Example 2. Table 1 presents the symbolic evaluation of some of the funct ions in Figure 2. For
+instance, an evaluation of the guard function ( i1≥0) results in a constraint ( i12≥0) by simply
+replacingi1 withi12 based on a mapping ivs
+1. The output function outputinputis evaluated
+using the mapping ivs
+2and the evaluation proceeds for both cases.
+Deﬁnition 6. Asymbolic execution tree for a given FFSM
+F= (L,V,AV,A, GF,UF,OF,T,l0,v0) is a tuple
+SE(F) = (Ss,AVs
+I,InVarss,Trs,ss
+0), where:
+-AVs
+Iis a set of input variables diﬀerent from all other variables inF,
+-InVarssis a set of mappings ivs:AV′
+I→AVs
+IwithAV′
+I⊆AVIthat assign to an input
+variableanewvariablethatrepresentsitssymbolicvalue. Eachmappingisthereforeaspecial
+kind of a symbolic valuation for an arbitrary subset of input variables,
+-Ssis a set of symbolic states s= (l,vs,pc), wherel∈Lis a location, vs∈Vals[V] is a
+symbolic valuation of machine variables and pcis a set of path constraints that are predicates,
+i.e.,pc⊆Φ(Doms). For a state s= (l,v,pc) we deﬁne projections val(s) =vandpc(s) =pc.
+The initial symbolic state ss
+0∈Ssis (l0,v0,∅),
+-Trsis a relation Trs⊆(Ss×AI×InVarss×Seq(AO×Vals[AV′
+O])×Ss), whereAV′
+O⊆AVO.
+For a transition t= (s,ai,iv,seq,s′) we denote its source and target states with sr(t) =s
+andtg(t) =s′and its sequence of output actions as seq(t) =seq. The transition relation is
+generated by the following rule:
+lai,gf,uf,of−→l′,ivs∈InVars,pc1=evals[gf](vs,ivs,pc),
+∃ufk∈uf: (pc2,v′) =evals[ufk](vs,ivs,pc),
+∃ofk∈of: (pc3,seq) =evals[ofk](vs,ivs,pc),
+pc′=pc[ivs,vs]∪pc1∪pc2∪pc3,pc′satisﬁable
+(l,vs,pc)ai,ivs,seq−→(l′,vs′,pc′)
+Thesetofallsymbolicpathsisdeﬁnedas pathss(SE(F)) ={ss
+0ts
+0ss
+1...|∀k≥0 :ts
+k= (ss
+k,i,ivs,seq,ss
+k+1)∧
+ts
+k∈Trs}
+A symbolic execution tree for an FFSM represents its all poss ible concrete executions, which
+follows from the theorem below. In the theorem the relation |= between paths is satisﬁed if values
+used in a concrete path satisfy all path constrains in a symbo lic path and paths agree as for
+locations and actions.
+8
+
+--- Page 10 ---
+Algorithm 1 FFSM2SET - symbolic execution of an FFSM
+Require:F= (L,V,AV,A,GF,UF,OF,T,l 0,v0)
+Ensure:SE(F) = (Ss,AVs
+I,InVarss,Trs,ss
+0)
+toprocess←<ss
+0>
+whiletoprocess/ne}ationslash=∅do
+3:s= (l,sv,pc)←removed ﬁrst element from toprocess
+for all outgoing transitions t= (l,ai,gf,uf,of,l′) fromldo
+ivs←new mapping of variables in vars(ai)
+6:pc′←pc∪evals[gf](vs,ivs,pc)
+for all ufk∈ufdo
+(pc′′,vs′)←evals[ufk](vs,ivs,pc′)
+9: for all ofk∈ofdo
+(pc′′′,seq)←evals[ofk](vs,ivs,pc′)
+pc′←pc′∪pc′′∪pc′′′
+12: if(pc′is satisﬁable) then
+s′←(l′,vs′,pc′)
+Ss←Ss∪{s′}
+15: Trs←Trs∪{(s,ai,ivs,seq,s′)}
+InVarss←InVarss∪ivs
+if¬(∃s′′∈Ss:s′′/ne}ationslash=s′∧s′≺s′′)then
+18: add ( l′,vs′,pc′) at the end of toprocess
+returnSE(F)
+Theorem 1. LetFbe an FFSM. For its execution semantics E(F) and symbolic execution tree
+SE(F) we have
+∀p∈paths(E(F)) :∃ps∈pathss(SE(F)) :p|=ps
+(sketch). The proof is inductive over length of paths. For paths with th e length 0 we note that
+initial states are the same in a symbolic and concrete execut ion. Now let assume p|=psfor paths
+of lengthn. For a concrete path pa transition is added according to the rule in Deﬁnition 4. Th e
+rule requires that there is a transition in which a guard func tion is satisﬁed and there is a case in
+an update and in an output function that are satisﬁed. The sat isfaction of guard and cases implies
+that a transition is also generated for a symbolic path ps. The transitions agree, thus the concrete
+path with length n+1 satisﬁes a symbolic path of the same length.
+Algorithm 1 shows how to construct a symbolic execution tree from an FFSM. The algorithm
+explores symbolic states in a breadth-ﬁrst search manner an d maintains states waiting for ex-
+ploration in a queue toprocess. During the exploration of a symbolic state, for each outgoi ng
+transition from the state’s location the guard function and each case of update and output func-
+tions are symbolically evaluated. If generated path constr aints do not create a contradiction, then
+a new symbolic state is added to the tree along with a symbolic transition. If this new state is not
+subsumed (denoted as ≺and explained below) by one of the previous states, then it is stored in
+toprocess. The algorithm terminates if there are no more states to expl ore.
+The presented method uses the subsumption relation. For two symbolic states s′= (l′,sv′,pc′)
+ands′′= (l′′,sv′′,pc′′), we say that s′′subsumess′(denoted as s′≺s′′) iﬀ the states have the
+same location ( l′=l′′), the same symbolic valuations sv′=ivsv′′and the path constraints pc′′
+ofs′′are weaker than the path constraints pc′ofs′. The subsumption relation also relates states
+that are diﬀerent only up to the replacement of the last input symbolic variable. The rationale
+behind this relation is that if there is a state s′′with weaker path constraints pc′′and with the
+same location and values of machine variables, it represent s in fact more states with concrete values
+thans′does. This means that there is no point to further explore s′. Note that Algorithm 1 may
+not terminate, if there are loops with updates based on the pr evious values of machine variables
+to machine variables. To overcome this, each transition is s ymbolically executed only Mtimes,
+whereMis some user-deﬁned bound.
+Example 3. Figure3presentsapartofasymbolicexecutiontreefortheF FSMgiveninExample1.
+Comparing the tree in Figure 3 to the concrete execution show n in Figure 4 we see that in the
+symbolic execution there are two symbolic states for the ﬁrs t occurrence of the location L2. In the
+9
+
+--- Page 11 ---
+Table 2: The mapping of UML-RT elements to elements of an FFSM .
+UML-RT State Machine element FFSM element
+non-composite states (with parent states) locationsL
+attributes of a capsule machine variables V
+input events (signals) for base ports,input actions AIoutput events (signals) for conjugated
+output events (signals) for base ports,output actions AOinput events (signals) for conjugated
+parameters of input and outputaction variables AVevents (signals)
+transition chains between two states transitions T
+default values of attributesinitial valuation
+of machine var. v0
+initial pseudostate of a top level state initial location l0
+concrete execution the number of states with the location L2 is given by the number of possible
+values of the input variable i1 and thus it is potentially inﬁnite.
+4 UML-RT State Machines as FFSMs and their analysis
+The UML-RT language is a proﬁle of UML 2 [5] and is used for mode ling embedded and real
+time systems. The language is supported by the IBM RSA RTE too l (a successor of the IBM
+Rational R/circlecopyrtRoseRT tool) [3]. UML-RT models consist of a hierarchy of capsules connected with
+typedports[31]. A capsule, as its name suggests, is a highly encapsulat ed entity, which communi-
+cates with other capsules only by sending and receiving sign als through its ports. Each port has
+a type speciﬁed with a protocol, which gathers sent or received signals. Connected ports mu st im-
+plement the same protocol and one port in such a connection is declared to be a baseone, whereas
+the second one is a conjugated one, in which send and receive signals of its protocol are inv ersed.
+Capsules have their behavior speciﬁed with UML-RT State Mac hines [31], which are similar
+to UML State Machines [5]. A UML-RT State Machine contains hi erarchical states and guarded
+transitions, which are triggered by signals received on por ts. As the standard UML State Machines,
+UML-RT State Machines use a strict run-to-completion seman tics of event-handling. The main
+diﬀerence between UML and UML-RT State Machines is that UML- RT State Machines do not
+have “and-states”, i.e., no orthogonal regions. Hence all s tates are “or-states”. Moreover, UML-
+RT State Machines deal with sending events and the initializ ations of timers in their action code.
+Figure 5 presents an example of UML-RT State Machine.
+4.1 Representing structure
+In order to represent structural elements of UML-RT State Ma chines, these elements are mapped
+to elements of FFSMs. This mapping is summarized in Table 2.
+States in UML-RT State Machines might be hierarchical, wher eas FFSMs do not support such
+hierarchy. Thus to be able to process hierarchical UML-RT St ate Machines, locations of FFSMs
+are assumed to contain the information about a state and all i ts parent states. In this way it is
+possible to discover transitions of a given state and its par ent states (if any). The exploration of
+states and transitions is part of the on-the-ﬂy algorithm in troduced in Section 4.3. Hence explicit
+ﬂattening of UML-RT State Machines is avoided and a ﬂat UML-R T State Machine is not required
+as the input to symbolic execution.
+In the presented mapping of UML-RT State Machines not all ava ilable features are considered.
+For instance, we omit history states or internal transition s. Although these are important modeling
+elements, their treatment is not essential in the presented approach. To include them only the
+state exploration part of the algorithm has to be adjusted, w hich does not inﬂuence the symbolic
+execution. The support for these elements is left for future work.
+10
+
+--- Page 12 ---
+4.2 Representing action code
+Action code from UML-RT State Machines is represented in FFS Ms as functions. Such code
+is contained in entry or exit actions of states and as actions and guards on transitions. It is
+gathered during the discovery of transition chains (see Alg orithm 2) in the order imposed by the
+run-to-completion semantics of UML-RT. To generate functi ons, the gathered code is executed
+symbolically [21] with the sending of events also included i n the resulting symbolic execution tree.
+The results of a symbolic execution of action code are transl ated to functions in FFSMs.
+Deﬁnition 7. Let assume that a piece of action code chas been executed symbolically and has
+produced a symbolic execution tree. Leaves of this tree are t uples (pcc,svc,retc,seqc), wherepcc
+represents the path constraints, svcthe symbolic values of machine variables (required by updat e
+functions), retcthe returned boolean expression (required in guard functio ns) andseqcthe possibly
+empty sequence of output actions (required in output functi ons) with symbolic values of output
+variables. Let the set SE(c) contain all leaves of the tree. Then cis represented by the functions:
+- guard function:
+gfdef=/logicalandtext
+(pcc,svc,retc,seqc)∈SE(c)((/logicalandtext
+p∈pccp)⇒retc),
+- update function:
+ufdef={ufk|∃(pcc,svc,retc,seqc)∈SE(c) :
+(case(ufk) =/logicalanddisplay
+p∈pccp)∧(update(ufk) =svc)},
+- output function:
+ofdef={ofk|∃(pcc,svc,retc,seqc)∈SE(c) :
+(case(ofk) =/logicalanddisplay
+p∈pccp)∧(seq(ofk) =seqc)}.
+Ifcdoes not return any retcthen the guard function is trivial. Similarly, if chas no updates or
+outputs then update or output functions are trival.
+The exact speciﬁcation how to symbolically execute action c ode depends on the used action
+language. In the next section we use C++, however the above me thod can be applied also to other
+languages.
+4.3 Constructing FFSMs
+The construction of an FFSM from a given UML-RT State Machine is performed in two stages.
+First, the static elements of the FFSM are created according to Table 2. These elements are
+all variables, input and output actions, an initial locatio n and valuation. The second stage is
+performed on-the-ﬂy during symbolic execution of the FFSM i n Algorithm 1. The exploration
+that is added after line 18 of Algorithm 1 and is outlined in Al gorithm 2. The overall process has
+been presented in Figure 1.
+The intent of the above translation is that the resulting FFS M captures the semantics of the
+UML-RT State Machines. A formal proof of this property is out side the scope of the paper and
+is omitted due to space limitations. For the same reason a for mal deﬁnition of the translation of
+UML-RT State Machines into FFSMs is not presented.
+Algorithms 1 and 2 are designed to analyze UML-RT State Machi nes. However, it can be
+adapted to analyze the general UML State Machines [5] or any s ubset of those. For instance,
+to deal with ”and-states“ in UML 2 a mapping of a location to a c onﬁguration of states in a
+state machine is necessary. Additionally, symbolic execut ion of code needs to be adjusted. These
+enhancements are left as the future work.
+11
+
+--- Page 13 ---
+Algorithm 2 UMLRT2FFSM - constructing an FFSM from a UML-RT State Machine
+Require: UML-RT State Machine SM,
+Require: FFSMF= (L,V,AV,A, GF,UF,OF,T,l0,v0),
+Require: locationl′
+ifl′not explored then
+for all transition chains tcinSMstarting inl′do
+actioncode←gather exit, entry actions, guards, eﬀects of transitions i ntc
+SE(action code)←execute symbolically action code
+generate functions gf,uf,offrom SE(action code)
+add target state l′′oftctoL,
+add (l′,trigger oftc,gf,uf,of,l′′) toT
+markl′as explored
+4.4 Analyses of UML-RT State Machines
+A symbolic execution tree generated from an FFSM, which is tr anslated from a UML-RT State
+Machine can be used to perform several analyses. This is poss ible, because the tree represents
+all possible executions of the machine up to the subsumption relation. Therefore, we can verify a
+variety of properties of UML-RT State Machines. The most imp ortant ones are introduced below.
+A symbolic execution tree can be used to perform reachability analysis between states in the
+original UML-RT State Machines, which are represented with locations in the FFSM. The location
+sis reachable from the location s′if there is a path (which may contain subsumed states) in the
+symbolic execution tree, which starts in a symbolic state wi th the location sand ends in a symbolic
+state with the location s′.
+Another useful analysis is invariant checking , which allows checking whether some conditions
+are satisﬁed in all states of execution of a UML-RT State Mach ine. Conditions are deﬁned as
+predicates over attributes (i.e. machine variables in the F FSM) and input variables of the UML-
+RT State Machine. A predicate with those variables is an inva riant if it can be inferred from path
+constraints in all symbolic states of the symbolic executio n tree.
+A symbolic execution tree can be also used for output analysis , that is, to check whether an
+output action is a part of any output sequence. In this way it i s veriﬁed whether an event in a
+UML-RT State Machine is generated as output during its execu tion. If this event is represented
+with an output action aowe check whether the FFSM has a transition in which aooccurs in a
+sequence of output actions. If so, a path to such a transition is returned.
+If a symbolic execution tree is deterministic it can be used t ogenerate test cases . The tree is
+deterministic if two outgoing transitions with the same inp ut action cannot be both taken for the
+same values of input variables, thus the path constraints in the resulting symbolic states do not
+have a solution in common. A set of test cases that provides pa th coverage of a UML-RT State
+Machine is deﬁned as the traces to the leaves of a symbolic exe cution tree. A trace is a sequence
+of input and output actions gathered from the transitions th at lead to some leaf. In order to be
+useful, such traces must be solved, which means that input va riables in each trace receive values
+that do not contradict the path constraints.
+The presented analyses are just examples of how symbolic exe cution trees can be used to verify
+some properties of UML-RT State Machines. They were chosen, because our industrial partners
+expressed interest in them. Nevertheless, other possible t ypes of analysis as well as extensions of
+the above methods are possible.
+5 Implementation and evaluation
+5.1 Implementation
+The implementation of the symbolic execution of UML-RT Stat e Machines as well as the analysis
+consist of several Eclipse plugins in IBM RSA RTE [3]. The imp lementation follows the general
+approach as presented in Figure 1.
+During the implementation several assumptions were made. F irstly, the symbolic execution of
+code is performed for a subset of C++ containing basic operat ions on variables, if statements and
+12
+
+--- Page 14 ---
+Figure 5: An example of UML-RT state machine (transitions ar e of the form action/action
+code[guard code] ).
+while loops (their symbolic execution is bounded). The symb olic execution of full C or C++ is not
+trivial and is not of interest here. We justify this simpliﬁc ation by the observation that action code
+used in UML-RT State Machines is typically not very complex. Secondly, variables are assumed
+to have numeric types (i.e., integer and reals). This is the c onsequence of using the constraint
+solver Choco [1] for constraint representation and for chec king their satisﬁability in Algorithm 1.
+Thirdly, constraints are compared syntactically (symbol b y symbol). Therefore the subsumption
+relation≺is quite restrictive and does not take into account the meani ng of constraints. Finally,
+we treat setting timers and timeout events as ordinary actio ns, but we require that a timeout event
+happens only if the corresponding timer has been set.
+5.2 Example
+To present some of the possible analysis results, the exampl e of the UML-RT State Machine shown
+inFigure5isused. ThismachineisapartofaUML-RTmodeloft raﬃclights. Thesystemcontrols
+pedestrian and car lights at a street crossing. It is equippe d with buttons and with sensors that
+periodically report a number of cars approaching the crossi ng. The shown UML-RT State Machine
+speciﬁes the behavior of the controller. There are two attri butesnoOfCars andcarLights . The
+latter stores the encoding of the current color of lights for cars (0 is green, 1 is yellow, 2 is red, 3
+is yellow-red). Both attributes are initialized to zero. In the presented code the pointer *rtdata
+represents input values, timers are set using the informIn() method and sending events uses the
+send()method.
+The result of the symbolic execution of UML-RT State Machine in Figure 5 is a symbolic
+execution tree, which is shown partially in Figure 6. The who le tree has 98 states, which is the
+consequence of combining possible valuations of the attrib utecarLights and locations, as well as
+additional branching conditions based on the attribute noOfCars . The tree represents the possible
+executions of the given UML-RT State Machine with each symbo lic state aggregating possibly
+13
+
+--- Page 15 ---
+Figure 6: A part of a symbolic execution tree for the example U ML-RT State Machine in Figure 5.
+inﬁnitely many concrete states.
+In the implementation the computed tree is used to perform an alyses as introduced in Sec-
+tion 4.4:
+1. Reachability analysis. For instance, checking for paths fromWalking toNoWalking returns
+a path (i.e., a sequence of symbolic states and transitions t hat connect them, the latter are
+enclosed in ” <>“) :
+(Walking, (carLights=3, noOfCars=0), PC=[] )
+<lightsTimeout(), [] >
+(NoWalking, (carLights=3,noOfCars=0), PC=[] )
+The last symbolic state reveals a fault, because the value of carLights is not properly reset
+to 0 (green lights for cars) and the lightssignal with this value is not sent (the fault is in
+the transition between Walking andNoWalking in Figure 5).
+2. Invariant checking. For example, when checking the invar iant (noOfCars>= 0) there is a
+violation found for a simple path with only a single occurren ce of the signal carsWithin .
+This is because the input value is not checked before the assi gnment to noOfCars , and the
+attribute takes on a negative value (this fault is in the acti on code of the self-loop transition
+inNoWalking state in the UML-RT State Machine in Figure 5).
+3. Output analysis. For example, if we consider the signal walkTimer.informIn() the following
+traces are possible:
+-<carsWithin(var0)[] > ...
+<lightsTimeout()[...,walkTimer(timerVar=(30-var0))] >
+withPC=[(var0>0), (var0<20)],
+-<carsWithin(var0)[] > ...
+<lightsTimeout()[...,walkTimer(timerVar=30)] >
+withPC=[(var0>0),¬(var0<20)],
+The traces show the values used to set the timer and their cons traints.
+4. Test case generation. The tree is deterministic and there are 50 test cases satisfying a path
+coverage criterion. One of them is:
+<carsWithin(1) ><press()[waitingTimer(10)] >
+<waitingTimeout()[lights(1),lightsTimer(5)] >
+<lightsTimeout()[lights(2),walk(), walkTimer(29)] >
+<failed()[blink()] >
+14
+
+--- Page 16 ---
+Table 3: Performance of generating symbolic execution tree s (SET) and test cases (TC)
+UML-RT State
+Machinenumber of
+locations in
+FFSMnumber of states
+in SETtime to generate
+SET (in seconds)time to generate
+TC (in seconds)
+Traﬃc lights (Figure 5) 5 98 2.9 0.3
+Phone (simpliﬁed) 69 960 20.8 97.1
+Phone 125 4069 51.0 362.4
+5.3 Evaluation
+Inordertoevaluatethepresentedapproachweperformedsev eralexperimentsusingdiﬀerentUML-
+RT State Machines. Table 3 presents the results of these expe riments (performed on a standard
+PC with Intel Core i7 CPU 2.67 GHz, 3GB of RAM). In the table the ﬁrst UML-RT State Machine
+is the one presented in Figure 5. The third UML-RT State Machi ne, which we obtained from one
+of our industrial partners, models interactions between a u ser and a phone. It has more than 100
+states, which are nested up to the sixth level. In the simpliﬁ ed model (the second UML-RT State
+Machine in Table 3) some of the transitions are disabled usin g contradictory guards, so parts of the
+UML-RT State Machine are not reachable. The presented resul ts include the test case generation
+time, which is the most complex analysis, because all paths i n the tree must be considered.
+As shown in Table 3 the sizes of the generated FFSMs diﬀer for t he last two cases. Although
+both UML-RT State Machines contain the same number of states and transitions, in the ﬁrst model
+some parts are unreachable. Because Algorithm 2 generates t he appropriate FFSM on-the-ﬂy, the
+FFSM represents only a reachable part of the UML-RT State Mac hine. Therefore the number of
+locations in the FFSM is the same as the number of non-composi te and reachable states in the
+respective UML-RT State Machine.
+TimestogenerateSETsincreasewiththenumberoflocations inFFSMsandwiththenumberof
+states in SETs. Nonetheless, the increase is not proportion al: on average it takes 0.03s to generate
+one symbolic state in the ﬁrst model and only 0.01s in the thir d one. The diﬀerence between those
+two models is only in the used action code: the action code of t he UML-RT State Machine shown
+in Figure 5 introduces more constraints than the action code in the phone model. With more
+constraints more queries are made to the constraint solver, which aﬀects the performance. This
+eﬀect manifest itself in the time required to generate test c ases for the third state machie. There
+are more than 3000 paths in the SET and all these paths must hav e their constraints solved to
+become test cases and this process is very time consuming.
+As presented, the prototype implementation performs the an alysis of the subset of UML-RT
+State Machines. However the implementation has its limitat ions. One of them is inherited from
+the Choco solver [1], which cannot solve arbitrary complex c onstraints and is not very eﬃcient.
+Nevertheless, forstraightforwardrelationsbetweenvari ables, theperformanceisacceptableandthe
+solver is suﬃcient. The other limitation is the result of the exhaustive exploration in Algorithm 1,
+which may mean that the implementation does not scale well to larger models. However, the
+presented technique, besides using symbolic values to aggr egate states, is applied to a single state
+machine, so the analysis is performed on the unit level. As il lustrated by the above examples, the
+technique can be applied to analyze non-trivial UML-RT Stat e Machines. The general applicability
+of the method to industrial models is future work and will dir ectly depend on the nature of the
+action code used in these models.
+6 Related work
+We partition our discussion of related work into three group s: 1) symbolic execution of programs,
+2) symbolic execution of state-based models, and 3) formal a nalysis of state machines in UML and
+UML-RT.
+1) Apart from the development of a dedicated tool for symboli c analysis, the use of a standard
+15
+
+--- Page 17 ---
+model checker has also been suggested [20, 12]. A translatio n of UML-RT State Machines into
+a language supported by one these tools could be used to reali ze symbolic execution of UML-RT
+State Machines. While this approach would allow use of, e.g. , the optimization and abstraction
+featuresofthesemodelcheckers, itwouldalsocomplicatet hesupportfordiﬀerentactionlanguages.
+Approaches to make symbolic execution modular by creating s ummaries of computational units
+have also been developed (e.g., [6, 16]). Although the techn ical details diﬀer, these summaries are
+similar in spirit to the functions used in FFSMs to capture th e eﬀect of action code.
+2) Symbolic execution has been applied to diﬀerent kinds of s tate-based models. For instance, Tret-
+mans’ testing theory [9], which formalizes circumstances u nder which an implementation (modeled
+as an input/output transition system, ioTS) can be consider ed conforming to a speciﬁcation (mod-
+eled as a labeled transition system), has been extended to de al with inﬁnite-state speciﬁcations
+using symbolic execution for test case generation [13] and s election [19]. The work in [15, 28]
+builds on this eﬀort and presents approaches for test case ge neration for UML 1.x state machines
+by translating them into ioTS, and for implementing LTL mode l checking of ioTS by using sym-
+bolic execution. Test case generation for a timed extension of Harel’s Statecharts is dealt with
+in [22] (the work in [8] does the same for Harel Statecharts, b ut without symbolic execution). In
+contrast to our work, none of these approaches allow for acti on code that is written in a standard
+programming language.
+3) A deductive approach to verifying temporal properties st ate machines in UML 1.x is taken in [7,
+33]. A simple, idealized action language containing assign ment, sequencing, parallel composition is
+supported,however, theapproachcannotbeusedfortestcas egenerationandisnotfullyautomatic,
+since it is based on interactive theorem proving. The litera ture contains many proposals to model
+check state machines in UML-RT and UML. All approaches we are aware of translate the state
+machines into the input language of a model checker. Early wo rk on translating UML-RT State
+Machines to Promela can be found in [29]. The approach in [30] deals with state machines in
+UML 1.4 in the same way, but also features an implementation t hat can check state machines with
+respect to collaboration diagrams (called communication d iagrams in UML 2). The work is revised
+to deal with timing constraints in [25] using timed automata and Uppaal. In [10], Burmester et
+al also use a form of timed automata and Uppaal; however, the w ork also supports incremental,
+compositional development and reﬁnement via the reasoning approach detailed in [14]. In [23],
+UML-RT State Machines are mapped to ASML; in contrast to othe r work on the topic, dynamic
+capsule creation, binding, and destruction via optional an d imported capsules are supported as
+well; SpecExplorer is used for simulation of UML-RT models, but support for model checking and
+test case generation is left for future work. In [24], UML Sta te Machines are translated to Java and
+analyzed using JPF. Unlike other works, the approach can dea l directly with Java action code, but
+support for other action languages would require a translat ion to Java. A key diﬀerence between
+model checking and symbolic execution is that symbolic exec ution is capable of handling very large
+(possibly even inﬁnite) state spaces.
+A comprehensive, formal account of the semantics of UML-RT i s still an open research problem.
+Since the primary goal of our work is to deﬁne and implement sy mbolic execution of UML-RT State
+Machines and not to present a full, formal deﬁnition of their semantics, we do not review this part
+of the literature. Finally, the model analysis capabilitie s of IBM RSA RTE and RoseRT are quite
+limited and do not cover the analyses we are interested in. Th erefore, these tools also are not
+reviewed any further.
+7 Conclusions and future work
+This paper presents a method for the symbolic execution of UM L-RT State Machines, able to
+handle diﬀerent action languages. This is possible due to th e modular treatment of action code
+via functions, which are constructed on-the-ﬂy during the s ymbolic execution of state machines
+with the help of a symbolic execution engine for action code. The functions are incorporated
+into a formal representation of state machines, called func tional ﬁnite state machines (FFSMs).
+16
+
+--- Page 18 ---
+As shown, FFSMs can represent UML-RT State Machines, howeve r translation from other state
+machines models is also possible. The symbolic execution of FFSMs is formally deﬁned. To
+illustrate the method and the analysis, the paper presents a n implementation which symbolically
+executesUML-RTStateMachineswithactioncodethatisasub setofC++. Theresultingsymbolic
+execution tree is used to perform reachability analysis, in variant checking, output analysis and test
+case generation and two case studies are presented.
+Apart from the future work already mentioned, more work is re quired to determine the ap-
+plicability of the technique to industrial-size UML-RT mod els. If performance or functionality
+improvements become necessary some of the recently develop ed extensions of symbolic executions
+(e.g., with concrete execution) will be considered. Finall y, work allowing for the symbolic analysis
+of collections of capsules by combining symbolic execution trees is currently ongoing [37].
+8 Acknowledgements
+Authors wish to acknowledge the support of NSERC, IBM Canada , and Malina Software.
+References
+[1]Choco Solver http://www.emn.fr/x-info/choco-solver/do ku.php?id=about .
+[2]IBM Rational Rhapsody Architect, Version 7.5.3. http://ww w-01.ibm.com/software/ ratio-
+nal/products/rhapsody/swarchitect/ .
+[3]IBM Rational Software Architect, RealTime Edition, Versio n 7.5.5.
+http://publib.boulder.ibm.com/ infocenter/rsarthlp/v 7r5m1/.
+[4]Scade Suite (Esterel Technologies) http://www.esterel-t echnologies.com/products/scade-suite/ .
+[5] Uniﬁed Modeling Language (UML 2.0) Superstructure. htt p://www.uml.org/.
+[6] S. Anand, P. Godefroid, and N. Tillmann. Demand-driven c ompositional symbolic execution.
+InTACAS 2008 (LNCS 4963) , pages 367–381, 2008.
+[7] M. Balser, S. Baumler, A. Knapp, W. Reif, and A. Thums. Int eractive veriﬁcation of UML
+state machines. In ICFEM 2004 (LNCS 3308) , pages 434 – 48, 2004.
+[8] K. Bogdanov, M. Holcombe, and H. Singh. Automated test se t generation for statecharts. In
+FM-Trends 1998 (LNCS 1641) , pages 107 – 21, 1998.
+[9] E. Brinksma and J. Tretmans. Testing transition systems : An annotated bibliography. In
+Summer School on Modeling and Veriﬁcation of Parallel Proce sses (MOVEP’00) , 2001.
+[10] S.Burmester, H.Giese, M.Hirsch, andD.Schilling. Inc rementaldesignandformalveriﬁcation
+withUML/RTintheFUJABAreal-timetoolsuite. In SVERTS2004 (part of UML2004) ,2004.
+[11] P. Coward. Symbolic execution systems-a review. Software Eng. J. , 3(6):229 –239, 1988.
+[12] X. Deng, J. Lee, and Robby. Bogor/kiasan: A k-bounded sy mbolic execution for checking
+strong heap properties of open systems. In Proc. ASE’06 , 2003.
+[13] L. Frantzen, J. Tretmans, and T. Willemse. Test generat ion based on symbolic speciﬁcations.
+InFATES 2004 (LNCS 3395) , pages 1 – 15, 2004.
+[14] H. Giese, M. Tichy, S. Burmester, W. Sch¨ afer, and S. Fla ke. Towards the Compositional
+Veriﬁcation of Real-Time UML Designs. In Proc. ESEC/FSE’03 , 2003.
+17
+
+--- Page 19 ---
+[15] S. Gnesi, D. Latella, and M. Massink. Formal test-case g eneration for UML statecharts. In
+ICECCS 2004 , pages 75–84, 2004.
+[16] P. Godefroid. Compositional dynamic test generation. InPOPL ’07 , 2007.
+[17] P. Godefroid. From blackbox fuzzing to whitebox fuzzin g towards veriﬁcation. Invited talk at
+ISSTA’2010, 2010. http://research.microsoft.com/en-us /um/people/pg/.
+[18] F. Ipate and M. Holcombe. Generating test sets from non- deterministic stream X-machines.
+Formal Aspects of Computing , 12(6):443 – 58, 2000.
+[19] T. Jeron. Symbolic Model-based Test Selection. ENTCS, 240:167 – 184, 2009.
+[20] S. Khurshid, C. Pˇ asˇ areanu, and W. Visser. Generalize d symbolic execution for model checking
+and testing. In Proc. TACAS’03 , 2003.
+[21] J. King. Symbolic execution and program testing. Communications of the ACM , 19(7):385 –
+94, 1976.
+[22] N. H. Lee and S. D. Cha. Generating test sequence using sy mbolic execution for event-driven
+real-time systems. Microproc. and Microsys. , 27(10):523 – 31, 2003.
+[23] S. Leue, A. Stefanescu, and W. Wei. An AsmL Semantics for Dynamic Structures and Run
+Time Schedulability in UML-RT. Technical report, Universi ty of Konstanz, Germany, 2008.
+[24] P. Mehlitz. Trust your model - verifying aerospace syst em models with Java pathﬁnder. In
+IEEE Aerospace Conference , 2008.
+[25] S. Merz and C. Rauh. Model checking timed UML state machi nes and collaborations. In
+Formal Techniques in Real-Time and Fault Tolerant Systems ( FTRTFT’02) , pages 395–414,
+2002.
+[26] OMG. Action Language for Foundational UML (Alf), 2010. ptc/2010-10-05.
+[27] C. Pˇ asˇ areanu and W. Visser. A survey of new trends in sy mbolic execution for software testing
+and analysis. J. on Software Tools for Technology Transfer (STTT) , 11:339–353, 2009.
+[28] N. Rapin. Symbolic execution based model checking of op en systems with unbounded vari-
+ables. In Tests and Proofs , volume 5668 of LNCS, pages 137–152, 2009.
+[29] M. Saaltink and I. Meisels. Using SPIN to analyse RoseRT models. Technical report, ORA
+Canada, 1999.
+[30] T. Sch¨ afer, A. Knapp, and S. Merz. Model checking UML st ate machines and collaborations.
+ENTCS, 55(3):pp. 1–13, 2001.
+[31] B. Selic. Using UML for modeling complex real time syste ms. InACM SIGPLAN Workshop
+LCTES 1998 (LNCS 1474) , pages 250 – 60, 1998.
+[32] V. Sperschneider and G. Antoniou. Logic : a foundation for computer science . Addison-
+Wesley, 1991.
+[33] A. Thums, G. Schellhorn, F. Ortmeier, and W. Reif. Inter active Veriﬁcation of Statecharts.
+InINT 2004 (LNCS 3147) , 2004.
+[34] A. Tomb, G. Brat, and W. Visser. Variably interprocedur al program analysis for runtime
+error detection. In ISSTA ’07 , pages 97–107, 2007.
+[35] T. Weigert, F. Weil, and K. Marth. Experiences in deploy ing model-driven engineering. In
+SDL 2007: Design for Dependable Systems , 2007.
+18
+
+--- Page 20 ---
+[36] P. Whittaker, M. Goldsmith, K. Macolini, and T. Teitelb aum. Model checking uml-rt proto-
+cols. InWorkshop on Formal Design Techniques for Real-Time UML , 2000.
+[37] K. Zurowska and J. Dingel. Symbolic execution of collec tions of UML-RT State Machines.
+Draft, 2011.
+19

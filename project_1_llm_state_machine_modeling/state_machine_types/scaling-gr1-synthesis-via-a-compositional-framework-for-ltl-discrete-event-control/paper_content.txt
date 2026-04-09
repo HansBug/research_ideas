@@ -1,0 +1,1357 @@
+--- Page 1 ---
+AvailableCAV
+EvaluationArtifactScaling GR(1) Synthesis via a Compositional
+Framework for LTL Discrete Event Control⋆
+Hernan Gagliardi1, Victor Braberman12, and Sebastian Uchitel123
+1Universidad de Buenos Aires, Argentina
+2CONICET, Argentina
+3Imperial College London, UK
+Abstract.We present a compositional approach to controller synthe-
+sis of discrete event system controllers with linear temporal logic (LTL)
+goals. We exploit the modular structure of the plant to be controlled,
+given as a set of labelled transition systems (LTS), to mitigate state ex-
+plosion that monolithic approaches to synthesis are prone to. Maximally
+permissive safe controllers are iteratively built for subsets of the plant
+LTSs by solving weaker control problems. Observational synthesis equiv-
+alence is used to reduce the size of the controlled subset of the plant by
+abstracting away local events. The result of synthesis is also composi-
+tional, a set of controllers that when run in parallel ensure the LTL goal.
+We implement synthesis in the MTSA tool for an expressive subset of
+LTL, GR(1), and show it computes solutions to that can be up to 1000
+times larger than those that the monolithic approach can solve.
+Keywords:Modular Discrete Event System Control·Compositional
+Controller Synthesis·LTL·GR(1)
+1 Introduction
+The problem of automatically constructing control rules from a specification
+(i.e., synthesis) has been addressed by different areas in Computer Science in-
+cluding Control of Discrete Event Systems (DES) [28], Reactive Synthesis [27]
+and Automated Planning [13]. Each has distinct perspectives on representational
+and computational aspects. All three use different input languages to provide
+compact problem descriptions for an underlying semantics that can grow ex-
+ponentially. These different input languages have led to different algorithmic
+approaches to achieve more efficient ways to solve synthesis problems.
+In this paper, we study control of DES described modularly as the parallel
+composition of interacting transition systems. The semantics is a monolithic au-
+tomaton whose state space can grow exponentially with respect to the number
+of intervening components. This state explosion makes tractability of DES con-
+trol problems a challenge. Modularity has enabled compositional reasoning in
+⋆This version includes correctness modifications with respect to the version published
+in CAV25arXiv:2506.16557v2  [cs.SE]  4 Nov 2025
+
+--- Page 2 ---
+2 H. Gagliardi et al.
+supervisory control. Notably, in [25] a compositional framework is described for
+synthesis of non-blocking supervisory controllers for safety goals. Compositional
+DES control for liveness goals (e.g., [6,26,30]) has not been studied.
+We present a compositional synthesis framework for modular DES control
+problems with LTL goals. Our compositional approach does not compose the
+transition systems describing the plant and then compute a discrete event con-
+troller as does [6]. Instead, roughly, we iteratively pick a subset of plant transition
+systems, we compute a safe controller for the subset, and replace the subset with
+a minimized controlled version of the subset that abstracts events not shared
+with the rest of the plant. Each iteration does apartial synthesisof the original
+control problem.
+Thefinal result is a controller expressed as a set of controllersthat can be
+run in parallel to control the original plant, reducing memory footprint and
+mitigating state explosion of the composed controller.
+Our approach is inspired by [25] for building modular non-blocking supervi-
+sors for finite regular languages.
+Moving toω-regular languages such as those expressed using LTL introduces
+various challenges. First, in contrast to supervisory control for non-blocking su-
+pervisors, maximally permissive controllers for LTL control problems are not
+guaranteed to exist. We computesafe controllersfor a weaker goal, that allows
+maximally permissive controllers and supports deferring the construction of a
+live controllerthat ensures LTL in the final step. Second, although we use the
+synthesis observational equivalence [25] for minimization, the equivalence does
+not actually preserve LTL equirealizability as it introduces uncontrollable loops
+which require special considerations. Last, in [25] non-blocking conditions are
+represented modularly with marked states in each plant automaton. Thus, non-
+blocking can be analysed straightforwardly for subplants. In contrast, LTL is
+a condition that refers to the behaviour of the composed plant and must be
+decomposed when analysing subplants.
+We assess if the compositional synthesis can perform better than a monolithic
+approach in which the plant composition is constructed in full. For this we
+implemented the approach in the MTSA tool [5] which is the only tool we are
+aware of that is available andnativelysupports controller synthesis for modular
+DES plants. MTSA supports a specific class of LTL formulae referred to as
+GR(1) [26].We show that using the same GR(1) explicit state synthesis engine,
+implemented in MTSA, the compositional approach solves control problems up
+to1000×larger than what a monolithic approach can.In addition, we show that
+the compositional framework can sometimes yield more effective results when
+symbolic synthesis engines such as Strix [23] and Spectra [20] are used for DES
+controller synthesis via a translation [16].
+The remainder of this paper presents background in Section 2, an overview
+in Section 3, novel definitions and results for compositional synthesis in Section
+4, the compositional algorithm in Section 5, and an evaluation in Section 6. We
+conclude in Sections 7 and 8 with related work and conclusions.
+
+--- Page 3 ---
+A Framework for Compositional LTL Synthesis of DES 3
+2 Preliminaries
+We model discrete event systems by composing Labelled Transition Systems.
+Definition 1 (Labelled Transition System).A Labelled Transition System
+(LTS) is a tuple(S, Σ,− →,ˆs)whereSis a finite set of states;Σis a finite set of
+event labels;− →⊆S×Σ×Sare transitions; andˆs∈Sis the initial state.
+Definition 2 (Parallel composition).LetM i= (S i, Σi,− →Mi,ˆsi)withi∈
+{1,2}be two LTSs, their parallel composition is an LTSM 1||M2= (S 1×S2, Σ1∪
+Σ2,− →M1||M2,( ˆs1,ˆs2)), where− → M1||M2is the smallest relation that satisfies:
+–ifs 1l− →M1s′
+1andl∈Σ 1\Σ2, then(s 1, s2)l− →M1||M2(s′
+1, s2)
+–ifs 2l− →M2s′
+2andl∈Σ 2\Σ1, then(s 1, s2)l− →M1||M2(s1, s′
+2)
+–ifs 1l− →M1s′
+1, s2l− →M2s′
+2andl∈Σ 1∩Σ 2, then(s 1, s2)l− →M1||M2(s′
+1, s′
+2)
+Parallel composition is associative and commutative. IfM={M 1, M2, .., M n}
+is a set of LTS, we may refer toM 1||M2||..||M nasMtoo.
+We useΣ∗for the set of all finite sequences of labels ofΣ, i.e., traces. We
+sayl∈Σis enabled insif there iss′such that (s, l, s′)∈− →. We denote− →(s) as
+the set of enabled events ins. An LTS is deadlock-free if all states have outgoing
+transitions. An LTS is deterministic if there is no state that has two outgoing
+transitions on the same event. We use− →to denote the transitive closure of
+transitions and assume it holds for the empty trace:xϵ− →x. We say a (finite or
+infinite) sequencewof labels inΣis a trace ofMif there is ans′such that
+ˆsMw− →s′. The concatenation of two tracessandtis written asst. ForΩ⊆Σ,
+we define the natural projectionP Ω:Σ∗− →Ω∗as the operation that removes
+from a traceπ∈Σ∗all events not inΩ. We useΓ u, Γc:S− →Sto denote the
+set of states reachable by outgoing uncontrollable (controllable) transitions from
+an specific state.
+Definition 3 (Controllably reachable).Given a LTSM= (S, Σ,− → M,ˆs),
+s∈Sandl∈Σ, we say thatlis controllably reachable froms(sl⇀M) if
+(sl− →)∨((∀s′∈Γu(s). s′l⇀M)∧(Γ u(s)⊆ ∅=⇒ ∃s′∈Γc(s). s′l⇀M)).
+We model controllers with legal LTS that must not block the DES.
+Definition 4 (Legal LTS).Given LTSM= (S M, Σ,− → M,ˆsM)andC=
+(SC, ΣC,− →C,ˆsC)withΣ u∈Σ. We say thatCis a legal LTS forMwith respect
+toΣ u, if for all(s M, sC)such that( ˆs M,ˆsC)− →M∥C (sM, sC)the following holds:
+− →M||C ((sM, sC))∩Σ u=− → M(sM)∩Σ u
+We use Linear Temporal Logic to declaratively specify control requirements.
+Definition 5 (Linear Temporal Logic (LTL) formula).An LTL formula is
+defined inductively using the standard Boolean connectives and temporal opera-
+torsX(next),U(strong until) as follows:ϕ:=e| ¬ϕ|ϕ∨ψ|Xϕ|ϕUψ, where
+eis an atomic event. As usual we introduce♢(eventually), and□(always) as
+syntactic sugar. The semantics of an LTL formula is defined via a relation|=
+between infinite traces and LTL formulae, notedπ|=ϕ.
+
+--- Page 4 ---
+4 H. Gagliardi et al.
+We now define discrete event control problems.
+Definition 6 (Control Problem).Given a set of deterministic LTSMmod-
+elling the plant to be controlled,Σthe union of the alphabets of the LTS inM,
+a set of controllable eventsΣ c⊆Σand an LTL formulaφoverΣmodelling
+the controller goal, we defineE=⟨M, Σ c, φ⟩to be an Control Problem. A de-
+terministic LTSCis a solution forE(i.e., a controller) ifCis legal forMwith
+respect to the set of uncontrolled eventsΣ u=Σ\Σ c,M||Cis deadlock-free and
+for every infinite traceπinM||Cwe haveπ⊨φ.
+Eis realizable if a solution forEexists. A solutionCismaximally permis-
+sive[15] if for any solutionC′, ifπis a trace ofC′then it is a trace ofC.
+Definition 7 (Winning States).LetE=⟨M, Σ c, φ⟩a control problem withˆs
+the initial state ofM. We says∈S Mis a winning state if there is a solutionC
+forEwith initial stateˆc, a statec∈S cand a traceπsuch that(ˆc,ˆs)π− →C∥M (c, s).
+We focus on a particular form of controller goals referred to as GR(1).
+Definition 8 (Generalised Reactivity(1) [26]).A GR(1) formulaφis an
+LTL formula restricted with this structureφ=∧ i∈n□♢ϕi=⇒ ∧ j∈m□♢γj
+whereϕ iandγ jare boolean combination of events.
+Note that realizable GR(1) control problems may not have a maximally per-
+missive controller. An intuition is that a controller may delay achieving its goal
+an unbounded but finite number of times. This cannot be captured as an LTS.
+Also note that that for a realizable GR(1) control problem, if a plant state
+is losing (i.e., not winning) it will never be traversed when the plant is being
+controlled. Also note that stripping a plant of its losing states not only preserves
+realizability but also results in the smallest sub-plant that preserves realizability.
+We use an observational equivalence taken from [25]. In [25] the relation to
+reduce the size of the plant, hiding local eventsΥwhile preserving solutions to
+supervisory control problems with non-blocking goals. The equivalence does not
+preserve realizability of GR(1) control problems; an adaptation is required.
+Definition 9 (Synthesis observation equivalence [25]).LetM= (S, Σ,− →
+,ˆs)be a LTS withΣ=Ω ˙∪Υ,Σ cis the set of controllable events andΣ uis the
+set of uncontrollable events. An equivalence relation∼ Υ⊆S×Sis a synthesis
+observational equivalence onMwith respect toΥif the following conditions hold
+for allx 1, x2∈Ssuch thatx 1∼Υx2:
+1. ifx 1u− →y 1foru∈Σ u, then there existπ 1, π2∈(Υ∩Σ u)∗such that
+x2π1PΩ(u)π 2− − − − − − − →y 2andy 1∼Υy2
+2. ifx 1c− →y 1forc∈Σ c, then there exists a pathx 2=x0
+2τ1− →...τn− →xn
+2PΩ(c)− − − − →
+y2such thaty 1∼Υy2andτ 1, .., τ n∈Υ, and ifτ i∈{1..n} ∈Σcthenx 1∼Υxi
+2
+Definition 10 (Quotient LTS).LetM= (S, Σ,− →,ˆs)be an LTS, and∼ ⊆
+S×Sbe an equivalence relation. The quotient LTS ofMmodulo∼isM/
+∼= (S/∼, Σ,− →/∼,[ˆs])whereS/∼is the set of equivalences classes of∼and
+− →/∼={([s], σ,[s′])·sσ− →s′}
+
+--- Page 5 ---
+A Framework for Compositional LTL Synthesis of DES 5
+3 Overview
+In this section we first provide an overview of our approach that does not include
+an equivalence minimization step. We then revisit the overview explaining where
+some aspects of minimization require special treatment.
+Overview without Minimization.Consider a control problemE=⟨M, Σ c, φ⟩
+whereMis a set of LTS. A monolithic approach to solving the problem (e.g.,
+[6]) composes all the LTSs inMand then computes a controller. Our approach
+starts withMand an empty setCwhich will storesafe controllers(we discuss
+them below). We iteratively extract a subsetM′ofMof size greater than 1,
+compose the LTSs inM′, compute a safe controller for the composition (with a
+weaker propertyφ′and a larger controllable alphabet – we explain why below).
+and store it inC. In addition, we reintroduce a controlled version ofM′toM,
+we refer to this LTS as ancontrolled subplant(we explain these below).
+In each iteration,Cincreases by one andMdecreases by at least one. The
+iteration ends if the subsetM′(which is picked by a heuristic) is equal toM,
+typically whenM’s size is 1 or 2. At this point we apply the standard monolithic
+approach forφtoM′. The controller built in this last step of the algorithm can
+be thought of as alive controllerin contrast to the safe controllers built before.
+Thesolutionto the original control problemEis the composition of the safe
+controllers inCwith the live controller computed after the iterations.
+Safe Controllers.We provide an intuition of what is referred to as safe con-
+trollers and why they are computed for a propertyφ′that is weaker thanφand
+an expanded controllable alphabet. We do so by working through an example.
+Consider the control problem⟨M, Σ c, φ⟩depicted in Figure 1. A monolithic
+synthesis approach would first compose the three LTSs inMand then compute
+a controller. The composition (see Fig.10 of the Appendix in the technical report
+submitted in Arxiv) has 23 states.
+Fig. 1.Modular plant for a control problemEwithM={M 1, M2, M3}, GR(1) goal
+φ=□♢uA1 =⇒ □♢cG1∧ □♢cG2 and controllable alphabetΣ c={cG1, cG2, c1, c2}.
+Consider a first iteration of our algorithm in which a heuristic selects the
+subsetM′={M 1, M2}and computes it composition (see Fig. 2).
+We would like to controlM′to achieveφ. However, this is not possible asφ
+refers tocG1 that is not in the alphabet of the LTS inM′. Thus, we weakenφ
+byprojectingit to the alphabet ofM′:φ′=□♢uA1 =⇒ ⊤ ∧ □♢cG2 .
+
+--- Page 6 ---
+6 H. Gagliardi et al.
+Fig. 2.Parallel composition of subplant
+M′={M 1, M2} ⊂ M, i.e.,M 1∥M2.
+Fig. 3.Safe Controller (M 1∥M2)safefor
+subplantM 1∥M2,φ′=□♢uA1 =⇒ ⊤ ∧
+□♢cG2, controllable eventsΣ c∪{u3}, and
+µ=∅.
+Now we would like to controlM′to achieve the weakerφ′. Yet this is not
+possible because a controller cannot prevent the occurrence ofu3 in the initial
+state ofM′. But eventu3 would never occur in the initial state of the plant
+MbecauseM 3̸∈ M′disallows it in its initial state! Indeed, when computing
+a controller forM′we must account for the fact that certain aspects of the
+problem may be solvable when considering the rest of the plant. For this we
+expand the controllable alphabetto include all uncontrollable events shared with
+LTS inM \ M′(i.e.,u3).
+We now explain why we compute asafecontroller for the weaker formula
+φ′and the extended set of controllable events: There may be controllers that
+can realizeφ′in different ways (often called strategies). Some of these strategies
+may be conflicting with restrictions imposed by LTS inM \ M′or parts of
+the goal lost in the projection ofφ. Ideally, we would compute a controller
+that includes all such strategies, but this is impossible. Liveness goals such as
+GR(1) do not allow maximally permissive controllers. Instead of constructing a
+controller that achievesφ′we build one that avoids states inM′that a controller
+that guaranteesφ′may traverse. In other words, we build a controller that stays
+in winning states ofφ′. This is a safety property, and if there is a controller,
+there is a maximally permissive one.
+The safe (maximally permissive) controller forM′,φ, andΣ c∪{u3}, referred
+to as (M 1∥M2)safeis shown in Fig.3 and is added toC.
+Controlled Subplant.We now provide an intuition of what controlled sub-
+plants are. Having computed a safe controller forM 1∥M2for a weaker goal than
+φwe must describe what remains to be controlled.
+A naive approach would be to add toMthe controlled version ofM 1∥M2,
+in other words (M 1∥M2)safe||(M 1∥M2). However, the (M 1∥M2)safewas built
+assuming it controlledu3 when in fact it does not. Indeed, the composition
+would not let the subplantM 1∥M2take au3 transitions from states 0 and 8.
+To adequately model the behavior of the controlled subplant (see Fig.4) we
+must re-introduceu3 transitions to the safe controller. Specifically, we must add
+them to states 0 and 4 of the controller, these are the states the controller would
+be in if it were composed with the subplant and the subplant were in states 0
+or 8. Added transitions are sent to a deadlock state because we know that from
+this point on, it is impossible to achieveφ′and thus impossible to achieveφ.
+
+--- Page 7 ---
+A Framework for Compositional LTL Synthesis of DES 7
+Indeed, the safe controller with the added transitions and deadlock state
+represent the safe controller with the assumptions it makes on when uncontrolled
+shared events should not happen. The deadlock state is in a sense abstracting
+states 1, 2, 4 and 5 of the subplantM 1∥M2of Fig. 2 as bad states.
+Fig. 4.Controlled Subplant (M 1||M 2)contbuilt from the safe controller (M 1||M 2)safe
+in Fig. 3 by addingu3 transitions from state 0 and state 4 to a deadlock state
+After the First Iteration.At the end of the first iteration of our simpli-
+fied algorithm we have:M={M 3,(M 1∥M2)cont}andC={(M 1∥M2)safe}.
+As the subplants are required to be of size larger than 1, the only possible
+M′⊆ Mis actuallyM. Here termination of the iterations kicks in and the
+algorithm proceeds to build a live controller using a monolithic approach for:
+⟨{M 3,(M 1∥M2)cont}, Σc, φ⟩. In other words, it builds the plantM 3∥(M 1∥M2)cont
+(see Fig.11 in Appendix of the technical report submitted in Arxiv), computes
+a controller (M 3∥(M 1∥M2)cont)live(see Fig. 5) and returns the solutionC=
+{(M 3∥(M 1∥M2)cont)live,(M 1∥M2)safe}.
+Fig. 5.Controller (M 3∥(M 1∥M2)cont)livefor Fig.11.
+Note that the largest LTS for which the compositional algorithm built a
+controller was of size 14, whilst a monolithic approach applied toM 1∥M2∥M3
+would have had to analyse an LTS of size 22.
+Introducing Minimization.The approach to synthesis presented formally in
+the next sections relies heavily on minimization to perform well: It minimizes
+the controlled subplants before adding them toM. The minimization proce-
+dure preserves the synthesis observational equivalence defined in [24]. We apply
+minimization, as does [24], hiding events that are local to the controlled sub-
+plant (i.e., events that are not part of the alphabet of the remaining LTSs in
+M). In Fig. 6 we depict the minimized version of (M 1∥M2)contusing local events
+
+--- Page 8 ---
+8 H. Gagliardi et al.
+Fig. 6.(M 1∥M2)cont/∼ Υ, a mini-
+mized version of (M 1∥M2)contwith lo-
+cal eventsΥ={u2, uA1, c2}.
+Fig. 7.Plant (M 1||M 2)c/∼ Υ||M 3to be
+controlled assuming□♢(¬u2∧¬uA1∧¬c2))
+Υ={u2, uA1, c2}. Note that minimization may introduce non-determinism that
+can be solved, as in [24] using relabeling.
+The approach proceeds by composing (M 1∥M2)cont/∼ΥandM 3(see Fig.7)
+and attempts to build a controller forφ. However, such a controller does not
+exists as the traceu1.uA1ωcannot be avoided. Yet such a trace is not possible
+in (M 1∥M2∥M3) (see Fig.10 in Appendix of the technical report submitted in
+Arxiv). This mismatch can be traced back to the minimization procedure that
+introduces a looping transition labelleduA1 in state 1 in (M 1∥M2)cont/∼Υ
+which (M 1∥M2)contdoes not have. Note that these loops are not a problem for
+compositional control for finite traces such as in [24].
+Having introduced uncontrollable looping transitions, they must be kept
+track of (we add them to a setµ) and solve control problems in future iter-
+ations that assume events inµdo not occur infinitely (i.e., □♢V
+l∈µ¬l=⇒φ).
+Although not a GR(1) formula, it can be solved using GR(1) synthesis.
+The live controller for (M 1∥M2)cont/∼Υ∥M3and property □♢V
+l∈µ¬l=⇒
+φis depicted on the left of Fig. 8. This live controller plus the safe controller in
+Fig. 3 are a modular solution toE.
+Fig. 8.Modular representation of a controller for the discrete event problemM=
+{M1, M2, M3}to be controlled to satisfyφ= □♢uA1 =⇒ □♢cG1∧ □♢cG2 with
+controllable alphabetΣ c={cG1, cG2, c1, c2, c3}. Controller on the left is a solution to
+Fig.7, controller on the right is the safe controller from Fig. 3.
+Note that using minimization, the largest LTS for which synthesis was com-
+puted for has 5 states, while a monolithic approach would have computed a
+controller for a plant of 22 states. This exemplifies how state explosion of the
+composed plant might be avoided using our compositional approach.
+Subplant minimization can result in a non-deterministic monitor. To remove
+non-determinism we use a the same procedure as in [24]. Due to space restric-
+
+--- Page 9 ---
+A Framework for Compositional LTL Synthesis of DES 9
+tions we do not discuss renaming in this paper, but our implementation and
+experimentation includes it. We refer the reader to [24] for more information.
+4 Compositional Synthesis
+This section defines a data structure used by the compositional synthesis al-
+gorithm, two operations over the data structure, and theorems that enunciate
+when these operations preserve the semantics of the data structure.
+During algorithm execution three variables are maintained, (M,Candµ)
+that form what we refer to as a synthesis tuple. They were discussed in Section 3.
+Definition 11 (Synthesis tuple).A synthesis tuple is tuple(M,C, µ), where
+Mis a set of deterministic LTSs modelling a modular plant,Cis a set of LTSs
+modelling safe controllers, andµis a set of events in the alphabet ofM.
+When solving a control problemE=⟨M, Σ c, φ⟩, the algorithm starts with
+a synthesis tuple of the following form: (M,∅,∅). The algorithm will iteratively
+reduce the size ofMwhile populatingCandµ. Each intermediate step will yield
+a synthesis tuple that preserves the control problem to be solved. To formalize
+this notion of preservation we define the set of controllers that are a solution to
+a synthesis tuple. This set of controllers will serve as an invariant. We extend the
+definition ofcomposition operatorwith respect to the setµ(|| µ) in the appendix
+(see 9.1).
+Definition 12 (Controllers of a Synthesis Tuple).LetT= (M,C, µ)be a
+synthesis tuple withC={C 1, . . . , C n},Σ c⊆Σa controllable alphabet, andφan
+LTL formula. We define the controllers of a synthesis tuple asCont Σc,φ(T) =
+{CM||µC1||µ. . .|| µCn·CMis a solution toE}whereE=⟨M, Σ c,□♢V
+l∈µ¬l=⇒
+φ⟩.
+Remark 1.Given the synthesis tupleT= (M,∅,∅) then the controllers in
+Cont Σc,φ(T) are the same as those for the control problemE=⟨M, Σ c, φ⟩.
+We say that twosynthesis tuplesTandT′are equivalentwith respect to
+a controllable alphabetΣ cand an LTL formulaφif they have the same set of
+controllers:T ∼=Σc,φT′iffCont Σc,φ(T) =Cont Σc,φ(T′)
+In the following we introduce two equivalence preserving transformation oper-
+ations over synthesis tuples. The compositional synthesis algorithm in Section 5
+iteratively applies these equivalence preserving transformations.
+4.1 Composition
+This synthesis tuple transformation method reduces the size ofMin a synthesis
+tuple by composing in parallel a subset of the LTS inM. It is straightforward
+to see that parallel composition preserves equivalence of synthesis tuples.
+
+--- Page 10 ---
+10 H. Gagliardi et al.
+Theorem 1 (Composition preserves controllers).Letφbe an LTL for-
+mula,Σ ca set of controllable events, andT,T′synthesis tuples(M,C, µ)and
+(M′,C, µ)respectively. IfM 1andM 2are a partition ofMsuch asM′=
+M∪M 2whereMis the parallel composition of the LTS inM 1, thenT ∼=Σc,φT′
+The theorem follows from the fact that parallel composition is associative.
+4.2 Partial Synthesis
+Partial Synthesis is the key transformation operation over synthesis tuples. Given
+a tuple (M,C, µ) it removes one LTSMfromM, computes a safe controllerCfor
+a weaker propertyφ′and adds the safe controller toC. It also adds a minimized
+LTS modelling the controlled subplant, i,e. the result ofCcontrollingM ibut
+hiding local eventsΥ. In addition it updatesµ.
+We define the projection of a formula the alphabet of a subsystem.
+Definition 13 (Formula projection).A formula projection is a functionα:
+LTL×2Σ→LTLsuch that for any formulaφand setΣ′⊆Σwe haveφ=⇒
+α(φ, Σ′)andα(φ, Σ′)is a formula that only refers to events inΣ′.
+To achieve completeness, it is essential partial controllers built are maximally
+permissive. That is, there is a controller that is maximal in terms of traces it
+allows. Maximally permissive controllers in general do not exist. Therefore, we
+constructsafe controllersthat avoid reaching a state in the plant from which
+achieving a the goal is certainly impossible. That is, a controller that keeps the
+plant in potentially winning states but does not guarantee traces that satisfy the
+liveness property. Liveness is achieved in the algorithm’s last step.
+Definition 14 (Safe Controller).LetE=⟨M, Σ c, φ⟩be a control problem
+withM= (S, Σ,− →,ˆs). IfEis realizable, we say( ˆS, Σ,− → S,ˆs)is the safe con-
+troller forEwhere ˆSis a superset of the set of winning states inSforEand
+− →Scontains all the transitions inMbetween statess∈ ˆS.
+As explained in the overview, a model of the subplant controlled by the safe
+controller must be reintroduced intoM, however this cannot be done by sim-
+ply introducing their parallel composition as the safe controller will have been
+built with an extended controllable alphabet. We build acontrolled subplantLTS
+that modelsMbeing controlled by the safe controllerCwith shared uncontrol-
+lable eventsΩ. Recall from the overview (see Fig. 4) that we must add to the
+safe controller transitions to a deadlock state representing the safe controller’s
+assumptions on when uncontrolled shared events should not happen.
+Definition 15 (Controlled Subplant).LetC= (S C, ΣC,− →C,ˆsC)be a safe
+controller forE=⟨M, Σ c∪Ω, φ⟩withM=⟨S M, ΣM,− →M,ˆsM⟩,φan LTL for-
+mula, andΩ⊆Σ uthe set of uncontrolled shared events. The controlled subplant
+MbyCwith respect toΩis⟨S C∪ {⊥}, Σ C,− →,ˆs C⟩where− →=− → C∪ {(s, l,⊥
+)|l∈Ω∧s∈S C∧ ∃s′∈SM·sl− →Ms′∧ ∀s′∈SM·(s, l, s′)/∈− → C}.
+
+--- Page 11 ---
+A Framework for Compositional LTL Synthesis of DES 11
+We now enunciate how the definitions above can be used to evolve a synthesis
+tuple by computing a safe controller and adding a minimized controlled subplant.
+Roughly, the theorem states that the solution to a synthesis tuple remains
+the same if given a tuple (M,C, µ), (i) we take one of the LTS in the plant to
+be controlled (M 1∈ M), (ii) compute a safe controller forM 1, the projection
+ofφto the alphabet ofM 1, and an controllable alphabet extended with the
+uncontrollable events shared byM 1andM \ {M 1}, (iii) add the safe controller
+toC, (iv) add a minimized version of the subplantM 1controlled by the safe
+controller toMby quotienting it to remove transitions on local events, and (v)
+add any uncontrollable events on self loops induced by the quotient intoµ. The
+proof of this theorem is included in the technical report submitted in Arxiv.
+Theorem 2 (Partial synthesis preserves controllers).Given a synthesis
+tuple(M,C, µ), an LTL formulaφ, and a setΣ cof controllable events. Let
+M⊆ Mwith alphabetΣ M=Υ˙∪ΩwhereΥhas the events not shared with any
+other LTS inM \Mnor inφ. Letφ′be a projection ofφtoΣ M. LetM safebe
+a safe controller for⟨M, Σ c,□♢V
+l∈µ¬l=⇒φ⟩. LetM contbe the subplantM
+controlled byM safewith shared eventsΩ.
+IfM cont/∼Υis deterministic andµ′is the set of self-loop events added by∼ Υ
+reduction, then(M,C, µ) ∼=Σc,φ(M \ {M} ∪ {M cont/∼Υ},C ∪ {M safe}, µ∪µ′).
+Note that the theorem requiresM cont/∼Υto be deterministic, which is not
+always the case. Non-determinism can be avoided by renaming labels inMand
+using distinguishers [24]. We avoid presenting these due to space restrictions.
+5 Compositional Synthesis Algorithm
+The algorithm has as inputs a control problemE=⟨M, φ, Σ c⟩and a heuristic
+that returns a subset of the plant of size greater than 1.
+CompSynthesis(⟨M, φ, Σ c⟩, heuristic)
+1:C ← {},µ← {}
+2:whiletruedo
+3:sp←getSubplant(M, heuristic)
+4:M ← M \sp
+5:if|M|== 0then
+6:lc←getLiveController(⟨sp, Σ c, φ⟩, µ)
+7:if¬isRealizable(lc)then
+8:returnUNREALIZABLE
+9:end if
+10:returnC ∪ {lc}
+11:end if
+12:PartialSynthesis(M,C,sp, Σ c, φ)
+13:end whilePartialSynthesis(M,C,sp, Σ c, φ)
+1:φ′←getProjection(φ, Σ sp)
+2:Σφ′←getAlphabet(φ′)
+3:Υ←Σ sp\(ΣM∪Σφ′)
+4:Msafe←getSafeControllerΥ(⟨sp, Σ c, φ′⟩, µ)
+5:if¬isRealizable(Msafe)then
+6:returnUNREALIZABLE
+7:end if
+8:M cont←getControlledSubplantΥ(Msafe,sp)
+9:C ← C ∪Msafe
+10:⟨M∼
+cont, µ′⟩ ←minimize(M cont, Υ)
+11:µ←µ∪µ′,M ← M ∪ {M∼
+cont}
+The synthesis tuple is initialized and a loop that strictly monotonically re-
+duces the size ofMstarts. In the loop, the heuristic first selects and removes a
+subset ofM. IfMis not empty, we projectφto the alphabet of the subplant,
+compute the local alphabet (Υ) used to perform minimization, compute the safe
+controller and the controlled subplant. If there is no solution when computing
+
+--- Page 12 ---
+12 H. Gagliardi et al.
+the safe controller, then the algorithm returns UNREALIZABLE. Otherwise, it
+adds the safe controller toCand computes both the quotient of the controlled
+subplant and the events that the quotient introduces loops for.
+The loop terminates when the subplant selected has all LTS inM. At this
+point we compute a live solution for the remaining control problem and return
+it with all previously computed partial controllers.
+ProceduregetSubplantreturns a subplant ofMusing theheuristic. Proce-
+duresgetLiveControllerandgetSafeControllersolve control problems of the form
+⟨sp, Σ c,□♢V
+l∈µ¬l=⇒φ⟩according to Definitions 6 and 14. Procedureget-
+ControlledSubplantreturns a controlled subplant according to Definition 15, and
+minimizeapplies minimization based for the equivalence defined in Definition 9
+and also returns the events for which self-loops have been introduced.
+The correctness and completeness argument for the algorithm is as follows.
+The algorithm encodes the original problemE=⟨M, Σ c, φ⟩as a synthesis tuple
+T= (M,∅,∅). The solutions ofTby definition areCont Σc,φ(T) are exactly those
+ofE′=⟨M, Σ c, φ⟩(see Remark 1 after Definition 12). It is straightforward to
+see that after each iteration of the while loop, the tuple is updated via two
+solution preserving operations (parallel composition and partial synthesis). The
+loop terminates because we assume that the heuristic will never infinitely often
+return subsets of size 1 when|M|>1 size greater than one is replaced inM
+with its composition. Thus, the set of partial controllers by the algorithm, when
+composed in parallel is a solution to the original problem.
+6 Evaluation
+The purpose of the evaluation is to assess if a compositional synthesis of con-
+trollers for modular DES plants and LTL goals can perform better than a mono-
+lithic approach in which the plant composition is constructed in full.
+For this we implemented compositional synthesis within MTSA [6]. The only
+tool we are aware of that is available andnativelysupports controller synthesis
+for modular DES plants and infinite-trace goals. By this we mean means that
+other tools do not support describing the system to be controlled as a parallel
+composition of a set of DES along with some form of specifying liveness guar-
+antees that are to be achieved. Notably, [19] and [12] do modular DES plants,
+but only allow specifying safety goals. MTSA tool supports GR(1) formulae. We
+compare MTSA with and without compositional synthesis.
+We also study how reactive synthesis tools perform on translated versions of
+GR(1) DES control problems, both monolithically and compositionally. Specifi-
+cally, we studySpectra[20] (a synthesis tool specialized in GR(1)) and Strix [23]
+(a compositional LTL synthesis tool, winner at SyntComp 2023). Note that we
+did not implement the compositional approach withinSpectraandStrix, rather
+we had MTSA call them to measure how much time they take to solve the
+intermediate control problems compositional synthesis necessitates.
+A replication package including tool and control problems is available in [1].
+
+--- Page 13 ---
+A Framework for Compositional LTL Synthesis of DES 13
+6.1 Compositional Synthesis of DES for GR(1) goals
+Applying the composition synthesis algorithm to control problems whereφ
+is a GR(1) formula involves three challenges. First and foremost, procedures
+getLiveControllerandgetSafeControllermust solve control problems that in
+principle are not GR(1) (i.e.,□♢V
+l∈µ¬l=⇒φ). However, these problems can
+actually be solved using a GR(1) synthesis algorithm due to the shape of the
+subplant under analysis (the only loops consisting of uncontrollable events that
+can be found in the subplant are inµand are self-loops) and the fact that GR(1)
+formulae are closed under stuttering. The procedure is to remove in the plant all
+self-loop transitions labeled with somel∈µ⊆Σ u, compute a controller forφ,
+and add to the controller the self-loop transitions previously removed to make
+it legal. This procedure is correct and complete (see proof in Appendix of the
+technical report submitted in Arxiv).
+Theorem 3.Given control problemsE=⟨M′\{(s, l, s)|l∈µ∪µ′}, Σc, φ⟩and
+E′=⟨M′, Σc,□♢(V
+l∈(µ∪µ′)¬l) =⇒φ⟩whereM′=M \ {M sub} ∪ {M cont/
+∼Υ},Σ c⊆Σis a set of controllable events,µandµ′are sets of events andM cont
+is a controlled subplant for⟨M sub, Σc,□♢(V
+l∈µ¬l) =⇒φ⟩whereM sub⊆ M.
+If there is a solutionC= (S c, Σ,− → c,ˆsc)for control problemE, thenC′is a
+solution forE′whereC′= (S c′, Σ,− → c′,ˆsc)is defined as follows:
+–SC′=SC
+–− → C′=− →C∪ {(s, l, s)|s∈S c∧l∈Σ u∩(µ∪µ′)∧ ∃(s M′, sc)∈S M′||C·
+( ˆsM′,ˆsC)− →M′∥C(sM′, sC)∧(s M′, l, sM′)∈− → M′}.
+Also, if there is no solution forEthen there is no solution forE′.
+A second challenge is an efficient way to compute a safe controller, that is a
+controller that keeps a plant in states that are non-losing. Furthermore, that the
+over-approximation of winning states is sufficiently small to achieve state space
+reductions that make the compositional approach efficient. This can be achieved
+for GR(1) formulae straightforwardly as the arena for which the underlying game
+is solved maps back one-to-one to states of the plant. In addition, the GR(1)
+synthesis procedure [26] establishes precisely all winning states of the arena.
+Finally, projecting a GR(1) formula to a weaker formula can be done straight-
+forwardly. In our implementation we use the following procedure: For formulae
+of the formφ=∧ i∈n□♢ϕi=⇒ ∧ j∈m□♢γjwhereϕ iandγ jare boolean
+combination of events in conjunctive normal form andΣ′∈Σdo the following.
+For everyl∈Σ′, replace every occurrence ofland¬lwithFin everyϕ iand
+replace every occurrence ofland¬lwith⊤in everyγ j. It is straightforward to
+see that this projection yields weaker formulae:φ=⇒α(φ, Σ′).
+6.2 GR(1) DES Synthesis via Reactive Synthesis
+To study the performance of GR(1) compositional synthesis for DES via reactive
+synthesis we implemented a translation of MTSA inputs using an approach based
+
+--- Page 14 ---
+14 H. Gagliardi et al.
+on [17]. Nonetheless, we developed two different translations. The first translates
+each LTS of the plant and also encodes parallel composition rules. We refer to
+this translation asmodular. The second translates the composed plant, a single
+LTS. We refer to this translation asnon-modular. Note that the translation is
+orthogonal to whether monolithic or compositional synthesis will be applied.
+ForStrixwe use a binary-encoding for events and local states to reduce
+the number of atomic propositions needed. Such an encoding is unnecessary for
+Spectraas it supports variables (and performs binary-encoding internally).
+For bothStrixandSpectrawe first evaluate how they perform using the
+modular and non-modular translations for various instances of the benchmark.
+We then take the best performing translation for each tool to evaluate how a
+monolithic synthesis approach compares with a compositional one.
+Monolithic synthesis withStrixandSpectrais achieved by simply translating
+the plant of the control problem and executing the reactive synthesis tool.
+To avoid modifyingStrixandSpectrato do compositional synthesis, per-
+formance is approximated by running a modified version of the compositional
+MTSA implementation. Every time MTSA calls its internal GR(1) synthesis pro-
+cedure with a subplant, we mimick the call by calling the synthesis procedure
+ofStrixorSpectrawith a translation of the subplant. The output of reactive
+synthesis procedure is discarded, and the result of the native GR(1) synthesis
+procedure is used. We compute the overall time by subtracting the time spent by
+internal MTSA synthesis procedure. We refer to these approximations of native
+compositional implementations asDES StrixandDES Spectra.
+6.3 Benchmark
+We use modular DES GR(1) control problems taken from multiple sources. Con-
+trol problems are parameterizable some scale in two dimensions (number of in-
+tervening components,n, and number of states per component,k) and some
+scale only in the number of intervening components.
+For the case studies scalable in two dimensions, we use all problem families
+introduced in [2], modified from supervisory control problems to GR(1) control
+problems: Air Traffic (AT), Bidding Workflow (BW) and Travel Agency (TA),
+Transfer Line (TL), and Cat and Mouse (CM). We also used a Robot Search
+Mission (RS) taken from robotic literature [31]. All the n-k instances for these
+problems are known to be realizable, except for those in AT wheren≤kmust
+hold. Thus, we report separately on instances that are realizable (AT R) and
+those that are not (AT !R). We studied for instances withn, k≤9.
+The one-dimension control problems we use are the classic concurrency Din-
+ning Philosophers (DP) problem and the AI planning problem Gripper (GR) [29].
+Finally, we also use a SYNTECH [20] case study named Moving Obstacle (MO)
+originally specified as a reactive synthesis problem (i.e., a turn-based game in
+which each player can update all its variables in each turn). We translated MO
+manually into a modular discrete event problem by developing one LTS for each
+safety property of the specification plus some additional LTS to replicate the
+
+--- Page 15 ---
+A Framework for Compositional LTL Synthesis of DES 15
+Inst. Solved Largest instance solved by both Mono and Comp State
+Instances State Comp Perf. Reduction Controller space
+Mono Comp nkspace States Time States Time LTSs States Red. lgst. inst.
+ATR45 35 20 442386244 110s -91% -99.63% 9 6545 -95.6% 241
+AT!R36 21 15 9124217920 24s 33% 93% – – – 246
+BW 81 45 50 912221604 3s 99.6% 96.2% 9 2499 95.6% 228
+CM 81 20 21 42232229993 1251s -51% -81.1% 7242865 -91% 232
+RS 81 17 29 3322424285 230s 90% 84% 6212664 94.3% 230
+TA 81 50 71 642506560 98s 97.2% 93.4% 13 7951 83.3% 267
+TL 81 30 29 36220374993 231s -6% -49% 6377790 -99.8% 220
+DP 10 4 95-220185 1s 88% 96.8% 9 391 97.3% 236
+GR 20 8 11 8-229378 1s 99.22% 96% 17 853 78% 238
+MO 4 3 46-21005180 380s 59% 34% 38 14011 44% 2127
+PC 10 4 10 5-2286561 220s 94.8% -87% 11 7152 94.3% 250
+Table 1.Experimental Results for Native DES GR(1) Controller Synthesis.
+turn-based logic of reactive synthesis control. The maximum value fornvaries
+depending on how large the plant for the control problems grows.
+Experiments were run on a computer with an Intel i7-7700 CPU @ 3.60GHz,
+with 8GB of RAM, and a timeout of 30 min. In addition, we use a simple
+deterministic heuristic for selecting subplants that always chooses the first two
+LTS from the vector representation of the setM.
+6.4 Results
+Monolithic vs. Compositional GR(1) DES Controller Synthesis.Table
+1 shows results for all case studies. The first column has problem family names.
+The next three aggregate information of entire problem families: we show the
+total number of instances per problem family (Column Inst) and the number of
+solved instances by the monolithic (Mono) and compositional (Comp) methods.
+These first three columns show thatfor 8 out of 10 control problem families,
+the compositional method improves over the monolithic one(we count AT Rand
+AT!Ras the same family). In all cases the solved instances one of the methods
+is a superset of the instances solved by the other.
+All problems that the monolithic approach could not solve were due to run-
+ning out of memory. Also note that providing more RAM to the monolithic
+method makes little difference in dealing with the combinatorial growth of the
+state space resulting from increasing the size of problems usingkandn. Indeed,
+doubling memory from 8Gb to 16Gb allows the monolithic approach to add less
+than 5% more instances. The two problem families in which monolithic performs
+better than compositional can be explained by looking at the remaining columns.
+From the 5th column onwards we focus on the instance with the largest
+composed plant that was solved by both monolithic and compositional methods.
+We first report on the valuesnandkfor the instance and its potential state
+space (i.e., the product of the sizes of all LTS of the plant). We then report the
+performance of the compositional method by showing the number of states of
+the largest plant which the compositional approach solves a control problem for,
+and the end-to-end time to compute the final controller. The next two columns
+
+--- Page 16 ---
+16 H. Gagliardi et al.
+report the reduction in the largest control problem to be solved with respect to
+the monolithic method, and the reduction in time to build the final controller
+compared to the monolothic approach. Negative values in this column indicate
+that the monolithic approach did better than the compositional.
+For all but three problem families, when considering the largest instance solved
+by both methods, the compositional approach was able to significantly reduce the
+plant on which it computes a live controller.This is an indication of why for
+these problem families the compositional method has better performance. The
+exception being AT !Rfor which, despite achieving reductions, the total number
+of instances solved by the compositional approach was not greater. This may
+indicate some bias of our approach towards realizable problems.
+The three instances for which we report a negative reduction (AT R(n=
+4, k= 4), CM(n= 4, k= 2), and TL(n= 3, k= 6)) show that state explosion
+of subplants can occur and is a likely cause for poor (or in the case of CM, not
+significantly better) performance of compositional synthesis.
+Notice that treating smaller (sub)plants does not necessarily mean a reduc-
+tion in time. Instance PC(n= 5) shows that the compositional method is good
+at reducing size, but a price is paid in time (mostly spent minimizing subplants).
+The next three columns, show the size of the controller computed by the com-
+positional method. We report in column LTSs how many LTSs is the controller
+composed of. The States column reports the sum of the states of each of these
+LTS, other words, a measure of the memory required to store the controller on
+the computer that will enact the controller. We also show the reduction in mem-
+ory, measured in states, with respect to the (monolithic) controller computed
+by the monolithic method.Note that there are significant reductions in the size
+of the compositional controller for all case studies except for the three in which
+there are intermediate state explosions of subplants.
+The final column shows the theoretical size of the biggest instance solved
+by either of the methods. Subtracting column 7 (“state space”) we obtain how
+much bigger was the biggest problem solved by one approach than the biggest
+of the other: For 4 out of 10 problem families, the compositional approach was
+able to solve instances at least 3 orders of magnitude (×210) bigger than the
+monolithic approach. For 3 out 10, the increase in size that the compositional
+algorithm was able to manage was of at least 26larger. On the other hand for
+the 3 case studies where monolithic fared better, the largest instances it was able
+to solve were only 26times bigger.
+The final column reports on the state space of the largest instance solved, be
+it the compositional or the monolithic method. For 4 out of 10 case studies, the
+compositional approach was able to solve instances at least 3 orders of magnitude
+(×210) bigger than the monolithic approach. For 3 out 10, the increase in size
+that the compositional algorithm was able to manage was of at least 26larger.
+On the other hand for the 3 case studies where monolithic fared better, the
+largest instances it was able to solve were only 26times bigger.
+The survival plot on the top left of Figure 9 provides a graphical summary
+of the comparative performance of monolithic vs. compositional GR(1) DES
+
+--- Page 17 ---
+A Framework for Compositional LTL Synthesis of DES 17
+controller synthesis implemented in MTSA. Overall compositional can solve more
+(and significantly larger) subjects but takes more time than monolithic.
+We now discuss possible causes for variable performance of compositional
+synthesis across different problem families. We hypothesise that compositional
+synthesis has opportunities for increased performance when intermediate sub-
+systems can be reduced due to minimization with respect to local events, and
+when reduction is achieved by reducing reachable states when the subsystem is
+controlled via partial synthesis. The main threat to performance is, we believe,
+having intermediate subsystem state explosion as a result of composing LTS
+that are very loosely synchronized (worst case being that the composition yields
+the cartesian product of states). Below we analyze two problem families where
+compositional synthesis performance was worse than monolithic (AT TL) and
+one in which it was better (DP).
+For AT, there are two classes of LTS affected by parametersnandk: The
+number of airplane LTS is determined bynand the number of height monitors
+(that check that at a particular height, there is never more than one airplane) is
+determined byk. The height monitors interact very little with each other, while
+each one interacts frequently with all airplanes. Additionally, there is always just
+one ramp and one response monitor. The response monitor interacts with each
+airplane on a specific label that is local to that airplane.
+The simple heuristic used composes incrementally height monitors inducing,
+early on, an intermediate state explosion as their composition yields a state space
+that is almost the size of the cartesian product of height monitors’ states. In ad-
+dition, there are no local shared events that can lead to intermediate reductions.
+We speculate that a heuristic that starts with the response monitor and adds
+one airplane at a time will perform better because local shared variables provide
+opportunities for reduction. Indeed, initial explorations seem to indicate this.
+In instances of TL, there are LTSs representing the machines connected by
+buffers on a transfer line and an LTS at the end, the Testing Unit (TU), that
+takes a work piece from the last buffer and accepts it or rejects and returns it
+to the first buffer for reprocessing.
+The naive heuristic we used selects Machines and Buffers in order from the
+beginning, thus the TU machine is included in the composition towards the end.
+These intermediate subsystems have permissive controllers because the projected
+formula (that only talks about events in the TU) is trivial, so they cannot be
+reduced by partial synthesis. We speculate that a heuristic that starts with TU
+and adds consecutive machines and buffers from the end towards the beginning
+of the line will perform better. Initial exploration indicate this is the case.
+In contrast, consider instances of DP, where the compositional approach per-
+forms better. The heuristic chooses to add LTSs following the ring architecture
+defined by the philosophers sitting round the table. Thus, as one more adjacent
+LTS is added to the subsystem, some new local shared events (between a particu-
+lar philosopher and a particular fork) can be minimized. Also, since this problem
+has a formula that refers to events in all philosophers, there are opportunities of
+minimize by partial synthesis solving control problem for each subsystem.
+
+--- Page 18 ---
+18 H. Gagliardi et al.
+Fig. 9.Survival plots for Compositional (solid) and Monolithic (dashed) forDES
+MTSA-top left-,DES Strix-top right-, andDES Spectra-bottom left-) relative to com-
+positional performance. Bottom right is forDES Spectradivided into problem families
+for which compositional performs better (purple) and worse (cyan) than monolithic.
+Monolithic vs Composition GR(1) synthesis via Reactive Synthesis.
+Strixperformed consistently better when using the non-modular translation than
+when using the modular one. This provides some evidence that the compositional
+approach Strix has built in (where smaller problems are solved by selecting subsets
+of formulae) is not able to exploit the modular nature of the DES control problem.
+Results forSpectrawere opposite. The tool performed consistently better when
+applied to modular translations of the control problems instead of non-modular
+ones. Thus, for the remaining experiments we used modular translations for
+Spectraand non-modular ones forStrix.
+Top right and bottom left survival plots of Fig. 9 show comparative per-
+formance of compositional vs monolithicDES StrixandDES Spectra.DES
+Strixsolved the same number of cases with both approaches, but the mono-
+lithic method took over 50% more time. Conversely, bottom left survival plot
+shows that inDES Spectracompositional and monolithic solve the same number
+of cases, but the monolithic approach is slightly over 20% faster.
+A closer look atDES Spectraresults reveal that the monolithic tends to
+perform better on problems with shorter and more centralized formulas (i.e.,
+share alphabet with less LTS). By splitting problem families based on whether
+monolithic or compositionalDES Spectradoes better we can see (bottom right of
+Fig. 9) that for one set of problem families compositional cumulative time grows
+much less than that of monolithic, while for the other, compositional cumulative
+time is higher but grows at a closer rate to that of monolithic.
+Summary.The evaluation presented above contributes evidence that composi-
+tional synthesis can achieve improvements in scale compared to monolithic DES
+
+--- Page 19 ---
+A Framework for Compositional LTL Synthesis of DES 19
+control, both for native GR(1) DES (explicit state) synthesis, and can achieve
+improvements in time for DES control via reactive (symbolic state) synthesis.
+For the case of native GR(1) DES synthesis, we observe that performance can
+degrade if there is intermediate state explosion. Exploring heuristics for choosing
+subplants that may mitigate this problem. In [25] various heuristics are reported
+to make significant improvements for supervisory control for finite traces. These
+may also achieve better performance for GR(1) goals.
+7 Related Work
+Out of the three classic areas that focus on automatically constructing control
+rules from a specification, Discrete Event Control [28], Reactive Synthesis [27]
+and Automated Planning [13], this paper is more related to the first two.
+Discrete Event Control was first formulated for *-regular languages [28] and
+then extended toω-regular languages. In [30], Thistle addresses control prob-
+lems described using a deterministic finite automaton (DFA) equipped with two
+acceptance conditions forω-languages, one representing a specification and the
+other representing an assumption. Supervisors are required to generate infinite
+words that belong to the specificationω-language under the suposition that the
+environment generates finite traces of the DFA and infinite traces of the assump-
+tionω-language. The supervisor is also required to not block the environment
+from generating some trace in the assumptionω-language. In [17], this is re-
+ferred to as anon-conflictingrequirement. In [30], Thistle presents a supervisor
+synthesis algorithm that is polynomial in the number of states of the automaton
+and exponential in the acceptance condition size.
+The control problem we study in this paper can be presented as an instance
+of the general supervisory control problem forω-regular languages where the
+ω-regular language for the specification is given as an LTL formula. Whereas
+the∗-regular language for assumptions is given by a composition of LTS (i.e.,
+the plant) and theω-regular language for assumptions is the entire set of infinite
+traces of the plant.
+Our work is related to reactive synthesis where the control problem is solely
+expressed by means of a logical formulae, LTL is commonly used. The system-
+to-be is a reactive module that shares state variables with the environment.
+Assumed environment behaviour is also described by means of logical formulae.
+The underlying interaction model between the controller and the environment
+differs from that of supervisory control. Reactive synthesis assumes a turn based
+interaction where each part can change in their turn all the variables it controls.
+In supervisory control, there are no turns and the environment may win all races.
+The relation between supervisory control and reactive synthesis has received
+much attention in the last years [7]. Notably, [17] shows that the non-conflicting/
+non-blocking requirement of supervisory control requires solving games, obliging
+games, of higher complexity than those classically used for reactive synthesis.
+The control problem we study does not suffer from this as the non-conflicting
+requirement is trivially satisfied.
+
+--- Page 20 ---
+20 H. Gagliardi et al.
+The class of GR(1) LTL formulae have been studied extensively as controllers
+for them can be computed polynomially [26] as opposed to the double exponen-
+tial complexity of general LTL [27]. GR(1) has been studied extensively as a
+specification language for reactive systems (e.g. [21, 22]) and various variants
+have been proposed (e.g., [16]).
+GR(1) control of DES as defined in this paper was originally proposed in [6],
+a monolithic synthesis algorithm is defined. Later, on-the-fly composition con-
+struction has been proposed [2,4].
+The reactive synthesis community has explored compositionality as a way to
+scale synthesis by identifying and performing independent synthesis tasks [8–10].
+For instance, in [8] LTL synthesis is solved compositionally by first computing
+winning strategies for each conjunct that appears in the large formula using an
+incomplete heuristic. The decomposition algorithm of [9] works for LTL and de-
+composes the formulae into subspecifications that do not share output variables.
+A dependency graph used for finding the decomposition-critical propositions
+that, in turn, are key to soundness and completeness of the approach. In [10]
+decomposition means partitioning system’s input and output variables and then
+applying incremental synthesis of dominant strategies. Dependency graphs must
+be constructed to identify components and synthesis order that would ensure
+completeness. On the other hand, our technique works compositionally in terms
+of environment’s safety assumptions (involving input, output and synchroniza-
+tion events) which are described as synchronizing LTS. Goal formula decomposi-
+tion is a consequence of projection of the formula onto intermediate subsystems.
+Grouping and ordering of compositions does not affect neither soundness nor
+completeness (although it may affect performance).
+Traditional compositional verification [3,14] mitigates the state-space explo-
+sion by leveraging modular structure of system-under-verification. In that vein,
+compositional synthesis for plants expressed as finite-state systems has been
+studied by the community of supervisory control for non-blocking goals [11,18].
+There, synthesis is addressed by incrementally composing (and reducing) plant’s
+component. Also, resulting controllers are modular: they are made up by au-
+tomata that interact by mean of shared labels. Our solution is inspired in such
+works but it addresses intfinite trace goals for which there is no guarantee for
+the existence of maximal solutions.
+8 Conclusions and Future Work
+The modular representation of discrete event systems can be exploited by compo-
+sition synthesis to mitigate the state explosion problem that monolithic synthesis
+suffers. In this paper we present how compositional synthesis can be applied to
+LTL. We implement compositional synthesis for GR(1) goals and show that with
+a very basic heuristic for selecting subplants the compositional synthesis already
+achieves significant gains with respect to a monolithic method, both in a native
+DES synthesis tool and using reactive synthesis tools via translations.
+
+--- Page 21 ---
+A Framework for Compositional LTL Synthesis of DES 21
+Future work must look into avoiding intermediate state explosion by means
+of smarter heuristics that impact the order in which a plant LTS are composed.
+An implementation of the compositional framework for LTL requires defining a
+projection function (which can simply be an existential elimination of literals)
+and a method for computing safe controllers. The latter can be trivialized by
+the conservative decision of not removing any states at all, to ensure that no
+winning states are lost. However, this is unlikely to provide good performance
+results. Thus, the challenge with full LTL is to find an effective way of removing
+a significant portion of subplant losing states.
+Acknowledgements
+This work was partially supported by proyects ANPCYT PICT 2019-1442, 2021-
+4862, UBACYT 2023-0134, and CONICET PIP 1220220100470CO.
+References
+1. Replication package: tool and control problems.
+https://zenodo.org/records/13913744 (2025)
+2. Ciolek, D.A., Braberman, V.A., D’Ippolito, N.R., Uchitel, S., Sardi˜ na, S.:
+Compositional supervisory control via reactive synthesis and automated plan-
+ning. IEEE Transactions on Automatic Control65(8), 3502–3516 (2020).
+https://doi.org/10.1109/TAC.2019.2948270
+3. Clarke, E.M., Grumberg, O., Long, D.E.: Model checking and abstraction. In:
+Sethi, R. (ed.) Conference Record of the Nineteenth Annual ACM SIGPLAN-
+SIGACT Symposium on Principles of Programming Languages, Albuquerque,
+New Mexico, USA, January 19-22, 1992. pp. 342–354. ACM Press (1992).
+https://doi.org/10.1145/143165.143235, https://doi.org/10.1145/143165.143235
+4. Delgado, T., Sorondo, M.S., Braberman, V.A., Uchitel, S.: Explo-
+ration policies for on-the-fly controller synthesis: A reinforcement learn-
+ing approach. In: Koenig, S., Stern, R., Vallati, M. (eds.) Proceed-
+ings of the Thirty-Third International Conference on Automated Plan-
+ning and Scheduling, Prague, Czech Republic, July 8-13, 2023. pp. 569–
+577. AAAI Press (2023). https://doi.org/10.1609/ICAPS.V33I1.27238,
+https://doi.org/10.1609/icaps.v33i1.27238
+5. D’Ippolito, N., Fischbein, D., Chechik, M., Uchitel, S.: Mtsa: The modal transition
+system analyser. In: 2008 23rd IEEE/ACM International Conference on Automated
+Software Engineering. pp. 475–476 (2008). https://doi.org/10.1109/ASE.2008.78
+6. D’Ippolito, N., Fischbein, D., Chechik, M., Uchitel, S.: Mtsa: The modal transition
+system analyser. In: Proc. of the Int. Conf. on Automated Software Engineering
+(ASE) (2008)
+7. Ehlers, Tripakis: Supervisory Control and Reactive Synthesis: A Comparative In-
+troduction (2017)
+8. Filiot, E., Jin, N., Raskin, J.: Compositional algorithms for LTL synthe-
+sis. In: Bouajjani, A., Chin, W. (eds.) Automated Technology for Verifica-
+tion and Analysis - 8th International Symposium, ATVA 2010, Singapore,
+September 21-24, 2010. Proceedings. Lecture Notes in Computer Science,
+
+--- Page 22 ---
+22 H. Gagliardi et al.
+vol. 6252, pp. 112–127. Springer (2010). https://doi.org/10.1007/978-3-642-15643-
+410, https://doi.org/10.1007/978-3-642-15643-4 10
+9. Finkbeiner, B., Geier, G., Passing, N.: Specification decomposition for
+reactive synthesis. Innov. Syst. Softw. Eng.19(4), 339–357 (2023).
+https://doi.org/10.1007/S11334-022-00462-6, https://doi.org/10.1007/s11334-
+022-00462-6
+10. Finkbeiner, B., Passing, N.: Dependency-based compositional synthesis. In:
+Hung, D.V., Sokolsky, O. (eds.) Automated Technology for Verification and
+Analysis - 18th International Symposium, ATVA 2020, Hanoi, Vietnam, Oc-
+tober 19-23, 2020, Proceedings. Lecture Notes in Computer Science, vol.
+12302, pp. 447–463. Springer (2020). https://doi.org/10.1007/978-3-030-59152-
+625, https://doi.org/10.1007/978-3-030-59152-6 25
+11. Flordal, H., Malik, R., Fabian, M., ˚Akesson, K.: Compositional synthesis of
+maximally permissive supervisors using supervision equivalence. Discret. Event
+Dyn. Syst.17(4), 475–504 (2007). https://doi.org/10.1007/S10626-007-0018-Z,
+https://doi.org/10.1007/s10626-007-0018-z
+12. Fokkink, W.J., Goorden, M.A., Hendriks, D., van Beek, D.A., Hofkamp, A.T.,
+Reijnen, F.F.H., Etman, L.F.P., Moormann, L., van de Mortel-Fronczak, J.M.,
+Reniers, M.A., Rooda, J.E., van der Sanden, L.J., Schiffelers, R.R.H., Thuijsman,
+S.B., Verbakel, J.J., Vogel, J.A.: Eclipse escet™: The eclipse supervisory control
+engineering toolkit. In: Sankaranarayanan, S., Sharygina, N. (eds.) Tools and Al-
+gorithms for the Construction and Analysis of Systems. pp. 44–52. Springer Nature
+Switzerland, Cham (2023)
+13. Ghallab, M., Nau, D., Traverso, P.: Automated Planning: Theory and Practice.
+Elsevier, San Francisco, CA (2004)
+14. Graf, S., Steffen, B.: Compositional minimization of finite state systems. In:
+Clarke, E.M., Kurshan, R.P. (eds.) Computer Aided Verification, 2nd Interna-
+tional Workshop, CAV ’90, New Brunswick, NJ, USA, June 18-21, 1990, Proceed-
+ings. Lecture Notes in Computer Science, vol. 531, pp. 186–196. Springer (1990).
+https://doi.org/10.1007/BFB0023732, https://doi.org/10.1007/BFb0023732
+15. Huang, J., Kumar, R.: Directed control of discrete event sys-
+tems for safety and nonblocking. IEEE Trans Autom. Sci. Eng.
+5(4), 620–629 (2008). https://doi.org/10.1109/TASE.2008.923820,
+https://doi.org/10.1109/TASE.2008.923820
+16. Majumdar, R., Piterman, N., Schmuck, A.K.: Environmentally-friendly
+GR(1) Synthesis (Feb 2019). https://doi.org/10.48550/arXiv.1902.05629,
+http://arxiv.org/abs/1902.05629, arXiv:1902.05629 [cs]
+17. Majumdar, R., Schmuck, A.K.: Supervisory Controller Synthesis
+for Non-terminating Processes is an Obliging Game (Aug 2021).
+https://doi.org/10.48550/arXiv.2007.01773, http://arxiv.org/abs/2007.01773,
+arXiv:2007.01773 [cs]
+18. Malik, R., Mohajerani, S., Fabian, M.: A survey on compositional algo-
+rithms for verification and synthesis in supervisory control. Discret. Event
+Dyn. Syst.33(3), 279–340 (2023). https://doi.org/10.1007/S10626-023-00378-8,
+https://doi.org/10.1007/s10626-023-00378-8
+19. Malik, R., ˚Akesson, K., Flordal, H., Fabian, M.: Supremica–an efficient tool
+for large-scale discrete event systems. IFAC-PapersOnLine50(1), 5794–
+5799 (2017). https://doi.org/https://doi.org/10.1016/j.ifacol.2017.08.427,
+https://www.sciencedirect.com/science/article/pii/S2405896317307772, 20th
+IFAC World Congress
+
+--- Page 23 ---
+A Framework for Compositional LTL Synthesis of DES 23
+20. Maoz, S., Ringert, J.O.: Spectra: a specification language for reac-
+tive systems. Software and Systems Modeling20, 1553–1586 (2021).
+https://doi.org/10.1007/s10270-021-00868-z
+21. Menghi, C., Tsigkanos, C., Askarpour, M., Pelliccione, P., V´ azquez, G.,
+Calinescu, R., Garc´ ıa, S.: Mission specification patterns for mobile robots:
+Providing support for quantitative properties. IEEE Trans. Software
+Eng.49(4), 2741–2760 (2023). https://doi.org/10.1109/TSE.2022.3230059,
+https://doi.org/10.1109/TSE.2022.3230059
+22. Menghi, C., Tsigkanos, C., Pelliccione, P., Ghezzi, C., Berger, T.: Specification Pat-
+terns for Robotic Missions (Jan 2019). https://doi.org/10.48550/arXiv.1901.02077,
+http://arxiv.org/abs/1901.02077, arXiv:1901.02077 [cs]
+23. Meyer, P.J., Sickert, S., Luttenberger, M.: Strix: Explicit Reactive Synthesis Strikes
+Back! In: Chockler, H., Weissenbacher, G. (eds.) Computer Aided Verification. pp.
+578–586. Lecture Notes in Computer Science, Springer International Publishing,
+Cham (2018). https://doi.org/10.1007/978-3-319-96145-3
+24. Mohajerani, S., Malik, R., Fabian, M.: An algorithm for weak syn-
+thesis observation equivalence for compositional supervisor synthesis
+45(29), 239–244 (2012). https://doi.org/10.3182/20121003-3-MX-4033.00040,
+https://www.sciencedirect.com/science/article/pii/S1474667015401776
+25. Mohajerani, S., Malik, R., Fabian, M.: A Framework for Compositional Syn-
+thesis of Modular Nonblocking Supervisors. IEEE Transactions on Automatic
+Control59(1), 150–162 (Jan 2014). https://doi.org/10.1109/TAC.2013.2283109,
+http://ieeexplore.ieee.org/document/6606831/
+26. Piterman, N., Pnueli, A., Sa’ar, Y.: Synthesis of Reactive(1) Designs. In: Proc. of
+the 7th Int. Conf. on Verification, Model Checking and Abstract Interpretation.
+vol. 3855. Springer-Verlag (2006)
+27. Pnueli, A., Rosner, R.: A framework for the synthesis of reactive modules. In: Vogt,
+F.H. (ed.) CONCURRENCY 88. pp. 4–17. Springer Berlin Heidelberg, Berlin,
+Heidelberg (1988)
+28. Ramadge, P., Wonham, W.: Supervisory control of a class of discrete event systems
+25, 206–230 (1987). https://doi.org/10.1137/0325013
+29. Silver, T., Dan, S., Srinivas, K., Tenenbaum, J.B., Kaelbling, L.P., Katz, M.:
+Generalized planning in PDDL domains with pretrained large language models.
+CoRRabs/2305.11014(2023). https://doi.org/10.48550/ARXIV.2305.11014,
+https://doi.org/10.48550/arXiv.2305.11014
+30. Thistle, J.G.: On control of systems modelled as deterministic Ra-
+bin automata. Discrete Event Dynamic Systems: Theory and Appli-
+cations5(4), 357–381 (Sep 1995). https://doi.org/10.1007/BF01439153,
+http://link.springer.com/10.1007/BF01439153
+31. Zudaire, S., Nahabedian, L., Uchitel, S.: Assured mission adapta-
+tion of UAVs16(3), 1–27 (2021). https://doi.org/10.1145/3513091,
+http://arxiv.org/abs/2107.10173
+9 Appendix
+9.1 Composition operator for Solution
+GivenC={C 1, .., C n}a set of LTSs,L can LTS whereΣ=Σ C1∪..∪Σ Cn∪
+ΣLc, we define a composition operator|| µas (C 1||..||C n||Lc)\T, where
+
+--- Page 24 ---
+24 H. Gagliardi et al.
+T ={((c 1, .., c n, lc), l,(c′
+1, .., c′
+n, lc′))∈− → C1||..||C n||Ln|l /∈f Ci∈0,..,n (ci∈0,..,n , d)∧
+d∈− → LN(lc)}wheref M:S×Σ− → {Σ}is a function defined asf M(s, d) =
+{l|l∈Σ u∨(lπwhereπis a controllable path tos′∧s′d− →M)}.
+9.2 Overview
+We show two compositions referred to in the Overview section. The first is the
+parallel composition of the original modular plant (M 1∥M2∥M3). The second is
+the composition of the plant where a subplant has been controlled and minimized
+(M3∥(M 1∥M2)cont). Note the difference in size.
+Fig. 10.Composed plantM 1∥M2∥M3that a monolithic synthesis approach would have
+to build to solve the control problemE.
+Fig. 11.PlantM 3∥(M 1∥M2)cont. It is nearly half the size ofM 1∥M2∥M3
+
+--- Page 25 ---
+A Framework for Compositional LTL Synthesis of DES 25
+9.3 Theorem 3
+This Lemma will be used in the proof of Theorem 3.
+Lemma 1.Given a LTSMandM′=M/∼ Υ, if there is a traceπ∈tr(M′)
+ands∈S M′such thatπ∈Υ∗andsπ− →M′sthen∀l∈πwe havesl− →M′s
+Proof.We prove by contradiction. Suppose a traceπ∈tr(M′) ands∈S M′
+such thatπ∈Υ∗,sπ− →M′s, and∃l∈πsuch that (s, l, s)/∈− → M′. Without loss
+of generality can assume thatπ=lπ′and∃s′∈SM′·s̸=s′such thatsl− →M′s′,
+s′π′
+− →M′s. Becauses̸=s′andM′is minimized respect to∼ Υwe have thats
+ands′are not equivalent. However, by Def. 9 we have thatsands′are, reaching
+a contradiction: Statescan simulates′by first going thoughl, and states′can
+simulatesby going throughπ′.□
+The following theorem proves that a control problem with a formula of the form
+□♢(V
+l∈(µ∪µ′)¬l) =⇒φwhereφis GR(1) can be solved as a GR(1) control
+problem. We use notationM\TwhereMis an LTS andTis a set of transitions
+overMto denote the result of removing each transition inTfromM.
+Theorem 3Given a control problemE=⟨M′\{(s, l, s)|l∈µ∪µ′}, Σc, φ⟩
+andE′=⟨M′, Σc,□♢(V
+l∈(µ∪µ′)¬l) =⇒φ⟩whereM′=M\{M sub}∪{M cont/
+∼Υ},Σ c⊆Σis a set of controllable events,µandµ′are sets of events andM cont
+is a controlled subplant for⟨M sub, Σc,□♢(V
+l∈µ¬l) =⇒φ⟩whereM sub⊆ M.
+If there is a solutionC= (S c, Σ,− → c,ˆsc) for control problemE, thenC′is a
+solution forE′whereC′= (S c′, Σ,− → c′,ˆsc) is defined as follows:
+–SC′=SC
+–− → C′=− →C∪ {(s, l, s)|s∈S c∧l∈Σ u∩(µ∪µ′)∧ ∃(s M′, sc)∈S M′||C·
+( ˆsM′,ˆsC)− →M′∥C(sM′, sC)∧(s M′, l, sM′)∈− → M′}.
+Also, if there is no solution forEthen there is no solution forE′.
+Proof.We prove first that if there exists such solutionCforE, thenC′is
+a solution forE′:
+–C′is legal forM′with respect toΣ u=Σ\Σ c
+The proof is by contradiction. Suppose thatC′is not legal forM′with
+respect toΣ u. Therefore exists (s C′, sM′)∈S C′||M′andl∈Σ usuch that
+l∈− → M′(sM′) andl /∈− → C′(sC′). In addition, there is also a traceπ∈
+tr(C′)·ˆs C′π− →s C′. Traceπmay not be intr(C), however we can build
+a traceπ′∈tr(C) that reaches the same state by removing any self loops
+labeled withl∈µ∪µ′. This leads us to a contradiction because we assumed
+thatCwas legal forM′\ {(s, l, s)|l∈µ∪µ′}with respect toΣ u.
+–C′||M′is deadlock-free
+Proven by contradiction. Suppose thatC′||M′is not deadlock-free, so there
+is a deadlock states d∈S C′||M′and a traceπ∈tr(C′||M′) such that
+( ˆsC′,ˆsM′)− →C′||M′sd. There are two options:
+
+--- Page 26 ---
+26 H. Gagliardi et al.
+•π∈tr(C)
+As we know thatC||M′is deadlock-free, this trivially leads us to a
+contradiction coming from assumption thatC′||M′is not deadlock free.
+•π /∈tr(C)
+Ifπ /∈tr(C) there exists a prefixπ′lofπsuch thatπ′∈tr(C)∧
+π′l /∈tr(C), and there is a state ¯s C∈SCsuch that ˆs C− →C¯sC. By
+definition of− → C′,lmust be a self-loop transition and does not lead to
+a deadlock state, so this contradicts also initial assumption thatC′||M′
+is not deadlock-free.
+–∀π∈C′||M′, π⊨ □♢(V
+l∈(µ∪µ′)¬l) =⇒φ
+It will be proven by contradiction. Suppose that∃¯π∈tr(C′||M′)·¯π⊭
+□♢(V
+l∈(µ∪µ′)¬l) =⇒φ. There are two options:
+•¯π∈tr(C)
+As we assume that ¯π⊭□♢(V
+l∈(µ∪µ′)¬l) =⇒φ, it holds that ¯π⊭φ.
+Also we know that ¯π∈tr(C), so it holds that ¯π⊨φbecauseCis solution
+forE. This result lead us to a contradiction which comes from assuming
+that exists ¯π.
+•¯π /∈tr(C)
+We assume that ¯π⊭□♢(V
+l∈(µ∪µ′)¬l) =⇒φ, so it holds that ¯π⊨
+□♢(V
+l∈(µ∪µ′)¬l)∧¯π⊭φ. We can build a trace ¯π′⊆¯πsuch that
+¯π∈tr(C) if we remove occurrences of eventsl∈µ∪µ′of ¯π. As the
+formula is stutter-free and there is no formula event present inµ∪µ′, we
+conclude that ¯π′⊭φreaching a contradiction because ¯π′∈tr(C) andC
+is a solution forE.
+Therefore, it is proven that∀π∈C′||M′, π⊨ □♢(V
+l∈(µ∪µ′)¬l) =⇒φ.
+What remains is to prove that if there is no solutionCforE, then there is none
+forE′either.
+It will be proven by counter reciprocal. I will prove that, if exists a solutionC′
+forE′, thenCis a solution forE.
+–Cis legal forM′\ {(s, l, s)|l∈µ∪µ′}with respect toΣ u=Σ\Σ c.
+The proof is by contradiction. Suppose thatCis not legal forM′\{(s, l, s)|l∈
+µ∪µ′}with respect toΣ u. Therefore exists (s C, sM′)∈S C||M′andl∈Σ u
+such thatl∈− → M′(sM′) andl /∈− → C(sC). In addition, there is also a trace
+π∈tr(C)·ˆs Cπ− →C||M′sC. As we know thattr(C)⊆tr(C′), we conclude
+that we can reach the same state leading us to a contradiction because we
+start assuming thatC′is legal forM′with respect toΣ u.
+–C||M′is deadlock-free
+Proven by contradiction. Suppose thatC||M′is not deadlock-free, so there
+is a deadlock states d∈S C||M′and a traceπ∈tr(C||M′) such that
+( ˆsC,ˆsM′)− →C||M′sd. As we know thattr(C)⊆tr(C′), thenπ∈tr(C′||M′).
+On the other hand, we know thatC′||M′\{(s, l, s)|l∈µ∪µ′}is deadlock-
+free and this trivially lead us to a contradiction coming from assumption
+thatC||M′is not deadlock-free.
+
+--- Page 27 ---
+A Framework for Compositional LTL Synthesis of DES 27
+–∀π∈C||M′\ {(s, l, s)|l∈µ∪µ′}, π⊨φ
+It will be proven by contradiction. Suppose that∃¯π∈tr(C||M′\{(s, l, s)|l∈
+µ∪µ′})·¯π⊭φ. As ¯π∈tr(M′\ {(s, l, s)|l∈µ∪µ′}), it holds trivially
+that ¯π⊨ □♢(V
+l∈(µ∪µ′)¬l). As we assume that ¯π⊭φ, then it holds that
+¯π⊭□♢(V
+l∈(µ∪µ′)¬l) =⇒φ. On the other hand, we know that ¯π∈tr(C′)
+(becausetr(C)⊆tr(C′)). This lead us to a contradiction becauseC′is a
+solution forE′, the contradiction comes from assuming that exists ¯π.
+□
+
+--- Page 28 ---
+28 H. Gagliardi et al.
+9.4 Theorem 3
+Lemmas 2 and 3 will be used in the proof of Theorem 2.
+Lemma 2.Given a control problemE=⟨M, Σ c, φ⟩,M={M 1, .., M n}and
+Msafe
+1 is a Safe Controller forE′=⟨M 1, Σc∪(Σ\Σ M1), φ′⟩whereφ′is a
+projected formula forΣ M1. IfC Mis a solutionE, thenC Mis a solution forE′.
+Proof.
+–C Mis legal forM 1with respect toΣ′
+u=Σ\(Σ c∪(Σ\Σ M1))
+The proof is by contradiction. Suppose thatC Mis not legal forM 1with re-
+spect toΣ′
+u=Σ\(Σ c∪(Σ\Σ M1)). Therefore exists (s CM, sM1)∈S CM||M1
+andl∈Σ′
+usuch thatl∈− → M1(sM1) andl /∈− → CM(sCM). In addition, there
+is also a traceπ∈tr(C M||M1) such that ( ˆs C,ˆsM1)π− →CM||M1(sCM, sM1).
+As we know thatπ∈tr(C M), we can assume thatπ∈tr(M) and ( ˆs C,ˆsM)π− →CM||M
+(sCM, sM) wherel∈− → M(sM) andl /∈− → CM(sCM). This lead us to a
+contradiction becauseΣ′
+u⊆Σ uandC Mis a solution forE, the contra-
+diction comes from assuming thatC Mis not legal forM 1with respect to
+Σ′
+u=Σ\(Σ c∪(Σ\Σ M1)).
+–C M||M1is deadlock-free
+The proof is by contradiction. Suppose thatC M||M1is not deadlock-free,
+so there is a deadlock states d∈SCM||M1and a traceπ∈tr(C M||M1) such
+that ( ˆs CM,ˆsM1)π− →CM||M1sd. As we know thattr(C M||M1)⊆tr(C M||M),
+thenπ∈tr(C M||M) and this trivially lead us to a contradiction because
+CMis a solution forE, the contradiction comes from assuming thatC M||M1
+is not deadlock-free.
+–∀π∈C M||M1,π⊨φ′
+The proof is by contradiction. Suppose that∃¯π∈tr(C M||M1)·¯π⊭φ′.
+As we know thattr(C M||M1)⊆tr(C M||M), thenπ∈tr(C M||M). This
+lead us to a contradiction becauseφ− →φ′, so asC Mis a solution forE,
+thenC Mshould satisfyφ′. The contradiction comes from assuming that
+∃¯π∈tr(C M||M1)·¯π⊭φ′.
+□
+Lemma 3.Given a control problemE=⟨M, Σ c, φ⟩,M={M 1, .., M n}and
+Msafe
+1 is a Safe Controller forE′=⟨M 1, Σc∪(Σ\Σ M1), φ′⟩whereφ′is a
+projected formula forΣ M1. IfC Mis a solution forE, thenP ΣM1(tr(C M))⊆
+tr(Msafe
+1).
+Proof.The proof is by contradiction. Suppose that∃π∈tr(C M) such that
+PΣM1(π)/∈tr(Msafe
+1). AsC Mis a solution forE, we know thatπ⊨φ. Also, as
+φ− →φ′, it holds thatπ⊨φ′. Assuming thatP ΣM1(π)/∈tr(Msafe
+1), by definition
+
+--- Page 29 ---
+A Framework for Compositional LTL Synthesis of DES 29
+of safe controller we know that∃l∈π, s∈S M1such thatsl− →s ewheres eis
+not a winning state (i.e., there is no controller that includess e). However, by
+Lemma 2 we know thatC Mis a solution forE′andπ∈tr(C M). This lead us to
+a contradiction becauseP ΣM1(tr(C M)) goes through winning states ofM 1, so it
+must be contained intr(Msafe
+1). The contradiction comes from assuming that
+∃π∈tr(C M) such thatP ΣM1(π)/∈tr(Msafe
+1).
+The following theorem proves the equirealizability of the most important step
+that compositional synthesis uses.
+Theorem 2
+Given a synthesis tuple (M,C, µ), an LTL formulaφ, and a setΣ cof controllable
+events.
+LetM⊆ Mwith alphabetΣ M=Υ˙∪ΩwhereΥhas the events not shared
+with any other LTS inM \Mnor inφ. Letφ′be a projection ofφtoΣ M.
+LetM safebe a safe controller for⟨M, Σ c,□♢V
+l∈µ¬l=⇒φ⟩. LetM contbe
+the subplantMcontrolled byM safewith shared eventsΩ.
+IfM cont/∼Υis deterministic andµ′is the set of self-looping events induced by
+∼Υreduction, then (M,C, µ) ∼=Σc,φ(M\{M}∪{M cont/∼Υ},C∪{M safe}, µ∪µ′).
+Proof.We will use the notationM′=M\{M}∪{M cont/∼Υ},T= (M,C, µ),
+T′= (M \ {M} ∪ {M cont/∼Υ},C ∪ {M safe}, µ∪µ′) as syntactic replacement.
+− →)GivenS∈Cont Σc,φ(T), we prove thatS∈Cont Σc,φ(T′).
+This will be proven by existence of ˆCMsuch that is a solution forE′=⟨M′, Σc,□♢V
+l∈µ∪µ′¬l=⇒
+φ⟩and ˆCM||Msafe||C=S.
+SinceS=C||C Mby definition whereC Mis a solution forE=⟨M, Σ c,□♢V
+l∈µ¬l=⇒
+φ⟩. We demonstrate ˆCMexists using ˆCM=CMand proving that:
+1.C Mis a solution forE′.
+(a)(formula satisfiability)We prove that∀π∈(C M||M′). π⊨ □♢V
+l∈µ∪µ′¬l=⇒
+φby contradiction. SupposeC Mis not a solution forE′and there is a
+traceπ∈tr(C M||M′) such thatπ⊭□♢V
+l∈µ∪µ′¬l=⇒φ. Also, it
+holds thatπ∈C M.
+SinceC Mis a solution forE, then∀π∈tr(C M||M). π⊨ □♢V
+l∈µ¬l=⇒
+φ.
+Note that any traceπthatπ⊨ □♢V
+l∈µ¬l=⇒φ, it holds that
+π⊨ □♢V
+l∈µ∪µ′¬l=⇒φbecause you are strengthening the assump-
+tion. Then,∀π∈tr(C M). π⊨ □♢V
+l∈µ∪µ′¬l=⇒φwhich contradicts
+the original assumption.
+Then,∀π∈(C M||M′). π⊨ □♢V
+l∈µ∪µ′¬l=⇒φ.
+(b)C Mis legal forM′with respect toΣ u∪(µ∪µ′).
+Proven by contradiction.
+SupposeC Mis not legal forM′with respect toΣ u∪(µ∪µ′). Then,
+∃π∈tr(C M) such that∃l∈(Σ u∪(µ∪µ′))∧πl∈tr(M′)∧πl /∈tr(C M).
+I separate into two cases:l∈Σ u∪µorl∈µ′
+
+--- Page 30 ---
+30 H. Gagliardi et al.
+i.l∈Σ u∪µ
+This is not possible sinceC Mis legal forMwith respect toΣ u∪µ
+andtr(M)⊆tr(M′).
+ii.l∈µ′
+By Lemma 3, ifπl /∈P Msafe(tr(C M)), thenπl /∈tr(M safe).
+Then, by construction,π /∈tr(M 1).
+Then, becausetr(M)⊆tr(M′),πl /∈tr(M′).
+Which enter in contradiction with original assumption. Then,C Mis
+legal forM′with respect toΣ u∪(µ∪µ′).
+(c) (C M||M′) is deadlock-free.
+Proven by contradiction.
+We suppose thatC M||M′has a deadlock state (c,M′) reachable from
+initial state by a traceπ. SinceC M||Mis deadlock free, there exists a
+labell∈Σ Mwhich is enabled in (c, m), where (c, m)∈S Mis an state
+reachable by traceπ. Sincetr(M)⊆tr(M′), it is not possible that (c, m)
+has an enabled event which is disabled in (c,M′).
+Then, (C M||M′) is deadlock-free.
+Then,C Mis a valid solution forE′.
+2.C M||Msafe||C=S
+This is correct iffC M||Mcont=CMand it is correct becausetr(C M|ΣMcont)⊆
+tr(M cont), which is true by Lemma 3.
+← −)GivenS∈Cont Σu,φ(T′), We prove thatS∈Cont Σu,φ(T) by exis-
+tence ofC Msuch that is a solution forE=⟨M, Σ c,□♢V
+l∈µ¬l=⇒φ⟩
+andC M||C=S. SinceS= ˆCM||C||M safe where ˆCMis a solution forE′=
+⟨M′, Σc,□♢V
+l∈µ∪µ′¬l=⇒φ⟩. We demonstrateC Mexists usingC M=
+ˆCM||Msafeand prove that:
+1.ˆCM||Msafeis a solution forE=⟨M, Σ c,□♢V
+l∈µ¬l=⇒φ⟩.
+(a) (formula satisfiability) We will prove that∀π∈tr( ˆCM||Msafe||M)·
+π⊨ □♢V
+l∈µ¬l=⇒φ. Since ˆCMis a solution forE′, thenπ⊨
+□♢V
+l∈µ∪µ′¬l=⇒φ. We must guarantee thatπ⊨ □♢V
+l∈µ′¬l. As
+µ′is a set of self-loop labels induced by minimization, we know that
+there are not present as self-loop inM||M safe because there are prior
+to last minimization. Therefore we can conclude thatπ⊨ □♢V
+l∈µ′¬l.
+Then,π⊨(□♢V
+l∈µ∪µ′¬l=⇒φ)∧π⊨(□♢V
+l∈µ′¬l) impliesπ⊨
+□♢V
+l∈µ¬l=⇒φ.
+Finally, we can say that∀π∈tr( ˆCM||Mcont||M). π⊨ □♢V
+l∈µ¬l=⇒
+φ.
+(b) ˆCM||Msafeis legal forMwith respect toΣ u∪µ.
+We prove this by contradiction. Then, we suppose that exists an state
+(ˆc, m safe, m)∈S ˆCM||Msafe||Mand an eventl∈Σ u∪µthat is enabled
+formin overMtransitions but not in ˆcorm safe.
+
+--- Page 31 ---
+A Framework for Compositional LTL Synthesis of DES 31
+We know there is a traceπ∈tr( ˆCM||Msafe) that reaches mentioned
+state.
+Then,π∈tr( ˆCM)∧π∈tr(M safe).
+Also, astr(M)⊆tr(M′),π∈tr(M′)
+There are two options that could explain state (ˆc, m safe, m) blocks al
+event.
+–We suppose that ˆchas not enabledlevent, but it is impossible be-
+cause ˆCis legal forM′with respect toΣ u∪µ∪µ′.
+–We suppose thatm safehas not enabledlevent. Also, we knowπ∈
+tr(M) and reaches an state wherelis enabled inM. There is a same
+reasoning forM safebecause it is (by construction) safe and it does
+not block any uncontrollable event neither an event which is local
+for respect another component inM.
+Then, ˆCM||Msafeis legal forMwith respect toΣ u∪µ
+(c) ˆCM||Msafe||Mis deadlock-free.
+Prove by contradiction. Suppose that ˆCM||Msafe||Mhas a deadlock
+state (c m, msafe, m)∈S ˆCM||Msafe||Mreachable from initial state by a
+traceπ.
+Then,π∈tr( ˆCM)∧π∈tr(M cont)∧π∈tr(M).
+Also, astr(M)⊆tr(M′),π∈tr(M′)
+Then, there is an state (c m, m′)∈S ˆCM||M′which has at least an outgoing
+enabled eventlsince ˆCMis solution forE, ˆCM||M′and it is deadlock-
+free.
+We prove thatlis also enabled in (c m, msafe, m)∈S ˆCM||Msafe||M
+Suppose it is not. Then it is disabled bym safe orm(becausec mhas
+enabledlevent).
+–Supposem safe has not enabledl. This is impossible because (by
+construction)M safe hassafestates and by Lemma 3 we conclude
+that an event enabled inc mhas to be enabled inm safe.
+–Supposemhas not enabledl. This is impossible becausetr(M)⊆
+tr(M′)
+Then, existsl∈Σ ˆCM||M′such thatlis enabled in (c m, msafe, m)∈
+SˆCM||Msafe
+1||M.
+Then, ˆCM||Msafe||Mis deadlock-free.
+Then, ˆCM||Msafeis a solution forE=⟨M, Σ c,□♢V
+l∈µ¬l=⇒φ⟩.
+2.C M||C=S
+As we assume thatC M=ˆCM||Msafeand we know thatS= ˆCM||Msafe||C,
+it trivially holds thatC M||C=Susing those definitions.
+□

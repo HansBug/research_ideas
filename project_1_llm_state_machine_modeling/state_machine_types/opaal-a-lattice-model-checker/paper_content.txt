@@ -1,0 +1,502 @@
+--- Page 1 ---
+Aalborg Universitet
+Opaal
+A Lattice Model Checker
+Dalsgaard, Andreas Engelbredt; Hansen, Rene Rydhof; Jørgensen, Kenneth Yrke; Larsen,
+Kim Guldstrand; Olesen, Mads Chr.; Olsen, Petur; Srba, Jiri
+Published in:
+Lecture Notes in Computer Science
+DOI (link to publication from Publisher):
+10.1007/978-3-642-20398-5_37
+Publication date:
+2011
+Document Version
+Accepted author manuscript, peer reviewed version
+Link to publication from Aalborg University
+Citation for published version (APA):
+Dalsgaard, A. E., Hansen, R. R., Jørgensen, K. Y., Larsen, K. G., Olesen, M. C., Olsen, P., & Srba, J. (2011).
+Opaal: A Lattice Model Checker. Lecture Notes in Computer Science, 6617, 487-493.
+https://doi.org/10.1007/978-3-642-20398-5_37
+General rights
+Copyright and moral rights for the publications made accessible in the public portal are retained by the authors and/or other copyright owners
+and it is a condition of accessing publications that users recognise and abide by the legal requirements associated with these rights.
+            - Users may download and print one copy of any publication from the public portal for the purpose of private study or research.
+            - You may not further distribute the material or use it for any profit-making activity or commercial gain
+            - You may freely distribute the URL identifying the publication in the public portal -
+Take down policy
+If you believe that this document breaches copyright please contact us at vbn@aub.aau.dk providing details, and we will remove access to
+the work immediately and investigate your claim.
+Downloaded from vbn.aau.dk on: April 08, 2026
+
+--- Page 2 ---
+opaal : A Lattice Model Checker
+Andreas Engelbredt Dalsgaard, Ren e Rydhof Hansen, Kenneth Yrke Jrgensen,
+Kim Gulstrand Larsen, Mads Chr. Olesen, Petur Olsen, and Ji r  Srba
+Department of Computer Science, Aalborg University,
+Selma Lagerl ofs Vej 300, DK-9220 Aalborg East, Denmark.
+fandrease,rrh,kyrke,kgl,mchro,petur,srba g@cs.aau.dk
+Abstract. We present a new open source model checker, opaal , for au-
+tomatic verication of models using lattice automata. Lattice automata
+allow the users to incorporate abstractions of a model into the model it-
+self. This provides an ecient verication procedure, while giving the user
+ne-grained control of the level of abstraction by using a method sim-
+ilar to Counter-Example Guided Abstraction Renement. The opaal en-
+gine supports a subset of the UPPAAL timed automata language extended
+with lattice features. We report on the status of the rst public release of
+opaal , and demonstrate how opaal can be used for ecient verication on
+examples from domains such as database programs, lossy communication
+protocols and cache analysis.
+1 Introduction
+Common to almost all applications of model checking is the notion of an un-
+derlying concrete system with a very large|or sometimes even innite|concrete
+state space. In order to enable model checking of such systems, it is necessary to
+construct an abstract model of the concrete system, where some system features
+are only modelled approximately and system features that are irrelevant for given
+verication purposes are \abstracted away".
+The model checker opaal allows for such abstractions to be specied through
+user-dened lattices that are part of the model. We call them lattice automata.
+Lattice automata are synchronising extended nite state machines which may
+include lattices as variable types. The lattice elements are ordered by the amount
+of behaviour they induce on the system, that is, larger lattice elements introduce
+more behaviour. We call this the monotonicity property .
+Lattice automata, as implemented in opaal , are a subclass of well-structured
+transition systems [1]. The tool can exploit the ordering relation to reduce the
+explored state space by not re-exploring a state if its behaviour is covered by
+an already explored state. In addition to the ordering relation, lattices can have
+ajoin operator (the least upper bound), joining two lattice elements into one,
+thereby potentially overapproximating the behaviour, with the gain of a reduced
+state space. The overapproximated model checking can however be inconclusive.
+We introduce the notion of a joining strategy , by specifying which lattice elements
+are joinable, allowing the user to specify the amount of overapproximation with
+
+--- Page 3 ---
+2 Dalsgaard et al.
+much more control. This allows for a form of user-controlled CEGAR (Counter-
+Example Guided Abstraction Renement) [2, 3]. The CEGAR approach can easily
+be automated by the user, by exploiting application-specic knowledge to auto-
+matically derive more ne-grained joining strategies given a spurious error trace.
+Using joining strategies can thus, for some systems and properties, provide very
+ecient model checking and conclusive answers at the same time.
+The opaal tool is released under an open source licence, and can be freely
+downloaded at our webpage: www.opaal-modelchecker.com. The opaal is available
+both in a GUI and CLI version, shown in Fig. 1. The UPPAAL [4] GUI is used
+for creation of models.
+Fig. 1: (a) Screenshot of the opaal GUI. (b) Screenshot of the opaal CLI.
+The opaal tool is implemented in Python and is a stand-alone model check-
+ing engine. Models are specied using the UPPAAL XML format, extended with
+some specialised lattice features. Using an interpreted language has the advantage
+that it is easy to develop and integrate new lattice implementations in the core
+model checking algorithm. Our experiments indicate that although opaal uses an
+interpreted language, it is still suciently fast to be useful.
+Users can create a new lattice by implementing a simple Python class interface.
+The new class can then be used directly in the model (including all user-dened
+methods). Joining strategies are dened as a Python function.
+An overview of the opaal architecture is given in Fig. 2, showing the ve main
+components of opaal . The \Successor Generator" is responsible for generating a
+transition function for the transition system based on the semantics of UPPAAL
+automata. The transition function is combined with one or more lattice imple-
+mentations from the \Lattice Library", which can be easily extended with further
+user-dened lattices.
+
+--- Page 4 ---
+opaal : A Lattice Model Checker 3
+Fig. 2: Overview of opaal 's architecture.
+The \Successor Generator" exposes an interface that the \Reachability Checker"
+can use to perform the actual verication. During this process a \Passed-Waiting
+List" is used to save explored and to-be explored states. The \Passed-Waiting
+List" uses a user-provided \Joining Strategy" on the lattice elements of states,
+before they are added to the list.
+2 Examples
+In this section we present a few examples to demonstrate the wide applicability
+ofopaal . The tool has currently a number of readily available lattices which are
+used to abstract the real data in our examples.
+2.1 Database Programs
+In recent work by Olsen et al. [5], the authors propose using present-absent sets
+for the verication of database programs. The key idea is that many behavioural
+properties may be veried by only keeping track of a few representative data values.
+This idea can be naturally described as a lattice tracking the denite present-
+and absent-ness of database elements. In the model, this is implemented using
+a bit-vector lattice. For the experiment we adopt a model from [5], where users
+can login, work, and logout. The model has been updated to t within the lattice
+framework, as shown in Fig. 3(a). In the code in Fig. 3(b), the construct extern
+is used on line 3 to import a lattice from the library. Subsequently two lattice
+variables, pLogin and aLogin, are dened at line 4 and 5, both vectors of size
+NUSERS. The lattice variables are used in the transitions of the graphical model,
+where e.g. a special method \num0s()" is used to count the number of 0's in the
+bitvector. The denition of a lattice type in Fig. 3(c) is just an ordinary Python
+class with at least two methods: join and the ordering.
+We can verify that two users of the system cannot work at the same time using
+explicit exploration, or by exploiting the lattice ordering to do cover checks, see
+Fig. 4.
+
+--- Page 5 ---
+4 Dalsgaard et al.
+pLogin[i] = 0 ; aLogin[i] = 1aLogin.setall()
+pLogin[i] = 1 ;
+aLogin[i] = 0Badnot aLogin[i]not pLogin[i]aLogin[i] == 0pLogin[i] == 0
+LogoutWork
+aLogin.num0s() ==
+N_USERSLoginInit
+aLogin.num0s() < (N_USERS − 1)work[i]?
+workErr[i]!
+loginOK[i]!login[i]?logoutErr[i]!workOK[i]!
+logoutOK[i]!logout[i]?
+1const i n t N USERS =
+17;
+2: : :
+3extern
+IntersBitVector ;
+4 IntersBitVector
+pLogin [ N USERS ] ;
+5 IntersBitVector
+aLogin [ N USERS ] ;1class IntersBitVector :
+2 def j o i n ( s e l f ,
+other ) :
+3 : : :
+4
+5 def l e ( s e l f ,
+other ) :
+6 : : :
+Fig. 3: (a) State machine of database model. (b) Denition of lattice variables in model
+code. (c) Lattice denition from lattice library, in Python.
+Number of users explicit exploration cover check
+2 224 (<1s) 56 (<1s)
+3 2352 (2s) 336 (<1s)
+4 21952 (28s) 1792 (2s)
+5 192080 (8:22m) 8960 (9s)
+6 - 43008 (48s)
+7 -200704 (4:38m)
+Fig. 4: Explored states and time for the property \no two users work at the same time".
+Another property to check is that the database cannot become full. For this
+property we can exploit a CEGAR approach: A na ve joining strategy will give
+inconclusive results, but rening the joining strategy not to join two states if the
+resulting state has a full database, leads to conclusive results while still preserving
+a signicant speedup, see Fig. 5.
+Number of users explicit exploration joining (na ve strategy) joining (rened strategy)
+8 6312 (15s) (Inconclusive) 51 ( <1s) 787 (1s)
+9 14228 (56s) (Inconclusive) 57 ( <1s) 1238 (2s)
+10 31614 (4:19m) (Inconclusive) 63 ( <1s) 976 (2s)
+11 69478 (21:35m) (Inconclusive) 69 ( <1s) 1036 (2s)
+12 -(Inconclusive) 75 ( <1s) 1707 (3s)
+16 -(Inconclusive) 99 ( <1s) 25900 (4:18m)
+17 -(Inconclusive) 105 ( <1s) 66490 (25:01m)
+Fig. 5: Expored states and time for the property \database cannot become full".
+2.2 Asynchronous Lossy Communication Protocol: Leader Election
+Communication protocols where messages are asynchronously passed via an un-
+reliable (lossy and duplicating) medium can be modelled as a lattice automaton.
+
+--- Page 6 ---
+opaal : A Lattice Model Checker 5
+Number of agents explicit exploration cover check joining
+5 840 (5s) 37 (<1s) 17 (<1s)
+6 5760 (5:20m) 58 (<1s) 23 (<1s)
+7 45360 (671:02m) 86 (1s) 30 (<1s)
+15 - 682 (4:21m) 122 (2s)
+25 -2927 (283:16m) 327 (12s)
+50 - -1277 (4:19m)
+100 - -5052 (98:45m)
+Fig. 6: Explored states and time for the leader election protocol.
+As long as we are interested in safety properties, such a communication can be
+modelled as a set of already sent messages called pool. Initially the set pool is
+empty. Once a message it sent, it is added to the set pool and it remains there
+forever (duplication). As the protocol parties are not forced to read any message
+from pooland we ask about safety properties, lossiness is covered by the denition
+too.
+It is obvious that 2pool, i.e. the set of all subsets of pool, together with the
+subset ordering is a complete lattice. As long as the set of messages is nite and
+all parties in the protocol behave in the way that their steps are conditioned only
+on the presence of a message in the pool and not on its absence, the system will
+satisfy the monotonicity property and we can apply our model checker.
+We have modelled the asynchronous leader election protocol [6] in opaal . Here
+we haveNagents with their unique identications 0 ;1;:::;N1 and they select
+a leader with the highest id. Experimential data, for the property that only the
+agent with the highest id can become leader, are provided in Fig. 6. The cover check
+column refers to using only the monotonicity property to reduce the explored state-
+space. We can see that while being exact (no overapproximation), the speed-up
+is considerable. Moreover, using the join strategy provides even more signicant
+speed-up while still providing conclusive answers.
+2.3 Cache Analysis
+To ensure safe scheduling of real-time systems, the estimation of Worst-Case Ex-
+ecution Time (WCET) of each task in a given system is necessary [7]. One ma-
+jor part of determining WCETs for modern processors is accounting for the ef-
+fects of the memory cache. Ecient abstractions exist for analysing some types
+of caches [8], which we have implemented as a lattice. By recasting the cache
+analysis into our framework we gain the ability to give WCET guarantees, and
+gradually rene those guarantees by being more and more concrete with respect
+to the data-ow of the program.
+On a simple program (binary search in array of size 100) and a simple cache
+we get the same WCET using all approaches. The complete state space has 5726
+states (computed in 6s), cover update reduces this to 4043 states (3s), while join
+
+--- Page 7 ---
+6 Dalsgaard et al.
+only needs to store 3944 states (3 s). On more complex examples join will start to
+give overapproximated guarantees, which can be further rened.
+2.4 Timed Automata
+It is well-known that the theory of zones of timed automata (see e.g. [9, 10]) is a
+nite-state abstraction of clock values with a lattice structure. A zone-lattice is
+currently being developed for use in opaal , but has not matured to a point where
+meaningful experiments can be made yet.
+3 Conclusion
+We presented a new tool opaal , a model checker for lattice automata, and we
+provided a number of examples of its applicability. The expressiveness of the for-
+malism, derived from well-structured transition systems, promises a broad appli-
+cability of the tool. Our initial experiments indicate that careful abstraction using
+the techniques implemented in opaal lead to ecient verication.
+We plan on extending the foundations of opaal to additional formalisms such
+as Petri nets, as well as on improving the performance of the tool by rewriting core
+parts in a compiled language. Of course, additional lattices and areas of application
+are also to be investigated.
+References
+1. Finkel, A., Schnoebelen, P.: Well-structured transition systems everywhere! Theo-
+retical Computer Science 256(1-2) (2001) 63{92
+2. Henzinger, T.A., Jhala, R., Majumdar, R., Sutre, G.: Lazy abstraction. In: POPL
+'02: Proceedings of the 29th ACM SIGPLAN-SIGACT symposium on Principles of
+programming languages. (2002)
+3. Ball, T., Rajamani, S.: The SLAM toolkit. In: CAV. (2001)
+4. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal . In: Formal Methods
+for the Design of Real-Time Systems: SFM-RT 2004. (2004)
+5. Olsen, P., Larsen, K.G., Skou, A.: Present and absent sets: Abstraction for testing
+of reactive systems with databases. In: Sixth Workshop on Model-Based Testing,
+Paphos, Cyprus (March 2010)
+6. Garcia-Molina, H.: Elections in a distributed computing system. IEEE Trans. Com-
+put. (1982)
+7. Wilhelm, R., Engblom, J., Ermedahl, A., Holsti, N., Thesing, S., Whalley, D., Bernat,
+G., Ferdinand, C., Heckmann, R., Mitra, T., Mueller, F., Puaut, I., Puschner, P.P.,
+Staschulat, J., Stenstrm, P.: The Worst-Case Execution Time Problem - Overview
+of Methods and Survey of Tools. TECS (2008)
+8. Alt, M., Ferdinand, C., Martin, F., Wilhelm, R.: Cache Behavior Prediction by Ab-
+stract Interpretation. In: SAS 96: Proceedings of the Third International Symposium
+on Static Analysis. (1995)
+9. Henzinger, T., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic model checking for
+real-time systems. Information and Computation (1994)
+10. Bengtsson, J., Yi, W.: Timed automata: Semantics, algorithms and tools. In Desel,
+J., Reisig, W., Rozenberg, G., eds.: Lectures on Concurrency and Petri Nets. Volume
+3098 of LNCS. Springer Berlin / Heidelberg (2004) 87{124
+
+--- Page 8 ---
+opaal : A Lattice Model Checker 7
+A Theory
+For completeness sake we here include some preliminaries, our formal denition of
+lattice automata, and a formal description of the algorithms we use in opaal .
+A.1 Preliminaries
+Apartial order on a setLis a reexive, anti-symmetric and transitive relation
+vLL. The pair ( L;v) is called a partially ordered set . Let (L;v) be a partially
+ordered set and let XL. An element `2Lis an upper bound ofXifxv`for
+everyx2X. If furthermore `v`0for all upper bounds `0ofXthen`is the least
+upper bound ofXand is denoted asFX. The binary least upper boundFfx;yg
+is written as xty. The notion of lower bounds ofXand the greatest lower bound
+ofX(denoted bydXif it exists) are dened analogously. The binary greatest
+lower bounddfx;ygis written as xuy. Note that least upper bounds and greatest
+lower bounds for a given set Xare unique.
+An element `2Lsuch that`v`0for all`02Lis called the least element of
+(L;v) and is denoted as ?Lor?whenLis clear from the context. Conversely,
+thegreatest element of (L;v) is an element `2Lsuch that`0v`for all`02L
+and is denoted as >Lor>whenLis clear from the context.
+Denition 1 (Join Semi-Lattice and Lattice). A partially ordered set L=
+(L;v)whereL6=;is ajoin semi-lattice if`t`0exists for all `;`02L. If moreover
+`u`0exists for all `;`02LthenLis called a lattice .
+Example 1. Consider the lattice for the abstraction of a database into present and
+absent sets mentioned earlier. Let DU be a database containing elements from
+some universeUof possible values. As an abstraction over this universe we select a
+small set of representative values, SU . We present two subsets of Sthepresent
+setP, and the absent setA. Adapting terminology from the abstract interpretation
+community, this forms a must analysis, that is, a value in the present set must be
+in the database, and a value in the absent set may not be in the database.
+(feg;feg)(;;;)
+(feg;;) (;;feg)
+Fig. 7: Lattice exampleThe set of databases abstracted over with a con-
+crete set of present and absent sets is the semantics
+of (P;A): [ [(P;A)] ] =fDUjPD\S^ASnDg.
+For instance the present-absent sets ( feg;ffg) ab-
+stract over all databases which contain ewhile not
+containing f. These present-absent sets can be or-
+dered in a lattice, where smaller sets abstract over
+more databases, and therefore give more behaviour
+in the model. This lattice is dened as (( SS );v)
+where (P;A)v(P0;A0)()P0P^A0Aand
+(P;A)t(P0;A0) = (P\P0;A\A0). An example of
+this lattice with S=fegis given in Figure 7.
+
+--- Page 9 ---
+8 Dalsgaard et al.
+A.2 Lattice Transition System
+Lattice automata are more easily described in terms of the transition systems they
+incur.
+Denition 2 (Lattice Transition System). Alattice transition system (LaTS)
+is a tripleT= (S;L;!)whereSis a nite set of states, L= (L;v)is a lattice
+and!SLSLis the transition relation, usually written as (s;`)!
+(s0;`0)whenever (s;`;s0;`0)2! , such that for all s1;s22Sand`1;`2;`0
+12L
+if(s1;`1)!(s2;`2)and`1v`0
+1then (s1;`0
+1)!(s2;`0
+2)for some`0
+22Lwith
+`2v`0
+2.
+The behavioural requirement used at the end of the denition is called the mono-
+tonicity property . Lattice transition systems are a subset of well-structured tran-
+sition systems. Congurations of an LaTS are pairs of the form ( s;`) wheres2S
+and`2Land!denotes the reexive and transitive closure of !.
+Denition 3 (Path). A nite path in an LaTS Tis a nite sequence =
+(s0;`0)(s1;`1)(sn;`n)such that (si;`i)!(si+1;`i+1)for alli,0in1.
+In addition to the standard notion of path we also dene abstracted paths .
+Denition 4 (Abstracted Path). An abstracted nite path in an LaTS Tis
+a nite sequence ^= (s0;`0)(s1;`1)(sn;`n)such that9`0
+i+12L: (si;`i)!
+(si+1;`0
+i+1)and`0
+i+1v`i+1for alli,0in1.
+In the section to follow, we nd an ecient way to answer the following question
+(state-reachability problem): given an initial conguration ( s0;`0) and a target
+statesg, is there some lattice element `such that (s0;`0)!(sg;`)?
+B General Model Checking Algorithm
+In Algorithm 1 we present the pseudocode for a general model checking reachability
+algorithm. The algorithm explores the graph using waiting and passed sets and
+depending on the chosen update function performs a dierent level of abstraction.
+It is easy to realize that Algorithm 1 with the simple update implements a
+search though the whole state space of the lattice transition system. Depending
+on the way the waiting list is organized, it can implement e.g. depth-rst search,
+breath-rst rearch, random search and others. The correctness of this search algo-
+rithm is well known.
+We now dene an alternative update function presented in Algorithms 4 that
+provides an overapproximation.
+B.1 Join Strategies and CEGAR
+The approximative nature of model checking with join update, as described in
+the previous section, may result in inconclusive verication results such that a
+verication result in the abstract model may not be necessarily realizable in the
+
+--- Page 10 ---
+opaal : A Lattice Model Checker 9
+Algorithm 1 :Reach (T;(s0;`0);sg)
+Input : LaTST= (S;L;!), initial conguration ( s0;`0), a goal state sg2S
+Output : \sgis reachable" or \ sgis not reachable"
+1:waiting :=f(s0;`0)g
+2:passed :=;
+3:while waiting6=;do
+4: Select and remove ( s;`) from waiting
+5: passed :=passed[f(s;`)g
+6:for all (s0;`0);where (s;`)!(s0;`0)do
+7: ifs0=sgthen
+8: return \sgis reachable"
+9: end if
+10: waiting :=Update (passed;waiting;(s0;`0))
+11: end for
+12:end while
+13:return \sgis not reachable"
+Algorithm 2 :Update (passed;waiting;(s;`)) *** Simple Update ***
+Input : Sets of states passed and waiting and a conguration ( s;`)
+Output : Updated set waiting
+1:if9(s;`)2waiting[passed then
+2:return waiting
+3:else
+4:return waiting[f(s;`)g
+5:end if
+underlying concrete system. In this case it may be possible to use the lattice
+structure to derive a more precise approximation that avoids the inconclusive
+verication result previously encountered.
+In this section we describe such an approach to abstraction renement, inspired
+by the CEGAR (counter example guided abstraction renement) principle [2, 3]
+The CEGAR approach depends on a few application specic heuristics: a method
+for determining the feasibility of a path and a method for rening an approximation
+given an infeasible path. These are formalised in the following.
+Denition 5 (Path feasibility function). A path feasibility function deter-
+mines, in a domain-specic manner, whether an abstracted path is feasible in an
+LaTST= (S;L;!):
+pathfeasible : (SL)!fTrue;Falseg
+The path feasibility function usually corresponds to nding concrete lattice ele-
+ments for each step in the path, i.e., a concrete path.
+Some way of recording the abstractions used in the current state space explo-
+ration is needed. At its most abstract this can be viewed as an oracle, answering
+queries as to whether two lattice elements are allowed to be joined in a given state.
+We dene a joining strategy to capture this notion.
+
+--- Page 11 ---
+10 Dalsgaard et al.
+Algorithm 3 :Update (passed;waiting;(s;`)) *** Cover Update ***
+Input : Sets of states passed and waiting and a conguration ( s;`)
+Output : Updated set waiting
+1:if9(s;`0)2waiting[passed :`v`0then
+2:return waiting
+3:else
+4:return waiting rf(s;`00)j`00v`g[f (s;`)g
+5:end if
+Algorithm 4 :Update (passed;waiting;(s;`)) *** Join Update ***
+Input : Sets of states passed and waiting and a conguration ( s;`)
+Output : Updated set waiting
+1:if9(s;`0)2waiting[passed :`v`0then
+2:return waiting
+3:else if9(s;`0)2waiting[passed then
+4:return waiting rf(s;`0)g[f (s;`0t`)g
+5:else
+6:return waiting[f(s;`)g
+7:end if
+Denition 6 (Joining Strategy). A joining strategy is a function able to an-
+swer questions of the form:
+strategy joining :SLL!fTrue;Falseg
+given an LaTST= (S;L;!).
+The joining strategy can answer that at one state all lattice elements are to be
+joined, or no elements are to be joined, but it can also answer very selectively which
+lattice elements to join. In this way the strategy can exploit additional knowledge
+about the domain: e.g. for integer values, in some parts of the state space the exact
+value of a variable is needed, in other parts only the parity is relevant, and in yet
+other parts the signed-ness is important.
+The joining strategy need not be perfect. It might give an approximation that
+leads to an abstracted path to a goal state, which is then deemed infeasible by
+the path feasibility function. In this situation the strategy is allowed to reconsider
+some of its answers, at the cost of recomputing the parts of the state space that
+depended on those answers: a join at some state is allowed to be split. Which state
+to split at is given by a state split heuristic.
+Denition 7 (State split heuristic). A state split heuristic determines, in a
+domain-specic manner, which state to split at, given an infeasible abstracted path
+in an LaTST= (S;L;!):
+hsplitstate : (SL)!S
+
+--- Page 12 ---
+opaal : A Lattice Model Checker 11
+Algorithm 5 :CEGAR (T;(s0;`0);sg)
+Input : LaTST= (S;L;!) (with path feasibility function pathfeasible , state
+split heuristic hsplitstate , and joining strategy strategy joining ), initial
+conguration ( s0;`0), a goal state sg2S
+Output : \sgis reachable" or \ sgis not reachable"
+1:waiting :=f(s0;`0)g
+2:passed :=;
+3:pred :=;; predecessor edges
+4:while waiting6=;do
+5: Select and remove ( s;`) from waiting
+6: passed :=passed[f(s;`)g
+7:for all (s0;`0);where (s;`)!(s0;`0)do
+8: pred :=pred[f(s0;`0)!(s;`)g; record predecessor
+9: ifs0=sgthen
+10: ^ := (s0;`0):::(sg;`0) ; some abstracted path from sgtos0in the reverse
+conguration graph given by vertices passed[f(sg;`0)gand edges pred
+11: ifpathfeasible (^)then
+12: return \sgis reachable"
+13: else
+14: ; path was not feasible, due to abstraction
+15: ssplit:=hsplitstate (^)
+16: ; redo exploration from ssplit
+17: redo :=f(t;`00)j(ssplit;)!(t;`00)2predg
+18: passed :=passednf(t;)jtdescendant of ssplitg
+19: waiting :=waitingnf(t;)jtdescendant of ssplitg[redo
+20: pred :=prednf(;)!(t;)jtdescendant of ssplitg
+21: end if
+22: else
+23: ; add ( s0;`0) to waiting, possibly abstracting by joining
+24: joinelements :=f`00j(s0;`00)2passed[waiting^strategy joining (s0;`0;`00) =
+Trueg
+25: `joined :=`0t(Fjoinelements )
+26: pred :=pred[f(s0;`joined )!(t;`000)j`002joinelements s.t.
+(s0;`00)!(t;`000)2predg
+27: passed :=passednf(s0;`00)j`002joinelementsg
+28: waiting :=waiting[f(s0;`joined )gnf(s0;`00)j`002joinelementsg
+29: end if
+30: end for
+31:end while
+32:return \sgis not reachable"
+We can now present the complete algorithm for CEGAR exploration of a LaTS
+in Algorithm 5. The explorations will start from an abstraction level close to that
+of the join update (depending on the joining strategy) and become less abstract
+until it at some point becomes the same as the cover update, unless a conclusive
+answer is found before that.

@@ -1,0 +1,1771 @@
+--- Page 1 ---
+HAL Id: inria-00483952
+https://inria.hal.science/inria-00483952v1
+Submitted on 17 May 2010
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Analysis and Applications of Timed Service Protocols
+Julien Ponge, Benatallah Boualem, Fabio Casati, Farouk Toumani
+To cite this version:
+Julien Ponge, Benatallah Boualem, Fabio Casati, Farouk Toumani. Analysis and Applications of
+Timed Service Protocols. ACM Transactions on Software Engineering and Methodology, 2010, 19 (4),
+⟨10.1145/1734229.1734230⟩. ⟨inria-00483952⟩
+
+--- Page 2 ---
+Analysis and Applications of Timed Service
+Protocols
+JULIEN PONGE
+Universit´ e Blaise Pascal, Clermont-Ferrand, France
+University of New South Wales, Sydney, Australia
+BOUALEM BENATALLAH
+University of New South Wales, Sydney, Australia
+FABIO CASATI
+University of Trento, Italy
+FAROUK TOUMANI
+Universit´ e Blaise Pascal, Clermont-Ferrand, France
+Preliminary version, December 2008
+This is a preliminary version of the article to appear in ACM Transactions on Software
+Engineering and Methodology.
+Abstract
+Web services are increasingly gaining acceptance as a framework for facilitating
+application-to-application interactions within and across enterprises. It is commonly
+accepted that a service description should include not only the interface, but also the
+business protocol supported by the service. The present work focuses on the formal-
+ization of an important category of protocols that include time-related constraints
+(called timed protocols ), and the impact of time on compatibility and replaceability
+analysis. We formalized the following timing constraints: C-Invoke constraints de-
+ﬁne time windows within which a service operation can be invoked while M-Invoke
+constraints deﬁne expirations deadlines. We extended techniques for compatibility
+and replaceability analysis between timed protocols by using a semantic-preserving
+mapping between timed protocols and timed automata, leading to the identiﬁcation
+of a novel class of timed automata, called protocol timed automata (PTA). Specif-
+ically, PTA exhibit a particular kind of silent transitions that strictly increase the
+expressiveness of the model, yet they are closed under complementation, making ev-
+ery type of compatibility or replaceability analysis decidable. Finally, we implemented
+our approach in the context of a larger project called ServiceMosaic, a model-driven
+framework for web service life-cycle management.
+1 Introduction
+Service descriptions are speciﬁcations of the syntactic or semantic properties of a service
+that are made available to potential clients for the purpose of (i) assisting developers in
+creating clients that can correctly use and interact with a service, and (ii) enabling the se-
+lection, either at design time or at runtime, of services that match the clients’ needs. Today,
+service descriptions typically include the interface deﬁnition, the transport-level properties
+1
+
+--- Page 3 ---
+(both can be speciﬁed in WSDL), and may also include business protocol deﬁnitions, that
+is, the speciﬁcation of the possible message exchange sequences (conversations) that are
+supported by the service [11]. Protocols can be speciﬁed using BPEL [43]) or any of the
+many other languages developed for this purpose (e.g., [11, 17]).
+Providing service descriptions is not in itself suﬃcient to facilitate development and
+binding. In addition to descriptions, we need methods and software tools for analyzing
+service descriptions to (i) identify if interaction between a client and a service is possible;
+(ii) if it is, identify which conversations can be carried out between two services, to help
+developers to check if these include all and only the desired ones; (iii) if it is not, understand
+mismatches between protocols and, if possible, create adapters to allow interactions to
+occur. We generally refer to this kind of analysis as compatibility/replaceability analysis
+[38, 11].
+The need for formal methods and software tools for such type of analysis is widely
+recognized, and many approaches have been developed to this end, including some by the
+authors. In [11, 10, 12], we presented an approach and a model for business protocols
+as well as a framework for compatibility analysis. This paper focuses on the important
+category of protocols that include time-related constraints (called timed protocols in the
+following). Time is a crucial abstraction that has been studied in several works in research
+ﬁelds such as workﬂow systems [49, 29, 20] and even web services [18, 36, 30]. There are
+countless examples of behaviors that involve timing issues in any kind of protocol [11],
+from business protocol for web services (e.g., see the RosettaNet PIPs [48]), to interac-
+tions between traditional web-based services and users (see E-Commerce web sites such
+asTravelocity orAmazon ), to lower level protocols such as TCP. Time-related behaviors
+range from session timeouts to “logical” deadlines with diﬀerent kinds of behaviors (e.g.,
+seats reserved on a ﬂight needs to be paid within nhours otherwise they are released).
+Existing approaches in the ﬁeld of service-oriented computing mainly consider time for
+performing traditional model checking (e.g., detecting deadlocks).
+Given the importance of considering time-related properties, we present concepts and
+techniques, supported by a tool, for performing compatibility and replaceability analysis
+between timed protocols. Furthermore, we show how the analysis and the tool can be
+leveraged to perform the same analysis between BPEL processes or between a BPEL pro-
+cess and a protocol. The availability of such concepts and tools is quite useful in that it
+allows to assess compatibility and replaceability in both top-down and bottom-up devel-
+opment approaches. In top-down scenarios a client is designed starting from its external
+interface and protocol, and we are faced with the problem of binding it with a (compatible)
+service. In bottom-up approaches the development starts from the composition of services
+(e.g., the BPEL process), and quite often no protocol description is made available as part
+of the documentation (and if it is made available, we have no guarantee that it correctly
+describes the message exchanges actually supported by the process). In this case, we are
+then faced with the problem of verifying if a selected partner service is compatible with
+our composition, either by looking at the partner’s deﬁned protocol, if available, or by
+looking at the partner’s process (again, if available). If none of the above is available
+then compatibility analysis can only be based on the WSDL interface description and it is
+necessary limited). Compatibility analysis between processes (composite services) is very
+useful in integration scenarios within an enterprise where process (e.g., BPEL) speciﬁca-
+tions are often available. Solving the above problem and supporting these protocol-based
+analysis scenarios require tackling a number of challenges that we address in this paper.
+More precisely, the main contributions of this paper are:
+•The ﬁrst step consists in deﬁning a protocol model . We did so in our previous
+2
+
+--- Page 4 ---
+work, and we brieﬂy summarize the results in this paper to make it self-contained.
+In particular, an informal model for timed protocols has been presented in [9], with
+a ﬁrst approach being formalized in [8] as a subset of the model that we present in
+this paper. Here, we revisit and extend concepts and techniques deﬁned earlier
+for basic protocols to make them applicable to timed protocols. As it is often the
+case in such tasks, when designing our extended model we were facing a trade-oﬀ
+between expressiveness and complexity / readability of the model. While in general
+new abstractions may provide beneﬁts, they may also make the model too complex,
+thereby rendering it unusable for practitioners. To ﬁnd a reasonable balance between
+expressiveness and complexity, we conducted an analysis of real world e-commerce
+portals to identify the service abstractions that are useful and commonly needed in
+many practical situations [13].
+•The next step addressed in this paper lies in the extension of the protocol operators
+(e.g., intersection, diﬀerence), needed to handle the compatibility and replace-
+ability analysis , to the context of timed protocols and the investigation of their
+computational properties. Indeed, the introduction of time aspects adds signiﬁcant
+complexity to the problem . Many formal models enabling explicit representation
+of time exist (e.g., timed automata ,timed petri-nets ), all showing extreme diﬃculties
+to handle algorithmic analysis of timed models [4, 34]. For example, timed au-
+tomata , which are today one the most used modeling formalism to deal with timing
+constraints, suﬀer from undecidability of many problems such as language inclusion
+and complementation that are fundamental to system analysis and veriﬁcation tasks.
+Such problems have been shown to be sensitive to several criteria (e.g., density of
+the time axis, type of constraints, presence of silent transitions, etc). In this paper
+we show that the set of protocol manipulation and comparison operators that are
+essential for realizing protocol analysis are decidable. We show this by establishing
+ar e v e r s i b l e , semantic-preserving mapping to timed automata [2] that, inci-
+dentally, identiﬁes a new class that we called protocol timed automata . This class
+exhibits silent orε-transitions with clock resets, making it strictly more expressive
+than general timed automata for which there is no closure under the complemen-
+tation operator, and hence the language inclusion problem is not decidable. These
+properties turn out to be the key for realizing the protocol operators. Protocol
+timed automata are a novel class of timed automata which is closed under com-
+plementation and for which the language inclusion problem is decidable, despite the
+presence of ε-transitions with clock resets.
+•We tackle the problem of examining compatibility between processes (and
+speciﬁcally BPEL processes with time-related constructs such as alerts and dura-
+tions). This is very important as protocol deﬁnitions are not always available (even
+for the services we develop), while BPEL speciﬁcations are. Furthermore, BPEL is
+widely used also as a protocol language and therefore addressing BPEL signiﬁcantly
+increases the practical applicability and impact of the research presented here. To
+this end, we build on top of the protocol analysis operators by devising a mechanism
+to extract timed protocol speciﬁcations from BPEL code and by then using the op-
+erators to analyze (in)compatibility between BPEL processes and the services they
+are supposed to interact with.
+•All the features described here have been implemented in a tool as part of a larger
+project called ServiceMosaic [14] which aims at developing a model-driven framework
+3
+
+--- Page 5 ---
+for web service life-cycle management. In addition to process and protocol analysis
+as discussed here, ServiceMosaic also includes facilities for designing protocols and
+for discovering protocol models from service execution logs [41]. A demonstration
+featuring the ServiceMosaic tools has been presented in [39].
+Preliminary versions of this work that consider restricted forms of timed protocols
+have been already published in conference papers [9, 8, 45]. More precisely, [9, 8] deals
+with a timed protocol model without C-Invoke constraints and which includes M-Invoke
+constraints that only refer to the last transition while [45] considers timed protocol model
+in which explicit transitions cannot be ﬁred after the expiration of the implicit transitions.
+This paper extends our previous work in the following directions: (i) it considers a more
+general timed protocol model without restrictions on the usage of the C-Invoke and
+M-Invoke constraints. As a consequence, a more in-depth technical analysis is required
+in order to set up an adequate mapping to timed automata and to prove the closure
+properties of the operators, (ii) it extends the protocol analysis approach in order to be
+able to compare BPEL processes or a BPEL process and a protocol and illustrates on a
+typical usage scenario how the proposed approach works.
+The remainder of this paper is organized as follows. Section 2 motivates the need for
+time-related constraints and introduces both informally and formally the timed protocol
+model used in this paper. Section 3 extends to the context of timed protocols the approach
+of protocol compatibility and replaceability analysis as well as the protocol manipulation
+and comparison operators introduced in [11]. Sections 4 and 5 contain the main technical
+contribution of this work. Section 4 describes a semantic-preserving mapping between
+timed protocols and timed automata and leverages it to prove the main computational
+properties of the considered timed protocol operators for which we give algorithms in
+section 5. Section 6 presents our prototype platform and illustrates it on a typical us-
+age scenario related to service development. In particular, this section describes how the
+presented protocol analysis approach can be applied on BPEL processes. Section 7 dis-
+cusses some limitations of the proposed approach as well as related work. We conclude in
+Section 8.
+2 Timed protocol modeling
+This section starts by motivating the need of time-related constraints using three examples
+related to web services and business processes where timing constraints play a critical
+role: an application, an application integration standard and a web service composition
+language. Then, it describes the timed protocols model both formally and informally.
+•E-Commerce portals. The sales condition notice of many E-Commerce portals provide
+temporal constraints. Let us consider a classic example of a plane ticket seller portal.
+A potential purchaser is usually allowed to put a seat on hold for a day or two before a
+conﬁrmation and payment. In case the buyer does not conﬁrm the purchase after the
+delay, or if it does not cancel the reservation, the seller will implicitly release the seat
+holding and cancel the purchase process. There are other examples in the ﬁeld of E-
+Commerce. For example goods selling portals are usually entitled by law regulations
+to allow a buyer to return a purchase within a short delay such as one week after
+the delivery. Also, they are often constrained to respect delays when dealing with
+customers for operations such as the deliveries or the refunding of returned purchases.
+•RosettaNet PIPs. RosettaNet [48] is an industrial consortium which aims at facil-
+itating the transactions among the supply chains of trading partners. It consists
+4
+
+--- Page 6 ---
+of many speciﬁcations called the Partner Interface Processes (PIPs) that represent
+the processes involved in those transactions. The PIPs have been applied to the
+production systems of companies such as Intel. The PIPs can be potentially im-
+plemented using service-oriented architectures. The PIPs exhibit time-dependent
+behaviors. For example the PIP 3A4 speciﬁes how a seller and a buyer can process
+a purchase order. More speciﬁcally, it speciﬁes the following timing constraints: (i)
+thePurchaseOrderRequestAction and the PurchaseOrderConﬁrmationAction must be
+acknowledged within 2 hours, and (ii) the reply to the PurchaseOrderRequestAction
+must be sent within 24 hours.
+•BPEL processes. TheBusiness Process Execution Language [43] is the major speciﬁ-
+cation in the ﬁeld of long-running web services orchestrations. BPEL provides several
+time-related constructions such as the wait activity which causes a given process to
+“sleep” for a given amount of time or until a date has been reached. The other ac-
+tivity is the use of pick containers for which timers can be deﬁned, for example to
+trigger a timeout handler if a message has not been received after a given delay, or
+when a given date has been reached.
+2.1 Overview of the model	
+
+										
+		
+	
+
+
+
+	
+
+
+Figure 1: A timed protocol of an online ﬁnancing service.
+We propose an extension of the business protocol model [11, 12] which is built upon
+the traditional state-machine formalism. Indeed, state-based models have been commonly
+used to model the behavior of systems, due to the fact that they are simple and intuitive.
+In the model, states represent the diﬀerent phases that a service may go through during
+its interaction with a requester. A transition label is a message supported by the service.
+It has a polarity which is positive (+) if the message is incoming, or negative ( −)i fi ti s
+outgoing. Transitions are triggered when their associated messages are sent or received.
+Hence, a state identiﬁes a set of outgoing transitions, and therefore a set of possible
+messages that can be either sent or received when the conversation with a requester is in
+this state. For example, the protocol depicted on Figure 1 (inspired by the Ford Credit
+5
+
+--- Page 7 ---
+web portal ) is initially in the Start state, and requesters begin a conversation by sending
+alogin message, moving to the Logged state.
+In the ﬁgure, the initial state is indicated by an unlabeled entering arrow while ﬁnal
+states are double-circled. A conversation is accepted when ending in such a ﬁnal state.
+Hence, a sequence of messages login (+)·preApproval (+)·reject (−) is a conversation
+supported by the protocol, while selectV ehicle (+)·login (+) is not: no transition for
+aselectV ehicle message is available from the Start state, the two messages cannot be
+ordered this way, and the conversation does not end in a ﬁnal state. Business protocols
+must be deterministic, as the requesters always needs to be able to determine in which
+state the service is, otherwise much of the purpose of the protocol speciﬁcation would be
+lost. We consider the following two extensions to the base protocol model:
+1. C-Invoke constraints specify time windows within which a transition canbe ﬁred. Out-
+side of those time windows, the transition is disabled, and exchanging the associated
+message results in an error.
+2. M-Invoke constraints specify when a transition is automatically ﬁred.
+The obtained model is called timed (business) protocol model . C-Invoke constraints
+can be attached to explicit transitions for which a message is exchanged between the service
+provider and its requesters. The absence of C-Invoke constraint on an explicit transition
+means that it can be ﬁred from its source state at any time. By contrast, M-Invoke con-
+straints are associated to implicit transitions. They model state changes in conversations
+once a delay has elapsed (a typical example being a timeout). Implicit transitions are
+analogous to the silent transitions in the automata theory [35] and we associate the empty
+word εas the label of those transitions. However, and unlike usual silent transitions,
+implicit transitions are mandatorily ﬁred whenever their associated M-Invoke constraints
+are evaluated to true.
+Continuing with the example protocol depicted on Figure 1, it is indicated that a
+full credit application is accepted only if it is received at most 24 hours after a payment
+estimation has been made. This behavior is speciﬁed by tagging the transition T14:
+fullCredit (+) with a time constraint C-Invoke( T13≤24h), i.e., T14can only be ﬁred
+within a time window [0 h,24h] after T13has been ﬁred. T10has a constraint M-Invoke( T8=
+30d), meaning that once a pre-approval application has been approved ( T8), a requester is
+given 30 days to select a vehicle ( T9). If it does not continue the conversation by sending a
+selectV ehicle message within the next 30 days, then the service provider will automatically
+ﬁreT10and move to the CreditExpired state, ending the conversation. Finally, it should
+be noted that the presence of an implicit transition from a given state aﬀects the time
+constraints of the explicit transitions outgoing from the same state. Indeed, T10implies
+that T9can only be ﬁred within a time window matching the 30 days. Hence, a constraint
+C-Invoke( T8<30d) is implicitly associated with T9because of the M-Invoke constraint
+ofT10.
+2.2 Formal model
+2.2.1 Syntax
+Before giving the deﬁnition of timed protocols, we need to formalize the C-Invoke and
+M-Invoke constraints. Let Xbe a set of variables referring to transition identiﬁers: if ris
+a transition then Tr∈Xis the variable referring to this transition. We consider the two
+kinds of time constraints deﬁned over a set of variables Xusing the following grammars:
+6
+
+--- Page 8 ---
+•C-Invoke( c)w i t h cdeﬁned as follows:
+c::=xo pk |x−x￿op k|c∧c|c∨c
+with op∈{=,￿=,< ,> , ≤,≥},x∈X,x￿∈Xandk∈Q∪ {⊥} ,w h e r e Qdenotes the
+set of positive rational numbers,
+•M-Invoke( c)w i t h cdeﬁned as follows:
+c::= (x=k)∧c￿|c∧c|c∨c
+with x∈X,k∈Q∪ {⊥} and c￿being deﬁned like in the grammar of C-Invoke
+constraints.
+The following is the deﬁnition for timed business protocols, extending the business
+protocols model [11, 12].
+Deﬁnition 2.1. Atimed business protocol is a tuple P=(S,s0,F,M,X,C,R)where:
+•Sis a ﬁnite set of states, with s0∈Sbeing the initial state.
+•F⊆ S is the set of ﬁnal states. If F=∅, then Pis said to be an empty protocol.
+•M=Me∪{ε}is a ﬁnite set of messages Meaugmented with the empty message ε.F o r
+each message m∈Me, we deﬁne a function Polarity( P,m)which will be positive (+)
+ifmis an input message in P, and negative (−)ifmis an output message in P.
+•We assume that each transition r∈Ris identiﬁed by a unique identiﬁer id(r).X=
+{Ti|∃r∈R,Ti=id(r)}is a set of clock variables deﬁned over the set of transitions
+R.
+•Cis a set of time constraints deﬁned over a set of variables X. The absence of a
+constraint is interpreted as a constraint which always evaluates to true .
+•R⊆S2×M×Cis a ﬁnite set of transitions. Each transition (s, s￿, m, c )identiﬁes
+as o u r c es t a t e s, a target state s￿, a message mand a constraint c.W e s a y t h a t t h e
+message mis enabled from a state s. When m=ε,cmust be a M-Invoke constraint,
+otherwise cmust be either a C-Invoke constraint or true .
+In the sequel, we use the notation R(s, s￿, m, c ) to denote the fact that ( s, s￿, m, c )∈R.
+To enforce determinism, we require that a protocol has only one initial state, and that for
+every state sand every two transitions ( s, s1,m1,c1) and ( s, s2,m2,c2) enabled from s,w e
+have either m1￿=m2orc1∧c2≡false .
+2.2.2 Semantics
+Before deﬁning the timed protocol semantics, we introduce ﬁrst the notion of variable
+valuation.
+Variable interpretation We consider as a time domain the set of positive reals R≥0
+augmented with a special element ⊥to denote the fact that a transition has never been
+taken yet. Let Xbe a set of variables valued in R≥0. A variable valuation V:X→
+R≥0∪ {⊥} is a mapping that assigns to each variable x∈Xa time value V(x).
+We note by Vt(x) the valuation of xat an instant t. In the beginning (i.e., at instant
+t0= 0) we assume that all of the variables are set to ⊥,i . e . , Vt0(Ti)=⊥,∀Ti∈X.
+Then, a variable valuation at a time tjis completely determined by a protocol execu-
+tion. Consider for example an execution σ=s0·(m0,t0)·s1...s n−1.(mn−1,tn−1)·snof a
+7
+
+--- Page 9 ---
+protocol P. The valuation of a clock variable Tiat time tj,w i t h0 <j≤n, is deﬁned as
+follows:
+Vtj(Ti)=￿Vtj−1(Ti)+(tj−tj−1)
+0i fTi=id(R(sj,sj+1, m, c )) is ﬁred from sjtosj+1
+It should be noted that for any r∈R≥0,k∈Qand any comparison operator op∈{<,≤
+,=,￿=,> ,≥}:
+
+⊥+r=⊥
+⊥−r=⊥
+⊥op k=false
+⊥op⊥=true ifop∈{=,≤,≥}
+⊥op⊥=false otherwise
+Given a variable valuation Vand a constraint C-Invoke( c) (respectively, M-Invoke( c)),
+we denote by c(V) the constraint obtained by substituting each variable xincby its value
+V(x). A variable valuation Vsatisﬁes a constraint C-Invoke( c) (respectively, M-Invoke( c))
+if and only if c(V)≡true . In this case, we write V|= C-Invoke( c)( r e s p e c t i v e l y , V|=
+M-Invoke( c))
+Timed conversations Timed conversations are inspired from the notion of timed words
+in timed automata as deﬁned in [2].
+LetP=(S,s0,F,M,X,C,R) be a timed protocol. A correct execution (or simply, an
+execution) of Pis a sequence σ=s0·(m0,t0)·s1...s n−1·(mn−1,tn−1)·snsuch that:
+1.t0≤t1≤...≤tn(i.e., the occurrence of times increase monotonically). As usual, we
+also assume non-Zenoness [2] of the sequences of time (i.e., we cannot have inﬁnite
+sequences in ﬁnite time),
+2.s0is the initial state and snis a ﬁnal state of P, and
+3.∀j∈[1,n], we have: R(sj−1,sj,mj−1,cj−1) and Vj−1|=cj−1.
+As an example, the sequence σ￿=Start ·(login (+),0)·Logged ·(preApproval (+),1)·
+PreApprovalApplication ·(approved (−),3)·CreditApproved ·(ε,33)·CreditExpired is a
+correct execution of the ﬁnancing service protocol depicted on Figure 1.
+Ifσ=s0·(m0,t0)·s1...s n−1·(mn−1,tn−1)·snis a correct execution of P,t h e nt h e
+sequence tr(σ)=( m0,t0)...(mn−1,tn−1) forms a timed trace which is compliant with P.
+Continuing with the example, the execution σ￿of the above service protocol leads to the
+timed trace tr(σ￿)=( login (+),0)·(preApproval (+),1)·(approved (−),3)·(ε,33).
+During an execution σof a protocol P, the externally observable behavior of P,h e r e -
+after called timed conversation ofPand noted conv(σ), is obtained by removing from
+the corresponding timed trace tr(σ) all of the non observable events (i.e., all of the
+pairs ( mi,ti)w i t h mi=ε). For example, during the previous execution σ￿, the ob-
+servable behavior of the ﬁnancing service is described by the timed conversation obs(σ￿)=
+(login (+),0)·(preApproval (+),1)·(approved (−),3).
+In the following, given a protocol P, we denote by Traces (P) the set of the timed
+traces which are compliant with Pand with Tr(P) the set of timed conversations of P.
+Timed interactions Timed conversations describe the externally observable behavior
+of timed protocols and, as we will show below, are essential to analyze the ability of two
+services to interact correctly. Consider for example the protocol Pdepicted on Figure 1
+and its reversed protocol P￿obtained by reversing the polarity of the messages (i.e., input
+messages become outputs and vice-versa).
+8
+
+--- Page 10 ---
+We can observe that when P￿interacts with Pby following a given timed conver-
+sation, Pfollows exactly a conversation with the reversed polarities of the messages.
+For example, if during such an interaction the timed conversation of Pis (login (+),0)·
+(selectV ehicle (+),1)·(estimatePayment (+),10)·(fullCredit (+),30)·(accept (−),100),
+then the timed conversation of P￿is (login (−),0)·(selectV ehicle (−),1)·(estimate -
+Payment (−),10)·(fullCredit (−),30)·(accept (+),100).
+In this case, we call the path ( login, 0)·(selectV ehicle, 1)·(estimatePayment, 10)·
+(fullCredit, 30)·(accept, 100) a timed interaction trace ofPandP￿. The polarities of the
+messages that appear in interaction traces are not deﬁned. Indeed, each input message m
+of one protocol matches an output message mof the other protocol.
+More precisely, let PandP￿be two timed protocols and let τ=(a0,t0)·(...)·(an,tn)
+be a sequence of events in which the polarities of the messages are undeﬁned. Then τis a
+timed interaction trace of PandP￿if and only if there exist two timed conversations σ1
+andσ2such that:
+1.σ1∈Tr(P) and σ2∈Tr(P￿), and
+2.σ1is the reverse conversation of σ2(i.e., the conversation obtained from σ2by inverting
+the polarities of the messages), and
+3.τ=Unp(σ1)=Unp(σ2)w h e r e Unp(σ) denotes the trace obtained from σby removing
+the polarities of the messages.
+3 Protocol analysis concepts
+Our approach for protocol compatibility and replaceability analysis is based on a set
+of protocol manipulation and comparison operators that were introduced in [11]. The
+proposed operators are build on existing relations and operators deﬁned in the context of
+timed automata (e.g., language inclusion, intersection, complementation, etc). We brieﬂy
+recall hereafter both the type of analysis that we target and the operators that we use to
+do it. We describe the implementation of our operators using already-known constructs
+on timed automata in Section 5.
+3.1 Protocol analysis
+Compatibility analysis is concerned with verifying whether two services can converse. It is
+necessary for both static and dynamic binding, and it also aids in managing evolution as it
+helps verify that a modiﬁed client can still interact with a certain service. More precisely,
+we identiﬁed two compatibility classes. Partial compatibility between two protocols P1
+and P2implies that at least one conversation can be carried out between two services
+implementing these protocols. A protocol P1isfully compatible with P2ifP2can support
+all message exchanges that P1can generate (the inverse is not required to be true). Ideally,
+if we have developed a service Scharacterized by protocol P, at binding time we will want
+to look for services that have a protocol with which Pis fully compatible, so that every
+message exchange that our service can generate is understood by our partner.
+Replaceability analysis identiﬁes whether a service can act as a substitute of another
+one, either in general or when interacting with certain requesters. Such an analysis in-
+volves ﬁnding the set of conversations that both services can support even if they are not
+equivalent. This is useful to determine whether a new version of a service (protocol) can
+support the same conversations as the previous one or whether a newly deﬁned service can
+support the conversations that a given standard speciﬁcation mandates. As in the case
+of compatibility, we identiﬁed several replaceability classes. Protocol equivalence occurs
+9
+
+--- Page 11 ---
+when two protocols support exactly the same conversations. Protocol subsumption occurs
+when a protocol supports at least all of the conversations of another one. Finally,
+Protocol replaceability w.r.t. a client protocol occurs when a protocol P1can replace a
+protocol P2when interacting with a client protocol Pcif every valid conversation between
+P2andPcis also a valid conversation between P1andPc. This latter deﬁnition is helpful
+in managing evolution, as when we update our service we may want to check that it can
+still communicate with the same clients it was interacting before.
+We now recall the operators that fully characterize the compatibility and replaceability
+classes mentioned above and give examples of their usage.
+3.2 Protocol operators
+Operands of the algebra are protocols and operators are special operations deﬁned on pro-
+tocols that enable, for example, to determine intersection and diﬀerence among protocols
+or to identify which conversations can and cannot be supported when a service is used in
+place of another one.
+Operator name Symbol Semantics
+Compatible Composi-
+tion￿TCP=P1￿TCP2is a protocol Psuch that T∈
+Tr(P)i ﬀTis an interaction trace of P1and P2
+Intersection ￿TIP=P1￿TIP2is a protocol Psuch that Tr(P)=
+Tr(P1)∩Tr(P2)
+Diﬀerence ￿TDP=P1￿TDP2is a protocol Pthat satisﬁes the
+following condition: Tr(P)=Tr(P1)\Tr(P2)
+Projectionˆ
+￿TC˜
+Let P=P1￿TCP2.ˆ
+P1￿TCP2˜
+Pi,w i t h i∈
+{1,2}, is the protocol obtained from P1￿TCP2
+by deﬁning the polarity function of the mes-
+sages as follows: Po l a ri t y (ˆ
+P1￿TCP2˜
+Pi,m)=
+Po l a ri t y (Pi,m),∀m∈M
+Table 1: Protocol manipulation operators semantics.
+We informally describe the protocol manipulation operators below, while their formal
+semantics are presented in Table 1.
+•Parallel composition , denoted as ￿TC, takes two input timed protocols and returns a
+timed interaction protocol that captures the possible interactions between them. A
+timed interaction protocol has simply no messages polarities. More precisely, the
+resulting timed interaction protocol describes the set of timed interaction traces of
+the input protocols.
+•Projection , used to project the polarity of one protocol on the parallel composition of
+two protocols, is denoted as￿
+P1￿TCP2￿
+P1.
+•Intersection , denoted as ￿TI, takes two input timed protocols and returns one timed
+protocol that captures the timed conversations that they have in common.
+•Diﬀerence , denoted as ￿TD, takes two input timed protocols and returns one that
+captures the timed conversations that are supported by the ﬁrst input protocol but
+not by the second one.
+We give examples of operators-based compatibility and replaceability analysis on Fig-
+ure 2. P1and P2are only partially compatible, as￿
+P1￿TCP2￿
+P2￿≡P2.B y u s i n g t h e
+diﬀerence operator to compute P2￿TD￿
+P1￿TCP2￿
+P2, we get the set of conversations that
+are supported by P2but not by P1which yield to a partial compatibility ( P1does not sup-
+port receiving a cmessage after 10 units of time). P4can be replaced by P3as it supports
+10
+
+--- Page 12 ---
+	
+	
+	
+	
+	
+	
+	
+Figure 2: Compatibility and replaceability analysis.
+all of the conversations that P4supports, denoted as P3￿P4(every valid conversation of
+P3is also a valid conversation of P4). The converse is however not true as illustrated by
+P3￿TDP4:P3cannot handle dmessages.
+Class Characterization
+Partial compatibility of P1and P2 P1￿TCP2is not empty
+Full compatibility of P1and P2ˆ
+P1￿TCP2˜
+P1≡P 1
+Replaceability of P1byP2 P2￿P 1
+Equivalence of P1and P2w.r.t. replace-
+abilityP1≡P 2
+Replaceability of P2byP1w.r.t. a client
+protocol PCˆ
+PC￿TCP2˜
+P2￿P 1or equivalently
+PC￿TC(P2￿TDP1)i sempty
+Replaceability of P2byP1w.r.t. a role PR(PR￿TIP2)￿P 1
+Table 2: Characterization of the compatibility and replaceability classes.
+The formalization of the compatibility and replaceability classes that was introduced
+in [8] as well as the characterization of these classes using the aforementioned operators
+remain unchanged in the context of our extended protocol model (see Table 2). However,
+due to the expressiveness of the timed protocol model used in this paper, the decision prob-
+lems underlying protocol analysis (e.g., closure properties of the operators, decidability of
+protocol subsumption) must be investigated in this new context. As described below, we
+conducted our investigation using a formal framework based on timed automata theory.
+4 From timed protocols to protocol timed automata
+The previous sections have introduced the model of timed business protocols which is
+suitable for describing and analyzing the external behavior of web services in presence of
+timing constraints. In turn, the model of timed automata [2] has been extensively studied
+as an extension of classical automata [35] with real-valued clocks and conditions on the
+transitions. Given the extensive research that has been made on timed automata, we
+chose to: (i) use timed protocols as a conceptual model, and (ii) use timed automata for
+implementing the behavior of timed protocols, and (iii) adapt and/or extend theoretical
+properties on timed protocols from existing work on timed automata. To achieve this task,
+we give a mapping from timed protocols to timed automata. However, deﬁning such a
+11
+
+--- Page 13 ---
+mapping is not a trivial task. Indeed, as we will see later, M-Invoke constraints are not
+straightforward to implement using timed automata.
+Note that we do not directly use timed automata for modeling service protocols at
+the conceptual level as we believe that this will be a diﬃcult and error prone task. The
+diﬃculties in deﬁning the semantic-preserving mapping that we will see hereafter as well
+as the complexity of the obtained timed automata are strong arguments in favor of timed
+protocols.
+This section is structured as follows. We ﬁrst introduce timed automata and then
+provide a formal deﬁnition of the model used in this paper. Then we illustrate the chal-
+lenges of converting a timed protocol into a timed automaton that correctly implements
+its behavior. We describe the technique for performing such a mapping and ﬁnally, we
+give a characterization of the obtained class of timed automata.
+4.1 Quick overview on timed automataFigure 3: A sample timed automaton A.
+Timed automata were introduced in [2] as an extension of classical automata [35] to
+model real-time systems. We take as an example the timed automaton Adepicted on
+Figure 3. At ﬁrst sight, Ais much like a “normal” automaton: it has locations (e.g., s0,s1
+ands2) as well as switches with labels over the alphabet Σ = {a, b}. There is one initial
+location s0while s2is an accepting location. Timing constraints are added in Aby making
+use of a clock xwhich is a continuous variable over the set of real-valued numbers R≥0.T h e
+automaton Arecognizes the set of timed words a·bsuch that bis recognized at most 5 units
+of time after a. To do that, the clock xis reset to 0 when the automaton switches from
+the location s0tos1on the symbol a. Again, a switch can reset an arbitrary number of
+clocks. Initially, every clock is set to 0 and then, they grow synchronously as time evolves.
+Note that, time elapses in the locations, while the switches are instantaneous. Clocks
+can be used in constraints attached to the switches, called guards , and that can enable or
+disable a switch depending on how guards are evaluated. Here, the clock xis used in the
+guard of the b-labeled switch so that bcannot be recognized when ( x≥5) is true. More
+precisely, a timed word over an alphabet Σ is a ﬁnite sequence ( a0,t0)·(a1,t1)···(an,tn)
+of symbols ai∈Σ that are paired with nonnegative real numbers ti∈R≥0such that
+t0≤t1≤· · ·≤ tn. For example w=(a,0)·(b,1) is a timed word where bhas been
+recognized 1 unit of time after a. A timed language over an alphabet Σ is a set of timed
+word over Σ. Timed automata recognize timed languages. For example, the automaton
+Aof Figure 3 recognizes the time language {(a, t)·(b, t￿)|t−t￿<5}.I n t h e s e q u e l , w e
+denote by L(A) the timed language recognized by a given automaton A.
+Over the years, several classes of timed automata with diﬀerent level of expressiveness
+have been studied leading to many results regarding the usual veriﬁcation problems (e.g.,
+reachability, language inclusion, etc) [4]. We present below the timed automata model
+used in our context.
+12
+
+--- Page 14 ---
+4.2 Target timed automata model
+We consider a timed automata model that enables silent transitions , noted hereafter εand
+called ε-labeled switches. As usual, a timed automaton is deﬁned using a set of clocks X
+while the set of clocks constraints over X, noted C(X), is built using boolean combinations
+of atomic constraints of the form x#cwith x∈X,# ∈{=,￿=,< ,≤,> ,≥}andc∈Q.
+We also allow diagonal constraints of the form ( x1−x2#k)w i t h x1,x2∈Xandk∈Q∪⊥.
+Diagonal constraints are known not to increase the expressiveness of the model but allow
+more representation conciseness [24].
+Deﬁnition 4.1. At i m e da u t o m a t o n Ais a tuple A=( Σ,L ,L0,Lf,X ,E )where:
+•Σis a ﬁnite alphabet ,a n d ￿denotes the empty word in Σ∗,
+•Lis a ﬁnite set of locations (or states), with L0∈Lbeing the initial location ,
+•Lf⊆Lis the set of ﬁnal locations (or accepting states),
+•Xis a ﬁnite set of clocks,
+•E⊆L×C(X)×Σ∪{ε}×2X×Lis a ﬁnite set of switches (or transitions) e=
+(l, g, a, r, l￿)∈Efrom ltol￿, where gis the guard, ris the set of clocks to be reset and
+ais the label.
+A clock valuation vfor a set Xof clocks is a mapping from XtoR≥0∪{⊥} that assigns
+to each clock x∈Xa value v(x)i nR≥0∪ {⊥} . A clocks valuation vsatisﬁes an atomic
+constraint ( x#c) if and only if ( v(x)#c) is true. This allows to check whether a guard g
+can be satisﬁed by a clocks valuation v, denoted as v|=g.G i v e n d∈R≥0,v￿=v+dis the
+clocks valuation such that v￿(x)=v(x)+dfor each x∈X. Also, for r⊆X,v￿=[r←0]v
+denotes a clock valuation such that v￿(x)=0i f x∈randv￿(x)=v(x)i fx∈X\{r}.
+As usual, each clock of a timed automaton is a real valued variable that records the
+amount of time that has elapsed since the last time the clock was reset. However, unlike
+“standard” timed automata, and in the same spirit as [3], we assume that the values of
+all clocks are initially equal to ⊥(i.e., undeﬁned ). Then, the ﬁrst time any clock xis
+reset to 0, its valuation starts to grow synchronously w.r.t. other clocks as time evolves.
+Detailed semantics of timed automata and discussion of “classic” veriﬁcation problems
+(e.g., location reachability, closure under complementation) can be found in [2].
+4.3 Informal overview of the challenges	
+	
+Figure 4: A sample timed protocol Pused as a mapping running example.
+We use the timed protocol from Figure 4 as a running example throughout this section.
+It allows us to illustrate the challenges in creating a timed automaton that behaves like
+a timed protocol. At ﬁrst sight, the translation may look straightforward. However as
+we will see, preserving the behavior of M-Invoke is not an easy task. The translation is
+performed in two steps.
+The ﬁrst step consists in a straightforward procedure that converts a timed protocol
+Pinto a timed automaton Aas follows. States of Pare translated into locations in A
+13
+
+--- Page 15 ---
+(e.g., the state s0ofPis mapped to a location l0). The initial state is mapped into an
+initial location while ﬁnal states are mapped to ﬁnal locations. Each explicit (respectively,
+implicit) transition in Pis translated into a switch in Awith the message name as its label
+(respectively, a ε-labeled switches). For example, in P,T1:R(s0,s1,a ,true ) is translated
+into a switch e1=(l0,true ,a ,r ,l 1)i nA.Figure 5: A sample timed automaton that does not enforce M-Invoke semantics.
+The transition identiﬁers from Pare used to generate clocks in A. Indeed, each identi-
+ﬁer generates a unique clock which is solely reset on its corresponding switch. For example
+the transition T2generates a clock xT2inAwhich is only reset on the switch that was
+mapped from T2. This way, we can know when a switch was ﬁred, just like in the timed
+protocol P. The conversion of a C-Invoke constraint from Pis also direct. For example,
+a constraint C-Invoke( T1<3) is mapped to a guard ( xT1<3). At this stage, the mapping
+ofPtoAyields the timed automaton of Figure 5.
+Let us now have a closer look on the mapping of implicit transitions. As mentioned
+before, implicit transitions are automatically ﬁred whenever their associated M-Invoke
+constraints are evaluated to true. This semantics is not enforced in the target timed
+automata by simply mapping implicit transitions into ε-labeled switches with a direct
+translation of M-Invoke constraints into guards. Continuing with our example, the guard
+g1andg2of the timed automata of Figure 5, may potentially become satisﬁed at the same
+time, and hence the c-labeled transition can be ﬁred while the guard g2of the ε-labeled
+switches is evaluated to true. To capture correctly the semantics of M-Invoke constraints
+in the timed automata, ε-labeled must be preempted with respect to other transitions
+that can be ﬁred from the same location. To achieve this goal, additional constraints
+must be added during the mapping phase in order to ensure that once a guard of a given
+ε-labeled switch becomes true, all the other switches starting from the same location must
+be deactivated.
+To see how such constraints can be enforced, let us have a closer look at the various cases
+that may occur when entering a location that oﬀers one ε-labeled switch. We illustrate
+that again on the location l2of of Figure 5 but by considering only the switch cand one
+ε-labeled switch, namely the one associated with the guard g1. The generalization to more
+than one ε-labeled is straightforward, and will be detailed later. Three cases are possible.
+The ﬁrst one is that l2is entered before g1has been satisﬁed (i.e., while the constraint
+(xT1<10) is true). In this case ccan be ﬁred as long as ( xT1<10) is true. The second
+case is that l2is entered when the valuation of xT1is such that ( xT1>10): ccan be ﬁred
+since g1will never be satisﬁed in the future. Finally, third one is that l2is entered while
+(xT1<10) is satisﬁed and the automaton remains at location l2while time elapses until
+an instant tsuch that the clock valuation becomes such that ( xT1≥10) is true. In this
+case ccan be ﬁred only if, in the past (i.e., at an instant t￿<t), when ( xT1= 10) was true,
+(xT2>2) was false. Note that, in this later case to decide if a transition ccan be ﬁred
+safely at a given instant tit is necessary to conduct a reasoning about the ’past’ (i.e., the
+values of the clocks at an instant t￿<t).
+14
+
+--- Page 16 ---
+To sum up, a direct translation of the M-Invoke constraints to guards is not enough to
+properly capture the implicit transitions semantics in timed automata. Because of that,
+more elaborated constraints need to be added into the guards. More speciﬁcally:
+1. the mapping needs to rewrite some guards to enforce the expected behavior of M-Invoke
+constraints, and
+2. there is a need for knowing the exact clock valuations when a location is entered:
+(a) to know the status of each equality clause in each ε-labeled switches (e.g., when
+l2is entered, do we have ( xT2<5), (xT2>5) or ( xT2= 5)?)
+(b) to know if the ε-labeled switches guards will be satisﬁable or not (e.g., g2)w h e n
+their equality clause is satisﬁed.
+In particular, knowing the valuation of each clock when a location was entered is
+important for enabling/disabling some switches. For example when entering l2,i fxT2was
+already greater than 5, then we know that the ε-labeled switch with guard g1will have no
+inﬂuence on the execution of the c-labeled switch nor on the other ε-labeled switch.
+In timed automata, as clocks evolve synchronously, the diﬀerence between 2 clocks x1
+andx2is a constant until one of them is reset to zero. In the following, we use diagonal
+constraints of the form ( x1−x2#k), with k∈Q∪⊥, to capture the clock valuations
+when locations are entered. More precisely, for each location oﬀering at least one ε-labeled
+switch, we add a clock that is attached to this location. Such a clock is reset on every
+incoming switch of the considered location. For example on Figure 5, we add a clock yl2
+which is reset on the b-labeled switch. Then, the diﬀerence between any clock xeand such
+a “location clock” ylis the exact value of xewhen the location lwas entered. Indeed, when
+the location is entered, the valuation of ylis 0 as the clock has just been reset. Given
+that the diﬀerence between the two clocks remains a constant while lremains the current
+location, ( xe−yl) is the clock valuation of xewhen lwas entered.
+Using this technique to capture clock valuations at a time a location is entered, the
+second step of the mapping can be done by rewriting the guards of every switch whose
+source location oﬀers ε-labeled switches. The rewriting must take care of allowing normal
+(i.e., non ε-labeled switches) to recognize input symbols when there is no conﬂict with
+ε-labeled switches and deactivate them otherwise. To this purpose, we will introduce new
+clock constraints to capture when a given switch is allowed with respect to the guard of a
+ε-labeled switch.
+Going back to the example of Figure 5 with a new clock yl2having been added, observe
+that g1must enable the other switches in the following two cases: ( xT2<5), and ( xT2>
+5)∧(xT2−yl2>5). While the ﬁrst case is rather easy (i.e., l2is entered before the equality
+clause has been satisﬁed), the second case uses the valuation of xT2when l2was entered.
+(xT2−yl2>5) is only true if l2was entered when ( xT2>5) was true.
+In a similar manner, g2enables the other switches in the following cases: ( xT1<10),
+(xT1>10)∧(xT1−yl2>10), ( xT1>10)∧(xT1−yl2≤10)∧(xT2−xT1≤−8), and
+(xT1= 10) ∧(xT2−xT1≤−8). The ﬁrst two cases are similar to the case of g1.T h et h i r d
+case enables the other switches after the equality clause of g2has been veriﬁed if the clause
+(xT2>2) is false when ( xT1= 10) is true. Indeed, ( xT2−xT1≤−8) = ( xT2−xT1≤2−10)
+and when xT1= 10, this reduces to ( xT2≤2) which is the negation of ( xT2>2). Hence
+the clause ( xT2−xT1≤−8) is able to check when g2cannot be satisﬁed. Finally the fourth
+case is similar as it enables the other switches when the equality clause is satisﬁed if the
+rest of g2cannot be completely satisﬁed.
+The correct mapping of PtoAis given on Figure 6, where the “permits” constraints
+are just the cases that we mentioned above. For example, permits( g1)=( xT2<5)￿xT2>
+5)∧(xT2−yl2>5).
+15
+
+--- Page 17 ---
+	
+	
+	
+	
+Figure 6: A sample protocol timed automaton that does enforce M-Invoke semantics.
+4.4 Enforcing M-Invoke constraints in protocol timed automata
+To enforce M-Invoke semantics, the following behavior needs to be captured (examples
+are taken from Figure 5).
+1. When a ε-labeled switch guard becomes satisﬁed, all other switches must be imme-
+diately disabled so as to make it the only switch that can be taken. An example is
+when g1becomes satisﬁed in l2: the two other switches must be disabled.
+2. When a location oﬀering a ε-labeled switch is entered after the equality clause of its
+guard has been satisﬁed, the other switches must not be disabled. For example, if l2
+is entered while xT2>5, the other switches must not be disabled.
+3. When the guard of a ε-labeled switch cannot be satisﬁed when its equality clause
+is satisﬁed, the other switches must not be disabled. Let us consider g2while the
+current location is l2. In case ( xT1= 10) is satisﬁed but ( xT2>2) is not, the two
+other switches must not be disabled.
+The enforcement is done by rewriting the constraints using two new ones. First, we
+deﬁne a constraint “inhib” over a ε-labeled transition guard of the form g=(x=k)∧g￿.
+The role of this constraint is to capture the cases where g￿is false, thus making the switch
+that has gas its guard inactive. As we will see, this constraint plays a critical role in
+enforcing the M-Invoke constraints in protocol timed automata. Then, we will provide
+another constraint, called “permits”, also deﬁned over a ε-labeled transition guard. It
+deﬁnes when it allows other switches from the same source location to become actionable.
+This constraint relies on the introduction of clocks that are attached to locations so as to
+capture the clocks valuation when locations are entered. It uses “inhib” that we introduce
+in the following deﬁnition.
+Deﬁnition 4.2 (inhib constraint) .Let a guard g:= (x=k)∧g￿of a ε-labeled switch
+deﬁned over a ε-labeled switch l→l￿such as xis a clock over T=R≥0∪ {⊥} ,kis a
+constant in Q∪ {⊥} andg￿is any clocks constraint: g￿=(x1#1k1)∧···∧ (xj#jkj)∧
+(xj+1−x￿
+j+1#j+1kj+1)∧···∧ (xm−x￿
+m#mkm)(for any i∈{1,···,m}:xi,x￿
+i∈X∪Y,
+ki∈Q∪ {⊥} ,#iis any comparison operator) and Yis the set of clocks that we add to
+record when a location is entered by resetting them on the switches that are incoming to a
+given location.
+We deﬁne the constraint “ inhib ” such that: inhib( g)=( x1−xnot(#1)k1−k)∨···∨
+(xj−xnot(#j)kj−k)∨(xj+1−x￿
+j+1not(#j+1)kj+1)∨···∨ (xm−x￿
+mnot(#m)km)
+In the case where g￿is not deﬁned (i.e., g=(x=k)), then inhib( g)=false .
+Going back to the timed automaton of Figure 5: inhib( g1)=false and inhib( g2)=
+(xT2−xT1≤−8). Without loss of generality, we chose to reduce the ε-labeled switch
+guard gto a unique conjunction in the previous deﬁnition to simplify the notations. The
+case where gis a disjunction is easy: we consider it as multiple ε-labeled switches with
+each switch having a single conjunctive guard. We keep this assumption in the remainder.
+16
+
+--- Page 18 ---
+With this “inhib” constraint at hand, we can now deﬁne a constraint called permits. When
+given the guard of a ε-labeled switch, it deﬁnes when the other switches from the same
+source location can be enabled without contradicting M-Invoke constraints.
+Deﬁnition 4.3 (permits constraint) .Let a guard g:= (x=k)∧g￿of a ε-labeled switch
+deﬁned over a ε-labeled switch l→l￿such as xis a clock over T,kis a constant in
+Q∪ {⊥} andg￿is any clocks constraint. Let y∈Ythe clock that is commonly reset by
+all the switches whose target location is l. We deﬁne the following clauses: S1=(x<k ),
+S2=(x>k )∧(x−y>k ),S3=(x>k )∧(x−y≤k)∧inhib( g),a n d S4=(x=k)∧inhib( g).
+The constraint permits( g)is deﬁned as permits( g)=￿
+i∈{1,2,3,4}Si
+The four permits clauses Si,w i t h i∈[1,4], play the following roles. S1captures the
+cases where the current clocks valuation vensures that v(x)i ss t i l lb e l o w k.S2captures
+the cases where vis above kand the location lhas been entered after ( x=k) was satisﬁed.
+This is checked through the clause ( x−y>k ).S3captures the cases where lwas entered
+before ( x=k) was satisﬁed, but g￿
+icould not be satisﬁed. In such cases, the switches
+should not be disabled for the clocks valuations such that ( x>k ) is satisﬁed. Finally, S4
+captures the cases where ( x=k) is satisﬁed but g￿
+iis not, hence the switches don’t have
+to be disabled as well. Again considering the timed automaton of Figure 5:
+permits( g1)=( xT2<5)￿￿￿￿
+S1￿(xT2>5)∧(xT2−yl2>5)￿ ￿￿ ￿
+S2, and
+permits( g2)=( xT1<10)￿￿￿￿
+S1￿(xT1>10)∧(xT1−yl2>10)￿ ￿￿ ￿
+S2 ￿(xT1>10)∧(xT1−yl2≤10)∧(xT2−xT1≤−8)￿ ￿￿ ￿
+inhib( g2)￿ ￿￿ ￿
+S3￿(xT1= 10) ∧(xT2−xT1≤−8)￿ ￿￿ ￿
+inhib( g2)￿ ￿￿ ￿
+S4.W e
+can now deﬁne how the guards of the switches whose source locations oﬀer ε-labeled
+switches need to be rewritten so as to enforce M-Invoke .
+Deﬁnition 4.4 ( M-Invoke enforcement) .Letlbe a location of a protocol timed automaton
+Athat oﬀers n>0ε-labeled switches: {eε1=(l, gε1,ε ,r 1,l1),···,eεn=(l, gεn,ε ,r n,ln)}
+The rewriting of the guard of each switch whose source location is l(including the
+ε-labeled ones) is performed as follows:
+1. for each location lthat oﬀers a ε-labeled switch, augment the reset set of each switch
+whose target location is lwith the clock yl∈Y
+2. compute {permits( gε1),···permits( gεn)}
+3. rewrite the guard gof each switch (l, g, a, r, l￿)as
+(a) when a￿=ε,g=￿
+0≤i≤npermits( gεi)
+(b) when a=εand the switch guard is gεj(j∈{1,···,m}),g=￿
+0≤i￿=j≤npermits( gεi)
+As an example, we consider again the protocol timed automaton of Figure 5 that has
+been ﬁxed to enforce M-Invoke semantics on Figure 6.
+4.5 Correctness of the mapping
+The following theorem states the correctness of the mapping. It shows that a timed
+protocol and its corresponding timed automaton (produced by the mapping described
+above) have equivalent behaviors (they both recognize the same set of timed words).
+17
+
+--- Page 19 ---
+Theorem 4.5. LetAbe a protocol timed automaton produced by a mapping of a timed
+protocol P. Then, Traces (P)=L(A).
+This theorem states that the set Traces (P) oftimed traces that are compliant with a
+protocol Pis exactly the same as the language L(A) that is recognized by the corresponding
+timed automaton A. Hence, the mapping proposed in the previous section preserves the
+semantics of the timed protocols.
+Proof of Theorem 4.5 is quite straightforward in the particular case where the original
+timed protocol Pdoes not contain any implicit transitions. Therefore, the main point to
+prove Theorem 4.5 is to show that the guard rewritings presented in the previous section
+capture the M-Invoke constraint semantics correctly. The following lemma shows that
+the function inhib works as expected, i.e., it can inhibit guards when a ε-labeled switch
+guard is totally satisﬁed, and allow them when it is not.
+Lemma 4.6. Let a protocol timed automaton Aand a location l∈Asuch that there exists
+a switch e=(l, g=(x=k)∧g￿,ε ,r ,l￿),w i t h g￿=(x1#1k1)∧···∧ (xj#jkj)∧(xj+1−
+x￿
+j+1#j+1kj+1)∧···∧ (xm−x￿
+m#mkm)form∈Nandj∈{1,···,m}. Then: (i)
+(inhib( g)=true )=⇒(g￿=false ),a n d (ii)(inhib( g)=false )=⇒(g￿=true ).
+Given a location that has several ε-labeled switches, the following lemma checks that
+only one of them can ever become satisﬁed, thus disabling and forcing the transition
+to another location. To do that, we express the following sanity-check type of boolean
+implication.
+Lemma 4.7. Let a protocol timed automaton Aand a location l∈Asuch that it oﬀers
+n>0ε-labeled switches. For any i∈{1,···,n}, the guard ￿giof the i-thε-labeled switch is
+of the form gi￿
+1≤i￿=j≤npermits( gj). Let i∈{1,···,n}andj∈{1,···,n}such that i￿=j.
+Then: (gj=true )=⇒(permits( gj)=false )∧(permits( gi)=true )
+This implication expresses the fact that when a M-Invoke guard is satisﬁed, then its
+derived permits constraint is false, and the permits clauses of every other M-Invoke guards
+are still true. Indeed, if any of the later permits clauses was to be false, then it would
+mean that its guard would have already been actionable in the past, yet not taken and
+hence not enforced.
+The following lemma states that the mapping of a timed protocol to a protocol timed
+automaton is correct with respect to M-Invoke constraints.
+Lemma 4.8. Let a protocol timed automaton Aobtained from a timed protocol P. Every
+ε-labeled switch e=(l, g=(x=k)∧g￿,ε ,r ,l￿)ofAis taken as soon as its guard gis
+satisﬁed.
+4.6 Characterization of protocol timed automata
+The previous sections described how a timed protocol can be mapped to a particular class
+of timed automata called protocol timed automata. In this section, we leverage the formal
+framework of timed automata to investigate the computational properties (i.e., decidability
+and closure properties) of the protocol operators. As explained in previous sections, the
+operators are very useful to perform compatibility and replaceability analysis.
+We start by stating the following result regarding the intersection operator.
+Theorem 4.9. The class of protocol timed automata is closed under intersection.
+18
+
+--- Page 20 ---
+This theorem is derived from existing results in the literature (e.g., [2]). Indeed, it is
+known that timed automata with εtransitions are closed under intersection (and hence
+also under compatible composition). It is easy to extend this result to protocol timed
+automata (i.e., to show that the intersection or compatible composition of two protocol
+timed automata is still a protocol timed automata). The next section describes a procedure
+that implements such an intersection operator.
+Let us now turn our attention to the complementation operator which plays a critical
+role when it comes to characterizing the protocol diﬀerence and subsumption operators.
+While the case of ￿TIand￿TCwas easy to deal with, the complementation operator poses
+more challenges. Indeed, in the general case, non-deterministic timed automata extended
+with ε-labeled switches are not closed under complementation [4]. In our case, since we
+consider deterministic automata, this negative result is mainly due to the presence of ε-
+labeled switches. [16] investigated the expressive power of ε-labeled switches and identiﬁed
+cases where ε-labeled switches can be removed without a loss of expressiveness (e.g., case
+ofε-labeled switches that do not reset clocks). Unfortunately, this result is of no use
+in our case as the ε-labeled switches that we deal with do not belong to the identiﬁed
+cases. In fact, as stated by the following theorem, ε-labeled switches strictly increase the
+expressiveness of protocol timed automata and hence they cannot be removed without
+losing in expressiveness.
+Theorem 4.10. ε-labeled switches strictly increase the expressiveness of protocol timed
+automata.
+The proof of this theorem, based on the notion of precise actions introduced in [16], is
+presented in the appendix. Despite these negative results, we are still able to prove that
+the class of protocol timed automata is closed under complementation. The cornerstone
+of the proof is to show that, although protocol timed automata include ε-labeled switches,
+they still exhibit a deterministic behavior which ensures that at each step of an execution,
+all clock values are solely determined by the input word.
+Lemma 4.11. Protocol timed automata behave deterministically: given a protocol timed
+automaton Aand a timed word w∈L(A),whas exactly one run over A.
+This result is a key for deriving the following theorem.
+Theorem 4.12. The class of protocol timed automata is closed under complementation.
+A procedure which extends the usual complementation construction to the case of
+protocol timed automaton is described in the next section. The proof of this theorem,
+provided in the appendix, is based on the observation that the proposed procedure pre-
+serves the M-Invoke constraints in timed automata as well as determinism. Thanks to
+this, a word that is rejected by a protocol timed automaton Ais necessarily accepted by
+its complement A.
+The closure of protocol timed automata under intersection and complementation allows
+to derive the following results regarding the timed protocol operators.
+Corollary 4.13. Timed protocols are closed under ￿TI,￿TCand￿TD.
+The result on the intersection and parallel composition operators is straightforward
+since both ￿TIand￿TCoperators are based on the intersection using a diﬀerent matching
+of the messages depending on their polarities:
+•in the case of ￿TI, two messages match when they have the same name and polarity
+(e.g., a(+) and a(+))
+19
+
+--- Page 21 ---
+•in the case of ￿TC, two messages match when they have the same name but a diﬀerent
+polarity (e.g., a(+) and a(−)).
+The result on the diﬀerence operator comes from the closure of protocol timed automata
+under both intersection and complementation. Indeed, P1￿TDP2is equivalent to P1￿TI
+P2, hence timed protocol are also closed under diﬀerence.
+Corollary 4.14. The timed protocol comparison operators ￿and≡are decidable.
+This comes from the closure under complementation and intersection as well as from
+the decidability of the reachability problem [2] (i.e., checking whether L(A1)⊆L(A2)i s
+equivalent to checking whether L(A1∩A2)=∅or not).
+With the results presented above, we have proved that our full set of operators can
+be implemented by exploiting already-known constructs on timed automata [2] and also
+by establishing new results regarding the novel class of timed automata that we have
+identiﬁed. This makes it possible to conduct automated analysis for all of the compatibility
+and replaceability classes on timed protocols.
+5 Protocol operators algorithms
+In this section, we give the procedures that implement the intersection and complementa-
+tion operators of protocol timed automata. The procedure for the other operators (com-
+patible composition, subsumption and equivalence) can be straightforwardly derived from
+these ones. The proposed procedures extend the existing constructions given in [2] to
+maintain closure in protocol timed automata.
+5.1 Intersection of protocol timed automata
+The protocol timed automata intersection procedure extends the classical construction
+on timed automata [2], which in turns already extends the construction on (untimed)
+automata [35]. In the following steps, we removed the existing permits clauses from the
+automata guards as new ones are being computed.
+Given two protocol timed automata A1=( Σ 1,L1,L0
+1,Lf
+1,X1∪Y1,E1) and A2=
+(Σ2,L2,L0
+2,Lf
+2,X2∪Y2,E2), the intersection A3=A1∩A2(with A3=( Σ 3,L3,L0
+3,Lf
+3,X3∪
+Y3,E3)) is built through the following steps.
+1. The locations are L3=L1×L2, the initial location is L0
+3=(L0
+1,L0
+2) and the ﬁnal
+locations are Lf
+3=￿
+(l1,l2)|l1∈Lf
+1,l2∈Lf
+2￿
+.
+2. Two switches e1=(l1,g1,a1,r1,l￿
+1)∈A1ande2=(l2,g2,a2,r2,l￿
+2)∈A2are synchro-
+nized if and only if a1=a2￿=ε,p r o d u c i n gan e ws w i t c h e1e2which is added to A3:
+e1e2=( (l1,l2),g1∧g2,a1,{xe1e2},(l￿
+1,l￿
+2)) (this introduces a new clock xe1e2inA3).
+3.ε-labeled switches are ﬁrst added to A3with their guard being freed of permits clauses.
+We consider their guards to be disjunction-free (i.e., a ε-labeled switch whose guard
+is disjunctive is equivalent to several ε-labeled switches with conjunctive guards). For
+each pair of ε-labeled switches e1=(l1,(x1=k1)∧g1,ε ,r 1,l￿
+1)∈A1ande2=(l2,(x2=
+k2)∧g2,ε ,r 2,l￿
+2)∈A2, we add the following switches to E3:
+
+
+e1eε=( ( l1,l2),(x1=k1)∧g1∧((x2￿=k2)∨¬g2),ε ,{xe1eε},(l￿
+1,l2))
+eεe2=( ( l1,l2),(x2=k2)∧g2∧((x1￿=k1)∨¬g1),ε ,{xeεe2},(l1,l￿
+2))
+e1e2=( ( l1,l2),(x1=k1)∧(x2=k2)∧g1∧g2,ε ,{xe1e2},(l￿
+1,l￿
+2))
+20
+
+--- Page 22 ---
+4. With the set of clocks in A3being X∪Yas per deﬁnition, make sure that for each
+location loﬀering at least one ε-labeled switch, a clock yl∈Yis reset on all of the
+incoming switches to l.
+5. For each location l∈A3, compute the permits clauses.
+6. The guards in A3need to be rewritten to refer to the clocks of the switches of A3as they
+still refer to those of A1andA2at this step. A map is maintained between each clock xe
+ofA1orA2and the set of clocks {xe,e1,xe,e2,xe3,e,···}that correspond to the switches
+{(e, e1),(e, e2),···,}that were generated from e. Given a guard gof a switch in A3,a
+clause ( xe#k) ofgis rewritten as a disjunction ( xe,e1#k)∨(xe,e2#k)∨· · ·. Diagonal
+constraint clauses in gare also rewritten in a similar fashion using the mappings of
+its two clocks.
+Compared to the classic timed automata intersection procedure, the protocol timed
+automata intersection has the following diﬀerences.
+1. Clocks assignment remains “under control” to match the protocol timed automata
+requirement of having at most two clocks reset per transition. The classical timed
+automata intersection construction would simply combine the set of clocks from both
+input timed automata and merge the clocks in the reset sets of each switch.
+2. M-Invoke semantics are enforced in the intersection by computing new permits clauses
+(the permits clauses of the input timed automata guards are discarded).
+5.2 Complementation of protocol timed automata
+We compute the complement of a protocol timed automaton using the following procedure
+which is derived from the one for deterministic timed automata as given in [2], with the
+diﬀerence lying in the presence of ε-transitions.
+Given a protocol timed automaton A, we denote by A∗itscomplete automaton which
+is build as follows.
+1. A location qis added to A∗whose role is to act as a rejection location: given any
+timed word wdeﬁned over L(A), the execution of wover A∗goes to the location q
+as soon as an input symbol yields to a word which is not in L(A). Hence, any timed
+word wdeﬁned over the alphabet of Ahas a (unique) execution over A∗.
+2. For each location lofA(this includes q) and for each word aof the alphabet, a
+transition e=￿
+l,￿
+g￿
+1≤i≤npermits( gεi)￿
+,a ,{xe},q￿
+is added where:
+(a)gis deﬁned as the negation of the disjunctions1of the guards2of the other a-
+labeled transitions from l, and
+(b) each gεi=(xi=ki)∧g￿
+εiappears in the guard of the i-thε-labeled switch from l,
+given that loﬀers n≥0 of such switches.
+As in [2], the complement AofAis deduced from A∗by inverting the ﬁnal and the normal
+locations due to the fact that every timed word w∈L(A) has a unique run over A.
+6 Implementation and usage
+In the sections above, we have exposed the timed business protocols model and analysis
+techniques. We now turn our attention to the validation of our approach. We ﬁrst present
+1e.g., given 2 a-labeled switches with guards g1and g2,g=¬(g1∨g2)
+2For each guard, we do not take into account the clauses that are obtained through the permits con-
+straint.
+21
+
+--- Page 23 ---
+our prototype platform, and then we show a typical usage scenario of the tool to show
+how it supports service development.
+6.1 Prototype: the ServiceMosaic Protocols project
+	
+	
+	 !
+"""#"#$%$	$	&$'	(
+ Figure 7: Components of the ServiceMosaic protocol development and analysis prototype.
+The concepts discussed in this paper have been implemented in ServiceMosaic , a CASE
+platform for supporting the service development lifecycle that includes facilities for mod-
+eling, analyzing, discovering, and adapting web service models [14]. We are releasing most
+tools at http://servicemosaic.isima.fr/downloads/protocols/ under the terms of the open-
+source LGPLv3 license. The ServiceMosaic tools are developed for the JavaTMplatform
+version 5. Speciﬁcally, we created libraries that provide the functionalities of our contri-
+butions (e.g., protocol operators) and we integrated them into the Eclipse platform (see
+http://www.eclipse.org/ ) as plug-ins (e.g., a plug-in provides the graphical user interface
+for applying the protocol operators).
+Figure 8: Screenshot of the ServiceMosaic protocol development and analysis prototype.
+The components that we have developed for this work are depicted on Figure 7. We
+have created a library containing the object model of timed protocols. The AntLR parser
+generator (see http://www.antlr.org/ ) has been used to parse C-Invoke and M-Invoke
+constraints from strings representations. We have also created a timed protocol operators
+22
+
+--- Page 24 ---
+library. All of the operators (intersection, parallel composition, diﬀerence, subsumption
+and equivalence) have been implemented in JavaTM. The subsumption and equivalence
+operators rely on the external UPPAAL timed automata model checker [6], as they require
+testing for language emptiness. As a requirement of the subsumption operator deﬁnition,
+we have also implemented a complementation operator. The protocol extraction library
+relies on the protocols model library to extract the web services choreographies from a
+BPEL process. Figure 8 provides a screenshot of the prototype.
+6.2 Protocol analysis at work
+We now show how the prototype and protocol analysis approach can be used to facilitate
+service development on the following scenario. The scope of applications of protocol anal-
+ysis goes however beyond just this example as we will see in the next section. We assume
+here that a developer is deﬁning a BPEL process, related to the handling of a purchase
+order, and that the process invokes several services during its execution. The tool will
+assist the developer in checking if the selected services have a protocol which is fully or
+partially compatible with the deﬁned BPEL process, will identify which conversations can
+and cannot be carried out, and will also tackle the case of non compatibility by supporting
+the development of protocol adapters.
+6.2.1 BPEL process outline
+Consider the BPEL process depicted on Figure 9. It orchestrates four web services to
+process a purchase order. For the sake of clarity, we have removed the assign BPEL in-
+structions from the process diagram, normally required to prepare and reuse the messages
+exchanged with the involved web services. The ﬁrst part of the process handles the pay-
+ment options. If the customer asks for a loan, then the process will make an oﬀer using
+theaccounting web service. The customer can then accept or reject it. The asynchronous
+pick BPEL construction deﬁnes an alarm that will be ﬁred after 72 hours to discard the
+process instance if the customer does not reply in time to the loan oﬀer. The second part
+checks for the ordered goods availability with the warehouse web service. If some goods
+are not available, they will be ordered. In order to match quality of service requirements,
+the purchase is canceled if the warehouse does not manage to purchase the missing goods
+within 48 hours. The third an last part of the process handles the payment and prepares
+the goods delivery. Finally, the customer is notiﬁed that the purchase has successfully
+completed.
+6.2.2 Business protocols extraction
+Based on this BPEL process deﬁnition, we extract the timed protocols that the process
+supports when interacting with its partner services. To do this, we use our multi-party
+protocol BPEL extractor, and we then obtain the protocol governing the interaction of
+the process with each of the partner services by ﬁltering the multi-party protocol based on
+each service partner link. The extractor, developed as part of the ServiceMosaic project,
+takes a BPEL process as its input and then outputs a multi-party protocol , an extension of
+a timed protocol where a message is also tagged with the partner link of the service which
+is sending or receiving the message. As such, a multi-party business protocol captures
+the message choreography of a BPEL process orchestrator. First, we identify protocol
+extraction patterns for each type of basic and complex BPEL activity. The extraction starts
+from the beginning of the process and goes through each activity to apply the protocol
+23
+
+--- Page 25 ---
+	
+
+				
+
+	
+	
+
+	
+	
+	
+	
+
+	
+	
+
+
+	
+ 
+
+ 
+
+
+
+Figure 9: A BPEL process that handles purchase orders.
+24
+
+--- Page 26 ---
+	
+
+	
+		
+	
+
+	
+		
+		
+
+
+		
+
+
+		
+
+
+
+
+	
+		
+
+
+	
+
+		
+	
+
+Figure 10: Timed protocols extracted from the BPEL process of Figure 9.
+extraction patterns as they are recognized. When a complex activity is encountered (e.g.,
+if,switch ,while ,pick, ...), it is recursively processed on each of its complex activities until
+basic activities are reached. The obtained protocol fragments are assembled by inverse
+recursion. For instance, if a ifactivity comprises one invoke on each alternative branch,
+then a protocol fragment is derived from each invoke , then they are combined as diﬀerent
+branches from the current state in the extraction process.
+The protocol which is followed by the process while interacting with a given service
+(identiﬁed by its BPEL partner link ) can be obtained as follows. The idea is to perform
+a special form of ﬁltering on the multi-party protocol. In a similar fashion as projection
+for timed automata [4], we replace the messages with εon the transitions that are not
+associated with the partner link of the service that we are interested in. Also, each temporal
+constraint that refers to a transition which is not from the target partner link is removed.
+Indeed, they do not make sense in the protocol that we want to obtain since they refer
+to events that are not “seen” by the orchestrated service. Finally, the service protocol is
+obtained by removing the εtransitions using standard techniques on automata [35]. This
+is possible only because if we mapped to timed automata, there would be no guard nor
+clock resets on these transitions [31]. While still experimental, we have found out that the
+protocol extraction operator works well for a large majority of BPEL processes
+In this scenario, the resulting protocols are shown in Figure 10. Figure 11 shows
+instead the protocol of the warehouse service we are planning to use as one of the services
+invoked by our process. Note that this transformation is not reversible. When generating a
+protocol, we only care about possible ordering of messages and not about the many details
+prescribed by a BPEL process (such as why – based on which condition – a certain path
+is chosen). Nevertheless, we had developed developed techniques for generating service
+implementation templates in BPEL from protocols deﬁnitions [5].
+25
+
+--- Page 27 ---
+	
+	
+
+
+
+	
+	
+
+
+		
+
+
+Figure 11: The complete warehouse service protocol.
+6.2.3 Protocol analysis
+	
+
+
+	
+	
+
+	
+	
+	
+
+
+	
+
+Figure 12: Analysis of the common and diﬀering conversations supported by P3andP5.
+We next apply the protocol analysis operators to assess compatibility between the
+protocols supported by our process and the protocols of the services we plan to use. For
+this, we assume that either the protocol or BPEL deﬁnition (from which we extract the
+protocol) of these services is available. Figure 12 shows the results of this analysis for the
+warehouse service. In particular, the compatible composition operator P5￿TIP3gives the
+set of the conversations that can occur between protocols P3andP5. Ideally, we would
+want this set to be equal to the conversations supported by P3, which means that P5is
+fully compatible with P3.
+However, in our example, we do not have such luck. In fact we see that the conver-
+sations supported by the compatible composition are a subset of those supported by P3.
+The ﬁgure further shows the conversations that are supported by the process but not by
+26
+
+--- Page 28 ---
+our partner service P5(which is empty in case of full compatibility), as well as the con-
+versations that the partner supports but that the process does not support. The ﬁrst of
+these two combined protocols is obtained by computing the inverse P−1
+3ofP3and then the
+diﬀerence P−1
+3￿TDP5. The latter is instead computed as P5￿TDP−1
+3. As we will examine
+later, all these combined protocols will become helpful in examining if and which changes
+need to be made to the process.
+In particular, while the ﬁrst combined protocol of Figure 12 (compatible composition)
+tells us what we can do, the second one denotes what our process is prevented from doing
+when using this partner (hence we call these prevented interactions ), while the third one
+denotes conversations that the partner would support, but we are not leveraging due to
+how we implemented the process. We call these neglected interactions .
+It is interesting to note that no compatibility problem would have been spotted in the
+case of business protocols without timing constraints [12]. Indeed, the untimed version of
+P5would have supported all of the conversations of the untimed version of P3.
+6.2.4 Managing partial replaceability scenarios
+By looking at the three combined protocols, the developer can assess if the selected ser-
+vice is a good ﬁt or not, and how to handle situations of partial replaceability or of no
+replaceability. In general, this depends on the speciﬁc business purpose of the process.
+For example, the service I am planning to invoke may not support a cancelPO operation,
+but I may be willing to take the risk and use it anyways even if cancellations are not
+allowed, for example because it oﬀers cheaper rates. Or, conversely, the selected service
+supports several forms of payments (accessed via diﬀerent protocols) but my process can
+only support one of them, and we may be ﬁne with it as for example our company only
+issues payments via credit card and not via bank transfers.
+Alternatively, we can modify the process deﬁnition to adapt it to the service we are
+using, either to:
+1. ensure that our process does not generate conversations our partner cannot under-
+stand, or
+2. leverage conversations supported by our selected services (e.g., extend our process to
+support bank transfers).
+As another example, in our process, we can remove the onAlarm 48h handler of the sec-
+ondpick complex activity, so that the process will wait for the purchaseResponse message
+to arrive, thereby removing the problematic temporal constraints in the extracted expected
+warehouse protocol. However, the process may ﬁnd itself being put on hold indeﬁnitely
+if a problem occurs on the warehouse service and it does not send a purchaseResponse
+message back.
+Another solution is to generate a protocol adapter [7] to reconcile the diﬀerences. It
+can be done with the ServiceMosaic tools using an aspect-oriented framework [37] where
+adapters are plugged through advices written in BPEL. The adapter is developed as fol-
+lows. The pointcut is triggered when a purchaseRequest message is received. The advice is
+a BPEL process where an alarm starts counting from the reception of the purchaseRequest
+message. If the service does not send a purchaseResponse withing the next 48 hours, then
+the adapter drops it when the warehouse service sends it afterwards. The BPEL engine
+will have already woken up the process instance by then, and taken action by replying to
+the client partner link with a cancelPO message.
+Finally, it should be noted that for most BPEL engines, a message is simply dropped
+when it cannot be dispatched to any process instance for which it is waiting. An exception
+27
+
+--- Page 29 ---
+is then usually raised and logged inside the BPEL engine. In this example the adapter
+would be useful for diminishing the number of internally-thrown exceptions (raising ex-
+ceptions has a signiﬁcant performance cost). The choice of developing this adapter should
+be balanced in light of its development cost compared to the (limited) beneﬁts, as BPEL
+engines can provide a form of “implicit” adapter in very speciﬁc mismatches cases such as
+this one.
+7 Discussion
+We now provide a discussion that includes related work as well as two limitations of our
+approach.
+7.1 Related work
+7.1.1 Timed automata
+Many classes and extensions of timed automata have been studied. Deterministic timed
+automata [2] are known to be closed under complementation. So are event-clock automata
+[3], a subclass of deterministic timed automata which have the interesting property that
+every such indeterministic automaton has an equivalent deterministic automaton. Allow-
+ing diagonal constraints ( x−y#c) [16] make the model more concise but does not add
+to the expressiveness. Additive constraints ( x+y#c)r e n d e r st h ee m p t i n e s sc h e c k i n g
+problem decidable for 1 or 2 clocks, open for 3 clocks and undecidable starting from 4
+clocks [15]. Non-standard ( x:= 0) clocks resets make this problem decidable for x:=c
+andx:=x+ 1 (if diagonal constraints are not allowed) but undecidable for x:=x−1
+[22]. The class of Robust Timed Automata allows to recognize events with fuzziness w.r.t.
+dates [4]. Previous work on timed automata augmented with ε-transition had suggested
+that the class of protocol timed automata would not have been closed under complemen-
+tation [23, 16, 31]. While the results presented in [31] still hold in the general case where
+ε-transitions can reset an arbitrary number of clocks and have complex guards on transi-
+tions, we have identiﬁed a very speciﬁc class for which the traditionally “hard” problems
+become decidable (closure under complementation and language inclusion). The class of
+event-recording timed automata [3] is a subset of deterministic timed automata. They also
+form a subset of protocol timed automata.
+7.1.2 Standardization eﬀorts
+Standardization organizations (e.g., W3C, OASIS) have tried to provide speciﬁcations
+for describing the external behavior of web services in terms of both choreographies and
+orchestrations. They build on top of the existing widely used speciﬁcations for the static
+interfaces of web services (e.g., WSDL, XML-Schema). BPEL, WSCL and WSCI are
+examples of speciﬁcations that feature support for describing services conversations [44],
+although the last two do not seem to have gained much adoption in practice. Our work is
+complementary to those speciﬁcations rather than competing. Choreography speciﬁcations
+(in WSCI or a WSCL extension) can be derived back and forth from timed protocols.
+BPEL orchestrations can be processed by our protocol extraction tool for obtaining the
+expected business protocol of each service that it orchestrates.
+28
+
+--- Page 30 ---
+7.1.3 Models for web services
+Research on web services has lead to various models being proposed to describe their
+behavior and/or implementation for the purpose of analysis and execution. A discussion
+on modeling web services interactions has been proposed in [25] and is further discussed in
+[26]. An approach for web services interfaces was deﬁned in [21]. A model with similar goals
+as timed protocols had been introduced in [18], but the timing constraints deﬁned in the
+model have not been taken into account. A language for web services choreographies called
+Chor has been proposed in [46] as a simpliﬁcation of WS-CDL. All of these approaches
+share many similarities with this work and the base model for business protocols of [12].
+Surprisingly, little work has been done on timing abstractions.
+7.1.4 Veriﬁcation techniques
+Many works have tried to apply in various ﬁelds veriﬁcation techniques such as checking for
+liveness, the absence of deadlocks or the conformance against speciﬁcations. A substantial
+amount of work has been done in the ﬁeld of workﬂow systems [1, 29, 20]. In the case of
+web services, timed automata have been used in [36, 30, 18]. In the case of [18] the WSTL
+model had been designed with timing constraints as “ﬁrst-class citizen”, but they have
+never been leveraged. BPEL-based web services interactions have been analyzed in [33]
+by the mean of guarded automata with unbounded message queues where the automata
+synchronization problem is studied in synchronous and asynchronous communications.
+The same types of veriﬁcations can be easily done on protocol timed automata using
+TCTL, an extension of temporal logics for timed automata, and a model checker such as
+UPPAAL [6]. Such approaches are complementary to this work. Interestingly, we reused
+and extended results from the ﬁeld of formal veriﬁcation (e.g., timed automata), but not
+for the purpose of doing “classical” model-checking.
+7.1.5 Compatibility and replaceability
+Software components have some fundamental similarities with web services: they promote
+good practices such as loose coupling and reuse. Also, they can be remotely accessed over a
+network. Similar approaches for protocols compatibility and replaceability exist in the area
+of component-based systems [51, 28]. The importance of being able to check for services
+compatibility or replaceability has lead to several research works [38, 32, 21]. Surprisingly,
+these approaches do not cater for timing constraints. They also perform “black or white”
+analysis. By contrast, our approach is able to provide a more ﬁne-grained type of analysis
+by identifying the “partial cases” like the partial compatibility or the replaceability with
+respect to a client protocol. We believe that this ﬂexibility will signiﬁcantly prove to be
+useful in practice, as full compatibility or replaceability of business protocols can hardly
+be reached on the Internet which is an open service deployment environment. The notion
+of process inheritance has been studied in the domain of workﬂows [50, 27]. It is similar to
+protocols replaceability. Diﬀerent types of inheritance relations are proposed in [50]. They
+provide some ﬂexibility much like we did with the diﬀerent classes of protocol replaceability.
+However, these approaches do not consider temporal abstractions.
+7.1.6 Model management
+The work that has been done in the model management area focuses on manipulating mod-
+els (e.g., database schemas, XML schemas) and matches between them (e.g., equivalence
+between 2 database schema) on an equal foot [19]. The matches relationships between
+29
+
+--- Page 31 ---
+2 models can be used for matching, merging or composition purposes. The models can
+also be manipulated through various operators like the intersection, the union or the dif-
+ference. A set of combined static and behavioral matching and merging techniques for
+statecharts-based speciﬁcations have been proposed in [40]. This work has been done in
+a similar fashion as the approaches for schema matching (including databases and XML)
+mentioned in [47, 19]. The work presented in this paper is largely inspired what has been
+done in this research ﬁeld. Indeed, timed protocols are models and we have deﬁned proto-
+col manipulation operators (composition, diﬀerence and intersection) as well as comparison
+operators (subsumption and equivalence) that deﬁne matchings between protocols. The
+match operator of [40] could be used to identify compatibility and replaceability between
+two (untimed) business protocols of [12]. A clear beneﬁt of this approach would be to
+detect matches when protocols have diﬀerent messages names but similar semantics (e.g.,
+login andconnect ), as in our case the operators match the messages only on name equal-
+ity. The matches and mismatches could then be exploited to generate protocol adapters
+[7, 42]. However, it requires human intervention as the heuristic results may contain miss-
+ing and invalid matches. Also, it does not cater for timing constraints as they require
+proper analysis techniques as done on timed automata.
+7.2 Limitations
+7.2.1 Constraints with absolute dates
+Timed protocol constraints are always expressed relatively to a transition of a given
+protocol being ﬁred (e.g., C-Invoke( T1<3h)). Absolute dates cannot be used in
+constraints (e.g., C-Invoke( T1<’2007-04-19 14:49:00’) or C-Invoke(current time <
+’2007-04-19 14:49:00’)). Such types of constraints can be found in some speciﬁcations
+such as BPEL [43] where both types of relative andabsolute time expressions can be used.
+Let us brieﬂy investigate the impact of introducing absolute dates into the model by look-
+ing at the involved mechanisms at the timed automata level. Allowing a constraint to
+compare a clock xto a constant date (e.g., x< ’2007-04-19 14:49:00’) which represents
+an absolute date requires the following assumptions. (i) xis set to a constant now which
+represents the current date when the automaton execution starts, and (ii) xis always
+compared to absolute dates, and (iii) xis never reset in the considered automaton.
+We claim that making such an extension renders the timed language emptiness checking
+problem undecidable. The proof can be done by observing that now is actually a variable.
+In timed automata, the clocks are set to a constant value (usually 0) when the execution
+starts. Here, we would have some special clocks that would be initially set to a value which
+depends on the current time. Hence, the result of checking for the emptiness of such an
+extended timed automaton would only hold considering the time at which the checking
+has been performed (i.e., the results holds at time tbut may not hold anymore at time
+t+δwith any δ∈R≥0).
+This limitation of timed protocols in terms of expressiveness is not a penalty as such
+constructs are of limited use in practice. In the case of BPEL, timers are mainly used for
+generating timeout exceptions in asynchronous operations (e.g., the pick complex activity).
+They can be also used for a wait activity (e.g., put the process in sleep to enforce legal
+regulations). In our experience, we have never found a need for expressing absolute dates in
+BPEL processes. Also, JBoss JBPM (seehttp://www.jboss.com/products/jbpm ), a widely
+used business process management system, oﬀers a workﬂow language called jPDL where
+time-related constructs are always expressed in a relative manner (i.e., jPDL does not
+allow specifying absolute dates for timers).
+30
+
+--- Page 32 ---
+7.2.2 Message transport communications
+Finally, our model is based on the assumption that there are no message transmission
+delays and losses. This is of course not the case in reality as web services messages are
+mostly transported over unreliable networks that can have substantial load variations,
+leading to greatly varying network latencies and even errors. As mentioned in related
+work, the class of Robust Timed Automata [4] is a possible exploration path.
+8 Conclusion
+This paper has revisited the concepts presented in earlier work by providing an extended
+model for web services business protocols that supports timing abstractions. The level of
+abstraction that drove the design of this model was developed on the grounds of a study of
+real-world scenarios related to web services. The model can be leveraged for ﬁne-grained
+protocol compatibility and replaceability analysis based on a set of protocol manipulation
+and comparison operators. We showed that the decision problems surrounding their im-
+plementation are decidable, thanks to the mapping and the identiﬁcation of a novel class
+of timed automata which is closed under complementation and for which the language
+inclusion problem is decidable despite the presence of ε-transitions with clocks resets. We
+also presented our initial prototype as part of the ServiceMosaic project and gave a case
+study.
+The results presented in this paper will pave the road for an agile web services compo-
+sition development and management framework. Brieﬂy, this environment will be centered
+around protocol repositories. They will be queried for compatibility at development time,
+allowing the rapid-prototyping of service compositions. In turn, they will be queried for
+replaceability at runtime to handle needs to substitute a service that becomes unavail-
+able or whose protocol has changed. In both development and runtime environments, the
+framework will provide means to help at generating adapters.
+We believe that modeling and analysis techniques with formal foundations such as the
+ones that we have presented will help at transforming the development and the mainte-
+nance of web services based applications from an “art”, requiring a substantial amount of
+manual interventions, to a model-driven process that is automated to a large extent.
+Acknowledgments
+We would like to thank the following people for their help: C´ ecile Maudelonde-Andrieu
+(RosettaNet PIPs), Sandrine Rivet (multi-party timed protocols extraction from BPEL)
+and Kevin Hivernat (protocol repositories). We would also like to thank the anonymous
+reviewers for their accurate and interesting remarks.
+References
+[1] W.M.P. van der Aalst. The Application of Petri Nets to Workﬂow Management. The
+Journal of Circuits, Systems and Computers , 8(1):21–66, 1998.
+[2] Rajeev Alur and David L. Dill. A theory of timed automata. Theoretical Computer
+Science , 126(2):183–235, 1994.
+[3] Rajeev Alur, Limor Fix, and Thomas A. Henzinger. Event-clock automata: A deter-
+minizable class of timed automata. Theor. Comput. Sci. , 211(1-2):253–273, 1999.
+31
+
+--- Page 33 ---
+[4] Rajeev Alur and P. Madhusudan. Decision problems for timed automata: A survey.
+InSFM , pages 1–24, 2004.
+[5] Karim Ba¨ ına, Boualem Benatallah, Fabio Casati, and Farouk Toumani. Model-driven
+web service development. In CAiSE , pages 290–306, 2004.
+[6] Gerd Behrmann, Alexandre David, and Kim Guldstrand Larsen. A tutorial on uppaal.
+InSFM , pages 200–236, 2004.
+[7] Boualem Benatallah, Fabio Casati, Daniela Grigori, Hamid R. Motahari Nezhad, and
+Farouk Toumani. Developing adapters for web services integration. In CAiSE , pages
+415–429, 2005.
+[8] Boualem Benatallah, Fabio Casati, Julien Ponge, and Farouk Toumani. Compatibility
+and replaceability analysis for timed web service protocols. In BDA , 2005.
+[9] Boualem Benatallah, Fabio Casati, Julien Ponge, and Farouk Toumani. On temporal
+abstractions of web service protocols. In CAiSE Short Paper Proceedings , 2005.
+[10] Boualem Benatallah, Fabio Casati, and Farouk Toumani. Analysis and Management
+of Web Services Protocols. In Proceedings of ER 2004. Shanghai, China , November
+2004.
+[11] Boualem Benatallah, Fabio Casati, and Farouk Toumani. Web service conversa-
+tion modeling: A cornerstone for e-business automation. IEEE Internet Computing ,
+08(1):46–54, 2004.
+[12] Boualem Benatallah, Fabio Casati, and Farouk Toumani. Representing, analysing
+and managing web service protocols. Data Knowledge. Engineering , 58(3):327–357,
+2006.
+[13] Boualem Benatallah, Fabio Casati, Farouk Toumani, and Rachid Hamadi. Conceptual
+modeling of web service conversations. In CAiSE , pages 449–467, 2003.
+[14] Boualem Benatallah, Fabio Casati, Farouk Toumani, Julien Ponge, and Hamid
+Reza Motahari Nezhad. Service mosaic: A model-driven framework for web services
+life-cycle management. IEEE Internet Computing , 10(4):55–63, 2006.
+[15] B´ eatrice B´ erard and Catherine Dufourd. Timed automata and additive clock con-
+straints. Information Processing Letters , 75(1-2):1–7, July 2000.
+[16] B´ eatrice B´ erard, Antoine Petit, Volker Diekert, and Paul Gastin. Characterization
+of the expressive power of silent transitions in timed automata. Fundam. Inform. ,
+36(2-3):145–182, 1998.
+[17] Daniela Berardi. Automatic composition services: models, techniques and tools, phd
+thesis. Universita di Roma La Sapienza, Roma, Italy, 2002.
+[18] Daniela Berardi, Fabio De Rosa, Luca De Santis, and Massimo Mecella. Finite state
+automata as conceptual model for e-services. J. Integr. Des. Process Sci. , 8(2):105–
+121, 2004.
+[19] Philip A. Bernstein, Sergey Melnik, Michalis Petropoulos, and Christoph Quix.
+Industrial-strength schema matching. SIGMOD Rec. , 33(4):38–43, 2004.
+[20] Claudio Bettini, X. Sean Wang, and Sushil Jajodia. Temporal reasoning in workﬂow
+systems. Distrib. Parallel Databases , 11(3):269–306, 2002.
+[21] Dirk Beyer, Arindam Chakrabarti, and Thomas A. Henzinger. Web service interfaces.
+InWWW , pages 148–159, 2005.
+[22] Patricia Bouyer, Catherine Dufourd, Emmanuel Fleury, and Antoine Petit. Updatable
+timed automata. Theor. Comput. Sci. , 321(2-3):291–345, 2004.
+[23] Patricia Bouyer, Serge Haddad, and Pierre-Alain Reynier. Undecidability results for
+timed automata with silent transitions. Research Report LSV-07-12, Laboratoire
+Sp´ eciﬁcation et V´ eriﬁcation, ENS Cachan, France, February 2007.
+32
+
+--- Page 34 ---
+[24] Patricia Bouyer, Fran¸ cois Laroussinie, and Pierre-Alain Reynier. Diagonal constraints
+in timed automata: Forward analysis of timed systems. In FORMATS , pages 112–126,
+2005.
+[25] Tevﬁk Bultan. Modeling interactions of web software (invited paper). In WWV 2006 ,
+2006.
+[26] Tevﬁk Bultan, Jianwen Su, and Xiang Fu. Analyzing Conversations of Web Services.
+IEEE Internet Computing , 10(1):18–25, 2006.
+[27] Christoph Bussler. Process inheritance. In Proceedings of CAiSE’02 , volume 2348 of
+Lecture Notes in Computer Science , pages 701–705. Springer, 2002.
+[28] Carlos Canal, Lidia Fuentes, Ernesto Pimentel, Jos M. Troya, and Antonio Vallecillo.
+Adding roles to corba objects. IEEE Trans. Softw. Eng. , 29(3):242–260, 2003.
+[29] Elisabetta De Maria, Angelo Montanari, and Marco Zantoni. An automaton-based
+approach to the veriﬁcation of timed workﬂow schemas. In TIME , pages 87–94, 2006.
+[30] Gregorio D´ ıaz, Mar´ ıa-Emilia Cambronero, Juan Jos´ e Pardo, Valentin Valero, and
+Fernando Cuartero. Automatic generation of correct web services choreographies and
+orchestrations with model checking techniques. In AICT/ICIW , page 186, 2006.
+[31] Volker Diekert, Paul Gastin, and Antoine Petit. Removing epsilon-transitions in timed
+automata. In STACS , pages 583–594, 1997.
+[32] Howard Foster, Sebasti´ an Uchitel, Jeﬀ Magee, and Jeﬀ Kramer. Leveraging eclipse
+for integrated model-based engineering of web service compositions. In ETX , pages
+95–99, 2005.
+[33] Xiang Fu, Tevﬁk Bultan, and Jianwen Su. Analysis of interacting bpel web services.
+InWWW ’04: Proceedings of the 13th international conference on World Wide Web ,
+pages 621–630, New York, NY, USA, 2004. ACM Press.
+[34] Claude Girault and Rudiger Valk. Petri Nets for System Engineering: A Guide to
+Modeling, Veriﬁcation, and Applications . Springer-Verlag New York, Inc., Secaucus,
+NJ, USA, 2001.
+[35] John E. Hopcroft, Rajeev Motwani, and Jeﬀrey D. Ullman. Introduction to Automata
+Theory, Languages, and Computation (2nd Edition) . Addison Wesley, November
+2000.
+[36] Raman Kazhamiakin, Paritosh K. Pandya, and Marco Pistore. Timed modelling and
+analysis in web service compositions. In ARES , pages 840–846, 2006.
+[37] Woralak Kongdenfha, R´ egis Saint-Paul, Boualem Benatallah, and Fabio Casati. An
+aspect-oriented framework for service adaptation. In ICSOC , pages 15–26, 2006.
+[38] Massimo Mecella, Barbara Pernici, and Paolo Craca. Compatibility of e -services in a
+cooperative multi-platform environment. In Procs. of TES ’01 , pages 44–57, London,
+UK, 2001. Springer-Verlag.
+[39] Hamid R. Nezhad Motahari, R´ egis Saint-Paul, Boualem Benatallah, Fabio Casati,
+Julien Ponge, and Farouk Toumani. Servicemosaic: Interactive analysis and manip-
+ulation of service conversations. In ICDE , pages 1497–1498, 2007.
+[40] Shiva Nejati, Mehrdad Sabetzadeh, Marsha Chechik, Steve M. Easterbrook, and
+Pamela Zave. Matching and merging of statecharts speciﬁcations. In ICSE , pages
+54–64, 2007.
+[41] Hamid R. Motahari Nezhad, R´ egis Saint-Paul, Boualem Benatallah, and Fabio Casati.
+Protocol discovery from imperfect service interaction logs. In ICDE , pages 1405–1409,
+2007.
+33
+
+--- Page 35 ---
+[42] Hamid Reza Motahari Nezhad, Boualem Benatallah, Axel Martens, Francisco
+Curbera, and Fabio Casati. Semi-automated adaptation of service interactions. In
+WWW ’07: Proceedings of the 16th international conference on World Wide Web ,
+pages 993–1002, New York, NY, USA, 2007. ACM.
+[43] OASIS. Web Services Business Process Execution Language Version 2.0. http://docs.
+oasis-open.org/wsbpel/2.0/wsbpel-v2.0.html , April 2007.
+[44] M. P. Papazoglou and D. Georgakopoulos. Special issue on service oriented computing.
+Commun. ACM , 46(10):24–28, 2003.
+[45] Julien Ponge, Boualem Benatallah, Fabio Casati, and Farouk Toumani. Fine-grained
+compatibility and replaceability analysis of timed web service protocols. In ER, pages
+599–614, 2007.
+[46] Zongyan Qiu, Xiangpeng Zhao, Chao Cai, and Hongli Yang. Towards the theoretical
+foundation of choreography. In WWW , pages 973–982, 2007.
+[47] Erhard Rahm and Philip A. Bernstein. A survey of approaches to automatic schema
+matching. The VLDB Journal , 10(4):334–350, 2001.
+[48] RosettaNet. RosettaNet PIP Directory. http://www.rosettanet.org/ , 1996 – 2008.
+[49] Ferucio Laurentiu Tiplea and Geanina Ionela Macovei. E-timed workﬂow nets. In
+SYNASC , pages 423–429, 2006.
+[50] W. van der Aalst. Inheritance of business processes: A journey visiting four notorious
+problems, 2003.
+[51] D.M. Yellin and R.E. Storm. Protocol Speciﬁcations and Component Adaptors. ACM
+Trans. Program. Lang. Syst. , 19(2):292–333, March 1997.
+AP r o o f o f L e m m a 4 . 1 0Figure 13: A protocol timed automaton Athat cannot be expressed equivalently without
+ε-transitions.
+Proof. We need to show that ε-transitions in protocol timed automata cannot always be
+removed, i.e., there are protocol timed automata for which there doesn’t exist equivalent
+automata without ε-transitions. To do that, we exhibit the protocol timed automaton A
+depicted on Figure 13 and use the notions of precise time andprecise actions that were
+introduced in the Theorem 24 of [16] as a tool to identify timed languages that can only
+be recognized by timed automata featuring ε-transitions. The proof is virtually the same
+as the one of Corollary 29 in [16].
+34
+
+--- Page 36 ---
+It is easy to check that Ais a protocol timed automaton. Apresents 2 ε-transitions
+lying on directed cycles, hence we don’t know if they can be removed using the techniques
+presented in Section 8 in [16].
+Let us now suppose that L(A) can be recognized by a timed automaton A￿without
+anyε-transition. Note that A￿is free of diagonal constraints (e.g., constraints of the form
+x−y#c).A￿can be rendered disjunction-free without any loss of generality (see [16]
+for techniques and discussion). In order to leverage the Theorem 24 of [16], we deﬁne
+Cmax = 1 (no constant in the guards of Ais larger than 1). Let also δ> 0.Acan
+recognize timed words of the form
+(b, δ 1)·(b, δ 2)···(b, δ d−1)·(a, d)·(a, d+ 1) ···
+where d∈N,d≥Cmax andδi∈(i−1,i)\δNfor all 0 <i<d . Let Pa path of A￿that
+accepts such a timed word. Given that the a-labeled events occur at integer times, their
+occurrences should be precise inP. Also, d≥Cmax, hence from Theorem 24 of [16], there
+exist some occurrence of bthat should be precise in Pwhich is not possible as δi￿∈δNfor
+any 0 <i<d . Consequently, L(A) cannot be recognized by a timed automaton without
+ε-transitions.
+BP r o o f o f L e m m a 4 . 7
+Proof. Let us check the implication.
+(gj=false )￿
+(permits( gj)=false )∧(permits( gi)=true )=true
+is equivalent to
+(permits( gj)=true )￿
+(permits( gj)=false )∧(permits( gi)=true )=true
+which reduces to
+(permits( gj)=true )￿ ￿￿ ￿
+false asgj=true￿
+(permits( gi)=true )=true￿ ￿￿ ￿
+permits( gi)=true
+and the implication is veriﬁed. Indeed, permits( gi)=true , else this would mean that the
+switch whose guard is ￿gihad already been activated.
+C Proof of Theorem 4.8
+Proof. Let us compute the cases where inhib( g) evaluates to false . We assume that
+y∈Yis the clock that is reset on every switch whose target location is l. We compute
+and expand the negation:
+¬permits( g)=( x>k )
+∧((x≤k)∨(x−y≤k))
+∧((x≤k)∨(x−y>k )∨¬inhib( g))
+∧((x￿=k)∨¬inhib( g))
+35
+
+--- Page 37 ---
+we make a ﬁrst development:
+=( (x=k)∨(x≥k)∧(x−y≤k))
+∧((x<k )∨(x￿=k)∧(x−y>k )
+∨(x￿=k)∧¬inhib( g)
+∨(x≤k)∧¬inhib( g)
+∨(x−y>k )∧¬inhib( g)
+∨¬inhib( g))
+and a second one:
+=(x=k)∧¬inhib( g)
+∨(x=k)∧(x−y>k )∧¬inhib( g) false
+∨(x>k )∧(x−y≤k)∧¬inhib( g)
+∨(x=k)∧(x−y≤k)∧¬inhib( g)
+∨(x≥k)∧(x−y≤k)∧¬inhib( g)
+by reducing the last 3 disjunctions:
+¬permits( g)=( x=k)∧¬inhib( g)
+∨(x≥k)∧(x−y≤k)∧¬inhib( g)
+=(x≥k)∧(x−y≤k)∧¬inhib( g) (1)
+(1): (( x=k)=true )=⇒((x−y≤k)=true ).
+This means that permits( g) disables switches when:
+1. (x=k) is satisﬁed as well as g￿,r e s u l t i n gi nt h e ε-labeled switch whose guard is gto
+be enabled, or
+2.lwas entered before ( x=k) was satisﬁed, g￿was satisﬁed when ( x=k) was, and the
+current clocks valuation satisﬁes ( x≥k), forcing the ε-labeled switch to be taken.
+DP r o o f o f L e m m a 4 . 1 1
+Proof. Let us consider a location lthat oﬀers several switches, including n>0ε-labeled
+ones. By considering two switches from l, three cases are possible.
+1. The switches have both labels that are not ε. By deﬁnition their guards are disjoint.
+2. One switch ei(i∈{1,···,n}) has εas its label with a guard
+(gi￿
+1≤j￿=i≤npermits( gj))
+and the other switch has a label that is not εand a guard
+(g￿
+1≤j≤npermits( gj))
+The product of the guards contains a sub-clause ( gi∧permits( gi)) which is false: the
+guards are disjoint.
+36
+
+--- Page 38 ---
+3. The two switches have εas their label. The product of their guards will make a
+sub-clause of the following form to appear:
+(xi=ki)∧g￿
+i∧permits( gj)∧(xj=kj)∧g￿
+j∧permits( gi)
+(iandjbelong to {1,···,n}with i￿=j). As permits( gj)∧g￿
+jis false, the guards are
+disjoint.
+E Proof of Theorem 4.12
+Proof. The construction of A∗adds one location qtoAas well as one new switch per
+symbol of the alphabet and per location of Aplus q. We ﬁrst show that the construction
+preserves determinism, and that given an input symbol, it can be recognized for any clocks
+valuation when the current location doesn’t have any ε-labeled switch.
+As every new switch guard is deﬁned as the negation of the disjunctions of the guards
+of the switches from the same label, the intersection of the guards of every switch on the
+same label for a location lis necessarily false, meaning that those guards are disjoint. In
+the case where a location ldoes not oﬀer any ε-labeled switch, it is also easy to check that
+the disjunction of the guards of the switches having the same label from lis true as in [2].
+Let us now consider a location lhaving n> 0ε-labeled switches gεi(1≤i≤n).
+We also consider any symbol aof the alphabet and the m> 0 guards of the a-labeled
+switches from l:{g1,···,gm}(again, given 1 ≤j≤m,gjis considered without its permits
+constraint clauses). Let us compute the disjunction of the a-labeled switches guards:
+
+g1￿
+1≤i≤npermits( gεi)
+￿
+···￿
+gm￿
+1≤i≤npermits( gεm)
+
+By construction there exists j∈{1,···,m}such that gj=¬￿
+￿
+1≤k￿=j≤mgk￿
+,h e n c et h e
+previous disjunction reduces to:
+￿
+1≤i≤npermits( gεi)
+which means that ais recognized from lunder M-Invoke semantics. However, Amust
+also recognize awhen this expression evaluates to false, which is clearly not possible from
+l.
+Letvbe a clocks valuation such that ais to be recognized and
+v|=
+￿
+1≤i≤npermits( gεi)=false
+
+We can make the following remarks:
+1. the current location is not lanymore as a ε-labeled switch has been taken for the ﬁrst
+clock valuation that stopped satisfying the previous expression, and
+2. the current location change through the ε-labeled switch was instantaneous.
+37
+
+--- Page 39 ---
+Let us call the current location l￿. By construction, it oﬀers a-labeled switches. From the
+remarks above, the guard of every switch satisﬁes
+¬
+￿
+1≤i≤npermits( gεi)
+
+for the clocks valuation v.
+Consequently, acan always be recognized from land the locations available through
+itsε-labeled switches:
+
+￿
+1≤i≤npermits( gεi)
+￿
+¬
+￿
+1≤i≤npermits( gεi)
+=true
+38

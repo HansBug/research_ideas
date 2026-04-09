@@ -1,0 +1,463 @@
+--- Page 1 ---
+arXiv:0909.1361v1  [cs.SE]  8 Sep 2009Statechart Veriﬁcation withiState
+DaiTri ManLˆ e
+Department of Computer Science,
+Universityof Toronto,
+Toronto, ON,M5S 3G4Canada
+ledt@cs.toronto.edu
+Abstract. This paper is the long version of the extended abstract with t he same
+name [9]. We describe in detail the algorithm to generate ver iﬁcation conditions
+fromstatechartstructuresimplementedintheiStatetool. Thisapproachalsosug-
+gests us a novel method todeﬁne a version of predicate semant ics for statecharts
+analogous tohow we assignpredicate semantics toprogrammi ng languages.
+1 Introduction
+The statechart formalism, proposed by Harel [7] as an extens ion of conventional ﬁ-
+nite state machines, is a visual language for specifying rea ctive systems. It addresses
+the state explosion problem of state transition diagrams wh en modeling systems with
+parallel threads of control by introducing the concepts of hierarchy ,concurrency , and
+communication .
+TheiStatetooltranslatesstatechartsintovariousprogramminglang uages,currently
+the Abstract Machine Notation (AMN) of the B method [1], Pasc al, and Java. The
+translation is based on a deﬁnition of statecharts in terms o f an extension of Dijkstra’s
+guardedcommands[15,16]. Thiswork demonstratesa novelst atechartveriﬁcationap-
+proachusing state invariants thathasbeenaddedto iState.
+2 Invariants
+Statecharts allow executable speciﬁcations to be derived f rom user requirements. We
+propose to supplement a statechart speciﬁcation by invariants . These are attached to
+states and specify what has to hold in a state conﬁguration.I nvariantsare also derived
+from the requirements.They are not meant for execution,but they allow the statechart
+speciﬁcation to be cross-checked.By themselves, statecha rts do not lead to opportuni-
+ties for consistency checks beyond well-formedness; invar iants address this limitation
+andgivea wayofdocumentingthe“purpose”ofstates.
+Formally, invariants are predicates over global variables , likexin the example be-
+low,andstates(state tests):
+R(x>1)
+S(x≤100)✲ ✲E[x/ne}ationslash=5] /x:=x+10U(x>6)
+AM(x<111)✲
+BN(x/ne}ationslash=15)✲
+
+--- Page 2 ---
+2
+The deﬁnition of statecharts in [15,16] translates states i nto variables and events into
+(nondeterministic) operations, in which use of the independent (parallel) composition
+of statements is made; the parallel composition operator is essential for translating
+eventswithtransitionsinconcurrentstates. UsingAMN,th estatesofthepreviousstat-
+echartare translatedto variables root∈{R,U},r∈{S},a∈{M}andb∈{N}andthe
+eventEistranslatedto:
+E/definesifroot=Rthen
+ifr=Sthen
+ifx/ne}ationslash=5then
+x:=x+10/bardblroot:=U/bardbla:=M/bardblb:=N
+end
+end
+end
+Letsi:State→Condition beafunctionthatassignstoeachstate theinvariantspeciﬁ ed
+by the designer, or trueif none is speciﬁed, together with a test for being in that sta te.
+Forexample:
+si(S) = (r=S∧x≤100)
+si(U) = (root=U∧x>6)
+By thehierarchicalstructureofstatechart,beingin astat e alsomeansbeinginall ofits
+ancestorstates,inexactlyoneofitschildstatesifthesta teisanXORstate,andinallof
+its child states if the state is anAND state. Hence, we haveto composestate invariants
+togethertocreatethe accumulatedinvariant ai (s)ofstates.Forexample:
+ai(S) = (root=R∧x>1)∧(r=S∧x≤100)
+ai(U) = (root=U∧x>6)∧((a=M∧x<111)∧(b=N∧x/ne}ationslash=15))
+Formally, let Basic,XOR,ANDbe disjoint subsets of the set State. The accumulated
+invariant ai:State→Condition is deﬁned with the help of the child invariant ci :State
+→Condition asfollows:
+ci(s)/defines
+
+si(s)∧Nci[children[{s}]]ifs∈XOR
+si(s)∧Vci[children[{s}]]ifs∈AND
+si(s) ifs∈Basic
+ai(s)/defines^
+si[parent+[{s}]]∧ci(s)
+Here,children[{s}]denotes the set of all child states of a state sandparent+[{s}]de-
+notesthe set ofall ancestorstates of s, whereparentis theinverseofthe childrelation,
+parent=child−1[15,16]. The operatorNstands for xor. The deﬁnition reﬂects the
+meaningofXORandAND states.
+
+--- Page 3 ---
+3
+3 Event Codes and Veriﬁcation Tuples
+For each transition E[guard]/actionfrom state StoT, whereactionis a statement that
+mayreadandwritetoglobalvariables,mayincludestatetes ts,andmaybroadcastother
+events,a veriﬁcationconditionisgenerated:
+{ai(S)∧guard}action{ai(T)}
+In the case of broadcasting in action, the broadcast is replaced by a call to the corre-
+spondingoperation.In the case of transitionsin concurren tstates on the same event E,
+acombinedtransitionisconsidered.Intheexample,thever iﬁcationconditionforevent
+Eis:
+{(root=R∧x>1)∧(r=S∧x≤100)∧x/ne}ationslash=5}
+x:=x+10/bardblroot:=U/bardbla:=M/bardblb:=N
+{(root=U∧x>6)∧((a=M∧x<111)∧(b=N∧x/ne}ationslash=15))}
+Hence, our goal is to automatethe generatingveriﬁcationco nditionprocess. However,
+beforedoingsoweneedtohavedatastructurestostoreandma nipulatetheveriﬁcation
+conditionsefﬁciently.
+Usingthealgorithmdiscussedin[15,16],wemapeachstatec hartdatastructureinto
+nondeterministic operations which is represented using an abstract syntax tree (AST).
+TheASTofintermediatelanguageisstoredusingthedatatyp eEventCode
+EventCode /definesIdentiﬁer/mapsto→Statement
+whereS/mapsto→Tdenotesthe set ofpartialfunctionfrom StoT.
+LetP(S)andseq(S)denote the types power set of Sand ﬁnite sequences of Sre-
+spectively.Alsolet S↔Tdenotethesetofrelationfrom StoT.EachStatement isthen
+deﬁnedasa recursivedata type
+Statement /definesStateAssign State
+|Assignment IdentiﬁerExpression
+|Bcast Identiﬁer
+|Guard Condition ↔Statement
+|Parseq(Statement )
+|Seqseq(Statement )
+|Skip
+where:
+–StateAssign State : denotesthestate assignmentnode.
+–Assignment IdentiﬁerExpression :denotesassignmentnodeandthelefthandside
+oftheassignmentisanidentiﬁerandtherighthandside isan expression.
+–Bcast Identiﬁer : denotes a broadcasting of an event whose name is represente d
+usinganidentiﬁer.
+
+--- Page 4 ---
+4
+–Guard Condition ↔Statement : denotesan alternative choice where each choice
+isguardedusingacondition.Noticethatweuse Condition↔Statement toempha-
+size the possible non-determinism. When several condition s are true at the same
+time,a choiceismadenon-deterministically.
+–Parseq(Statement ):denotestheparallelcompositionofasequenceofstatemen ts.
+Duetothecommutativityofparallelcomposition,wemightu seasetofstatements
+instead ofsequence.However,we decideto use sequencehere onlyforthe sake of
+determinism.
+–Seqseq(Statement ): denotes the sequential composition of a sequence of state-
+ments.
+–Skipdenotestheskip statement.
+The type Condition can either be a state test or a predicate, which is deﬁned as
+following
+Condition /definesStateTest State
+|Predicate Expression
+Notice that using a functional language like syntax to deﬁne Statement andCondition
+allows us to employ pattern-matching on these data types whe n presenting our algo-
+rithms.
+We then generate veriﬁcation conditions from EventCode data structure. This will
+be done by analyzing the structure of EventCode to generate local veriﬁcation condi-
+tionsandcomposingthemtogethersuitablytoproducetheﬁnalver iﬁcationconditions.
+We treat all of these veriﬁcation conditions uniformly usin g the notion of veriﬁcation
+tuple, which we think to be a more suitable representation of Hoare ’s triple for our
+veriﬁcationpurpose.Theveriﬁcationtupletypeisdeﬁneas following:
+VTuple/definesP(State)×Expression×Statement×P(State)
+whereforeach (s,g,a,t)∈VTuplewe have:
+–sdenotestheset ofsourcestatesofthe transition,
+–gdenotestheguardconditionofthetransition,
+–adenotesthestatementwhichchangesthestatesofglobalvar iables(includingstate
+variables),
+–tdenotestheset oftargetstates ofthe transition.
+Notice that each (s,g,a,t)∈VTupleis convertedinto the following veriﬁcation condi-
+tion
+{^
+ai[s]∧g}a{^
+ai[t]}
+which is veriﬁed as a normal Hoare’s triple. However, using s ets of source of target
+statesgivesamoreoptimalwayofcomposingveriﬁcationcon ditionstogether.Thisalso
+helps us avoiding redundancy when generating accumulating invariants due to states
+having common ancestors. In other words, we use the followin g more efﬁcient way
+to calculate the acumulated invariant of a state set. Let the state set closure function
+cl:P(State)→P(State)bedeﬁnedasfollowing
+cl(ss)/defines[
+{parent∗[{s}]|s∈ss}
+
+--- Page 5 ---
+5
+whereR∗denotes the reﬂexive transitive closure of the relation R. We deﬁne the set
+accumulatedinvariantfunction sai:P(State)→Condition asfollows:
+si(s,ss)/defines
+
+si(s)ifs∈Basic
+si(s)ifs∈AND∪XOR∧children(s)∈cl(ss)
+ci(s)otherwise
+sai(ss)/defines^
+{si(s,ss)|s∈cl(ss)}
+For convenience,we let ast:String→Expression∪Statement denote the mapping
+from a String to its AST. Hence, the veriﬁcation condition di scussed in our example
+previouslycanbeexpressesusingthefollowing VTuple:
+({R,S},ast(“x/ne}ationslash=5”),ast(“x:=x+10/bardblroot:=U/bardbla:=M/bardblb:=N”),{U,M,N})
+4 InvariantVeriﬁcation Algorithm
+Beforepresentingthealgorithmforgeneratingveriﬁcatio ntuples,weneedseveralaux-
+iliary functions. We divide Condition intoStateTest andPredicate . The state test con-
+ditionStateTest are generatedbyEventCodegeneratorsusingthe algorithmi n [15,16].
+Hence,welet Predicate denotethetransitionguardssuppliedbyusers.Todistinct these
+twocases, we usethefollowingfunction
+c2tuple:Condition→VTuple
+c2tuple StateTest s =({s},true,Skip,/0)
+c2tuple Predicatee =(/0,e,Skip,/0)
+Consideringthefollowingexamplewhereyouhave:
+ifc1thens1elses2end/bardblifc2thens3elses4end
+For simplicity, we suppose these two statements are simply u ser statements without
+state test or state assignment. Thenthe statement ifc1thens1elses2endcorresponds
+tothe veriﬁcationtupleset
+{(/0,c1,s1,/0),(/0,¬c1,s2,/0)}
+andthestatement ifc2thens3elses4endcorrespondsto theset
+{(/0,c2,s3,/0),(/0,¬c2,s4,/0)}
+Sincethesetwoifstatementsarecomposedinparallel,we th eresultedparallelproduct
+veriﬁcationtuplesetforthewholestatementis:
+{(/0,c1∧c2,s1/bardbls3,/0),(/0,¬c1∧c2,s2/bardbls3,/0),(/0,¬c1∧c2,s2/bardbls3,/0),
+(/0,¬c1∧¬c2,s2/bardbls4,/0)}
+
+--- Page 6 ---
+6
+Themoregeneralcase includingstate tests aretackledusin gthefollowingfunctions:
+parProd :seq(P(VTuple))→P(VTuple)
+parProd []=/0
+parProd [s]=s
+parProd [s1,...,sn]={concat1([t1,...,tn])|(t1,...,tn)∈s1×...×sn}
+concat1:seq(VTuple)→VTuple
+concat1 []=(/0,true,Skip,/0)
+concat1 [(si,gi,ai,ti)|i=1..n]=(Sn
+i=1si,Vn
+i=1gi,Par[a1,...,an],Sn
+i=1ti)
+Thisfunction parProdisusedveryofteninourimplementationandithelpstosimpl ify
+theimplementationsubstantially.
+Similar to the case of parallel composition is the case seque ntial composition. For
+example,aneventcode
+ifc1thens1elses2end;ifc2thens3elses4end
+will betranslatedintothefollowingveriﬁcationtupleset
+{(/0,c1∧c2,s1;s3,/0),(/0,¬c1∧c2,s2;s3,/0),(/0,¬c1∧c2,s2;s3,/0),
+(/0,¬c1∧¬c2,s2;s4,/0)}
+Since the statementsmust be composedsequentially,the fun ctionsare implementedas
+following.
+seqProd :seq(P(VTuple))→P(VTuple)
+seqProd []=/0
+seqProd [s]=s
+seqProd [s1,...,sn]={concat2([t1,...,tn])|(t1,...,tn)∈s1×...×sn}
+concat2:seq(VTuple)→VTuple
+concat2 []=(/0,true,Skip,/0)
+concat2 [(si,gi,ai,ti)|i=1..n]=(Sn
+i=1si,Vn
+i=1gi,Seq[a1,...,an],Sn
+i=1ti)
+We then deﬁne a function s2tupleswhich maps each statement node to a set of
+veriﬁcationtuples.Usingpattern-matching,thefunction s2tuplescanbedeﬁnedasfol-
+lowing:
+s2tuples:Statement→P(VTuple)
+s2tuples StateAssigns ={(/0,rue,StateAssigns ,{s})}
+s2tuples Assignmenti e ={(/0,true,Assignmenti e ,/0)}
+s2tuples Bcasti ={(/0,true,Bcasti,/0)}
+s2tuples Guardr =S{parProd([{c2tuple(c)},s2tuples(s)])|(c,s)∈r}
+s2tuples Parss =parProd([s2tuples(s)|s←ss])
+s2tuples Seqss =seqProd([s2tuples(s)|s←ss])
+s2tuples Skip =(/0,true,Skip,/0)
+
+--- Page 7 ---
+7
+Hence,wecanconstructaglobalveriﬁcationtuplemapforal leventsusingthefol-
+lowingfunction:
+vtupleMap :EventCode→(Identiﬁer→P(VTuple))
+vtupleMapec =s2tuples◦ec
+wheretheoperation ◦denotestheusualfunctioncomposition,i.e, f◦g(x)/definesf(g(x)).
+Since each veriﬁcation tuple (s,g,s,t)∈Sran(vtupleMap ),the action smight still
+containeventbroadcasting.Wedealwiththeseeventbroadc astssimilarlytothecaseof
+parallel composition of event codes. We ﬁrst apply topologi cal sorting algorithm [10]
+onvtupleMap (ec)toobtaina sequence
+tss=[(e1,s1),...,(en,sn)]∈seq(Identiﬁer×P(VTuple))
+such that for each (ei,si), the veriﬁcation tuple set sicontains the actions that board-
+cast only the events in the set {e1,...,ei−1}. We can always obtain such a list with the
+assumption that we don’t allow circular broadcasting[3]. W e next deﬁne a functionto
+collectandﬁlterthe boardcastsfromtheactionofaveriﬁca tiontupleasfollowing:
+collectBcast :Statement→P(Identiﬁer)
+collectBcast Bcast i ={i}
+collectBcast Guard {(ci,si)|i=1..n}=Sn
+i=1collectBcast (si)
+collectBcast Par [s1,...,sn]=Sn
+i=1collectBcast (si)
+collectBcast Seq [s1,...,sn]=Sn
+i=1collectBcast (si)
+collectBcast s =/0
+ﬁlterBcast :Statement→Statement
+ﬁlterBcast Bcasti =Skip
+ﬁlterBcast Guardr =Guard{(c,s)|(c,s)∈r∧¬isBcast(s)}
+ﬁlterBcast Parss =Par[s|s←ss∧¬isBcast(s)]
+ﬁlterBcast Seqss =Seq[s|s←ss∧¬isBcast(s)]
+ﬁlterBcast s =s
+isBcast:Statement→Boolean
+isBcast Bcast =true
+isBcast =false
+Inourrealimplementation,weﬁlterandcollectbroadcaste deventsatthesametime
+for the sake of efﬁciency. We let ⌢denote the sequence concatenation operator. Then
+the process of translating veriﬁcation tuples with broadca sting to ones without board-
+castingisimplementedasthe followingfunctions:
+vtupleNoBcast :(VTuple×seq(Identiﬁer×P(VTuple)))→P(VTuple)
+vtupleNoBcast ((s,g,a,t),tspre)=
+if(collectBcast =/0)then
+parProd([{(s,g,ﬁlterBcast (a),t)}]⌢
+
+--- Page 8 ---
+8
+[si|(ei,si)←tspre∧ei∈collectBcast (a)])
+else
+{(s,g,a,t)}
+end
+The function vtupleNoBcast takes a pair of veriﬁcation tuples and tspreas inputs. The
+argument tsprerepresentsthe set of preﬁxof tsswhereall boardcastingare alreadyex-
+panded. Since we tssis already topologically sorted according to the dependenc ies of
+boardcasting,the action aonlybroadcaststhe eventsdeﬁnedin tspre. Hence,we apply
+the function parProdon the list consisting of the input veriﬁcation tuples with a ll the
+broadcastsﬁlteredandthepartof tsprechosenaccordingthesetofeventsthattheaction
+abroadcasts.
+The rest of the elimination of broadcasting is deﬁned in the n ext two functions.
+We deﬁne a function vtupleSetNoBcast whichis similar to vtupleNoBcast but applyon
+veriﬁcationtuplesetsinstead.
+vtupleSetNoBcast :(P(VTuple)×seq(Identiﬁer×P(VTuple)))→P(VTuple)
+vtupleSetNoBcast ({vi|i=1..n},tspre) =Sn
+i=1vtupleNoBcast (vi,tspre)
+We then deﬁne the desired function vseqNoBcast which can now be applied to the
+topological sort list tssto expand the event broadcasting to suitable veriﬁcation tu ple
+sets. Thisfunctionisdeﬁnedasfollowing:
+vseqNoBcast :seq(Identiﬁer×P(VTuple))→seq(Identiﬁer×P(VTuple))
+vseqNoBcast [] = []
+vseqNoBcast [(ei,si)|i=1..n] =tspre⌢[(en,vtupleSetNoBcast (sn,tspre))]
+where tspre=vseqNoBcast ([(ei,si)|i=1..n−1])
+Hence,weuse theresult vseqNoBcast (tss)togeneratetheveriﬁcationconditions.
+5 Predicate Semantics ofStatecharts
+Our veriﬁcation approach reveals a strong connection betwe en a statechart transition
+andaveriﬁcationtuple.Thismotivatesustoprovideapredi catesemanticofstatecharts
+instead of the traditional operational way in [8,13,11]. We do so by introducing the
+functionsfortranslatingstatechartstoveriﬁcationtupl es.Thesefunctionsareverysim-
+ilar to the functions used in the previous section. In fact, w e will use some auxiliary
+functionsdeﬁnedpreviously.
+We ﬁrst needto providethedatastructureusedto represents tatecharts.
+State/definesBasic Identiﬁer
+|And Identiﬁer×seq(State)
+|Xor Identiﬁer×seq(State)×State×Transition
+whereTransition isaﬁve-aryrelationdeﬁnedasfollowing:
+Transition /definesState×Identiﬁer×Condition×Statement×State
+
+--- Page 9 ---
+9
+Thisdeﬁnitionsaysa statechartstate canbeeither
+–a Basic state witha state name,
+–a composite And state encoded by a state name and a sequence of parallel sub
+states, or
+–a compositeXor state encodedby a state name,a sequenceof su b states, an initial
+state andatransitionrelation.
+Each transition is deﬁned by its source state, triggering ev ent, transition guard, action
+andtargetstate respectively.
+Wealsouseanevent-centricapproachbydealingwitheachev entseparately.Hence,
+weﬁrstdeﬁneafunctiontoreturntherestrictionofastatec hartwithrespecttoaspeciﬁc
+event. We use/an}bracketle{t/an}bracketri}htto denote the empty identiﬁer which indicate the “event name ” of a
+spontaneoustransitions.
+resStateEvent :(Identiﬁer×Sate)→State
+resStateEvent (,Basicid s ) =Basicid s
+resStateEvent (e,Andid[si|i=1..n]) =Andid[resStateEvent (i,si)|i=1..n]
+resStateEvent (e,Xor id seqs init t )
+=Xor id seqs init [(ss,e′,c,a,ts)|(ss,e′,c,a,ts)←t∧(e′=e∨e′=/an}bracketle{t/an}bracketri}ht)]
+We then need a function to return the veriﬁcation tuple corre spondentto the initializa-
+tionofa stateduetothe factthateachcompositeXORstate mu sthaveaninitial state.
+initialize :State→P(Vtuple)
+initialize s =casesof
+Basic id s→{(/0,true,StateAssigns ,{s})}
+And id[si|i=1..n]→
+parProd([initialize(si)|i=1..n]⌢[{(/0,true,StateAssigns ,{s})}])
+Xor id[si|i=1..n]init t→
+parProd([initialize(init)]⌢[{(/0,true,StateAssigns ,{s})}])
+This function initialize will always return a singleton set , since we enforce only one
+possibility to initialize a compositeor basic state by disa llowingsome statechartsvari-
+ants [15,16]. However, for conveniencethe returned type of this function is P(Vtuple)
+to makeit easier forcomposingveriﬁcationtuplestogether in the intermediatecompo-
+sition steps. In other words, it allows us to treat this case a s a special case of parallel
+compositionusingthe parProdfunction.
+The next step is to deﬁne a recursive function to generate ver iﬁcation tuples with
+respect to statechart data structure.The base case is the th e case of basic states andthe
+recursivecases deal with compositestates. Themost difﬁcu ltproblemis causedbythe
+existenceofspontaneoustransitionsin compositeXORstat es. We deﬁnethefollowing
+two functions that take a child state of an XOR state and gener ate veriﬁcation condi-
+tions. When there are spontaneoustransitions, the functio ngetNextinvokesgetSponto
+searchforthespontaneoustransitiongoingfromthetarget statesandgenerateveriﬁca-
+tionconditionforthemandthencomposetheveriﬁcationcon ditionstogetherproperly.
+
+--- Page 10 ---
+10
+getNext:(State×Transition )→P(Vtuple)
+getNext (s,tr)
+={parProd([{({s},g,a,/0)},getSpon(t,tr)])|(s,id,g,a,t)∈tr∧id/ne}ationslash=/an}bracketle{t/an}bracketri}ht}
+getSpon:(State×Transition )→P(Vtuple)
+getSpon (s,tr) =S∪parProd([{(/0,G,Skip,/0)},initialize(s)])
+where
+S={parProd([{(/0,g,a,/0)},getSpon(t,tr)])|(s,id,g,a,t)∈tr∧id=/an}bracketle{t/an}bracketri}ht}
+G=V{¬g|(s,id,g,,)∈tr∧id=/an}bracketle{t/an}bracketri}ht}
+The setSin function getSponcorresponds to the case the spontaneous transitions are
+taken and the condition Gis the condition for non of the spontaneous transition from
+statesistaken.
+Afterhavingthesetwofunctions,therestofthetaskofgene ratingveriﬁcationtuples
+froma statechartstate restricted tooneevent isdeﬁnedinthe followingfunction.
+s2tuples:State→P(Vtuple)
+s2tuples s =casesof
+Basic id s→{({s},true,Skip,/0)}
+And id[si|i=1..n]→parProd([s2tuples(si)|i=1..n]])
+Xor id[si|i=1..n]init tr→S1∪S2
+where
+S1=Sn
+i=1getNext(si,tr)
+G=V{¬g|(,g,,)∈S}
+S2=parProd([{(/0,G,Skip,/0)}]⌢[s2tuples(si)|i=1..n])
+To generate all the veriﬁcation conditions of a statechart, we ﬁrst collect the set of all
+eventsinagivenstatechart.Foreacheventweusethefuncti onresStateEvent togetthe
+restricted statechart to each event in the set and then apply the function s2tuplesto the
+root of the statecharts. As a result of this process, we will g et a map fromevent names
+toveriﬁcationtuplesexactlylikethemap vtupleMap previously.Thebranchstatements
+and event broadcasting in the actions of veriﬁcation tuples can be easily expanded out
+usingthefunction s2tuplesandvseqNoBcast deﬁnedin thelast section.
+6 Implementation
+TheiStatetoolcurrentlyusestheSimplifytheoremprover[6]todisch argethegenerated
+veriﬁcation conditions because of its support of ﬁrst order logic and linear arithmetic.
+Simplify also has arrays built in, though currently iStatedoes not use them. We are
+working on extending iStatewith data types like arrays, rational numbers, and real
+numbers. In future, we also plan to extend the veriﬁcation th eory to timed transitions
+[14].
+7 Discussion
+
+--- Page 11 ---
+11
+Comparedto the statechart veriﬁcationapproachesin [4,5, 12], we use an event-centric
+semantics of statecharts by looking at events as operations rather than dataas in the
+originalstate-centric semantics [8]. Instead of writing global temporal speciﬁca tion
+(say in CTL or LTL) separately, inspired by nested invariant diagram [2], invariants
+(safetyproperties )areattachedtostates.
+By attachinginvariantsto states and utilizing the guarded commandrepresentation
+of statecharts [15,16], we arrive at a rather straightforwa rd veriﬁcation method. The
+approach generating veriﬁcation conditions leads to many s mall “local” veriﬁcation
+conditions and avoids some impossible conﬁgurations, comp ared to when specifying
+invariantsonthegloballevel.Asmanysmallveriﬁcationco nditionsareeasiertohandle
+automaticallythanafewlargeones,webelievethattheappr oachcanmoreeasilyscale
+upforthe veriﬁcationoflargesystems.
+References
+1. J.-R. Abrial. The B Book: Assigning Programs to Meaning . Cambridge University Press,
+1996.
+2. R. Back. Invariant based programming revisited. Technic al Report 661, TUCS - Turku
+Centre for Computer Science, Turku, Finland,2005.
+3. M. von der Beck. A comparison of statechart variants. In H. Langmaack, W.-P. deRoever,
+andJ.Vytopil,editors, FormalTechniquesinReal-TimeandFault-TolerantSystems ,Lecture
+Notes inComputer Science 863, pages 128–148. Springer-Ver lag,1994.
+4. P. Bhaduri and S. Ramesh. Model Checking of Statechart Mod els: Survey and Research
+Directions. ArXivComputer Science e-prints , July2004.
+5. E.ClarkeandW.Heinle.Modulartranslationofstatechar tstoSMV.TechnicalReportCMU-
+CS-00-XXX,School of Computer Science,Carnegie MellonUni versity, August 2000.
+6. David Detlefs, Greg Nelson, and James B. Saxe. Simplify: a theorem prover for program
+checking. J. ACM,52(3):365–473, 2005.
+7. D. Harel. Statecharts: A visual formalism for complex sys tems.Science of Computer Pro-
+gramming , 8:231–274, 1987.
+8. D.HarelandA.Naamad. TheSTATEMATEsemanticsofstatech arts.ACMTransactionson
+Software Engineering andMethodology , 5(5):293–333, 1996.
+9. D.T.M. Le, E. Sekerinski, and S. West, Statechart Veriﬁca tion with iState, FM 06, Canada,
+2006.
+10. C. E. Leiserson, R. L. Rivest, and C. Stein. Introduction to algorithms . MIT Press, Cam-
+bridge, MA, USA,2001.
+11. Andrea Maggiolo-Schettini, Adriano Peron, and Simone T ini. A comparison of statecharts
+stepsemantics. Theor. Comput. Sci. ,290(1):465–498, 2003.
+12. E. Mikk, Y. Lakhnech, M. Siegel, and G. J. Holzmann. Imple menting statecharts in
+PROMELA/SPIN. WIFT,LosAlamitos, CA,USA,1998. IEEECompu ter Society.
+13. Shengchao Qin and Wei-Ngan Chin. Mapping statecharts to verilog for hardware/software
+co-speciﬁcation. In FME,pages 282–300, 2003.
+14. S.Samet. Timedtransitions instatecharts, from formal izationtotranslation andcode. Mas-
+ter’sthesis, McMaster University, Computing andSoftware Department, 2005.
+15. E. Sekerinski and R. Zurob. iState: A statechart transla tor. In M. Gogolla and C. Kobryn,
+editors,UML2001 , LNCS,pages 376–390, Toronto, Canada, 2001. Springer-Ver lag.
+16. E. Sekerinski and R. Zurob. Translating statecharts to B . In M. J. Butler, L. Petre, and
+K.Sere,editors, IFM 2002 , LNCS,pages 128–144, Turku, Finland, 2002. Springer-Verl ag.

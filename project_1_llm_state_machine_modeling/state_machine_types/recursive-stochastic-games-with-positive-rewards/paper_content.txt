@@ -1,0 +1,634 @@
+--- Page 1 ---
+Recursive Stochastic Games with
+Positive Rewards
+K. Etessami1, D. Wojtczak1, and M. Yannakakis2
+1LFCS, School of Informatics, University of Edinburgh
+2Dept. of Computer Science, Columbia University
+Abstract. We study the complexity of a class of Markov decision pro-
+cesses and, more generally, stochastic games, called 1-exit Recursive
+Markov Decision Processes (1-RMDPs) and Simple Stochastic Games
+(1-RSSGs) with strictly positive rewards. These are a class of nitely
+presented countable-state zero-sum stochastic games, with total expected
+reward objective. They subsume standard nite-state MDPs and Con-
+don's simple stochastic games and correspond to optimization and game
+versions of several classic stochastic models, with rewards. Such stochas-
+tic models arise naturally as models of probabilistic procedural programs
+with recursion, and the problems we address are motivated by the goal of
+analyzing the optimal/pessimal expected running time in such a setting.
+We give polynomial time algorithms for 1-exit Recursive Markov decision
+processes (1-RMDPs) with positive rewards. Specically, we show that
+the exact optimal value of both maximizing and minimizing 1-RMDPs
+with positive rewards can be computed in polynomial time (this value
+may be 1). For two-player 1-RSSGs with positive rewards, we prove a
+\stackless and memoryless" determinacy result, and show that deciding
+whether the game value is at least a given value ris in NP \coNP. We
+also prove that a simultaneous strategy improvement algorithm converges
+to the value and optimal strategies for these stochastic games. We observe
+that 1-RSSG positive reward games are \harder" than nite-state SSGs
+in several senses.
+1 Introduction
+Markov decision processes and stochastic games are fundamental models in
+stochastic optimization and game theory (see, e.g., [25, 23, 13]). In this paper,
+motivated by the goal of analyzing the optimal/pessimal expected running time
+of probabilistic procedural programs, we study the complexity of a reward-based
+stochastic game, called 1-exit recursive simple stochastic games (1-RSSGs), and
+its 1-player version, 1-exit recursive Markov decision processes (1-RMDPs). These
+form a class of (nitely presented) countable-state turn-based zero-sum stochas-
+tic games (and MDPs) with strictly positive rewards, and with an undiscounted
+expected total reward objective.
+Intuitively, a 1-RSSG (1-RMDP) consists of a collection of nite-state com-
+ponent SSGs (MDPs), each of which can be viewed as an abstract nite-state
+
+--- Page 2 ---
+procedure (subroutine) of a probabilistic program with potential recursion. Each
+component procedure has some nodes that are probabilistic and others that are
+controlled by one or the other of the two players. The component SSGs can call
+each other in a recursive manner, generating a potentially unbounded call stack,
+and thereby an innite state space. The \1-exit" restriction essentially restricts
+these nite-state subroutines so they do not return a value, unlike multi-exit
+RSSGs and RMDPs in which they can return distinct values. (We shall show
+that the multi-exit version of these reward games are undecidable.) 1-RMDPs
+and 1-RSSGs were studied in [8, 9] in a setting without rewards, where the goal
+of the players was to maximize/minimize the probability of termination. Such
+termination probabilities can be irrational, and quantitative decision problems
+for them subsume long standing open problems in exact numerical computation.
+Here we extend 1-RSSGs and 1-RMDPs to a setting with positive rewards. Note
+that much of the literature on MDPs and games is based on a reward structure.
+This paper is a rst step toward extending these models to the recursive setting.
+Interestingly, we show that the associated problems actually become more be-
+nign in some respects in this strictly positive reward setting. In particular, the
+values of our games are either rational, with polynomial bit complexity, or 1.
+The 1-RMDP and 1-RSSG models can also be described as optimization and
+game versions of several classic stochastic models, including stochastic context-
+free grammars (SCFGs) and (multi-type) branching processes. These have ap-
+plications in many areas, including natural language processing [21], biological
+sequence analysis ([4]), and population biology [17, 16]. Another model that cor-
+responds to a strict subclass of SCFGs is \random walks with back-buttons"
+studied in [12] as a model of web surng. See [7] for details on the relationships
+between these various models. A 1-RSSG with positive rewards, can be equiv-
+alently reformulated as the following game played on a stochastic context-free
+grammar (see full version [11] for details). We are given a context-free grammar
+where non-terminals are partitioned into three disjoint sets: random ,player-1 ,
+andplayer-2 . Starting from a designated start non-terminal, Sinit, we proceed
+to generate a derivation by choosing a remaining left-most non-terminal, S, and
+expanding it. The precise derivation law (left-most, right-most, etc.) doesn't ef-
+fect the game value in our strictly positive reward setting, but does if we allow
+0 rewards. If Sbelongs to random , it is expanded randomly by choosing a rule
+S!, according to a given probability distribution over the rules whose left
+hand side is S. IfSbelongs to player-i , then player ichooses which grammar
+rule to use to expand this S. Each grammar rule also has an associated (strictly
+positive) reward for player 1, and each time a rule is used during the derivation,
+player 1 accumulates this associated reward. Player 1 wants to maximize total
+expected reward (which may be 1), and player 2 wants to minimize it. When
+we have only one player it is a minimizing or maximizing 1-RMDP.
+We assume strictly positive rewards on all transitions (rules) in this paper.
+This assumption is very natural for modeling optimal/pessimal expected running
+time in probabilistic procedural programs: each discrete step of the program is
+assumed to cost some non-zero amount of time. Strictly positive rewards also en-
+2
+
+--- Page 3 ---
+dow our games with a number of important robustness properties. In particular,
+in the above grammar presentation, with strictly positive rewards these games
+have the same value regardless of what derivation law is imposed. This is not the
+case if we also allow 0 rewards on grammar rules. In that case, even in the single-
+player setting, the game value can be wildly dierent (e.g., 0 or 1) depending
+on the derivation law (e.g., left-most or right-most). Moreover, for 1-RMDPs,
+if we allow 0 rewards, then there may not even exist any -optimal strategies.
+Furthermore, even in a purely probabilistic setting without players (1-RMCs),
+with 0 rewards the expected reward can be irrational. Even the decidability of
+determining whether the supremum expected reward for 1-RMDPs is greater
+than a given rational value is open, and subsumes other open decidability ques-
+tions, e.g., for optimal reachability probabilities in non-reward 1-RMDPs ([8, 1]).
+(See the full version [11] for elaboration on these issues.) As we shall show, none
+of these pathologies arise in our setting with strictly positive rewards.
+We show that 1-RMDPs and 1-RSSGs with strictly positive rewards have a
+value which is either rational (with polynomial bit complexity) or 1, and which
+arises as the least xed point solution (over the extended reals) of an associated
+system of linear-min-max equations. Both players do have optimal strategies in
+these games, and in fact we show the much stronger fact that both players have
+stackless and memoryless (SM) optimal strategies: deterministic strategies that
+depend only on the current state of the running component, and not on the
+history or even the stack of pending recursive calls.
+We provide polynomial-time algorithms for computing the exact value for
+both the maximizing and minimizing 1-RMDPs. The two cases are not equiv-
+alent and require separate treatment. We show that for the 2-player games (1-
+RSSGs) deciding whether the game has value at least a given r2Q[f1g is
+in NP\coNP. We also describe a practical simultaneous strategy improvement
+algorithm, analogous to similar algorithms for nite-state stochastic games, and
+show that it converges to the game value (even if it is 1) in a nite number of
+steps. A corollary is that computing the game value and optimal strategies for
+these games is contained in the class PLS of polynomial local search problems
+([19]). Whether this strategy improvement algorithm runs in worst-case P-time
+is open, just like its version for nite-state SSGs.
+We observe that these games are essentially \harder" than Condon's nite-
+state SSG games in the following senses. We reduce Condon's quantitative deci-
+sion problem for nite-state SSGs to a special case of 1-RSSG games with strictly
+positive rewards: namely to deciding whether the game value is 1. By contrast, if
+nite-state SSGs are themselves equipped with strictly positive rewards, we can
+decide in P-time whether their value is 1. Moreover, it has recently been shown
+that computing the value of Condon's SSG games is in the complexity class
+PPAD (see [10] and [20]). The same proof however does not work for 1-RSSG
+positive reward games, and we do not know whether these games are contained
+in PPAD. Technically, the problem is that in the expected reward setting the
+domain of the xed point equations is not compact, and indeed the expected
+reward is potentially 1. In these senses, the 1-RSSG reward games studied in
+3
+
+--- Page 4 ---
+this paper appear to be \harder" than Condon's SSGs, and yet as we show
+their quantitative decision problems remain in NP \coNP. Finally, we show
+that the more general multi-exit RSSG model is undecidable. Namely, even for
+single-player multi-exit RMDPs with strictly positive rewards, it is undecidable
+whether the optimal reward value is 1.
+The tool PReMo [28] implements a number of analyses for RMCs, 1-RMDPs,
+and 1-RSSGs. Most recently, the strategy improvement algorithm of this paper
+was implemented and incorporated in the tool. See the PReMo web page ([28])
+for very encouraging experimental results based on the algorithms of this paper.
+Due to space constraints proofs and discussions are omitted. See full paper [11].
+Related work. Two (equivalent) purely probabilistic recursive models, Recur-
+sive Markov chains and probabilistic Pushdown Systems (pPDSs) were intro-
+duced in [7] and [5], and have been studied in several papers recently. These
+models were extended to the optimization and game setting of (1)-RMDPs and
+(1)-RSSGs in [8, 9], and studied further in [1]. As mentioned earlier, the games
+considered in these earlier papers had the goal of maximizing/minimizing termi-
+nation or reachability probability, which can be irrational, and for which quan-
+titative decision problems encounter long standing open problems in numerical
+computation, even to place their complexity in NP. On the other hand, the quali-
+tative termination decision problem (\is the termination game value exactly 1?")
+for 1-RMDPs was shown to be in P, and for 1-RSSGs in NP \coNP in [9]. These
+results are related to the results in the present paper as follows. If termination
+occurs with probability strictly less than 1 in a strictly positive reward game,
+then the expected total reward is 1. But the converse does not hold: the ex-
+pected reward may be 1even when the game terminates with probability 1,
+because there can be null recurrence in these innite-state games. Thus, not
+only do we have to address this discrepancy, but also our goal in this paper is
+quantitative computation (compute the optimal reward), whereas in [9] it was
+purely qualitative (almost sure termination).
+Condon [2] originally studied nite-state SSGs with termination objectives
+(no rewards), and showed that the quantitative termination decision problem
+is in NP\coNP; it is a well-known open problem whether it is in P. In [3]
+strategy improvement algorithms for SSGs were studied, based on variants of
+the classic Homan-Karp algorithm [18]. It remains open whether the simul-
+taneous version of strategy improvement runs in P-time. This is also the case
+for our simultaneous strategy improvement algorithm for 1-RSSGs with positive
+rewards. (Single-vertex updates per step in strategy improvement is known to
+require exponentially many steps in the worst case.)
+There has been some recent work on augmenting purely probabilistic multi-
+exit RMCs and pPDSs with rewards in [6]. These results however are for RMCs
+without players. We in fact show in Theorem 8 that the basic questions about
+multi-exit RMDPs and RSSGs are undecidable.
+A full tech report of this paper appeared in [11]. A recent and independent
+paper by Gawlitza and Seidl [14] considers monotone linear-min-max equations
+with potentially negative constant terms (with entirely dierent motivation from
+4
+
+--- Page 5 ---
+abstract interpretation), and studies a dierent kind of strategy improvement
+algorithm for computing their least xed point solution over the fullextended
+reals. Their work is related to ours, but in rather subtle ways. In particular their
+notion of LFP over the extended reals may yield negative values or even 1,
+and they assume that \strategies" (choices for the max and min operators) are
+memoryless, rather than proving a (memoryless) determinacy result. Moreover,
+their strategy improvement algorithm requires a particular initial strategy (oth-
+erwise it can fail) and thus is not directly formulable as a local search. Unlike
+our results, their results apparently do not yield [15] containment in NP \coNP,
+nor in PLS, for the relevant decision and search problems. Nevertheless, there
+are connections between their work and ours that need to be explored further.
+In particular, Gawlitza [15] informs us that a modied version of their strategy
+improvement algorithm can also be used to obtain our P-time upper bound for
+the LFP, over the non-negative extended reals, for the linear-min and linear-max
+equations that arise for 1-RMDPs.
+Models related to 1-RMDPs have been studied in OR, under the name
+Branching Markov Decision Chains (a controlled version of multi-type Branching
+processes). These are close to the single-player SCFG model, with non-negative
+rewards, but simultaneous derivation law. They were studied by Pliska [24], in a
+related form by Veinott [27], and extensively by Rothblum and co-authors (e.g.,
+[26]). Besides the restriction to simultaneous derivation, these models were re-
+stricted to the single-player MDP case, and to simplify their analysis they were
+typically assumed to be \transient" (i.e., the expected number of visits to a node
+was assumed to be nite under all strategies). None of these works yield a P-time
+algorithm for optimal expected rewards for 1-RMDPs with positive rewards.
+2 Denitions and Background
+LetR>0= (0;1) denote the positive real numbers, R0:= [0;1),R:= [1;1],
+R1
+>0:= (0;1], and R1
+0:= [0;1]. The extended reals Rhave the natural total
+order. We assume the following usual arithmetic conventions on the non-negative
+extended reals R1
+0:a1=1, for anya2R1
+>0; 01= 0;a+1=1, for
+anya2R1
+0. This extends naturally to matrix arithmetic over R1
+0. We rst
+dene general multi-exit RSSGs (for which basic reward problems turn out to
+be undecidable). Later, we will conne these to the 1-exit case, 1-RSSGs.
+ARecursive Simple Stochastic Game (RSSG) with positive rewards is a tuple
+A= (A1;:::;Ak), where each component Ai= (Ni;Bi;Yi;Eni;Exi;pli;i;i)
+consists of:
+{A setNiofnodes , with a distinguished subset Eniofentry nodes and a
+(disjoint) subset Exiofexitnodes.
+{A setBiofboxes , and a mapping Yi:Bi7!f1;:::;kgthat assigns to every
+box (the index of) a component. To each box b2Bi, we associate a set
+ofcall ports ,Callb=f(b;en)jen2EnY(b)g, and a set of return ports ,
+Retb=f(b;ex)jex2ExY(b)g. Let Calli=[b2BiCallb,Reti=[b2BiRetb,
+and letQi=Ni[Calli[Retibe the set of all nodes, call ports and return
+ports; we refer to these as the vertices of component Ai.
+5
+
+--- Page 6 ---
+{A mapping pli:Qi7!f0;1;2gthat assigns to every vertex a player (Player
+0 represents \chance" or \nature"). We assume pli(ex) = 0 for all ex2Exi.
+{A transition relation i(Qi(R>0[f?g )QiR>0), where for each
+tuple (u;x;v;cu;v)2i, the source u2(NinExi)[Reti, the destination
+v2(NinEni)[Calli, andxis either (i) pu;v2(0;1] (the transition prob-
+ability) if pli(u) = 0, or (ii) x=?ifpli(u) = 1 or 2; and cu;v2R>0is
+the positive reward associated with this transition. We assume for vertices
+uandvthere is at most one transition in fromutov. For computational
+purposes we assume the given probabilities pu;vand rewards cu;vare ra-
+tional. Probabilities must also satisfy consistency: for every u2pl1
+i(0),P
+fv0j(u;pu;v 0;v0;cu;v)2igpu;v0= 1, unless uis a call port or exit node, neither
+of which have outgoing transitions, in which case by defaultP
+v0pu;v0= 0.
+{Finally, the mapping i:Calli7!R>0maps each call port uin the compo-
+nent to a positive rational value cu=(u). (This mapping reects the \cost"
+of a function call, but is not strictly necessary. This cost can be 0 and all
+our results would still hold.)
+We use the symbols ( N;B;Q;; etc.) without a subscript, to denote the
+union over all components. Thus, e.g., N=[k
+i=1Niis the set of all nodes of A,
+=[k
+i=1ithe set of all transitions, etc. Let n(u) =fvj(u;?;v;cu;v)2g
+denote the neighbors of uifuis a player 1 or player 2 node and n(u) =
+fvj(u;pu;v;v;cu;v)2gotherwise. An RSSG Adenes a global denumerable
+simple stochastic game, with rewards, MA= (V=V0[V1[V2;;pl) as fol-
+lows. The global statesVBQofMAare pairs of the form h;ui, where
+2Bis a (possibly empty) sequence of boxes and u2Qis avertex ofA. The
+statesVBQand transitions are dened inductively as follows:
+1.h;ui2V, foru2Q. (denotes the empty string.)
+2. ifh;ui2V&(u;x;v;c )2, thenh;vi2Vand (h;ui;x;h;vi;c)2.
+3.ifh;(b;en)i 2V& (b;en)2Call b, then hb;en i 2V& (h;(b;en)i;1;hb;en i;((b;en)))2.
+4.ifhb;ex i 2V& (b;ex)2Ret b, then h;(b;ex)i 2V& (hb;ex i;1;h;(b;ex)i;0)2.
+The mapping pl:V7!f0;1;2gis given as follows: pl(h;ui) =pl(u) ifuis
+inQn(Call[Ex), and pl(h;ui) = 0 ifu2Call[Ex. The set of states V
+is partitioned into V0,V1, andV2, whereVi=pl1(i). We consider MAwith
+various initial states of the formh;ui, denoting this by Mu
+A. Some states of MA
+areterminating states and have no outgoing transitions. These are states h;exi,
+whereexis an exit node. An RSSG where V2=;(V1=;) is called a maxi-
+mizing (minimizing, respectively) Recursive Markov Decision Process (RMDP);
+an RSSG where V1[V2=;is called a Recursive Markov Chain (RMC) ([7]);
+A1-RSSGs is a RSSG where every component has one exit, and we likewise
+dene 1-RMDPs and 1-RMCs . This entire paper is focused on 1-RSSGs and
+1-RMDPs, except for Theorem 8, where we show that multi-exit RMDP reward
+games are undecidable. In a (1-)RSSG with positive rewards the goal of player
+1 (maximizer) is to maximize the total expected reward gained during a play of
+the game, and the goal of player 2 (minimizer) is to minimize this. A strategy
+for playeri,i2f1;2g, is a function :VVi7!V, where, given the history
+6
+
+--- Page 7 ---
+ws2VViof play so far, with s2Vi(i.e., it is player i's turn to play a move),
+(ws) =s0determines the next move of player i, where (s;?;s0;c)2. (We
+could also allow randomized strategies, but this won't be necessary, as we shall
+see.) Let	idenote the set of all strategies for player i. A pair of strategies 2	1
+and2	2induce in a straightforward way a Markov chain M;
+A= (V;0),
+whose set of states is the set Vof histories. Let rk;;
+u denote the expected
+reward inksteps inM;
+A, starting at initial state h;ui. Formally, we can dene
+the total expected reward gained during the i'th transition, starting at h;uito
+be given by a random variable Yi. The total k-step expected reward is simply
+rk;;
+u =E[Pk
+i=1Yi]. Whenk= 0, we of course have r0;;
+u = 0. Given an initial
+vertexu, letr;;
+u = limk!1rk;;=E[P1
+i=1Yi]2[0;1] denote the total ex-
+pected reward obtained in a run of M;
+A, starting at initial state h;ui. Clearly,
+this sum may diverge, thus r;;2[0;1]. Note that, because of the positive
+constraint on the rewards out of all transitions, the sum will be nite if and only
+if the expected number of steps until the run terminates is nite.
+We now want to associate a \value" to 1-RSSG games. Unlike 1-RSSGs
+with termination probability objectives, it unfortunately does not follow di-
+rectly from general determinacy results such as Martin's Blackwell determinacy
+([22]) that these games are determined, because those determinacy results re-
+quire a Borel payo function to be bounded, whereas the payo function for
+us is unbounded. Nevertheless, we will establish that determinacy does hold for
+1-RSSG positive reward games, as part of our proof of Stackless & Memory-
+less determinacy. For all vertices u, letr
+u:= sup2	1inf2	2r;;
+u. We show
+r
+u= inf2	2sup2	1r;;
+u, and thus r
+uis the value of the game starting at
+vertexu. We are interested in the following problem: GivenA, a 1-RSSG (or
+1-RMDP), and given a vertex uinA, computer
+uif it is nite, or else declare
+thatr
+u=1. Also, compute optimal strategies for both players. For a strategy
+2	1, letr;
+u= inf2	2r;;
+u, and for2	2, letr;;
+u= sup2	1r;;
+u. Call
+a deterministic strategy Stackless & Memoryless (SM) if it depends neither on
+the history of the game nor on the current call stack, i.e., only depends on the
+current vertex. Such strategies, for player i, can be given by a map :Vi7!V.
+We call a game SM-determined if both players have optimal SM strategies.
+In ([8]) we dened a monotone system of nonlinear min-max equations for
+the value of the termination probability game on 1-RSSGs, and showed that its
+Least Fixed Point solution yields the desired probabilities. Here we show we can
+adapt this to obtain analogous linear min-max systems in the setting of positive
+reward 1-RSSGs. We use a variable xufor each unknown r
+u. Letxbe the vector
+of allxu;u2Q. The system has one equation of the form xu=Pu(x) for each
+vertexu. Suppose that uis in component Aiwith (unique) exit ex. There are 5
+cases based on the \ Type" ofu.
+1.Type 0:u=ex. In this case: xu= 0.
+2.Typerand:pl(u) = 0 &u2(Ninfexg)[Reti:xu=P
+v2n(u)pu;v(xv+cu;v).
+3.Typecall:u= (b;en) is a call port: x(b;en)=xen+x(b;ex0)+cu;
+whereex02ExY(b)is the unique exit of AY(b).
+4.Typemax:pl(u) = 1 andu2(Ninfexg)[Reti:xu= maxv2n(u)(xv+cu;v)
+7
+
+--- Page 8 ---
+5.Typemin:pl(u) = 2 andu2(Ninfexg)[Reti:xu= minv2n(u)(xv+cu;v)
+We denote the system in vector form by x=P(x). Given a 1-RSSG, we can
+easily construct its associated system in linear time. For vectors x;y2Rn,xy
+meansxjyjfor everyj. Letr2Rndenote then-vector ofr
+u's. Let 0denote
+an all 0 vector, and dene x0=0,xk+1=Pk+1(0) =P(xk), fork0.
+Theorem 1. (1) The map P:Rn!Rnis monotone on R1
+0and0xk
+xk+1fork0. (2)r=P(r). (3) For all k0,xkr. (4) For all r02R1
+0,
+ifr0=P(r0), then rr0. (5) For all vertices u,r
+u:= sup2	1inf2	2r;;
+u =
+inf2	2sup2	1r;;
+u (i.e., these games are determined). (6) r= limk!1xk.
+The following is a simple corollary of the proof.
+Corollary 1. In 1-RSSG positive reward games, the minimizer has an optimal
+deterministic Stackless and Memoryless (SM) strategy.
+3 SM-determinacy and strategy improvement
+We now prove SM-determinacy, and also show that strategy improvement can be
+used to compute the values and optimal strategies for 1-RSSG positive reward
+games. Consider the following (simultaneous) strategy improvement algorithm.
+Initialization: Pick some (any) SM strategy, , for player 1 (maximizer).
+Iteration step: First compute the optimal value, r;
+u, starting from every vertex,
+u, in the resulting minimizing 1-RMDP. (We show in Theorem 3 that this can
+be done in P-time.) Then, update to a new SM strategy, 0, as follows. For
+each vertex u2Typemax, if(u) =vanduhas a neighbor w6=v, such
+thatr;
+w+cu;w> r;
+v+cu;v, let0(u) :=w(e.g., choose a wthat maximizes
+r;
+w+cu;w). Otherwise, let 0(u) :=(u).
+Repeat the iteration step, using the new 0in place of , until no further local
+improvement is possible, i.e., stop when 0=.
+Theorem 2 shows that this algorithm always halts, and produces an optimal nal
+SM strategy for player 1. (The proof shows it works even if we switch any non-
+empty subset of improvable vertices in each iteration.) Combined with Corollary
+1, both players have optimal SM strategies, i.e., the games are SM-determined.
+Theorem 2. (1)SM-determinacy. In 1-RSSG positive reward games, both play-
+ers have optimal SM strategies. (2) Strategy Improvement. Moreover, we can
+compute the value and optimal SM strategies using the above simultaneous strat-
+egy improvement algorithm. (3) Computing the value and optimal strategies in
+these games is contained in the class PLS.
+The proof is intricate, and is given in the full version ([11]). Here we briey sketch
+the approach. Fix a SM strategy for player 1. It can be shown that if x=P(x)
+is the linear-min-max equation system for this 1-RSSG, then r;
+uPu(r;),
+for all vertices u, and equality fails only on vertices uibelonging to player 1
+such that(ui) =viis not \locally optimal", i.e., such that there exists some
+neighborwisuch thatr;
+wi+cui;wi> r;
+vi+cui;vi. Letu1;:::;unbe all such
+8
+
+--- Page 9 ---
+vertices belonging to player 1. Associate a parameter ti2R1
+0with each such
+vertexui, creating a parametrized game A(t), in which whenever the vertex ui
+is encountered player 1 gains additional reward tiand the game then terminates.
+Letgu;(t) denote the expected reward of this parametrized game starting at
+vertexu, when player 1 uses SM strategy and player 2 uses SM strategy .
+Letfu(t) = mingu;(t). The vector t, wheret
+i=r;
+ui, is a xed point of
+fu(t), for every vertex u, and so is t0where0is any SM strategy consistent
+withon all vertices other than the ui's. The functions gu;(t) is continuous and
+nondecreasing over [0 ;1]n, and expressible as an innite sum of linear terms with
+non-negative coecients. Using these properties of gu;, and their implications
+forfu, we show that if 0is the SM strategy obtained by locally improving the
+strategyat theui's, by letting 0(ui) :=wi, thent
+i=r;
+ui<r;0
+ui=t0
+i, and
+thus also r;
+z=fz(t)fz(t0) =r;0
+z, for any vertex z. Thus, switching to 0
+does not decrease the value at any vertex, and increases it on all the switched
+verticesui. There are only nitely many SM strategies, thus after nitely many
+iterations we reach a SM strategy, , where no improvement is possible. This 
+must be optimal. Since each local improvement step can be done in P-time and
+increases sum total reward, the problem is in PLS. u t
+4 The complexity of reward 1-RMDPs and 1-RSSGs
+Theorem 3. There is a P-time algorithm for computing the exact optimal value
+(including the possible value 1) of a 1-RMDP with positive rewards, in both the
+case where the single player aims to maximize, or to minimize, the total reward.
+We consider maximizing and minimizing 1-RMDPs separately.
+Maximizing reward 1-RMDPs.
+We are given a maximizing reward 1-RMDP (i.e., no Type minnodes in the 1-
+RSSG). Let us call the following LP \ max-LP ":
+MinimizeP
+u2Qxu
+Subject to:
+xu= 0 for all u2Type 0
+xuP
+v2n(u)pu;v(xv+cu;v) for all u2Typerand
+xuxen+x(b;ex0)+cu for allu= (b;en)2Typecall;ex0is the exit of Y(b).
+xu(xv+cu;v) for all u2Type maxand allv2n(u)
+xu0 for all vertices u2Q
+We show that, when the value vector ris nite, it is precisely the optimal
+solution to the above max-LP, and furthermore that we can use this LP to nd
+and eliminate vertices ufor whichr
+u=1. Note that if ris nite then it fullls
+all the constraints of the max-LP, and thus it is a feasible solution. We will show
+that it must then also be an optimal feasible solution. We rst have to detect
+verticesusuch that r
+u=1. For the max-linear equation system P, we dene
+the underlying directed dependency graph G, where the nodes are the set of
+vertices,Q, and there is an edge in Gfromutovif and only if the variable xv
+occurs on the right hand side in the equation dening variable xuinP. We can
+decompose this graph in linear time into strongly connected components(SCCs)
+9
+
+--- Page 10 ---
+and get an SCC DAG SCC (G), where the set of nodes are SCCs of G, and an
+edge goes from one SCC Ato another B, i there is an edge in Gfrom some
+node inAto some node in B. We will call a subset UQof vertices proper
+if all vertices reachable in Gfrom the vertices in Uare already in U. We also
+useUto refer to the corresponding set of variables. Clearly, such a proper set U
+must be a union of SCCs, and the equations restricted to variables in Udo not
+use any variables outside of U, so they constitute a proper equation system on
+their own. For any proper subset UofG, we will denote by max-LP jUa subset
+of equations of max-LP, restricted to the constraints corresponding to variables
+inUand with new objectiveP
+u2Uxu. Analogously we dene PjU, and let xjU
+be the vector xwith entries indexed by any v62Uremoved.
+Proposition 1. LetUbe any proper subset of vertices. (I) The vector rjUis
+the LFP of PjU. (II) Ifr
+u=1for some vertex u in an SCC S of G, then
+r
+v=1for allv2S. (III) If r0is an optimal bounded solution to max-LPjU,
+thenr0is a xed point of PjU. (IV) If max-LPjUhas a bounded optimal feasible
+solution r0, then r0=rjU.
+Theorem 4. We can compute rfor the max-linear equation system P, includ-
+ing the values that are innite, in time polynomial in the size of the 1-RMDP.
+Proof. Build dependency graph GofPand decompose it into SCC DAG SCC (G).
+We will nd the LFP solution to P, bottom-up starting at a bottom SCC, S1.
+We solve max-LP jS1using a P-time LP algorithm. If the LP is feasible then the
+optimal (minimum) value is bounded, and we plug in the values of the (unique)
+optimal solution as constants in all other constraints of max-LP. We know this
+optimal solution is equal to rjS1, sinceS1isproper . We do the same, in bottom-
+up order, for remaining SCCs S2, . . . ,Sl. If at any point after adding the new
+constraints corresponding to the variables in an SCC Si, the LP is infeasible , we
+know from Proposition 1 (IV), that at least one of the values of rjSiis1. So
+by Proposition 1 (II), all are. We can then mark all variables in Sias1, and
+also mark all variables in the SCCs that can reach SiinSCC (G) as1. Also,
+at each step we add to a set Uthe SCCs that have nite optimal values. At the
+end we have a maximal proper such setU, i.e., every variable outside of Uhas
+value1. We label the variables not in Uwith1, obtaining the vector r.u t
+Minimizing reward 1-RMDPs.
+Given a minimizing reward 1-RMDP (i.e., no Type maxnodes) we want to com-
+puter. Call the following LP \ min-LP: "
+MaximizeP
+u2Qxu
+Subject to:
+xu= 0 for all u2Type 0
+xuP
+v2n(u)pu;v(xv+cu;v) for all u2Typerand
+xuxen+x(b;ex0)+cu for allu= (b;en)2Typecall;ex0is the exit of Y(b).
+xu(xv+cu;v) for all u2Type minand allv2n(u)
+xu0 for all vertices u2Q
+10
+
+--- Page 11 ---
+Lemma 1. For any proper setU, if an optimal solution xtomin-LPjUis
+bounded, it is a xed point of the min-linear operator PjU. Thus, if min-LP jUhas
+a bounded optimal feasible solution then rjUis bounded (i.e., is a real vector).
+From min-LP we can remove variables xu2Type 0, by substituting their occur-
+rences with 0. Assume, for now, that we can also nd and remove all variables
+xusuch thatr
+u=1.By removing these 0 and 1variables from Pwe obtain a
+new system P0, and a new LP, min-LP0.
+Lemma 2. If1and0nodes have been removed, i.e., if r2(0;1)n, then r
+is the unique optimal feasible solution of min-LP0.
+Proof. By Corollary 1, player 2 has an optimal SM strategy, call it , which
+yields the nite optimal reward vector r. Once strategy is xed, we can dene
+a new equation system P0
+(x) =Ax+b, whereAis a nonnegative matrix and
+bis a vector of average rewards per single step from each node, obtained under
+strategy. We then have r= limk!1(P0
+)k(0), i.e., ris the LFP of x=P0(x).
+Proposition 2. (I)r= (P1
+k=0Ak
+)b. (II) If ris nite, then limk!1Ak
+= 0,
+and thus (IA)1=P1
+i=0(A)iexists (i.e., is a nite real matrix).
+Now pick an optimal SMstrategyfor player 2 that yields the nite r. We
+know that r= (IA)1b. Note that ris a feasible solution of the min-LP0.
+We show that for any feasible solution rto min-LP0,rr. From the LP we
+can see that rAr+b(because this is just a subset of the constraints) and in
+other words ( IA)rb. We know that ( IA)1exists and is non-negative
+(and nite), so multiply both sides by ( IA)1to get r(IA)1b=r.
+Thus ris the optimal feasible solution of min-LP0. u t
+Foru2Q, consider the LP: Maximize xu,subject to: the same constraints
+as min-LP, except, again, remove all variables xv2Type 0. Call thisu-min-LP0.
+Theorem 5. In a minimizing 1-RMDP, for all vertices u, value r
+uis nite
+iu-min-LP0is feasible and bounded. Thus, combined with Lemma 2, we can
+compute the exact value (even if 1) of minimizing reward 1-RMDPs in P-time.
+Complexity of (1-)RSSGs with positive rewards.
+Theorem 6. Deciding whether the value r
+uof a 1-RSSG positive reward game
+isafor a given a2[0;1], is in NP\coNP.
+This is immediate from P-time upper bounds for 1-RMDPs, and SM-determinacy:
+guess a player's SM strategy, and compute the value for the remaining 1-RMDP.
+Theorem 7. Condon's quantitative termination problem for nite SSGs reduces
+in P-time to the problem of deciding whether r
+u=1.
+By contrast, for nite-state SSGs with strictly positive rewards, we can decide
+in P-time whether the value is 1, because this is the case i the value of the
+corresponding termination game is not 1. Deciding whether an SSG termination
+game has value 1 is in P-time (see, e.g., [9]).
+Finally, we show undecidability for multi-exit RMDPs and RSSGs.
+Theorem 8. For multi-exit positive reward RMDPs it is undecidable to distin-
+guish whether the optimal expected reward for a node is nite or 1.
+Acknowledgement. Research partly supported by NSF grant CCF-0728736.
+11
+
+--- Page 12 ---
+References
+1. T. Br azdil, V. Brozek, V. Forejt, and A. Kucera. Reachability in recursive markov
+decision processes. In Proc. 17th Int. CONCUR , pages 358{374, 2006.
+2. A. Condon. The complexity of stochastic games. Inf.&Comp. , 96:203{224, 1992.
+3. A. Condon and M. Melekopoglou. On the complexity of the policy iteration algo-
+rithm for stochastic games. ORSA Journal on Computing , 6(2), 1994.
+4. R. Durbin, S. R. Eddy, A. Krogh, and G. Mitchison. Biological Sequence Analysis:
+Probabilistic models of Proteins and Nucleic Acids . Cambridge U. Press, 1999.
+5. J. Esparza, A. Ku cera, and R. Mayr. Model checking probabilistic pushdown
+automata. In LICS , pages 12{21, 2004.
+6. J. Esparza, A. Ku cera, and R. Mayr. Quantitative analysis of probabilistic push-
+down automata: expectations and variances. In Proc. of 20th IEEE LICS'05 , 2005.
+7. K. Etessami and M. Yannakakis. Recursive markov chains, stochastic grammars,
+and monotone systems of non-linear equations. In Proc. of 22nd STACS , 2005.
+(See full version at: http://homepages.inf.ed.ac.uk/kousha/bib index.html ).
+8. K. Etessami and M. Yannakakis. Recursive markov decision processes and recursive
+stochastic games. In Proc. 32nd ICALP , 2005.
+9. K. Etessami and M. Yannakakis. Ecient qualitative analysis of classes of recursive
+markov decision processes and simple stochastic games. In Proc. 23rd STACS , 2006.
+10. K. Etessami and M. Yannakakis. On the complexity of Nash equilibria and other
+xed points. In Proc. of 48th IEEE FOCS , 2007.
+11. K. Etessami, D. Wojtczak, and M. Yannakakis. Recursive stochastic games with
+positive rewards. Tech report EDI-INF-RR-1224, July, 2007.
+12. R. Fagin, A. Karlin, J. Kleinberg, P. Raghavan, S. Rajagopalan, R. Rubinfeld,
+M. Sudan, and A. Tomkins. Random walks with \back buttons". In STOC , 2000.
+13. J. Filar and K. Vrieze. Competitive Markov Decision Processes . Springer, 1997.
+14. T. Gawlitza and H. Seidl. Precise relational invariants through strategy iteration.
+InProc. of 16th CSL , 2007.
+15. T. Gawlitza. Personal communication. April, 2008.
+16. P. Haccou, P. Jagers, and V. A. Vatutin. Branching Processes: Variation, Growth,
+and Extinction of Populations . Cambridge U. Press, 2005.
+17. T. E. Harris. The Theory of Branching Processes . Springer-Verlag, 1963.
+18. A. Homan and R. Karp. On nonterminating stochastic games. Manag. Sci. ,
+12:359{370, 1966.
+19. D. S. Johnson, C. Papadimitriou, and M. Yannakakis. How easy is local search?
+J. Comput. Syst. Sci. , 37(1):79{100, 1988.
+20. B. Juba. On the hardness of simple stochastic games. Master's thesis, CMU, 2006.
+21. C. Manning and H. Sch utze. Foundations of Statistical Natural Language Process-
+ing. MIT Press, 1999.
+22. D. A. Martin. Determinacy of Blackwell games. J. Sym. Log. , 63:1565{1581, 1998.
+23. A. Neyman and S. Sorin, ed. Stochastic Games and Applications . Kluwer, 2003.
+24. S. Pliska. Optimization of multitype branching processes. Management Sci. ,
+23:117{124, 1976/77.
+25. M. L. Puterman. Markov Decision Processes . Wiley, 1994.
+26. U. Rothblum and P. Whittle. Growth optimality for branching Markov decision
+chains. Math. Oper. Res. , 7(4):582{601, 1982.
+27. A. F. Veinott. Discrete dynamic programming with sensitive discount optimality
+criteria. Ann. Math. Statist. , 40:1635{1660, 1969.
+28. D. Wojtczak and K. Etessami. Premo: an analyzer for probabilis-
+tic recursive models. In Proc. of TACAS , 2007. Tool web page:
+http://groups.inf.ed.ac.uk/premo/ .
+12

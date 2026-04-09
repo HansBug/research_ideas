@@ -1,0 +1,1059 @@
+--- Page 1 ---
+HAL Id: hal-03891589
+https://ensta.hal.science/hal-03891589v1
+Submitted on 22 Nov 2025
+HAL is a multi-disciplinary open access
+archive for the deposit and dissemination of sci-
+entific research documents, whether they are pub-
+lished or not. The documents may come from
+teaching and research institutions in F rance or
+abroad, or from public or private research centers.L’archive ouverte pluridisciplinaire HAL , est
+destinée au dépôt et à la diffusion de documents
+scientifiques de niveau recherche, publiés ou non,
+émanant des établissements d’enseignement et de
+recherche français ou étrangers, des laboratoires
+publics ou privés.
+HAL Authorization
+Practical multiverse debugging through user-defined
+reductions
+Matthias Pasquier, Ciprian T eodorov, F rédéric Jouault, Matthias Brun, Luka
+Le Roux, Loïc Lagadec
+T o cite this version:
+Matthias Pasquier, Ciprian T eodorov, F rédéric Jouault, Matthias Brun, Luka Le Roux, et al.. Prac-
+tical multiverse debugging through user-defined reductions. MODELS ’22: ACM/IEEE 25th Interna-
+tional Conference on Model Driven Engineering Languages and Systems, Oct 2022, Montreal Quebec
+Canada, Canada. pp.87-97, ￿10.1145/3550355.3552447￿. ￿hal-03891589￿
+
+--- Page 2 ---
+Practical Multiverse Debugging through User-defined Reductions
+Application toUMLModels
+Matthias Pasquier
+ERTOSGENER
+Angers,France
+matthias.pasquier@ertosgener.comCiprian Teodorov
+Lab-STICC CNRS UMR 6285
+ENSTABretagne
+Brest,France
+ciprian.teodorov@ensta-bretagne.frFrédéricJouault
+ESEO
+Angers,France
+frederic.jouault@eseo.fr
+Matthias Brun
+ESEO
+Angers,France
+matthias.brun@eseo.frLuka Le Roux
+Lab-STICC CNRS UMR 6285
+ENSTABretagne
+Brest,France
+luka.le_roux@ensta-bretagne.frLoïcLagadec
+Lab-STICC CNRS UMR 6285
+ENSTABretagne
+Brest,France
+loic.lagadec@ensta-bretagne.fr
+ABSTRACT
+Multiverse debugging is an extension of classical debugging meth-
+ods,particularlyadaptedtonon-deterministicsystems.Recently,
+a language-independent formalization was proposed. Moreover,
+multiversedebuggingisparticularlybeneficialforspecificationand
+designlanguages,suchasUML.However,thismethodsuffersfrom
+scalabilityissuesduringbreakpointlookup.Thisproblemarisesdue
+to the exhaustive exploration performed on the potentially infinite
+state-spaceof thesystem.
+In this paper, we tackle this problem by introducing Reduced
+MultiverseDebugging,an extension proposing a way forthe user
+to define reduction policies used during breakpoint lookup. We
+enrichtheformalizationofmultiversedebuggingwithamodular
+breakpoint lookup strategy, which allows the integration of the
+reductionpolicy.Wevalidateourapproachbyimplementingaprac-
+ticalUMLStatechartdebuggerintheAnimUMLwebframework.
+Weshowseveralwaysthereductioncanbeapplied,usingmethods
+such aspredicate abstractionforbreakpointlookuponan infinite
+state-space, removing irrelevant variables, or creating classes of
+equivalentvalues.Moreover,weshowthepossibilitytointegrate
+probabilistic reduction strategies. Relying on hash collisions, these
+strategiescanbeiteratively refinedto increaseprecision.
+CCS CONCEPTS
+•Softwareanditsengineering →Softwaretestinganddebug-
+ging.
+KEYWORDS
+multiversedebugging,model analysis,concurrency, abstraction1 INTRODUCTION
+Debugging  is an  important  part  of the  development  life  cycle.  By  
+allowing  the  developer  to explore  programs  interactively,  it can  be  
+useful  to find  faults  as well  as simply  get  a better  comprehension  of 
+its  inner  workings.  As  the  complexity  of programs  increased,  this  
+process  has  also  evolved  to adapt  to these  new  difficulties.
+Omniscient  debugging  [22] allows  us  to return  back  on  the  ex-
+ecution  trace  to previously  visited  configurations.  Multiverse  de-
+bugging  [23] has  been  introduced  to enable  the  exploration  of 
+concurrent  actor-based  formalisms.  This  technique  becomes  im-
+portant  for  the  debug  of multi-threaded  actor  systems,  where  the  
+different  execution  schedules  can  hide  bugs.  For  high-level  speci-
+fication  languages,  such  as  UML,  this  feature  is necessary  due  to 
+the  intrinsic  non-determinism,  which  besides  scheduling  allows  
+capturing  entire  families  of implementations.
+The  formalization  of a unified  debug  semantics  targeting  non-
+deterministic  specification  languages,  such  as UML  [26], was  intro-
+duced  by  Besnard  et al.  [6, Section  5.3,  pp.  82ś87].  This  
+formalization  generalizes  multiverse  debugging  rendering  it 
+independent  of the  language.  However  it does  not  define  the  
+breakpoint  finder  strategy,  and  faces  the  problem  of system  
+complexity  when  applied  to real  world  examples.  This  is due  to 
+the  exhaustive  exploration  of the  potentially  infinite  space-state  
+needed  during  breakpoint  lookup.
+In this  paper,  we  address  this  problem  by  introducing  Reduced  
+Multiverse  Debugging  (RMD),  an  extension  proposing  a way  for  
+the  user  to define  reduction  policies  used  during  breakpoint  lookup.  
+These  reduction  policies  introduce  under-approximations  during  
+breakpoint  search  to significantly  improve  the  scalability  of multi-
+verse  debugging,  thus  rendering  the  approach  usable  in practice.  
+This  allows  to use  methods  like  predicate  abstraction  [11, 15], re-
+moving  irrelevant  variables  [2], creating  classes  of equivalent  values  
+or  use  probabilistic  reduction  methods,  such  as  bitstate  hashing
+1
+
+--- Page 3 ---
+Figure1: Architectureoverview
+[16] and hashcompaction [ 33]. Moreover, we present a complete
+formalizationthat alsocover thebreakpointlookupstrategy.
+Figure 1 overviews the architecture of a RMD tool, including
+theactionsavailabletotheenduser.Asdebuggingremainsahu-
+man activity, the user is represented as the "debug user" execu-
+tor. The interactions during debugging are classified as: the ac-
+tions(theorders),observingtheconfiguration(state)ofthesystem,
+definingbreakpointsanddefiningreductionpolicies.Theuserac-
+tionsincludesteppingthroughthesystem’sbehavior,jumpingback
+to a previously observedconfiguration, selecting betweenanon-
+deterministic choice and running to a breakpoint from the current
+configuration. The breakpoint definition syntax allows the user to
+define the stop criterion. Lastly, the user can define a reduction
+policy that isusedduringbreakpointlookup.
+The debugger semantics, can be seen as a bridge between the
+userandthedebuggedmodel.Thedebuggerisdependentonthe
+subjectlanguageruntimewhichcapturesthedynamicsemantics
+ofthemodel.Inourcase,thesubjectsemanticsisencapsulatedina
+SemanticLanguageInterface(SLI),thatprovideslanguage-agnostic
+observation and control services. Besides the subject language, the
+Figure1emphasizesthemodularityofourapproachandtheimpor-
+tanceofthebreakpoint FinderFunction byrepresentingitasaninde-
+pendentunit.Whendebuggingadeterministicmodel,thisfunction
+unravelsthesingleexecutionpathpossible.However,multiverse
+debugging forces this function to search through multiple non-
+deterministicbranches,atypicalfunctionalityofmodel-checking,
+which bringsthe state-space explosion problem. The run to break-
+pointaction of theRMDisrealizedby calling theFinder Function
+passing the subject language runtime as parameter along with the
+breakpointandthereduction policy.
+Wevalidatethepracticalityoftheapproach byimplementinga
+UMLdebugger,integratedintheAnimUMLmodelingenvironment.
+Toevaluateourcontributionwediscusstwodebuggingscenarios.
+Thefirstscenario,basedontheLamport’sbakeryalgorithm[ 20],
+emphasizes the importance of using reduction strategies for theanalysis of infinite state-spacemodels. The second scenario, more
+performance oriented,illustratesboth the scalabilityand the flexi-
+bilityoftheapproachbyshowingthattheprecision oftheanalysis
+canbetunedby varyingthe reduction strategy.
+In summary, this paper’s contributions with respect to [ 6] are
+the following: 1) the finder function becomes modular, 2) it can
+now leverage a reduction policy, which has never been done in the
+context of multiverse debugging to the best of the authors’ knowl-
+edge, and 3) all of this has been validated by extending AnimUML,
+andshowinghowit works on typical scenarios.
+Section2introducesrelatedwork.Section3overviewsthefor-
+malizationofthedebuggersemanticsandthe reducedbreakpoint
+lookupstrategy.InSection4,weoverviewtheUMLimplementation
+and discuss two illustrative examples. Section 5 evokes some limits
+ofourapproach.Thispaperconcludes,inSection6,providingsome
+futureresearch directions.
+2 RELATEDWORK
+This work is related to the successive evolution of debugging tech-
+niques. Omniscient debugging [22] proposes a way to prevent un-
+necessaryrestartsofdebuggingsessionsbyallowinggoingback-
+ward on the execution trace, creating the possibility for the user
+to go łbackin timež.This techniquehasbeenadaptedtobeused
+with multiple general purpose languages, such as C [ 8] or Java
+[14]. There also exist debuggers for languages closer to our ap-
+proach, such as [ 21], extending the fUML semantics to support
+debugging operations including back stepping, or [ 4], where the
+authorsimplementMDebugger[ 3],adebuggerforUML-RTmodels
+intoalivemodelingenvironment.In[ 24],theauthorsimplement
+omniscientdebuggingforstatecharts.TheKdebugger,presentedin
+[32],automaticallyderivesadebuggerfromthelanguagesemantics.
+However, it requires the use of the kframework [ 31] for specifying
+thelanguagesemantics.In[ 9],theauthorspresentalanguagein-
+dependent omniscient debugger with an implementation based on
+the GEMOC Studio, which offers multiple possibilities for defining
+thesubjectlanguagesemantics.However,alloftheseapproaches
+arelimitedto linear executiontraces.
+Multiversedebugging[ 23]extendsthisconceptbyintegrating
+the non-deterministic nature of modern programs directly into
+the possible debugging actions. In addition to jumping back to
+previously explored configurations, it is now possible to select
+throughmultipleactions,creatingabranchinghistory.However,
+the actor-based subject language clearly restricted the scope to
+implementationlanguages.Furthermore,theauthorsdiscussthe
+possibility of using static analysis for improving scalability, but
+leavetheseaspectsforfutureworks.Ourcontributionactonthis
+scalabilityproblem through user-definedunder-approximations.
+In [6,7], the authors propose a generic multiverse debugger
+formalization,thatgeneralizestheapproachtonon-deterministic
+specification languages, such as UML. However, this formalization
+missestheimportanceof thebreakpointlookupstrategy,including
+the problem of state-space explosion. In this paper, we complete
+this formalization, including a way to scale the approach during
+breakpointsearch.
+AnimUML[ 17]introducesaunifiedapproachfortheverification
+and monitoring of executable UML. To achieve this, the authors
+2
+
+--- Page 4 ---
+rely  on  a transition  system  semantics  similar  to the  one  used  by  our  
+approach.  Moreover,  the  paper  introduces  the  first  UML-specific  
+graphical  user  interface  (GUI)  for  multiverse  debugging.  However,  
+once  again  the  lack  of scalability  is still  not  addressed.  Our  solution  
+extends  the  AnimUML  multiverse  debugger  GUI  to allow  the  defini-
+tion  of the  reduction  strategies,  by  extending  the  watch  expression  
+syntax.  Moreover,  we  improve  the  user  feedback  by  adding  new  
+visualization  exposing  the  branching  execution  history.
+The  model-checking  [10] and  symbolic  execution  [5] literature  
+is rich  in abstraction  techniques  to counteract  the  state-space  ex-
+plosion  problem.  Over-approximations  analyze  supersets  of the  
+state-space,  but  can  introduce  false  positives  (report  errors  not  
+present  in the  original  model).  Under-approximations  focus  on  
+subsets  of the  state-space,  but  can  introduce  false  negatives  (miss  
+errors).  An  abstraction  is precise  with  respect  to a given  property  
+if it does  not  introduce  neither  false  positives  nor  false  negatives.  
+Besides  introducing  false  positives  (which  require  further  steps  for  
+confirmation),  over-approximation  techniques  require  either  the  
+modification  of the  model  being  debugged,  or the  replacement  of the  
+semantics  (with  an  abstract  one)  or  both.  łOn-the-flyž  state-space  
+reductions  [27], are  a class  of under-approximation  techniques,  
+that  can  be  implemented  independently  of the  subject  language  se-
+mantics.  Using  an  exploration  method  called  łconcrete  search  with  
+abstract  matchingž [ 27] these  abstractions  can  be  lazily  computed  
+during  the  exploration  of the  concrete  model.  Our  main  contribu-
+tion  is to show  that  this  approach  brings  a practical  solution  to the  
+state-space  explosion  problem  for  multiverse  debugging.  Moreover,  
+the  reductions  can  be  adapted  to the  needs  of the  user.  Furthermore,  
+this  language-agnostic  technique  is fully  compatible  with  the  use  of 
+abstraction  techniques  requiring  model  transformations  or  support  
+from  the  language  runtime.
+3 RMD  FORMALIZATION
+This  section  formally  introduces  a high-level  generalization  of the  
+traditional  debugging  tools.  This  debugger  specification  abstracts  
+away  some  implementation  details,  such  as  the  structure  of the  
+trace,  and  the  projection  functions  needed  for  the  user  interface.
+All  listings  of this  section  will  be  presented  in lean  3 [13], unless  
+stated  otherwise.  Some  of them  may  present  a simplified  syntax  for  
+better  clarity,  but  the  complete  formalization  can  be  found  in the  
+dedicated  repository  of this  article1.
+3.1  The  Semantic  Language  Interface
+Before  getting  to the  semantics  of the  debugger,  we  need  to define  
+the  way  it is interfaced  with  the  program  to be  debugged.  To  this  end  
+we  use  the  concept  of Semantic  Language  Interface,  as presented  in 
+Listing  1. Definition  3.1  also  gives  a description  of the  types  used  
+in this  formalization.  The  SLI  is composed  of multiple  elements:  
+First,  a structure  called  Semantic  Transition  Relation,  abridged  as 
+STR,  represents  the  interface  to control  the  model  execution.  The  
+initial  function  returns  the  set  of all  possible  initial  configurations.  
+For  a given  configuration,  the  function  actions  returns  the  actions  
+that  can  be  executed  next.  Finally,  the  execute  function  executes  an  
+action  from  a given  configuration,  and  returns  the  possible  resulting  
+configurations.  The  presence  of  sets  in  these  functions  allow  us
+1https://github.com/MatthiasPasquier97/reduced-multiverse-debuggingstructure STR:=
+(initial: set C)
+(actions: C→set A)
+(execute: C→A→set C)
+classEvaluate :=(state: E→C→V)
+classReduce :=(state: R→C→𝛼)
+Listing1:Thesemanticlanguageinterfacedefinition
+structure DebugConfig :=
+(current: option C)
+(history: set C)
+(options: set C)
+Listing2: Theconfigurationof theG ∀min∃debugger
+to use non-determinism in the language. Along the STR, the SLI
+includestwotypeclasses[ 35]necessaryfortwoadditionalfunctions.
+Theevaluatefunction is used to evaluate an expression E over a
+configuration, returning the value of this expression. The function
+reduceallows to obtain a reduced configuration from a complete
+one, followingtherules of the reduction syntax R.
+Definition3.1. The generic types usedby the SLI
+Ctheconfigurationtype encodesthestructureddynamicmemory
+of thesubjectlanguage;
+Atheaction type symbolically reifies the link between two configu-
+rationsin thesubjectlanguage;
+Ethe expression type captures the configuration inspection syntax2
+exposedby theSLI,usedto define the breakpoints;
+Rthereduction syntax , exposed by the language interface to enable
+configurationreduction;
+Vthevaluetype characterizestheconfigurationinspectionresults
+as values in the subject language semantic domains. Note that our
+formalizationrequires onlybooleanvalues;
+𝛼thereducedconfigurationtype capturestheconfigurationreduc-
+tionresults.Notethatforself-representinglanguages[ 30]the𝛼and
+Vmayoverlap,however,asthisisnotthecaseingeneralweprefer
+to considerthem separately.
+3.2 Debuggeras a DependentSemantics
+Withoutlossofgenerality,theG ∀min∃debugger,presentedhere,
+isparameterizedover thesubjectlanguagesemantics, capturedas
+atransitionrelationinthespiritof[ 7].Inthefollowing,thiswill
+bereferred asaSemanticTransitionRelation (STR).Furthermore,
+bydecouplingthedebuggersemanticsfromthesubjectlanguage
+details, the G∀min∃debugger is formally defined independently of
+theunderlyinglanguage.
+The G∀min∃debugger is defined as a monitoring wrapper over
+thesubjectlanguagesemanticsdefinition.Thedebuggeritselfex-
+posestheSTRinterface.Thedebuggerspecificationisbasedontwo
+specific types: theconfigurationandthe actions.
+The debugger configuration, DebugConfig in Listing 2, is pa-
+rameterized by the subject language configuration type ( 𝐶) and
+simply captures the core state-variables of the debugger, namely
+2The inspectionsyntax becomes theintrospectionsyntax ifitisreflectivelyexposed
+inthe subjectlanguagesyntax
+3
+
+--- Page 5 ---
+inductive  DebugAction
+| step:  A →  DebugAction
+| select:  C →  DebugAction
+| jump:  C →  DebugAction
+| run_to_breakpoint:  DebugAction
+Listing  3: Debugging  actions,  the  abstract  syntax  of  the  
+debugger
+the  current  state  (current), the  execution  history  (history) and  the  
+options  of next  configurations  (options). The  current  configuration  
+simply  wraps  the  current  configuration  of the  subject  language  in 
+an  option  type.  The  history  is the  set  of configurations  encountered  
+since  the  beginning  of the  debugging  session.  The  options  variable  is 
+necessary  because  of the  non-determinism  of the  execute  function  
+in the  subject  language.  It acts  as a temporary  configuration  buffer  
+from  which  the  next  configuration  can  be  selected.
+Please  note  that  we  relax  the  type  of the  current  variable  to 
+an  option  type.  This  is not  necessary  in practice.  However,  for  
+the  purposes  of this  presentation  it simplifies  the  specification  by  
+alleviating  the  need  to "arbitrarily"  choose  one  configuration  from  
+the  options  to set  as "current"  configuration.  Furthermore,  note  that,  
+for  the  purposes  of this  formalization,  the  history  does  not  need  
+more  structure,  and  can  simply  be  represented  as  a set.  The  type  
+of history  can  be  adapted  to a specific  type  of debug:  For  exemple,  
+omniscient  debugging  stores  the  history  as  a linear  path  while  
+multiverse  debugging  uses  a tree  of potential  executions.
+The  dynamic  actions  of the  debugger  are  captured  by  the  De-
+bugAction  type,  illustrated  in Listing  3, which  introduces  4 core  
+debug  actions.  The  DebugAction  is parameterized  over  the  con-
+figurations  (C)  and  actions  (A)  of  the  subject  language.  The  step  
+action  syntactically  describes  the  intention  of executing  a particular  
+action  of the  wrapped  STR.  The  select  action  captures  the  selection  
+step  necessary  for  resolving  the  non-deterministic  execution  of the  
+wrapped  STR.  The  jump  action  represents  the  intention  of moving  
+from  the  current  configuration  to an  arbitrary  configuration  picked  
+from  the  history. Finally,  the  run_to_breakpoint  action  represents  
+the  intention  of running  the  underlying  STR  until  a "breakpoint"  is 
+found.
+To  gain  some  intuition  on  the  G∀min∃ debugger,  Figure  2 shows  
+an  example  of the  debug  actions  allowed  by  our  specification.  The  
+figure  overlays  the  debug  actions  over  the  configuration  3 (the  
+rounded  rectangle  with  a thick  border)  of a simple  transition  sys-
+tem  (the  dashed  blue  lines  indicate  the  transitions).  The  black  dot  
+denotes  the  initial  state.  The  red  dots  denote  the  configurations  
+that  satisfy  the  breakpoint  predicate.  The  𝑎1 & 𝑎2 labels  on  the  blue  
+transitions  explicitly  indicate  the  original  actions  which  link  the  
+configurations.  The  execution  of the  𝑎2 action  is non-deterministic.  
+Moreover,  the  configurations  3 & 7 have  action  non-determinism  
+(two  actions  are  enabled).  The  gray  rounded  rectangles  show  the  
+configurations  unrolled  by  the  debugger  up  to the  current  configu-
+ration.  From  the  current  configuration  (configuration  3) five  actions  
+are  enabled:  a) two  step  actions,  which  execute  the  𝑎1 and  𝑎2 actions  
+of the  original  transition  system;  b) two  jump  actions,  which  enable  
+jumping  back  to one  of the  previously  discovered  configurations;  
+c) the  run_to_breakpoint  action,  which  discovers  the  trace  (8 ←  7 ←  
+5 ←  3) of the  original  transition  system.  Conceptually,  any  subsetFigure 2: The G∀min∃debug actions overlayed over a simple
+transitionsystem.Thenumber-labeledroundedrectangles
+represent the configurations of the subject-language. The
+dashed blue lines indicate the transitions (actions) in the
+subject-language. The boxes around the configurations in-
+dicate the potential non-determinism of the STR-execution
+function(returningasetofconfigurations).Theconfigura-
+tion 3 (thick black border) is in the current slot of the debug
+configuration.Thegrayedconfigurationsindicatethatthey
+arepresentinthehistory slotof thedebug configuration.
+defFinder
+[has_evaluate: Evaluate C E bool]
+[has_reduce: Reduce C R 𝛼]:=
+STR C A→set C→E→R→list C
+Listing4: Thesignatureof thebreakpointfinder function
+ofallwitnesstracesmaybeproduced,asin[ 23].Forsimplicity,our
+specification limits the scope of the run_to_breakpoint action to
+thefirstdiscoveredwitness.Thus,theconfiguration6and9arenot
+seen by this action execution.
+The Figure 3 shows an excerpt of the transition system induced
+by our debugger specification, defined in Listing 5, on the original
+transition system in Figure 2. The gray arrows separated by ···
+indicatethemissingactions.Eachroundedrectanglerepresentsone
+instance of DebugConfig , with its three slots. The effects of the five
+debugactionsareemphasizedwiththetextfuchsia.The stepactions
+set theoptions slot tothe configurations obtainedbyexecuting the
+originalaction.The jumpactions,changethecurrentslot,extend
+thetraceandresettheoptionsslot.The run_to_breakpoint action
+updatesthecurrentconfigurationandextendsthetracewiththe
+witnesstrace.The selectactionchangesthecurrentslot,extendsthe
+traceandresetstheoptionsslot.Inourexampleitisusedtochoose
+theconfiguration6,betweenthetwooptions(5&6)obtainedby
+steping with 𝑎2.
+For simplicity, in the following, we consider a single breakpoint
+oftypeE,whichisobtainedfromthe ambientenvironment. The
+breakpoint semantics is given over the subject-language configura-
+tions by the evaluate function. In general, the breakpoint language
+canbedefinedasadependentlanguageoverE.Forinstanceapropo-
+sitional language with the atomic propositions typed by E. This
+can be useful if the subject language does not allow the evaluation
+ofpropositionallogicexpressionoverexecutionsteps.Moreover,
+4
+
+--- Page 6 ---
+Figure3: Thedebug transitionsysteminduced ontheexample inFigure2
+defReducedMultiverseDebuggerBridge
+[has_evaluate: Evaluate C E bool]
+[has_reduce: Reduce C R 𝛼]
+(o: STR C A) (find: Finder C A E 𝛼) (break: E) (red: R)
+: STR (DebugConfig C) (DebugAction C A) :={
+initial := rmdInitial o,
+actions :=𝜆dc, rmdActions o dc,
+execute :=𝜆dc da, rmdExecute o find break red da dc }
+Listing5:TheSTRspecificationof theRMD
+insomesituationsitcanbesimplertoexposeaprimitiveevalua-
+tion function, and let the clients (the debugger, in our case) handle
+higher-level expressions.
+Thestrategyusedforrunningtoabreakpointisabstractedaway
+throughtheuseofthe Finderfunction,thesignatureispresented
+in Listing 4. This function requires the Evaluate and theReduce
+functions3besides the subject-language STR4. Given those, the
+Finderperforms a reduced multiverse exploration looking for a
+witness trace (list 𝐶) connecting one of the start configurations
+(set𝐶), to one configuration satisfying the breakpoint predicate (E).
+The multiverse reduction policy is provided by the 𝑅argument. In
+section3.4,wedefinethisfunctionmodularlythroughtheuseof
+theSLI.
+3.3 A Semantic TransitionRelationfor
+Debugging
+Based on the previous definitions the semantics of the debugger
+canbecapturedasaSTR,illustratedinListing5.The ReducedMulti-
+verseDebuggerBridge is parameterized by: the subject STR ( o) along
+with the related evaluation function, the finder function ( finder),
+thebreakpoint,andtheabstractionfunction.Thereturntypeisa
+new STR that wraps the subject language semantics providing the
+debug actions. Please note that besides the arguments passed to
+thermdExecute , this function (presented in Listing8) also requires
+instancesoftheEvaluate(contrainedtoaboolresult)andReduce
+3Please note that the EvaluateandReducefunctions are inferred by the lean typeclass
+resolutions mechanism.
+4We choose to explicitly pass the subject language STR asan argument at the call site.defrmdInitial {C A:Type} (o: STR C A): set (DebugConfig C)
+:={⟨none,∅, o.initial⟩}
+Listing 6: The initial state predicate of the G ∀min∃debugger
+defrmdActions {C A:Type}
+(o: STR C A): DebugConfig C →set (DebugAction C A)
+|⟨current, history, options ⟩:=
+let
+oa:={ step a |∀c, current =some c→∀a∈(o.
+actions c) },
+sa:={ select c |∀c∈options }
+ja:={ jump c |∀c∈history },
+inoa∪sa∪ja∪{ run_to_breakpoint }
+Listing7:Thespecificationofthedebugger"actions"function
+typeclasses, which are automatically inferred by the lean typeclass
+resolution mechanism.
+Listing6 showsthe definitionofthe rmdInitial function,which
+simplycreatesasingletoncontaininga DebugConfig withnocurrent
+state,anemptyhistoryset,andthe optionsvariablesettotheinitial
+statesobtainedfromthewrappedSTR 𝑜.
+ThermdActions function,showninListing7,generatestheset
+ofenabledactionsina DebugConfig 𝑑𝑐.Inourcasetherearefour
+sources of actions:
+(1)the original action set 𝑜𝑎, obtained from the subject STR
+𝑜(only if the 𝑐𝑢𝑟𝑟𝑒𝑛𝑡slot is not empty). These actions are
+exposedthrough the stepconstructor.
+(2)the select action set 𝑠𝑎, induced by the elements in the
+𝑜𝑝𝑡𝑖𝑜𝑛𝑠slot, which areencapsulated by the selectconstruc-
+tor.
+(3)the jump action set 𝑗𝑎, induced by the ℎ𝑖𝑠𝑡𝑜𝑟𝑦elements,
+which areencapsulatedby the jumpconstructor.
+(4) therun_to_breakpointaction.
+ThermdExecute function, presented in Listing 8, defines the
+executestepsemanticsofour unified_debugger .Therearefivecases
+toconsider.Ifthe currentslotisnotempty( dc.current =some c)
+andtheoriginalactionexecutiondoesnotblock( o.execute c a ≠
+∅), the execution of the step creates a new configuration with the
+5
+
+--- Page 7 ---
+defrmdExecute {C A E R 𝛼:Type}
+[has_evaluate: Evaluate C E bool]
+[has_reduce: Reduce C R 𝛼]
+(o: STR C A) (find: Finder C A E R 𝛼) (break: E) (red: R)
+: DebugAction C A →DebugConfig C→set (DebugConfig C)
+| (step a) ⟨(some c), history, _ ⟩
+:={⟨none, history, o.execute c a ⟩}
+| (step a) ⟨(none), _, _⟩
+:=∅
+| (select c) ⟨_, history, _⟩
+:={⟨c, { c }∪history,∅ ⟩}
+| (jump c) ⟨_, history, _⟩
+:={⟨c, { c }∪history,∅ ⟩}
+| (run_to_breakpoint) ⟨(some c), history, _ ⟩
+:=match(finder o { c } breakpoint reduction) with
+| []:=∅
+| h::t:={⟨h, history∪{ h }∪{x | x∈t},∅ ⟩}
+end
+| (run_to_breakpoint) ⟨none, history, opts ⟩
+:=match(finder o opts breakpoint reduction) with
+| []:=∅
+| h::t:={⟨h, history∪{ h }∪{x | x∈t},∅ ⟩}
+end
+Listing8: Thespecificationof the"execute" function
+optionsslotassignedtotheresultsofcallingtheoriginalexecute
+function.Otherwisetheexecutionofthestepblocks.Thecurrent
+slot is cleared and the history is not modified. The selectandjump
+executionsareidentical,theargumentconfigurationissetinthe
+currentslot,thehistoryisextendedwiththeargumentconfiguration
+andtheoptionsslotisemptied.Theexecutionofa run_to_breakpoint
+is different based on the state of the currentslot. If empty, then the
+finderfunction is invoked with the configurations from the options
+slot as starting point. If the currentslot is not empty ( some c), the
+finderstartsthelookupforbreakpointfromtheconfigurationinthis
+slot. If the finder locates a witness trace, linking the starting point
+with a configuration satisfying the breakpoint predicate, a new
+debugconfigurationiscreatedwiththewitnessingconfiguration
+(the configuration that satisfies the breakpoint condition) in the
+currentslot and a trace extended with the witness ( history∪{
+h }∪{x | x∈t}).Otherwisetheexecutiondoesnotproduce
+any configuration(it blocks).
+Note that the execution function is deterministic, since it pro-
+ducesatmostonenew DebugConfiguration foreachaction.Further-
+more,notethattheblockingbehaviorofthe debugExecute function
+isonlyadesignchoice.Neverthelessitpreventstheintroductionof
+"strange"debug configurations,like ⟨none, history,∅ ⟩)which
+blocks all actionsbut jump.
+3.4 A ModularFinder Function
+TheFinderfunction,shownasagrayboxinFigure4,istheworkhorse
+of any debugger.It enables theuser tojump forward in time,over
+the transition relation, to specific "points" of interest (identified by
+breakpointpredicates).Indeterministicsequentiallanguages,the
+Finderfunction corresponds to running the program until a break-
+pointconditionissatisfied.Ingeneral,however,the FinderneedsFigure4: Thearchitectureof the Finderfunction
+toperformareachabilityqueryonthetransitionsysteminduced
+bythesemantics.RelyingonthefunctionalitiesexposedbytheSLI,
+this functionality can be implemented in an ad-hoc manner by spe-
+cializinganyreachabilityalgorithmtothepeculiaritiesoftheSLI
+interface.However,fromourperspective,suchanapproachdefeats
+thepurposeoftheSLIinterface,whichaimsatdecouplingthese-
+mantics from the algorithms to enable their independent evolution.
+From this point of view, we should not compromise neither on the
+semantics nor on the reachability algorithm, but rather exploit the
+SLIfacilitiestobuildabridgebetweenthetwo,likeillustratedin
+Figure4(theblueish Finder Bridge roundedrectangle).
+ThefirstingredienttoconsideristhesubjectlanguageSLI(the
+left rectangle in Figure 4), from which we need the STR along with
+the evaluate and reduce functions. Inspecting the configurations
+through the evaluate predicate enables multiple usage scenarios by
+allowinga rich set of breakpoints, suchas:
+•Predicates related to the syntax tree (AST predicates), the
+run-to-lineisoneexample,wherethelinenumberisaproxy
+fortheAST node;
+•Predicates on the configuration(state predicates),the run-
+to-assertionisanexample;
+•Mixed AST and state predicates, the conditional breakpoint
+is aexample, whichis a conjunction of a state-predicate and
+a AST predicate.
+TheFinderalsousesmultiplefunctiontoadaptthisSLItothe
+search algorithm. The STR2TRallow to use the STRas a transition
+relation, noted TR, by combining the actionsandexecutefunctions
+into a single nextfunction, that executes every possible action,
+and returns the union of all possible resulting configurations. The
+partial application uses the reduce and evaluate functions of the
+SLI to permanently take the given reduction and breakpoint and
+onlyacceptaconfigurationasaninput.Finally,the replaceInitial
+allow to change the initial configurations, as the run to breakpoint
+function may be launched from any arbitrary configuration during
+thedebuggingsession.
+We also need the executor search_breakpoint , which uses the
+function search_breakpoint described in Listing 9. This function
+performs a reachability query overa non-deterministic transition
+relationtofindaconfigurationacceptingthebreakpointexpression,
+by calling the dfsfunctionforeachinitial configurations.
+Thedfsfunction recursively explores thenext possibleconfigu-
+rations until one of them is an accepting configuration, ending the
+6
+
+--- Page 8 ---
+1defsearch_breakpoint(o: TR C) ( reduce: C→𝛼): list C :=
+2k={}; wt=();
+3fors∈o.initial do
+4 ifdfs oreduces k wtthen return wt
+5returnwt
+6defdfs (o: TR C) ( reduce: C→𝛼)
+7(s: C) (k: set C) (wt: list C): bool :=
+8ifo.accepting sthen
+9 wt=wt.append(s); returntrue
+10 k=k∪{reduces }
+11 fort∈o.nextsdo
+12 if(reducet)∉kthen
+13 ifdfs o red t k wt then
+14 wt=wt.append(s); returntrue
+15 returnfalse
+Listing 9: Pseudo-code for the search_breakpoint function
+that performs a reduced reachability query over a non-
+deterministic transitionrelationwith accepting states
+searchandreturningthewitnesstrace wt.Ifnofurtherexploration
+ispossible, thefunctionreturns false, indicatingthatno accepting
+state was found in this branch. If there is no accepting state ob-
+tainedfromanyoftheinitialconfigurations,thebreakpointcannot
+be reached in the complete state space. To avoid verifying some
+identical branches multiple times, or keeping on exploring some
+loop in the state space, we compare each configuration obtained
+from the nextfunctionwith alistofalready discoveredconfigura-
+tions,notedas kinthisprogram.Thisiswhereour reducefunction
+isused,aswedonotusecompleteconfigurationsdirectly,butwe
+storeandcomparethereducedversionsof these configurations.
+The reduction function takes a configuration C as an input and
+canproduceanothertype 𝛼aslongasthereisapossibilitytocheck
+for equality between values of this type. It effectively performs
+state-space pruning during the search for breakpoints. The veri-
+fication is exhaustive if: a)the reduce is injective; b)the reduce
+mapstheconfigurationsthroughsymmetriestoaquotientofthe
+configurationspace; c)thereducefunctionisprovedtobeaprecise
+approximationoftheconfigurationspace.Ingeneralthough,the
+reduce function performs a under-approximation of the configu-
+ration space. Thus, we can only reach real configurations of the
+system,makingfalsepositivesimpossible.Atooeagerreduction
+will lead to the impossibility to conclude on the reachability of the
+breakpoint, but cannot give false positives, allowing the user to
+relaxthereduction if necessary.
+Ourgoalinthisarticleistoleveragethemanypossibilitiesof-
+feredby on-the-fly reductionsin thecontext of debugging. Choos-
+ing and implementing the best reduction is not a trivial task and
+thebestwaytoachieveitstillneedsfurtherwork.Nevertheless,we
+present some ways to choose reductions, depending on the model
+aswellasthenatureofthebreakpoint wewant toreach.Further-
+more, the literature on the subject [ 2,15,16,18,33,34] can also
+guidetheuser.
+The firstpossibility is to usesome probabilistic method. To this
+end, we use a hashing function for our reduction, creating a surjec-
+tionbetweenthebigorpotentiallyinfinitenumberofconfigurations
+of the concrete systems and the smaller number of possible hashedvalues. We then obtain a finder function working on the principles
+of bitstate hashing [ 16] and stopping the exploration before it is
+complete. Deciding on the best hash size mayrequire a bit of trial
+and error to be optimized, but the chosen values can be kept for
+thefollowingdebuggingsessions.
+Itis alsopossibleto useatargeted reductiontopush theexplo-
+ration towards parts that seem interesting. In the same way the
+debugging process allows us to choose manually the next steps to
+execute, which allows us to go faster to the parts of interest, we
+can do the same by defining an abstraction which ignores some
+elements of the concrete configuration as our reduction. This al-
+lows us to implement some classic strategies of model abstraction:
+Itispossibletododeadvariablereductionbyignoringavariable
+that has little to no interaction with the part of the model that
+interests us, like a logging variable. We can also find classes of
+equivalent variables, and only consider a change if the variable
+moves to another class.
+Finally we can use reduction that are directly adapted to the
+situationofthespecificmodelandlanguage.Someexampleswould
+be to restrict the access to an uninteresting part of the model by
+selectingifsomestatesarekeptinthememoryornot.Ifthelan-
+guageusesamechanismofmessagepassing,theeventpoolofeach
+object can be problematic if it is unbounded, and we can help it by
+capping it,orlimiting the number of similar events.
+Notethatmultiplereductionfunctionscanbecombinedthrough
+simplefunction composition,tofurtherdecompose thereduction
+strategy.Forexample,asymmetryreductionfollowedbyahash-
+ingfunctioncouldbebeneficialduetothesmallerdomainofthe
+hashing function, which will translate in a lower collision rate.
+Forhelpingtheuser toimplementthesereductions,severalele-
+mentsarepresented.Firstly,theevaluatefunctionoftheSLIallows
+to evaluate expressions on the system even if the configurations
+communicated through the STR are not transparent. Moreover,
+generic primitives can also be provided. For instance, we provide a
+hashing function for which users can choose hash bit length. This
+makes it trivial to use hash compaction in an iteratively refined
+manner.Inthesameway,reductionfunctionscanevolveduringthe
+debuggingprocess,justlikebreakpointplacementcanberefinedin
+traditional debug, to match with the understanding of the program
+ortheproblems.
+4 EXPERIMENTATION
+To validate our approach, we implemented the principles of our
+debugger semantics on the platform AnimUML [ 17] in order to
+tryit onUML models.An exampleoftheuser interfaceduring a
+debuggingsessionisshowninFigure5.Ontheleftpart,wecansee
+the model view, where the user can choose among allowed actions
+(representing both step and select actions, depending if multiple
+choices are possible). On the right part, the history view shows the
+already explored configurations, withthe possibility to jump back
+toanyofthem.Theruntobreakpointfunctionishiddenunderthe
+analysistoolmenu,alongwiththepossibilitytocreateandselect
+reduction functions.
+AnimUMLasadebuggeralsoincludesseveraluseful functions
+whichwon’tbeexpandedonfurtherinthispaper.Asanexample,it
+allows sharing debug sessions by exporting the model as url-links
+7
+
+--- Page 9 ---
+or  HTML  files.  This  allows  sending  the  debug  session  to another  
+user,  which  could  either  analyze  the  trace,  or  continue  the  debug  
+session.
+The  rest  of this  section  describes  two  debug  scenarios.  The  first  
+scenario  illustrates  the  use  of different  reduction  policies  on  a 
+slightly  modified  bakery  mutual  exclusion  algorithm,  an  infinite  
+state-space  model.  The  second  scenario,  more  performance  oriented,  
+shows  the  performance  impact  of different  reduction  policies.
+4.1  Interests  of  the  approach  on  infinite  models
+To  show  the  interest  of this  approach  we  introduce  the  model  of a 
+mutual  exclusion  algorithm,  based  on  Lamport’s  bakery  algorithm  
+[20] presented  in the  left  part,  the  model  section  of Figure  5. Its  base  
+principle  is based  on  a numbering  machine  giving  each  process  
+entering  the  waiting  section  a new  ticket  with  a higher  value  than  
+the  one  previously  distributed,  and  then  ordering  the  processes  
+by  ascending  ticket  number.  It presents  a double  interest:  Firstly,  
+modeling  a non-deterministic  behavior  as  the  system  can  have  
+multiple  execution  paths  based  on  the  scheduling  of these  two  
+processes.  Secondly,  the  presence  of the  incrementing  tickets  creates  
+a possible  execution  path  of ever  increasing  values  and  thus  an  
+infinite  state  space,  making  traditional  model  checking  impossible.
+To  this  model  we  also  add  another  function:  A counter  CounterCS  
+on  one  of the  processes  which  increments  each  time  it enters  the  
+critical  section.  As  this  counter  is unbounded,  it also  makes  the  
+state  space  infinite.  and  will  be  used  to  show  the  possibilities  of 
+useless  variables  reductions.
+As  a first  interesting  element,  the  breakpoint  syntax  allows  us  
+a richer  set  of breakpoint  definitions.  We can  define  classic  state-
+based  breakpoints,  equivalent  to stopping  on  a given  line  of exe-
+cution.  In our  example  we  could  define  it as  processA  is in  state  
+Waiting  and  processB  is in the  Critical  Section.  The  extension  of 
+the  syntax  allows  to extend  breakpoint  definition  to more  precise  
+elements,  such  as values  taken  by  a variable,  or  some  message  sent  
+between  objects.  Like  this,  we  could  define  a breakpoint  on  a cer-
+tain  value  for  one  of the  tickets,  to reach  it automatically  without  
+stepping  manually  for  a long  time.
+Such  a breakpoint  placed  on  a given  value  of one  of the  tickets  
+also  demonstrates  the  interest  of a non-deterministic  debugging  
+environment.  With  the  presence  of the  tickets  resetting  functions  
+when  transitioning  from  the  critical  section  to the  initial  state,  the  
+only  way  for  the  tickets  value  to continue  increasing  is when  the  
+two  processes  are  perfectly  coordinated,  always  going  one  after  the  
+other  before  the  reset  is effective.  If we  consider  as  a bug  the  value  
+increasing  too  much  (for  example  by  going  over  the  max  value  
+of the  type  chosen  in the  implementation  language),  a traditional  
+debugger  may  have  missed  this  specific  sequence  of  events.  By  
+exploring  all  possible  non-deterministic  paths,  the  finder  function  
+will  be  able  to find  these  special  cases.
+Reduction  functions  could  be  used  to reach  them  faster.  In this  
+example,  if we  are  only  interested  in the  value  of one  of the  tickets,  
+we  could  define  an  abstraction  which  keeps  one  ticket  as  a con-
+crete  value,  while  ignoring  or  reducing  the  definition  of the  other  
+one.  Another  reduction  could  be  to outright  ignore  the  counterCS  
+variable,  removing  it from  the  configurations  without  changing  the  
+functional  execution  of the  model.Of course, the state configuration breakpoint that would be the
+mostinterestingtoreachwouldbethatbothprocessesareinthe
+criticalsection,butasthisisaworkingmutualexclusionalgorithm
+aswellasamodelwithaninfinitenumberofconfigurations,itis
+not possible to obtain a conclusion without some changes. This
+is the kind of situation where our reduction function can also be
+useful, by allowing us to gain moreconfidence, and in some cases
+aproofofagivenpropertyinthecontextoftheexplosionofthe
+state space duringexploration.
+In addition to the methods already seen, we can define a re-
+ductionfunctiononthemodelbyusinganexactabstractionwith
+regards to the breakpoint. As an example of this situation, it is pos-
+sible to define an abstraction function that reduces the state space
+enoughtomakeitfullyexplorable,allthewhilekeepinganequiva-
+lencewiththeconcretemodel.Inourexample,areductionfunction
+computingtherelationbetweenticketA andticketB,as well as a
+boolean indicating if both tickets are at value 0, as described in the
+framein thebottom rightof 5.
+Thestatespaceobtainedbytheexplorationusingthisabstraction
+isshowntheleftpartofFigure5.Thisreductionfunctionallowsus
+toverifysomepropertiesonamodelthatisclosertoaPetterson
+mutualexclusionalgorithm[ 28],whichhastheadvantageofhav-
+ingafinitenumberofconfigurations,whilenevermodifyingthe
+originalmodel.Wecannowtrytoreachabreakpointdescribing
+bothprocessesinacriticalsection,whicheffectivelyneverhappens,
+andtheexploration canend.
+4.2 Breakpoint reachability performances
+In the previous section we used the reduction function to debug in-
+finitemodels.Anotherusecasecanbereducingthetimeormemory
+necessary to reach a given breakpoint. These types of breakpoints
+canalreadybereachedusingclassicalexplorationalgorithms,but
+they may either take too much resources, or simply be too slow
+to be comfortable to use in a debugging process. We can use a
+reductionfunctiontoreachthemfasterbyskippingunnecessary
+parts of theexploration.
+To evaluate the performances of the finder function and the
+possible gainsoffered byreductions,weproposeademonstration
+onasimple model displayingan explosionproblem. This model,as
+showninFigure6,presentsasimplenon-deterministicenvironment
+in the form of a user which can send any value contained within a
+certainrangetothesystem.Thissystemisconstrainedtoasmaller
+range of values to proceed with the rest of its operations. The
+environmentiscreatedwithaintcounterwhichcanbeincremented
+ordecremented,withitsvalue sent at any timeto the system.
+Our goal is to reach the "Breakpoint state", the configuration
+where the system can continue its execution with its higher values,
+withouthavingtoeitherwaitforalongtime,ortonavigateman-
+uallythroughtheproblem.Inthiscase,thestate-spaceexplosion
+problem comes from the different variables named value, stored
+asintrangingfrom0to250,andofwhichmultiplevariationsare
+present through the program. As all ofthese variables can change
+valuesindependently,thenumberofcombinationsexplodesmaking
+reachability analysis unnecessary complex.
+Without further analyzing the problem, we can try to reach our
+breakpoint faster by reusing a hashing function. An example of
+8
+
+--- Page 10 ---
+Figure5: View of theAnimUML toolduring adebugging session whileusingareductionfunction.
+Figure6:Anon-deterministicmodelthatchallengesmulti-
+verse debugging
+the reduction obtained using this method is presented in Table
+1. This table presents different metrics obtained by executing arun_to_breakpoint operation from the initial configuration, while
+usingdifferentreductionfunctions.Foreachrun,wepresentthe
+numberofconfigurationsexploredaswellasthetimetakentoreach
+it. Then, we display the time taken to explore one configuration, to
+haveanestimationoftheadditionaltimeusedforcomputingthe
+abstraction function. Finally, we can display the benefits of each
+reduction,intheformofthespeedupintimeittooktoreachthe
+breakpoint, by comparison with the run with no reduction. This
+tableshowsthat,givenasuitablereductionfunction,theadditional
+timeneededtoexecutethereductionfunctionforeachconfigura-
+tion still makes this approach worth it as it is compensated by the
+reduction in thenumber of configurations weneedto explore.
+If we want to go further in the reduction, we can start to act
+on the causes of the state space augmentation. An example of a
+problemcaused by our modelisation is thatfor each configuration
+of the system, the environment will be explored with each pos-
+sible value. The reduction function allows us to create classes of
+equivalent values, but we need a way to keep a trace between each
+configurationwheretheenvironmentvalueisincreasingtoreach
+the higher values needed for our breakpoint. However we don’t
+needtoexploreallenvironmentvaluesforeachsystemone,andwe
+canrestricttheenvironmentvaluebyonlystoringthedifferencebe-
+tweenthesetwo,asshowninListing10.Astheenvironmentvalue
+can only be incremented one by one, each configuration where
+theenvironmentisgoingbeyondwillbelinkedtothesuperioror
+9
+
+--- Page 11 ---
+Reductionfunction Configurations Time (ms) Time perconfiguration(ms) Speedup
+No reduction 60914 851767 13,983 1
+Sha-256, 16bits 8931 168704 18,889 5.04
+Sha-256, 15bits 6121 119573 19,534 7,13
+Abstraction1 1213 37982 31,312 22,47
+Abstraction2 414 12777 30,862 66,66
+Table 1: Resultsof breakpointreachability usingvariousreductionfunctions
+1 function abstraction1 ( conf ) {
+2 return [conf . currentState ,
+3 conf . System . EventPool ,
+4 conf . User . value ,
+5 conf . User . value < conf . System . value ,
+6 conf . User . value > conf . System . value ]}
+Listing10:Reductionfunctionbasedonlimitingthemaxi-
+mumdifferenceinthevaluebetweentheuserandthesystem
+1 function abstraction2 ( conf ) {
+2 return [conf . currentState ,
+3 conf . User . value ,
+4 conf . System . EventPool . isEmpty () ,
+5 conf . System . value > 200 ]}
+Listing11:Reductionfunctionbasedonclassesofequivalent
+values
+inferiorconfigurations,thusstoppingfurtherexploration.Withthis
+reduction,wewillnottryeverycombinationofsuccessiveenviron-
+mentvaluesenttothesystem,butasweareonlytryingtoreach
+acertainvalueinside thesystem,this reductionwill workfine,as
+wecanseeby theresultsof Table1undertheline Abstraction1.
+Anothermoredrasticreductionwouldinvolveignoringallvalues
+exceptthespecificonewearetargeting.Ofcourse,thisonlyworks
+inthespecificcasewhereanon-deterministicelementofthemodel
+cansendanypossiblevaluesatanytime,butinmanycases,this
+correspondstothedefinitionofourenvironmentmodeling,builtto
+testthelimitsofthesystem.Suchareductionfunctionispresented
+inListing11.Inthiscasesthevalueofthesystemisstoredinthe
+configurationastwo booleanvalues:
+•Thefirstoneistoindicateifanewmessagehasbeenreceived
+andallowsustomakeadifferencebetweenconfigurations
+whereamessageissentfromtheenvironmenttothesystem,
+and those where the value is effectively read bythe system.
+It also prevents the environment to keep sending useless
+messages, recreatingthehypothesis of a reactivesystem.
+•Thesecondbooleanvalueissimplytoindicateifthereceived
+value is over or under a certain threshold, effectively reduc-
+ingthevariation of thesystemvalue to two possibilities.
+These two combined reductions limits the possible states of the
+systemtofourbeforereachingthebreakpointstateandbydoingso
+limits the number of steps to reach it. The effects of this reduction
+canalsobefound in Table1, underAbstraction2.5 LIMITS
+Weseeseverallimitstoourapproach.Firstly,therearesomelimita-
+tionsinourspecificimplementationrelatedtoactionatomicity.The
+precisefaultlocationcanbehiddenifavariablechangesmultiple
+timesinasingleaction.Furthermore, thereexistother techniques
+that improve the scalability of omniscient debugging, which could
+beappliedtomultiversedebugging.Forinstance, trace reductions
+techniques, which do not store every configurations in the his-
+tory [25,29], would further improve our approach. Furthermore,
+AnimUML has some limitations, which in turn limit our proto-
+type.However,byadoptingtheSLIinterface,weensurethatany
+language-sideimprovementsareautomaticallysupported.
+Concerning the formalization itself, as we have seen, it is based
+on the SLI interface. If for whatever reason, the target language
+implementationisnotcompatiblewiththisinterface,ourdebugging
+semanticsisnolongerapplicable.Somesuppositionsarealsomade
+about the SLI given for debugging. For example, we suppose every
+setintheSTRisfinite.Asweiterateoverthemintheformalization
+we must come to an end to create the corresponding debug actions.
+Currently,thedebugsemantics,canoperateoninfinitestatespaces,
+butnotoninfinite possibilities locally fora transition.
+Then,anotherinterestingpossibilitywouldbetodirectlyusethe
+leanformalizationasthedebugger,avoidingthecomplexanderror-
+prone taskof re-implementing everything forthe target language.
+Finally,thebiggestissuewithscalabilityisthechoiceofareduc-
+tionfunction,whosecomplexitymayincreasetoprovidesignificant
+effects on more complex models. While deterministic methods are
+easilytransposed,targetedreductionsmayrequiremoreworkto
+accountsforeachreasonforthespacestateexplosion.Thisquestion
+will betreatedfurtherin ourperspectives.
+6 CONCLUSION& PERSPECTIVES
+This article presented an extension of multiverse debugging us-
+ing reduction techniques to facilitate the breakpoint search pro-
+cess.Wecompletedaformalizationofadebugsemanticsfornon-
+deterministic specifications languages. We finally presented a UML
+debugging environment, that allows debugging models that would
+normally betoo complexforclassic multiversedebuggingtools.
+Oneof thechallengesthat needstobeaddressedishelpingthe
+user choose a suitable reduction function for the model and its
+diagnosis needs. This problem can be further decomposed in three
+questions: 1) What are the typical causes of state-space explosion on
+models? 2) Are there domain-specific reductions that can be used for
+specific classes of models, or model patterns? 3) Can these reductions
+beappliedautomaticallyand adaptedto the contextofeach model?
+10
+
+--- Page 12 ---
+REFERENCES
+[1]MartínAbadiandLeslieLamport.1991. Theexistenceofrefinementmappings.
+Theoretical Computer Science 82, 2 (1991), 253ś284. https://doi.org/10.1016/0304-
+3975(91)90224-P
+[2] Kelly Androutsopoulos, DavidClark,MarkHarman,JensKrinke,and Laurence
+Tratt. 2013. State-Based Model Slicing: A Survey. ACM Comput. Surv. 45, 4,
+Article 53(aug 2013), 36pages. https://doi.org/10.1145/2501654.2501667
+[3]Mojtaba Bagherzadeh, Nicolas Hili, David Seekatz, and Juergen Dingel. 2018.
+MDebugger: a model-level debugger for UML-RT. https://doi.org/10.1145/
+3183440.3183473
+[4]MojtabaBagherzadeh,KarimJahed,BenoitCombemale,andJuergenDingel.2019.
+Live-UMLRT:AToolforLiveModelingofUML-RTModels.In MODELS2019-
+ACM/IEEE 22nd International Conference on Model Driven Engineering Languages
+andSystems .IEEE,Munich,Germany,743ś747. https://doi.org/10.1109/MODELS-
+C.2019.00115
+[5]Roberto Baldoni, Emilio Coppa, Daniele Cono D’elia, Camil Demetrescu, and
+IreneFinocchi.2018. ASurveyofSymbolicExecutionTechniques. ACMComput.
+Surv.51, 3, Article 50(may2018), 39pages. https://doi.org/10.1145/3182657
+[6]ValentinBesnard.2020. EMI:Anapproachtounifyanalysisandembeddedexecution
+with acontrollable model interpreter . Ph.D.Dissertation. ENSTABretagne.
+[7]ValentinBesnard,CiprianTeodorov,FrédéricJouault,MatthiasBrun,andPhilippe
+Dhaussy.2021. UnifiedverificationandmonitoringofexecutableUMLspecifi-
+cations.Software and Systems Modeling 20, 6 (01 12 2021), 1825ś1855. https:
+//doi.org/10.1007/s10270-021-00923-9
+[8]BobBoothe.2000. Efficientalgorithmsforbidirectionaldebugging.In Proceed-
+ingsoftheACMSIGPLAN2000conferenceonProgramminglanguagedesignand
+implementation .299ś310.
+[9]ErwanBousse,DorianLeroy,BenoitCombemale,ManuelWimmer,andBenoit
+Baudry. 2018. Omniscient debugging for executable DSLs. Journal of Systems
+and Software 137 (2018),261ś288. https://doi.org/10.1016/j.jss.2017.11.025
+[10]EdmundM.Clarke,ThomasA.Henzinger,HelmutVeith,andRoderickBloem.
+2018.Handbook of Model Checking (1st ed.). Springer Publishing Company,
+Incorporated.
+[11]MichaelA.ColónandTomásE.Uribe.1998.Generatingfinite-stateabstractionsof
+reactivesystemsusingdecisionprocedures.In ComputerAidedVerification ,AlanJ.
+Hu and Moshe Y. Vardi (Eds.). Springer Berlin Heidelberg, Berlin, Heidelberg,
+293ś304.
+[12]David Darais, Nicholas Labich, Phúc C. Nguyen, and David Van Horn. 2017.
+Abstracting Definitional Interpreters (Functional Pearl). Proc. ACM Program.
+Lang.1, ICFP,Article 12(aug 2017), 25pages. https://doi.org/10.1145/3110256
+[13]Leonardo de Moura, Soonho Kong, Jeremy Avigad, Floris van Doorn, and Jakob
+von Raumer. 2015. The Lean Theorem Prover (System Description). In Auto-
+matedDeduction-CADE-25 ,Amy P.Felty andAartMiddeldorp (Eds.). Springer
+International Publishing, Cham, 378ś388.
+[14]A. Georges, M. Christiaens, M. Ronsse, and K. De Bosschere. 2004. JaRec: A
+Portable Record/Replay Environment for Multi-Threaded Java Applications.
+Softw.Pract. Exper. 34, 6(may2004), 523ś547. https://doi.org/10.1002/spe.579
+[15]Susanne Graf and Hassen Saidi. 1997. Construction of abstract state graphs
+with PVS. In Computer Aided Verification , Orna Grumberg (Ed.). Springer Berlin
+Heidelberg, Berlin,Heidelberg, 72ś83.
+[16]Gerard J.Holzmann. 1996. An analysisof bitstatehashing . SpringerUS, Boston,
+MA,301ś314. https://doi.org/10.1007/978-0-387-34892-6_19
+[17]Frédéric Jouault, Valentin Besnard, Théo Le Calvar, Ciprian Teodorov, Matthias
+Brun,andJeromeDelatour.2020. Designing,Animating,andVerifyingPartial
+UML Models. In Proceedings of the 23rd ACM/IEEE International Conference on
+Model Driven Engineering Languages and Systems (Virtual Event, Canada) (MOD-
+ELS’20).AssociationforComputingMachinery,NewYork,NY,USA,211ś217.
+https://doi.org/10.1145/3365438.3410967
+[18]Naoki Kobayashi, Ryosuke Sato, andHiroshi Unno. 2011. PredicateAbstraction
+and CEGAR forHigher-OrderModel Checking.In Proceedingsof the32ndACM
+SIGPLAN Conference on Programming Language Design and Implementation (San
+Jose, California, USA) (PLDI ’11) . Association for Computing Machinery, New
+York, NY,USA,222ś233. https://doi.org/10.1145/1993498.1993525
+[19]Naoki Kobayashi, Ryosuke Sato, andHiroshi Unno. 2011. PredicateAbstraction
+andCEGARforHigher-OrderModelChecking. SIGPLANNot. 46,6(jun2011),
+222ś233. https://doi.org/10.1145/1993316.1993525
+[20]Leslie Lamport. 1974. A New Solution of Dijkstra’s Concurrent Programming
+Problem. Commun. ACM 17, 8 (aug 1974), 453ś455. https://doi.org/10.1145/
+361082.361093
+[21]Yoann Laurent, Reda Bendraou, and Marie-Pierre Gervais. 2013. Executing
+and debugging UML models:an fUML extension.In SAC’13 - The 28th Annual
+ACM Symposium on Applied Computing . ACM, Coimbra, Portugal, 1095ś1102.
+https://doi.org/10.1145/2480362.2480569
+[22]Bil Lewis. 2003. Debugging Backwards in Time. Computing Research Repository
+cs.SE/0310016(102003).
+[23]Carmen Torres Lopez, Robbert Gurdeep Singh, Stefan Marr, Elisa Gonzalez Boix,
+and Christophe Scholliers. 2019. Multiverse Debugging: Non-deterministicDebugging for Non-deterministic Programs. In 33rd European Conference on
+Object-Oriented Programming . Schloss DagstuhlśLeibniz-Zentrum fuer Infor-
+matik. https://kar.kent.ac.uk/74328/
+[24]Simon Van Mierlo, Yentl Van Tendeloo, and Hans Vangheluwe. 2017. Debugging
+Parallel DEVS. SIMULATION 93(2017),285 ś 306.
+[25]OlegY.Nickolayev,PhilipC.Roth,andDanielA.Reed.1997. Real-TimeStatistical
+ClusteringforEventTraceReduction. TheInternationalJournalofSupercomputer
+Applications and High Performance Computing 11, 2 (1997), 144ś159. https:
+//doi.org/10.1177/109434209701100207
+[26]OMG. 2017. Unified ModelingLanguage. https://www.omg.org/spec/UML/2.5.
+1/PDF
+[27]CorinaS.Păsăreanu,RadekPelánek,andWillemVisser.2005. ConcreteModel
+CheckingwithAbstractMatchingandRefinement.In ComputerAidedVerification ,
+Kousha Etessami and Sriram K. Rajamani (Eds.). Springer Berlin Heidelberg,
+Berlin,Heidelberg, 52ś66.
+[28]Gary L. Peterson. 1981. Myths About the Mutual Exclusion Problem. Inf. Process.
+Lett.12(1981),115ś116.
+[29]GuillaumePothier,ÉricTanter,andJoséPiquer.2007. Scalableomniscientdebug-
+ging.SigplanNotices-SIGPLAN 42,535ś552. https://doi.org/10.1145/1297105.
+1297067
+[30]Tillmann Rendel, Klaus Ostermann, and Christian Hofer. 2009. Typed Self-
+Representation. In Proceedings of the 30th ACM SIGPLAN Conference on Pro-
+gramming Language Design and Implementation (Dublin, Ireland) (PLDI ’09) .
+Association for Computing Machinery, New York, NY, USA, 293ś303. https:
+//doi.org/10.1145/1542476.1542509
+[31]GrigoreRo s,uandTraianFlorin S,erbănută.2010. AnoverviewoftheKseman-
+tic framework. The Journal of Logic and Algebraic Programming 79, 6 (2010),
+397ś434. https://doi.org/10.1016/j.jlap.2010.03.012 Membranecomputingand
+programming.
+[32]M. Saxena. 2018. A Language IndependentDebugger Semantics BasedDebugging
+in K.Master’s thesis. University of Illinois at Urbana-Champaign. https://www.
+ideals.illinois.edu/handle/2142/101590
+[33]Ulrich Stern and David L. Dill. 1995. Improved probabilistic verification by
+hashcompaction.In CorrectHardwareDesignandVerificationMethods ,PaoloE.
+CamuratiandHansEveking(Eds.).SpringerBerlinHeidelberg,Berlin,Heidelberg,
+206ś224.
+[34]William Visser, SeungJoon Park, and John Penix. 2000. Using Predicate Abstrac-
+tion to Reduce Object-Oriented Programs for Model Checking. In Proceedings of
+the Third Workshop on Formal Methods in Software Practice (Portland, Oregon,
+USA)(FMSP ’00) . Association for Computing Machinery, New York, NY, USA,
+3ś182. https://doi.org/10.1145/349360.351125
+[35]P. Wadler and S. Blott. 1989. How to Make Ad-Hoc Polymorphism Less Ad
+Hoc. InProceedings of the 16th ACM SIGPLAN-SIGACT Symposium on Principles
+of Programming Languages (Austin, Texas, USA) (POPL ’89) . Association for
+Computing Machinery, New York, NY, USA, 60ś76. https://doi.org/10.1145/
+75277.75283
+11

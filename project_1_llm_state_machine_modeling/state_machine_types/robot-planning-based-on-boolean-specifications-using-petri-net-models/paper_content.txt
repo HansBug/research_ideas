@@ -1,0 +1,961 @@
+--- Page 1 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+1
+Ro
+bot Planning based on Boolean Speciﬁcations
+using Petri Net Models
+Cristian Mahulea, Senior Member, IEEE, and Marius Kloetzer
+Abstract —In this paper we propose an automated method
+for planning a team of mobile robots such that a Boolean-
+based mission is accomplished. The task consists of logical
+requirements over some regions of interest for the agents’
+trajectories and for their ﬁnal states. In other words, we allow
+combinatorial speciﬁcations deﬁning desired ﬁnal states whose
+attainment includes visits to, avoidance of, and ending in certain
+regions. The path planning approach should select such ﬁnal
+states that optimize a certain global cost function. In particular,
+we consider minimum expected traveling distance of the team
+and reduce congestions. A Petri net (PN) with outputs models the
+movement capabilities of the team and the regions of interest. The
+imposed speciﬁcation is translated to a set of linear restrictions
+for some binary variables, the robot movement capabilities
+are formulated as linear constraints on PN markings, and the
+evaluations of the binary variables are linked with PN markings
+via linear inequalities. This allows us to solve an Integer Linear
+Programming problem whose solution yields robotic trajectories
+satisfying the task.
+Index Terms —Discrete Event Systems, Autonomous Robots,
+Optimization, Petri nets.
+I. I NTRODUCTION
+Afair amount of research proposes planning algorithms
+for mobile robots. The motion tasks range from clas-
+sical single-robot target reachability and obstacle avoidance
+[2] to high-level missions for a whole team [3], [4]. Many
+approaches reduce the robot interaction with the environment
+into ﬁnite representations, and then reason on the obtained
+discrete event systems [5], [6], [7], [8], [9], [10].
+In general, the robot model that is used for the discrete
+abstraction is based on transition systems orMarkov decision
+processes , i.e., a graph based model. The high-level mission
+is given in general as a Linear Temporal Logic (LTL) for-
+mula that is automatically transformed into a B¨uchi orRabin
+automaton. By doing the synchronous product of the team
+model with the B¨ uchi or Rabin automaton the robot trajectories
+can be computed by using a shortest path algorithm on the
+graph which has polynomial time complexity. However, if the
+number of robots in the team is increased, the number of
+states of the team model is also increased, being necessary to
+perform synchronous product of different transition systems
+as in [10] or duplicate the automatons of robots as in [8].
+C. Mahulea is with the Arag´ on Institute of Engineering Research
+(I3A), University of Zaragoza, Maria de Luna 1, 50018 Zaragoza, Spain
+{cmahulea@unizar.es }.
+M. Kloetzer is with the Dept. of Automatic Control and Applied
+Informatics, Technical University “Gheorghe Asachi” of Iasi, Romania
+{kmarius@ac.tuiasi.ro }.
+This work has been partially supported by CICYT - FEDER (Spain-EU)
+under Grants DPI2014-57252-R and DPI2017-88233-R, by the Aragonese
+Government (Spain) under grant T27 (GISED group), and by PN-III-P1-1.1-
+TE-2016-0737 grant.
+This work is based on our preliminary results from [1].To overcome the state-space explosion problem for the team
+model, in [9] we used a Petri net (PN) to model the team
+of robots. These models are scalable with the size of the
+team under the assumption that the robots are identical. If
+one wants to add one more robot to the team, the structure of
+the PN model is not changing, being necessary only to add
+a new token. Moreover. the PN models can be used to study
+other properties of the system related to task planning, plan
+execution and plan analysis. In particular, for plan analysis,
+properties such as boundedness and liveness of Petri nets
+correspond to checking if resources’ usage is stable and plans
+have no deadlocks [11].
+In this paper we propose the problem of planning a team
+of identical robots such that a Boolean-based speciﬁcation
+over some regions of interest is accomplished. The robotic
+environment is known and static, while the speciﬁcation
+imposes Boolean requirements on regions visited during the
+team motion, as well as on the ﬁnal robot positions. The
+speciﬁcation is globally given for the whole team, without
+allowing speciﬁc robot-to-task assignments. For developing a
+solution, we model the team movement and the satisfaction
+of regions with a discrete event system in the form of a
+PN with outputs. Then, we convert the mission into a set
+of linear inequalities, we link the binary variables from these
+inequalities with PN markings and we obtain an Integer Linear
+Programming (ILP) formulation for the initial problem. The
+solution yields individual robot trajectories optimal in the
+sense of minimizing a cost function that includes possible con-
+gestions and expected traveled distances for robot trajectories
+that cross through speciﬁc waypoints.
+The paper is structured as follows. Some related works and
+their differences with our approach are discussed in Sec. II.
+Sec. III includes preliminaries, team model construction and
+deﬁnition of the supported speciﬁcations, while Sec. IV for-
+mulates the problem. The solution is given in Sec. V, by
+minimizing a weighted cost based on traveled distance and
+possible congestions. Sec. VI shows some simulation results
+and Sec. VII provides concluding remarks.
+II. R ELATED WORKS
+Related problems to the one we consider are reported in
+works as [3], [7], [12]. Although the speciﬁcations we consider
+here are less expressive than Linear Temporal Logic or regular
+expressions (as in [6], [3]), our solution is completely different
+and brings advantages especially in terms of computational
+feasibility. Thus, instead of combining individual robot ab-
+stractions and speciﬁcation automaton into a complex model,
+the PN model we construct has ﬁxed topology and only the
+number of tokens varies with the number of robots (similar
+to models from [9], where simpler reachability tasks were
+
+--- Page 2 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+solved). Performed numerical simulations (Sec. VI) show that
+o
+ur solution can solve demanding situations (e.g. with 10
+robots), while such scenarios are not computationally suitable
+for approaches based on parallel compositions of individual
+robot models and task automaton (as [3], [10]), due to the
+state-space explosion problems. Due to the assumed speci-
+ﬁcation, the robots can individually follow their trajectories,
+without having to synchronize as it is necessary in the case
+of more complex speciﬁcation formalisms [3], [13]. Moreover,
+some methods for high level planning of mobile agents assume
+individual speciﬁcations for each robot [13], [14], whereas the
+current approach falls in the class of problems that impose a
+global speciﬁcation for the whole team, without any speciﬁc
+priori assignment for agents.
+Other related discrete path planning solutions are presented
+in [7], [8], where the authors assume tasks combining Boolean
+variables on the graph nodes and deﬁne a new language as an
+extension of the Generalized Traveling Salesman Problem for
+ﬁnal system states, and in [15], [16], [17], where MILP (Mixed
+ILP) techniques were proposed for solving different planning
+or allocation problems in a centralized or distributed fashion.
+With respect to these works, our method allows Boolean
+speciﬁcations also on robot trajectories, not only on the system
+ﬁnal states. Also, the PN team model can be used for other
+analysis purposes, and our solution is based on a mathematical
+programming that accepts various cost functions.
+PN models have been used for modeling and controlling
+mobile robots in the recent literature [11], [18], [19], [20],
+[21], [22], [23]. The modeling methodology is distinct and the
+models have different signiﬁcance, in our case the environment
+being partitioned depending on the regions of interest.
+Recently, abstractions characteristic to Resource Allocation
+Systems were used based on ﬁnite automata [24], [25], [26],
+[27] or PNs [28], [29], [30], while methods available for
+deadlock avoidance have been adapted for enforcing the reach-
+ability of desired ﬁnal states. In this paper we are interested
+in computing robot trajectories to accomplish Boolean based
+speciﬁcations for the robots by using the PN models, while
+the collision avoidance is partially solved.
+Many works exist in PN literature dealing with veriﬁca-
+tion of Petri nets properties with Boolean or LTL speciﬁca-
+tions [31], [32], [33]. Even if some structural properties exist,
+it is usually necessary to explore the reachability space. Our
+problem is a synthesis problem, not a veriﬁcation one.
+The main contributions of this work consist in deﬁning a
+PN system that easily handles a whole team of agents and
+in developing an ILP formulation that embeds the constructed
+model and the team speciﬁcation, while allowing to compute
+robot trajectories. The performed simulations suggest that the
+method is computationally tractable for complex scenarios. So-
+lution’s limitations include the task expressivity, which relies
+on logical requirements on visiting and avoiding regions along
+trajectories and in ﬁnal states, without permitting temporal
+sequencing. Robot congestions are partially addressed, while
+collision and deadlock avoidance are brieﬂy commented by
+pointing to additional steps that can be addressed after a
+movement plan is obtained. Also, local maneuvers that may
+be employed in case of possible congestion would increase thetravel distances with respect to the nominal distances assumed
+in the motion planning part.
+III. P RELIMINARIES AND TEAM MODEL
+Sec. III-A deﬁnes the discrete event model that we will
+use for a team of identical robots. Sec. III-B introduces the
+formalism for expressing mission requirements for a team of
+robots.
+A. Petri net model
+This subsection introduces the basic notions of PN.
+Deﬁnition 3.1: A Petri net (PN) is a 3-tuple N=/an}bracketle{tP,T,F/an}bracketri}ht
+withPandTtwo ﬁnite, non-empty and disjoint sets of places
+and transitions; F⊆(P×T)∪(T×P)is the set of direct
+arcs from places to transitions or transitions to places.
+Instead of considering general PN where the arcs can have
+weights greater than one, in this paper we consider that all
+arcs are unitary. In the PN literature, this class of PN is called
+ordinary PNs. Because of this, the PN structure can be rep-
+resented by two binary matrices: Pre,Post∈ {0,1}|P|×|T|,
+withPre[pi,tj] = 1 if∃(pi,tj)∈F, andPre[pi,tj] = 0
+otherwise; Post[pi,tj] = 1 if∃(tj,pi)∈F, otherwise
+Post[pi,tj] = 0 .1
+Forx∈P∪T, the sets of its input and output nodes
+(places or transitions) are denoted as•xandx•, respectively.
+Letpi,i= 1,...,|P|andtj,j= 1,...,|T|denote the places
+and transitions. Each place can contain a non-negative integer
+number of tokens, and this number represents the marking
+of the place. The distribution of tokens in places is denoted
+bym, wherem[pi]is the marking of place pi. The initial
+token distribution, denoted by m0∈N|P|
+≥0, is called the initial
+marking of the net system. A PN with an initial marking is a
+PN system /an}bracketle{tN,m0/an}bracketri}ht.
+Because the PN is ordinary, a transition tj∈Tis enabled
+atmif all its input places contain at least one token, i.e.,
+∀pi∈•tj,m[pi]≥1. An enabled transition tjcan ﬁre leading
+to a new state ˜m=m+C[·,tj], whereC=Post−Pre is
+the token ﬂow matrix and C[·,tj]is the column corresponding
+totj. It will be said that ˜mis a reachable marking that has
+been reached from mby ﬁringtjand it is written as m[tj/an}bracketri}ht˜m.
+If˜mis reachable from mthrough a ﬁnite sequence of tran-
+sitionsσ=ti1ti2...tik, the following state (or fundamental)
+equation is satisﬁed:
+˜m=m+C·σ, (1)
+whereσ∈N|T|
+≥0is the ﬁring count vector, i.e., its jthelement
+is the number of times transition tjappears in sequence σ.
+Notice that Eq. (1) is only a necessary condition for the
+reachability of a marking. The marking solutions of (1) that
+are not reachable are called spurious markings . In general,
+checking if a marking mis reachable or not is not an easy
+problem due to these spurious markings.
+A PN with each transition having at most one input and
+at most one output place is called state machine . Formally,
+1Throughout this paper, instead of using integers to reference elements of
+matrices or vectors, we use symbolic variables which reference the element
+corresponding to the used symbol.
+
+--- Page 3 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+a PN is state machine if |•t| ≤1a nd|t•| ≤1,∀t∈T. A
+PN is called live if from any reachable marking any transition
+can eventually ﬁre (possibly after ﬁrst ﬁring other transitions).
+It is well known that for state machine PNs, liveness is
+equivalent to strongly connectedness and non-emptiness of
+(initial) marking. Moreover, in a live state machine, there
+exist no spurious markings [34], i.e., the solutions of the
+fundamental Eq. (1) give the set of reachable markings.
+We will use the PN to model a team of identical robots
+evolving in an environment where some convex polygonal
+regions of interest exist. The regions of interest are labeled
+with elements from set Π ={Π1,Π2,...,Π|Π|}. For this
+reason, we deﬁne a class of Petri nets with outputs, which
+is a restrictive class of Interpreted Petri nets, without inputs
+associated to transitions.
+Deﬁnition 3.2: A Petri net Qwith outputs is a 4-tuple Q=
+/an}bracketle{tN,m0,Π,h), where:
+•/an}bracketle{tN,m0/an}bracketri}htis a Petri net system;
+•Π∪{∅} is the output alphabet (set containing the possible
+output symbols (observations)), where ∅denotes the
+empty observation;
+•h:P→2Πis an observation map, where h(pi)yields
+the output of place pi∈P. Ifpihas at least one token,
+then observations from h(pi)are active.
+LetvΠi∈ {0,1}1×|P|be the characteristic row vector of
+the observation Πi∈Πsuch that vΠi[pk] = 1 ifΠi∈h(pk)
+andvΠi[pk] = 0 otherwise. It is easy to observe that, for a
+reachable marking m, if the product vΠi·m>0then the
+observation Πiis active at m. LetV∈ {0,1}|Π|×|P|be the
+matrix formed by the characteristic vectors of all observations,
+i.e, the ﬁrst row is the characteristic vector of Π1, etc. The
+productV·mis a column vector of dimension |Π|where
+theithelement is non-zero if observation Πiis active. We
+denote by ||V·m||the set of outputs corresponding to non-
+zero elements of V·m, i.e.||V·m||is the set of active
+observations (element of 2Π) at marking m.
+Arun (ortrajectory ) ofQis a ﬁnite sequence r=
+m0[tj1/an}bracketri}htm1[tj2/an}bracketri}htm2[tj3...tj|r|/an}bracketri}htm|r|that induces an output
+word denoted by h(r), which is the observed sequence of
+elements from 2Π, i.e.,h(r) =||V·m0||,||V·m1||,...,||V·
+m|r|||,h(r)∈/parenleftbig
+2Π/parenrightbig∗, where/parenleftbig
+2Π/parenrightbig∗is the Kleene closure of
+set2Π.
+Team model. The above PN with outputs can model the
+movement capabilities of a team of identical mobile robots in
+a partitioned environment cluttered with overlapping and static
+regions of interest denoted by elements of set Π. Such ﬁnite
+abstractions can be constructed based on partitions yielded by
+cell decompositions [35] and control laws for speciﬁc robot
+dynamics [36], [37]. The main idea is that the environment
+is partitioned based on regions of interest, every place of
+Ncorresponds to a partition cell, while transitions of PN
+correspond to robot’s movement capabilities between adjacent
+cells. The satisfaction map hshows the regions from Πthat are
+satisﬁed (visited) when the robots are inside particular cells,
+with empty observation corresponding to partition cells that
+are not included in any region from Π. The number of tokens
+of the PN model is equal with the number of robots, and the
+initial marking is given by the cells initially occupied by theteam. Thus, adding a robot in the team implies adding a token
+to a place, without changing the PN structure.
+We further assume that the model Qfor robots evolving in
+an environment is already available. The informal steps that
+lead to its construction are captured in Alg. 1. For polygonal
+regions of interest, multiple cell decomposition techniques can
+be used in line 1 [35], our approach not being tailored for
+a speciﬁc one. The transitions added on lines 4-7 assume
+fully-actuated point robots, which can move from the current
+cell to any adjacent cell, by straight movement to the middle
+point of the line segment shared by the two cells. Alg. 1 also
+returns the vector w∈R|T|
+≥0that contains the average distance
+for traveling between adjacent cells. Due to the polytopal
+cells and the mentioned piece-wise straight movements of
+robots, the expected distance for moving from cell pitopjis
+chosen, on line 9, as being the average of distances between
+the exit point (middle of line segment shared by piandpj)
+and any possible entry point (middle of line segments shared
+bypiwith all other neighboring cells). For different robot
+dynamics, the condition from line 6 can be replaced with the
+existence of control laws steering the robot from cell pito
+adjacent cell pjin ﬁnite time, e.g., works as [36], [37] describe
+the case of afﬁne or multi-afﬁne dynamics in polytopal or
+rectangular environments. Line 11 adds the tokens, based on
+robots’ initial positions. The observation map from line 12 is
+well-deﬁned, since the referred cell decomposition techniques
+preserve boundaries and intersections of regions from Π.
+Algorithm 1: Co nstruct the PN system Q
+Input: Environment, regions Π, initial team deployment
+Output: Team model Q
+1Construct a cell decomposition of the environment based
+on the polygonal regions of interest from Π;
+2Associate each cell from decomposition to a place from
+P; letP={p1,p2,...,p |P|};
+3LetT=∅,F=∅,w=0;
+4forpi∈Pdo
+5 forpj∈P,pi/ne}ationslash=pjd o
+6 ifc ellspiandpjare adjacent then
+7 Ad d transition ti,jtoT;
+8 F:=F∪{(pi,ti,j),(ti,j,pj)};
+9 w[ti,j]= average distance traveled by a robot
+that moves from cell pitopj;
+10forpi∈Pd o
+11m0[pi] =n o. of robots initially deployed in cell pi;
+12h(pi) ={Πj∈Π|cellpiis included in region Πj};
+Remark 3.3: T he construction from Alg. 1 ensures that the
+obtained PN is a state machine.
+This result holds because all transitions added in step 7 of
+Alg. 1 have a single input and a single output arc. If at least
+one robot is deployed in the environment, the PN system is
+live and no blocking situation will appear during robot motion.
+B. Boolean-based speciﬁcations
+Assume the ﬁnite set of atomic propositions Π =
+{Π1,Π2,...,Π|Π|}, where in a robot-inspired scenario, Πi
+
+--- Page 4 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+labels a speciﬁc region of interest from the environment.
+Sy
+ntactically, we assume requirements expressed as
+Boolean logic formulae deﬁned over the set of variables
+P=Pt∪ Pf, wherePt= Π andPf={π1,π2,...,π |Π|},
+by using the standard logical connectors ¬(negation), ∧
+(conjunction), ∨(disjunction). The sets PtandPfrefer to
+the same regions of interest, but the elements of Ptsuggest
+regions that should be visited (or avoided, when negated) along
+a trajectory, while Pfsuggests regions that should be visited
+(or avoided) in the last state of a run, as explained in the
+following semantics.
+The speciﬁcations are interpreted over ﬁnite words over
+the set2Π, as are those generated by the PN system with
+outputsQfrom Def. 3.2. Semantically, the lower- and upper-
+case notations from the above set Phave the following
+meaning when interpreted over the word generated by a run
+r=m0[tj1/an}bracketri}htm1[tj2/an}bracketri}htm2[tj3...tj|r|/an}bracketri}htm|r|:
+•Πi∈ Ptevaluates to True over word h(r)if and only if
+∃j∈ {0,1,...,|r|}such that Πi∈ ||V·mj||;
+•πi∈ Pfevaluates to True over word h(r)if and only if
+Πi∈ ||V·m|r|||.
+In other words, an upper-case variable refers to a proposition
+that is evaluated along the whole run, while a lower-case
+one refers only to the ﬁnal (terminal) marking. Under this
+explanation, the formal deﬁnitions of syntax and semantics
+of used speciﬁcations are not included, and can be found
+in any study including Boolean formulae [38]. From now
+on, we will assume that any Boolean-based requirement ϕ
+is expressed into a Conjunctive Normal Form (CNF), the
+conversion into such a form being possible for any logical
+expression [38],[39].
+For example, a speciﬁcation for mobile robots as ϕ=
+(Π1∨Π2)∧ ¬π1∧ ¬Π3requires that either region Π1or
+Π2is visited along the run, Π3is always avoided, and region
+Π1is not true (no robot occupies it) in the ﬁnal state, i.e.,
+when all robots stop. A speciﬁcation as ϕ= Π1∧Π2requires
+that regions Π1andΠ2are visited along robot trajectories. An
+implication formula as ϕ=¬Π1∨Π2is not interpreted in the
+intuitive sense that a visit to Π1implies a further visit to Π2,
+but it is interpreted over the entire trajectories (e.g., the task
+is accomplished if a robot visited Π2at a moment, even if
+Π1was visited after). One cannot impose a speciﬁc order or
+simultaneity when visiting Π1andΠ2, as it is possible when
+using more complex speciﬁcation formalisms or robot-speciﬁc
+tasks [13], [10]. For more than one robot, the speciﬁcation im-
+poses a global requirement on the attainment or avoidance of
+regions, without allowing individual requirements as visiting
+two disjoint regions with the same agent. However, this lack of
+expressivity, together with the PN model, will yield solutions
+whose complexity is independent of the number of robots.
+IV. P ROBLEM DEFINITION
+The problem we solve is formulated as follows:
+Problem. Consider a team of Nidentical mobile robots
+evolving in an environment where regions of interest labeled
+with elements from set Πare deﬁned. Given a Boolean-based
+speciﬁcation ϕfor the team, as in Sec. III-B, plan the robotic
+motion such that the resulting trajectories satisfy ϕ.Assumptions. As stated in Sec. III-A, the team is abstracted
+into a PN system with outputs Qhaving the form from Def.
+3.2. Under the natural assumption of a connected environment,
+the PN model Qis strongly connected (i.e. ∀xi,xj∈P∪T
+there exists a path starting in xiand ending in xj). Thus,
+the PN has no spurious markings and the set of its reachable
+markings can be characterized by the state equation (1).
+Let us assume that the requirement ϕ(expressed in CNF)
+consists of a conjunction of nterms:ϕ=ϕ1∧ϕ2∧...∧ϕn.
+Each term ϕi,i= 1,...,n is a disjunction of nivariables
+(negated or not) from set Pfrom Sec. III-B, having the form
+ϕi= [Πj1|¬Πj1]∨[πj1|¬πj1]∨[Πj2|¬Πj2]∨[πj2|¬πj2]∨
+...∨[Πjni|¬Πjni]∨[πjni|¬πjni]. In the expression of ϕi,
+the square brackets “[ . . . ]” contain optional appearing terms,
+while “|” denotes a choice between two variables.
+Solution main steps. Our solution begins by converting
+speciﬁcation ϕintonlinear restrictions over a set of 2· |Π|
+binary variables, as described in [1]. Then, links between these
+binary variables and proposition satisfactions are enforced by
+using linear inequalities based on the PN model Q. This will
+yield a solution for our problem based on an ILP formula-
+tion and an algorithmic translation of ILP outcome to robot
+trajectories (sequences of ﬁrings in the PN model). The ILP
+objective function aims to decrease the total distance traveled
+by robots and the number of possible congestions, when more
+robots can meet in the same partition cell. For simplicity,
+we ﬁrst handle ﬁnal state requirements, i.e., formulae over
+Pf(Sec. V-A), and then we present the general case of
+trajectory requirements (Sec. V-B). Sec. V-C further discusses
+the presented solutions. Due to the abstract model and the
+deﬁnition of weighting wfrom Alg. 1, the optimality from
+Sec. V does not refer to minimizing the actual traveled
+distance, but to minimizing a cost function that includes the
+expected trajectory length.
+V. S OLUTION
+Vectorx= [xΠ1,xΠ2,...,x Π|Π|,xπ1,xπ2,...,x π|Π|]T∈
+{0,1}2·|Π|includes the above-mentioned binary variables,
+with the following interpretation:
+•xΠi= 1 (orx[Πi] = 1 ) if proposition Πievaluates to
+True (i.e., region labeled with Πiis visited along the team
+trajectory), and xΠi= 0 (orx[Πi] = 0 ) otherwise;
+•xπi= 1(orx[πi] = 1 ) if proposition πievaluates to True
+(i.e., a robot stops inside the region labeled with Πi), and
+xπi= 0 (orx[πi] = 0 ) otherwise, ∀i= 1,...,|Π|.
+To construct the mentioned inequalities, for each ϕi,i=
+1,...,n , we deﬁne a function αi:P → {− 1,0,1}showing
+what variables from Pappear in disjunction ϕiand which of
+them are negated:
+αi(γ) =
+
+−1,if¬γappears in ϕi
+0,ifγdoes not appear in ϕi
+1,ifγappears in ϕi,∀γ∈ P (2)
+A. Solution for constraints on the ﬁnal state
+When ﬁnding a solution for the proposed problem, one
+can consider various performance measures for the resulting
+robot movements. In the current formulation, we aim to reduce
+
+--- Page 5 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+(a) the total expected distance traveled by agents and (b) the
+nu
+mber of situations in which robots can collide. For intention
+(a), we weight the ﬁred transitions with average distances for
+moving a robot between two adjacent cells, i.e., we aim to
+minimize wT·σ, withwcomputed in Alg. 1. For intention (b),
+we note that, for a given ﬁring count vector σ, the elements
+of vector Post·σcontain the cumulative number of tokens
+from each place of PN induced by ﬁrings of transitions from
+σ. Thus,Post·σgives the number of visits (not necessarily
+at the same time moment) in partition cells, and by reducing
+these values we reduce the possibilities of having more robots
+in the same cell. We combine intentions (a) and (b) as the
+cost function λ·wT·σ+µ·/bardblPost·σ/bardbl∞, whereλandµ
+are design parameters and /bardbl./bardbl∞denotes the maximum norm
+of a vector. For obtaining a linear cost function, we minimize
+λ·wT·σ+µ·b, wherebupper bounds any element of
+Post·σ. The above considerations together with the goal of
+obtaining a ﬁnal marking at which the formula is satisﬁed are
+captured by ILP formulation (3).
+minλ·wT·σ+µ·b
+s.t.m=m0+C·σ/summationtext
+γ∈Pf(αi(γ)·xγ)≥1+/summationtext
+γ∈Pfmin(αi(γ),0),∀ϕi
+N·xγ≥vγ·m,∀γ∈ Pf
+xγ≤vγ·m,∀γ∈ Pf
+Post·σ≤b·1T
+m∈N|P|
+≥0,σ∈N|T|
+≥0,x∈ {0}|Π|×{0,1}|Π|,b≥0
+(3)
+In (3),vγis the characteristic vector of γ∈ Pf, and the
+ﬁrst|Π|binary variables from x(for trajectory requirements)
+are set to zero, since speciﬁcations from this subsection do not
+include such constraints. ILP (3) has (2×|Π|+n+2×|P|)
+constraints and (|P|+|T|+|Π|+1) unknowns, from which
+|Π|variables are binary.
+The second set of constraints from (3) links formula’s
+conjunctions to binary variables for ﬁnal regions. If the ﬁnal
+regionγis not captured in ϕi, then its corresponding binary
+variable is unconstrained (coefﬁcient αi(γ)is zero). Regions
+that appear non-negated or negated in disjunction ϕiyield
+(through (2)) coefﬁcients “+1” or “-1”, respectively, in the left-
+hand term, and the negated regions also decrease the value of
+the right-hand term. E.g., if ϕi=π1∨π2, at least one of the
+two regions should be visited such that xπ1+xπ2≥1. If
+ϕi=¬γ, thenxγshould be 0, i.e. 1−xγ= 1, and since xγ
+is binary we can write 1−xγ≥1; the ﬁrst “1” from here is
+placed in the right-hand term via function min(αi(γ),0).
+The third and fourth constraints from (3) enforce the correct
+values of binary variables xπicorresponding to observations in
+ﬁnal positions. Recall that Nis the number of robots (tokens
+ofQ), and here it can be replaced with any bigger number.
+As an alternative cost function for ILP (3), it is possible to
+minimize the number of transitions (robot movements) along
+the team trajectory, by choosing the objective function 1T·σ.
+Based on the optimal solution σof (3), the robot (token)
+trajectories are obtained by ﬁring the enabled transitions and
+by storing the sequence of places visited by each token. The
+strategy is given in Alg. 2.
+Lemma 5.1: If the optimal solution σof (3) satisﬁes
+/bardblPost·σ/bardbl∞= 1 (that is equivalent to b= 1), then thereare no collisions possible during robot movements.
+Proof: Since Post·σcounts the number of tokens in each
+place corresponding to the ﬁring vector σ, the hypothesis
+basically says that each partition cell is visited at most once
+during team movement. /squaresolid
+Note that a path planning problem can be divided into two
+steps: (a) the ﬁrst one (tackled by current work) is to compute
+mission-fulﬁlling trajectories for the robots (while trying to
+avoid the congestion); (b) second, having the trajectories,
+one can try to avoid collisions and deadlocks by adding an
+additional controller. If /bardblPost·σ/bardbl∞>1, congestion can
+occur in places p∈Pfor which (Post·σ)[p]>1, and
+further steps have to be taken for collision avoidance and
+deadlock prevention. To this goal, one can try to use speciﬁc
+Petri net models with capacity constraints on some places
+[29] and supervisory control theory of discrete event systems
+[27], [24], [26], [40], [41]. However, there are no guarantees
+that a deadlock free movement is possible for any obtained
+trajectories, and in such cases the procedure for generating
+trajectories should be altered. The additional strategies for
+solving the above step (b) go outside the current scope of
+this paper.
+Algorithm 2: It erative construction of agent strategies
+Input:/an}bracketle{tP,T,C/an}bracketri}ht,m0,σ
+O
+utput: Robot movement strategies
+1Letm=m0;
+2while1T·σ>0do
+3 Lett∈Ts .t.σ[t]>0∧m[•t]>0;
+4 Pick any robot iin•t;
+5 Assign movement according to tto roboti;
+6 Letm:=m+C[·,t];
+7 Letσ[t] :=σ[t]−1;
+Two properties of the PN model for the system considered
+he
+re are used to guarantee the correctness of the Alg. 2:
+•ThePN is a live state machine , hence all solutions of the
+state equation (1) are reachable markings. This ensures
+that the marking msolution of (3) is a reachable marking,
+i.e., not a spurious one;
+•Sincew≥0(that is a natural assumption being related
+to distances or energy), the paths of the robots have no
+cycles . This property also ensures that σsolution of (3)
+is not a ’spurious’ vector, i.e., there exists a ﬁreable ﬁring
+sequence σwith the ﬁring count vector σ.
+B. Solution for general constraints on trajectory and ﬁnal
+state
+For allowing constraints on ﬁnal team deployment (set Pf)
+and on team trajectory (set Pt), the ﬁrst idea was to include
+constraints on the ﬁring count vector σin (3). However, due
+to general constraints, some robot trajectories may necessitate
+cycles. When solving (3), these cycles would not be included
+in the obtained solutions, i.e., spurious ﬁring vectors would
+appear. This can be observed by considering the state equation
+corresponding to a reachable marking m=m0+C·σ. Let us
+assume that σcorresponds to a ﬁring sequence σthat contains
+
+--- Page 6 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+a cycle, i.e., σ=σ′+σ′′, withσ′′the cycle’s ﬁring count
+vector. Since in a state machine PN a T-semiﬂow is a cycle,
+this implies that C·σ′′= 0[34]. Obviously, the cost function
+of (3) would yield vector σ′rather than σas the optimal
+solution, so the ﬁring sequence σwould not be obtained.
+To avoid spurious ﬁring count vectors, we consider a
+sequence of kmarkings m1,m2,...,mksuch that: m1=
+m0+C·σ1,m0−Pre·σ1≥0;m2=m1+C·σ2,
+m1−Pre·σ2≥0;...Informally, these constraints enforce
+that between PN states mi−1andmieach token moves at
+most through one transition, i.e., each robot advances maxi-
+mum one cell. This artiﬁce also simpliﬁes the construction of
+agents’ strategies.
+Putting together the cost function concept from ILP (3), the
+PN state equations for the sequence of kmarkings, and the
+restrictions concerning the binary variables xπiandxΠi, the
+following optimization problem is obtained:
+minλ·wT·/summationtextk
+i=1σi+µ·b
+s.t.mi=mi−1+C·σi,i= 1,...,k
+mi−1−Pre·σi≥0,i= 1,...,k/summationtext
+γ∈P(αi(γ)·xγ)≥1+/summationtext
+γ∈Pmin(αi(γ),0),∀ϕi
+N·xγ≥vγ·mk,∀γ∈ Pf
+xγ≤vγ·mk,∀γ∈ Pf
+N·(k+1)·xγ≥vγ·/parenleftBig/summationtextk
+i=0mi/parenrightBig
+,∀γ∈ Pt
+xγ≤vγ·/parenleftBig/summationtextk
+i=0mi/parenrightBig
+,∀γ∈ Pt/parenleftBig
+Post·/summationtextk
+i=1σi/parenrightBig
+≤b·1T
+mi∈N|P|
+≥0,σi∈N|T|
+≥0,i= 1,...,k
+x∈ {0,1}|P|,b≥0
+(4)
+The optimization problem (4) is a standard ILP problem
+[42], for which there exist complete algorithms for obtaining
+the optimal solution, e.g., [43]. Its solution (σ1,σ2,...,σk)
+constitutes a sequence of ﬁring count vectors for PN model Q
+and it is converted to robot trajectories as follows. For each σi,
+i= 1,...,k , any token moves at most through one transition,
+and lines 3-5 of Alg. 2 indicate the moving robots.
+Summing up the above details, (4) gives a solution for
+the problem formulated in Sec. IV, while the cost function
+accounts for the total expected distance traveled by robots
+and the possible congestions in cells from the partitioned
+environment. The constraints of (4) ensure the following:
+•the correct functioning of model Q(ﬁrst two lines with
+constraints); in total ((2×k)×|P|)constraints;
+•the satisfaction of formula ϕthrough its disjunctive
+terms and binary variables (third constraint); in total n
+constraints;
+•the link between binary variables corresponding to the
+formula and PN markings for the ﬁnal requirements
+(constraints 4 and 5; in total (2×|Π|)constraints) and
+for the trajectory requirements (constraints 6 and 7; in
+total(2×|Π|)constraints),
+•upper bound bfor elements of vector Post·/summationtextk
+i=1σi,
+for capturing its maximum norm (constraints 8; in total
+|P|constraints),
+•positivity restrictions for unknown variables mi,σiand
+b;(k×(|P|+|T|)+1) constraints.Remark 5.2: Instead of considering the second term of cost
+function from ILP (4), one could completely avoid collisions
+(rather than reducing congestions) by adding constraints of
+formσk[ti,j]+σk[tj,i]≤1,∀i,j,k . Such constraints would
+forbid two robots from adjacent cells to switch positions.
+However, such a team movement strategy would require
+synchronizations when robots change cells, in order to exactly
+follow the order of ﬁrings from successive ﬁring count vectors
+σk.
+Remark 5.3:The constant kin ILP (4) is a design parameter
+giving the maximum number of intermediate discrete states
+(markings) of each robot. The theoretical upper-bound of kis
+|T|, because in the worst case scenario, a robot has to once
+follow each transition from PN (e.g., imagine a string-like PN
+where the “ﬁrst” and “last” places have different outputs, a
+robot starts from the “ﬁrst” place, and the formula requires to
+satisfy along trajectory the output of the “last” place and to
+satisfy in the ﬁnal state the output of the “ﬁrst” one). However,
+in practice, much lower values of ksufﬁce. When kis chosen
+too small, the problem (4) becomes unfeasible. If kis larger
+than needed, some intermediate ﬁring vectors σiwill become
+zero in solution of (4).
+C. Discussion on the above solutions
+Solution to use. When the Boolean-based speciﬁcation ϕ
+contains only symbols from Pf, one should use the solution
+from Sec. V-A, consisting in ILP (3) and Alg. 2. In this case,
+the ILP (3) has far less constraints and unknowns than ILP
+(4).
+For a general speciﬁcation that also includes symbols from
+Pt, the solution from Sec. V-B (ILP (4)) is to be used. One can
+start with a fairly low value for k, solve ILP (4) and increase
+kif the optimization fails to return a solution. The moving
+strategy for each robot results by concatenating the transitions
+given by the obtained sequence of ﬁring count vectors.
+Robot synchronization. For both above solutions, the
+obtained trajectory of each robot basically satisﬁes a part of
+formulaϕ, such that the whole team accomplishes task ϕ.
+Because ϕis a Boolean-based formula as in Sec. III-B, it
+cannot impose speciﬁc orderings or simultaneous visits of
+regions in Π. Therefore, each robot can individually follow its
+trajectory, without synchronizing with other team members.
+Recalling the limitations of our approach - lack of expres-
+sivity for imposing orders when visiting regions, and reducing
+the possible congestions rather than ensuring a collision-free
+movement with no deadlocks - we mention that robot syn-
+chronization would become necessary for speciﬁcations or for
+movement procedures that try to reduce such conservativeness.
+Solution complexity. An ILP problem belongs to the
+NP-hard complexity class [44]. Usually, the computa-
+tional burden is characterized by the number of un-
+knowns and constraints. The ILP (4) (for the case
+of a general speciﬁcation on trajectory and ﬁnal state)
+has a number of (k×(|P|+|T|)+2×|Π|+1) inte-
+ger unknowns ( mi,σi,x,b) and a total number of
+(k×(3×|P|+|T|)+4×|Π|+|P|+1) constraints. The
+number of constraints and unknowns of ILPs (3) and (4)
+does not depend on the team size N. Some data for the
+
+--- Page 7 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+Fig. 1. Environment with ﬁve regions of interest, labeled with elements
+of setΠ ={Π1,Π2,...,Π5}, and three robots initially deployed in
+positions marked by the red, blue and green circles. Triangular partition of
+the environment has 48 cells. Solution (optimal with respect to the overall
+number of transitions) comprises a total number of 10movements between
+cells. Each robot follows its trajectory and stops in the point marked with
+“x”, and thus the team fulﬁlls mission ϕ.
+computational complexity is mentioned in the examples from
+Sec. VI.
+VI. S IMULATION EXAMPLES
+This section illustrates the usage of our method for planning
+a team of mobile robots. The described approach was imple-
+mented in Matlab, as an addition to the Robot Motion Toolbox
+RMTool [45]. Our implementation includes the external ILP
+and LPP solvers from [43]. For exempliﬁcation purposes, we
+simply consider unitary weights w=1andλ=µ= 1in cost
+functions of ILPs (3) and (4). Thus, in this section we refer
+to the total number of ﬁring transitions as minimized cost.
+We consider the environment depicted in Fig. 1, where ﬁve
+polygonal regions are deﬁned and represented with differently
+colored borders, for easier observing their overlapping. For
+simplicity of constructing the team model, we consider N=
+3point and fully-actuated agents, whose initial positions are
+marked with circles in Fig. 1. Alg. 1 from Sec. III-A yields
+the PN system Qas follows. The environment is partitioned
+by using a constrained triangular decomposition [45], based
+on polygonal regions Π. The resulting partition has 48 cells
+(labeled with elements of set P={p1,p2,...,p 48}) and it
+is shown in Fig. 1. There result 140 transitions in T, given
+by adjacency between cells (two triangles are adjacent if they
+share an entire facet). The observation map his easily created
+based on the inclusion of each cell in some regions of interest,
+e.g.,h(p3) =∅,h(p10) = Π4,h(p48) ={Π1,Π2}. System Q
+has three tokens and the initial marking is given by initial
+team deployment: m0[p14] = 1 ,m0[p35] = 2 , andm0[pi] =
+0,∀i∈ {1,...,48}, i/ne}ationslash= 14,35.
+Considering the syntax and semantics explained in Sec.
+III-B, the team mission is given by the speciﬁcation:
+ϕ=¬Π2∧Π1∧¬π1∧π3∧π4∧π5. (5)In words, the second region should be avoided, the ﬁrst
+region should be visited along run, but no robot should ﬁnally
+remain inside it, and the last three regions should be occupied
+when the robots stop.
+Formulaϕis converted into a system of 6 linear inequalities
+with 6 binary variables. By adopting the optimal solution
+described in Sec. V with a maximum number of steps k= 10 ,
+the ﬁring sequences translate to the following runs for the
+robots, that can be followed without any synchronization
+among agents (Sec. V-C):
+red robot: p14, p37, p14, p8, p12, p10
+blue robot: p35, p36, p34
+green robot: p35, p33, p22, p24(6)
+The ILP problem from Sec. V includes 1891 variables (from
+which1400 are integer and 10binary),480equality constraints
+and554 inequality constraints. The solution was obtained in
+around0.01seconds on an i7-6700 CPU. Under the same
+conditions, if kwere set to 20, the running time increases to
+1 second.
+The actual robotic trajectories are presented in Fig. 1, and
+they were constructed by connecting the middle points of the
+common edges shared by successive cells from each robot’s
+path, this being a fast method for constructing continuous
+trajectories for fully-actuated robots evolving in partitioned
+environment with convex cells [2]. Finally, each robot con-
+verges to the centroid of the last visited cell.
+As mentioned, the solution complexity is not inﬂuenced by
+the team size. For example, if N= 10 robots were considered
+for the above case, the solution is obtained in the same
+amount of time. Some robots simply do not move, and the
+resulted number of transitions from the PN model decreased
+to 7. A scenario with 10 robots, 10 regions of interest and
+66 PN places was solved in 0.42 seconds, thus supporting
+the computational feasibility of the method. More simulation
+results and comparisons are given in [46].
+VII. C ONCLUSIONS
+We presented an approach that automatically plans a team
+of mobile robots based on a Boolean-based task given over
+a set of regions in the environment. The solution relies
+on solving an ILP optimization problem that is formulated
+over a discrete event system. Based on a partition of the
+environment, the robotic team is abstracted to a PN with
+outputs, which has the advantage that the topology remains
+ﬁxed and only the number of tokens varies with the team
+size. The Boolean formula is represented through a set of
+linear inequalities in some binary variables, the evaluations
+of these variables are linked with a ﬁnite sequence of PN
+markings, and the PN’s fundamental equation is used for
+making sure that any obtained marking is reachable through
+a ﬁring sequence. Thus, we obtain an ILP formulation for
+the proposed problem, and its solution provides a set of
+ﬁring PN transitions which are algorithmically converted to
+individual robotic trajectories. The solution is optimal with
+respect to a weighting of expected traveled distances and
+possible congestion situations. A simpler ILP is obtained for
+the particular case of a Boolean requirement only on the ﬁnal
+
+--- Page 8 ---
+0018-9286 (c) 2017 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission. See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.This article has been accepted for publication in a future issue of this journal, but has not been fully edited. Content may change prior to final publication. Citation information: DOI 10.1109/TAC.2017.2760249, IEEE
+Transactions on Automatic Control
+team state, while the complexity increases for the general
+ca
+se of including trajectory restrictions. Due to the considered
+speciﬁcations, the robots can follow their trajectories without
+synchronizing with other team members. We implemented our
+procedure as a freely-downloadable Matlab software package
+whose usefulness is illustrated through included simulation
+results.
+REFERENCES
+[1] C. Mahulea and M. Kloetzer, “Planning mobile robots with boolean-
+based speciﬁcations,” in 53rd IEEE Conf. on Decision and Control , Los
+Angeles, USA, December 2014, pp. 5137–5142.
+[2] H. Choset, K. M. Lynch, S. Hutchinson, G. Kantor, W. Burgard, L. E.
+Kavraki, and S. Thrun, Principles of Robot Motion: Theory, Algorithms,
+and Implementations . Boston: MIT Press, 2005.
+[3] X. C. Ding, M. Kloetzer, Y . Chen, and C. Belta, “Automatic deployment
+of robotic teams,” IEEE Robotics and Automation Magazine , vol. 18,
+no. 3, pp. 75–86, 2011.
+[4] C. Belta, A. Bicchi, M. Egerstedt, E. Frazzoli, E. Klavins, and G. J. Pap-
+pas, “Symbolic planning and control of robot motion,” IEEE Robotics
+and Automation Magazine , vol. 14, no. 1, pp. 61–71, 2007.
+[5] M. Kloetzer and C. Belta, “A fully automated framework for control
+of linear systems from temporal logic speciﬁcations,” IEEE Trans. on
+Automatic Control , vol. 53, no. 1, pp. 287–297, 2008.
+[6] G. E. Fainekos, A. Girard, H. Kress-Gazit, and G. J. Pappas, “Temporal
+logic motion planning for dynamic robots,” Automatica , vol. 45, no. 2,
+pp. 343–352, 2009.
+[7] F. Imeson and S. L. Smith, “A Language For Robot Path Planning in Dis-
+crete Environments: The TSP with Boolean Satisﬁability Constraints,”
+inIEEE Conf. on Robotics and Automation , May 2014, pp. 5772 – 5777.
+[8] F. Imeson and S.-L. Smith, “Multi-robot task planning and sequencing
+using the SAT-TSP language,” in IEEE Conf. on Robotics and Automa-
+tion, May 2015, pp. 5397 – 5402.
+[9] M. Kloetzer and C. Mahulea, “A Petri net based approach for multi-
+robot path planning,” Discrete Event Dynamic Systems: Theory and
+Applications , vol. 24, no. 4, pp. 417–445, 2014.
+[10] ——, “LTL-based Planning in Environments with Probabilistic Obser-
+vations,” IEEE Trans. on Automation Science and Engineering , vol. 12,
+no. 4, pp. 1407 – 1420, 2015.
+[11] H. Costelha and P. Lima, “Robot task plan representation by Petri
+nets: modelling, identiﬁcation, analysis and execution,” Journal of
+Autonomous Robots , pp. 1–24, 2012.
+[12] T. Wongpiromsarn, U. Topcu, and R.-M. Murray, “Receding horizon
+temporal logic planning,” IEEE Trans. on Automatic Control , vol. 57,
+no. 11, pp. 2817–2830, 2012.
+[13] M. Guo, J. Tumova, and D. Dimarogonas, “Cooperative decentralized
+multi-agent control under local ltl tasks and connectivity constraints,” in
+53rd IEEE Conf. on Decision and Control , 2014, pp. 75–80.
+[14] M. Guo and D. V . Dimarogonas, “Multi-agent plan reconﬁguration under
+local ltl speciﬁcations,” The International Journal of Robotics Research ,
+vol. 34, no. 2, pp. 218–235, 2015.
+[15] S. Tanaka and M. Araki, “An exact algorithm for the single-machine
+total weighted tardiness problem with sequence-dependent setup times,”
+Computers & Operations Research , vol. 40, no. 1, pp. 344 – 352, 2013.
+[16] M. Franceschelli, D. Rosa, C. Seatzu, and F. Bullo, “Gossip algorithms
+for heterogeneous multi-vehicle routing problems,” Nonlinear Analysis:
+Hybrid Systems , vol. 10, no. 1, pp. 156–174, 2013.
+[17] M. Franceschelli, A. Giua, and C. Seatzu, “Distributed task assign-
+ment based on gossip with guaranteed performance on heterogeneous
+networks,” in IFAC Conf. on Analysis and Design of Hybrid Systems ,
+Atlanta, USA, October 2015.
+[18] T. Cao and A. Sanderson, “Task decomposition and analysis of robotic
+assembly task plans using petri nets,” IEEE Trans. on Industrial Elec-
+tronics , vol. 41, no. 6, pp. 620–630, 1994.
+[19] F.-Y . Wang, “A Petri-net coordination model for an intelligent mobile
+robot,” IEEE Trans. on Systems, Man and Cybernetics , vol. 21, no. 4,
+pp. 777–789, 1991.
+[20] C. Rust and M. Gruenewald, “Petri net based design of a multi-
+robot scenario - a case study,” in IEEE Conf. on Systems, Man and
+Cybernetics , 2004.
+[21] N. Wu and M. Zhou, “Modeling and deadlock avoidance of automated
+manufacturing systems with multiple automated guided vehicles,” IEEE
+Trans. Systems, Man and Cybernetics , vol. 35, no. 6, pp. 1193–1201,
+2005.[22] B. Lacerda and P.-U. Lima, “LTL-based decentralized supervisory
+control of multi-robot tasks modelled as Petri nets,” in IEEE/RSJ Int.
+Conf. on Intelligent Robots and Systems , 2011, pp. 3081–3086.
+[23] G. Yasuda, Distributed Coordination of Multiple Robot Systems Based
+on Hierarchical Petri Net Models . Berlin, Heidelberg: Springer Berlin
+Heidelberg, 2013, pp. 602–613.
+[24] S. Reveliotis and E. Roszkowska, “Conﬂict Resolution in Free-Ranging
+Multivehicle Systems: A Resource Allocation Paradigm,” IEEE Trans.
+on Robotics , vol. 27, no. 2, pp. 283–296, 2011.
+[25] J. Goryca and R. Hill, “Formal synthesis of supervisory control software
+for multiple robot systems,” in American Control Conference , June 2013,
+pp. 125–131.
+[26] E. Roszkowska and S. Reveliotis, “A distributed protocol for motion
+coordination in free-range vehicular systems,” Automatica , vol. 49, pp.
+1639–1653, 2013.
+[27] E. Dallal, A. Colombo, D. Del-Vecchio, and S. Lafortune, “Supervisory
+control for collision avoidance in vehicular networks using discrete event
+abstractions,” Discrete Event Dynamic Systems , pp. 1–44, 2016.
+[28] J. King, R. Pretty, and R. Gosine, “Coordinated execution of tasks in a
+multiagent environment,” IEEE Trans. Systems, Man and Cybernetics ,
+vol. 33, no. 5, pp. 615–619, 2003.
+[29] M. Kloetzer, C. Mahulea, and J.-M. Colom, “Petri net approach for
+deadlock prevention in robot planning,” in IEEE Conf. on Emerging
+Technologies Factory Automation , Cagliari, Italy, 2013.
+[30] T. Nishi and R. Maeno, “Petri net decomposition approach to opti-
+mization of route planning problems for agv systems,” IEEE Trans. on
+Automation Science and Engineering , vol. 7, no. 3, pp. 523–537, 2010.
+[31] K. Klai, S. Haddad, and J.-M. Ilie, “Modular Veriﬁcation of Petri Nets
+Properties: A Structure-Based Approach,” in Formal Techniques for
+Networked and Distributed Systems - FORTE 2005 , ser. Lecture Notes
+in Computer Science, F. Wang, Ed. Springer Berlin Heidelberg, 2005,
+vol. 3731, pp. 189–203.
+[32] J. Esparza and C. Schrter, “Net reductions for ltl model-checking,” in
+Correct Hardware Design and Veriﬁcation Methods , ser. Lecture Notes
+in Computer Science, T. Margaria and T. Melham, Eds. Springer Berlin
+Heidelberg, 2001, vol. 2144, pp. 310–324.
+[33] M. Rahim, M. Boukala-Ioualalen, and A. Hammad, “Petri Nets Based
+Approach for Modular Veriﬁcation of SysML Requirements on Activity
+Diagrams,” in PNSE’14: Int. Workshop on Petri Nets and Software
+Engineering , 2014, a satellite event of Petri Nets 2014.
+[34] M. Silva, E. Teruel, and J.-M. Colom, “Linear algebraic and linear
+programming techniques for the analysis of P/T net systems.” Lecture
+on Petri Nets I: Basic Models , vol. 1491, pp. 309–373, 1998.
+[35] M. D. Berg, O. Cheong, and M. van Kreveld, Computational Geometry:
+Algorithms and Applications , 3rd ed. Springer, 2008.
+[36] L. C. G. J. M. Habets, P. J. Collins, and J. H. van Schuppen, “Reach-
+ability and control synthesis for piecewise-afﬁne hybrid systems on
+simplices,” IEEE Trans. Automatic Control , vol. 51, pp. 938–948, 2006.
+[37] C. Belta and L. Habets, “Controlling a class of nonlinear systems on
+rectangles,” IEEE Trans. on Automatic Control , vol. 51, no. 11, pp.
+1749–1759, 2006.
+[38] F. Brown, Boolean Reasoning: The Logic of Boolean Equations , 2nd ed.
+Dover Publications, 2012.
+[39] M. N. Velev, “Efﬁcient Translation of Boolean Formulas to CNF in
+Formal Veriﬁcation of Microprocessors,” in Asia and South Paciﬁc
+Design Automation Conference , ser. ASP-DAC ’04. Piscataway, NJ,
+USA: IEEE Press, 2004, pp. 310–315.
+[40] K. Seow, C. Ma, and M. Yokoo, “Multiagent planning as control syn-
+thesis,” in Third Int. Joint Conf. on Autonomous Agents and Multiagent
+Systems , 2004, pp. 972–979.
+[41] M. T. Pham and K. T. Seow, “Discrete-event coordination design for dis-
+tributed agents,” IEEE Trans. on Automation Science and Engineering ,
+vol. 9, no. 1, pp. 70–82, 2012.
+[42] J. Chinneck, Practical Optimization: A Gentle Introduction .
+http://www.sce.carleton.ca/faculty/chinneck/po.html, 2004.
+[43] IBM. (2016) IBM ILOG CPLEX Opti-
+mization Studio. Software. [Online]. Available:
+http://www-01.ibm.com/software/integration/optimization/cplex-optimization-studio/
+[44] M. Earl and R. D’Andrea, “Iterative MILP methods for vehicle-control
+problems,” IEEE Trans. Robotics , vol. 21, no. 6, pp. 1158–1167, 2005.
+[45] R. Gonzalez, C. Mahulea, and M. Kloetzer, “A matlab-based interactive
+simulator for mobile robotics,” in IEEE Int. Conf. on Automation Science
+and Engineering , Gothenburg, Sweden, 2015.
+[46] L. Parrilla, C. Mahulea, and M. Kloetzer, “Rmtool: recent enhance-
+ments,” in IFAC World Congress , Toulouse, France, July 2017.

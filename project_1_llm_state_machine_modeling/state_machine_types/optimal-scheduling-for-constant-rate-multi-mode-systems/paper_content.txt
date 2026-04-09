@@ -1,0 +1,1217 @@
+--- Page 1 ---
+Optimal Scheduling for Constant-Rate Multi-Mode Systems
+Rajeev Alur
+University of Pennsylvania,
+Philadelphia, USA
+alur@cis.upenn.eduAshutosh Trivedi
+University of Pennsylvania,
+Philadelphia, USA
+ashut@cis.upenn.eduDominik Wojtczak
+University of Liverpool,
+Liverpool, UK
+d.wojtczak@liv.ac.uk
+ABSTRACT
+Constant-rate multi-mode systems are hybrid systems that
+can switch freely among a nite set of modes, and whose
+dynamics is specied by a nite number of real-valued vari-
+ables with mode-dependent constant rates. The schedulabil-
+ity problem for such systems is to design a mode-switching
+policy that maintains the state within a specied safety set.
+The main result of the paper is that schedulability can be
+decided in polynomial time. We also generalize our result
+to optimal schedulability problems with average cost and
+reachability cost objectives. Polynomial-time scheduling al-
+gorithms make this class an appealing formal model for de-
+sign of energy-optimal policies. The key to tractability is
+that the only constraints on when a scheduler can switch
+the mode are specied by global objectives. Adding local
+constraints by associating either invariants with modes, or
+guards with mode switches, lead to undecidability, and re-
+quiring the scheduler to make decisions only at multiples of
+a given sampling rate, leads to a PSPACE-complete schedu-
+lability problem.
+Categories and Subject Descriptors
+D.4.7 [ Organization and Design ]: Real-time systems and
+embedded systems; B.5.2 [ Design Aids ]: Optimization,
+Verication
+General Terms
+Theory, Verication
+Keywords
+Multi-Mode Systems, Cyber-Physical Systems, Peak Mini-
+mization, Green Scheduling, Hybrid Automata
+1. INTRODUCTION
+Our study of optimal scheduling on constant-rate multi-
+mode systems is motivated largely by a series of work by
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bear this notice and the full citation on the ﬁrst page. To copy otherwise, to
+republish, to post on servers or to redistribute to lists, requires prior speciﬁc
+permission and/or a fee.
+Copyright 20XX ACM X-XXXXX-XX-X/XX/XX ...$10.00.Nghiem et al. [17, 18] on energy peak demand reduction
+within a large organization by synchronizing switching deci-
+sions of various \heating, ventilation, and air conditioning"
+(HVAC) systems. The correlation between extreme weather
+and energy demand peaks is well documented [6], and hence
+reducing the energy peak demand due to HVAC systems
+can potentially signicantly reduce the total energy peak
+demand. In [17] Nghiem et al. considered a model of an or-
+ganization where at any given time the HVAC system of a
+zone can be in either ON or OFF mode, and in each mode
+the temperature of the corresponding zone changes with a
+mode-dependent constant rate. In order to minimize peak
+energy-usage they studied the following schedulability prob-
+lem: nd a switching schedule of HVAC systems across dif-
+ferent zones so as to maintain the temperature in each zone
+within a given temperature interval, with the restriction that
+simultaneously at most a x number of HVAC systems are
+switched ON. They showed that the schedulability problem
+can be reduced to testing an inequality involving the rates
+of temperature change. Our motivation is to explore that to
+what extent this result can be generalized, and to identify
+where this result ts into existing literature on schedulability
+such as real-time scheduling theory [9] and hybrid automata
+based schedulability analysis [1, 2].
+Real-time scheduling is a mature research area [9] with an
+excellent collection of well-studied algorithms for periodic
+scheduling, for instance the rate monotonic and the earliest
+deadline rst algorithms. However, as noted by Nghiem et
+al. [18], generally these algorithms are restricted to tasks
+whose worst case execution times are xed and known in
+advance, and hence they are not directly applicable to energy
+peak reduction problem as posed in [18, 17].
+Another prominent approach [1, 2] to real-time schedu-
+lability analysis is via reduction to optimization problems
+on timed and hybrid automata. Timed automata [3] can
+model multi-mode systems with a nite set of continuous
+variables, called clocks, that grow with uniform rate. Clocks
+can be used to constrain mode-switches and to specify mode-
+dependent invariants. The decidability of a number of opti-
+mization problems [4, 7] on timed automata, and availabil-
+ity of ecient tool support, e.g. Kronos and UPPAAL [15,
+20], make them an attractive choice for real-time scheduling.
+They are, however, not applicable in energy peak reduction
+problem as the temperature variables in our system grow
+with non-uniform rates. Hybrid automata generalize timed
+automata by allowing mode-dependent variable rates, how-
+ever having two variables with dierent rates leads to unde-
+cidability [11] even for reachability problems. As we see later
+
+--- Page 2 ---
+the key property of our systems that contributes to decid-
+ability (and even tractability) of schedulability problems is
+the absence of structure in the system, i.e. intuitively speak-
+ing as long as global safety set is not violated schedulers are
+allowed to switch among modes without any restriction.
+Results . We dene our model, a constant-rate multi-mode
+system (MMS), as a hybrid system with a nite set of modes
+where dynamics of each mode is specied by a nite set of
+continuous variables with mode-dependent constant-rates.
+Given a bounded convex set of safe states (variable valua-
+tions) and a starting state, the safe schedulability problem
+for an MMS is to nd a non-Zeno schedule that visits only
+safe states. Another closely related problem is safe reacha-
+bility problem that asks if there exists a schedule to steer the
+system from a given starting state to a given set of target
+states while only visiting states from a given safety set.
+Our rst result concerning safe schedulability problem is
+that for all the starting states in the interior of the safety
+set, a safe schedule exists i there is an assignment of dwell
+times to modes that allows the system to return to the start-
+ing state. Due to constant-rate dynamics of the system this
+condition can easily be posed as a linear programming (LP)
+feasibility problem. The algorithm for nding safe sched-
+ule is more involved if the starting state is on the bound-
+ary of the safety set. A key contribution of the paper is a
+polynomial-time algorithm for computing a safe schedule for
+an arbitrary starting state when the safety set is given as a
+bounded convex polytope.
+For safe reachability problem we show that if a state is
+reachable from a given starting state for some assignment
+of dwell times to modes, then it is safely reachable for any
+arbitrary bounded and convex safety set as long as both
+states lie in the interior of the safety set. We show via an
+example that this observation is not valid when one of the
+states lies on the boundary of the safety set. We present a
+polynomial-time algorithm to nd safe schedules for reacha-
+bility problems when both the starting and the target states
+lie in the interior of the safety set.
+In Section 3 we extend these results to optimization prob-
+lem with average cost and reachability cost objectives, and
+present polynomial-time algorithms to solve these problems.
+Furthermore, we prove that reachability-cost optimal and
+average-cost optimal strategies always exist, and have a par-
+ticular simple periodic structure as long as both the target
+and the starting states are in the interior of the safety set. In
+Section 4 we show that requiring the scheduler to make de-
+cisions only at multiples of a given clock-rate makes the safe
+schedulability and safe reachability problems complete for
+PSPACE. We also show that the largest sampling rate for
+which safe schedulability problem yields a positive answer
+can be approximated in polynomial space.
+Related Work . The work most closely related to our is
+of Nghiem et al. [17]. The energy peak reduction problem
+was rst posed in [17] and safe schedulability checking for
+this problem was reduced to checking a simple formula on
+temperature rates. Authors also presented a lazy scheduling
+algorithm where scheduler is required to take decisions only
+at multiples of a given sampling rate. Although the practi-
+cal motivation of our approach is the same as [17] we have
+dierent goals. The central focus of our research is to char-
+acterize the complexity of various schedulability problems inthis context. Safe schedulability problem for MMSs general-
+izes the energy peak reduction problem studied by Nghiem
+et al. in [17] since MMSs can model HVAC systems with
+more modes than simply ON and OFF. Moreover, MMSs
+allow safety set to be an arbitrary bounded convex set as
+opposed to hyperrectangular sets in [17]. Unlike [17] our
+algorithm can analyze the safe schedulability problem for
+starting states on the boundary of the safety set, assum-
+ing it is a polytope. Moreover, we also extend our results
+to safe reachability problem, and optimization problems for
+average cost and reachability cost objectives. We also estab-
+lish PSPACE-completeness of nding the optimal sampling
+rate for safe schedulability of our more general systems.
+In [18] Nghiem et al. generalized their work to multi-mode
+systems with linear dynamics. Using similar restrictions
+as [18] the ideas presented in this paper can be general-
+ized to handle linear dynamics with some eort. Heymann
+et al. [12] study checking whether a given hybrid system,
+under several restrictions, is strongly Zeno and characterize
+LP feasibility test for this problem. Like Nghiem et al. [17],
+Heymann et al. only consider hyperrectangular safety states
+and starting states in the interior of the safety region.
+The practical stabilization problem studied by Xu and
+Antsaklis [21] roughly corresponds in our model to an uncon-
+strained reachability followed by a specically constrained
+safe schedulability problem where the system cannot leave
+a ball of radius "when starting from anywhere inside a ball
+with the same origin and radius . The existence and syn-
+thesis of a scheduler satisfying such constraints can be solved
+in polynomial time using our algorithms, while the running
+time of the method suggested in [21] is exponential in the
+number of modes. Moreover, the scheduler proposed in [21]
+is more complicated than ours and requires solving multiple
+linear programs as opposed to essentially one in our algo-
+rithm. Finally, the problem of computing a lower bound
+on the optimal sampling rate was studied there for systems
+with two variables and the problem was left open for sys-
+tems with more variables. We show that even approxima-
+tion of the optimal sampling rate within a constant error
+is PSPACE-hard, which makes unlikely the existence of a
+tractable general procedure for this problem.
+We also mention the work of Jha et al. [13, 14] where they
+synthesize guards for multi-mode systems so as to satisfy cer-
+tain optimization criteria. Their model is more general than
+ours as it allows guards on mode-switches, and moreover
+variables are allowed to have more general dynamics, how-
+ever authors did not present any complexity or decidability
+results. Henzinger and Kopke [10] studied the safe reach-
+ability problem for hybrid automata [10] where the sched-
+uler is allowed to make decisions at multiples of a given
+sampling rate, and showed the problem to be PSPACE-
+complete. Upper bound for the similar problem for MMSs
+directly follows from their work. Bouyer et al. [8] study
+the safe schedulability problem on weighted timed automata
+(timed automata extended with a cost variable having mode-
+dependent constant-rate) with global cost constraints. The
+safe schedulability problem is to nd a schedule that keeps
+the value of the cost variable within a given interval. MMS
+and weighted timed automata are incomparable models: the
+former disallows guards on mode-switches, while the latter
+disallows more than one variable with mode-dependent rate.
+An extended version of this paper with complete proofs is
+available as a technical report [5].
+
+--- Page 3 ---
+2. SAFE SCHEDULABILITY
+Before we formally introduce constant-rate multi-mode
+systems, we need to introduce the notation used through-
+out the rest of the paper. We write Nfor the set of natural
+numbers, Rfor the set of real numbers, and Zfor the set
+of integers. Also, we write R0for the set of non-negative
+reals and N>0for the set of positive integers.
+States of our system will be points in Rnthat is equipped
+with the standard Euclidean normkk. Byx;ywe denote
+points in this state space, by ~f;~ vvectors, while x(i) and
+~f(i) will denote the i-th coordinate of point xand vector
+~f, respectively. We denote the distance between xandy
+bykx;ykdef=kxyk. For two vectors ~ v1;~ v22Rn, we write
+~ v1~ v2to denote their dot product dened asPn
+i=1~ v1(i)~ v2(i).
+We write~0 for any vector with all its coordinates equal to
+0; its exact dimension will depend on the context.
+We say that a point xis a convex combination of a set
+of pointsX=fx1;x2;:::;xkgif there exist 1;2;:::; k2
+[0;1] such thatPk
+i=1i= 1 andx=Pk
+i=1ixi. We say
+that the set SRnisconvex i for allx;y2Sand all
+2[0;1] we have x+ (1)y2Sand moreover, Sis
+aconvex polytope if there exists k2N, a matrix Aof size
+knand a vector ~b2Rksuch thatx2SiAx~b.
+LetBd(x) =fy2Rn:kx;ykdgdenote a closed ball of
+radiusd2R0centered at x. We say that a set SRnis
+bounded if there exists d2R0such that for all x;y2Swe
+havekx;ykd. The interior of a setS, int(S), is the set of
+all pointsx2Sfor which there exists d>0 s.t.Bd(x)S.
+2.1 Constant-Rate Multi-Mode Systems
+A constant-rate multi-mode system consists of a nite
+number of modes and a nite number of real-valued vari-
+ables whose dynamics is specied by mode-dependent con-
+stant rates. Formally,
+Definition 1.A constant-rate multi-mode system (MMS)
+is a tupleH= (M;n;R )whereMis a nite nonempty set
+ofmodes ,nis the number of continuous variables in the
+system, and R:M!Rngives for each mode the rate vec-
+torwhosei-th entry species the change in value of the i-th
+variable per time unit.
+For computation purposes, we assume that all real numbers
+are rational and represented in the standard way by writing
+down the numerator and denominator in binary.
+Aschedule of an MMS species a timed sequence of mode
+switches. Formally, a schedule is dened as a nite or innite
+sequences of timed actions , where a timed action ( m;t)2
+MR0is a tuple consisting of a mode and a time delay.
+We say that an innite schedule h(m1;t1);(m2;t2);:::iispe-
+riodic if there exists k1 such that for all i1 we have
+(mi;ti) = (m(imodk)+1;t(imodk)+1), and it is ultimately pe-
+riodic if it has a sux that is periodic. We say that an in-
+nite scheduleh(m1;t1);(m2;t2);:::iisZeno ifP1
+i=1ti<1.
+Zeno schedules require innitely many mode-switches within
+a nite time, and hence, are physically unrealizable.
+For a (nite or innite) schedule =h(m1;t1);(m2;t2);:::i,
+we writeTk()def=Pk
+i=1tifor the total time elapsed up to
+stepkof the schedule , and we write Tm
+k()def=P
+ik:mi=mti
+for the total time spent in mode mup to step k. For any
+non-Zeno schedule we have that lim k!1Tk() =1.
+A nite runof an MMSHis a nite sequence of states and
+timed actions r=hx0;(m1;t1);x1;:::; (mk;tk);xkisuch thatfor all 1ikwe have that xi=xi1+tiR(mi). For
+such a runrwe say that x0is the starting state , whilexkis
+itsterminal state . Given a state xand a nite schedule =
+h(m1;t1);(m2;t2);:::; (mk;tk)i, we write Run(x;) for the
+(unique) nite run hx0;(m1;t1);x1;(m2;t2);:::; (mk;tk);xki
+such thatx0=x. In this case, we also say that schedule 
+leads the systemHfrom statex0to statexk. The concept of
+aninnite run and an innite run Run(x;) corresponding
+to an innite schedule is dened in an analogous manner.
+Given a set SRnof safe states, we say that an innite
+runhx0;(m1;t1);x1;(m2;t2);:::iisS-safe if for all i0
+we have that xi2Sandxi+i+1R(mi+1)2Sfor all
+i+12[0;ti+1]. Notice that if Sis a convex set then xi2S
+for alli0, implies that xi+i+1R(mi+1)2Sfor alli0
+and alli+12[0;ti+1]. Given a set SRnof safe states and
+a starting state x2Rn, we say that an innite schedule =
+h(m1;t1);(m2;t2);:::iisS-safe atxif the corresponding run
+Run(x;) isS-safe. The concept of S-safety for nite runs
+and schedules is dened in a similar manner. Sometimes we
+simply call a schedule or a run safe when the safety set and
+the starting state is clear from the context.
+We say that a state x0is \S-safe reachable" from a state x
+if there exists a nite schedule that isS-safe atxand leads
+the system from state xtox0. The following observations
+will be useful in some of the proofs later.
+Proposition 1.For every MMSHand a convex safety
+setSwe have that any convex combination x=Pk
+i=1ixi
+ofS-safe reachable states x1;x2;:::;xkfrom a given state
+xis alsoS-safe reachable from x. Moreover, if mode mis
+safe fortamount of time at xi2S, then it is safe for it
+amount of time at x.
+Two fundamental problems for MMS are the following safe
+schedulability and safe reachability problems.
+Definition 2 (Safe Schedulability). Given an MMS
+H, a bounded convex set SRn, and a state x2S, decide
+if a non-Zeno innite schedule exists that is S-safe atx.
+Definition 3 (Safe Reachability). Given a MMSH,
+a bounded convex set SRn, and a pair of states x;x02S
+decide ifx0isS-safe reachable from x.
+We present algorithms to solve safe schedulability and safe
+reachability problems in Section 2.3 and 2.4, respectively.
+We next present two examples of posing scheduling problems
+using constant-rate multi-mode systems.
+2.2 Examples
+The rst example generalizes energy peak demand mini-
+mization problem as studied by Nghiem et al. [17].
+Example 1.Consider an organization with two zones A
+andB. HVAC units in each zone can be in one of the three
+modes 0(OFF), 1(LOW),and 2(HIGH). We write the mode
+of the combined system as mi;jto represent the fact that
+unitAis in mode iand unitBis in mode j. The rate of
+temperature change and the energy usage for each zone in
+each mode is summarized in the following table:
+Zones HIGH LOW OFF
+A (temp. change rate/ usage) -2/3 -1/2 2/0.2
+B (temp. change/ usage) -2/3 -1/2 3/0.2
+
+--- Page 4 ---
+m2;0(2;3)
+m0;2
+(2;2)m0;0(2;3)
+m1;1
+(1;1)m1;0(1;3)
+m0;1
+(2;1)
+Figure 1: Rate vectors from Example 1.
+For instance, if HVAC unit in zone Ais in mode LOW then
+the temperature of the zone Adrops 1unit per second, while
+the HVAC unit consumes 2energy units per second. To
+simplify energy pricing, we assume that the energy cost is
+equal to energy usage if peak energy usage (sum of the energy
+usage in all units) at every given point in time is less than
+or equal to 4units, otherwise energy cost is 10times of that
+standard rate. This assumption is in agreement with the
+bucket-based pricing [19] used by some energy providers.
+It follows that to minimize energy cost, the peak usage, if
+possible, must not be higher than 4units at any given time.
+Hence we model the system as an MMS with modes m0;0,
+m0;1,m1;0,m0;2,m2;0, andm1;1, because these are the only
+ones that have peak usage at most 4. The temperature of
+the zones are the variables of the MMS, while the safety set
+as the constraint that temperature of both zones should be
+between 65oFto75oF. The existence of a safe non-Zeno
+schedule implies the existence of a switching schedule with
+energy peak demand less than or equal to 4units. The rates
+of the variables in dierent modes is shown in Figure 1.
+Two tank system model, a popular [16, 12] example of
+hybrid systems, can be modeled as MMS as shown below.
+Example 2.Consider a system consisting of two leaking
+tanks and a hose, such that each tank leaks water with some
+constant rate, and the hose can pump water in either of the
+tanks with a constant rate. The goal is to nd a non-Zeno
+schedule to keep the water level of both tanks within a given
+range. It is straightforward to see that this problem can be
+modeled as a safe schedulability problem on MMS with two
+variables (water levels of tanks) and three modes that corre-
+spond to the positions of the water hose.
+2.3 Safe Schedulability Problem
+There exists a simple characterization of safe schedulabil-
+ity if the starting state xis in the interior of set S. However,
+if the starting state xis on the boundary of safety set S, then
+the safe schedulability problem is more involved. We treat
+these two cases separately.
+2.3.1 Starting state is in the interior of the safety set
+For all starting states in the interior of the safety set a
+safe non-Zeno schedule exists i the following constraints
+are feasible for some vector ( f(1);f(2);:::;f(jMj))2RjMj
+0:
+jMjX
+i=1R(i)(j)f(i)= 0 for 1jnandjMjX
+i=1f(i)= 1:(1)The rst constraint simply states that starting from an arbi-
+trary state if the system spends f(i)fraction of total time in
+modeithen system comes back to the original state, while
+the second constraint is required to ensure non-Zenoness.
+The \if" part is straightforward as for any starting state xa
+satisfying assignment to f(i)can be used to characterize a
+non-Zeno periodic S-safe schedule that forces all intermedi-
+ate states to stay within a closed ball of arbitrary non-zero
+radius centered at the starting state. The \only if" part fol-
+lows from Farkas' lemma that states that constraints in (1)
+are feasible if and only if the following constraints are infea-
+sible for all vectors ( v(1);v(2);:::;v(n))2Rn:
+(v(1);v(2);:::;v(n))R(i)>0 for all 1ijMj(2)
+Hence if constraints in (1) are infeasible, then constraints
+in (2) are feasible, i.e. there exists a vector ( v(1);v(2);:::;v(n))
+such that no matter which mode system stays in, it makes
+a positive progress along that vector. Since we assume the
+safety set is bounded, it implies that no safe non-Zeno sched-
+ule can exists in this case. This observation also implies that
+if there exist a safe non-Zeno schedule then there exists one
+that is periodic.
+We say that mode misS-safe atx2Sfort>0 amount of
+time ix+tR(m)2SandmisS-safe atxif there exists such
+at>0. We show that the constraints in (1) give a necessary
+and sucient condition for safe schedulability for all starting
+states where all modes are S-safe. Algorithm 1 returns an
+S-safe schedule from a given starting state x02Swhere
+all modes are S-safe, while Theorem 2 states the correctness
+and the complexity of the algorithm.
+Algorithm 1 : Returns an S-safe schedule, if it exists,
+from a given x0where all modes are safe.
+Input : MMSH, staring state x0andt>0 such that all
+modes ofHare safe atx0fortamount of time.
+Output : A periodic S-safe schedule from xor NO if no
+such a schedule exists.
+Check whether the following linear program is feasible:1
+X
+m2MR(m)f(m)=~0
+X
+m2Mf(m)= 1 (3)
+f(m)0 for allm2M.
+ifno satisfying assignment exists then
+return NO 2
+else3
+Find a polynomial size assignment ff(m)gm2M. 4
+return the following periodic schedule with period 5
+jMj:mk= (kmodjMj) + 1 andtk=f(mk)t.
+Theorem 2.Given an MMSH, a bounded convex safety
+setS, a statex02Sandt>0s.t. all modes are safe at x0
+for at least tamount of time, Algorithm 1 returns an S-safe
+non-Zeno periodic schedule (if exists) in polynomial time.
+Notice that Algorithm 1 solves safe reachability problem
+for all starting states in the interior of the safety set, thanks
+to the following proposition.
+
+--- Page 5 ---
+Proposition 3.Ifx2int(S)then there exists t>0such
+that all modes are safe at xfor at least tamount of time.
+Proof. Sincex2int(S), there exists d > 0 such that
+Bd(x)S. We can just set tto be min m2Md=kR(m)k>0,
+because then for any m2Mwe havektR(m)ktkR(m)k
+dand sox+tR(m)2Bd(x)S.
+The constraints (1) and (2) give us two ways to test safe
+schedulability of an MMS for staring states in the interior
+of the safety set. From (1) it follows that there exists a safe
+non-Zeno schedule if and only if the origin lies in the convex
+hull of the points corresponding to the rate vector of each
+mode. While from (2) it follows that there is no safe non-
+Zeno schedule if there exists a vector such that the angles
+between that vector and every other rate vector are all less
+than 90.
+Example 3.Using Figure 1 one can easily check that for
+the MMS from Example 1 there exists a safe non-Zeno sched-
+ule for all starting states in the interior of the safety set, as
+the convex hull (the shaded area) of the points correspond-
+ing to the rate vectors includes the origin, and also there is
+no vector which makes an angle less than 90with all the
+vectors. It can also be easily veried that if we remove mode
+m1;1then there is no safe non-Zeno schedule.
+2.3.2 Starting state is on the boundary of safety set
+Feasibility of constraint 1 is not a sucient condition for
+safe schedulability if the starting state lies on the boundary
+of the safe region as shown in the following example.
+Example 4.In the following gure we revisit Example 1
+and draw the safety set (shaded region) Sand four states
+s0;s1;s2ands3inside the safety set. The state s3is in-
+side the interior of the set S, while other states are on the
+boundary of the set S.
+s0s1s2
+s3
+From Theorem 2 it follows that from the starting state s3
+there exists a safe non-Zeno schedule. Now let us consider
+the states0. It is clear that no mode is safe at s0as making
+any innitesimally small progress along one of the rate vec-
+tors leads outside of the safety set S. Hence, for the starting
+states0there is no safe non-Zeno schedule. On the other
+hand, from state s1choosing the vector (2;2)corresponding
+to modem0;2leads into the interior of the safety region from
+where there exists a safe non-Zeno schedule. Similarly, from
+states2rst choosing the vector (1;1)corresponding to
+modem1;1, and then choosing vector (2;2)corresponding
+to modem0;2leads into the interior of the safe set.
+The algorithm for the safe schedulability problem for bound-
+ary starting states follows from Theorem 7 presented in Sec-
+tion 3 and crucially depends on our results for the safe reach-
+ability problem presented next.2.4 Safe Reachability Problem
+Given an MMSH= (M;n;R ), a bounded convex safety
+setS, and a starting state x2S, and a target state x02S,
+the safe reachability problem is to decide whether x0isS-safe
+reachable from x. When all modes of Hare safe atxandx0,
+a safe schedule from xtox0exists i the following constraints
+are satised for some vector ~t= (t(1);t(2);:::;t(jMj))2RjMj
+0:
+x(j) +jMjX
+i=1R(i)(j)t(i)=x0(j) for all 1jn (4)
+This constraint expresses that using a combination of rate
+vectors it is possible to reach x0fromx. If the set of con-
+straints in (4) is feasible and x;x0are in the interior of the
+safe set|or more generally all modes are safe at xandx0|
+then a satisfying assignment to t(i)can be used to make
+progress towards the vector x0xby scaling the t(i)-s ap-
+propriately without leaving the safety set. Repeating this
+process,x0can be reached from xin nitely many steps.
+Algorithm 2 returns an S-safe schedule, if exists, that
+leads the system from xtox0given all modes are safe at
+both states. Theorem 4 establishes the correctness and the
+computational complexity of the algorithm.
+Algorithm 2 : Returns an S-safe schedule, if exists, from
+statesxandx0when all modes are safe at xandx0.
+Input : MMSH, two points x;x0andt>0 such that
+all modes are safe at xandx0for timet.
+Output : NO, if no S-safe schedule from xtox0exists,
+and a periodic such schedule, otherwise.
+Check whether the following linear program is feasible:1
+x+X
+m2MR(m)t(m)=x0and (5)
+t(m)0 for allm2M:
+ifno satisfying assignment exists then 2
+return NO 3
+else4
+Find a polynomial size assignment ft(m)gm2M. 5
+Letlbe the smallest natural number greater than 6P
+m2Mt(m)=t.
+return the following schedule of length ljMjwith 7
+periodjMj:mk= (kmodjMj) + 1 andtk=t(mk)=l
+fork= 1;2;:::;ljMj.
+Theorem 4.Given an MMSH, a bounded convex set
+SRn, a starting state x2Sand a target state x02S,
+and at >0such that all modes are safe at xandx0for
+at leasttamount of time, Algorithm 2 returns an S-safe
+schedule (if exists) from xtox0in polynomial time.
+Proof. Assume that the linear constraints are feasible,
+and consider the schedule constructed in Algorithm 2. Let
+us denote that schedule by and consider the run r=
+Run(x;) corresponding to this schedule from state x. Let
+us denote the state visited after the k-th step of rbyxk,
+and also look at the states when the schedule is extended
+byjMjextra steps. Notice that because is periodic with
+periodjMj, for anyi<l andjjMjthe following holds:
+xijMj+j= (1i=l)xj+ (i=l)xljMj+j:
+
+--- Page 6 ---
+So it suces to prove that the points xjandxljMj+jare
+S-safe forjjMj. Let us denote for j= 0;:::;jMjbyaj
+the expression 1Pj
+m=1t(m)=(tl). Notice that
+aj1jX
+m=1t(m)=X
+m2Mt(m)0;
+becausetlP
+m2Mt(m). On the other hand, xj=
+x+Pj
+m=1R(m)t(m)=l=ajx+Pj
+m=1(t(m)=(tl))(x+tR(m)).
+However, all modes were assumed to be safe at xfort
+amount of time and so xj2Sfor alljM, because it
+is a convex combination of states from the convex set S.
+In exactly the same manner we show xljMj+j2Sfor all
+jjMj. This concludes the proof that the schedule re-
+turned by Algorithm 1 is S-safe.
+The safe reachability problem can be solved in polynomial
+time, since the main computation of the algorithm involves
+solving a linear program, Moreover, although the schedule
+can be of exponential length, it can be represented com-
+pactly in polynomial space, because it has a period jMj.
+2.4.1 General Case
+Feasibility of the set of constraints in (5) does not guar-
+antee safe reachability of state x0from statexif both states
+are on the boundary of the safety set. Moreover, in such a
+case the state x0may not be reachable in nitely many step
+as shown in the following example.
+Example 5.In the following gure we present a MMS
+with two variables and two modes (1;1)and(1;1), and the
+starting state is s, while the target state is s0.
+s1s2:::s s0
+The safety set is shown as the shaded area such that the
+angle at state s0is30o. It is easy to see that the constraint
+in Equation 5 is feasible for this example, however, as we
+can see from the gure, the distance between states skand
+s0is equal toks;s0k(p
+31p
+3+1)k. Hence, although x0can be
+approached arbitrarily close using the two available modes,
+it is impossible to reach that state using a non-Zeno run.
+3. OPTIMAL SCHEDULABILITY
+In the previous section we presented algorithms to com-
+pute an arbitrary schedule out of all possible safe schedules.
+However, for most practical control problems when more
+than one safe schedule exists, it is often desirable to use a
+schedule that is optimal in according to some quantitative
+objective. In this section we study a priced extension of
+MMS where every mode is associated with a cost incurred
+per time unit when the system is that mode, and the natu-
+ral generalization of safe schedulability and safe reachability
+problems to optimal average cost and optimal reachability
+cost problems for such extension.
+Definition 4.A priced constant-rate multi-mode system
+is a tupleH= (M;n;R; )where (M;n;R )is a MMS and:M!Ris a price function such that (m)characterizes
+the price per-time unit of staying in mode m.
+The price function can be extended to dene costs for nite
+and innite schedules. The cost of a nite schedule =
+h(m1;t1);(m2;t2);:::; (mk;tk)iis dened as the sum of the
+costs of its timed actions, i.e., Cost()def=Pk
+i=1(mi)ti.
+The cost of an innite schedule =h(m1;t1);(m2;t2);:::i
+is dened as the average cost per time-unit, i.e.
+AvgCost () = lim sup
+k!1Pk
+i=1(mi)tiPn
+i=1ti:
+Notice that we could dene AvgCost () with lim inf instead
+of lim sup. However, because the aim is to nd a schedule
+with the minimum average cost, it makes more sense to pick
+lim sup in order to minimize the maximal recurring average
+cost along a run. Also, as we will see later, this assumption
+is crucial in the proof of a key theorem of this paper.
+Let (x;x0;S) be the set of nite schedules that are S-
+safe atxand lead the system from xtox0. The optimal
+reachability cost CostS
+(x;x0) for a starting state x, a target
+statex0, and a safety set Sis dened as:
+CostS
+(x;x0) = inf
+Cost() :2(x;x0;S)	
+:
+We say that a schedule is reachability-cost optimal for
+a starting state x, a target state x0and a safety set S, if
+2(x;x0;S) and Cost() =CostS
+(x;x0).
+Let (x;S) be the set of non-Zeno innite schedules that
+areS-safe atx. The optimal average cost of a state xand a
+safety setSis dened as
+AvgCostS
+(x) = inf
+AvgCost () :2(x;S)	
+:
+We say that a schedule is average-cost optimal for a start-
+ing statexand a safety set Sif2(x;S) and AvgCost () =
+AvgCostS
+(x).
+Two fundamental problems for priced MMS are the follow-
+ing optimal reachability and optimal average schedulability
+problems.
+Definition 5 (Optimal Reachability). Given a priced
+MMSH, a bounded convex set S2Rn, a starting state
+x2S, and a target state x02S, compute the optimal reach-
+ability cost CostS
+(x;x0)and nd, if exists, a reachability-cost
+optimal schedule.
+Definition 6 (Optimal Average Schedulability).
+Given a priced MMS H, a bounded convex set S2Rn, and
+a statex2Scompute the optimal average cost AvgCostS
+(x)
+and nd, if exists, an average-cost optimal schedule.
+In Sections 3.1 and 3.2 we present algorithms to solve op-
+timal reachability and optimal average schedulability prob-
+lems, respectively.
+3.1 Optimal Reachability Problem
+Let us x a priced MMS H= (M;n;R; ), a starting
+statex, a target state x0, and a bounded convex safety set S
+for this section. As we noticed in Example 5, if the points x
+andx0are on the boundary of the safe set, optimal schedules
+may not always exist. We now show that using Algorithm 3,
+we can solve in polynomial time the optimal reachability
+problem between any two points in the interior of S.
+
+--- Page 7 ---
+Algorithm 3 : Given all modes are safe for time t>0 at
+x;x0and at least one S-safe schedule from xtox0exists,
+the algorithm returns a cost-optimal such schedule.
+Input : MMSH, two points x;x0andt>0 such that
+all modes ofHare safe atxandx0for timet.
+Output : NO, if no S-safe schedule from xtox0exists,
+and an optimal periodic such schedule, o/w.
+Check whether the following linear programming1
+problem with variables ft(m)gm2Mhas a solution.
+MinimizeX
+m2M(m)t(m)subject to:
+x+X
+m2MR(m)t(m)=x0and
+t(m)0 for allm2M:
+ifno satisfying assignment exists then 2
+return NO 3
+else4
+Find a polynomial size assignment ft(m)gm2M. 5
+Letlbe the smallest natural number greater or 6
+equal toP
+m2Mt(m)=t.
+return the following schedule of length ljMjwith 7
+periodjMj:mk= (kmodjMj) + 1 andtk=t(mk)=l
+fork= 1;2;:::;ljMj.
+Theorem 5.Given an MMSH, a bounded convex set
+SRn, statesx;x0, andt >0such that all modes of H
+are safe at xandx0for at least tamount of time, Algo-
+rithm 3 returns a reachability-cost optimal schedule (if ex-
+ists) in polynomial time.
+Proof. It follows from the proof of Theorem 4 that the
+schedule,, returned by Algorithm 3 is S-safe. We now
+showis also reachability-cost optimal.
+Assume that there is at least one S-safe schedule from x
+tox0. Letbe an arbitrary such schedule and let kbe its
+length. Notice that of course we have
+x0=x+X
+m2MR(m)Tm
+k();
+and for allm2Mwe have that Tm
+k()0, since recall that
+Tm
+k() is the total time spent in mode mup to stepk.
+Therefore, by setting t(m)7!Tm
+k() for allm2M, the
+linear constraints in Algorithm 1 become satised. Further-
+more, we have Cost() =P
+m2M(m)Tm
+k(), which is
+exactly the same as the value of the objective function for
+such an assignment. Hence, Cost()Cost() because
+has the minimal value of the objective function among
+all assignments that satisfy the linear constraints in Algo-
+rithm 1. However, we picked arbitrarily and so we have
+that Cost() =CostS
+(x;x0).
+3.2 Optimal Average Schedulability Problem
+Let us x a priced MMS H= (M;n;R; ) and a bounded
+convex set S. We rst present an algorithm for comput-
+ing the average-optimal schedule for the case when all the
+modes are safe at the starting state. From Proposition 3
+such starting states include all states in the interior of the
+safe setS.3.2.1 Starting state is in the interior of the safety set
+We show that the optimal average-cost does not depend
+on the starting state as long as all modes are S-safe at that
+state. Moreover, there always exists a period schedule that
+has the optimal average-cost among all S-safe schedules.
+Theorem 6.Given a MMSH, a bounded convex set S
+Rn,t>0, an initial state x02Ssuch that all modes of H
+areS-safe atx0fortamount of time, Algorithm 4 returns
+a periodic average-cost optimal schedule in polynomial time.
+Proof. We rst show that for any S-safe schedule, =
+h(m1;t1);(m2;t2);:::i, fromx0we can construct a periodic
+schedule with period jMjwhose average-cost is not greater
+than's.
+Letf(m)
+k=Tm
+k()=Tk() represents the fraction of the
+time spent by in modemup to stepk; note thatf(m)
+k2[0;1],
+andP
+m2Mf(m)
+k= 1 for allk. Also, from the denitions,
+xk=x0+X
+m2MR(m)Tm
+k(r) =x0+Tk(r)X
+m2MR(m)f(m)
+k;
+for anyk, and AvgCost (r) = lim supk!1P
+m2M(m)f(m)
+k.
+The denition of lim sup stipulates that we can pick a sub-
+sequence of the sequence hP
+m2M(m)f(m)
+ki1
+k=1that con-
+verges to AvgCost (r). In other words, there exists an in-
+creasing integer sequence i1;i2;:::such that AvgCost (r) =
+limk!1P
+m2M(m)f(m)
+ik. Let us now look at the sequence
+of vectorsh~fk2[0;1]Mi1
+k=1where we set ~fk(m) =f(m)
+ik.
+Since this sequence is bounded, by the Bolzano-Weierstrass
+theorem, there exists an increasing integer sequence j1;j2;:::
+such that lim k!1~fjkexists and let us denote this limit by
+~f. We next prove by contradiction that
+X
+m2MR(m)~f(m) =~0: (6)
+Assume thatP
+m2MR(m)~f(m)6=~0. Then for some variable
+1vnwe havec:=P
+m2MR(m)(v)~f(m)6= 0 and wlog
+assume this value to be positive. From the denition of ~f,
+for any" >0 we can pick Nsuch that for all k > N and
+m2Mwe havej~fjk(m)~f(m)j<". Now, notice that
+xijk(v)x0(v) =TijkX
+m2MR(m)(v)f(m)
+ijk
+=TijkX
+m2MR(m)(v)~fjk(m)
+=TijkX
+m2MR(m)(v)~f(m) + (~fjk(m)~f(m))
+TijkX
+m2M(R(m)(v)~f(m)Rmax")
+=Tijk(cjMjRmax")
+whereRmax:= max m2M;w2VjR(m)(w)j. If we now set "to
+bec=(2jMjRmax) forRmax6= 0 and"= 0 otherwise, then
+xijk(v)x0(v)1
+2Tijkc, where the right-hand side tends to
+1, because lim k!1ijk=1andc>0. Therefore, we have
+limk!1kxijk;x0k=1, which would imply that either Sis
+not bounded or ris notS-safe; a contradiction.
+Let the periodic schedule 0=h(m0
+1;t0
+1);(m0
+2;t0
+2);:::ibe
+s.t.m0
+k= (kmodjMj) + 1 andt0
+k=~f(mk)tfor eachk1.
+Also, letr0=hx0;(m0
+1;t0
+1);x0
+1;:::ibe the corresponding run
+
+--- Page 8 ---
+fromx0. It is straightforward to see that 0is non-Zeno. We
+show that0isS-safe atx0. Notice that from (6) it follows
+x0
+jMj=x0+X
+m2MR(m)t~f(m) =x0:
+So it suces to show that the nite prex of length jMjofr0
+isS-safe. However, this prex is exactly the same schedule
+that we would construct in the proof of Proposition 1 for the
+convex combination of points fx0+tR(m)jm2Mg, where
+~f(m) is picked as the coecient of the point x0+tR(m) in
+this combination. All these points are trivially reachable by
+a nite path from x0, because all modes were assumed to be
+safe fortamount of time at x0.
+We now show that 0has the average-cost not greater
+than the original schedule .
+AvgCost () = lim sup
+k!1X
+m2M(m)f(m)
+k
+lim sup
+k!1X
+m2M(m)f(m)
+jk=X
+m2M(m) lim
+k!1f(m)
+jk
+=X
+m2M(m)~f(m) =AvgCost (0):
+The rst inequality follows from the fact that removing el-
+ements from a sequence can only lower its lim sup value,
+while the second equality follows as the lim sup of a sum
+of bounded converging sequences is equal to the sum of its
+limits. This proves that the optimal average-cost among all
+S-safe schedules is equal to the inmum of the average-cost
+overS-safe periodic runs with period jMj.
+Notice that Algorithm 4 diers from Algorithm 1 only at
+line 1 where an objective function is added to the linear
+program (7). The the linear constraints guarantee the peri-
+odic schedule constructed at the end of the algorithm to be
+S-safe, while the objective function guarantees its average-
+cost to be the lowest among all S-safe schedules.
+3.2.2 General Case
+In this section we show how to handle arbitrary starting
+states as long as the safety set is a convex polytope.
+Theorem 7.Given any MMS H, bounded convex poly-
+topeSRn, and an initial state x02S, Algorithm 5 re-
+turns in polynomial time an ultimately periodic S-safe sched-
+ule with the minimum average-cost.
+Proof. The algorithm rst computes an increasing se-
+quence of sets of modes M1M2:::, whereM1is the
+set of modes safe at x0, and fori1 the setMi+1consists
+of all modes safe at states S-safe reachable from x0using
+only modes in Mi. Letkbe the smallest number such that
+Mk+1=Mk. Of course kjMj, becauseMi+1has to have
+at least one more mode than Miand the the total number
+of modes isjMj. We will show that no mode outside of Mk
+can ever become safe during a S-safe schedule starting at
+x0. First, we need the following lemma that can transform
+anyS-safe schedule into a S-safe schedule with the set of
+safe modes never decreasing as the new schedule progresses.
+Lemma 8.AnyS-safe nite schedule fromx02Scan
+be modied to a S-safe nite schedule 0of length polynomial
+inin a way that all modes that were safe at any state along
+will be safe at the terminal state of 0and no safe mode
+along0can become unsafe as 0progresses.Algorithm 4 : Given all modes are safe for time t >0
+atxand anS-safe non-Zeno schedule exists from x, the
+algorithm returns average-cost optimal such schedule.
+Input : MMSH, initial point x2int(S), andt>0
+such that all modes of Hare safe for time t.
+Output : NO, if no S-safe non-Zeno schedule exists
+fromx, and a periodic such schedule with the
+minimum average-cost, otherwise.
+Check whether the following linear programming1
+problem with variables ff(m)gm2Mhas a solution.
+MinimizeX
+m2M(m)f(m)subject to
+X
+m2MR(m)f(m)=~0
+X
+m2Mf(m)= 1 (7)
+f(m)0 for allm2M.
+ifno satisfying assignment exists then 2
+return NO 3
+else4
+Find a polynomial size assignment ff(m)gm2M. 5
+return the following periodic schedule with period 6
+jMj:mk= (kmodjMj) + 1 andtk=f(mk)t.
+Now, letbe an arbitrary S-safe schedule starting at x0.
+First, using Lemma 8, we construct a new schedule 0based
+onwith the property which implies the existence of a nite
+list of states, x1;x2;:::, along the run Run(x0;0), such that
+for anyi0 the set of safe modes at xi+1is strictly greater
+than atxiand does not change at the states between xiand
+xi+1inRun(x0;0). Hence, for any i0 the point xi+1
+has to be reachable from x0using modes safe at xionly.
+From the denition of the sets Miand an easy induction on
+i, the set of modes safe at xihas to be a subset of Mi+1.
+Therefore, the set of safe modes at the terminal state of 0
+is also a subset of Mifor somei. However, the set of safe
+modes at the terminal state of 0was supposed to contain
+all the modes safe along Run(x0;) and so any mode safe
+along aS-safe schedule from x0has to belong to Mk.
+We now show that a very specic schedule always exists.
+Lemma 9.There exist states x1;x2;:::;xk2Ssuch that
+for all 1ikwe have that state xiisS-safe reachable
+fromxi1using only modes in Mi, and all modes in Miare
+safe atxi1.
+Proof. Pick any mode q2Mkand letI(q) be the lowest
+index such that q2MI(q). Next, pick any nite S-safe
+schedule such that mode qis safe at some state along the
+run of this schedule from x0and that is the rst state of that
+run where a mode belonging to MI(q)nMI(q)1is safe. Such
+a schedule has to exist from the denition of the sets Mi. Let
+qbe the result of the transformation of this schedule into a
+new one using Lemma 8. For 1 iI(q)1, denote by xq
+i
+the rst state along the run Run(x0;q) when a mode from
+Mi+1nMibecomes safe, some of these states may coincide,
+and for alliI(q) let the terminal state of Run(x0;q) be
+
+--- Page 9 ---
+assigned to xq
+i. Notice that mode qis already safe at state
+xq
+i1, because of the way we picked q.
+Let us dene xi:=1
+jMkjP
+q2Mkxq
+ifor alli. From Propo-
+sition 1, we know that xi2Sand any mode safe at xq
+iis safe
+atxi. But this means that all modes in Miare safe atxi1,
+because any mode q2Miis safe atxq
+jfor allji1. Fur-
+thermore, we know that xq
+iisS-safe reachable from xq
+i1in
+Run(x0;q) using only modes from Mi, because only these
+modes are safe before this run reaches xq
+i. Therefore, it
+has to bexq
+ixq
+i1=P
+m2MiR(m)tq
+mfor sometq
+m0.
+But this means that xixi1=1
+jMkjP
+q2Mkxq
+ixq
+i1=P
+m2MiR(m)(1
+jMkjP
+q2Mktq
+m). Moreover, all modes from
+Miare safe both at xiandxi1. Hence, based on the S-
+safe reachability characterization given in Theorem 4, we get
+thatxiis reachable from xi1via aS-safe schedule.
+Algorithm 5 computes the sets of modes Miiteratively.
+Having computed Mifor allij, it checks for every mode
+q2MnMjwhether there exists a sequence of states x1;:::;xj
+with the properties as in Lemma 9 and mode qbeing safe at
+xj. Lemma 9 guarantees that all safe modes from Mj+1will
+be found this way. We can use Theorem 4 to characterize
+theS-safe reachability of xifromxi1via a set of linear
+constraints. Combining all of these for i= 1;2;:::;j , and
+some additional checks regarding the safety of the states and
+modes used, we obtain the same linear program as in step 6
+of Algorithm 5. In the end, the algorithm nds a polyno-
+mial size solution to the whole system of constraints while
+maximizing t, the minimum amount of time each mode is
+safe for. Algorithm 3 can then be used to nd a polynomial
+length schedule from xitoxi+1for eachi.
+After that, Algorithm 5 calls Algorithm 4 to nd the opti-
+mal average-cost S-safe schedule fromxk1that uses only
+modes from Mk. If no such schedule exists, then there is not
+anyS-safe schedule from x0either. However, we know that
+no other mode can be used by a S-safe schedule and so we
+can assume that the set of all modes is Mk. In such a case, 
+has the minimum average-cost among all S-safe schedules.
+Moreover, a nite prex of a schedule does not inuence
+its average-cost, so the schedule consisting of the polyno-
+mial length S-safe schedules leading the system from x0to
+xk1followed by is an ultimately periodic S-safe schedule
+which has the minimum average-cost. Finally, Algorithm 5
+runs in polynomial time, because at most jMjiterations of
+the loop is needed to nd the sets of modes M1;:::;M kand
+it calls other algorithms that were already shown to run in
+polynomial time.
+4. DISCRETE-TIME SCHEDULABILITY
+In the previous section, we showed that there exist op-
+timal schedules for the average cost and reachability cost
+criteria with time delays in each mode expressible as ratio-
+nal numbers of the size polynomial in the size of the MMS.
+Also, the optimal average cost schedule can be made peri-
+odic with period jMjand the time delays for the optimal
+cost one are also periodic with period jMj. It follows that
+such schedules are implementable by a discrete controller
+with the sampling rate  being the least common multiple
+of all thesejMjrational time delays. Such a number will
+also be a polynomial sized rational number, however it may
+be exponentially smaller than any of the time delays used.Algorithm 5 : Finds aS-safe non-Zeno run from a given
+x02Swith the minimal average cost, where Sis a
+bounded convex polytope.
+Input : MMSH,lnmatrixAand vector~b2Rlthat
+together dene a bounded convex polytope S
+such thatx2SiAx~b, and initial point
+x02S.
+Output : NO if noS-safe non-Zeno schedule exists
+fromx0, and an average-cost optimal
+ultimately periodic such schedule, otherwise.
+M0:=;;k:=1; 1
+repeat2
+k:=k+ 1; 3
+Mk+1:=Mk; 4
+foreach modeq2MnMkdo 5
+ifthe following set of linear constraints is 6
+satisable for some assignment to the variables
+t;ft(m)
+1gm2M1,ft(m)
+2gm2M2, . . . ,ft(m)
+kgm2Mk
+t>0
+For alli= 1;:::;k
+t(m)
+i0 for allm2Mi
+xi=xi1+X
+m2MiR(m)t(m)
+i
+Axi~b
+A(xi1+R(m)t)~bfor allm2Mi
+A(xk+R(m)t)~bfor allm2Mk[fqg(8)
+then
+Mk+1:=Mk+1[fqg; 7
+untilMk+1=Mk; 8
+Compute a polynomial sized solution to the linear9
+program in step 6 but with the constraints (8) removed
+and the objective function Maximizet.
+Call Algorithm 4 with the set of modes Mk, starting 10
+pointxk1and the safe time bound t.
+ifthe call returned NO then 11
+return NO 12
+else13
+Letbe the periodic schedule returned otherwise. 14
+Repeatedly call Algorithm 3 to nd S-safe schedules 15
+of polynomial length from x0tox1using only modes
+inM1, fromx1tox2using only modes in M2, . . . ,
+fromxk2toxk1using only modes in Mk1.
+return the ultimately periodic schedule created by 16
+composing the S-safe nite schedules from xito
+xi+1fori= 0;1;:::;k2 with the average-cost
+optimalS-safe periodic schedule fromxk1.
+Such a sampling rate may not be acceptable in practice, e.g.,
+the switching frequency is too high, or the dwell time for
+some modes is too low. In this section we discuss discrete-
+time schedulers that are allowed to switch modes only at
+times multiple of a given sampling rate. We present results
+on deciding whether a given  suces for schedulability or
+optimality (Theorem 10), and how to nd the maximum
+sampling rate among all feasible  values (Theorem 11).
+
+--- Page 10 ---
+LetH= (M;n;R ) be an MMS and let  be a given sam-
+pling rate . We say that a schedule =h(m1;t1);(m2;t2);:::i
+is -clocked if for all i1 there isdi2N>0such that
+ti=di. Given a bounded convex set Sand statesx;x02
+Rn, the optimal average cost AvgCostS
+(x) and optimal reach-
+ability cost CostS
+(x;x0) over all -clocked S-safe schedules
+starting from xare dened in straightforward manner.
+Theorem 10.Given a priced MMS H= (M;n;R; ), a
+bounded polytope S, a sampling rate , and states x0;xd2
+Rnthe discrete average cost and the discrete reachability cost
+problems are PSPACE-complete.
+PSPACE-membership of both problems is shown via dis-
+cretization of the state space of H. Since the set Sis given
+as a bounded polytope, the size of the discretization can be
+shown to be at most exponential in the size of Hand . We
+prove PSPACE-hardness by a reduction from the acceptance
+problem for the linear bounded automata (LBAs).
+Lower bound on  can be computed using Theorems 6
+and 7, while the upper bound can be obtained from the di-
+ameter of the safety set. Given a target average-cost, using a
+straightforward binary search algorithm we can approximate
+the maximum sampling rate for which the optimal average
+cost does not exceed the target. Since the total number of
+iterations is polynomial and in each iteration the optimality
+can be checked in PSPACE, the following theorem follows.
+Theorem 11.Given a MMSH, a bounded polytope S, a
+starting state s, a budgetB, and">0, the maximum sam-
+pling rate for which the optimal average-cost is not greater
+thanBcan be approximated within "in PSPACE.
+5. CONCLUSION
+We have proposed a model for constant-rate multi-mode
+systems (MMSs) to analyze hybrid systems with variables
+having mode-dependent constant-rates and no constraints
+on mode-switching. For this model, we have developed poly-
+nomial time algorithms to solve safe schedulability and safe
+reachability problems, as well as their corresponding opti-
+mization problems. From a practical perspective, a num-
+ber of quantitative analysis problems for hybrid systems,
+in particular, energy peak demand minimization problem
+proposed recently by Nghiem et al., can be formalized as
+optimal schedulability problems for MMSs. Our analysis al-
+gorithms reduce the problem to linear programming, and are
+tractable. As such, MMSs are a new promising, natural and
+expressive subclass of hybrid systems. There are, however,
+some natural optimization problems on MMSs where the lin-
+ear programming formulation breaks down. For instance, if
+we allow dierent prices for mode-switches then the choice
+of the mode switching sequence plays a crucial role in the
+average cost of a schedule, and the linear programming char-
+acterization presented in this paper does not work. For this
+setting, the exact complexity of optimal schedulability prob-
+lem remains open.
+Acknowledgments
+We thank Madhur Behl, Rahul Mangharam, Truong Nghiem,
+and George Pappas for fruitful discussions on scheduling for
+energy optimization problems. This research was partially
+supported by NSF awards CNS 0931239, CNS 1035715, CCF
+0915777, and EPSRC grant EP/G050112/2.6. REFERENCES
+[1] Y. Abdedda m, E. Asarin, and O. Maler. Scheduling
+with timed automata. TCS, 354:272{300, March 2006.
+[2] Y. Abdedda m and Oded Maler. Preemptive job-shop
+scheduling using stopwatch automata. In TACAS ,
+volume 2280 of LNCS , pages 39{53. Springer, 2002.
+[3] R. Alur and D. Dill. A theory of timed automata.
+TCS, 126(2):183{235, 1994.
+[4] R. Alur, S. La Torre, and G. J Pappas. Optimal paths
+in weighted timed automata. In HSCC , pages 49{62.
+Springer, 2001.
+[5] R. Alur, A. Trivedi, and D. Wojtczak. Optimal
+scheduling for constant-rate mulit-mode systems.
+Technical Report MS-CIS-12-01, CIS, UPenn, 2012.
+[6] D. Belzer, M. Scott, and R. Sands. Climate change
+impacts on U.S. commercial building consumption:
+An analysis using sample survey data. Energy Sources ,
+18(2):77{201, 1996.
+[7] P. Bouyer, E. Brinksma, and K. G. Larsen. Staying
+alive as cheaply as possible. In HSCC , volume 2993 of
+LNCS , pages 203{218. Springer, 2004.
+[8] P. Bouyer, U. Fahrenberg, K. G. Larsen, N. Markey,
+and J. Srba. Innite runs in weighted timed automata
+with energy constraints. In FORMATS , pages 33{47,
+2008.
+[9] Giorgio C. Buttazzo. Hard Real-time Computing
+Systems . Springer-Verlag, 2004.
+[10] T. A. Henzinger and P. W. Kopke. Discrete-time
+control for rectangular hybrid automata. TCS,
+221(1-2):369{392, 1999.
+[11] T. A. Henzinger, P. W. Kopke, A. Puri, and
+P. Varaiya. What's decidable about hybrid automata?
+Journal of Comp. and Sys. Sciences , 57:94{124, 1998.
+[12] M. Heymann, L. Feng, G. Meyer, and S. Resmerita.
+Analysis of zeno behaviors in a class of hybrid systems.
+IEEE Trans. on Auto. Ctrl. , 50:376{383, 2005.
+[13] Susmit Jha, Sumit Gulwani, Sanjit Seshia, and Ashish
+Tiwari. Synthesizing switching logic for safety and
+dwell-time requirements. In International Conference
+on Cyber-physical Systems , pages 22{31, 2010.
+[14] Susmit Jha, Sanjit A. Seshia, and Ashish Tiwari.
+Synthesizing switching logic to minimize long-run cost.
+CoRR , abs/1103.0800, 2011.
+[15] Kronos.
+http://www-verimag.imag.fr/TEMPORISE/kronos/ .
+[16] J. Lygeros. Lecture Notes on Hybrid Systems .
+Cambridge, 2003.
+[17] T. X. Nghiem, M. Behl, R. Mangharam, and G. J.
+Pappas. Green scheduling of control systems for peak
+demand reduction. In IEEE CDC , December 2011.
+[18] T. X. Nghiem, M. Behl, G. J. Pappas, and
+R. Mangharam. Green scheduling: Scheduling of
+control systems for peak power reduction. 2nd
+International Green Computing Conference , July 2011.
+[19] TRFund Energy Study. Understanding PECO's
+general service tari.
+[20] UPPAAL. http://www.uppaal.com/ .
+[21] X. Xu and P. J. Antsaklis. Practical stablization of
+integrator switched systems. In American Control
+Conference , pages 2767{2772, 2003.

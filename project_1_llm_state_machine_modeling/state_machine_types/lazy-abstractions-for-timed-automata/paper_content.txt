@@ -1,0 +1,1571 @@
+--- Page 1 ---
+Lazy abstractions for timed automata
+F. Herbreteau1, B. Srivathsan2, and I. Walukiewicz1
+1Univ. Bordeaux, CNRS, LaBRI, UMR 5800, F-33400 Talence, France
+2Software Modeling and Verication group, RWTH Aachen University, Germany
+Abstract. We consider the reachability problem for timed automata.
+A standard solution to this problem involves computing a search tree
+whose nodes are abstractions of zones. For eciency reasons, they are
+parametrized by the maximal lower and upper bounds ( LU-bounds) oc-
+curring in the guards of the automaton. We propose an algorithm that
+is updating LU-bounds during exploration of the search tree. In order to
+keep them as small as possible, the bounds are rened only when they
+enable a transition that is impossible in the unabstracted system. So our
+algorithm can be seen as a kind of lazy CEGAR algorithm for timed
+automata. We show that on several standard benchmarks, the algorithm
+is capable of keeping very small LU-bounds, and in consequence reduce
+the search space substantially.
+1 Introduction
+Timed automata are obtained from nite automata by adding clocks that can
+be reset and whose values can be compared with constants. The reachability
+problem asks if a given target state is reachable from the initial state by the
+execution of a given automaton. The standard solution to this problem involves
+computing, so called, zone graph of the automaton, and the use of abstractions
+to make the algorithm both terminating and more ecient.
+Most abstractions are based on constants used in comparisons of clock values.
+Such abstractions have already been considered in the seminal paper of Alur
+and Dill [AD94]. Behrmann et. al. [BBLP06] have proposed abstractions based
+on so called LU-bounds, that are functions giving for every clock a maximal
+constant in a lower, respectively upper bound, constraint in the automaton. In
+a recent paper [HSW12] we have shown how to eciently use a4LUabstraction
+from [BBLP06]. Moreover, a4LUhas been proved to be the biggest abstraction
+that is sound for all automata with given LU-bounds. Since a4LUabstraction
+of a zone can result in a non-convex set, we have shown in op. cit. how to use
+this abstraction without the need to store the result of the abstraction. This
+opens new algorithmic possibilities because changing LU-bounds becomes very
+cheap as abstractions need not be recalculated. In this paper we explore these
+possibilities.
+The algorithm we propose works as follows. It constructs a graph with nodes
+of the form ( q;Z;LU ), whereqis a state of the automaton, Zis a zone, and
+LUare parameters for the abstraction. It starts with the biggest abstraction:arXiv:1301.3127v2  [cs.LO]  18 Jan 2013
+
+--- Page 2 ---
+2 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+LUbounds are set to 1 which makes a4LU(Z) to be the set of all valuations
+for every nonempty Z. The algorithm explores the zone graph using standard
+transition relation on zones, without modifying LUbounds till it encounters
+a disabled transition. More concretely, till it reaches a node ( q;Z;LU ) such
+that there is a transition from qthat is not possible from ( q;Z) because no
+valuation in Zallows to take it. At this point we need to adjust LUbounds so
+that the transition is not possible from a4LU(Z) either. This adjustment is then
+propagated backwards through already constructed part of the graph.
+The real challenge is to limit the propagation of bound updates. For this, if
+the bounds have changed in a node ( q0;Z0;L0U0) then we consider its predecessor
+nodes (q;Z;LU ) and update its LUbounds as a function of Z,Z0andL0U0. We
+give general conditions for correctness of such an update, and a concrete ecient
+algorithm implementing it. This requires getting into a careful analysis of the
+in
+uence of the transition on the zone Z. In the result we obtain an algorithm
+that exhibits exponential gains on some standard benchmarks.
+We have analyzed the performance of our algorithm theoretically as well as
+empirically. We have compared it with static analysis algorithm that is the state-
+of-the-art algorithm implemented in UPPAAL, and with an algorithm we have
+proposed in [HKSW11]. The later improves on the static analysis algorithm by
+considering only the reachable part of the zone graph. For an example borrowed
+from [LNZ05] we have proved that the algorithm presented here produces a
+linear size search graph while for the other two algorithms, the search graph
+is exponential in the size of the model. For the classic FDDI benchmark, that
+has been tested on just about every algorithm for the reachability problem, our
+algorithm shows rather surprising fact that the time is almost irrelevant. There
+is only one constraint that induces LUbounds, and in consequence the abstract
+search graph constructed by our algorithm is linear in the size of the parameter
+of FDDI.
+Our algorithm can be seen as a kind of CEGAR algorithm similar in the
+spirit to [HJMS02], but then there are also major dierences. In the particular
+setting of timed automata the information available is much richer, and we need
+to use it in order to obtain a competitive algorithm. First, we do not need to wait
+till a whole path is constructed to analyze if it is spurious or not. Once we decide
+to keep zones in nodes we can immediately detect if an abstraction is too large:
+it is when it permits a transition not permitted from the zone itself. Next, the
+abstractions we use are highly specialized for the reachability problem. Finally,
+the propagation of bound changes gets quite sophisticated because it can prot
+from the large amount of useful information in the exploration graph.
+Related work Forward analysis is the main approach for the reachability testing
+of real-time systems. The use of zone-based abstractions for termination has been
+introduced in [DT98]. The notion of LU-bounds and inference of these bounds
+by static analysis of an automaton have been proposed in [BBFL03,BBLP06].
+The a4LUapproximation has been introduced in [BBLP06]. An approxima-
+tion method based on LU-bounds, called Extra+
+LU, is used in the current im-
+plementation of UPPAAL [BDL+06]. In [HSW12] we have shown how to e-
+
+--- Page 3 ---
+Lazy abstractions for timed automata 3
+ciently use a4LUapproximation. We have also proposed an LU-propagation algo-
+rithm [HKSW11] that can be seen as applying the static analysis from [BBFL03]
+on the zone graph instead of the graph of the automaton; moreover this inference
+is done on-the-
+y during construction of the zone graph. In the present paper
+we do much ner inference and propagation of LU-bounds.
+Approximation schemes for analysis of timed-automata have been considered
+almost immediately after introduction of the concept of timed automata, as for
+example in [WT94,DWT95] or [Sor04]. In particular, the later citation proposes
+to abstract the region graph by not considering all the constraints involved in
+the denition of a region. When a spurious counterexample is discovered a new
+constraint is added. So in the worst case the whole region graph will be con-
+structed. Our algorithm in the worst case constructs an a4LU-abstracted zone
+graph with LU-bounds obtained by static analysis. This is as good as state-
+of-the-art method used in UPPAAL. Another slightly related paper is [BLR05]
+where CEGAR approach is used to handle diagonal constraints.
+Let us mention that abstractions are not needed in backward exploration
+of timed systems. Nevertheless, any feasible backward analysis approach needs
+to simplify constraints. For example [MPS11] does not use approximations and
+relies on an SMT solver instead. This approach, or the approach of RED [Wan04],
+are very dicult to compare with the forward analysis approach we study here.
+Organization of the paper In the preliminaries section we introduce all standard
+notions we will need, and a4LUabstraction in particular. Section 3 gives a de-
+nition of adaptive simulation graph (ASG). Such a graph represents the search
+space of a forward reachability testing algorithm that will search for an abstract
+run with respect to a4LUabstraction, while changing LU-bounds dynamically
+during exploration. Section 4 gives an algorithm for constructing an ASG with
+smallLU-bounds. Section 5 presents the two crucial functions used in the algo-
+rithm: the one updating the bounds due to disabled edges, and the one propa-
+gating the change of bounds. Section 6 explains some advantages of algorithm
+on variations of an example borrowed from [LNZ05]. The experiments section
+compares our prototype tool with UPPAAL, and our algorithm from [HKSW11].
+Conclusions section gives some justication for our choice of concentrating on
+LU-bounds.
+2 Preliminaries
+2.1 Timed automata and the reachability problem
+LetXbe a set of clocks, i.e., variables that range over R0, the set of non-
+negative real numbers. A clock constraint is a conjunction of constraints x#cfor
+x2X, #2f<;;=;;>gandc2N, e.g. (x3^y >0). Let(X) denote
+the set of clock constraints over clock variables X. Aclock valuation overXis a
+functionv:X!R0. We denote RX
+0the set of clock valuations over X, and
+0the valuation that associates 0 to every clock in X. We write vwhenv
+satises2(X), i.e. when every constraint in holds after replacing every x
+
+--- Page 4 ---
+4 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+byv(x). For2R0, letv+be the valuation that associates v(x) +to every
+clockx. ForRX, let [R]vbe the valuation that sets xto 0 ifx2R, and that
+setsxtov(x) otherwise.
+Atimed automaton (TA) is a tupleA= (Q;q 0;X;T; Acc) whereQis a nite
+set of states, q02Qis the initial state, Xis a nite set of clocks, AccQis a
+set of accepting states, and TQ(X)2XQis a nite set of transitions
+(q;g;R;q0) wheregis a guard , andRis the set of clocks that are reset on the
+transition.
+Aconguration ofAis a pair (q;v)2QRX
+0and (q0;0) is the initial
+conguration . We have two kinds of transitions:
+Delay: (q;v)!(q;v+) for some2R0;
+Action: (q;v)!t(q;v0) for some transition t= (q;g;R;q0)2Tsuch thatvg
+andv0= [R]v.
+ArunofAis a nite sequence of transitions starting from the initial congu-
+ration (q0;0). Without loss of generality, we can assume that the rst transition
+is a delay transition and that delay and action transitions alternate. We write
+(q;v);t!(q0;v0) if there is a delay transition ( q;v)!(q;v+) followed by an
+action transition ( q;v+)!t(q0;v0). So a run ofAcan be written as:
+(q0;v0)0;t0! (q1;v1)1;t1! (q2;v2):::(qn;vn)
+where (q0;v0) represents the initial conguration ( q0;0).
+A run is accepting if it ends in a conguration ( qn;vn) withqn2Acc.
+Denition 1 (Reachability problem). The reachability problem for timed
+automata is to decide whether there exists an accepting run of a given automaton.
+This problem is known to be Pspace -complete [AD94,CY92]. The class of TA
+we consider is usually known as diagonal-free TA since clock comparisons like
+xy1 are disallowed. Notice that if we are interested in state reachability,
+considering timed automata without state invariants does not entail any loss of
+generality as the invariants can be added to the guards. For state reachability,
+we can also consider automata without transition labels.
+2.2 Zones and symbolic runs
+Here we introduce zones that are sets of valuations dened by simple linear
+constraints. We also dene symbolic transition relation working on sets of valu-
+ations. These denitions will allow us to concentrate on symbolic runs instead
+of concrete runs as in the previous section.
+We rst dene a transition relation )over nodes of the form ( q;W) where
+Wis a set of valuations.
+Denition 2 (Symbolic transition )).LetAbe a timed automaton. For
+every transition tofAand every set of valuations W, we have a transition )t
+dened as follows:
+(q;W))t(q0;W0)whereW0=fv0j9v2W;92R0:(q;v)!t!(q0;v0)g
+
+--- Page 5 ---
+Lazy abstractions for timed automata 5
+We will sometimes write Postt(W)forW0. The transition relation )is the
+union of all)t.
+The transition relation dened above considers each valuation v2Wthat
+can take the transition t, obtains the valuation after the transition and then
+collects the time-successors from this obtained valuation. Therefore the sym-
+bolic transition)always yields sets closed under time-successors. The initial
+conguration of the automaton is ( q0;0). Starting from the initial valuation 0
+the set of valuations reachable by a time elapse at the initial state are given by
+f0+j2R0g. Call thisW0. From (q0;W0) as the initial node, computing
+the symbolic transition relation )leads to dierent nodes ( q;W) wherein the
+setsWare closed under time-successors.
+It has been noticed in [BY04a] that the sets Wobtained in the nodes ( q;W)
+can be described by some simple constraints involving only the dierence between
+clocks. This has motivated the denition of zones , which are sets of valuations
+dened by dierence constraints.
+Denition 3 (Zones [BY04a]). A zone is a set of valuations dened by a
+conjunction of two kinds of clock constraints: xcandxycforx;y2X,
+2f;<;=;>;g, andc2Z.
+For example ( x > 4^yx1) is a zone. It can be shown that starting
+from a node ( q;W) withWbeing a zone, the transition ( q;W))(q0;W0) leads
+to a node in which W0is again a zone [BY04a]. Observe that the initial set of
+valuationsZ0=f0+j2R0gis indeed a zone: it is given by the constraintsV
+x;y2X(x0^xy= 0)
+These observations lead to a notion of symbolic run that is a sequence of
+symbolic transitions
+(q0;Z0))(q1;Z1)):::
+Proposition 1. Fix a timed automaton. The automaton has an accepting run if
+and only if there it has a symbolic run reaching an accepting state and non-empty
+zone.
+This proposition does not yet give a complete solution to the reachability prob-
+lem since there may be innitely many reachable zones, so it is not immediate
+how to algorithmically check that a symbolic run does not exist. A standard solu-
+tion to this problem of non-termination is to use abstractions that we introduce
+in the next subsection.
+2.3 Bounds and abstractions
+In the previous subsection, we have dened zones. We have used zones instead
+of valuations to solve the reachability problem. Since the number of reachable
+zones can be innite, the next step is to group zones together into a nite
+
+--- Page 6 ---
+6 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+number of equivalence classes. An abstraction operator is a convenient way to
+express a grouping of valuations, and in consequence grouping of zones. Instead
+of discussing abstractions in full generality, we will immediately proceed to the
+most relevant case of abstractions based on time-abstract simulation [TAKB96].
+For this subsection we x a timed automaton A.
+Denition 4 (Time-abstract simulation). A(state based) time-abstract
+simulation between congurations of Ais a relation (q;v)t:a:(q0;v0)such that:
+{q=q0,
+{if(q;v)!(q;v+)!t(q1;v1), then there exists a 02R0such that
+(q;v0)!0(q;v0+0)!t(q1;v0
+1)satisfying (q1;v1)t:a:(q1;v0
+1)for the
+same transition t.
+For two valuations v;v0, we say that vt:a:v0if for every state qof the au-
+tomaton, we have ( q;v)t:a:(q0;v0). An abstraction at:a:based on a simulation
+t:a:can be dened as follows:
+Denition 5 (Abstraction based on simulation). Given a set W, we de-
+ne at:a:(W) =fvj9v02W: vt:a:v0g. The abstract transition relation is
+(q;W))at:a:(q0;at:a:(W0))whereW=at:a:(W)and(q;W))(q0;W0)(cf.
+Denition 2).
+Let)
+at:a:denote the re
+exive and transitive closure of )at:a:. Similarly,
+let!denote the re
+exive and transitive closure of the transition relation !
+of the automaton. It can be easily veried that the abstract transition relation
+satises the following two important properties ( W0denotesf0+j2R0g)
+Soundness: if (q0;W0))
+at:a:(q;W) then there is v2Wsuch that (q0;0)!
+(q;v).
+Completeness: if (q0;0)!(q;v) then there is Wsuch thatv2Wand
+(q0;W0))
+at:a:(q;W).
+These properties immediately imply that abstract transitions can be used to
+solve the reachability problem.
+Proposition 2. For every abstraction operator at:a:based on timed-abstract
+simulation. Automaton Ahas a run reaching a state qi there is an abstract
+run
+(q0;W0))at:a:(q1;W1))at:a::::)at:a:(q;W)
+for someW6=;.
+Remark 1. Ifaand bare two abstractions such that for every set of valuations
+Wwe have a(W)b(W) then we prefer to use bsince every abstract run with
+respect to ais also a run with respect to b. In consequence, it is easier to nd
+an abstract run for babstraction.
+
+--- Page 7 ---
+Lazy abstractions for timed automata 7
+Therefore, the aim is to come up with a nite abstraction as coarse as pos-
+sible, that still maintains the soundness property.
+For a given automaton it can be computed if two congurations are in a
+simulation relation. It should be noted though that computing the coarsest sim-
+ulation relation is Exptime -hard [LS00]. Since the reachability problem can be
+solved in Pspace , this suggests that it may not be reasonable to try to solve it
+using the abstraction based on the coarsest simulation. We can get simulation
+relations that are computationally easier if we consider only a part of the struc-
+ture of the automaton. The common way is to look at constants appearing in
+the guards of the automaton and consider them as parameters for abstraction.
+2.4 LU-bounds and LU-abstractions
+The most common parameter taken for dening abstractions are LU-bounds.
+Denition 6 (LU-bounds). TheLbound for an automaton Ais the function
+assigning to every clock xa maximal constant that appears in a lower bound
+guard forxinA, that is, maximum over guards of the form x > c orx
+c. Similarly Uis the function assigning to every clock xa maximal constant
+appearing in an upper bound guard for xinA, that is, maximum over guards of
+the formx<c orxc.
+The paper introducing LU-bounds [BBLP06] also introduced an abstraction
+operator a4LUthat uses LU-bounds as parameters. We begin by recalling the
+denition of an LU-preorder dened in [BBLP06]. We use a dierent but equiv-
+alent formulation.
+Denition 7 (LU-preorder [BBLP06]). LetL;U :X!N[f1g be two
+bound functions. For a pair of valuations we set v4LUv0if for every clock x:
+{ifv0(x)<v(x)thenv0(x)>Lx, and
+{ifv0(x)>v(x)thenv(x)>Ux.
+It has been shown in [BBLP06] that 4LUis a time-abstract simulation
+relation. The a4LUabstraction is based on this LU-preorder 4LU.
+Denition 8 ( a4LU-abstraction [BBLP06]). GivenLandUbound func-
+tions, for a set of valuations Wwe dene:
+a4LU(W) =fvj9v02W: v4LUv0g:
+Figure 1 gives an example of a zone Zand its abstraction a4LU(Z). It can
+be seen that a4LU(Z) is not a convex set.
+An ecient algorithm to use the a4LUabstraction for reachability was pro-
+posed in [HSW12]. Moreover in op cit. it was shown that over time-elapsed
+zones, a4LUabstraction is optimal when the only information about the ana-
+lyzed automaton are its LU-bounds. Informally speaking, for a xed LU, the
+
+--- Page 8 ---
+8 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+Ux LxLyUy
+0 xy
+ZZ:
+a4LU(Z) :[
+Fig. 1. ZoneZis given by the grey area. Abstraction a4LU(Z) is given by the grey
+area along with the dotted area
+a4LUabstraction is the biggest abstraction that is sound and complete for all
+automata using guards within LU-bounds.
+Since the abstraction a4LUis optimal, the next improvement is to try to get
+as goodLU-bounds as possible since tighter bounds give coarser abstractions.
+Recall Remark 1 which states the importance of having coarser abstractions.
+It has been proposed in [BBFL03] that instead of considering one LU-bound
+for all states in an automaton, one can use dierent bound functions for each
+state. For every state qand every clock x, constants Lx(q) andUx(q) are deter-
+mined by the least solution of the following set of inequalities. For each transition
+(q;g;R;q0) in the automaton, we have:
+(
+Lx(q)c ifxmcis a constraint in g
+Lx(q)Lx(q0) ifx62R(1)
+Similar inequalities are written for U, now considering xlc. It has been shown
+in [BBFL03] that such an assignment of constants is sound and complete for state
+reachability. Experimental results have shown that this method, that performs
+a static analysis on the structure of the automaton, often gives very big gains.
+3 Adaptive simulation graph
+In this paper we improve on the idea of static analysis that computes LU-bounds
+for each state q. We will compute LU-bounds on-the-
+y while searching for an
+abstract run. The immediate gain will be that bounds will depend not only on
+a state but also on a set of valuations. The real freedom given by an adaptive
+simulation graph and Theorem 1 presented below is that they will allow to ignore
+some guards of transitions when calculating the LUbounds. As we will see in
+experimental section, this can result in very big performance gains.
+
+--- Page 9 ---
+Lazy abstractions for timed automata 9
+We will construct forward reachability testing algorithm that will search for
+an abstract run with respect to a4LUabstraction, where LUbounds will change
+dynamically during exploration. The intuition of a search space of such an al-
+gorithm is formalized in a notion of adaptive simulation graph (ASG). Such a
+graph permits to change LUbounds from node to node, provided some consis-
+tency conditions are satised. LU-bounds play an important role in this graph.
+They are used to stop developing successors of a node as soon as possible. So
+our goal will be to nd as small LU-bounds as possible in order to cut the paths
+of the graph as soon as possible.
+Denition 9 (Adaptive simulation graph (ASG)). Fix an automaton A.
+An ASG graph has nodes of the form (q;Z;LU )whereqis the state ofA,Zis
+a zone, and LUare bound functions. Some nodes are declared to be tentative.
+The graph is required to satisfy three conditions:
+G1 For the initial state q0and initial zone Z0, a node (q0;Z0;LU)should appear
+in the graph for some LU.
+G2 If a node (q;Z;LU )is not tentative then for every transition (q;Z))t
+(q0;Z0)the node should have a successor labeled (q0;Z0;L0U0)for someL0U0.
+G3 If a node (q;Z;LU )is tentative then there should be non-tentative node
+(q0;Z0;L0U0)such thatq=q0andZa4L0U0(Z0). Node (q;Z0;L0U0)is
+called covering node.
+We will also require that the following invariants are satised:
+I1If a transition)tis disabled from (q;Z), and (q;Z;LU )is a node of the
+ASG then)tshould be disabled from a4LU(Z)too;
+I2For every edge (q;Z;LU ))t(q0;Z0;L0U0)the ASG we have:
+Postt(a4LU(Z))a4L0U0(Z0):
+I3For every tentative node (q;Z1;L1U1)and the corresponding covering node
+(q;Z2;L2U2), we have:
+L2U2L1U1:
+The conditions G1, G2, G3 express the expected requirements for a graph to
+cover all reachable congurations. In particular, the condition G3 allows to stop
+exploration if there is already a \better" node in the graph. The three invariants
+are more subtle. They imply that LU-bounds should be big enough for the
+reachability information to be preserved. (cf. Theorem 1).
+Remark: While the idea is to work with nodes of the form ( q;W) with
+W=a4LU(W), we do not want to store Wdirectly, as we have no ecient
+way of representing and manipulating such sets. Instead we represent each Was
+a4LU(Z). So we store ZandLU. This choice is algorithmically cheap since testing
+the inclusion Z0a4LU(Z) is practically as easy as testing Z0Z[HSW12].
+This approach has another big advantage: when we change LUbound in a node,
+we do not need to recalculate a4LU(Z).
+
+--- Page 10 ---
+10 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+Remark: It is important to observe that for every Athere exists a nite
+ASG. For example, it is sucient to take static LU-bounds as described in (1).
+It means that we can take ASG whose nodes are ( q;Z;L (q)U(q)) with bound
+functions given by static analysis. It is easy to see that such a choice makes all
+three invariants hold.
+The next theorem tells us that any ASG is good enough to determine the ex-
+istence of an accepting run. Our objective in the later section will be to construct
+as small ASG as possible.
+Theorem 1. LetGbe an ASG for an automaton A. An accepting state is reach-
+able by a run ofAi a node containing an accepting state of Aand a non-empty
+zone is reachable from the initial node of G.
+Recall from Proposition 2 that there is an accepting run of Ai there is a
+sequence of symbolic transitions
+(q0;Z0))(q1;Z1)):::)(q;Z) (2)
+withq2AccandZ6=;.
+For the right-to-left direction of the theorem we take a path in Gleading
+from (q0;Z0;L0U0) to (q;Z;LU ). By denition, removing the third component
+gives us a path as in (2).
+The opposite direction is proved with the help of the following lemma.
+Lemma 1. Let(q;Z)be as in (2). There exists a non tentative node (q;Z1;L1U1)
+inGsuch thatZa4L1U1(Z1).
+Proof. The lemma is vacuously true for ( q0;Z0). Assume that the hypothesis is
+true for a path as in (2). We prove that the lemma is true for every symbolic
+successor of ( q;Z).
+Let (q;Z))t(q0;Z0) be a symbolic transition of A. The transition)tshould
+be enabled from ( q;Z1). This is because if it was disabled, by Invariant 1, we
+would have that it is disabled from a4L1U1(Z1) and from the hypothesis, it should
+be disabled from ( q;Z) too leading to a contradiction.
+So we have a transition ( q;Z1;L1U1))t(q0;Z0
+1;L0
+1U0
+1) inG. From Invariant
+2, we have Post( a4L1U1(Z1))a4L0
+1U0
+1(Z0
+1). This leads to the following sequence
+of implications.
+Za4L1U1(Z1) induction hypothesis
+) Post(Z)Post( a4L1U1(Z1))
+) Post(Z)a4L0
+1U0
+1(Z0
+1) by Invariant 2
+) Z0a4L0
+1U0
+1(Z0
+1)
+If (q0;Z0
+1;L0
+1U0
+1) is a non-tentative node, then we are done. Suppose it is a ten-
+tative node, then we know that there exists a non-tentative node ( q0;Z0
+2;L0
+2U0
+2)
+such thatZ0
+1a4L0
+2U0
+2(Z0
+2). From Invariant 3, we also know that L0
+2U0
+2L0
+1U0
+1.
+This shows that Z0a4L0
+2U0
+2(Z0
+2).
+Hence the node corresponding to ( q0;Z0) is (q0;Z0
+2;L0
+2U0
+2). u t
+
+--- Page 11 ---
+Lazy abstractions for timed automata 11
+4 Algorithm
+Our aim is to construct a small adaptive simulation graph for a given timed
+automaton. For this the algorithm will try to keep LUbounds as small as possible
+but still satisfy the invariants I1, I2, I3. The bounds are calculated dynamically
+while constructing an adaptive simulation graph. For example, the invariant
+I1 requires LUin a node to be suciently big so that the transition remains
+disabled. Invariant I2 tells that LUbound in a node should depend on LU
+bounds in the successors of the node.
+Proviso: For simplicity of the algorithm presented in this section we assume
+a special form of transitions of timed automata. A transition can have either
+only upper bound guards, or only lower bound guards and no resets. Observe
+that a transition q1g;R!q2is equivalent to q1gL!q0
+1gU;R!q2; wheregLis the
+conjunction of the lower bound guards from gandgUis the conjunction of the
+upper bound guards from g.
+Lemma 2. SupposeW1is a time elapsed set of valuations. If
+(q1;W1))g;R(q2;W2)and (q1;W1))gL(q0
+1;W0
+1))gU;R(q2;W0
+2)
+thenW2=W0
+2.
+Proof. We consider only, more complicated, inclusion W0
+2W2. Takev0
+22W0
+2.
+By denition we know that there is v12W1such that
+(q1;v1)gL!(q0
+1;v1+1)gU;R! (q2;(v1+1)[R] +2)
+andv2= (v1+1)[R] +2. We get then
+(q1;v1+1)gL!(q0
+1;v1+1)gU;R! (q2;(v1+1)[R] +2)
+So (q1;v1+1)g;R! (q2;(v1+1)[R] +2). AsW1is time elapsed, v1+12W1.
+This shows v22W2, by denition of W2. u t
+So in order to satisfy our proviso we may need to double the number of states
+of an automaton.
+Algorithm 1.1 presented below, computes a tree whose nodes vhave four
+components: v:qis a state ofA,v:Zis a zone, and v:L,v:UareLUbound func-
+tions. Each node vhas a successor vtfor every transition tofAfrom (v:q;v:Z )
+resulting in a non-empty zone. Some nodes will be marked tentative and not
+explored further. After an exploration phase, tentative nodes will be reexamined
+and some of them will be put on the stack for further exploration. At every
+point the leaves of the tree constructed by the algorithm will be of three kinds:
+tentative nodes, nodes on the stack, nodes having no transition needed to be
+explored.
+Our algorithm starts from the root node vrootlabeled with q0andZ0: the
+initial state ofA, and the initial zone. We do not set the LUbounds for vroot
+
+--- Page 12 ---
+12 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+Algorithm 1.1. Reachability algorithm with on-the-
+y bound computation and a4LU
+abstraction.
+1function main ( ) :
+2 letvroot be the root node with vroot:q=q0andvroot:Z=Z0
+3 addvroot to the stack
+4 while ( stack6=;)do
+5 removevfrom the stack
+6 explore (v)
+7 r e s o l v e ( )
+8 return "empty"
+9
+10procedure explore (v) :
+11 i f(v:qi s accepting )
+12 exit " not empty"
+13 i f(9v00nontentative s . t . v:q=v00:qandv:Za4v00:LU(v00:Z))
+14 markvt e n t a t i v e wrt v00
+15 v:LU :=v00:LU
+16 (XL;XU):= a c t i v e c l o c k s in v:LU
+17 propagate ( v,XL,XU)
+18 else
+19 v:LU := disabled ( v:q,v:Z)
+20 (XL;XU):= a c t i v e c l o c k s in v:LU
+21 propagate ( v,XL,XU)
+22 for each (q0;Z0) s . t . (v:q;v:Z ))(q0;Z0)andZ06=;do
+23 c r e a t ev0the s u c c e s s o r of vwithv0:q=q0andv0:Z=Z0
+24 explore (v0)
+25
+26function disabled ( q,Z)
+27 examine t r a n s i t i o n s from qthat are disabled from Zand
+28 chooseLU sothat i n v a r i a n t I1 i s s a t i s f i e d
+29 return (LU) ;
+30
+31procedure r e s o l v e ( ) :
+32 for each vt e n t a t i v e w. r . t . v0do
+33 i fv:Z6a4v0:LU(v0:Z)
+34 markvnontentative
+35 s e tv:Landv:U to1 // c l e a r the bounds in v
+36 addvto stack
+37
+38procedure propagate ( v0,X0
+L,X0
+U) :
+39v=parent (v0) ;
+40LU := newbounds ( v,v0,X0
+L,X0
+U)
+41 i f(LU6=v:LU )
+42 for each vtt e n t a t i v e wrt vdo
+43 (Xt
+L;Xt
+U) c l o c k s modified in LU wrtvt:LU.
+44 vt:LU :=LU;
+45 propagate ( vt,Xt
+L,Xt
+U)
+46 i f(v6=vroot)then
+47 (XL,XU) c l o c k s modified in LU wrtv:LU
+48 propagate ( v,XL,XU)
+49
+50function newbounds ( v,v0,X0
+L,X0
+U)
+51given a t r a n s i t i o n v!v0, f i n d new LU bounds forvknowing
+52thatLU bounds forv0have changed , and
+53X0
+Lare the c l o c k s whose Lbound has changed ,
+54X0
+Uare the c l o c k s whose Ubound has changed
+
+--- Page 13 ---
+Lazy abstractions for timed automata 13
+as this will be done by explore procedure. The main loop repeatedly alternates
+anexploration and a resolution phases until there are no nodes to be explored.
+The exploration phase constructs a part of ASG from a given node stopping at
+nodes that it considers tentative. During exploration LUbounds of some nodes
+may be changed in order to preserve invariants I2 and I3. The resolution phase
+examines tentative nodes and adds them to the stack for exploration if condition
+G3 of the denition of ASG is no longer satised.
+At the call of the procedure explore (v), nodevis supposed to have its state
+v:qand zonev:Zset but the value of v:LU is irrelevant. The zone v:Zis supposed
+to be not empty. We assume that the constructed tree satises the invariants I1,
+I2, I3, but for the node vand the nodes on the stack. The goal of the explore
+procedure is to restore the invariant for vand start exploration of successors of
+vif needed.
+First, the procedure checks if v:qis an accepting state. If so then we know that
+this state is reachable since we assume that v:Zis not empty. When v:qis not
+accepting we consider two cases. If there exists a nontentative nodev00in the
+current tree such that v:q=v00:qandv:Za4v00:LU(v00:Z)) thenvis a tentative
+node. TheLU-bounds from v00are copied to v, and propagated so that invariant
+I2 is restored. This is the task of propagate procedure that we describe below.
+Ifvis not covered then it should be explored. First, we compute its LUbound
+based on transitions that are disabled from v. The task of function disabled
+is to calculate the LUbounds so that the invariant I1 holds. (The function is
+described in more detail in the next section.) Then we propagate these bounds
+in order to restore the invariant I2. Finally, we explore from every successor of
+v.
+WhenLUbounds in a node v0are changed the invariant I2 should be re-
+stored. For this the bounds are propagated by invoking propagate procedure.
+For eciency, the procedure is also given the set of clocks X0
+LwhoseLbound has
+changed, and the set X0
+Uof clocks whose Ubound has changed. The parent vof
+v0is taken and the transition from vtov0is examined. The function newbounds
+calculates new LUbounds for a node given the changes in its successor. This
+function is the core of our algorithm and is the subject of the next section. Here
+it is enough to assume that the new bounds are such that the invariant I2 is
+satised. If the bounds of vindeed change then they should be copied to all
+nodes tentative with respect to v. This is necessary to satisfy the invariant I3.
+Finally, the bounds are propagated to the predecessor of vto restore invariant
+I2.
+The exploration phase terminates as in the explore procedure the bound
+functions in each node never decrease and are bounded. They are bounded be-
+cause newbounds function never gives bounds bigger than those obtained by
+static analysis (cf. Equation (1))
+After exploration phase LUbounds of tentative nodes may change. The
+procedure resolve is called to check for the consistency of tentative nodes. If
+vis tentative w.r.t. v0butv:Z6a4v0:LU(v0:Z) is not true anymore, vneeds to
+
+--- Page 14 ---
+14 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+be explored. Hence it is viewed as a new node, and put on the stack for further
+consideration in the function main .
+The algorithm terminates when either it nds and accepting state, or there
+are no nodes to be explored and all tentative nodes remain tentative. In the
+second case we can conclude that the constructed tree represents an ASG, and
+hence no accepting state is reachable. Note that the overall algorithm should
+terminate as the bounds can only increase and bounds in a node ( q;Z) are not
+bigger than the bounds obtained for qby static analysis (cf. Remark on page 10).
+From the above discussion it follows that the algorithm returns \ empty "
+only when it constructs a complete ASG. The correctness of the algorithm then
+follows from Theorem 1.
+Proposition 3. The algorithm always terminates. If for a given Athe result
+is "not empty" then Ahas an accepting run. Otherwise the algorithm returns
+empty after constructing ASG for Aand not seeing an accepting state.
+5 Controlling LU-bounds
+The notion of adaptive simulation graph (Denition 9) gives necessary condi-
+tions for the values of LUbounds in every node. The invariant I1 tells that LU
+bounds in a node should take into account the the edges disabled from the node.
+The invariant I2 gives a lower bound on LUwith respect to the LU-bounds in
+successors of the node. Finally, I3 tells us that LUbounds in a covered node
+should be not smaller than in the covering node. The algorithm from the last
+section implements a construction of ASG with updates of the bounds when the
+required by the invariant.
+The three invariants sometimes allow for much smaller LU-bounds than that
+obtained by static analysis. A very simple example is when the algorithm does
+not encounter a node with a disabled edge. In this case all LU-bounds are simply
+1, since no bound is increased due to I1, and such bounds are not changed
+by propagation. When LUbounds are1,a4LUabstraction of a zone results
+in the set of all valuations. So in this case ASG can be just a subgraph of the
+automaton. A more interesting examples of important gains are discussed in the
+next section.
+In this section we describe two central functions of the proposed algorithm:
+disabled andnewbounds . The pseudo-code is presented in Algorithm 1.2.
+The disabled function is quite simple. Its task is to restore the invariant I1.
+For this it chooses from every disabled transition an atomic guard that makes
+it disabled. Recall that we have assumed that every guard contains either only
+lower bound constraints or only upper bound constraints. A transition with
+only lower bound constraints cannot be disabled. Hence a guard on a disabled
+transition must be a conjunction of upper bound constraints. It can be shown
+that if such a guard is not satised in a zone then there is one atomic constraint
+that is not satised in a zone. Now it suces to observe that if a guard xd
+orx<d is not satised in Zthen it is not satised in a4LU(Z) whenU(x) =d.
+This follows directly from the denition of LU-simulation (Denition 7).
+
+--- Page 15 ---
+Lazy abstractions for timed automata 15
+For the rest of this section we focus on the description of the function
+newbounds (v;v0;X0
+L;X0
+U). This function calculates new LU-bounds for v, given
+that the bounds in v0have changed. As an additional information we use the
+sets of clocks X0
+LandX0
+Uthat have changed their L-bound, and U-bound re-
+spectively, in v0. This information makes the function newbounds more ecient
+since the new bounds depend only on the clocks in X0
+LandX0
+U. The aim is to
+give bounds that are as small as possible and at the same time satisfy invariant
+I2 from Denition 9.
+Recall that we have assumed that every transition has either only upper
+bound guards, or only lower bound guards and no resets (cf. page 11). This
+assumption will simplify the newbounds function. We will rst consider the case
+of transitions with just an atomic guard or with just a reset. Next we will put
+what we have learned together to treat the general case.
+5.1 Reset
+Consider a transition ( q;Z))R(q0;Z0) for the set of clocks Rbeing reset. So
+we haveZ0=!Z[R:= 0], i.e., we reset the clocks in Rand let the time elapse.
+Suppose that we have updated L0U0and now we want our newbounds function
+to compute LnewUnew. We letLnewUnewbe the maximum of LUandL0U0but
+forLnew(x) =Unew(x) =1 forx2R. We want to show that invariant I2
+holds that is:
+a4LnewUnew(Z)[R:= 0]a4L0U0(Z[R:= 0]):
+To prove this inclusion, take a valuation v2a4LnewUnew(Z). By denition there
+is a valuation v02Zwithv4LnewUnewv0. We obtain that v[R:= 0]4L0U0
+v0[R:= 0] using directly Denition 7. Indeed, for every clock in R, its values in
+the two valuations are the same. For other clocks the required implications hold
+sincev4LnewUnewv0and moreover the bounds LnewUnewandL0U0are the same
+for these clocks.
+5.2 An abstract formula for atomic guard case
+Consider a transition ( q;Z;LU ))g(q0;Z0;L0U0). Suppose that we have updated
+L0U0and now we want our newbounds function to compute LnewUnew. In the
+standard constant propagation algorithm, we would have set LnewUnewto be the
+maximum over LU,L0U0and the constant present in the guard. This is sucient
+to maintain Invariant 2. However, it is not necessary to always take the guard g
+into consideration for the propagation.
+LetLgUgbe the bound function induced by the guard g. In our case where
+there is only one constraint, there is only one constant associated to a single
+
+--- Page 16 ---
+16 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+clock byLgUg. Roughly, in order to maintain Invariant 2, it suces to take
+LnewUnew=8
+>>><
+>>>:max(LU;L0U0) if LULgUgor
+if [ [g] ]a4L0U0(Z0) or
+ifZa4L0U0(Z0)
+max(LU;L0U0;LgUg) otherwise(3)
+To see why the above should maintain Invariant 2, look at the transition with
+the new bounds:
+(q;Z;LnewUnew))g(q0;Z0;L0U0)
+Clearly from the above denition, LnewUnewL0U0.
+Additionally, if LnewUnewLgUg, that is, if the constant in the guard is
+incorporated in LnewUnew, it is easy to show using denition of simulation that
+Postg(a4LnewUnew(Z))a4L0U0(Z0).
+We now need to show the same for the cases when LnewUnewdoes not incor-
+porate the constant in the guard. From the denition of the Pre, this happens
+only if either ga4L0U0(Z0) or ifZa4L0U0(Z0). Let us look closely at what
+Postg(a4LnewUnew(Z)) is.
+Postg(a4LnewUnew(Z)) =!a4LnewUnew(Z)\[ [g] ]
+If [ [g] ]a4L0U0(Z0), then a4LnewUnew(Z)\[ [g] ] would be included in a4L0U0(Z0).
+Asa4L0U0is closed under time-elapse, we will have Post g(a4LnewUnew(Z))
+a4L0U0(Z0). Similarly if Za4L0U0(Z0), we will have a4L0U0(Z)a4L0U0(Z0)
+and asLnewUnewL0U0, we have a4LnewUnew(Z)a4L0U0(Z0). It follows that
+Postg(a4LnewUnew(Z))a4L0U0(Z0).
+5.3 A concrete algorithm for atomic guard case
+Since bound propagation is called very often in the main algorithm, we need
+an ecient test for the inclusions in Formula (3). The formula requires us to
+test inclusion w.r.t. a4LUbetweenZandZ0each time we want to do the Pre.
+Although this seems complicated at the rst glance, note that Z0is a zone
+obtained by a successor computation from Z. When we have only a guard in the
+transition, we have Z0=!Z^g. This makes the inclusion test lot more simpler.
+We will also see that it is not necessary to consider the inclusion [ [ g] ]a4L0U0(Z0).
+Before proceeding, we need to look closer how zones are represented. One
+standard way to represent zones is using dierence bound matrices (DBMs) [Dil89].
+We will consider an equivalent representation in terms of distance graphs.
+Adistance graph has clocks as vertices, with an additional special clock x0
+representing the constant 0. For readability, we will often write 0 instead of x0.
+Between every two vertices there is an edge with a weight of the form ( l;c)
+wherec2Zandlis eitheror<; or (l;c) equals (<;1). An edge xlc!y
+
+--- Page 17 ---
+Lazy abstractions for timed automata 17
+0 x y(<;1)
+(<;2)(<;4)(;1)
+(<;1)(<;1)
+Fig. 2. Distance graph for the zone ( xy1^y<2^x>4).
+represents a constraint yxlc: or in words, the distance from xtoyis bounded
+byc. An example of a distance graph is depicted in Fig. 2.
+Let [ [G] ] be the set of valuations of clock variables satisfying all the constraints
+given by the edges of Gwith the restriction that the value of x0is 0.
+One can dene an arithmetic and order over the weights ( l;c) in an expected
+manner [BY04b]. We recall only the denition of order that is most relevant for
+us here
+Order (l1;c1)<(l2;c2) if eitherc1<c2or (c1=c2andl1=<andl2=).
+A distance graph is in canonical form if the weight of the edge from xtoyis
+the lower bound of the weights of paths from xtoy. For instance, the distance
+graph shown in Figure 2 is not in canonical form as the weight of the edge x !y
+is (;1) whereas there is a path x !0 !ywhose weight is ( <;2). To convert
+it to canonical form, it is sucient to change the weight of the edge x !yto
+(<;2).
+For two distance graphs G1,G2which are not necessarily in canonical form,
+we denote by min( G1;G2) the distance graph where each edge has the weight
+equal to the minimum of the corresponding weights in G1andG2. Even though
+this graph may be not in canonical form, it should be clear that it represents
+intersection of the two arguments, that is, [ [min( G1;G2)] ] = [ [G1] ]\[ [G2] ]; in other
+words, the valuations satisfying the constraints given by min( G1;G2) are exactly
+those satisfying all the constraints from G1as well asG2.
+A zoneZcan be identied with the distance graph in the canonical form
+representing the constraints in Z. For two clocks x,ywe writeZxyfor the
+weight of the edge from xtoyin this graph. A special case is when xoryis 0,
+so for example Z0ydenotes the weight of the edge from 0 to y.
+We recall a theorem from [HSW12] that permits to handle Za4L0U0(Z0)
+test eciently.
+Theorem 2. LetZ,Z0be two non-empty zones. Then Z6a4L0U0(Z0)i there
+exist two clocks x;ysuch that:
+Zx0(;U0
+x)andZ0
+xy<ZxyandZ0
+xy+ (<;L0
+y)<Zx0 (4)
+We are ready to proceed with our analysis. We distinguish two cases depending
+on whether the guard gis of the form wmdorwld.
+
+--- Page 18 ---
+18 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+Lower bound guard: When we have a lower bound guard, the diagonals do not
+change during intersection and time-elapse. Hence we have Z0
+xy=Zxywhen
+bothxandyare non-zero variables. This shows that (4) cannot be true when
+bothxandyare non-zero as the second condition is false. Yet again, when xis
+0, the second condition cannot be true as both Z0y=Z0
+0y= (<;1). It remains
+us to consider the single case when yis 0. It boils down to checking if there exists
+a clockxsuch that:
+Zx0(;U0
+x) andZ0
+x0<Zx0 (5)
+In words the above test asks if there exists a clock xwhosexlc! 0 edge inZ
+has reduced in Z0and additionally the edge weight ( l;c) inZsatises either
+c < U0
+xor (l;c) = (;U0
+x). If such a clock exists, the denition of Pre in (3)
+suggests that we need to check if [ [ g] ]a4L0U0(Z0).
+Let us look at the distance graph of [ [ g] ]. It has an edge wld! 0 and edges
+x0!0 for all other clocks x. All other edges are 1. We now apply the inclusion
+test (4) between this distance graph and Z0. Note that is (5) is true, then there is
+a clock that has Z0
+x0<Zx0. But asZx0(;0), we will have Z0
+x0<(;0) which
+implies that Z0
+x0<[ [g] ]x0. This shows that if the inclusion between zones does
+not hold, then the inclusion of the guard ginZ0also does not hold. Therefore
+testing (5) is sucient. This gives us the following formula with the additional
+observation that Z0
+x0can be only lesser than or equal to Zx0.
+LnewUnew=8
+><
+>:max(LU;L0U0;LgUg) ifL(w)<dand
+9x:
+Zx0(;U0
+x)
+^
+(Z0
+x0<Zx0)
+max(LU;L0U0) otherwise
+(6)
+Also note that this can be easily extended to an incremental procedure:
+whenever we add an extra clock to U0, then we need to check only this clock.
+The above denition also suggests that whenever only L0is modied we don't
+have to check anything and just propagate the new values of L0.
+Upper bound guard: When we have an upper bound guard, the diagonals might
+change. However no edge 0  !xorx !0 changes. Therefore we need to check
+(4) for two non-zero variables xandy.
+In other words, among clocks xthat have a nite U0constant and clocks
+ythat have a nite L0constant, we check if there is a diagonal x !ythat
+has strictly reduced in Z0and additionally satises Z0
+xy+ (<;Ly)< Zx0. Note
+that this also entails [ [ g] ]6a4L0U0(Z0). This is because when giswld, we
+have [ [g] ]xy= (<;1) and [ [g] ]x0= (;0) and hence (4) becomes true when Zis
+substituted with [ [ g] ]. Therefore it is sucient to check (4) for non zero variables
+
+--- Page 19 ---
+Lazy abstractions for timed automata 19
+xandy. This gives the following formula function:
+LnewUnew=8
+>>><
+>>>:max(LU;L0U0;LgUg) ifU(w)<dand9x;y: such that
+Zx0(;U0
+x) and
+Z0
+xy<Zxy) and
+Z0
+xy+ (<;L0
+y)<Zx0
+max(LU;L0U0) otherwise
+(7)
+This test can also be done incrementally. Each time we propagate, we need
+to perform extra checks only when a new clock has got a nite value for either
+L0orU0.
+Upper bound and reset. Here we consider the case when we have guard and reset
+at the same time. So we consider transition Z)(w<d );RZ0. We will combine
+the cases above since we will treat this transition as
+Z)b:=0Z1)w<dZ2)RZ3)b<0Z4
+Suppose we have L0U0=L4U4that we want to propagate it back to Z. Sinceb
+is a clock introduced for technical reasons we can assume that L4(b) =U4(b) =
+1. We need to calculate the values of changed edges in all the zones
+{InZ1we getZ1
+b0= 0, andZ1
+xb=Zx0, andZ1
+bx=1.
+{InZ2we getZ2
+xy=Z1
+x0+d+Zwy(if this edge changes).
+{InZ3every edge stays the same but for the clocks that are reset. We have
+Z3
+v0= 0,Z3
+xv=Zx0, andZ3
+vx=1forv2Randx62R.
+{InZ4we getZ4
+xy=Zx0+Z2
+byif this edge changes.
+Supposex62R. From the second item we know that Z2
+by= (d+Zwy).
+SoZ4
+xy=Zx0+d+Zwy=Z2
+xy. This means that no edge changes from
+Z3toZ4.
+Supposex2RthenZ4
+xy=Z3
+by=Z2
+by=d+Zwy. SinceZ3
+xy=1this
+edge necessarily changes.
+Because of the last item we see that we always take the guard x<b intoU. So
+L3U3=L4U4[Ub= 0]. NowL2U2=L3U3[R=1]. In order to get L1U1we
+apply the formula (7) using the knowledge what is the relation between L0U0
+andL2U2:
+LnewUnew=8
+>>>>>>>><
+>>>>>>>>:max(LU;L0U0;LgUg) ifU(w)<dand9x;y62R:such that
+Z1
+x0(;U3
+x) and
+Z2
+xy<Z1
+xy) and
+Z2
+xy+ (<;L0
+y)<Z1
+x0
+max(LU;L0U0;LgUg)9y62R:such that
+d+Zwy+ (<;L0
+y)<0
+max(LU;L0U0) otherwise
+(8)
+
+--- Page 20 ---
+20 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+The second formula is the specialization of the rst for the case of x=b. So we
+see that we almost always take the w<d guard. Observe that the rst condition
+implies the second since Z2
+xy=Z1
+0x+d+Zwy. So ifZ2
+xy+ (<;L0
+y)<Z1
+x0then
+Z1
+0x+d+Zwy+ (<L0
+y)< Z1
+x0which is equivalent to d+Zwy+ (<L0
+y)<
+Z1
+x0Z1
+0x. ButZ1
+x0Z1
+0x0 since the zone is not empty.
+5.4 Implementation of the newbounds function
+We consider a transition of the form
+(q;Z;LU )g !(q0;Z0;L0U0)
+We suppose that newbounds function examines this transition. The bounds L0U0
+have been updated and now we determine how to update the bounds LU. Let
+X0
+Lbe the set of clocks for which L0bound has been updated. Similarly X0
+Ufor
+U0bounds.
+We will dene the new bounds for ( q;Z). So the node ( q;Z;LU ) will be
+changed to ( q;Z;LnewUnew). Observe that the bounds can only increase.
+We have four cases depending on the type of the guard. The pseudocode is
+presented in Algorithm 1.2
+Lower bound guard We consider a transition for the form ( q;Z;LU )gL!
+(q0;Z0;L0U0) withgl^i=1:::kvidi. First, we set LnewUnewto the maximum
+ofLUandL0U0; notice that by the dention of X0
+LandX0
+Uwe need to calculate
+maximum only for the clocks in these two sets. Then we establish the set of
+edgesEof the zone Z0that have changed, and that are relevant for the test (6).
+The nal loop decides which constraints should be taken to increase Lbound.
+We takediwhen it indeed determines some relevant edge from E. If we take di
+then we update Lnew, and remove from Eall edges that are set by di. This is
+because there may be another constraint that in
+uences the same change in Z0
+and there is no point of taking it.
+For the correctness proof let g1
+Lbe the set of constraints that have been taken
+andg2
+Lthe constraints that have been omited. The transition ( q;Z;LnewUnew))gL
+(q0;Z0;L0U0) can be decomposed into ( q;Z;LnewUnew))g1
+L(q0;Z1;L0U0))g2
+L
+(q0;Z0;L0U0). From the algorithm we know that all the edges from Eas in line
+18 are the same in Z1andZ0. Hence by formula (6) we get Postg2
+L(a4L0U0(Z1))
+a4L0U0(Z0). Since all the guards from g1
+Lare taken we get Postg1
+L(a4LnewUnew(Z))
+a4L0U0(Z1).
+Upper bound guard We consider a transition of the form ( q;Z;LU )gU!
+(q0;Z0;L0U0) withgl^i=1:::kwiei. Let us explain Algorithm 1.2 in this case.
+As in the previous case we set LnewUnewto the maximum of LUandL0U0. Next
+we calculate the set of edges Ethat can in
+uence taking a guard. The nal for
+loop considers a constraint one by one. When the constraint implies an edge in
+Ewe take the constraing and remove all the edges implied by it.
+The correctness proof is very similar to the previous case. Let g1
+Ube the
+set of constarints that have been taken and g2
+Uthe constraints that have been
+
+--- Page 21 ---
+Lazy abstractions for timed automata 21
+Algorithm 1.2. disabled and newbounds functions
+1
+2function disabled ( q,Z)
+3L:=L1;U:=U1;
+4for every t r a n s i t i o n tfromqdisabled from ( q;Z)do
+5 choose an atomic guard xldfrom the guard of t
+6 such that Z6xld// guard of thas only upper bound guards
+7U(x):=max(d;U(x))
+8return (L ,U)
+9
+10
+11
+12function newbounds ( v,v,X0
+L,X0
+U)
+13for every clock xdo
+14 i fx2X0
+LthenLnew(x):=max(L(x);L0(x))elseLnew(x):=L(x) ;
+15 i fx2X0
+UthenUnew(x):=max(U(x);U0(x))elseUnew(x):=U(x) ;
+16
+17i ft r a n s t i o n v!v0i s a lower bound guardV
+i=1:::kvidi
+18E:=f(x;0) :x2X0
+UandZx0(;U0
+x) andZ0
+x0<Zx0g
+19 whileE6=;do
+20 choosedisuch that there i s ( x;0)2Ewithdi+Zxvi=Z0
+x0;
+21Lnew(vi):=max(di;Lnew(vi));
+22E:=Enf(x;0) :di+Zxvi=Z0
+x0g
+23
+24else i f t r a n s t i o n v!v0i s an upper bound guardV
+i=1:::kwiei
+25E:=f(x;y) :x2X0
+Uandy2X0
+L;and
+26 Zx0(;U0
+x) andZ0
+xy<ZxyandZ0
+xy+ (<;Ly)<Zx0g;
+27 whileE6=;do
+28 chooseeisuch that there i s ( x;y)2Ewithei+Zwiy+Zx0=Z0
+xy
+29Unew(wi):=max(ei;Unew(wi)) ;
+30E:=Enf(x;y) :ei+Zwiy+Zx0=Z0
+xyg
+31
+32else i f t r a n s t i o n v!v0i s a r e s e t R
+33 forx2Rdo
+34Lnew(x)=L(x) ;Unew(x):=U(x) ;
+35
+36else i f t r a n s i t i o n v!v0i s an upper bound guardV
+i=1:::kwieiand
+37 a r e s e tR
+38 Fix some r2R;
+39E:=f(r;y) :y2X0
+LnRandZ0
+ry<(<;L0
+y)g;
+40 whileE6=;do
+41 chooseeisuch that there i s ( r;y)2Ewithei+Zwy=Z0
+ry
+42Unew(wi):=max(ei;Unew(wi)) ;
+43E:=Enf(r;y) :ei+Zwy=Z0
+ryg;
+44
+45return (Lnew,Unew) ;
+
+--- Page 22 ---
+22 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+omited. The transition ( q;Z;LnewUnew))gU(q0;Z0;L0U0) can be decomposed
+into (q;Z;LnewUnew))g1
+U(q0;Z1;L0U0))g2
+U(q0;Z0;L0U0). From the algorithm
+we know that all the edges from Eas in line 25 are the same in Z1andZ0.
+Hence by formula (7) we get Postg2
+L(a4L0U0(Z1))a4L0U0(Z0). Since all the
+guards from g1
+Lare taken we get Postg1
+L(a4LnewUnew(Z))a4L0U0(Z1).
+Reset The case of reset follows directly from the formula in Section 5.1.
+Upped bound and reset This case follows directly from the formula (8).
+6 Examples
+In this section we will analyze behavior of our algorithm on some examples in
+order to explain some of the sources of the gains reported in the next section.
+6.1 All edges enabled
+Consider the automaton A1shown in Figure 3. In the same gure, the zone
+graph ofA1has been depicted. Note that the zone graph has no edges disabled
+and hence is isomorphic to the automaton. In such a case, observe that it is safe
+to abstract all the zones by the true zone. The set of reachable states of the
+automaton remain the same even after abstracting all zones to the true zones.
+q0 q1 q2 q3x5 y5 w10
+q0: (x=y=w0)q1: (x=y=w5)q2: (x=y=w5)q3: (x=y=w5)x5 y5 w10
+Fig. 3.A1: all edges enabled in the zone graph
+Algorithm 1.1 is able to incorporate this phenomenon. Initially all the con-
+stants are1 and hence the a4LUabstraction of each zone would give the true
+zone. The algorithm starts propagating nite LU-constants only when it en-
+counters a disabled edge during exploration. In particular, if there are no edges
+disabled, all the constants are kept 1. We will now see an example where
+this property of the propagation yields exponential gain over the static analysis
+method and the on-the-
+y constant propagation procedure.
+Consider the automaton Dnshown in Figure 4. This is slightly modied
+from the example given in [LNZ05]. We have changed all guards to check for an
+equality. It is a parallel composition of three components. Automaton Dnhas
+2nclocks:x1;:::;xnandy1;:::;yn. The rst two components respectively reset
+thex-clocks and y-clocks. The third component can be red only after the rst
+two have reached their anstates. The states of the product automaton Dnare
+of the form ( ai;aj;b0) and (an;an;bk) wherei;j;k2f0;:::;ng. In all, there are
+
+--- Page 23 ---
+Lazy abstractions for timed automata 23
+Fig. 4. AutomatonDn
+(n+ 1)2+nstates in the product automaton. Let us assume that no state is
+accepting so that any algorithm that explores this automaton should explore the
+entire zone graph.
+Clearly, all the transitions can be red if no time elapses in the states
+(ai;aj;b0) fori;j21;:::;n1 and exactly one time unit elapses in ( an;an;b0).
+Therefore, the zone graph of Dnshould have no edges disabled which implies
+that theLU-constants given by Algorithm 1.1 in each node are 1. The num-
+ber of uncovered nodes in the ASG obtained would be the same as the number
+of states.
+Static analysis: However, the static analysis procedure would give L=U= 1
+for every clock. We will now see that this would yield a zone graph with at least
+2nnodes.
+0 xy
+Lx=Ux= 1Ly=Uy= 1
+Z1
+[ a4LU(Z1)0 xy
+Lx=Ux= 1Ly=Uy= 1
+Z2
+[ a4LU(Z2)
+Fig. 5. Zones indistinguishable by a4LU
+Consider Figure 5 that shows two zones Z1andZ2and their a4LUabstrac-
+tions when L=U= 1 for both the clocks xandy. ZoneZ1is given by all
+valuations that satisfy xy. Similarly zone Z2is given by all valuations that
+satisfyxy. Observe that Z1andZ2are incomparable with respect to a4LU,
+that is,Z16a4LU(Z2) andZ26a4LU(Z1).
+
+--- Page 24 ---
+24 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+In our example of the automaton Dn, if in a path, x1is reset before y1then
+in the state ( an;an;b0) we would have a zone that entails y1x1. Similarly if y1
+is reset before x1, then the zone would entail x1y1. In each of these paths to
+(an;an;b0) clockx2could be reset either before or after y2and so on for each xi.
+There are at least 2npaths leading to ( an;an;b0) each of them giving a dierent
+zone depending on the order of resets. Note that two zones are incomparable if
+a projection onto 2 clocks are incomparable. By the argument in the previous
+paragraph, each of the mentioned zones would be incomparable with respect to
+the other. Therefore there are at least 2nuncovered nodes with state ( an;an;b0).
+a4LU,otf: As all the edges are enabled, the constant propagation algorithm would
+explore a path up to ( an;an;bn). This would therefore give L=U= 1 for each
+clock, similar to static analysis. So in this case too there would be at least 2n
+uncovered nodes in the reachability tree obtained.
+6.2 Presence of disabled edges
+Consider the automaton A2in Figure 6. One can see that the last transition
+with the upper bound is not reable. The cause of the edge being disabled is
+because the value of win all the valuations of Z3is bigger than 1. The cause of
+this increase is the rst lower bound guard x5. Atq1itself, all the valuations
+havew1. Aswis never reset in the automaton, there is no way wcan get
+lesser than 1 after passing this guard. Note that the guards y5 andz100
+do not play a role at all in the edge being disabled. Even if they had not been
+there, the edge would be disabled.
+q0 q1 q2 q3 q4x5 y5 z100 w2
+q0: (x=y=w0)q1: (x=y=w5)q2: (x=y=w5)q3: (x=y=w100)x5 y5 y100
+Fig. 6.A2: One edge disabled
+We want to capture this scenario by saying that at q0the relevant constants
+are:L0(x) = 5 and U0(x) = 1 and the rest are 1. One can verify that Al-
+gorithm 1.1 would give exactly these constants. The static analysis algorithm
+or the constant propagation would give additionally L(y) = 5 andL(z) = 100,
+which we have seen are unnecessary. This way, we get smaller constants and
+hence bigger abstract zones.
+We will now see that this pruning can sometimes lead to an exponential gain.
+We will modify the example Dnof Section 6.1.
+LetD0
+nbe the automaton shown in Figure 7. It is the same as Dnex-
+cept that now every guard involving y-clock isy== 2. Starting from a node
+
+--- Page 25 ---
+Lazy abstractions for timed automata 25
+Fig. 7. AutomatonD0
+n
+((an;an;b0);Z;LU ), it is possible to reach a node with state ( an;an;bn) only if
+Zentailsxiyifor alli. If \fortunately", the order of exploration of the resets
+leads us to such a zone Z, then this path would yield no constants and hence
+the abstraction would give the true zone. Due to this there would not be any
+more exploration from ( an;an;b0) and we would have the number of uncovered
+nodes equal to number of states of automaton.
+If it is not the case, then there is an isuch thatyixiand for all j < i ,
+xiyi. Therefore, the path can be taken till bi1after which the transition
+gets disabled because we check for yi2 andxi1. The disabled edge gives
+the constant U(xi) = 1 and the propagation algorithm additionally generates
+L(yi) = 2 and propagates these two backwards. These are the relevant guards
+that cause the disabled edge. Since these are the only constants, in the future,
+exploration will not occur from a node (( an;an;b0);Z0;L0U0) ifZ0satisesxi
+yias they will be covered. There will be at most nuncovered nodes with the
+state (an;an;b0) and hence the total number of uncovered nodes will be in size
+quadratic in n.
+Static analysis: The static analysis procedure would give L=U= 2 for all
+y-clocks and L=U= 1 for all x-clocks. A similar argument as in Section 6.1
+would show at least 2nuncovered nodes with state ( an;an;b0).
+a4LU,otf: The otf bounds algorithm could work slightly dierent from the pre-
+vious case. The constants generated depend on the rst path. If the rst path
+leads up to ( an;an;bn) then there are constants generated for all clocks. Then,
+the zone cannot cover any of the future zones that appear at ( an;an;bn). A
+depth-rst search algorithm would clearly then be exponential. Otherwise, if the
+path gets cut at bk1constants are generated for all clocks x1;y1;:::;xk;yk. In
+this case, at least 2knodes at (an;an;b0) need to be distinguished.
+7 Experiments
+We report experiments in Table 1 for classical benchmarks from the literature.
+The rst two columns compare UPPAAL 4.1.13 with our own implementation
+of UPPAAL's algorithm ( Extra+
+LU,sa). We have taken particular care to ensure
+that the two implementations deal with the same model and explore it in the
+
+--- Page 26 ---
+26 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+Model nb. of UPPAAL ( -C)Extra+
+LU,sa a4LU,otf a4LU,disabled
+clocks nodes sec. nodes sec. nodes sec. nodes sec.
+D00
+7 14 18654 11.6 18654 8.1 213 0.0 72 0.0
+D00
+8 16 274 0.0 90 0.0
+D00
+70 140 5112 1.9
+CSMA/CD 10 11 120845 1.9 120844 6.3 78604 6.1 74324 6.1
+CSMA/CD 11 12 311310 5.4 311309 16.8 198669 16.1 188315 15.9
+CSMA/CD 12 13 786447 14.8 786446 44.0 493582 41.8 469027 40.9
+FDDI 50 151 12605 52.9 12606 29.4 5448 14.7 401 0.8
+FDDI 70 211 561 2.7
+FDDI 140 421 1121 37.6
+Fischer 9 9135485 2.4 135485 8.9135485 11.4 135485 24.7
+Fischer 10 10 447598 10.1 447598 34.0 447598 42.8 447598 98.1
+Fischer 11 111464971 40.4 1464971 126.8
+Stari 2 7 7870 0.1 6993 0.4 5779 0.4 5113 0.5
+Stari 3 10 136632 1.7 113958 9.4 82182 8.2 53178 7.8
+Stari 4 131323193 26.2 983593 109.0 602762 84.9 342801 65.7
+Table 1. Comparison of reachability algorithms: number of visited nodes and running
+time. For each model and each algorithm, we kept the best of depth-rst search and
+breadth-rst search. Experiments done on a MacBook with 2.4GHz Intel Core Duo
+processor and 2GB of memory running MacOS X 10.6.8. Missing numbers are due to
+time out (150s) or memory out (1Gb).
+same way. However, on the last example (Stari), we did not manage to force the
+same search order in the two tools.
+The last two algorithms are using bounds propagation. In the third column
+(a4LU,otf), we report the results for the algorithm in [HKSW11] that propagates
+the bounds from every transition (enabled or disabled) that is encountered dur-
+ing the exploration of the zone graph. Since this algorithm only considers the
+bounds that are reachable in the zone graph, it generally visits less nodes than
+UPPAAL's algorithm. The last column ( a4LU,disabled ) corresponds to the algo-
+rithm introduced in this paper. It propagates the bounds that come from the dis-
+abled transitions only. As a result it generally outperforms the other algorithms.
+The actual implementation of our algorithm is slightly more sophisticated than
+presented in Algorithm 1.1. Similarly to UPPAAL, it uses a Passed/Waiting list
+instead of a stack. The implemented algorithm is presented in Appendix A.
+The results show a huge gain on two examples: D00and FDDI. D00
+ncorresponds
+to the automaton Dnin Fig. 6 where the tests xk= 1;yk= 1 have been replaced
+by (0< xk1);(1< yk2). While it was easier in Section 6 to analyze the
+example with equality tests, we wanted here to show that the same performance
+gain occurs also when static Lbounds are dierent from static Ubounds. The
+number of nodes visited by algorithm a4LU,disabled exactly corresponds to the
+number of states in the timed automaton. The situation with the FDDI example
+is similar: it has only one disabled transition. The other three algorithms take
+useless clock bounds into account. As a result they quickly face a combinatorial
+explosion in the number of visited nodes. We managed to analyze D00
+nup to
+n= 70 and FDDI up to size 140 despite the huge number of clocks
+Fischer example represents the worst case scenario for our algorithm. Dy-
+namic bounds calculated by algorithms a4LU,otfand a4LU,disabled turn out to
+be the same LU-bounds given by static analysis.
+
+--- Page 27 ---
+Lazy abstractions for timed automata 27
+The last two models, CSMA/CD and Stari [BMT99] show the average situ-
+ation. The interest of Stari is that it is a very complex example with both a big
+discrete part and big continuous part. The model is exactly the one presented
+in op. cit. but for a xed initial state. Algorithm a4LU,disabled discards many
+clock bounds by considering disabled transitions only. This leads to a signicant
+gain in the number of visited nodes at a reasonable cost.
+8 Conclusions
+We have pursued an idea of adapting abstractions while searching through the
+reachability space of a timed automaton. Our objective has been to obtain as
+lowLU-bounds as possible without sacricing practicability of the approach. In
+the end, the experimental results show that algorithm a4LU,disabled improves
+substantially the state-of-the art algorithms for the reachability problem in timed
+automata.
+At rst sight, a more rened approach would be to work with constraints
+themselves instead of LU-abstractions. Following the pattern presented here,
+when encountering a disabled transition, one could take a constraint that makes
+it disabled, and then propagate this constraint backwards using, say, weakest
+precondition operation. A major obstacle in implementing this approach is the
+covering condition, like G3 in our case. When a node is covered, a loop is formed
+in the abstract system. To ensure soundness, the abstraction in a covered node
+should be an invariant of this loop. A way out of this problem can be to consider
+a dierent covering condition as proposed by McMillan [McM06], but then this
+condition requires to develop the abstract model much more than we do. So
+from this perspective we can see that LU-bounds are a very interesting tool to
+get a loop invariant cheaply, and oer a good balance between expressivity and
+algorithmic eectiveness.
+We do not make any claim about optimality of our backward propagation
+algorithm. For example, one can see that it gives dierent results depending on
+the order of treating the constraints. Even for a single constraint, our algorithm
+is not optimal in a sense that there are examples when we could obtain smaller
+LU-bounds. At present we do not know if it is possible to compute optimal
+LU-bounds eciently. In our opinion though, it will be even more interesting to
+look at ways of cleverly rearranging transitions of an automaton to limit bounds
+propagation even further. Another promising improvement is to introduce some
+partial order techniques, like parallelized interleaving from [MPS11]. We think
+that the propagation mechanisms presented here are well adapted to such meth-
+ods.
+References
+AD94. R. Alur and D.L. Dill. A theory of timed automata. Theoretical Computer
+Science , 126(2):183{235, 1994.
+
+--- Page 28 ---
+28 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+BBFL03. G. Behrmann, P. Bouyer, E. Fleury, and K. G. Larsen. Static guard analysis
+in timed automata verication. In Proceedings of TACAS , volume 2619 of
+LNCS , pages 254{270, 2003.
+BBLP06. G. Behrmann, P. Bouyer, K. G. Larsen, and R. Pelanek. Lower and upper
+bounds in zone-based abstractions of timed automata. Int. Journal on
+Software Tools for Technology Transfer , 8(3):204{215, 2006.
+BDL+06. G. Behrmann, A. David, K. G Larsen, J. Haakansson, P. Pettersson, W. Yi,
+and M. Hendriks. Uppaal 4.0. In Proceedings of QEST , pages 125{126. IEEE
+Computer Society, 2006.
+BLR05. P. Bouyer, F. Laroussinie, and P.-A. Reynier. Diagonal constraints in timed
+automata: Forward analysis of timed systems. In FORMATS , volume 3829
+ofLNCS , pages 112{126, 2005.
+BMT99. M. Bozga, O. Maler, and S. Tripakis. Ecient verication of timed au-
+tomata using dense and discrete time semantics. In CHARME , volume
+1703 of LNCS , pages 125{141, 1999.
+BY04a. J. Bengtsson and W. Yi. Timed automata: Semantics, algorithms and tools.
+InProceedings of Lectures on Concurrency and Petri Nets , volume 3098 of
+LNCS , pages 87{124, 2004.
+BY04b. J. Bengtsson and W. Yi. Timed automata: Semantics, algorithms and tools.
+Lectures on Concurrency and Petri Nets , pages 87{124, 2004.
+CY92. C. Courcoubetis and M. Yannakakis. Minimum and maximum delay prob-
+lems in real-time systems. Form. Methods Syst. Des. , 1(4):385{415, 1992.
+Dil89. D. Dill. Timing assumptions and verication of nite-state concurrent sys-
+tems. In Proceedings of AVMFSS , volume 407 of LNCS , pages 197{212,
+1989.
+DT98. C. Daws and S. Tripakis. Model checking of real-time reachability properties
+using abstractions. In Proceedings of TACAS , volume 1384 of LNCS , pages
+313{329, 1998.
+DWT95. D. L. Dill and H. Wong-Toi. Verication of real-time systems by successive
+over and under approximation. In CAV , volume 939 of LNCS , pages 409{
+422, 1995.
+HJMS02. T. A. Henzinger, R. Jhala, R. Majumdar, and G. Sutre. Lazy abstraction.
+InPOPL , pages 58{70, 2002.
+HKSW11. F. Herbreteau, D. Kini, B. Srivathsan, and I. Walukiewicz. Using non-
+convex approximations for ecient analysis of timed automata. In Pro-
+ceedings of FSTTCS , volume 13 of LIPIcs , pages 78{89. Schloss Dagstuhl -
+Leibniz-Zentrum fuer Informatik, 2011.
+HSW12. F. Herbreteau, B. Srivathsan, and I. Walukiewicz. Better abstractions for
+timed automata. In LICS , 2012.
+LNZ05. D. Lugiez, P. Niebert, and S. Zennou. A partial order semantics approach
+to the clock explosion problem of timed automata. Theor. Comput. Sci. ,
+345(1):27{59, 2005.
+LS00. F. Laroussinie and Ph. Schnoebelen. The state-explosion problem from
+trace to bisimulation equivalence. In Proceedings of FoSSaCS , volume 1784
+ofLNCS , pages 192{207, 2000.
+McM06. K. McMillan. Lazy abstraction with interpolants. In CAV , volume 4144 of
+LNCS , pages 123{136, 2006.
+MPS11. G. Morb e, F. Pigorsch, and C. Scholl. Fully symbolic model checking for
+timed automata. In Proceedings of CAV , volume 6806 of LNCS , pages 616{
+632, 2011.
+
+--- Page 29 ---
+Lazy abstractions for timed automata 29
+Sor04. M. Sorea. Lazy approximation for dense real-time systems. In FORMAT-
+S/FTRTFT , volume 3253 of LNCS , pages 363{378, 2004.
+TAKB96. S. Tasiran, R. Alur, R. P. Kurshan, and R. K. Brayton. Verifying abstrac-
+tions of timed systems. In Proceedings of CONCUR , volume 1119 of LNCS ,
+pages 546{562, 1996.
+Wan04. Farn Wang. Ecient verication of timed automata with bdd-like data
+structures. Int. J. Softw. Tools Technol. Transf. , 6(1):77{97, 2004.
+WT94. H. Wong-Toi. Symbolic Approximations of Verifying Real-Time Systems .
+PhD thesis, Stanford University, November 1994.
+A Implementation of Algorithm a4LU,disabled
+Algorithm 1.3 gives an overview of UPPAAL's algorithm. It takes as input3a
+zone graph and searches for a reachable accepting state. When a new node is
+expanded (l. 11), it is rst checked if it is covered by a visited node (l. 15). If
+so, then it does not need to be explored. If not, all the nodes that are covered
+by the new node are removed (l. 20-21) before the new node is inserted to save
+memory and time.
+In order to ensure the termination of the algorithm, the zones are abstracted
+with an extrapolation operator (e.g. Extra+
+LU[BBLP06]) that guarantees a nite
+number of abstracted zones. The abstraction parameters are clock bounds LU.
+They are obtained by a static analysis of the timed automaton[BBFL03].
+Algorithm 1.3. UPPAAL's algorithm.
+1P:=;// Passed l i s t ( v i s i t e d nodes )
+2W:=;// Waiting l i s t (W i s included in P)
+3
+4function main ( ) : // input : zone graph ZG=(v0,V, !)
+5 insertPW ( v0)
+6while (Wi s not empty ) do
+7 pick a node vfromW
+8 i f(v:qi s accepting )
+9 return ` ` not empty ' '
+10 for each t r a n s i t i o n v !v0inZGdo
+11 insertPW ( v0)
+12 return ` ` empty ' '
+13
+14function insertPW ( v) :
+15 i f(9v02Ps . t .v:q=v0:qandv:Zv0:Z)
+16 // don ' t add v as i t i s covered by v '
+17 return
+18 else
+19 // remove all nodes v ' covered by v
+20 for each v02Ps . t .v0:q=v:qandv0:Zv:Zdo
+21 removev0fromPand fromW
+3The implementation builds the zone graph on-the-
+y from a timed automaton taken
+as input.
+
+--- Page 30 ---
+30 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+22 // i n s e r t v
+23 i n s e r tvinPand inW
+Our algorithm a4LU,disabled is built on top of UPPAAL's algorithm. It is
+depicted in Algorithm 1.4. The main dierence is that it computes dynamic
+LU-bounds that are used to stop the exploration earlier. The dynamic bounds
+are used in l. 15. We avoid exploring a node if it is covered by a visited node
+w.r.t. dynamic bounds and abstraction a4LU. If the node is not covered, then
+its bounds are updated w.r.t. the transitions that are disabled from that node
+(l. 21) and the node is explored (l. 24).
+The algorithm computes an adaptive simulation graph  (see Denition 9)
+and a covering relation C. The tentative nodes in Denition 9 are the nodes
+vthat are covered by some node v0, that is:vCv0. The algorithm propagates
+the bounds and it updates  andCin order to maintain the invariants in
+Denition 9.
+As the bounds are propagated over the graph  , some covering edge v0Cv
+may become invalid. This is checked in line 50. When the bounds in v0have to
+be updated from the bounds in the covering node v, it is rst checked if v0is
+still covered by v. If it is not the case, v0is put in the list of waiting nodes and
+it will be considered again later.
+The propagation of clock bounds relies on function newbounds given in Al-
+gorithm 1.2.
+Algorithm 1.4. Algorithm a4LU,disabled .
+1// Assumptions : no lower bound atomic guards dlxin i n v a r i a n t s
+2// no atomic guard x<0
+3
+4P:=;// Passed l i s t ( v i s i t e d nodes )
+5W:=;// Waiting l i s t (W i s included in P)
+6C:=;// Covering r e l a t i o n wrt dynamic bounds
+7 :=;// Propagation r e l a t i o n
+8
+9function main ( ) : // input : zone graph ZG=(v0,V, !)
+10 insertPW ( v0)
+11 while (Wi s not empty ) do
+12 pick a node vfromW
+13 i f(v:qi s accepting )
+14 return ` ` not empty ' '
+15 i f(9v02(PnW) uncovered st v:q=v0:qandv:Za4v0:LU(v0:Z))
+16 addvCv0andv0 v
+17v:LU :=v0:LU
+18 (XL;XU) := bounds modified during the copy
+19 propagate ( v,XL,XU)
+20 else
+21v:LU := disabled ( v)
+22 (XL;XU) := a c t i v e c l o c k s in v:LU
+23 propagate ( v,XL,XU)
+24 for each t r a n s i t i o n v !v0inZGdo
+
+--- Page 31 ---
+Lazy abstractions for timed automata 31
+25 addv0 v
+26 insertPW ( v0)
+27 return ` ` empty ' '
+28
+29function insertPW ( v) :
+30 i f(9v02Ps . t .v:q=v0:qandv:Zv0:Z)
+31 // v i s covered by v ' wrt s t a t i c bounds
+32 r e p l a c e allv v00byv0 v00
+33 else
+34 // remove all nodes v ' covered by v wrt s t a t i c bounds
+35 for each v02Ps . t .v0:q=v:qandv0:Zv:Zdo
+36 removev0fromPand fromW
+37 r e p l a c e allv0 v00byv v00
+38 remove allv00 v0
+39 i f(9v002Ps tv0Cv00)
+40 removev0Cv00
+41 else
+42 for each v002Ps tv00Cv0do
+43 removev00Cv0
+44 i n s e r tv00inW
+45 i n s e r tvinPand inW
+46
+47function propagate ( v,XL,XU) :
+48 for each v0s tv v0do
+49 i f(v0Cv) // propagation due to a covering edge
+50 i f(v0:Za4v:LU(v:Z)) // v ' s t i l l covered by v
+51 v0:LU :=v:LU
+52 (X0
+L;X0
+U) := bounds modified during the copy
+53 else // v ' i s not covered by v anymore
+54 v0:LU :=x7!1 ; (X0
+L;X0
+U) := (;;;)
+55 i n s e r tv0inW
+56 else // propagation due to a t r a n s i t i o n in ZG
+57 lettbe the t r a n s i t i o n q0t !qthat corresponds to v v0
+58 (gl;gu;R) := decompose ( t)
+59 (LtUt;Xt
+L;Xt
+U) := backwardLU ( Z0,gl,gu,R,v:LU ,XL,Xu)
+60v0:LU := max(v0:LU,LtUt)
+61 (X0
+L;X0
+U) := bounds modified by maximization
+62 i f(X0
+L6=;orX0
+U6=;)
+63 propagate ( v0,X0
+L,X0
+U)
+64
+65function disabled ( v) :
+66L:=x7!1 ;U:=x7!1
+67 for each t r a n s i t i o n tfromv:qthat i s disabled from v:Zdo
+68 (gl;gu;R) := decompose ( t) // lower bounds , upper bounds , r e s e t
+69 choose an atomic guard wldingudisabled from v:Z^gl
+70Ld:=x7!1 ;Ud:=w7!d; x7!1 (x6=w)
+71 (LtUt;XL;Xu) := backwardLU ( v:Z,gl,true ,;,LdUd,;,fxg)
+72LU := max(LU,LtUt)
+73 returnLU
+
+--- Page 32 ---
+32 F. Herbreteau, B. Srivathsan, and I. Walukiewicz
+74
+75function decompose ( t) :
+76 lett= (I;g;R;I0) // s r c inv , guard , reset , tgt inv
+77g0:=g^I
+78 add tog0all the atomic guard xldfromI0s tx62R
+79 letg0
+lbe the lowerbound atomic guards dlxing0
+80 letg0
+ube the upperbound atomic guards xlding0
+81 return (g0
+l;g0
+u;R)
+82
+83function backwardLU ( Z,gl,gu,R,LU,XL,XU) :
+84 let:=Zgl!Z0gu;R!Z00
+85 updateLU,XLandXUapplying newbounds onZ0gu;R!Z00
+86 updateLU,XLandXUapplying newbounds onZgl!Z0
+87 return (LU;X L;Xu)

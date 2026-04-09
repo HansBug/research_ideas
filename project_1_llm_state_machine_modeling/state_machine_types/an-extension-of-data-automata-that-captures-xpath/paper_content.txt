@@ -1,0 +1,1263 @@
+--- Page 1 ---
+Logical Methods in Computer Science
+Vol. 8 (1:05) 2012, pp. 1–28
+www.lmcs-online.orgSubmitted Mar. 9, 2011
+Published Feb. 16, 2012
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH
+MIKO LAJ BOJA NCZYK AND S LAWOMIR LASOTA
+Warsaw University
+e-mail address :fbojan,sl g@mimuw.edu.pl
+Abstract. We dene a new kind of automata recognizing properties of data words or
+data trees and prove that the automata capture all queries denable in Regular XPath.
+We show that the automata-theoretic approach may be applied to answer decidability and
+expressibility questions for XPath.
+1.Introduction
+In this paper, we study data trees. In a data tree, each node carries a label from a nite
+alphabet and a data value from an innite domain. We study properties of data trees, such
+as those dened in XPath, which refer to data values only by testing if two nodes carry the
+same data value. Therefore we dene a data tree as a pair ( t;) wheretis a tree over a
+nite alphabet and is an equivalence relation on nodes of t. Data values are identied
+with equivalence classes of .
+Recent years have seen a lot of interest in automata for data trees and the special
+case of data words. The general theme is that it is dicult to design an automaton which
+recognizes interesting properties and has decidable emptiness.
+Decidable emptiness is important in XML static analysis. A typical question of static
+analysis is the implication problem: given two properties '1;'2of XML documents (mod-
+eled as data trees), decide if every document satisfying '1must also satisfy '2. Solving the
+implication problem boils down to deciding emptiness of '1^:'2.
+A common logic for expressing properties is XPath. For XPath, satisability is unde-
+cidable in general, even for data words, see [1]. This means that most problems of static
+analysis are undecidable for XPath, e.g. the implication problem. Satisability is undecid-
+able also for most other natural logics on data words or data trees, including rst-order
+logic with predicates for order (or even just successor) and data equality.
+The approach chosen in prior work was to nd automata on data words or trees that
+would have decidable emptiness and recognize interesting, but necessarily weak, logics or
+1998 ACM Subject Classication: F.1.1, H.2.3.
+Key words and phrases: satisability of (regular) XPath queries, automata on data words and trees, data
+automata.
+This work has been partially supported by the Polish government grants no. N206 008 32/0810 and N206
+567840; and by the FET-Open grant agreement FOX, number FP7-ICT-233599.
+LOGICAL METHODSl IN COMPUTER SCIENCE DOI:10.2168/LMCS-8 (1:05) 2012c M. Boja ´nczyk and S. Lasota
+CC Creative Commons
+
+--- Page 2 ---
+2 M. BOJA NCZYK AND S. LASOTA
+fragments of XPath. These weak logics include: fragments of XPath without recursion or
+negation [1,11]; rst-order logic with two variables [4,5]; forward-only fragments related to
+alternating automata [8{10, 12]. The original automaton model for data words was [13].
+See [14] for a survey.
+In this paper, we take a dierent approach. Any model that captures XPath will have
+undecidable emptiness. We are not discouraged by this, and try to capture XPath by
+something that feels like an \automaton". Three tangible goals are: 1. use the automaton
+to decide emptiness for interesting restrictions of data trees; 2. use the automaton to prove
+easily that the automaton (and consequently XPath) cannot express a property; 3. unify
+other automata models that have been suggested for data trees and words.
+What is our new model? To explain it, we use logic. From a logical point of view, a
+nondeterministic automaton is a formula of the form 9X1:::9Xn'(X1;:::;Xn), where the
+kernel'is relatively simple, e.g. it only talks about the relationship of labels in successive
+positions. As often in automata theory, when designing the automaton model, we try to
+use the prex of existential set quantiers as much as possible, in the interest of simplifying
+the kernel'. For satisability, this is like a free lunch, since deciding satisability with or
+without the prex are the same problem.
+In the automaton model that we propose in this paper, the kernel 'is of the form \for
+every class Xof, property (X;X 1;:::;Xn) holds", where  is an MSO formula that
+can use predicates for navigation (sibling order, descendant), predicates for testing labels
+from the nite alphabet, but not the predicate for data equality. The data is only
+used in saying that Xis a class. In the case of data words, this model is an extension of
+thedata automata introduced in [5], which correspond to the special case when rst-order
+quantiers in  range only over positions from X. For instance, our new model, but not
+data automata, can express the property \between every two dierent positions in the same
+class there is at most one position outside the class with label a".
+The principal technical contribution of this paper is that the model above can recognize
+all unary queries of XPath. This proof is dicult, and takes over ten pages. We believe the
+real value of this paper lies in this proof, which demonstrates some powerful normalization
+techniques for formulas describing properties of data trees. Since the scope of applicabil-
+ity for these techniques will be clear only in the future; and since the appreciation of an
+\automaton model" may ultimately be a question of taste, we describe in more details the
+three tangible goals mentioned above.
+1. The ultimate goal of this research is to nd interesting classes of data trees which
+yield decidable emptiness for XPath. As a proof of concept, we dene a simple subclass
+of data trees, called bipartite data trees, and prove that emptiness of our automata (and
+consequently of XPath) is decidable for bipartite data trees. This is only a preliminary
+result, we intend to nd new subclasses in the future.
+2. We use the automaton to prove that XPath cannot dene certain properties. Proving
+inexpressibility results for XPath is dicult, because the truth value of an XPath query in a
+positionxmight depend on the truth value of a subquery in a position y<x , which in turn
+might depend on the truth value of a subquery in a position z>y , and so on. On the other
+hand, our automaton works in one direction, so it is easier to understand its limitations.
+We use (an extension of) our automata to prove that for documents with two equivalence
+relations1and2, some properties of two-variable rst-order logic cannot be captured
+by XPath, which was an open question.
+
+--- Page 3 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 3
+3. We use the automaton to classify existing models for data words in a single frame-
+work. A problem with the research on data words and data trees is that the models are
+often incomparable in expressive power. In an upcoming paper1, we will show that many
+existing models can be seen as syntactic fragments of our automaton. We hope that this
+classication will underline more clearly what the dierences are between the models.
+2.Preliminaries
+Trees. Trees are unranked, nite, and labeled by a nite alphabet . We use the terms
+child, parent, sibling, descendant, ancestor, node in the usual way. The siblings are ordered.
+We writexywhenxis an ancestor of y. Every nonempty set of nodes x1;:::;xnin a
+tree has a greatest common ancestor (the greatest lower bound wrt. ), which is denoted
+gca(x1;:::;xn).
+Lettandsbe two trees, over alphabets  and , respectively, that have the same sets
+of nodes. We write t
+sfor the tree over the product alphabet   that has the same
+nodes assandt, and where every node has the label from ton the rst coordinate, and
+the label from son the second coordinate. If Xis a set of nodes in a tree t, we writet
+X
+for the tree t
+s, wheresis the tree over alphabet f0;1g, whose nodes are the nodes of t
+and whose labeling is the characteristic function of X.
+Regular tree languages and transducers. We use the standard notion of regular tree
+languages for unranked trees [7]. We also use transductions, which map trees to trees. Let 
+be an input alphabet and  an output alphabet. A regular tree language fover the product
+alphabet  can be interpreted as a binary relation, which contains pairs ( s;t) such that
+s
+t2f. We use the name letter-to-letter transducer for such a relation, underlining that
+the trees in a pair ( s;t)2fmust have the same nodes. In short, we simply say transducer.
+Observe that the transducer is nondeterministic. We often treat a transducer as a function
+that maps an input tree to a set of output trees, writing t2f(s) instead of ( s;t)2f.
+Data trees. Adata tree is a treetequipped with an equivalence relation on its nodes
+that represents data equality. We use the name class for equivalence classes of .
+Queries. Fix an input alphabet. We use the name n-ary query for a function that maps
+a treetover the input alphabet to a set (t) ofn-tuples of its nodes. In this paper, we deal
+with queries of arities 0,1,2 and 3, which are called boolean, unary, binary and ternary. We
+also study queries that input a data tree ( t;); they output a set of node tuples (t;) as
+well.
+1This paper is a journal version of a LICS 2010 paper [3], which included a rough description of the
+classication mentioned in item 3. However, a thorough explanation of the classication requires much
+space, and uses dierent techniques than the results in this paper. Therefore, we plan to present the
+classication in a separate paper.
+
+--- Page 4 ---
+4 M. BOJA NCZYK AND S. LASOTA
+MSO. Logic is a convenient way of specifying queries, both for trees and data trees. We
+use monadic second-order logic (MSO). In a given tree, or a data tree, a formula of MSO is
+allowed to quantify over nodes of the tree using individual variables x;y;z , and also over sets
+of nodes using set variables X;Y;Z . A formula with free individual variables x1;:::;xn
+denes ann-ary query, which selects in a tree tthe set(t) of tuples ( x1;:::;xn) that make
+the formula true. To avoid confusion, we use round parentheses for the tree input of a
+query,(t), and square parentheses for indicating the free variables of a query. The two
+parenthesis can appear together, e.g. [x1;:::;xn](t) will be the set of n-tuples selected in
+a treetby a query with free variables x1;:::;xn.
+When working over trees without data, MSO formulas use binary predicates for the child
+and next-sibling relations (that allow to dene descendant and following-sibling relations),
+as well as a unary predicate for each label. Queries dened by MSO with these predicates
+are called regular queries (of course, regular queries can also be characterized in terms of
+automata). When working over data trees, we additionally allow a binary predicate to
+test data equality. A query using is no longer called regular. For instance, the following
+unary query selects positions that have classes of size at least two:
+'(x) =9y x6=y^xy:
+Extended Regular XPath. We dene a variant of XPath that works over data trees. For
+unary queries, the variant is an extension of XPath, thanks to including MSO as part of
+its syntax. We call the variant Extended Regular XPath. Unlike XPath, Extended Regular
+XPath allows for queries of arbitrary arity. Expressions of Extended Regular XPath are
+dened below.
+Let  =f1;:::;ngbe a set of already dened unary queries of Extended Regular XPath,
+which will be treated as unary predicates. In the induction base, the set  is necessarily
+empty. Suppose that '[x1;:::;xm] is an MSO query that uses unary predicates for queries
+from , unary predicates for letters of the input alphabet, and the binary child and next-
+sibling predicates. Then 'is anm-ary query of Extended Regular XPath. It is important
+that'does not introduce any new use of the data equality predicate , all appearances
+ofare reserved to the queries from .
+Suppose that '[x;y1;y2] is a ternary query of Extended Regular XPath. Then the fol-
+lowing property of xis a unary query of Extended Regular XPath
+9y19y2y1y2^'[x;y1;y2]: (2.1)
+Likewise for y16y2instead ofy1y2.
+The denition above allows for queries of any arity. In the paper, we will be principally
+interested in queries of arity one, and the queries of arity at most three used to build them.
+By abuse of nomenclature, we will write XPath instead of Extended Regular XPath.
+Binary trees. A binary tree is a tree where each node has at most two children. Although
+the interest of XPath is mainly for unranked trees, we assume in the proofs that trees are
+binary. This assumption can be made because XPath, as well as the models of automata
+introduced later on, are stable under the usual rst-child / next-sibling encoding in the
+following sense. A language Lof unranked data trees can be expressed by a boolean XPath
+query if and only if the set of binary encodings of trees from Lcan be expressed by a boolean
+XPath query. A similar, though more technical, statement holds for unary queries.
+
+--- Page 5 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 5
+Words will be considered as a special case of binary trees where each node has at most
+one child.
+3.Class automata
+In this section we dene a new type of automaton for data trees, called a class automaton,
+and state the main result: class automata capture all queries denable in XPath.
+Aclass automaton is a type of automaton that recognizes properties of data trees. A
+class automaton is given by: an input alphabet , a work alphabet , a nondeterministic
+letter-to-letter tree transducer ffrom the input alphabet  to the work alphabet , and a
+regular tree language on alphabet  f0;1g, called the class condition. The class automaton
+accepts a data tree ( t;) over input alphabet  if there is some output s2f(t) such that
+for every class X, the class condition contains the tree s
+X.
+Example 1. Consider an input alphabet  = fa;bg. LetLbe the data trees where some
+class contains at least three nodes with label a. This language is recognized by a class
+automaton. The work alphabet is  = fa;cg. The transducer guesses three nodes with
+labela, and outputs aon them, other nodes get c. The class condition consists of trees
+s
+Xover alphabet f0;1gwhereXcontains all or none of the nodes with label a. Note
+that the class condition does not inspect positions outside X.
+Example 2. LetKbe the set of data words over  = fa;bgwhere each class has exactly
+two positions x < y , and there is at most one ain the positionsfx+ 1;:::;y1g. In
+the class automaton recognizing K, the transducer is the identity function, and the class
+condition is
+
+01b
+0(a0+)b
+01
+0
+where iis a shortcut for  fig, likewise for aiandbi.
+Comparison to data automata. Class automata are closely related to data automata
+introduced in [5]. Data automata were dened for data words. Since it is not clear what
+the correct tree version thereof is, we just present the version for data words. Like a
+class automaton, a data automaton has an input alphabet , a work alphabet , and a
+nondeterministic letter-to-letter transducer f(this time only for words). The dierence is
+in the class condition, which is less powerful in a data automaton. In a data automaton, the
+class condition is a word language over , and not  f0;1g. The data automaton accepts
+a data word ( w;) if there is some output v2f(w) such that for every class X, the class
+condition contains the subsequence of vobtained by only keeping positions from X. In the
+realm of data words, data automata can be seen as a special case of class automata, where
+the class condition is only allowed to look at positions from the current class. The language
+Lin Example 1 can be recognized by a data automaton (in the case of words), while the
+languageKin Example 2 is a language that can be recognized by class automata, but not
+data automata.
+The dierence between data automata and class automata is crucial for decidability
+of emptiness. Data automata have decidable emptiness [5], the proof being a reduction
+to reachability in Vector Addition Systems with States. Class automata have undecidable
+emptiness, because they capture the logic XPath, which has undecidable satisability. Also,
+
+--- Page 6 ---
+6 M. BOJA NCZYK AND S. LASOTA
+a direct and simple proof of undecidable emptiness for class automata can be given, by
+encoding runs of two-counter machines, without going through the dicult reduction from
+XPath.
+Closure properties. Suppose that f: 1!2is any function. We extend fto a function
+^ffrom data trees over alphabet  1to data trees over alphabet  2, by just changing the
+labels of nodes, and not the tree structure or data values. We use the name relabeling for
+any such function ^f.
+Lemma 1. Languages of data trees recognized by class automata are closed under union,
+intersection, images under relabelings, and inverse images under relabelings.
+Proof. The inverse images are the simplest: the letter-to-letter tree transducer in the class
+automaton is composed with the relabeling. For intersection, one uses Cartesian product.
+For union and images under relabelings, one uses nondeterminism.
+Evaluation. The evaluation problem (given an automaton and a data word/tree, check
+if the latter is accepted by the former) is NP-complete, even for a xed data automaton
+(cf. [2]). Hence it is also NP-complete for class automata, which extend data automata.
+Class automata as a fragment of MSO. As mentioned in the introduction, one can see
+a class automaton as a restricted type of formula of monadic second-order logic. This is a
+formula of the form:
+9X19Xn8Xclass(X))'(X1;:::;Xn;X) (3.1)
+whereX1;:::;Xn;Xare variables for sets of nodes, the class formula is
+class(X) =9y8x x2X()yx
+and'is a formula of MSO that does not use . Formulas of the above form recognize exactly
+the same languages of data trees as class automata. For translating a class automaton to a
+formula, one uses the variables X1;:::;Xnto encode the output of the transducer, and the
+formula'to test two things: a) the variables X1;:::;Xnencode a legitimate output of the
+transducer; and b) the class condition holds for X.
+Main result. The main result of this paper is Theorem 1 below, which says that unary
+XPath queries over data trees can be recognized by class automata. To state the theorem,
+we need to say how a class automaton recognizes a unary query. We do this by encoding a
+unary query over data trees as a language of data trees:
+L=f(t
+X;) : (t;) is a data tree, X=(t;)g:
+In other words, the language consists of data trees decorated with the set of nodes selected
+by the query. This encoding does not generalize to binary queries.
+Theorem 1. Every unary XPath query over data trees can be recognized by a class au-
+tomaton.
+We begin the proof of Theorem 1, mainly to show where the diculties appear. Then,
+we lay out the proof strategy in more detail. When referring to the language of a unary
+query, we mean the encoding above.
+
+--- Page 7 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 7
+We do an induction on the size of the unary query. The base case, when the query is a
+labela, is straightforward. Consider now the induction step, with a unary query
+[x] =9y19y2y1y2^'[x;y1;y2]
+as in (2.1). (The same argument works for the case where y16y2.) Let1;:::;nbe all the
+unary XPath subqueries that appear in '. By the induction assumption, the languages of
+the subqueries are recognized by class automata A1;:::;An. Let the variables X;X 1;:::;Xn
+denote sets of nodes. Consider the set Lof data trees
+(t
+X
+X1
+
+Xn;)
+such that a) for each i2f1;:::;ng, the data tree ( t
+Xi;) is accepted by the automaton
+Ai; and b)Xis the set of nodes selected by the query 0obtained from by replacing each
+subqueryiwith \has 1 on coordinate corresponding to Xi". Suppose that the language
+of0is recognized by a class automaton. Then so is L, by closure of class automata under
+intersection and inverse images of projections, see Lemma 1. Finally, the language of is
+the image of Lunder the projection which removes the labels describing the sets X1;:::;Xn.
+It remains to show that 0is recognized by a class automaton (the advantage of 0over
+is that it uses data equality only once, to say that y1y2). A major part of this paper
+is devoted to this case, which is stated in the following proposition.
+Proposition 1. Class automata can recognize queries
+[x] =9y19y2y1y2^'[x;y1;y2];
+where'is a regular ternary query (i.e. 'does not use). Likewise for y16y2.
+Proof strategy. The construction of the automaton for [x] is spread across several sec-
+tions. In Section 3.2, we introduce the main concepts underlying the proof. In particular,
+we dene a new complexity measure for binary relations on tree domains, called guidance
+width, that seems to be of independent interest. In Section 3.3 we start the proof itself,
+formulate an induction, and reduce Proposition 1 to a more technical Theorem 2. Then in
+Section 4 we identify a simplied form of queries appearing in Theorem 2 and show how
+arbitrary queries can be transformed to the simplied form. Finally, Section 5 contains the
+proof of Theorem 2 for these simplied queries, the heart of the whole proof.
+3.1.Discussion of the proof. In this section, we discuss informally the concepts that
+appear in the proof of Theorem 1. For the purpose of illustration, we use words.
+We begin our discussion with words without data. For a regular binary query '[x;y],
+consider the unary query
+ [x] =9y'[x;y]:
+We use the name witness function in a word wfor a function which maps every position
+xsatisfying to someysuch that'[x;y] holds. Consider, as an example, the case where
+'[x;y] says that there exists exactly one zthat has label aand satises x < z < y . The
+following picture shows a witness function.
+a a a a a a a b b b b b b
+
+--- Page 8 ---
+8 M. BOJA NCZYK AND S. LASOTA
+The way the picture is drawn is important. The witness function is recovered by
+following arrowed lines. The arrowed lines are colored black, dashed black, or gray, in such
+a way that no position is traversed by two arrowed lines of the same color. With the formula
+ in the example, any input word has a witness function that can be drawn with three colors
+of arrowed lines. This can be generalized to arbitrary MSO binary queries; the number of
+colors depends only on the query, and not the input word.
+The above observation may be used to design a nondeterministic automaton recognizing
+a property like8x [x]. The automaton would guess the labeling by arrows and then verify
+its correctness. The number of states in the automaton would grow with the number of
+colors; hence the need for a bound on the number of colors. Of course, there are other ways
+of recognizing8x  [x], but we talk about the coloring since this is the technique that will
+work with data.
+We now move to data words. Consider a unary query
+ [x] =9y19y2y1y2^'[x;y1;y2];
+where'[x;y1;y2] says that y1< xy2, there is exactly one alabel in the positions
+fy1;:::;x1gand there is exactly one blabel in the positions fx;:::;y 2g. The query  [x]
+is an example of a query as in Proposition 1. Consider the following data word (the labels
+are blank,aandb, the data values are 1 . . . 6).
+1 2 3 4 5a
+6b
+4b
+53b
+2b
+1b
+Sayxis the rst node with label b. This node is selected by  . Consider the pairs ( y1;y2)
+required by  [x], which we call witnesses . The only possibility for y2isxitself; thus y1is
+also determined, as the only other position with the same data value. So there is only one
+witness pair. The same situation holds for all other positions with label b, which are the
+only positions selected by  . The drawing below shows how witness pairs are assigned to
+positions.
+1 2 3 4 5a
+6b
+4b
+53b
+2b
+1b
+We would like to draw this picture with colored arrows, as we did for the rst example
+of witness functions. If we insist on drawing arrows that connect each position xwith its
+corresponding witness y1, then we will need 5 colors as the middle position (labeled by a)
+is traversed by 5 arrows; the picture also generalizes to any number of colors. On the other
+hand, connecting each position xwith its corresponding y2(a self-loop) requires only one
+color. We can symmetrically come up with instances of data words where connecting each
+nodextoy2requires an unbounded number of colors.
+A consequence of our main technical result, Theorem 2, is that a bounded number of
+colors is sucient if we want to perform the following task: for each position xselected by
+ , choose some witness pair y1y2, and connect xtoeithery1ory2. The bound depends
+only on ; in particular, the bound does not depend on input data tree.
+The concepts of witness functions and coloring are dened more precisely below.
+
+--- Page 9 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 9
+3.2.The core result. We will state some technical results for a structure more general
+than a data tree, namely a graph tree. A graph tree is a treetendowed with an arbitrary
+symmetric binary relation Eover its nodes. A data tree is the special case of a graph tree
+whereEis an equivalence relation.
+Witness functions. Let'[x;y1;y2] be a regular query (think of Proposition 1), and con-
+sider a graph tree ( t;E). We are interested in triples ( x;y1;y2) selected by 'intsuch that
+(y1;y2)2E. (Think of Ebeing either the data equivalence relation , or its complement.)
+Consider any such triple. The node xis called the source node ; the notion of source node
+is relative to the query 'and relation E, which will usually be clear from the context and
+not mentioned explicitly. The pair ( y1;y2) is called the witness pair ,y1is called the rst
+witness , andy2is called the second witness . These notions are all relative to a given x, but
+if we do not mention the x, thenxis quantied existentially. Let Xbe a set of nodes in
+a graph tree (not necessarily containing all nodes). A witness function for'andXin a
+graph tree is a function which maps every node x2X, treated as a source node, to some
+(rst or second) witness. There may be many witness functions, since for each node we can
+choose to use either a rst witness or a second witness, and there may be multiple witness
+pairs.
+The key technical result of this paper is that one can always nd a witness function of
+low complexity. The notion of complexity is introduced below.
+Guidance width. Aguide in a treetis given by two nonempty sets of source nodes and
+target nodes . The support of the guide is the set of all nodes and edges on (the shortest)
+paths that connect some source node with a target node, including all the source and target
+nodes. A guide conicts with another guide if their supports intersect. We write for
+guides.
+A guidance system is a set of guides . It induces a relation containing all pairs ( x;y)
+of tree nodes such that xis a source and ya target in some guide in . An n-color guidance
+system is a guidance system whose guides can be colored by ncolors so that conicting
+guides have dierent colors. The guidance width of a binary relation Ron tree nodes is the
+smallestnsuch that some n-color guidance system induces R.
+In the proof we will only consider guidance systems for relations Rthat are partial func-
+tions from tree nodes to tree nodes. In such cases, it is sucient to restrict to deterministic
+guides, i.e., those with precisely one target node. From now on, if not stated otherwise, a
+guidance system will be implicitly assumed to contain only deterministic guides.
+Witness functions of bounded width. We are now ready to state the main technical
+result, which forms the core of the proof of Theorem 1.
+Theorem 2. Let'be a regular ternary query. There exists a constant m, depending only
+on', such that in every graph tree, every set of source nodes has some witness function of
+guidance width at most m.
+In other words, regular ternary queries have witness functions of bounded guidance
+width . Before proving the theorem, we show how it implies Theorem 1.
+
+--- Page 10 ---
+10 M. BOJA NCZYK AND S. LASOTA
+3.3.From Theorem 2 to Proposition 1. We show how Theorem 2 implies the last
+remaining piece of Theorem 1, namely Proposition 1. Consider a unary query [x] as in the
+statement of Proposition 1. We begin with the case when [x] is of the form
+[x] =9y19y2y1y2^'[x;y1;y2]:
+We need to nd a class automaton that accepts the data trees ( t
+X;) whereXis the
+set of all nodes selected by in the data tree ( t;). The class automaton will test the
+conjunction of two properties:
+Completeness. Each node selected by in (t;) is inX.
+Correctness. Each node in Xis selected by in (t;).
+Recall that 'is a regular query. We give separate class automata for the two properties.
+Completeness is simple. It can be rephrased as
+for every class Yand triple (x;y1;y2) selected by ', ify1;y22Ythenx2X.
+This is the type of property class automata are designed for: for every class, test a regular
+property. (Recall the discussion on class automata as a fragment of MSO.) Correctness is
+the dicult property, since the order of quantiers is not the same as in a class automaton:
+for everyx2Xthere is a class Yandy1;y22Ysuch that ( x;y1;y2) is
+selected by '.
+Our solution is to use, as a part of the class automaton to be designed, a guidance system
+given by Theorem 2.
+Apply Theorem 2 to ', yielding a constant m. The class automaton for the correctness
+property works as follows. Given an input data tree ( t
+X;), it guesses an m-color
+guidance system; let Rstand for the induced relation. The automaton then checks the two
+conditions below.
+A. For every x2Xthere is some ywithxRy.
+B. For every class Y, ifxRy,x2X,y2Y, then either ( x;y;y0) or (x;y0;y) is in'(t), for
+somey02Y.
+If the class automaton accepts, then clearly every position in Xis a source node. Con-
+versely, if all nodes in Xare source nodes, then there is an accepting run of the above class
+automaton. This accepting run uses the guidance system for the witness function from
+Theorem 2.
+This completes the proof for the case when [x] requiresy1y2. For the case y16y2,
+the proof is almost the same, except for two changes. The rst change is that we apply
+Theorem 2 to the graph trees ( t;E), obtained from data trees ( t;) by taking as Ethe
+complement of. This explains why Theorem 2 is formulated for graph trees and not just
+data trees. The second change is that we write y062Yinstead ofy02Yat the end of
+condition B.
+4.Simplifying the query
+Before proving Theorem 2, we formulate two simplifying conditions about the regular query
+'[x;y1;y2].
+For two nodes x;yin a treet, we write word t(x;y) for the sequence of labels on the
+unique shortest path from xtoyint, including xandy. We omit the subscript twhen a
+
+--- Page 11 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 11
+tree is clear from the context. Note that word t(x;y) is always nonempty and word t(x;x) is
+the label of x.
+The two conditions about the query '[x;y1;y2] are:
+(1) All selected triples satisfy y1<x<y 2.
+(2) Whether or not a triple is selected depends only on the words word t(y1;x) and
+wordt(x;y2). It does not depend on nodes outside the path from y1toy2.
+The goal of this section is to reduce Theorem 2 to the case when '[x;y1;y2] is a sim-
+plied query , as dened above. This simplication is achieved in several steps. (In the
+case of words, the simplication would be standard, but for trees it requires new ideas
+about guidance systems.) Formally, in this section we show that Theorem 2 follows from
+Theorem 3 (deliberately formulated as late as in the forthcoming Subsection 4.7) that only
+speaks about simplied queries. Theorem 3 itself is proved in Section 5.
+4.1.Generalized witness functions. Fix any number n2N, although we will be mainly
+interested in n2f1;2g. Consider a regular query '[x;y1;:::;yn] over trees. Consider now
+a treettogether with a set Eofn-tuples of nodes in t. As before, the idea is that Egives a
+constraint on the witness variables. A witness tuple for a nodexis a tuple (y1;:::;yn)2E
+such that (x;y1;:::;yn) is selected by 'int. In this case, we say that xis asource , andyi
+is ani-th witness forx(the other variables are quantied existentially).
+Awitness function for'and a set of source nodes Xin (t;E) is a function which
+assigns to each node x2Xsome witness (an i-th witness for some i, withidepending on
+x).
+We say that a regular query '[x;y1;:::;yn] has witness functions of guidance width m
+if for every tree t, every choice Eofn-tuples of nodes of tand every set Xof source nodes
+in (t;E), there is a witness function for 'andXof guidance width at most m. A query'
+has witness functions of bounded guidance width if some such mexists.
+4.2.Three arrangements. By an arrangement of the nodes x;y1;y2in a tree we mean
+the information on how these nodes, and their greatest common ancestors
+gca(x;y1) gca(x;y2) gca(y1;y2)
+are related with respect to the descendant ordering. We distinguish three dierent arrange-
+ments, pictured below.
+y1 y2x y1
+y2xgca(x,y1) = gca(y1,y2) gca(x,y1) = gca(x,y2) 
+gca(y1,y2) gca(x,y2)
+y1y2
+xgca(x,y1)gca(x,y2)  = gca(y1,y2)
+These arrangements correspond, respectively, to the following situations.
+gca(x;y1) = gca(x;y2)gca(y1;y2) (A1)
+gca(x;y1) = gca(y1;y2)gca(x;y2) (A2)
+gca(x;y2) = gca(y1;y2)gca(x;y1) (A3)
+
+--- Page 12 ---
+12 M. BOJA NCZYK AND S. LASOTA
+The arrangements are not contradictory, for instance the case x=y1=y2is covered by
+all three. The slightly more general case y1=y2that essentially represents binary queries
+'[x;y], is fully covered by (A1).
+Lemma 2. We may assume without loss of generality that all the triples selected by ', as
+in the statement of Theorem 2, have the same arrangement.
+Proof. Otherwise we can split 'into a union of three queries, one for each arrangement,
+and then combine the three separate guidance systems.
+4.3.Path-based queries. Let us x one of the arrangements. There are four words
+w1;w2;w3;w4that will interest us. These are shown on the picture below for the arrange-
+ment (A1) only, but the reader can easily see the situation for all other arrangements.
+w1 = word(gca( x,y1), x) w2 = word(gca( x,y1), gca(y1,y2)) w3 = word(gca( y1,y2), y1) w4 = word(gca( y1,y2), y2)y1 y2x
+y1 y2x
+y1 y2x
+y1 y2x
+.
+A regular query '[x;y1;y2] is called path-based if its truth value depends only on some reg-
+ular properties of the four words w1;:::;w 4. The precise denition of path-based queries
+we use in this paper is in terms of monoids. A query that selects triples only in arrange-
+ment (A1) is called path-based if there exists a monoid morphism
+: !S
+such that membership ( x;y1;y2)2'(t) depends only on the values assigned by to the
+wordsw1;:::;w 4. In other words, there is a set of accepting quadruples FS4such that
+(x;y1;y2) belongs to '(t) if and only if
+((w1);:::; (w4))2F :
+An analogous denition of path-based queries is given for the other arrangements (A2)
+and (A3).
+Lemma 3. We may assume without loss of generality that ', as in the statement of
+Theorem 2, is path-based.
+Proof. The key observation is that there is a functional letter-to-letter transducer fand a
+path-based query such that'=f, i.e. for a tree tthe set'(t) of tuples selected by '
+intis the same as the set of tuples selected by inf(t). The observation can be proved
+using logical methods (the transducer computes MSO theories) or using automata methods
+(the transducer computes state transformations).
+To prove the lemma, we need to show that if Theorem 2 is true for the path-based
+queries, then it is also true for arbitrary ternary queries '. But this is straightforward,
+as'andhave the same witness functions in trees tandf(t), respectively.
+
+--- Page 13 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 13
+4.4.Composing guidance systems. In the sequel we will compose guidance systems as
+outlined in the lemma below. For two partial functions f;gon the set of nodes of a tree,
+by the composition gfwe mean, somewhat non-standardly, the partial function with the
+same domain as f, and dened as follows:
+(gf)(x) =(
+g(f(x)) if g is dened on f(x)
+f(x) otherwise.
+Lemma 4. Letf;gbe partial functions on the set of nodes of a tree, of guidance width m1
+andm2, respectively. Then their composition gfis of guidance width at most 2 m1m2.
+Proof. Fix a tree ttogether with some m1- andm2-color guidance systems  fand g,
+inducingfandg, respectively. We will show existence of a 2 m1m2-color guidance system
+forgf.
+As the rst step, combine  fand gas follows: a node xis rst guided by  f, and
+then, ifgis dened on f(x), guided by  gto its nal destination. Formally,  contains
+those guides of  fwhose destination node is not in the domain of g; and moreover a number
+of guides that are composed of at least two guides, to be described now.
+Fix a pair of colors ( k;l), wherekis a color used in  fandlis a color used in  g.
+A composed guide, colored by the pair ( k;l), is derived from one l-colored guide from  g,
+say, and all those k-colored guides from  fwhose destination node is a source node of
+, The source nodes of the composed guide are all source nodes of all the above-mentioned
+k-colored guides from  f. The target node of the composed guide is the target node of .
+We will focus on the composed guides only. (A 'non-composed' guide in , say colored
+k, may be safely considered as colored by ( k;l), for anyl.)
+The above coloring, using m1m2colors, is not satisfactory as same colored guides may
+be in conict. We will show how to resolve these conicts by introducing an additionally
+distinguishing piece of data into the colors. Fix a color pair ( k;l) as above. Note that a
+conict may only arise when the  g-part (l-colored in  g) of one (k;l)-colored guide, say 1,
+conicts with the  f-part (k-colored in  f) of another same colored guide, say 2. Consider
+an undirected graph G, whose nodes are all ( k;l)-colored guides; there is an edge between
+1and2in the graph if the abovementioned conict arises.
+We claim that the graph Gis a forest, i.e., a disjoint union of trees. Towards a contra-
+diction, suppose that Ghas a cycle consisting of npairwise dierent guides 1;:::;n. Take
+n+1=1. Letx1;:::;xndenote arbitrarily chosen nodes witnessing the conicts, i.e., xi
+belongs to the supports of guides iandi+1. Ini+1, for anyin, there is a unique path
+fromxitoxi+1(takexn+1asx1), denote it pi;pialways uses a path of a guide from  f,
+coloredk, and a path of a guide from  g, coloredl. As thek-colored guides never conict,
+and likewise the l-colored ones, the k-colored part of piis separated from the same colored
+part ofpi+1by at least one l-colored edge; thus the paths piare nonempty, i.e., xi6=xi+1.
+Assume that x1;:::;xnare pairwise distinct (if this is not the case, i.e., xi=xj, consider
+xi;:::;xj1instead; and consider i;:::;j1instead of1;:::;n).
+Now we are prepared to obtain a contradiction, thus proving that Gis a forest. If two
+pathspiandpi+1share an edge adjacent to xi+1, the edge may be removed from both
+paths; this clearly forces xi+1to be replaced appropriately. Thus the paths can be made
+edge-disjoint; moreover we keep the xinodes pairwise distinct, argued as above. Hence the
+pathsp1;:::;pnform a cycle in the tree t, a contradiction.
+
+--- Page 14 ---
+14 M. BOJA NCZYK AND S. LASOTA
+Knowing that Gis a forest, we may easily label its nodes by two numbers 1 ;2, level
+by level, starting from an arbitrary leaf in any connected component. This additional
+numbering, added to the colors of the guides in , eliminates the problematic conicts and
+makes  a 2 m1m2-color guidance system as required.
+4.5.Binary queries.
+Lemma 5. Every binary regular query '[x;y] has witness functions of bounded guidance
+width.
+Proof. Whenever a pair ( x;y) belongs to '(t), call the node z= gca(x;y) anx-intermediate
+node, and call yaz-nal node. We will dene two guidance systems, the rst one directing
+any source node xto anx-intermediate one, and the second one directing any intermediate
+nodezto az-nal one. The two guidance systems will be combined using Lemma 4.
+A binary query is essentially a degenerate case of ternary query, with y1=y2. By
+Lemma 3 assume that 'is path-based. Thus its truth value in a tree tonly depends on
+some regular properties of two words
+w1= wordt(x;gca(x;y)) andw2= wordt(gca(x;y);y);
+as depicted in the gure in Section 4.3. (Words w3andw4are empty as y1=y2.) Namely,
+(x;y) belongs to '(t) if and only if ( (w1);(w2))2F, for a designated set FS2. Fix
+(s1;s2)2F. We will dene a guidance system for pairs ( x;y) which satisfy
+(w1) =s1; (w2) =s2:
+(Then the required guidance system will be a disjoint union over all pairs ( s1;s2)2F.)
+Assume further, without loss of generality, that xis in the left subtree, and yis in the
+right subtree of gca( x;y), including possibly y= gca(x;y). (Again, the required guidance
+system will be a disjoint union of two systems.)
+Consider deterministic word automata A1andA2that recognize the properties 1(s1)
+and1(s2), respectively. Think of a run of A1, starting from a source node x, along the
+path intleading from xto somex-intermediate node. Consider such runs of A1starting
+from all source nodes x, one run from every source node. These runs may be translated
+into a guidance system, as follows.
+Each of the runs labels nodes on the path from xto anx-intermediate node with states
+ofA1. The idea is that two source nodes xandx0may be directed to the same intermediate
+node if the two runs of A1that start in xandx0label some node of twith the same state.
+In other words, one may use the same guide both for xandx0. Thus there is a guidance
+system, with as many colors as the number of states of A1, that follows the runs of A1until
+acceptance, and directs any source node xto somex-intermediate node.
+Likewise forA2, there is a corresponding guidance system, that leads any intermediate
+nodezto somez-nal node. Applying Lemma 4 for these two guidance systems we get the
+result.
+
+--- Page 15 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 15
+4.6.Arrangement (A1).In this section we show that Theorem 2 holds if all triples selected
+by'[x;y1;y2] have arrangement (A1), pictured below.
+y1 y2x
+Suppose[x;y] is a binary query, and [y;y1;y2] is a ternary query. We dene the
+following ternary query
+y[x;y1;y2] =9y [x;y]^[y;y1;y2]:
+Lemma 6. Let;be as above. If andhave bounded width witness functions then so
+doesy.
+Proof. By considering the witness function for yobtained as a composition and applying
+Lemma 4.
+Lemma 7. We may assume without loss of generality that 'only selects triples ( x;y1;y2)
+wherex= gca(y1;y2).
+Proof. By the considerations in Section 4.3, we know that a triple ( x;y1;y2) is selected by
+'if and only if the images, under the morphism , of the four path words w1;w2;w3;w4
+belong to a designated set FS4of accepting tuples.
+Lets1;:::;s 42S. Lets1;s2be the binary query that selects a pair ( x;y) if
+(wordt(gca(x;y);x)) =s1
+(wordt(gca(x;y);y)) =s2:
+Likewise, let s3;s4be the ternary query that selects a triple ( y;y1;y2) if
+gca(y1;y2) =y
+(wordt(y;y1)) =s3
+(wordt(y;y2)) =s4:
+The queries s1;s2ands3;s4can be joined to dene ', in the following way.
+'=[
+(s1;s2;s3;s4)2Fs1;s2ys3;s4:
+By Lemma 6, we see that the width of witness functions for 'is bounded by the widths of
+the witness functions for the queries, which is bounded by Lemma 5, and the width of
+the witness functions for the queries. The latter are queries where the rst variable is the
+gca of the second and third variables, which concludes the proof of the lemma.
+
+--- Page 16 ---
+16 M. BOJA NCZYK AND S. LASOTA
+Thanks to the above lemma, we are left with a query 'that selects triples in the
+arrangement pictured below (for future reference let us call this arrangement trivial ).
+y1 y2x
+We will provide a 2-color guidance system that induces a witness function for 'in (t;E).
+This is guaranteed by the following lemma:
+Lemma 8. Let'be any (not necessarily regular) query that selects only nodes in a trivial
+arrangement. Then 'has witness functions of guidance width 2.
+Proof. The guidance system is constructed in a single root-to-leaf pass.
+More formally, for each set Xof nodes that is closed under ancestors, we will provide a
+guidance system  Xthat directs each node that is a source node and in Xto some witness,
+eithery1ory2. The guidance system will have the additional property that no tree edge is
+traversed by two guides.
+The guidance system is constructed by induction on the size of X. The induction base,
+whenXhas no nodes, is straightforward. We now show how  Xshould be modied when
+adding a single xnode toX. Whenxis not a source node, then nothing needs to be done.
+Otherwise, suppose that xis a source node, and the witness is ( y1;y2). Since all guides in
+Xoriginate in nodes from X, any guide that passes through xmust also pass through its
+parent. Using the additional assumption, we conclude that at most one guide from X
+passes through x. In particular, either the left subtree of x, which contains y1, or the right
+subtree ofx, which contains y2, has no guide passing through it. We create a new guide
+that connects xto the witness in the subtree without a guide.
+For arrangement (A1) the proof of Theorem 2 is thus completed.
+4.7.Arrangements (A2) and (A3).For the remaining arrangements, in this section we
+only show how they can be reduced to the simplied ones. We formulate Theorem 3
+below, which we will use in this section, and which follows easily from the Main Lemma
+(forthcoming Lemma 9) to be proven in the next section.
+To state the theorem, we need a new notion. A guidance system in a graph tree is
+called consistent wrt. a given ternary query if each of guides obeys the following uniqueness
+requirement: whenever a set ZXof source nodes is guided to the same node y, then
+there is a pair ( y1;y2) that is a witness pair for all nodes Z, withy1=yory2=y.
+Roughly speaking: if all nodes in Zagree on the witness they are guided to, then they
+agree on the other witness as well. The notion of consistency is meaningful only relative
+to a given ternary query. Below, the consistency property will make it possible to combine
+two guidance systems appropriately.
+Theorem 3. Every simplied regular query has witness functions of bounded guidance
+width. Furthermore, a consistent guidance system always exists (of the required bounded
+guidance width).
+Now using Theorem 3 we prove Theorem 2 for arrangements (A2) and (A3). By sym-
+metry, we only consider the arrangement (A2). We simplify the arrangement in two steps.
+
+--- Page 17 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 17
+First we claim that without loss of generality xcan be assumed to be an ancestor of y2
+{ this may be shown by essentially the same technique as in Lemma 7 hence we omit the
+details. Second, we show that y1can be assumed to be an ancestor of xandy2. The
+arrangement (A2), as well as its two successive simplications, are pictured below.
+y1
+y2x
+y1
+y2x
+y1
+y2x
+Let our starting arrangement be the middle one in the picture above, i.e. we assume
+that the rst simplication has been already applied. Without loss of generality we may
+assume that y1is in the left subtree, and xin the right subtree of the gca( x;y1) node (thus
+we again split into two sub-cases), and that both xandy1are not equal to gca( x;y1).
+By the considerations in Section 4.3, we know that a triple ( x;y1;y2) is selected by '
+intif and only if the images, under the morphism , of the three path words:
+wordt(x;gca(x;y1));wordt(x;y2);wordt(gca(x;y1);y1);
+belong to a designated set FS3of accepting tuples.
+Fix (s1;s2;s3)2F. We dene a guidance system for triples ( x;y1;y2) which satisfy
+s1= wordt(x;gca(x;y1)); s2= wordt(x;y2); s3= wordt(gca(x;y1);y1):
+In general, the guidance system will be a disjoint union over all triples ( s1;s2;s3)2F.
+Consider an arbitrary graph tree ( t;E) over which 'is evaluated, together with an arbitrary
+subsetXof source nodes. We aim at constructing a guidance system whose number of colors
+depends only on ', that directs any source node x2Xto eithery1ory2, for some triple
+(x;y1;y2) selected by '. We will do it in two stages. In the rst stage, the node xis
+directed either to y2, or toy= gca(x;y1). By Theorem 3 we will be able to assume that
+this guidance system is consistent. In the second stage, every ynode will be directed either
+to an appropriate y1node, or to the y2node, using Lemma 8. Finally, we will compose the
+two guidance systems using Lemma 4.
+Formally speaking, for the rst stage we use the simplied query s1;s2[x;y;y 2] that
+selects a triple ( x;y;y 2) if
+(wordt(x;y)) =s1
+(wordt(x;y2)) =s2
+y<xy2
+xis in the right subtree of y.
+The idea now is that the query s1;s2is evaluated over a modied graph tree ( t;Es3).
+The relation Es3is dened as follows: ( y;y2) is inEs3i (y1;y2)2Efor somey1such that
+y= gca(y1;y2),
+y1is in the left subtree of y,
+(wordt(y;y1)) =s3.
+Intuitively, the rst node y1of every edge ( y1;y2)2Eis moved to y= gca(y1;y2), but
+only if the equation (wordt(y;y1)) =s3holds. Note that we use here the more general
+notion of graph trees, rather than data trees, as the relation Es3is not an equivalence in
+general. By Theorem 3 we know that s1;s2has a witness function induced by a consistent
+
+--- Page 18 ---
+18 M. BOJA NCZYK AND S. LASOTA
+m-color guidance system , where monly depends on s2;s3and does not depend on t,E
+orX.
+Each source node xis directed so far either to some y<x , or toy2x. Without loss
+of generality we may assume that colors used for target nodes of the rst kind are distinct
+from colors used for target nodes of the other kind. For the second stage, consider the set Y
+of all target nodes yof  of the rst kind, and restrict attention to the induced sub-guidance
+system of . Note that every such node y2Yhas an associated node y1located in the
+left subtree of ysuch that(wordt(y;y1)) =s3. Moreover, due to consistency of , yhas
+also an associated node y2located in the right subtree of ysuch that(word(y;y2)) =s1s2.
+Consider the set of all such triples ( y;y1;y2) and apply Lemma 8 to obtain a 2-color guidance
+system that directs every y2Yto one of its two associated nodes.
+Finally, using Lemma 4 we obtain a guidance system for 'of bounded width.
+As the graph tree ( t;E) and the subset Xwere chosen arbitrarily, this completes the
+proof of Theorem 2.
+5.Proof of Theorem 3
+Fix in this section a simplied regular query '[x;y1;y2], i.e., satisfying the conditions (1)
+and (2) from Section 4. Since the query is regular, the dependency stated in item (2) is a
+regular dependency. We may thus assume a semigroup morphism : !Srecognizing
+', which maps each word to an element of a nite semigroup S. Whether or not a triple
+(x;y1;y2) is selected by 'depends only on the images
+s1=(wordt(y1;x))2S (5.1)
+s2=(wordt(x;y2))2S: (5.2)
+In other words, there is a set of accepting pairs FS2such that'(w) is the set of triples
+(x;y1;y2) with (s1;s2)2F. We x the morphism for the rest of this section.
+We distinguish two types of edges in a graph tree ( t;E). The tree edges are edges that
+connect parents with children, as well as a dummy edge going into the root of the tree and
+dummy edges going out of the leaves. The class edges are the edges from E. We order tree
+edges by the ancestor relation , according to the positions in the tree, with the dummy
+edges coming as the least one and the maximal ones, respectively. For two tree edges ef
+in a treet, we write word t(e;f) for the word labeling ton the path that begins in the target
+ofeand ends in the source of f. In particular word t(e;e) =.
+Forward Ramseyan splits. The key tool in our proof is a forward Ramseyan split, as
+dened by Colcombet in [6]. Let tbe a tree labeled with . A split of height nintis a
+functionthat maps each tree edge to a number in f1;:::;ng. We say that two tree edges
+e < f areneighbors with respect to a split , ifassigns the same number to eandf,
+and all tree edges between eandfare mapped to at most (e). A splitis called forward
+Ramseyan with respect to a morphism if
+(wordt(e;f)) =(wordt(e;g)) (5.3)
+holds for every three pairwise neighboring tree edges e<f <g . The following theorem was
+shown in [6].
+
+--- Page 19 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 19
+Theorem 4. Fix a morphism : !S. Every tree thas a forward Ramseyan split of
+heightO(jSj). Furthermore, the split is top-down deterministic in the sense that all tree
+edges from a node to its children are assigned the same number in the split.
+From now on wlog we consider only complete binary trees, where each non-leaf node
+has precisely two children.
+Factors. Two comparable wrt. (i.e., belonging to one path) tree edges eandfare called
+visible if all tree edges between eandfare mapped by the split to values strictly smaller
+than(e) and(f). Visible pairs of tree edges naturally determine a nested factorization
+oftin the following way.
+Apre-factor in a treetis a connected set of nodes (connected by tree edges) such
+that if a node xis in the pre-factor, then either all children of xare in the pre-factor, or
+none of them. Each pre-factor of thas a root and some leaves (maximal nodes wrt. ),
+and inherits its edges from t. In the denitions below, we talk about tree edges and not
+class edges. We distinguish internal edges of a pre-factor, connecting two nodes in that
+pre-factor, and external edges connecting the root or the leaves with some node outside
+the pre-factor. This includes the tree edge leading to the root of the pre-factor (called the
+root edge of the pre-factor) and the tree edges going out of the leaves (called the leafedges
+of the pre-factor). Note that external edges may be either proper tree edges, or dummy
+edges. As the split is assumed to be deterministic, all tree edges leaving a given leaf of a
+pre-factor are assigned the same number. A pre-factor Fis called a factor intif it respects
+the splitin the following way: the root edge is visible from each of the leaf edges. This
+means that on each (shortest) path in a factor from its root edge to a leaf edge, numbers
+assigned by to the internal edges on that path are strictly smaller than those assigned to
+the two external edges. By the height of a factor we mean the greatest number assigned to
+an internal edge, or 0 if no such edge exists (the case of one-node pre-factor). Additionally,
+the whole tree tis also a factor if, wlog, we assume that the root dummy edge is visible
+from all leaf dummy edges; its height at most equals the height of .
+Asubfactor of a factorFis any factor G(Fthat is maximal with respect to inclusion.
+By the denition of factor, we get:
+Claim 1. Every two dierent subfactors of Fare disjoint (have disjoint sets of nodes, but
+possibly share an external edge).
+Proof. Indeed, assume two non-disjoint dierent subfactors F1;F2of some factor F. The
+root node of one of them, say the root node r1ofF1, is necessarily contained in the other.
+AsF1is not included in F2, there must be a leaf node l1ofF1not contained in F2; the path
+that leads to that leaf node passes though a leaf node l2ofF2. If we denote by r2the root
+node ofF2we know that the four nodes are located on one path in the following order:
+r2r1l2<l1:
+This arrangement of the nodes is in a clear contradiction with the assumption that the tree
+edge incoming to riis visible from (all) tree edges outgoing from li, fori= 1;2.
+Hence each factor Fis the disjoint union of its subfactors. We say a subfactor Gis an
+ancestor of a subfactor Hif their roots are so related. Likewise we talk about a subfactor
+being a child orparent of some other subfactor.
+A factor of height 2 together with its decomposition into subfactors is pictured below.
+
+--- Page 20 ---
+20 M. BOJA NCZYK AND S. LASOTA
+5 54
+44
+443
+33322
+22
+22
+221
+11
+111
+5 54
+44
+443
+33322
+22
+22
+221
+11
+111 1
+111
+11
+Our proof of Theorem 3 is based on the Main Lemma stated below. The lemma is
+proved by induction on the height of factors. To state the lemma recall the notion of
+consistent guidance system introduced in Section 4.7.
+Lemma 9 (Main Lemma) .Fix a factor height h. There is a bound n2N, depending only
+on'andh, such that for every graph tree ( t;E), every factor Fintof heighth, and every
+setXFof source nodes, there is a witness function for 'andXin (t;E) induced by a
+consistent guidance system using at most ncolors. Furthermore, this witness function only
+points to descendants of the root of F.
+The proof of the lemma is by induction on the height h. The number of colors nwill
+depend on hand the size of the monoid Srecognizing the query. It will not depend on t.
+When going from height hto heighth+ 1, there will be a quadratic blowup in the number
+of colors. Therefore, nwill be doubly exponential in the height of F.
+Since the witness function will be induced by a guidance system, the last assumption
+in Lemma 9 could be restated as saying that no guide passes through the root edge of F.
+Theorem 3 is a special case of the Main Lemma when Fis the whole tree.
+The base case when h= 0, and hence the factor Fhas one or no nodes, is easy (1
+color, going downwards, is sucient). For the induction step, x a factor F, and assume
+that there is a bound nsucient for any factor of smaller height than F, which includes
+all subfactors of F. Below, subfactors of Fare simply called subfactors , without explicitly
+referring to F.
+A tree edge of Fthat is an external edge of one if its subfactors is called a border edge .
+In particular each external edge of Fis a border edge. Special care will be paid in our
+proof to internal (i.e. not external) border edges, i.e., the edges that connect one subfactor
+to another.
+Claim 2. If two internal border edges in a factor are comparable by the ancestor relation
+then they are assigned the same value by the split.
+Proof. Assume two internal border edges e<f , with dierent values assigned by the split,
+such that no other internal border edge is located on the (shortest) path from etof. As
+values assigned to all external border edges are strictly larger, one of e;fis visible from
+some (possibly external) border edge \over" the other. That is, either eis visible from some
+e0> f, orfis visible from some f0< e. In both cases, one of e,fis an internal edge of
+some subfactor { a contradiction.
+
+--- Page 21 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 21
+We do a case distinction, regarding the number of internal border edges on the paths
+from a source to witness nodes. For a node x2Xand a witness ( y1;y2) we dene two
+numbersm1;m2. Letm1be the number of internal border edges on the path between y1
+andx, and letm2be the number of internal border edges on the path between xandy2.
+For technical convenience, we deliberately choose not to count external border edges. We
+divide the set Xinto three parts:
+X1Nodesx2Xthat have a witness with m21.
+X2Nodesx2Xthat have a witness with m11 andm22.
+X3Nodesx2Xthat have a witness with m1;m22.
+We prove the Main Lemma for each of the three parts separately. Next, we combine the
+three guidance systems into a single guidance system. Our construction will yield two
+kinds of guides: the ancestor guides pointing to the rst witness and thus going up a
+tree; and descendant guides pointing to the second witness, and thus going down the tree.
+Interestingly, ancestor guides will be only created in case of nodes from X2. All the guides
+will satisfy the consistency condition required in Lemma 9.
+Nodes from X1, i.e. nodes that have a witness with m21.Consider a subfactor
+GofF. In this case, each node x2X1\Ghas a descendant witness y2that is either in G,
+or in a child subfactor of G, or perhaps outside F. Apply the induction assumption to G,
+producing a guidance system  Gwith at most ncolors. Since the Main Lemma requires
+the guidance system to point to descendants of the factor's root, and m21, we infer
+that inside Fthe guides of  Gcan only intersect Gand its child subfactors, and no other
+subfactors (it is possible that the guides leave the factor F, though). Therefore, all the
+guidance systems  G, for all subfactors GofF, can be combined into a single guidance
+system with at most 2 ncolors, used alternatingly for even and odd depths.
+Nodes from X2, i.e. nodes that have a witness with m11andm22.In this
+case, for each node x2X2there is an ancestor witness y1that is either in the subfactor
+ofx, in the parent subfactor, or outside F. Note that the latter is possible only when x
+belongs either to the root subfactor of F, or to some of its child subfactors; denote this set
+of subfactors byG0. We will construct the guidance system in a step-by-step manner, for
+all subfactors, according to the ancestor ordering.
+Formally speaking, consider a family Gof subfactors that is closed under ancestors and
+includesG0. We provide a guidance system  Gof 4n2+ 3ncolors that provides witnesses
+for all nodes of Xbelonging to the subfactors in G. The construction of  Gis by induction
+on the number of subfactors in G.
+The induction base is when GequalsG0. For each subfactor G2G 0, we apply the
+Main Lemma, for the smaller height, to Gand nodes from X2that belong to G, yielding an
+n-color guidance system. We combine these guidance systems into  G0as follows: use one
+set ofncolors for the root subfactor, and another set of ncolors for all the child subfactors
+of the root.
+For the induction step, suppose that we have already constructed  GforG, and that
+G62Gis a subfactor whose parent is in G. Consider the guides of  Gthat pass through the
+root edge of G. We apply two distinctions to these guides. First, we use the name parent
+guides , for the guides that originate in the parent subfactor of G, and the name far guides
+for the other guides. Second, we use the name ending guides for the guides whose target is
+inGand the name transit guides for the other guides, which continue into a child subfactor
+
+--- Page 22 ---
+22 M. BOJA NCZYK AND S. LASOTA
+ofG, or even exit F. Altogether, there are four possibilities: parent transit guides, far
+ending guides, etc. We assume additionally that there are at most nparent guides and at
+most 2nfar and parent guides altogether, and hence at most 2 nguides entering G. This
+additional invariant is satised by the induction base, and it will be preserved through the
+construction.
+Apply the induction assumption of the Main Lemma to Gand nodes from X2that
+belong toG, yielding a guidance system  with nfresh colors. We use the name starting
+guides for the guides of . We want to combine  Gwith  in such a way that the resulting
+guidance system still uses at most 4 n2+ 3ncolors, like  G, and satises the additional
+invariant. If we were to simply take the two systems together, we might end up with a leaf
+edge ofGwhich is traversed both by starting and transit guides, which could exceed the
+bound 2non guides passing through border edges.
+We solve this problem as follows. Consider the leaf edges of Gthat are traversed by the
+far transit guides. There are at most 2 nsuch edges by our invariant assumption. We will
+remove all starting guides that pass any of these edges, and nd other witnesses for nodes
+that use these starting guides. This guarantees that the invariant condition is recovered:
+at most 2nguides passes through any leaf edge of G, and at most nof them are starting
+guides. These other witnesses will be ancestors. This explains why the induction starts
+withGcontaining the root subfactor and its children, since these are the subfactors that
+may have ancestor witnesses outside the whole factor F(recall that passing through the
+root edge is not counted in m1). The statement of the Main Lemma does not allow guides
+that pass through the root edge of F.
+The removing of starting guides proceeds as follows. Let ebe a leaf edge of Gthat is
+traversed by a far transit guide, which has color jin the guidance system  G. Letbe a
+starting guide, which has color iin , that also traverses e, withy2its target node. By
+the consistency property of , there is some y1such that (y1;y2)2Eis a witness pair for
+all source nodes of . Note that by assumption on m11, the node y1is either in the
+subfactorGor its parent. We create an ancestor guide with a fresh color that connects all
+the source nodes of toy1. The color of this guide, which we call an ancestor color , will
+take into account three parameters: the colors iandj, as well as a parity bit b2f0;1g.
+The parity bit is 0 if and only if Ghas an even number of ancestor subfactors. We use the
+triple (i;j;b) for the color name.
+We will show that this new ancestor guide does not conict with any other ancestor
+guide with the same color. Each new ancestor guide is contained in Gand possibly its
+parent subfactor H, by assumption on m11. Inside the subfactor Gthere is at most one
+ancestor guide of each color, so there are no collisions inside G. One could imagine, though,
+that a new ancestor guide with color ( i;j;b) collides inside the parent subfactor Hwith
+some other ancestor guide 0of the same color. Since the colors of and0agree on the
+parity bitb, we conclude that the guide 0cannot originate in H, which has a dierent
+parity than G. Therefore, 0must originate in some other child subfactor of H, call itG0,
+that had been previously added to G. Since the color of 0is also (i;j;b), we conclude that
+jwas the color of a far transit guide in G0. This is impossible, since a far transit guide in
+G0orGmust originate not in H, but in an ancestor of H, and therefore there would be a
+collision in the root of H.
+The ancestor guides created above are the only ancestor guides in our solution. In the
+subfactors where they are used, the ancestor guides have the target in the parent subfactor.
+
+--- Page 23 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 23
+Let us count the number of colors used. We need 2 ncolors for the transit guides, and
+ncolors for the starting guides. For the ancestor guides, we need 4 n2colors. Altogether,
+we need 4n2+ 3ncolors. Note that all the guides satisfy the consistency condition required
+by Lemma 9.
+Nodes from X3, i.e. nodes that have a witness with m1;m22.In this case, each
+nodex2X3has a witness ( y1;y2) such that the path from y1tox, as well as the path from
+xtoy2, passes through at least two internal border edges. This case is the only one where
+we use the forward Ramseyan split.
+Consider a source xwith a witness ( y1;y2). The internal border edges naturally split
+wordt(y1;x) and word t(x;y2) intom1+1 andm2+1 words, respectively:
+wordt(y1;x) =v0v1:::vm1
+wordt(x;y2) =w0w1:::wm2:
+The rst letter of v0is the label of y1. The last letter of vm1and also the rst letter of
+w0is the label of x. The last letter of wm2is the label of y2(recall that y1ory2might be
+outsideF). Furthermore, each two consecutive internal border edges are not only visible,
+but also neighbouring, by Claim 2. Hence, as we have a forward Ramseyan split (cf. (5.3)),
+the values(wordt(y1;x)) and(wordt(x;y2)) are determined by the rst two parts and
+the last part:
+(i)(wordt(y1;x)) =(v0)(v1)(vm1)
+(ii)(wordt(x;y2)) =(w0)(w1)(wm2):(5.4)
+Let us x six values s1;:::;s 62S. By splitting the set X3into at mostjSj6parts, each
+requiring a separate guidance system, we can assume that each x2X3has a witness where
+s1=(v0)s2=(v1)s3=(vm1)
+s4=(w0)s5=(w1)s6=(wm2):
+We will only consider witnesses that satisfy the assumptions above.
+We now proceed to create the guidance system. As in the case m11, the guidance
+system will be dened for a family Gof subfactors that is closed under ancestors. The
+guidance system will use at most 3 colors, and will have the following additional invariant
+property: if eis an edge that connects a subfactor Gwith a child subfactor H, then at most
+two guides pass through e. Furthermore, if exactly two guides pass through e, then one of
+the guides has its target in H.
+The construction is by induction on the number of subfactors in G. The induction base
+whenGhas no subfactors is obvious. Below we show how to modify a guidance system  G
+forGwhen adding a new subfactor G.
+Consider the (at most two) guides of  Gthat pass through the edge connecting G
+to G. As in the case m11, we use the term transit guide for the guides of  Gthat
+enterGthrough its root and exit through one of its external leaf edges. By the invariant
+assumption, there is at most one transit guide.
+We now dene a guidance system  for the nodes in G, which we will next combine
+with G.
+Claim 3. There is a one-color guidance system  dening a witness function for all nodes
+inG\X3.
+
+--- Page 24 ---
+24 M. BOJA NCZYK AND S. LASOTA
+Proof. For each node x2G\X3, choose the lexicographically rst witness y2> x that
+satises the assumptions on the six images in the semigroup, call it yx. LetYbe all
+these witnesses yx, forx2G\X3; this set is an antichain with respect to the descendant
+relation. For each y2Y, letXybe the chain of nodes xwhich are witnessed by y. By the
+lexicographic assumption, if y;y02Yare such that yis lexicographically before y0, then
+no element from Xyhas an ancestor in Xy0. Consequently, if we dene yto be the guide
+that connects all Xytoy, then  =fygy2Yis a one-color guidance system for all nodes
+inG\X3.
+The guides of  we call starting guides as usual.
+We now need to combine  and  G. If we simply combine  Gand , we might end up
+with a starting guide going through and external edge of Gthat is already traversed by two
+transit guides. To avoid this problem, we need to do an optimisation relying on a simple
+observation formulated in the claim below.
+A descendant guide is called livein a subfactor Gifpasses through G, and its
+target is notin a child subfactor of G(i.e., the target is in a proper descendant of some
+child ofG, or outside F). The idea is that the target of satises the assumption m22
+from the 'point of view' of nodes in G. Note that guides live in Gmay be either transit or
+starting in G.
+Claim 4. Suppose that two consistent descendant guides and0are live in a subfactor
+Gand exitGthrough the same edge. Suppose also that at least one of them is starting in
+G. Then all source nodes of one of ,0can be moved to the other.
+Proof. Let (y1;y2) be the witness pair corresponding to and let (y0
+1;y0
+2) be the witness pair
+corresponding to 0{ by consistency, not only the second witnesses y2andy0
+2are determined
+byand0, but the whole witness pairs. Note that the source nodes of a descendant guide
+inGare all situated on one path from the root of Gto one of the leaves. If both and0
+are starting in G, assume wlog that has a source node that is an ancestor of all source
+nodes of0; otherwise one of the guides is starting in G, wlog assume it is 0. As only the
+case ofm1;m22 is considered, and the values s1;:::;s 6are xed, due to equation (5.4)(i)
+the pair (y1;y2) is a witness for all source nodes of 0as well. Thus, these nodes may be
+guided toy2instead ofy0
+2.
+We use the term live transit guide for the transit guides that are live in G, and dead
+transit guide for the other transit guides (those that have their target in a child subfactor
+ofG).
+Consider an edge ethat connects Gwith a child subfactor H. Suppose rst that e
+is traversed by a starting guide and a live transit guide. Using the claim we merge the
+starting guide with the transit one. Therefore, we end up satisfying the invariant property:
+eis passed by at most one live guide, and possibly by one dead transit guide.
+We have thus completed the proof of the Main Lemma and thus also of Theorem 3.
+6.Applications
+In this section, we present two applications of our results. The rst application is a class
+of XML documents for which emptiness of XPath is decidable. The second application is
+a proof that two-variable rst-order logic is not captured by XPath, in the presence of two
+attribute values per node.
+
+--- Page 25 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 25
+Satisability of XPath. As we said in the introduction, our study on class automata is
+a rst step in a search for structural restrictions on data words and data trees which make
+XPath satisability decidable.
+One idea for a structural restriction would be a variant of bounded clique width, or
+tree width. Maybe bounded clique or tree width are interesting restrictions, but they are
+not relevant in the study of class automata. This is because bounded clique width or tree
+width, when dened in the natural way for data trees, guarantees decidable satisability for
+a logic far more powerful than class automata: MSO with navigation and equal data value
+predicates.
+Here we provide a basic example of a restriction on inputs that works for class automata
+but not for MSO. A data tree is called bipartite (bipartite refers to the data) if its nodes
+can be split into two connected (by the child relation) sets X;Y such that every class has
+at most one node in Xand at most one node in Y.
+Satisability of MSO, or even FO, with navigation and data equality predicates is unde-
+cidable even for bipartite data words. For instance, a solution to the Post Correspondence
+Problem can be encoded in a bipartite data word using a FO formula.
+This coding, however, cannot be captured by class automata, which is implied by the
+following theorem.
+Theorem 5. On bipartite data trees, emptiness is decidable for class automata, and there-
+fore also for XPath.
+Proof. The key insight is that data trees which use each data value at most twice can be
+described using semilinear sets. To avoid notational complications, assume that every data
+value appears exactly twice in a bipartite tree.
+Consider a class automaton Aover input alphabet . Suppose that the work alphabet
+is , and the transducer is f. Let the class condition be a language over alphabet  f0;1g,
+recognized by a deterministic bottom-up tree automaton C, with states Q. For technical
+convenience, assume that a run of Clabels tree edges, instead of tree nodes, with states.
+Thus all leaf dummy edges of an input tree uover f0;1gare labeled with the initial
+state ofC, and the labeling of all other edges is uniquely determined by u. LetC(u) denote
+the state that labels the root dummy edge of u. A treeuis accepted ifC(u) is an accepting
+state.
+By assumption, the nodes of a bipartite data tree ( t;) are partitioned into two con-
+nected subsets, and thus there is a single edge that splits the two subsets; call this edge the
+border edge . Such a tree twith a distinguish edge may be modeled as t
+fz;z0g, wherez
+andz0are the two nodes connected by the border edge. Further, tmay be split into two
+smaller trees, according to the partition: the border edge is a dummy root edge for one of
+the trees, and a leaf dummy edge for the other one. Call these two induced trees lower and
+upper tree, respectively.
+For the lower tree of t, call ittl, and a subset Xof nodes of tl, it makes sense to write
+C(tl
+X). For the upper one, call it tu, we will need a slightly dierent notation. Assume
+that the automaton Creadstu
+X, for someX, starting in the initial state in all dummy leaf
+edges oftuexcept for the border edge, where the automaton starts in some chosen state q.
+IfCaccepts the tree tu
+Xunder this assumption, we write q2C1(tu
+X). In particular,
+observe that the automaton Cacceptst
+Xif and only ifC(tl
+Xl)2C1(tu
+Xu), where
+X=Xl[Xuis the induced partition of X.
+
+--- Page 26 ---
+26 M. BOJA NCZYK AND S. LASOTA
+Given a tree tover  with a single distinguished edge, say t
+fz;z0g, let(t
+fz;z0g)
+be the set of all trees soverQfl;ugthat satisfy the following conditions:
+the set of nodes of sis the same as the set of nodes of t,
+if a nodexofsis intlthen it is labeled by ( C(tl
+fxg);l),
+if a nodexofsis intuthen it is labeled by ( q;u), for some q2C1(tu
+fxg).
+Using, we dene the relation between trees over  and trees over Qfl;ugas follows:
+(t;s)2ifs2(t
+fz;z0g) for some edge ( z;z0) int.
+Claim 5. The relation is computable by a nondeterministic letter-to-letter transducer.
+LetTdenote the set of all trees over . As nondeterministic transducers preserve
+regular languages, we have:
+Claim 6. BothK=f(T) and(K) =fs: (t;s)2; t2Kgare eectively computable
+regular languages over  and Qfl;ug, respectively.
+Claim 7. A class automaton Aaccepts some bipartite data tree if and only if (K) contains
+a tree that satises, for every q2Q, the following condition: the number of nodes labeled
+by (q;l) is the same as the number of nodes labeled by ( q;u).
+With the last two observations decidability follows immediately. To decide emptiness of
+a given class automaton A, compute the Parikh image of the language (K), an eectively
+semi-linear set by Claim 6, intersect this set with the semi-linear condition of Claim 7, and
+ckeck for emptiness of the resulting semi-linear set.
+Multiple attributes. Heretofore, we have studied data trees, which model XML docu-
+ments where each node has one data value. In this section, and this one only, we consider
+the situation where each node xhasndata values. Formally, an n-data tree consists of a
+treetover the nite alphabet and functions d1;:::;dnwhich map the tree nodes to data
+values. How does XPath deal with multiple data values? Instead of y1y2andy16y2,
+we can use any formula of the form
+di(y1) =dj(y2) where i;j2f1;:::;ng
+or its negation (for inequality). For n>1 we need more information than just the partitions
+of nodes into classes of i, for eachi2f1;:::;ng. An example is the property \every node
+has the same data value on attributes 1 and 2".
+How do we extend class automata to read n-data trees? For one data value, the class
+condition is a language over the alphabet  f0;1g. Forndata values, the class condition
+is a language over the alphabet  f0;1gn. Ann-data tree ( t;d1;:::;dn) is accepted if
+there is an output sof the transducer on tsuch that for every data value d, the tree
+s
+d1
+1(d)
+
+d1
+n(d)
+is accepted by the class condition. By the same technique as in the proof of Theorem 1, we
+can prove that the automata capture XPath.
+A consequence is that for n2, XPath does not capture two-variable rst-order logic
+(unlike the case of n= 1). This was an open question.
+Theorem 6. The following (two-variable) property
+ =8x8y d 1(x) =d1(y)()d2(x) =d2(y)
+cannot be dened by a boolean query of XPath.
+
+--- Page 27 ---
+AN EXTENSION OF DATA AUTOMATA THAT CAPTURES XPATH 27
+Proof. Towards a contradiction, suppose that  is recognized by any class automaton in the
+generalized version for 2 data values. The document that will confuse the automaton will
+be a word. Consider the document (over a one letter alphabet) with positions 1 ;:::; 2n,
+where the data values are dened
+d1(i) =d1(n+i) =ifori2f1;:::;ng
+d2(i) =d2(n+i) =ifori2f1;:::;ng
+Since the above document satises  , it should also be accepted by the automaton. Let the
+work alphabet of the automaton be , and let a1a2n2be the word produced by the
+automaton in the accepting run. For a data value d, we use the term class string ofdfor
+the word
+a1a2n
+d1
+1(d)
+d1
+2(d):
+By denition of the way class automata accept documents, each class string should belong
+to the class condition. Consider a number i2f1;:::;ng. The class string of iis
+ui=a1a2n
+fi;n+ig
+;
+Suppose that
+: (f0;1gf 0;1g)!S
+is a morphism recognizing the class condition. If nis greater thanjSj2, then we can nd
+two data values i<j2f1;:::;ngsuch that
+(uijf1;:::;ng) =(ujjf1;:::;ng)
+(uijfn+ 1;:::; 2ng) =(ujjfn+ 1;:::; 2ng):
+Consider a new document obtained from the previous one by swapping the rst, but not
+second, data value in the positions iandj. This new document violates the property  .
+To get the contradiction, we will construct an accepting run of the class automaton for this
+new document. The output of the transducer is the same a1a2n. The class strings are
+the same for data values other than iandj, so they are also accepted. For the class strings
+ofiandj, the images under are the same by assumption on iandj, and hence they are
+also accepted.
+Acknowledgment
+The authors would like to thank the anonymous reviewers for their valuable comments.
+References
+[1] Michael Benedikt, Wenfei Fan, and Floris Geerts. XPath satisability in the presence of DTDs. J. ACM ,
+55(2), 2008.
+[2] H. Bj orklund and T. Schwentick. On notions of regularity for data languages. In FCT, pages 88{99,
+2007.
+[3] M. Boja nczyk and S. Lasota. An extension of data automata that captures XPath. In Proc. LICS'10 ,
+pages 243{252, 2010.
+[4] M. Boja nczyk, A. Muscholl, T. Schwentick, and L. Segoun. Two-variable logic on data trees and XML
+reasoning. J. ACM , 56(3), 2009.
+[5] Mikolaj Bojanczyk, Claire David, Anca Muscholl, Thomas Schwentick, and Luc Segoun. Two-variable
+logic on data words. ACM Trans. Comput. Log. , 12(4):27, 2011.
+
+--- Page 28 ---
+28 M. BOJA NCZYK AND S. LASOTA
+[6] T. Colcombet. A combinatorial theorem for trees. In ICALP , pages 901{912, 2007.
+[7] Julien Cristau, Christof L oding, and Wolfgang Thomas. Deterministic automata on unranked trees. In
+FCT, pages 68{79, 2005.
+[8] S. Demri and R. Lazi c. LTL with the freeze quantier and register automata. ACM Trans. Comput.
+Log., 10(3), 2009.
+[9] D. Figueira. Satisability of downward XPath with data equality tests. In PODS , pages 197{206, 2009.
+[10] D. Figueira. Forward-XPath and extended register automata on data-trees. In ICDT , pages 231{241,
+2010.
+[11] F. Geerts and W. Fan. Satisability of XPath queries with sibling axes. In DBPL , pages 122{137, 2005.
+[12] M. Jurdzi nski and R. Lazi c. Alternation-free modal mu-calculus for data trees. In LICS , pages 131{140,
+2007.
+[13] M. Kaminski and N. Francez. Finite-memory automata. Theor. Comput. Sci. , 134(2):329{363, 1994.
+[14] L. Segoun. Automata and logics for words and trees over an innite alphabet. In CSL, pages 41{57,
+2006.
+This work is licensed under the Creative Commons Attribution-NoDerivs License. To view
+a copy of this license, visit http://creativecommons.org/licenses/by-nd/2.0/ or send a
+letter to Creative Commons, 171 Second St, Suite 300, San Francisco, CA 94105, USA, or
+Eisenacher Strasse 2, 10777 Berlin, Germany

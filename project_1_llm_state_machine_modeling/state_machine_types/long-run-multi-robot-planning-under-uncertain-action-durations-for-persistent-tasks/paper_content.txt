@@ -1,0 +1,885 @@
+--- Page 1 ---
+Long-Run Multi-Robot Planning under Uncertain Action Durations for
+Persistent Tasks
+Carlos Azevedo1, Bruno Lacerda2, Nick Hawes2and Pedro Lima1
+Abstract — This paper presents an approach for multi-robot
+long-term planning under uncertainty over the duration of
+actions. The proposed methodology takes advantage of general-
+ized stochastic Petri nets with rewards (GSPNR) to model multi-
+robot problems. A GSPNR allows for uniﬁed modeling of action
+selection, uncertainty on the duration of action execution, and
+for goal speciﬁcation through the use of transition rewards and
+rewards per time unit. Our approach relies on the interpretation
+of the GSPNR model as an equivalent embedded Markov
+reward automaton (MRA). We then build on a state-of-the-art
+method to compute the long-run average reward over MRAs,
+extending it to enable the extraction of the optimal policy.
+We provide an empirical evaluation of the proposed approach
+on a simulated multi-robot monitoring problem, evaluating
+its performance and scalability. The results show that the
+synthesized policy outperforms a policy obtained from an
+inﬁnite horizon discounted reward formulation as well as a
+carefully hand-crafted policy.
+I. I NTRODUCTION
+In recent years, there has been a growing interest on the
+use of multi-robot systems for disaster prevention applica-
+tions, such as ﬂooding and forest ﬁre detection [ 1]. These
+applications require the robots to repeat tasks efﬁciently
+over long periods of time. Robust and efﬁcient multi-robot
+coordination strategies are crucial to achieve such a goal.
+Robustness requires approaches that take into account the
+uncertainty inherent to teams of robots executing actions in
+real environments, while efﬁciency requires considering long
+horizons during planning.
+Example 1: Consider a scenario where a team of ho-
+mogeneous robots can move between a set of locations.
+The robots can also perform sensing actions, and the task
+consists of persistently monitoring some of these locations
+in order to anticipate a wildﬁre spreading. However, each
+robot has limited battery autonomy and can only execute
+actions for a certain amount of time before needing to
+recharge. Both the time taken to execute each action, and
+the time taken to discharge or recharge are not deterministic;
+they are inﬂuenced by many uncontrollable factors, such as
+congestion in navigation or battery temperature. The goal is
+to ﬁnd a policy that optimally controls the multi-robot system,
+selecting, among multiple choices, how the system should
+behave and which actions should be executed by the robots.
+This policy must ensure that the higher priority locations are
+always monitored whilst the ones with lower priority are only
+1Institute For Systems and Robotics, Instituto Superior
+T´ecnico, University of Lisbon, Portugal fcguerraazevedo,
+pedro.lima g@tecnico.ulisboa.pt
+2Oxford Robotics Institute, University of Oxford, UK fbruno,
+nickh g@oxfordrobotics.institutemonitored when there are enough robots available, without
+letting the higher priority locations go unmonitored.
+In this paper, we propose an approach that addresses the
+challenges related to Example 1. We capture the uncertainty
+in action duration by modeling the problem as a generalized
+stochastic Petri net with rewards (GSPNR) [ 2]. These rewards
+are an intuitive instrument to deﬁne the team objective,
+for example, allowing to specify a prioritization over key
+locations. Then, we adapt a state-of-the-art model checking
+algorithm [ 3] to synthesize policies that optimize the long-run
+average (LRA) reward properties of the multi-robot task.
+Our main contributions are: (i) the use of GSPNRs to
+model multi-robot persistent monitoring tasks, exploiting their
+translation into embedded Markov reward automata (MRAs)
+to synthesize policies that optimize team-level objectives;
+(ii) the extension of state-of-the-art methods to model check
+LRA properties over an MRA, in order to extract the
+corresponding optimal policy; and (iii) the application of
+LRA properties to provide an automated approach for solving
+multi-robot persistent surveillance and monitoring problems
+under action duration uncertainty.
+II. R ELATED WORK
+The use of Petri nets (PNs) for modeling and analyzing
+robot tasks has been advocated in several works. Relevant
+examples are [ 4], where PNs are used for modeling and
+execution of single-robot plans and [ 5], where an extra focus is
+given to the modeling of the stochasticity of the environment,
+through the use of GSPNs. These works assume a plan for
+the robots has already been created by some other means.
+PNs have also been used for behavior synthesis. [ 6] uses
+Boolean speciﬁcations to deﬁne path planning goals over
+a PN model of the team, and an integer linear program
+formulation to synthesize a team controller, whilst [ 7] uses
+ideas from supervisory control to enforce a set of coordination
+rules speciﬁed in safe linear temporal logic. The work in [ 8]
+uses a PN to model an instance of a similar problem to the
+persistent monitoring under battery constraints example we
+consider in our work, and proposes a genetic algorithm to
+ﬁnd approximate solutions. The three works above assume a
+deterministic model, not tackling uncertainty. In contrast, [ 9]
+uses a GSPN model similar to the one we use, thus tackling
+uncertainty on action duration. We extend it to include more
+general rewards and tackle LRA properties.
+Other works that tackle uncertainty on action duration use
+generalized semi-Markov decision processes (GSMDPs) to
+model muti-robot systems [ 10], [11]. GSMDPs are able to
+handle arbitrary distributions over action duration but at the
+
+--- Page 2 ---
+cost of very high complexity, due to both the modeling of
+arbitrary distributions, and the requirement of a full joint state
+space. This requirement is relaxed in [ 12], which uses single
+robot planning models, for single robot goals, that consider
+the stochastic inﬂuence of other robots in the duration of
+navigation actions. Asynchronous execution has also been
+enabled in a decentralized, partially observable, setup through
+the use of macro actions [ 13], [14], where synchronization
+happens only at the level of the macro action controllers,
+rather than at each timestep. However, these methodologies
+do not scale well enough to solve inﬁnite-horizon problems,
+and restrict the problem formulation to a ﬁnite-horizon view.
+Finally, [ 15] has looked at synthesis for steady state
+properties over MDPs, a class of properties similar to LRA
+rewards. They, however, focus on MDP models, which cannot
+encode continuous action duration.
+III. P RELIMINARIES
+A. Generalized Stochastic Petri Nets
+A generalized stochastic Petri net (GSPN) is tuple G=
+hP;T;W+;W;F;m 0i, where:Pis a non-empty and ﬁnite
+set of places; Tis a ﬁnite set of transitions; W:PT!N
+andW+:TP!Nare input and output arc weight
+functions, respectively; F:TE!R0is a function that
+associates a rate to each exponential transition; and m0:
+P!Nis the initial marking.
+A marking, m:P!N, assigns to each place a non-
+negative integer number of tokens and represents the state of
+the system. The set of input and output places of transition
+t2Tis given by IN(t) =fp2PjW(p;t)>0g
+andOUT (t) =fp2PjW+(t;p)>0g, respectively. A
+transition is said to be enabled if each input place p2IN(T)
+is marked with at least W(p;t)tokens. Enabled transitions
+canﬁre, updating the marking according to the arc weight
+functions. When tﬁres,W(pin;t)deﬁnes the number of
+tokens removed from pin, for each place pin2IN(T); and
+W+(t;pout)the number of tokens added to pout, for each
+placepout2OUT (T). Transitioning from marking mto
+markingm0due to the ﬁring of tis denoted as m[tim0. We
+denote the set that contains all markings reachable from the
+initial marking m0, under the ﬁring rule, as R(G).
+The setTis partitioned into the subset of immediate
+transitionsTIand the subset of exponential transitions TE,
+withT=TI[TE. The exponential transitions, once enabled,
+ﬁre only after an exponentially distributed duration elapses.
+Every exponential distribution tehas a rate given by F(te)
+while immediate transitions take zero time to ﬁre.
+In marking m, the set of enabled immediate transitions
+is deﬁned by (m) =ft2TIjm(p)W(p;t)8p2
+IN(t)gand the set of enabled exponential transitions by
+(m) =ft2TEjm(p)W(p;t)8p2IN(t)g. A race
+condition occurs when there is more than one exponential
+transition enabled in the same marking. When this happens,
+the probability of transition te2TEﬁring ﬁrst is given by
+P(m;te) =F(te)=P
+ti2(m)F(ti). The set of all vanishing
+markings is deﬁned as RV(G) =fm2R(GR)j(m)6=;g
+and the set of all tangible markings is deﬁned as RT(G) =fm2R(GR)j(m)6=;g. Note that with this deﬁnition,
+RV(G)\RT(G)6=;, which is non-standard. This is due
+to our inpterpretation of GSPNs as models for multi-robot
+decision making, and will be further discussed in Section V-C.
+IV. P ROBLEM FORMULATION
+A. GSPNR Models for Persistent Monitoring
+Recall the monitoring task introduced in Example 1 and
+consider that each decision is made instantaneously while
+actions take some stochastic time to execute. In order to
+capture this problem, we take advantage of GSPNs with
+rewards (GSPNR), which maintain the same formal elements
+of GSPNs and add place and transition rewards.
+A GSPNR is deﬁned by the tuple Gr=
+hP;T;W+;W;F;m 0;rP;rTiand when modeling
+multi-robot persistent monitoring tasks can be interpreted
+as follows. The set of places Pmodels local robot states.
+These represent action execution or action selection states for
+subsets of the multi-robot system. T=TI[TEwhereTI
+represents the set of all available controllable actions, and TE
+is the set of timed events that are triggered by environmental
+changes. These events correspond, for example, to a robot
+ﬁnishing executing an action, or the battery level of a robot
+becoming low. Exponential transitions capture the duration
+uncertainty associated with them. Wdeﬁnes which timed
+events can trigger or what are the available actions, in a
+local state.W+dictates the local state update of such timed
+events or action selection. The initial number of robots
+executing each action or in each decision state is represented
+bym0. The place reward rP:P!R0gives a reward of
+rP(p)per time unit in markings where there is at least one
+token inp. The transition reward rT:TI!R0gives a
+reward every time the action t2TIis selected.
+Crucially, in this representation, each robot is viewed as a
+token, providing an intuitive and compact model of the multi-
+robot system. Therefore, the global state of the system in each
+moment is represented by its marking. Tangible markings
+model states where all robots are executing a time consuming
+action, while vanishing markings model states where a subset
+of robots has to make a decision. When compared with
+standard modelling approaches, such as multi-agent Markov
+decision processes (MMDPs), this model provides: better
+scalability and fully asynchronous execution [ 9], ensuring a
+smaller state-space and a more ﬂuid policy execution.
+B. Long Run Average Objective
+We start by deﬁning a stationary deterministic policy over
+a GSPNR as a function :R(Gr)!TI[fwaitgthat maps
+markings to immediate transitions, representing the triggering
+of an action; or to a wait action, representing the system
+waiting for the occurrence of the next environmental event
+before deciding whether to trigger an action. We denote the
+set of all such policies over GrasGr. We can now deﬁne our
+objective as ﬁnding the policy that maximizes the expected
+LRA reward over Gr:
+LRAGr= max
+2GrE
+lim
+!1rew(;)
+
+;
+
+--- Page 3 ---
+5b) Obtain the policy that escapes each MEC 𝜋!!∗and the full policy for the GSPNR4b) Solve the𝑆𝑆𝑃problemandobtainthelong-runaveragereward𝐿𝑅𝐴andthepolicyto reacheachMEC 𝜋##$∗.4a) Build the SSP problem (𝑀,𝑀%,𝐿%)1a) Transform 𝐺&	into the MRA 𝑀'"GSPNR𝐺&2) Find MECs 𝑀%3a) Convert each 𝑀%into an uniformized MDP with copy states 𝐷%𝑀(, ... 𝑀%, ...3b) Apply relative value iteration to each 𝐷%and obtain the LRA 𝐿%and the policy to stay in each MEC 𝜋)!∗.𝐷(, ... 𝐷%, ...𝐿(, ... 𝐿%, ...𝑀(, ... 𝑀%, ...𝑆𝑆𝑃
+𝐿𝑅𝐴)(𝑠*)𝜋!!∗, ... 𝜋!"∗, ...5a) Convert each MEC into a crossing SSP 𝐶&%𝐶&(, ... 𝐶&%, ...𝑀(, ... 𝑀%, ...𝜋001∗𝑀𝑀1b) Transform MRA 𝑀'"into MRA 𝑀with wait actions 𝑀'"
+⇡⇤Gr(s)=8><>:⇡⇤SSP(s), i fs/2SMEC⇡⇤Mi(s), i fs2SMi^⇡⇤SSP(sig)=?⇡⇤ei(s), i fs2SMi^⇡⇤SSP(sig)6=?
+<latexit sha1_base64="588T23H+IxGo6MXIII88NuJmQig=">AAADOHicjVLdatRAFJ7Ev7r+tNVLEQaXShVZkiKoF4VCEb0prKzbLuxkw2Rysh06mUlnJtol5Bm81VfxTbzzrvTWJ3B2N5SmpeKBgY/vnPOdnzlJIbixQfDL82/cvHX7zsrdzr37Dx6urq0/2jeq1AyGTAmlRwk1ILiEoeVWwKjQQPNEwEFytDv3H3wBbbiSn+2sgCinU8kzzqh1VLzu+WTcIQWPqw8TXU9ebpoXeLtDEphyWTEnbOqlezDoN+7nmFg4sdUrzDNcY4OJVJZLPIirvfe7NSZkmbEX82szmnAXgclXSKeAW0Xi6YS7PjBJlD3Xgwt6/xC8Xo9IOF5IdgjI9Hy6KF7rBr1gYfgqCBvQRY313daeklSxMgdpmaDGjMOgsFFFteVMgNMsDRSUHdEpjB2UNAcTVYvfqvGGY1KcKe2etHjBXsyoaG5yag/ry6SZ5UmbTDQcy3Y5RsV2opRM1UlUzWWoyGjd2Wi1ZLO3UcVlUVqQbNlRVgpsFZ7fCE65BmbFzAHKNHdDYXZINWXWXdJ/VHMLDS+v7yrY3+qFr3vvPm11d0bNalfQE/QMbaIQvUE76CPqoyFiHve+ed+9H/5P/7d/6p8tQ32vyXmMWub/+Qvv4AL+</latexit>Fig. 1. Diagram summarizing the steps of the proposed solution method.
+The blocks highlighted in green represent the proposed extensions.
+whereEis the expected value and rew(;)is the accu-
+mulated sum of rewards rPandrTobtained until time ,
+starting in the initial marking m0and following policy .
+V. S OLUTION METHOD
+A. Solution Overview
+The proposed model is able to capture multi-robot persistent
+surveillance and monitoring problems, with homogeneous
+robot teams and uncertainty in action durations. This section
+details a method to synthesize policies for GSPNRs that
+optimize the average reward in the long-run. This solution
+is summarized in Fig. 1 and can be split into ﬁve steps:
+1) transform the GSPNR model to the embedded MRA with
+wait actions M; 2) determine the maximal end components
+(MECs)fM1;:::;Migof the MRA M; 3) compute the LRA
+reward for each MEC Miand obtain the optimal policy
+that stays indeﬁnitely in each MEC 
+Mi; 4) obtain the LRA
+reward ofMand the optimal policy to reach each MEC
+
+SSP, by reducing Mto a stochastic shortest path problem
+(SSP) on a Markov decision process (MDP), where each
+MEC is a pair of states of the SSP; 5) convert each MEC,
+along the optimal policy path, to an SSP on an MDP and
+obtain the optimal policy that escapes each MEC 
+ei.
+In the following sections, we focus on steps 1 and 5,
+since the remaining steps are methods already covered in
+the literature [ 3] [16]. Subsections V-B and V-C, details how
+to perform the transformation in step 1 and Subsection V-E
+explains how to address step 5. A brief explanation of steps
+2, 3 and 4 can be found on Subsection V-D.
+B. From GSPNR to MRA
+We interpret the marking process of the GSPNR model
+as an MRA. By doing so, we can adapt methods for model
+checking MRAs in order to obtain policies for the GSPNR
+model. We extend the conversion presented in [ 17], by
+adding rewards to the models. An illustrative example of
+this transformation is shown in Fig. 2.
+An MRA is an MDP extension that considers both imme-
+diate and continuous-time transitions. The embedded MRA
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+Ready<latexit sha1_base64="pXWSya6J9UcICwPdMjcCP5hZVcc=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69BIvgqSSi6LHgxWMV0xbaUDabSbt0swm7GyGE/gYvHhTx6g/y5r9x2+agrQ8GHu/NMDMvSDlT2nG+rcra+sbmVnW7trO7t39QPzzqqCSTFD2a8ET2AqKQM4GeZppjL5VI4oBjN5jczvzuE0rFEvGo8xT9mIwEixgl2kjeA5IwH9YbTtOZw14lbkkaUKI9rH8NwoRmMQpNOVGq7zqp9gsiNaMcp7VBpjAldEJG2DdUkBiVX8yPndpnRgntKJGmhLbn6u+JgsRK5XFgOmOix2rZm4n/ef1MRzd+wUSaaRR0sSjKuK0Te/a5HTKJVPPcEEIlM7fadEwkodrkUzMhuMsvr5LORdO9bF7dXzZavTKOKpzAKZyDC9fQgjtogwcUGDzDK7xZwnqx3q2PRWvFKmeO4Q+szx/ISY6/</latexit>
+ExecuteTask
+<latexit sha1_base64="cROY7T0taW4NmfYph65QhhoyALA=">AAACAXicbVDLSgMxFM3UVx1fo24EN8EiuCozRdFlQQSXFfqCdiiZ9E4bmskMSUYsQ934K25cKOLWv3Dn35i2s9DWA4HDOfcmOSdIOFPadb+twsrq2vpGcdPe2t7Z3XP2D5oqTiWFBo15LNsBUcCZgIZmmkM7kUCigEMrGF1P/dY9SMViUdfjBPyIDAQLGSXaSD3nqEtBaJBMDOybB6CpBtuuEzXqOSW37M6Al4mXkxLKUes5X91+TNPIXEc5UarjuYn2MyI1oxwmdjdVkBA6IgPoGCpIBMrPZgkm+NQofRzG0hyh8Uz9vZGRSKlxFJjJiOihWvSm4n9eJ9XhlZ8xkZhggs4fClOOdYyndeA+k0A1HxtCqGTmr5gOiSTUdKJsU4K3GHmZNCtl77x8cVcpVdt5HUV0jE7QGfLQJaqiW1RDDUTRI3pGr+jNerJerHfrYz5asPKdQ/QH1ucPfc+WVg==</latexit>
+ExecutingTask
+<latexit sha1_base64="y5EDjK7m3ml/slHXW7j4UT/2tQ8=">AAACA3icbZDLSgMxFIYz9VbH26g73QSL4KrMFEWXBRFcVugN2qFk0tM2NJMZkoxYhoIbX8WNC0Xc+hLufBsz7Sy09YfAx3/OSXL+IOZMadf9tgorq2vrG8VNe2t7Z3fP2T9oqiiRFBo04pFsB0QBZwIammkO7VgCCQMOrWB8ndVb9yAVi0RdT2LwQzIUbMAo0cbqOUddCkKDZGJo3zwATXRGdp2occ8puWV3JrwMXg4llKvWc766/YgmobmQcqJUx3Nj7adEakY5TO1uoiAmdEyG0DEoSAjKT2c7TPGpcfp4EElzhMYz9/dESkKlJmFgOkOiR2qxlpn/1TqJHlz5KRNxokHQ+UODhGMd4SwQ3GcSqOYTA4RKZv6K6YhIQk0qyjYheIsrL0OzUvbOyxd3lVK1ncdRRMfoBJ0hD12iKrpFNdRAFD2iZ/SK3qwn68V6tz7mrQUrnzlEf2R9/gAksZdD</latexit>
+ExecutionFinished
+<latexit sha1_base64="SDkNa9zfNrI4pqWKHQMBpZ2tm+0=">AAACB3icbVDLSsNAFJ3UV42vqEtBgkVwVZKi6LIgissK9gFtKJPJTTt0MgkzE7GE7tz4K25cKOLWX3Dn3zhps9DWAxcO59w7c+/xE0alcpxvo7S0vLK6Vl43Nza3tnes3b2WjFNBoEliFouOjyUwyqGpqGLQSQTgyGfQ9keXud++ByFpzO/UOAEvwgNOQ0qw0lLfOuwR4AoE5QPz6gFImsumeU05lUMI+lbFqTpT2IvELUgFFWj0ra9eEJM00o8ShqXsuk6ivAwLRQmDidlLJSSYjPAAuppyHIH0sukdE/tYK4EdxkIXV/ZU/T2R4UjKceTrzgiroZz3cvE/r5uq8MLLKE9SBZzMPgpTZqvYzkOxAyqAKDbWBBNB9a42GWKBiU5GmjoEd/7kRdKqVd3T6tltrVLvFHGU0QE6QifIReeojm5QAzURQY/oGb2iN+PJeDHejY9Za8koZvbRHxifP1cmmQo=</latexit>
+s1=[ 2,0]
+<latexit sha1_base64="Su0YEeGP3mnCTaUwMLqI/Ccg6rk=">AAAB8nicbVDLSgNBEOz1GeMr6tHLYBA8SNgNEb0IAS8eI5gHbJYwO5lNhszOLjO9QljyGV48KOLVr/Hm3zh5HDSxoKGo6qa7K0ylMOi6387a+sbm1nZhp7i7t39wWDo6bpkk04w3WSIT3Qmp4VIo3kSBkndSzWkcSt4OR3dTv/3EtRGJesRxyoOYDpSIBKNoJd/0PHJL/OqlG/RKZbfizkBWibcgZVig0St9dfsJy2KukElqjO+5KQY51SiY5JNiNzM8pWxEB9y3VNGYmyCfnTwh51bpkyjRthSSmfp7IqexMeM4tJ0xxaFZ9qbif56fYXQT5EKlGXLF5ouiTBJMyPR/0heaM5RjSyjTwt5K2JBqytCmVLQheMsvr5JWteLVKlcPtXK9s4ijAKdwBhfgwTXU4R4a0AQGCTzDK7w56Lw4787HvHXNWcycwB84nz/uCY/M</latexit>
+s2=[ 1,1]
+<latexit sha1_base64="/GbycD2Y0b2+ToGN7Bfdnaxhtdw=">AAAB8nicbVDLSgNBEOz1GeMr6tHLYBA8SNgNEb0IAS8eI5gHbJYwO5lNhszOLjO9QljyGV48KOLVr/Hm3zh5HDSxoKGo6qa7K0ylMOi6387a+sbm1nZhp7i7t39wWDo6bpkk04w3WSIT3Qmp4VIo3kSBkndSzWkcSt4OR3dTv/3EtRGJesRxyoOYDpSIBKNoJd/0quSW+N6lF/RKZbfizkBWibcgZVig0St9dfsJy2KukElqjO+5KQY51SiY5JNiNzM8pWxEB9y3VNGYmyCfnTwh51bpkyjRthSSmfp7IqexMeM4tJ0xxaFZ9qbif56fYXQT5EKlGXLF5ouiTBJMyPR/0heaM5RjSyjTwt5K2JBqytCmVLQheMsvr5JWteLVKlcPtXK9s4ijAKdwBhfgwTXU4R4a0AQGCTzDK7w56Lw4787HvHXNWcycwB84nz/vk4/N</latexit>
+ExecuteTask<latexit sha1_base64="GKMyYfxiNZw2gJ0WDwz2D26wisc=">AAAB8nicbVDLSgMxFL1TX7W+qi7dBIvgqsyIosuCCC4r9AXToWTSTBuayQzJHbGUfoYbF4q49Wvc+Tem7Sy09UDgcM695J4TplIYdN1vp7C2vrG5Vdwu7ezu7R+UD49aJsk0402WyER3Qmq4FIo3UaDknVRzGoeSt8PR7cxvP3JtRKIaOE55ENOBEpFgFK3k3z1xliFvUDPqlStu1Z2DrBIvJxXIUe+Vv7r9hGUxV8gkNcb33BSDCdUomOTTUjczPKVsRAfct1TRmJtgMj95Ss6s0idRou1TSObq740JjY0Zx6GdjCkOzbI3E//z/Ayjm2AiVGpjKbb4KMokwYTM8pO+0JyhHFtCmRb2VsKGVFOGtqWSLcFbjrxKWhdV77J69XBZqXXyOopwAqdwDh5cQw3uoQ5NYJDAM7zCm4POi/PufCxGC06+cwx/4Hz+AGtvkWw=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+s3=[ 0,2]
+<latexit sha1_base64="sxNCjDCxMlUtxwnY3Hww0Jc615w=">AAAB9HicbVBNS8NAEJ3Ur1q/qh69LBbBg5SkVvQiFLx4rGA/IA1ls920SzebuLsplNDf4cWDIl79Md78N27THLT1wcDjvRlm5vkxZ0rb9rdVWFvf2Nwqbpd2dvf2D8qHR20VJZLQFol4JLs+VpQzQVuaaU67saQ49Dnt+OO7ud+ZUKlYJB71NKZeiIeCBYxgbSRP9dPLGbpFrn1R8/rlil21M6BV4uSkAjma/fJXbxCRJKRCE46Vch071l6KpWaE01mplygaYzLGQ+oaKnBIlZdmR8/QmVEGKIikKaFRpv6eSHGo1DT0TWeI9Ugte3PxP89NdHDjpUzEiaaCLBYFCUc6QvME0IBJSjSfGoKJZOZWREZYYqJNTiUTgrP88ipp16pOvXr1UK80unkcRTiBUzgHB66hAffQhBYQeIJneIU3a2K9WO/Wx6K1YOUzx/AH1ucPvZqQ2g==</latexit>
+ExecuteTask<latexit sha1_base64="GKMyYfxiNZw2gJ0WDwz2D26wisc=">AAAB8nicbVDLSgMxFL1TX7W+qi7dBIvgqsyIosuCCC4r9AXToWTSTBuayQzJHbGUfoYbF4q49Wvc+Tem7Sy09UDgcM695J4TplIYdN1vp7C2vrG5Vdwu7ezu7R+UD49aJsk0402WyER3Qmq4FIo3UaDknVRzGoeSt8PR7cxvP3JtRKIaOE55ENOBEpFgFK3k3z1xliFvUDPqlStu1Z2DrBIvJxXIUe+Vv7r9hGUxV8gkNcb33BSDCdUomOTTUjczPKVsRAfct1TRmJtgMj95Ss6s0idRou1TSObq740JjY0Zx6GdjCkOzbI3E//z/Ayjm2AiVGpjKbb4KMokwYTM8pO+0JyhHFtCmRb2VsKGVFOGtqWSLcFbjrxKWhdV77J69XBZqXXyOopwAqdwDh5cQw3uoQ5NYJDAM7zCm4POi/PufCxGC06+cwx/4Hz+AGtvkWw=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+s1=[ 2,0]
+<latexit sha1_base64="Su0YEeGP3mnCTaUwMLqI/Ccg6rk=">AAAB8nicbVDLSgNBEOz1GeMr6tHLYBA8SNgNEb0IAS8eI5gHbJYwO5lNhszOLjO9QljyGV48KOLVr/Hm3zh5HDSxoKGo6qa7K0ylMOi6387a+sbm1nZhp7i7t39wWDo6bpkk04w3WSIT3Qmp4VIo3kSBkndSzWkcSt4OR3dTv/3EtRGJesRxyoOYDpSIBKNoJd/0PHJL/OqlG/RKZbfizkBWibcgZVig0St9dfsJy2KukElqjO+5KQY51SiY5JNiNzM8pWxEB9y3VNGYmyCfnTwh51bpkyjRthSSmfp7IqexMeM4tJ0xxaFZ9qbif56fYXQT5EKlGXLF5ouiTBJMyPR/0heaM5RjSyjTwt5K2JBqytCmVLQheMsvr5JWteLVKlcPtXK9s4ijAKdwBhfgwTXU4R4a0AQGCTzDK7w56Lw4787HvHXNWcycwB84nz/uCY/M</latexit>
+s2=[ 1,1]
+<latexit sha1_base64="/GbycD2Y0b2+ToGN7Bfdnaxhtdw=">AAAB8nicbVDLSgNBEOz1GeMr6tHLYBA8SNgNEb0IAS8eI5gHbJYwO5lNhszOLjO9QljyGV48KOLVr/Hm3zh5HDSxoKGo6qa7K0ylMOi6387a+sbm1nZhp7i7t39wWDo6bpkk04w3WSIT3Qmp4VIo3kSBkndSzWkcSt4OR3dTv/3EtRGJesRxyoOYDpSIBKNoJd/0quSW+N6lF/RKZbfizkBWibcgZVig0St9dfsJy2KukElqjO+5KQY51SiY5JNiNzM8pWxEB9y3VNGYmyCfnTwh51bpkyjRthSSmfp7IqexMeM4tJ0xxaFZ9qbif56fYXQT5EKlGXLF5ouiTBJMyPR/0heaM5RjSyjTwt5K2JBqytCmVLQheMsvr5JWteLVKlcPtXK9s4ijAKdwBhfgwTXU4R4a0AQGCTzDK7w56Lw4787HvHXNWcycwB84nz/vk4/N</latexit>
+ExecuteTask<latexit sha1_base64="GKMyYfxiNZw2gJ0WDwz2D26wisc=">AAAB8nicbVDLSgMxFL1TX7W+qi7dBIvgqsyIosuCCC4r9AXToWTSTBuayQzJHbGUfoYbF4q49Wvc+Tem7Sy09UDgcM695J4TplIYdN1vp7C2vrG5Vdwu7ezu7R+UD49aJsk0402WyER3Qmq4FIo3UaDknVRzGoeSt8PR7cxvP3JtRKIaOE55ENOBEpFgFK3k3z1xliFvUDPqlStu1Z2DrBIvJxXIUe+Vv7r9hGUxV8gkNcb33BSDCdUomOTTUjczPKVsRAfct1TRmJtgMj95Ss6s0idRou1TSObq740JjY0Zx6GdjCkOzbI3E//z/Ayjm2AiVGpjKbb4KMokwYTM8pO+0JyhHFtCmRb2VsKGVFOGtqWSLcFbjrxKWhdV77J69XBZqXXyOopwAqdwDh5cQw3uoQ5NYJDAM7zCm4POi/PufCxGC06+cwx/4Hz+AGtvkWw=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+s3=[ 0,2]
+<latexit sha1_base64="sxNCjDCxMlUtxwnY3Hww0Jc615w=">AAAB9HicbVBNS8NAEJ3Ur1q/qh69LBbBg5SkVvQiFLx4rGA/IA1ls920SzebuLsplNDf4cWDIl79Md78N27THLT1wcDjvRlm5vkxZ0rb9rdVWFvf2Nwqbpd2dvf2D8qHR20VJZLQFol4JLs+VpQzQVuaaU67saQ49Dnt+OO7ud+ZUKlYJB71NKZeiIeCBYxgbSRP9dPLGbpFrn1R8/rlil21M6BV4uSkAjma/fJXbxCRJKRCE46Vch071l6KpWaE01mplygaYzLGQ+oaKnBIlZdmR8/QmVEGKIikKaFRpv6eSHGo1DT0TWeI9Ugte3PxP89NdHDjpUzEiaaCLBYFCUc6QvME0IBJSjSfGoKJZOZWREZYYqJNTiUTgrP88ipp16pOvXr1UK80unkcRTiBUzgHB66hAffQhBYQeIJneIU3a2K9WO/Wx6K1YOUzx/AH1ucPvZqQ2g==</latexit>
+wait<latexit sha1_base64="YZAgnBknVeVzGLjSuOPc5Dn5OqE=">AAAB63icbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0WPBi8cK9gPaUDbbTbt0dxN2J0oJ/QtePCji1T/kzX9j0uagrQ8GHu/NMDMviKWw6LrfTmltfWNzq7xd2dnd2z+oHh61bZQYxlsskpHpBtRyKTRvoUDJu7HhVAWSd4LJbe53HrmxItIPOI25r+hIi1Awirn0RAUOqjW37s5BVolXkBoUaA6qX/1hxBLFNTJJre15box+Sg0KJvms0k8sjymb0BHvZVRTxa2fzm+dkbNMGZIwMllpJHP190RKlbVTFWSdiuLYLnu5+J/XSzC88VOh4wS5ZotFYSIJRiR/nAyF4QzlNCOUGZHdStiYGsowi6eSheAtv7xK2hd177J+dX9Za3SLOMpwAqdwDh5cQwPuoAktYDCGZ3iFN0c5L86787FoLTnFzDH8gfP5A0FSjnU=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+ExecuteTask<latexit sha1_base64="GKMyYfxiNZw2gJ0WDwz2D26wisc=">AAAB8nicbVDLSgMxFL1TX7W+qi7dBIvgqsyIosuCCC4r9AXToWTSTBuayQzJHbGUfoYbF4q49Wvc+Tem7Sy09UDgcM695J4TplIYdN1vp7C2vrG5Vdwu7ezu7R+UD49aJsk0402WyER3Qmq4FIo3UaDknVRzGoeSt8PR7cxvP3JtRKIaOE55ENOBEpFgFK3k3z1xliFvUDPqlStu1Z2DrBIvJxXIUe+Vv7r9hGUxV8gkNcb33BSDCdUomOTTUjczPKVsRAfct1TRmJtgMj95Ss6s0idRou1TSObq740JjY0Zx6GdjCkOzbI3E//z/Ayjm2AiVGpjKbb4KMokwYTM8pO+0JyhHFtCmRb2VsKGVFOGtqWSLcFbjrxKWhdV77J69XBZqXXyOopwAqdwDh5cQw3uoQ5NYJDAM7zCm4POi/PufCxGC06+cwx/4Hz+AGtvkWw=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+swait1=[ 1,1]
+<latexit sha1_base64="ZHrcT48YSC1QujjYOIyUHj26i2I=">AAACUXicjVBNSyNBEK2Z1VXjuhvXowrNRsGDhBkRdj0IghePCkYDyRBqOjWxsad7trtn1zDk4q/xqn/Fkz/Fm52Yg9GLDwoer75fWkhhXRQ9BeGXufmvC4tLteVvK99/1Fd/XlhdGk4trqU27RQtSaGo5YST1C4MYZ5Kukyvj8f5y39krNDq3A0LSnIcKJEJjs5LvfpGl5NyZIQa1LbsfxSuF7ND1ol342SrV29EzWgC9pHEU9KAKU57q8Fmt695mfuZXKK1nTgqXFKhcYJLGtW6paUC+TUOqOOpwpxsUk3eGLFtr/RZpo0P5dhEfdtRYW5zdFej96Id5umsmBr6q2bXcZSHqdaqr2+SajwGZYaj2vbMSS77k1RCFaUjxV8vykrJnGZj81hfGOJODj1BboR/ivErNMi9g/YT27yh8Xv7PpKLvWa83zw422sctafWLsI6/IIdiOE3HMEJnEILONzCHdzDQ/AYPIcQhq+lYTDtWYMZhMsvhOmzIw==</latexit>Fig. 2. (left) Example GSPNR Gr, where circles, solid rectangles and
+white rectangles represent places, immediate transitions and exponential
+transitions, respectively. (middle) The embedded MRA MGrobtained from
+Gr. The dashed lines correspond to exponential transitions and the solid
+lines to immediate transitions. (right) The MRA Mwith wait actions.
+of the GSPNR Gris a tupleMGr=hS;s0;Act;!;);;i.
+The state space of MGrcorresponds to the reachable markings
+ofGr, i.e.S=R(Gr). The initial state is deﬁned as s0=m0.
+The set of actions is given by Act=TI[f?g , where?
+represents all uncontrollable actions. !SActDist(S)
+is the set of immediate transitions, where Dist(S)is the
+set of probability distributions over S. In the embedded
+MRA,!=f(m;t;m0)jm2R(Gr); t2TIandm[tim0g,
+wherem0represents the Dirac delta distribution, m0(m0) =
+1. In words, immediate transitions in Grcorrespond to
+deterministic transitions in MGr.)SR>0Sis
+the set of exponential transitions. In the embedded MRA,
+)=f(m;F (t);m0)jm2R(Gr); t2TEandm[tim0g. In
+words, for each exponential transition tenabled in a marking
+inR(Gr), there is a transition in the MRA, labeled by ?,
+with rate equal to F(t). The state reward function is given by
+(m) =X
+pi2P1rp(pi), whereP1is the set of places with
+at least one token, in the marking m2R(Gr). This means
+that, when in state s2S, the system earns a reward per time
+unit equal to the sum of the rewards of each place piwhere
+there is at least one robot. The transition reward function is
+deﬁned as(a) =rT(t)witha=tandt2TI. Intuitively,
+a reward of rT(t)is awarded every time selecting action a
+corresponds to ﬁring the immediate transition t.
+The race conditions, vanishing and tangible markings have
+analogous deﬁnitions in MRAs by replacing markings with
+states. The sets of vanishing and tangible states are denoted
+bySVandST, respectively. Moreover, we deﬁne the total
+rate between two states as Fr(s;s0) =P
+(s;;s0)2)and
+the exit rate of a state as Ex(s) =P
+s02SFr(s;s0).
+The algorithmic procedure to construct the MRA starts
+in the initial marking, generating the reachability graph by
+ﬁring all the enabled transitions until all markings reachable
+from the initial marking have been explored.
+C. Adding the Wait Action
+Approaches for LRA assume the set of hybrid (i.e. both
+vanishing and tangible) states SH=SV\STto be empty.
+This is typically achieved using the urgency assumption ,
+which gives priority to the execution of immediate transitions,
+by removing exponential transitions from states that also
+have immediate transitions. However, this does not match
+our semantics of allowing policies to wait for the occurrence
+of an environmental event.
+
+--- Page 4 ---
+We now describe how, given an MRA MwithSH6=;,
+we can build an MRA Mwait.Mwaithas no hybrid states,
+i.e. it satisﬁes Swait
+V\Swait
+T=;, whilst maintaining our
+semantics of allowing the choice to wait for the occurrence of
+an environmental event. To build Mwait, for eachsH2SH,
+we (i) add a new state snew
+H toM; (ii) move all exponential
+transitions starting on sHto start onsnew
+H(this makessHonly
+a vanishing state); and (iii) add a new immediate transition
+of the form (sH;wait;snew
+H), toM(i.e., we add a new
+immediate transition to sHthat represents the system deciding
+to move to a state where it waits for the occurrence of an
+environmental event). Thus, Swait
+V=SV,Swait
+T= (STnSH)[
+Snew
+H andSwait
+V\Swait
+T=;. HereSnew
+H represents the set
+that contains all the newly created states snew
+H. We show
+an example of the construction of Mwaiton Fig. 2. In the
+remainder of the paper, we will assume we are working with
+Mwait, but will write Mto keep notation simple.
+D. Computing the Long-Run Average Reward
+We now give an overview of the LRA computation
+algorithm proposed in [ 16] and [ 3]. This relates to steps
+2–4 of the diagram presented in Fig. 1.
+In step 2 of the LRA computation algorithm, we ﬁnd
+the MECs of the MRA. An MEC is a sub-MRA that is not
+contained in any other sub-MRA and whose underlying graph
+is strongly connected. A sub-MRA is a non-empty fraction
+of an MRA. We denote the state space of MEC MiasSMi
+and deﬁneSMEC =[NMEC
+i=1SMi, whereNMEC (M)refers
+to the total number of MECs in the MRA M.
+It is known that once the system enters a MEC, there
+exists a policy that keeps it in that MEC indeﬁnitely, whilst
+visiting all its states inﬁnitely often; furthermore, for any
+policy, the MRA will end in one of the MECs and stay
+there forever [ 3]. Thus, to compute the LRA properties from
+initial state s0, one must compute the LRA for each MEC
+(along with the corresponding policy) and then ﬁnd a policy
+that drives the MRA from s0to the MEC with better ratio
+between the probability of reaching it and the LRA in that
+MEC. The MECs can be computed efﬁciently using graph-
+based approaches [18].
+Step 3, computes the LRA reward Liof each MEC Miby
+posing the problem as a total expected reward optimization
+on a uniformized MDP, after starting in a tangible state and
+ﬁnishing upon encountering a tangible state for the second
+time. This can be computed using relative value iteration [ 3]
+and yields the optimal policy to stay indeﬁnitely in each
+MEC,
+Mi(s)for alls2SMi.
+Finally, step 4 builds an SSP for the MRA M, where all
+states in each MEC Miare replaced by two states si
+gand
+si
+u, and a cost of LRAMjis assigned to each (si
+g;?)pair.
+Intuitively,si
+grepresents the gate to and from Mi, where we
+decide whether to (i) stay in Miand apply policy 
+Mi(s); or
+(ii) leaveMitowards another MEC Mjwith betterLRAMj.
+If we decide the former, we move to si
+u, which corresponds
+to applying policy 
+Mi(s). This yields the policy 
+SSP(s)
+for alls2SMGrnSMEC .E. Extracting the Optimal Policy
+The procedure described in the previous subsection yields
+a policy
+SSP that deﬁnes which ﬁnal MEC Mfthe system
+will try to reach, and the policy 
+Mfthat determines how
+to behave within Mfin order to never leave it. However,
+in order to reach Mf, the system may have to cross other
+intermediary MECs. The policies obtained so far do not fully
+deﬁne which actions should be taken in order to cross these
+MECs. Instead, policy 
+SSP only determines the optimal
+state-action pair (si
+g;i
+g), wherei
+gis the last action that
+should be selected inside Miin order to leave it. For this
+reason, the optimal policy is undeﬁned for all other states
+of each intermediary MEC. Thus, to build a complete policy
+
+GR, we must ﬁnd the optimal actions that lead to si
+gfrom any
+state in an intermediary MEC. This policy must be obtained
+for all MEC Mithat must be crossed, according to 
+SSP.
+Step 5 creates this policy denoted as 
+ei. To do this, we
+transform each MEC Mito be crossed into a crossing SSP
+Ci
+rover an MDP. Let Mi=hSi;si
+0;Acti;!i;)i;i;iibe
+a MEC of the MRA M. The crossing SSP is deﬁned as Ci
+r=
+hS;s0;A;P;ci, whereS=Si[ftrg, i.e. a terminal state tr
+with a self-loop is added and the action i
+gis redirected to
+trwith probability 1; s0=si
+0;A=Acti; the probabilistic
+transition function P:SAS![0;1]is deﬁned as:
+P(s;;s0) =8
+>>>>>>>>>>>>><
+>>>>>>>>>>>>>:Fr(s;s0)=Ex(s)ifs2SMi
+T,=?
+ands06=s
+(s0) ifs2SMi
+V,
+2Actinf?g
+ands !(s0)
+1 ifs=si
+g,a=i
+g
+ands0=tr
+1 ifs;s0=tr,=?;
+and the cost function c:SA!R0is deﬁned as:
+c(s;0) =(
+1=Ex(s)ifs2SMi
+T
+0 otherwise:
+Obtaining the optimal policy 
+eithat escapes the MEC
+Miis thus reduced to the minimization of the total expected
+cost on the crossing SSP Ci
+r. The cost function ensures that
+the obtained policy minimizes the expected amount of time
+spent in the intermediary MECs and the system reaches its
+steady-state as quickly as possible.
+The full optimal policy is deﬁned, for all i2NMEC (M):
+
+Gr(s) =8
+><
+>:
+SSP(s), ifs =2SMEC
+
+Mi(s) , ifs2SMi^
+SSP(si
+g) =?
+
+ei(s) , ifs2SMi^
+SSP(si
+g)6=?
+Example 2: Consider the MRA depicted in Fig. 3 (left)
+and suppose that the optimal policy 
+SSP takes the system to
+the MECM3and stays there according to policy 
+M3. Since
+the starting state is s0, to reachM3it has to go through M1.
+However,
+SSP only deﬁnes that to reach M3, the system has
+to select action ain states0and then select action cin state
+
+--- Page 5 ---
+s0
+<latexit sha1_base64="mJV6UBUsjRPv17hmuH0PTdT5/ek=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsJ+3SzSbsboQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ7dzvPKHSPJaPZpqgH9GR5CFn1FjpQQ/cQbniVt0FyDrxclKBHM1B+as/jFkaoTRMUK17npsYP6PKcCZwVuqnGhPKJnSEPUsljVD72eLUGbmwypCEsbIlDVmovycyGmk9jQLbGVEz1qveXPzP66UmvPEzLpPUoGTLRWEqiInJ/G8y5AqZEVNLKFPc3krYmCrKjE2nZEPwVl9eJ+2rqler1u9rlUY3j6MIZ3AOl+DBNTTgDprQAgYjeIZXeHOE8+K8Ox/L1oKTz5zCHzifPwvEjbg=</latexit>
+b<latexit sha1_base64="7OGqhpTHrhVBYOEWoM36ehc0zbo=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipGQzKFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBzheNBA==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+s1
+<latexit sha1_base64="hQBzYs/2aEzm1n1YNuRXVFpAC/8=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsJ+3SzSbsboQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ7dzvPKHSPJaPZpqgH9GR5CFn1FjpQQ+8QbniVt0FyDrxclKBHM1B+as/jFkaoTRMUK17npsYP6PKcCZwVuqnGhPKJnSEPUsljVD72eLUGbmwypCEsbIlDVmovycyGmk9jQLbGVEz1qveXPzP66UmvPEzLpPUoGTLRWEqiInJ/G8y5AqZEVNLKFPc3krYmCrKjE2nZEPwVl9eJ+2rqler1u9rlUY3j6MIZ3AOl+DBNTTgDprQAgYjeIZXeHOE8+K8Ox/L1oKTz5zCHzifPw1Ijbk=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+µ<latexit sha1_base64="dwEwuJk4UJIUiZjvnmE6gcz+4Xc=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKoseAF48RzQOSJcxOepMhM7PLzKwQQj7BiwdFvPpF3vwbJ8keNLGgoajqprsrSgU31ve/vcLa+sbmVnG7tLO7t39QPjxqmiTTDBssEYluR9Sg4AoblluB7VQjlZHAVjS6nfmtJ9SGJ+rRjlMMJR0oHnNGrZMeujLrlSt+1Z+DrJIgJxXIUe+Vv7r9hGUSlWWCGtMJ/NSGE6otZwKnpW5mMKVsRAfYcVRRiSaczE+dkjOn9EmcaFfKkrn6e2JCpTFjGblOSe3QLHsz8T+vk9n4JpxwlWYWFVssijNBbEJmf5M+18isGDtCmebuVsKGVFNmXTolF0Kw/PIqaV5Ug8vq1f1lpdbO4yjCCZzCOQRwDTW4gzo0gMEAnuEV3jzhvXjv3seiteDlM8fwB97nD2aUjfQ=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+s2
+<latexit sha1_base64="zQGrA+UjsWZK7bYmPlKiTQgPPCk=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lKRY8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQG5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6K4Y2fCZWkyBVbLgpTSTAm87/JUGjOUE4toUwLeythY6opQ5tOyYbgrb68Ttq1qlevXt3XK41uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwAOzI26</latexit>
+s6
+<latexit sha1_base64="1jYt/zGsp8CZjwYSMKovSEUmOkA=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKexKfBwDXjxGNA9IljA7mU2GzM4uM71CWPIJXjwo4tUv8ubfOEn2oIkFDUVVN91dQSKFQdf9dgpr6xubW8Xt0s7u3v5B+fCoZeJUM95ksYx1J6CGS6F4EwVK3kk0p1EgeTsY38789hPXRsTqEScJ9yM6VCIUjKKVHkz/ql+uuFV3DrJKvJxUIEejX/7qDWKWRlwhk9SYrucm6GdUo2CST0u91PCEsjEd8q6likbc+Nn81Ck5s8qAhLG2pZDM1d8TGY2MmUSB7YwojsyyNxP/87ophjd+JlSSIldssShMJcGYzP4mA6E5QzmxhDIt7K2EjaimDG06JRuCt/zyKmldVL1a9fK+Vql38jiKcAKncA4eXEMd7qABTWAwhGd4hTdHOi/Ou/OxaC04+cwx/IHz+QMU3I2+</latexit>
+s7
+<latexit sha1_base64="Dz+7draoyRDteefTj/rlhQ+qauo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkUo8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQH5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6K4Y2fCZWkyBVbLgpTSTAm87/JUGjOUE4toUwLeythY6opQ5tOyYbgrb68TtpXVa9Wvb6vVRrdPI4inME5XIIHdWjAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwAWYI2/</latexit>
+s8
+<latexit sha1_base64="FCKMAO9Zep0CPKsDLRmCWwfNkKs=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkYo8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQH5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6KYd3PhEpS5IotF4WpJBiT+d9kKDRnKKeWUKaFvZWwMdWUoU2nZEPwVl9eJ+2rqlerXt/XKo1uHkcRzuAcLsGDG2jAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwAX5I3A</latexit>
+s9
+<latexit sha1_base64="CYX+6vmS2qFPfbrzcUYQUL/If4g=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkot4KXjxWtB/QhrLZbtqlm03YnQgl9Cd48aCIV3+RN/+N2zYHbX0w8Hhvhpl5QSKFQdf9dgpr6xubW8Xt0s7u3v5B+fCoZeJUM95ksYx1J6CGS6F4EwVK3kk0p1EgeTsY38789hPXRsTqEScJ9yM6VCIUjKKVHkz/pl+uuFV3DrJKvJxUIEejX/7qDWKWRlwhk9SYrucm6GdUo2CST0u91PCEsjEd8q6likbc+Nn81Ck5s8qAhLG2pZDM1d8TGY2MmUSB7YwojsyyNxP/87ophtd+JlSSIldssShMJcGYzP4mA6E5QzmxhDIt7K2EjaimDG06JRuCt/zyKmldVL1a9fK+Vql38jiKcAKncA4eXEEd7qABTWAwhGd4hTdHOi/Ou/OxaC04+cwx/IHz+QMZaI3B</latexit>
+s10
+<latexit sha1_base64="w6k6gRoPdcwzF/nTIgSIP9lLll4=">AAAB7XicbVDLSgNBEOyNrxhfUY9eBoPgKeyKoseAF48RzAOSJcxOOsmY2ZllZlYIS/7BiwdFvPo/3vwbJ8keNLGgoajqprsrSgQ31ve/vcLa+sbmVnG7tLO7t39QPjxqGpVqhg2mhNLtiBoUXGLDciuwnWikcSSwFY1vZ37rCbXhSj7YSYJhTIeSDzij1klN08sCf9orV/yqPwdZJUFOKpCj3it/dfuKpTFKywQ1phP4iQ0zqi1nAqelbmowoWxMh9hxVNIYTZjNr52SM6f0yUBpV9KSufp7IqOxMZM4cp0xtSOz7M3E/7xOagc3YcZlklqUbLFokApiFZm9TvpcI7Ni4ghlmrtbCRtRTZl1AZVcCMHyy6ukeVENLqtX95eVWjuPowgncArnEMA11OAO6tAABo/wDK/w5invxXv3PhatBS+fOYY/8D5/AEE9jv8=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+b<latexit sha1_base64="7OGqhpTHrhVBYOEWoM36ehc0zbo=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipGQzKFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBzheNBA==</latexit>
+s3
+<latexit sha1_base64="AtB3miC2X46tZ1OlkrtbnXJRHFc=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0m0oseCF48V7Qe0oWy2k3bpZhN2N0IJ/QlePCji1V/kzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU0nGqGDZZLGLVCahGwSU2DTcCO4lCGgUC28H4dua3n1BpHstHM0nQj+hQ8pAzaqz0oPuX/XLFrbpzkFXi5aQCORr98ldvELM0QmmYoFp3PTcxfkaV4UzgtNRLNSaUjekQu5ZKGqH2s/mpU3JmlQEJY2VLGjJXf09kNNJ6EgW2M6JmpJe9mfif101NeONnXCapQckWi8JUEBOT2d9kwBUyIyaWUKa4vZWwEVWUGZtOyYbgLb+8SloXVa9WvbqvVeqdPI4inMApnIMH11CHO2hAExgM4Rle4c0Rzovz7nwsWgtOPnMMf+B8/gAQUI27</latexit>
+s4
+<latexit sha1_base64="NCWNPCUTxRW+QZBD0Et7jZNek1U=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsJ+3SzSbsboQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ7dzvPKHSPJaPZpqgH9GR5CFn1FjpQQ9qg3LFrboLkHXi5aQCOZqD8ld/GLM0QmmYoFr3PDcxfkaV4UzgrNRPNSaUTegIe5ZKGqH2s8WpM3JhlSEJY2VLGrJQf09kNNJ6GgW2M6JmrFe9ufif10tNeONnXCapQcmWi8JUEBOT+d9kyBUyI6aWUKa4vZWwMVWUGZtOyYbgrb68TtpXVa9Wrd/XKo1uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OYI58V5dz6WrQUnnzmFP3A+fwAR1I28</latexit>
+s5
+<latexit sha1_base64="Jmg/Dl1NmZi7kIZfaUxTQEao6us=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQH5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6K4Y2fCZWkyBVbLgpTSTAm87/JUGjOUE4toUwLeythY6opQ5tOyYbgrb68TtpXVa9Wrd/XKo1uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwATWI29</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+µ<latexit sha1_base64="dwEwuJk4UJIUiZjvnmE6gcz+4Xc=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKoseAF48RzQOSJcxOepMhM7PLzKwQQj7BiwdFvPpF3vwbJ8keNLGgoajqprsrSgU31ve/vcLa+sbmVnG7tLO7t39QPjxqmiTTDBssEYluR9Sg4AoblluB7VQjlZHAVjS6nfmtJ9SGJ+rRjlMMJR0oHnNGrZMeujLrlSt+1Z+DrJIgJxXIUe+Vv7r9hGUSlWWCGtMJ/NSGE6otZwKnpW5mMKVsRAfYcVRRiSaczE+dkjOn9EmcaFfKkrn6e2JCpTFjGblOSe3QLHsz8T+vk9n4JpxwlWYWFVssijNBbEJmf5M+18isGDtCmebuVsKGVFNmXTolF0Kw/PIqaV5Ug8vq1f1lpdbO4yjCCZzCOQRwDTW4gzo0gMEAnuEV3jzhvXjv3seiteDlM8fwB97nD2aUjfQ=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+b<latexit sha1_base64="7OGqhpTHrhVBYOEWoM36ehc0zbo=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipGQzKFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBzheNBA==</latexit>
+µ<latexit sha1_base64="dwEwuJk4UJIUiZjvnmE6gcz+4Xc=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKoseAF48RzQOSJcxOepMhM7PLzKwQQj7BiwdFvPpF3vwbJ8keNLGgoajqprsrSgU31ve/vcLa+sbmVnG7tLO7t39QPjxqmiTTDBssEYluR9Sg4AoblluB7VQjlZHAVjS6nfmtJ9SGJ+rRjlMMJR0oHnNGrZMeujLrlSt+1Z+DrJIgJxXIUe+Vv7r9hGUSlWWCGtMJ/NSGE6otZwKnpW5mMKVsRAfYcVRRiSaczE+dkjOn9EmcaFfKkrn6e2JCpTFjGblOSe3QLHsz8T+vk9n4JpxwlWYWFVssijNBbEJmf5M+18isGDtCmebuVsKGVFNmXTolF0Kw/PIqaV5Ug8vq1f1lpdbO4yjCCZzCOQRwDTW4gzo0gMEAnuEV3jzhvXjv3seiteDlM8fwB97nD2aUjfQ=</latexit>
+<latexit sha1_base64="LqGeAOjJVRvwWX8iuvzNiaBqF7g=">AAAB7nicbVDLSsNAFL2pr1pfVZduBovgqiRS0WXBjcsK9gFtKDeTSTt0MgkzE6GEfoQbF4q49Xvc+TdO2yy09cDA4ZxzmXtPkAqujet+O6WNza3tnfJuZW//4PCoenzS0UmmKGvTRCSqF6BmgkvWNtwI1ksVwzgQrBtM7uZ+94kpzRP5aKYp82McSR5xisZK3YGw0RCH1Zpbdxcg68QrSA0KtIbVr0GY0Cxm0lCBWvc9NzV+jspwKtisMsg0S5FOcMT6lkqMmfbzxbozcmGVkESJsk8aslB/T+QYaz2NA5uM0Yz1qjcX//P6mYlu/ZzLNDNM0uVHUSaIScj8dhJyxagRU0uQKm53JXSMCqmxDVVsCd7qyeukc1X3GvXrh0at2SvqKMMZnMMleHADTbiHFrSBwgSe4RXenNR5cd6dj2W05BQzp/AHzucPRfuPmw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+c<latexit sha1_base64="2VgreyQPUiuD1GhFYDkWZ3Y3KGw=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipyQblilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4Az5uNBQ==</latexit>
+µ<latexit sha1_base64="dwEwuJk4UJIUiZjvnmE6gcz+4Xc=">AAAB6nicbVDLSgNBEOyNrxhfUY9eBoPgKeyKoseAF48RzQOSJcxOepMhM7PLzKwQQj7BiwdFvPpF3vwbJ8keNLGgoajqprsrSgU31ve/vcLa+sbmVnG7tLO7t39QPjxqmiTTDBssEYluR9Sg4AoblluB7VQjlZHAVjS6nfmtJ9SGJ+rRjlMMJR0oHnNGrZMeujLrlSt+1Z+DrJIgJxXIUe+Vv7r9hGUSlWWCGtMJ/NSGE6otZwKnpW5mMKVsRAfYcVRRiSaczE+dkjOn9EmcaFfKkrn6e2JCpTFjGblOSe3QLHsz8T+vk9n4JpxwlWYWFVssijNBbEJmf5M+18isGDtCmebuVsKGVFNmXTolF0Kw/PIqaV5Ug8vq1f1lpdbO4yjCCZzCOQRwDTW4gzo0gMEAnuEV3jzhvXjv3seiteDlM8fwB97nD2aUjfQ=</latexit>
+c<latexit sha1_base64="2VgreyQPUiuD1GhFYDkWZ3Y3KGw=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipyQblilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4Az5uNBQ==</latexit>
+M1
+<latexit sha1_base64="D6Ndg2QXBfIlBBkgD/5o8V0AgvE=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCFy9CRfsBbSib7aZdutmE3YlQQn+CFw+KePUXefPfuG1z0NYHA4/3ZpiZFyRSGHTdb6ewtr6xuVXcLu3s7u0flA+PWiZONeNNFstYdwJquBSKN1Gg5J1EcxoFkreD8c3Mbz9xbUSsHnGScD+iQyVCwSha6eGu7/XLFbfqzkFWiZeTCuRo9MtfvUHM0ogrZJIa0/XcBP2MahRM8mmplxqeUDamQ961VNGIGz+bnzolZ1YZkDDWthSSufp7IqORMZMosJ0RxZFZ9mbif143xfDaz4RKUuSKLRaFqSQYk9nfZCA0ZygnllCmhb2VsBHVlKFNp2RD8JZfXiWti6pXq17e1yr1Th5HEU7gFM7Bgyuowy00oAkMhvAMr/DmSOfFeXc+Fq0FJ585hj9wPn8A01WNkw==</latexit>
+M2
+<latexit sha1_base64="VYe4GRhD4sULZnv/KdZXxB4dBO8=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lKRY8FL16EirYW2lA22027dLMJuxOhhP4ELx4U8eov8ua/cdvmoK0PBh7vzTAzL0ikMOi6305hbX1jc6u4XdrZ3ds/KB8etU2casZbLJax7gTUcCkUb6FAyTuJ5jQKJH8Mxtcz//GJayNi9YCThPsRHSoRCkbRSve3/Vq/XHGr7hxklXg5qUCOZr/81RvELI24QiapMV3PTdDPqEbBJJ+WeqnhCWVjOuRdSxWNuPGz+alTcmaVAQljbUshmau/JzIaGTOJAtsZURyZZW8m/ud1Uwyv/EyoJEWu2GJRmEqCMZn9TQZCc4ZyYgllWthbCRtRTRnadEo2BG/55VXSrlW9evXirl5pdPI4inACp3AOHlxCA26gCS1gMIRneIU3RzovzrvzsWgtOPnMMfyB8/kD1NmNlA==</latexit>
+M3
+<latexit sha1_base64="0TeHxjwUNCY8TaDKXVnwnp1eDq0=">AAAB6nicbVBNS8NAEJ34WetX1aOXxSJ4KolW9Fjw4kWoaD+gDWWz3bRLN5uwOxFK6E/w4kERr/4ib/4bt20O2vpg4PHeDDPzgkQKg6777aysrq1vbBa2its7u3v7pYPDpolTzXiDxTLW7YAaLoXiDRQoeTvRnEaB5K1gdDP1W09cGxGrRxwn3I/oQIlQMIpWerjrXfRKZbfizkCWiZeTMuSo90pf3X7M0ogrZJIa0/HcBP2MahRM8kmxmxqeUDaiA96xVNGIGz+bnTohp1bpkzDWthSSmfp7IqORMeMosJ0RxaFZ9Kbif14nxfDaz4RKUuSKzReFqSQYk+nfpC80ZyjHllCmhb2VsCHVlKFNp2hD8BZfXibN84pXrVzeV8u1dh5HAY7hBM7AgyuowS3UoQEMBvAMr/DmSOfFeXc+5q0rTj5zBH/gfP4A1l2NlQ==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+s2
+<latexit sha1_base64="zQGrA+UjsWZK7bYmPlKiTQgPPCk=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lKRY8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQG5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6K4Y2fCZWkyBVbLgpTSTAm87/JUGjOUE4toUwLeythY6opQ5tOyYbgrb68Ttq1qlevXt3XK41uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwAOzI26</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+a<latexit sha1_base64="g4889SKRhduD+/3kAfhYUEkBxXQ=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipSQflilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4AzJONAw==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+0<latexit sha1_base64="3th840/ZatxOf4sgCvwmtXjs2Js=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip6Q7KFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBgk+M0g==</latexit>
+0<latexit sha1_base64="3th840/ZatxOf4sgCvwmtXjs2Js=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip6Q7KFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBgk+M0g==</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+0<latexit sha1_base64="3th840/ZatxOf4sgCvwmtXjs2Js=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip6Q7KFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBgk+M0g==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+b<latexit sha1_base64="7OGqhpTHrhVBYOEWoM36ehc0zbo=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipGQzKFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBzheNBA==</latexit>
+0<latexit sha1_base64="3th840/ZatxOf4sgCvwmtXjs2Js=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip6Q7KFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBgk+M0g==</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+c<latexit sha1_base64="2VgreyQPUiuD1GhFYDkWZ3Y3KGw=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1FipyQblilt1FyDrxMtJBXI0BuWv/jBmaYTSMEG17nluYvyMKsOZwFmpn2pMKJvQEfYslTRC7WeLQ2fkwipDEsbKljRkof6eyGik9TQKbGdEzVivenPxP6+XmvDWz7hMUoOSLReFqSAmJvOvyZArZEZMLaFMcXsrYWOqKDM2m5INwVt9eZ20r6perXrdrFXq3TyOIpzBOVyCBzdQh3toQAsYIDzDK7w5j86L8+58LFsLTj5zCn/gfP4Az5uNBQ==</latexit>
+s3
+<latexit sha1_base64="AtB3miC2X46tZ1OlkrtbnXJRHFc=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0m0oseCF48V7Qe0oWy2k3bpZhN2N0IJ/QlePCji1V/kzX/jts1BWx8MPN6bYWZekAiujet+O4W19Y3NreJ2aWd3b/+gfHjU0nGqGDZZLGLVCahGwSU2DTcCO4lCGgUC28H4dua3n1BpHstHM0nQj+hQ8pAzaqz0oPuX/XLFrbpzkFXi5aQCORr98ldvELM0QmmYoFp3PTcxfkaV4UzgtNRLNSaUjekQu5ZKGqH2s/mpU3JmlQEJY2VLGjJXf09kNNJ6EgW2M6JmpJe9mfif101NeONnXCapQckWi8JUEBOT2d9kwBUyIyaWUKa4vZWwEVWUGZtOyYbgLb+8SloXVa9WvbqvVeqdPI4inMApnIMH11CHO2hAExgM4Rle4c0Rzovz7nwsWgtOPnMMf+B8/gAQUI27</latexit>
+s4
+<latexit sha1_base64="NCWNPCUTxRW+QZBD0Et7jZNek1U=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsJ+3SzSbsboQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ7dzvPKHSPJaPZpqgH9GR5CFn1FjpQQ9qg3LFrboLkHXi5aQCOZqD8ld/GLM0QmmYoFr3PDcxfkaV4UzgrNRPNSaUTegIe5ZKGqH2s8WpM3JhlSEJY2VLGrJQf09kNNJ6GgW2M6JmrFe9ufif10tNeONnXCapQcmWi8JUEBOT+d9kyBUyI6aWUKa4vZWwMVWUGZtOyYbgrb68TtpXVa9Wrd/XKo1uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OYI58V5dz6WrQUnnzmFP3A+fwAR1I28</latexit>
+s5
+<latexit sha1_base64="Jmg/Dl1NmZi7kIZfaUxTQEao6us=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx4r2g9oQ9lsN+3SzSbsToQS+hO8eFDEq7/Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD2ZQH5QrbtVdgKwTLycVyNEclL/6w5ilEVfIJDWm57kJ+hnVKJjks1I/NTyhbEJHvGepohE3frY4dUYurDIkYaxtKSQL9fdERiNjplFgOyOKY7PqzcX/vF6K4Y2fCZWkyBVbLgpTSTAm87/JUGjOUE4toUwLeythY6opQ5tOyYbgrb68TtpXVa9Wrd/XKo1uHkcRzuAcLsGDa2jAHTShBQxG8Ayv8OZI58V5dz6WrQUnnzmFP3A+fwATWI29</latexit>
+tr<latexit sha1_base64="MyOfOHAp3VE1aMRACNFzb/MTFag=">AAAB6XicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRY8FLx6r2A9oQ9lsN+3SzSbsToQS+g+8eFDEq//Im//GbZuDtj4YeLw3w8y8IJHCoOt+O4WNza3tneJuaW//4PCofHzSNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKD6gH5YpbdRcg68TLSQVyNAflr/4wZmnEFTJJjel5boJ+RjUKJvms1E8NTyib0BHvWapoxI2fLS6dkQurDEkYa1sKyUL9PZHRyJhpFNjOiOLYrHpz8T+vl2J442dCJSlyxZaLwlQSjMn8bTIUmjOUU0so08LeStiYasrQhlOyIXirL6+T9lXVq1Xr97VKo5vHUYQzOIdL8OAaGnAHTWgBgxCe4RXenInz4rw7H8vWgpPPnMIfOJ8/u46Nkg==</latexit>
+?<latexit sha1_base64="+qTQkDlztf55RODZNYRMlilaCEA=">AAAB63icbVDLSgNBEJyNrxhfUY9eBoPgKexKRI8BLx4jmAckS5idzCZD5rHM9AphyS948aCIV3/Im3/jbLIHTSxoKKq66e6KEsEt+P63V9rY3NreKe9W9vYPDo+qxycdq1NDWZtqoU0vIpYJrlgbOAjWSwwjMhKsG03vcr/7xIzlWj3CLGGhJGPFY04J5NIg0jCs1vy6vwBeJ0FBaqhAa1j9Gow0TSVTQAWxth/4CYQZMcCpYPPKILUsIXRKxqzvqCKS2TBb3DrHF04Z4VgbVwrwQv09kRFp7UxGrlMSmNhVLxf/8/opxLdhxlWSAlN0uShOBQaN88fxiBtGQcwcIdRwdyumE2IIBRdPxYUQrL68TjpX9aBRv35o1Jq9Io4yOkPn6BIF6AY10T1qoTaiaIKe0St686T34r17H8vWklfMnKI/8D5/ACK5jmE=</latexit>
+1.0
+<latexit sha1_base64="1GwQSoeNKLTmG6tQc4R9EHRtlJo=">AAAB6nicbVBNS8NAEJ3Ur1q/qh69LBbBU0hE0WPBi8eK9gPaUDbbSbt0swm7G6GE/gQvHhTx6i/y5r9x2+agrQ8GHu/NMDMvTAXXxvO+ndLa+sbmVnm7srO7t39QPTxq6SRTDJssEYnqhFSj4BKbhhuBnVQhjUOB7XB8O/PbT6g0T+SjmaQYxHQoecQZNVZ68F2vX615rjcHWSV+QWpQoNGvfvUGCctilIYJqnXX91IT5FQZzgROK71MY0rZmA6xa6mkMeogn586JWdWGZAoUbakIXP190ROY60ncWg7Y2pGetmbif953cxEN0HOZZoZlGyxKMoEMQmZ/U0GXCEzYmIJZYrbWwkbUUWZselUbAj+8surpHXh+pfu1f1lrd4p4ijDCZzCOfhwDXW4gwY0gcEQnuEV3hzhvDjvzseiteQUM8fwB87nD1y0jUU=</latexit>
+0<latexit sha1_base64="3th840/ZatxOf4sgCvwmtXjs2Js=">AAAB6HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkoseCF48t2A9oQ9lsJ+3azSbsboQS+gu8eFDEqz/Jm//GbZuDtj4YeLw3w8y8IBFcG9f9dgobm1vbO8Xd0t7+weFR+fikreNUMWyxWMSqG1CNgktsGW4EdhOFNAoEdoLJ3dzvPKHSPJYPZpqgH9GR5CFn1Fip6Q7KFbfqLkDWiZeTCuRoDMpf/WHM0gilYYJq3fPcxPgZVYYzgbNSP9WYUDahI+xZKmmE2s8Wh87IhVWGJIyVLWnIQv09kdFI62kU2M6ImrFe9ebif14vNeGtn3GZpAYlWy4KU0FMTOZfkyFXyIyYWkKZ4vZWwsZUUWZsNiUbgrf68jppX1W9WvW6WavUu3kcRTiDc7gED26gDvfQgBYwQHiGV3hzHp0X5935WLYWnHzmFP7A+fwBgk+M0g==</latexit>
++µ
+<latexit sha1_base64="Tern4rSQ8QjxsJvkoxS9ugww+Ww=">AAACVHicjZDLSgMxFIYzo/VSb1WXIgZbQRDKjAjqQii4cVnB1oIzlDOZjAYzyZhkxDLM0qdxq68i+C4uTC+C1Y0HAh9/8uec80cZZ9p43ofjzsxW5uYXFqtLyyura7X1ja6WuSK0QySXqheBppwJ2jHMcNrLFIU04vQ6uj8f3l8/UqWZFFdmkNEwhVvBEkbAWKlf22kEiQJSBNx6Yii/AR/gIM3LRr9W95reqPBf8CdQR5Nq99ed7SCWJE+pMISD1je+l5mwAGUY4bSsBrmmGZB7uKU3FgWkVIfFaJMS71klxolU9giDR+pPRwGpTsHclb9FPUijaTFS9EFMtyPAzyIpRSyfwmL4DfAEyure1EgmOQkLJrLcUEHGEyU5x0biYX44ZooSwwcWgChml8LkDmyExqb8j242UP93fH+he9j0j5qnl4f1Vm8S7QLaQrtoH/noGLXQBWqjDiLoGb2gV/TmvDuf7oxbGT91nYlnE02Vu/oFf3u1rA==</latexit>
+µ+µ
+<latexit sha1_base64="Fd3LHEzaBkAxsaYtxPhdv9OR214=">AAACUHicjZBNS8QwEIan6/f6tepRhOAqCMLSiqAeBMGLRwVXF2xZpmmqwTSpSSoupQd/jVf9K978J940u67g6sWBkDdvMpmZJ84FN9b337za2PjE5NT0TH12bn5hsbG0fGFUoSlrUyWU7sRomOCStS23gnVyzTCLBbuMb4/795f3TBuu5Lnt5SzK8FrylFO0zuo2VjfCVCMtw6yoylC4xATJNukfN7qNpt/yB0H+imAomjCM0+6StxYmihYZk5YKNOYq8HMblagtp4JV9bAwLEd6i9fsykmJGTNROZiiIpvOSUiqtFvSkoH7M6PEzGRob6rfpull8agZa3YnR8tRFIexUjJRD1HZ/wZFilV9c6Qlm+5HJZd5YZmkXx2lhSBWkT47knDNqBU9J5Bq7oYi9AYdPusI/6OaAxr8xvdXXOy0gt3WwdlO86gzRDsNq7AOWxDAHhzBCZxCGyg8whM8w4v36r17HzXv6+n3DiswErX6JysFtQQ=</latexit>
+1+µ
+<latexit sha1_base64="Hgjbud9bZpR+g7omBQk0hI/sj+g=">AAACTnicjZDNSgMxFIUz9a/Wv1ZXIkKwFgShzBRBXQgFNy4rWC04Q7mTydRgJhmTjFiGwadxq6/i1hdxJ5rWLqxuvBA4nOTk3vuFKWfauO6bU5qZnZtfKC9WlpZXVteqtfVLLTNFaJdILlUvBE05E7RrmOG0lyoKScjpVXh7Orq/uqdKMykuzDClQQIDwWJGwFirX93c9WMFJPeK3Oc2FgHex36SFbv9at1tuuPCf4U3EXU0qU6/5mz7kSRZQoUhHLS+9tzUBDkowwinRcXPNE2B3MKAXlspIKE6yMc7FLhhnQjHUtkjDB67PxM5JDoBc1P8NvUwCafNUNE7Md2OAD8JpRSRfAjy0TfAYygqjamRTHwU5EykmaGCfE8UZxwbiUfkcMQUJYYPrQCimF0Kkxuw8Izl+49uFqj3G99fcdlqegfN4/NWvd2boC2jLbSD9pCHDlEbnaEO6iKCHtETekYvzqvz7nw4n99PS84ks4GmqlT+AgEFtOI=</latexit>
+1/(+µ)
+<latexit sha1_base64="6YxSfZlizR8jY/y5jCsReFwXH7s=">AAACSnicjVDNSgMxGMzW//pXFU8iBKtQEepuEdSDUPDisYK1hXYp32azbWg2WZOsWJY+jFd9FV/A1/AmXkxrD9ZeHAgMk8z3TSZIONPGdd+d3Nz8wuLS8kp+dW19Y7OwtX2vZaoIrRPJpWoGoClngtYNM5w2E0UhDjhtBP3r0X3jkSrNpLgzg4T6MXQFixgBY6VOYffQw6e41ObWEgI+we04PT7sFIpu2R0DzxJvQopoglpny9lvh5KkMRWGcNC65bmJ8TNQhhFOh/l2qmkCpA9d2rJUQEy1n43zD/GRVUIcSWWPMHis/nZkEOsYTG/4V9SDOJgWA0UfxPQ6AvwqkFKE8snPRmOARzDMH01FMtGFnzGRpIYK8pMoSjk2Eo9awyFTlBg+sASIYvZTmPRAATG2239ss4V6f+ubJfeVsndWvrytFKvNSbXLaA8doBLy0DmqohtUQ3VEUIae0Qt6dd6cD+fT+fp5mnMmnh00hdz8N3pvsZI=</latexit>Fig. 3. (left) Example of an arbitrary MRA with three MECs: M1,M2
+andM3. The tangible states and the vanishing states are depicted in grey
+and white, respectively. (right) The crossing SSP C1
+robtained from M1.
+The bolt icon represents the cost of that state-action-state.
+s4. Thus, the optimal policy for states s2,s3ands5, such that
+M1is crossed, is not deﬁned. To compute it, M1is reduced
+into the crossing SSP C1
+rshown in Fig. 3 (right). Then leaving
+the states3is assigned with a cost c(s3;?) =1
++. Finally,
+the policy
+e1can be obtained through value iteration, where:
+
+e1(s2) =a,
+e1(s3) =?and
+e1(s5) =b.
+VI. E XPERIMENTS
+In this section we evaluate the performance and scalability
+of our approach, comparing it with 3 baselines in simulation.
+All experiments were run on a machine with a CPU@3.7GHz,
+and 32GB of RAM. Example 1 serves as the application
+scenario for the experiments. We created several variations
+of this task. All these variations model the problem using
+the same building blocks that are depicted in Fig. 5 (left).
+The robots are able to monitor, navigate and recharge. The
+execution of these actions is captured by the places labeled
+Monitoring ,Navigating andCharging , respectively. The
+uncertainty in the duration of these actions is captured by
+the exponential transitions labeled Finished ,Arrived and
+Charged , respectively. The exponential transitions labeled
+asDischarged capture the battery consumption stochasticity.
+Moreover, the places labeled Ready represent local decision
+states where the robots can select monitoring the same loca-
+tion or moving to another location, by choosing between the
+immediate transitions Repeat andGoFromTo , respectively.
+A. Performance and Scalability
+In the ﬁrst scenario we model a team of 3 robots, where
+the number of locations was increased from 1 to 20. In order
+to assign the same monitoring priority to each location and
+have a constant maximum total reward of 1, a place reward
+ofrP= 1=nlis awarded to each Monitoring place, where
+nlis the number of locations to monitor. The second scenario
+considers a ﬁxed number of 4 locations to monitor, with the
+number of robots being increased from 1 to 7. An equal
+reward of 1 is assigned to each of the Monitoring places.
+The plots in Fig. 4 (top) and (bottom) show the results
+obtained for the ﬁrst and second scenario, respectively.
+Fig. 4 (top left) and (bottom left) show that the number
+of states grows super linearly as the number of locations and
+the number of robots increases, respectively. Nevertheless, it
+increases much slower than other multi-agent models, such
+3 6 9 12 15 18
+Number of locations0.000.150.300.450.600.750.901.051.201.35Number of states1e5
+0.00 0.15 0.30 0.45 0.60 0.75 0.90 1.05 1.20 1.35
+Number of states 1e5020040060080010001200LRA Computation Time
+[minutes]
+1 2 3 4 5 6 7
+Number of robots0.00.51.01.52.0Number of states1e5
+0.0 0.5 1.0 1.5 2.0
+Number of states 1e50200040006000800010000LRA Computation Time [minutes]
+Fig. 4. Performance and scalability analysis obtained by: (top) increasing
+number of locations for a ﬁxed number of 3 robots; (bottom) increasing
+number of robots for a ﬁxed number of 4 locations.
+as MMDPs, where state representation requires the exact
+position of each robot rather than counting the number of
+robots in each local state. On the other hand, Fig. 4 (top
+right) and (bottom right) show that the long-run average
+computation requires a considerable amount of time. However,
+our method provides a robust policy that can be run as long
+as the parameters of the system remain the same. Therefore,
+it is a pre-deployment computation that then yields optimal
+rewards in the long run.
+B. Simulation
+We simulated a 4 robot setup taking advantage of ROS
+and the Stage simulator. The map contains 6 locations plus
+a charging station as it can be seen in Fig. 5 (right). The
+simulation was kept as realistic as possible, by adding noise
+to the measurements and by using standard ROS packages for
+localization and navigation. The multi-robot team is initialized
+with random battery levels and all the robots start in the
+charging station. Locations L4,L5and L6were assigned
+with a monitoring priority of 1, 3 and 5 respectively. The
+rates speciﬁed for each exponential transition were obtained
+taking into account the distance between locations and the
+maximum speed of each robot.
+The policy obtained using the presented method was
+compared against a policy obtained through the maximization
+of the total expected discounted reward, that we shall refer as
+discounted policy for simplicity. It was also compared against
+a hand coded policy and a random policy. The discounted
+policy was obtained for a discount factor of 0:9999999 . The
+hand coded policy sends the robots to locations L6,L5and
+L4with decreasing order of priority. When all three priority
+locations are already being monitored the hand coded policy
+sends the fourth robot to location L2, since it is the one
+closest to location L6. The random policy selects a location
+for each robot according to a uniform distribution.
+Fig. 6 depicts the accumulated reward over time for 100
+runs of each policy. These results demonstrate that the
+policy obtained through our method outperforms all the
+
+--- Page 6 ---
+Fi n i s h e dL1
+<latexit sha1_base64="9DNcEWUyWTCtCPLnypFByzOTkz0=">AAACBHicbVDLSsNAFJ34rPEVddlNsBFclaQouiwI4sJFBfuANpTJ5KYdOpmEmYlQQhdu/BU3LhRx60e482+ctllo64ELh3Punbn3BCmjUrnut7Gyura+sVnaMrd3dvf2rYPDlkwyQaBJEpaIToAlMMqhqahi0EkF4Dhg0A5GV1O//QBC0oTfq3EKfowHnEaUYKWlvlXuEeAKBOUD07mmnMohhI5pOree07cqbtWdwV4mXkEqqECjb331woRksX6RMCxl13NT5edYKEoYTMxeJiHFZIQH0NWU4xikn8+OmNgnWgntKBG6uLJn6u+JHMdSjuNAd8ZYDeWiNxX/87qZii79nPI0U8DJ/KMoY7ZK7GkidkgFEMXGmmAiqN7VJkMsMNGxSFOH4C2evExatap3Vj2/q1XqnSKOEiqjY3SKPHSB6ugGNVATEfSIntErejOejBfj3fiYt64YxcwR+gPj8we8bpZF</latexit>
+MonitoringL1
+<latexit sha1_base64="jkKESR30aCHY3kHct3428jdiSo0=">AAACBnicbZBNS8MwGMdTX2d9q3oUIbgKnkY7FD0OvHhQmOBeYCsjzdItLE1Kkgqj7OTFr+LFgyJe/Qze/DamWw+6+YfAj//zPEmef5gwqrTnfVtLyyura+ulDXtza3tn19nbbyqRSkwaWDAh2yFShFFOGppqRtqJJCgOGWmFo6u83nogUlHB7/U4IUGMBpxGFCNtrJ5z1MWEayIpH9jureBUi5xd23ZvfLfnlL2KNxVcBL+AMihU7zlf3b7AaWzuxAwp1fG9RAcZkppiRiZ2N1UkQXiEBqRjkKOYqCCbrjGBJ8bpw0hIc7iGU/f3RIZipcZxaDpjpIdqvpab/9U6qY4ug4zyJNWE49lDUcqgFjDPBPapJFizsQGEJTV/hXiIJMImGGWbEPz5lRehWa34Z5Xzu2q51i7iKIFDcAxOgQ8uQA1cgzpoAAwewTN4BW/Wk/VivVsfs9Ylq5g5AH9kff4Am+WXVQ==</latexit>
+ReadyL1
+<latexit sha1_base64="rmCkCWBWcH3SWCUCQRIZbiLynhQ=">AAACAXicbVDLSsNAFJ34rPEVdSO4CTaCq5IURZcFNy5cVLEPaEOZTG7boZNJmJkIIdSNv+LGhSJu/Qt3/o3TNgttPXDhcM69M/eeIGFUKtf9NpaWV1bX1ksb5ubW9s6utbfflHEqCDRIzGLRDrAERjk0FFUM2okAHAUMWsHoauK3HkBIGvN7lSXgR3jAaZ8SrLTUsw67BLgCQfnAdO4Ah5ljms6N5/Sssltxp7AXiVeQMipQ71lf3TAmaaSfIwxL2fHcRPk5FooSBmOzm0pIMBnhAXQ05TgC6efTC8b2iVZCux8LXVzZU/X3RI4jKbMo0J0RVkM5703E/7xOqvqXfk55kirgZPZRP2W2iu1JHHZIBRDFMk0wEVTvapMhFpjoTKSpQ/DmT14kzWrFO6uc31bLtXYRRwkdoWN0ijx0gWroGtVRAxH0iJ7RK3oznowX4934mLUuGcXMAfoD4/MHW/qU8g==</latexit>
+GoFromL1ToL2
+<latexit sha1_base64="m+CiYnqKJmz0No9ge63/3b4MHnU=">AAACBnicbVDLSgMxFM3UVx1foy5FCLaCqzJTFF0WBHXRRYW+oB1KJs20oZlkSDJCGbpy46+4caGIW7/BnX9j2s5CWw9cOJxzb3LvCWJGlXbdbyu3srq2vpHftLe2d3b3nP2DphKJxKSBBROyHSBFGOWkoalmpB1LgqKAkVYwup76rQciFRW8rscx8SM04DSkGGkj9ZzjLiZcE0n5wC7eihspoqpXtO1iXVTLxZ5TcEvuDHCZeBkpgAy1nvPV7QucROZNzJBSHc+NtZ8iqSlmZGJ3E0VihEdoQDqGchQR5aezMybw1Ch9GAppims4U39PpChSahwFpjNCeqgWvan4n9dJdHjlp5THiSYczz8KEwa1gNNMYJ9KgjUbG4KwpGZXiIdIImyCUbYJwVs8eZk0yyXvvHRxXy5U2lkceXAETsAZ8MAlqIA7UAMNgMEjeAav4M16sl6sd+tj3pqzsplD8AfW5w+oHpa6</latexit>
+NavigatingL1To L2
+<latexit sha1_base64="EiDuk2MFF0sfNUK2MhI63lep1Qs=">AAACCnicbVDLSsNAFJ3UV42vqEs3o43gqiRF0WXBjYsiFfqCNpTJdJIOnUzCzKRQQtdu/BU3LhRx6xe482+ctllo64ELh3Punbn3+AmjUjnOt1FYW9/Y3Cpumzu7e/sH1uFRS8apwKSJYxaLjo8kYZSTpqKKkU4iCIp8Rtr+6Hbmt8dESBrzhpokxItQyGlAMVJa6lunPUy4IoLy0LTv0ZiG2uChbZp2zW3EtYrdt0pO2ZkDrhI3JyWQo963vnqDGKeRfhczJGXXdRLlZUgoihmZmr1UkgThEQpJV1OOIiK9bH7KFJ5rZQCDWOjiCs7V3xMZiqScRL7ujJAaymVvJv7ndVMV3HgZ5UmqCMeLj4KUQRXDWS5wQAXBik00QVhQvSvEQyQQ1uFIU4fgLp+8SlqVsntZvnqolKqdPI4iOAFn4AK44BpUwR2ogybA4BE8g1fwZjwZL8a78bFoLRj5zDH4A+PzBxCxmKA=</latexit>
+RepeatL1
+<latexit sha1_base64="hf0UHIdDUBbxK2LS3RSkh/H724c=">AAACAnicbVDLSsNAFJ34rPEVdSVuBhvBVUmKosuCGxcuqtgHtKFMprft0MkkzEyEEoobf8WNC0Xc+hXu/BunbRbaeuDC4Zx7Z+49YcKZ0p73bS0tr6yurRc27M2t7Z1dZ2+/ruJUUqjRmMeyGRIFnAmoaaY5NBMJJAo5NMLh1cRvPIBULBb3epRAEJG+YD1GiTZSxzlsUxAaJBN9272DBIh2bdu98d2OU/RK3hR4kfg5KaIc1Y7z1e7GNI3Me5QTpVq+l+ggI1IzymFst1MFCaFD0oeWoYJEoIJsesIYnxili3uxNCU0nqq/JzISKTWKQtMZET1Q895E/M9rpbp3GWRMJKkGQWcf9VKOdYwneeAuk0A1HxlCqGRmV0wHRBJqQlG2CcGfP3mR1Msl/6x0flsuVpp5HAV0hI7RKfLRBaqga1RFNUTRI3pGr+jNerJerHfrY9a6ZOUzB+gPrM8fLjOVaA==</latexit>
+ArrivedL2
+<latexit sha1_base64="Tzs/UKS7QJOcTEk/sng2XRl4yZI=">AAAB/3icbVDLSsNAFJ3UV42vqODGTbAVXJWkKLqsuHHhooJ9QBvKZHLTDp1MwsykUGIX/oobF4q49Tfc+TdO2yy09cCFwzn3ztx7/IRRqRzn2yisrK6tbxQ3za3tnd09a/+gKeNUEGiQmMWi7WMJjHJoKKoYtBMBOPIZtPzhzdRvjUBIGvMHNU7Ai3Cf05ASrLTUs466BLgCQXnfLF8LQUcQ3FXLPavkVJwZ7GXi5qSEctR71lc3iEka6ccIw1J2XCdRXoaFooTBxOymEhJMhrgPHU05jkB62Wz/iX2qlcAOY6GLK3um/p7IcCTlOPJ1Z4TVQC56U/E/r5Oq8MrLKE9SBZzMPwpTZqvYnoZhB1QAUWysCSaC6l1tMsACE52INHUI7uLJy6RZrbjnlYv7aqnWzuMoomN0gs6Qiy5RDd2iOmoggh7RM3pFb8aT8WK8Gx/z1oKRzxyiPzA+fwDEDpVb</latexit>
+DischargedL1
+<latexit sha1_base64="fkh9+q6mZEgtfxP2pQBzyVB4xGI=">AAACAnicbVDLSsNAFJ34rPEVdSVugq3gqiRF0WVBFy5cVLAPaEOZTG7SoZNJmJkIJRQ3/oobF4q49Svc+TdO2i609cCFwzn3ztx7/JRRqRzn21haXlldWy9tmJtb2zu71t5+SyaZINAkCUtEx8cSGOXQVFQx6KQCcOwzaPvDq8JvP4CQNOH3apSCF+OI05ASrLTUtw57BLgCQXlkVq6pJAMsIghu3UrfKjtVZwJ7kbgzUkYzNPrWVy9ISBbr9wjDUnZdJ1VejoWihMHY7GUSUkyGOIKuphzHIL18csLYPtFKYIeJ0MWVPVF/T+Q4lnIU+7ozxmog571C/M/rZiq89HLK00wBJ9OPwozZKrGLPOyACiCKjTTBRFC9q11kgIkORZo6BHf+5EXSqlXds+r5Xa1c78ziKKEjdIxOkYsuUB3doAZqIoIe0TN6RW/Gk/FivBsf09YlYzZzgP7A+PwBAamWmQ==</latexit>
+DischargedL2
+<latexit sha1_base64="Vclyifb6AMoFZha+nosQNKvY6K8=">AAACAnicbVDLSsNAFJ34rPEVdSVugq3gqiRF0WVBFy5cVLAPaEOZTG7SoZNJmJkIJRQ3/oobF4q49Svc+TdO2i609cCFwzn3ztx7/JRRqRzn21haXlldWy9tmJtb2zu71t5+SyaZINAkCUtEx8cSGOXQVFQx6KQCcOwzaPvDq8JvP4CQNOH3apSCF+OI05ASrLTUtw57BLgCQXlkVq6pJAMsIghua5W+VXaqzgT2InFnpIxmaPStr16QkCzW7xGGpey6Tqq8HAtFCYOx2cskpJgMcQRdTTmOQXr55ISxfaKVwA4ToYsre6L+nshxLOUo9nVnjNVAznuF+J/XzVR46eWUp5kCTqYfhRmzVWIXedgBFUAUG2mCiaB6V7vIABMdijR1CO78yYukVau6Z9Xzu1q53pnFUUJH6BidIhddoDq6QQ3URAQ9omf0it6MJ+PFeDc+pq1LxmzmAP2B8fkDAy6Wmg==</latexit>
+MonitoringL2
+<latexit sha1_base64="tvl8qv4aae7IuIJS1RDk1HxOjHg=">AAACBnicbZBNS8MwGMdTX2d9q3oUIbgKnkY7FD0OvHhQmOBeYCsjzdItLE1Kkgqj7OTFr+LFgyJe/Qze/DamWw+6+YfAj//zPEmef5gwqrTnfVtLyyura+ulDXtza3tn19nbbyqRSkwaWDAh2yFShFFOGppqRtqJJCgOGWmFo6u83nogUlHB7/U4IUGMBpxGFCNtrJ5z1MWEayIpH9jureBUi5xd23Zvqm7PKXsVbyq4CH4BZVCo3nO+un2B09jciRlSquN7iQ4yJDXFjEzsbqpIgvAIDUjHIEcxUUE2XWMCT4zTh5GQ5nANp+7viQzFSo3j0HTGSA/VfC03/6t1Uh1dBhnlSaoJx7OHopRBLWCeCexTSbBmYwMIS2r+CvEQSYRNMMo2IfjzKy9Cs1rxzyrnd9VyrV3EUQKH4BicAh9cgBq4BnXQABg8gmfwCt6sJ+vFerc+Zq1LVjFzAP7I+vwBnWqXVg==</latexit>
+Fi n i s h e dL2
+<latexit sha1_base64="s/vlXhg/tkYD+//qLlcDTlaXluE=">AAACBHicbVDLSsNAFJ34rPEVddlNsBFclaQouiwI4sJFBfuANpTJ5KYdOpmEmYlQQhdu/BU3LhRx60e482+ctllo64ELh3Punbn3BCmjUrnut7Gyura+sVnaMrd3dvf2rYPDlkwyQaBJEpaIToAlMMqhqahi0EkF4Dhg0A5GV1O//QBC0oTfq3EKfowHnEaUYKWlvlXuEeAKBOUD07mmnMohhI5pOrc1p29V3Ko7g71MvIJUUIFG3/rqhQnJYv0iYVjKruemys+xUJQwmJi9TEKKyQgPoKspxzFIP58dMbFPtBLaUSJ0cWXP1N8TOY6lHMeB7oyxGspFbyr+53UzFV36OeVppoCT+UdRxmyV2NNE7JAKIIqNNcFEUL2rTYZYYKJjkaYOwVs8eZm0alXvrHp+V6vUO0UcJVRGx+gUeegC1dENaqAmIugRPaNX9GY8GS/Gu/Exb10xipkj9AfG5w+985ZG</latexit>
+ReadyL2
+<latexit sha1_base64="6dErJAyF5tXvgZgZei0FJqLvHi4=">AAACAXicbVDLSsNAFJ34rPEVdSO4CTaCq5IURZcFNy5cVLEPaEOZTG7boZNJmJkIIdSNv+LGhSJu/Qt3/o3TNgttPXDhcM69M/eeIGFUKtf9NpaWV1bX1ksb5ubW9s6utbfflHEqCDRIzGLRDrAERjk0FFUM2okAHAUMWsHoauK3HkBIGvN7lSXgR3jAaZ8SrLTUsw67BLgCQfnAdO4Ah5ljms5N1elZZbfiTmEvEq8gZVSg3rO+umFM0kg/RxiWsuO5ifJzLBQlDMZmN5WQYDLCA+hoynEE0s+nF4ztE62Edj8Wuriyp+rviRxHUmZRoDsjrIZy3puI/3mdVPUv/ZzyJFXAyeyjfspsFduTOOyQCiCKZZpgIqje1SZDLDDRmUhTh+DNn7xImtWKd1Y5v62Wa+0ijhI6QsfoFHnoAtXQNaqjBiLoET2jV/RmPBkvxrvxMWtdMoqZA/QHxucPXX+U8w==</latexit>
+GoFromL2ToL1
+<latexit sha1_base64="Gt4IeTQKq86X3Y5vSul0MupPlqQ=">AAACBnicbVDLSgMxFM3UVx1foy5FCLaCqzJTFF0WBHXRRYW+oB1KJs20oZlkSDJCGbpy46+4caGIW7/BnX9j2s5CWw9cOJxzb3LvCWJGlXbdbyu3srq2vpHftLe2d3b3nP2DphKJxKSBBROyHSBFGOWkoalmpB1LgqKAkVYwup76rQciFRW8rscx8SM04DSkGGkj9ZzjLiZcE0n5wC7eihspomq5aNvFuqh6xZ5TcEvuDHCZeBkpgAy1nvPV7QucROZNzJBSHc+NtZ8iqSlmZGJ3E0VihEdoQDqGchQR5aezMybw1Ch9GAppims4U39PpChSahwFpjNCeqgWvan4n9dJdHjlp5THiSYczz8KEwa1gNNMYJ9KgjUbG4KwpGZXiIdIImyCUbYJwVs8eZk0yyXvvHRxXy5U2lkceXAETsAZ8MAlqIA7UAMNgMEjeAav4M16sl6sd+tj3pqzsplD8AfW5w+oJpa6</latexit>
+NavigatingL2To L1
+<latexit sha1_base64="6Yag16x1trUB8BWhAy8KyLrlTVM=">AAACCnicbVDLSsNAFJ3UV42vqEs3o43gqiRF0WXBjYsiFfqCNpTJdJIOnUzCzKRQQtdu/BU3LhRx6xe482+ctllo64ELh3Punbn3+AmjUjnOt1FYW9/Y3Cpumzu7e/sH1uFRS8apwKSJYxaLjo8kYZSTpqKKkU4iCIp8Rtr+6Hbmt8dESBrzhpokxItQyGlAMVJa6lunPUy4IoLy0LTv0ZiG2uChbZp2rdKIa67dt0pO2ZkDrhI3JyWQo963vnqDGKeRfhczJGXXdRLlZUgoihmZmr1UkgThEQpJV1OOIiK9bH7KFJ5rZQCDWOjiCs7V3xMZiqScRL7ujJAaymVvJv7ndVMV3HgZ5UmqCMeLj4KUQRXDWS5wQAXBik00QVhQvSvEQyQQ1uFIU4fgLp+8SlqVsntZvnqolKqdPI4iOAFn4AK44BpUwR2ogybA4BE8g1fwZjwZL8a78bFoLRj5zDH4A+PzBxC1mKA=</latexit>
+Charging<latexit sha1_base64="QS5Yv+NzXKDmmToOvaJAby/1dOI=">AAAB/nicbZDLSsNAFIZPvNZ4i4orN4Ot4KokRdFloRuXFewF2lAm00k6dDIJMxOhhIKv4saFIm59Dne+jdM2C209MPDx/+fMnPmDlDOlXffbWlvf2NzaLu3Yu3v7B4fO0XFbJZkktEUSnshugBXlTNCWZprTbiopjgNOO8G4MfM7j1QqlogHPUmpH+NIsJARrI00cE77hApNJRORXWmMsIwMVQZO2a2680Kr4BVQhqKaA+erP0xIFpu7CMdK9Tw31X6OpWaE06ndzxRNMRnjiPYMChxT5efz9afowihDFCbSHKHRXP09keNYqUkcmM4Y65Fa9mbif14v0+GtnzORZpoKsngozDjSCZplgYZMUqL5xAAmkpldETERYGICUbYJwVv+8iq0a1Xvqnp9XyvXu0UcJTiDc7gED26gDnfQhBYQyOEZXuHNerJerHfrY9G6ZhUzJ/CnrM8fWj+VKQ==</latexit>
+Charged<latexit sha1_base64="Io3/YWQdDw13/FueXNV+XZgjXzc=">AAAB/XicbVDLSsNAFJ3UV42v+Ni5CbaCq5IURZeFblxWsA9oQ5lMbtKhk0mYmQg1FH/FjQtF3Pof7vwbp20W2nrgwuGce2fuPX7KqFSO822U1tY3NrfK2+bO7t7+gXV41JFJJgi0ScIS0fOxBEY5tBVVDHqpABz7DLr+uDnzuw8gJE34vZqk4MU44jSkBCstDa2TAQGuQFAemdXmCIsIgurQqjg1Zw57lbgFqaACraH1NQgSksX6KcKwlH3XSZWXY6EoYTA1B5mEFJMxjqCvKccxSC+fbz+1z7US2GEidHFlz9XfEzmOpZzEvu6MsRrJZW8m/uf1MxXeeDnlaaaAk8VHYcZsldizKOyACiCKTTTBRFC9q010ApjoPKSpQ3CXT14lnXrNvaxd3dUrjV4RRxmdojN0gVx0jRroFrVQGxH0iJ7RK3oznowX4934WLSWjGLmGP2B8fkDfDWUqg==</latexit>
+ArrivedL1
+<latexit sha1_base64="eUDjEMMtd9JJJ1u69DY5sMngM9A=">AAAB/3icbVDLSsNAFJ3UV42vqODGTbAVXJWkKLqsuHHhooJ9QBvKZHLTDp1MwsykUGIX/oobF4q49Tfc+TdO2yy09cCFwzn3ztx7/IRRqRzn2yisrK6tbxQ3za3tnd09a/+gKeNUEGiQmMWi7WMJjHJoKKoYtBMBOPIZtPzhzdRvjUBIGvMHNU7Ai3Cf05ASrLTUs466BLgCQXnfLF8LQUcQ3LnlnlVyKs4M9jJxc1JCOeo966sbxCSN9GOEYSk7rpMoL8NCUcJgYnZTCQkmQ9yHjqYcRyC9bLb/xD7VSmCHsdDFlT1Tf09kOJJyHPm6M8JqIBe9qfif10lVeOVllCepAk7mH4Ups1VsT8OwAyqAKDbWBBNB9a42GWCBiU5EmjoEd/HkZdKsVtzzysV9tVRr53EU0TE6QWfIRZeohm5RHTUQQY/oGb2iN+PJeDHejY95a8HIZw7RHxifP8KJlVo=</latexit>
+RepeatL2
+<latexit sha1_base64="lJ8LGHbGLdFgrvmTVQgsI7LIV0I=">AAACAnicbVDLSsNAFJ34rPEVdSVuBhvBVUmKosuCGxcuqtgHtKFMprft0MkkzEyEEoobf8WNC0Xc+hXu/BunbRbaeuDC4Zx7Z+49YcKZ0p73bS0tr6yurRc27M2t7Z1dZ2+/ruJUUqjRmMeyGRIFnAmoaaY5NBMJJAo5NMLh1cRvPIBULBb3epRAEJG+YD1GiTZSxzlsUxAaJBN9272DBIh2bdu9Kbsdp+iVvCnwIvFzUkQ5qh3nq92NaRqZ9ygnSrV8L9FBRqRmlMPYbqcKEkKHpA8tQwWJQAXZ9IQxPjFKF/diaUpoPFV/T2QkUmoUhaYzInqg5r2J+J/XSnXvMsiYSFINgs4+6qUc6xhP8sBdJoFqPjKEUMnMrpgOiCTUhKJsE4I/f/IiqZdL/lnp/LZcrDTzOAroCB2jU+SjC1RB16iKaoiiR/SMXtGb9WS9WO/Wx6x1ycpnDtAfWJ8/L7iVaQ==</latexit>
+Charging<latexit sha1_base64="on4q8ldOGvvr2U0p0VBsZwNv3k4=">AAAB73icbVBNS8NAEJ2tX7V+VT16WSyCp5JIRY+FXjxWsG2gDWWz3aRLN5u4uxFK6J/w4kERr/4db/4bt20O2vpg4PHeDDPzglRwbRznG5U2Nre2d8q7lb39g8Oj6vFJVyeZoqxDE5EoLyCaCS5Zx3AjmJcqRuJAsF4wac393hNTmifywUxT5sckkjzklBgrea0xURGX0bBac+rOAniduAWpQYH2sPo1GCU0i5k0VBCt+66TGj8nynAq2KwyyDRLCZ2QiPUtlSRm2s8X987whVVGOEyULWnwQv09kZNY62kc2M6YmLFe9ebif14/M+Gtn3OZZoZJulwUZgKbBM+fxyOuGDViagmhittbMbUJEGpsRBUbgrv68jrpXtXdRv36vlFrekUcZTiDc7gEF26gCXfQhg5QEPAMr/CGHtELekcfy9YSKmZO4Q/Q5w8HwpAL</latexit>
+Station<latexit sha1_base64="J+bj0ypMku9qhOwUDNL6RDBNhPo=">AAAB7nicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0WPBi8eK9gPaUDbbTbt0swm7E6GE/ggvHhTx6u/x5r9xm+agrQ+Wfbw3w8y8IJHCoOt+O6W19Y3NrfJ2ZWd3b/+genjUNnGqGW+xWMa6G1DDpVC8hQIl7yaa0yiQvBNMbud+54lrI2L1iNOE+xEdKREKRtFKnQfM/0G15tbdHGSVeAWpQYHmoPrVH8YsjbhCJqkxPc9N0M+oRsEkn1X6qeEJZRM64j1LFY248bN83Rk5s8qQhLG2TyHJ1d8dGY2MmUaBrYwojs2yNxf/83ophjd+JlSSIldsMShMJcGYzG8nQ6E5Qzm1hDIt7K6EjammDG1CFRuCt3zyKmlf1L3L+tX9Za3RLeIowwmcwjl4cA0NuIMmtIDBBJ7hFd6cxHlx3p2PRWnJKXqO4Q+czx9+L4/A</latexit>
+L1
+<latexit sha1_base64="2qPFpbfAAWYm57D2g6w4yzClnnA=">AAAB6XicbVA9SwNBEJ2LXzF+RS1tFoNgFe4komXAxsIiivmA5Ah7m7lkyd7esbsnhCP/wMZCEVv/kZ3/xk1yhSY+GHi8N8PMvCARXBvX/XYKa+sbm1vF7dLO7t7+QfnwqKXjVDFssljEqhNQjYJLbBpuBHYShTQKBLaD8c3Mbz+h0jyWj2aSoB/RoeQhZ9RY6eHO65crbtWdg6wSLycVyNHol796g5ilEUrDBNW667mJ8TOqDGcCp6VeqjGhbEyH2LVU0gi1n80vnZIzqwxIGCtb0pC5+nsio5HWkyiwnRE1I73szcT/vG5qwms/4zJJDUq2WBSmgpiYzN4mA66QGTGxhDLF7a2EjaiizNhwSjYEb/nlVdK6qHq16uV9rVLv5HEU4QRO4Rw8uII63EIDmsAghGd4hTdn7Lw4787HorXg5DPH8AfO5w8cQo0p</latexit>
+L2
+<latexit sha1_base64="wFe6u03whwnre4sVWTKA2vLG+1w=">AAAB6XicbVA9SwNBEJ2LXzF+RS1tFoNgFe5CRMuAjYVFFBMDyRH2NnvJkr29Y3dOCEf+gY2FIrb+Izv/jZvkCk18MPB4b4aZeUEihUHX/XYKa+sbm1vF7dLO7t7+QfnwqG3iVDPeYrGMdSeghkuheAsFSt5JNKdRIPljML6e+Y9PXBsRqwecJNyP6FCJUDCKVrq/rfXLFbfqzkFWiZeTCuRo9stfvUHM0ogrZJIa0/XcBP2MahRM8mmplxqeUDamQ961VNGIGz+bXzolZ1YZkDDWthSSufp7IqORMZMosJ0RxZFZ9mbif143xfDKz4RKUuSKLRaFqSQYk9nbZCA0ZygnllCmhb2VsBHVlKENp2RD8JZfXiXtWtWrVy/u6pVGJ4+jCCdwCufgwSU04Aaa0AIGITzDK7w5Y+fFeXc+Fq0FJ585hj9wPn8AHcaNKg==</latexit>
+L3
+<latexit sha1_base64="Xd9yXjNmokzqv2r31e7sV+TQGC0=">AAAB6XicbVA9SwNBEJ3zM8avqKXNYhCswp1GtAzYWFhEMR+QHGFvs5cs2ds7dueEcOQf2FgoYus/svPfuEmu0MQHA4/3ZpiZFyRSGHTdb2dldW19Y7OwVdze2d3bLx0cNk2casYbLJaxbgfUcCkUb6BAyduJ5jQKJG8Fo5up33ri2ohYPeI44X5EB0qEglG00sPdRa9UdivuDGSZeDkpQ456r/TV7ccsjbhCJqkxHc9N0M+oRsEknxS7qeEJZSM64B1LFY248bPZpRNyapU+CWNtSyGZqb8nMhoZM44C2xlRHJpFbyr+53VSDK/9TKgkRa7YfFGYSoIxmb5N+kJzhnJsCWVa2FsJG1JNGdpwijYEb/HlZdI8r3jVyuV9tVxr53EU4BhO4Aw8uIIa3EIdGsAghGd4hTdn5Lw4787HvHXFyWeO4A+czx8fSo0r</latexit>
+L4
+<latexit sha1_base64="RDilDLiZY8iMoR1SKWEBZxyOQu0=">AAAB6XicbVA9SwNBEJ2LXzF+RS1tFoNgFe4komXAxsIiivmA5Ah7m71kyd7esTsnhCP/wMZCEVv/kZ3/xk1yhSY+GHi8N8PMvCCRwqDrfjuFtfWNza3idmlnd2//oHx41DJxqhlvsljGuhNQw6VQvIkCJe8kmtMokLwdjG9mfvuJayNi9YiThPsRHSoRCkbRSg93tX654lbdOcgq8XJSgRyNfvmrN4hZGnGFTFJjup6boJ9RjYJJPi31UsMTysZ0yLuWKhpx42fzS6fkzCoDEsbalkIyV39PZDQyZhIFtjOiODLL3kz8z+umGF77mVBJilyxxaIwlQRjMnubDITmDOXEEsq0sLcSNqKaMrThlGwI3vLLq6R1UfVq1cv7WqXeyeMowgmcwjl4cAV1uIUGNIFBCM/wCm/O2Hlx3p2PRWvByWeO4Q+czx8gzo0s</latexit>
+L6
+<latexit sha1_base64="q3geI7cPHO7g4iXgPJhrLqwBTyQ=">AAAB6XicbVDLSgNBEOyNrxhfUY9eBoPgKeyKr2PAiwcPUcwDkiXMTnqTIbOzy8ysEJb8gRcPinj1j7z5N06SPWhiQUNR1U13V5AIro3rfjuFldW19Y3iZmlre2d3r7x/0NRxqhg2WCxi1Q6oRsElNgw3AtuJQhoFAlvB6Gbqt55QaR7LRzNO0I/oQPKQM2qs9HB32StX3Ko7A1kmXk4qkKPeK391+zFLI5SGCap1x3MT42dUGc4ETkrdVGNC2YgOsGOppBFqP5tdOiEnVumTMFa2pCEz9fdERiOtx1FgOyNqhnrRm4r/eZ3UhNd+xmWSGpRsvihMBTExmb5N+lwhM2JsCWWK21sJG1JFmbHhlGwI3uLLy6R5VvXOqxf355VaO4+jCEdwDKfgwRXU4Bbq0AAGITzDK7w5I+fFeXc+5q0FJ585hD9wPn8AI9aNLg==</latexit>
+r=0
+<latexit sha1_base64="GvWcEuVaI+kWp33ou5RwImwwQHI=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0YtQ8OKxgmkLbSib7aRdutmE3Y1QQn+DFw+KePUHefPfuG1z0NYHA4/3ZpiZF6aCa+O6305pbX1jc6u8XdnZ3ds/qB4etXSSKYY+S0SiOiHVKLhE33AjsJMqpHEosB2O72Z++wmV5ol8NJMUg5gOJY84o8ZKviK3xO1Xa27dnYOsEq8gNSjQ7Fe/eoOEZTFKwwTVuuu5qQlyqgxnAqeVXqYxpWxMh9i1VNIYdZDPj52SM6sMSJQoW9KQufp7Iqex1pM4tJ0xNSO97M3E/7xuZqKbIOcyzQxKtlgUZYKYhMw+JwOukBkxsYQyxe2thI2ooszYfCo2BG/55VXSuqh7l/Wrh8tao1PEUYYTOIVz8OAaGnAPTfCBAYdneIU3RzovzrvzsWgtOcXMMfyB8/kDgweN6Q==</latexit>
+r=0
+<latexit sha1_base64="GvWcEuVaI+kWp33ou5RwImwwQHI=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0YtQ8OKxgmkLbSib7aRdutmE3Y1QQn+DFw+KePUHefPfuG1z0NYHA4/3ZpiZF6aCa+O6305pbX1jc6u8XdnZ3ds/qB4etXSSKYY+S0SiOiHVKLhE33AjsJMqpHEosB2O72Z++wmV5ol8NJMUg5gOJY84o8ZKviK3xO1Xa27dnYOsEq8gNSjQ7Fe/eoOEZTFKwwTVuuu5qQlyqgxnAqeVXqYxpWxMh9i1VNIYdZDPj52SM6sMSJQoW9KQufp7Iqex1pM4tJ0xNSO97M3E/7xuZqKbIOcyzQxKtlgUZYKYhMw+JwOukBkxsYQyxe2thI2ooszYfCo2BG/55VXSuqh7l/Wrh8tao1PEUYYTOIVz8OAaGnAPTfCBAYdneIU3RzovzrvzsWgtOcXMMfyB8/kDgweN6Q==</latexit>
+r=0
+<latexit sha1_base64="GvWcEuVaI+kWp33ou5RwImwwQHI=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0YtQ8OKxgmkLbSib7aRdutmE3Y1QQn+DFw+KePUHefPfuG1z0NYHA4/3ZpiZF6aCa+O6305pbX1jc6u8XdnZ3ds/qB4etXSSKYY+S0SiOiHVKLhE33AjsJMqpHEosB2O72Z++wmV5ol8NJMUg5gOJY84o8ZKviK3xO1Xa27dnYOsEq8gNSjQ7Fe/eoOEZTFKwwTVuuu5qQlyqgxnAqeVXqYxpWxMh9i1VNIYdZDPj52SM6sMSJQoW9KQufp7Iqex1pM4tJ0xNSO97M3E/7xuZqKbIOcyzQxKtlgUZYKYhMw+JwOukBkxsYQyxe2thI2ooszYfCo2BG/55VXSuqh7l/Wrh8tao1PEUYYTOIVz8OAaGnAPTfCBAYdneIU3RzovzrvzsWgtOcXMMfyB8/kDgweN6Q==</latexit>
+r=1
+<latexit sha1_base64="0Sx6fkDvalvCvyJw5mutpGDVWoU=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0lE0YtQ8OKxgmkLbSib7aZdutmE3YlQQn+DFw+KePUHefPfuG1z0NYHA4/3ZpiZF6ZSGHTdb6e0tr6xuVXeruzs7u0fVA+PWibJNOM+S2SiOyE1XArFfRQoeSfVnMah5O1wfDfz209cG5GoR5ykPIjpUIlIMIpW8jW5JV6/WnPr7hxklXgFqUGBZr/61RskLIu5QiapMV3PTTHIqUbBJJ9WepnhKWVjOuRdSxWNuQny+bFTcmaVAYkSbUshmau/J3IaGzOJQ9sZUxyZZW8m/ud1M4xuglyoNEOu2GJRlEmCCZl9TgZCc4ZyYgllWthbCRtRTRnafCo2BG/55VXSuqh7l/Wrh8tao1PEUYYTOIVz8OAaGnAPTfCBgYBneIU3RzkvzrvzsWgtOcXMMfyB8/kDhIuN6g==</latexit>
+r=5
+<latexit sha1_base64="vQMy6lTSSPsgHpZuR6zzr/LF6N0=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0mkRS9CwYvHCvYD2lA22027dLMJuxOhhP4GLx4U8eoP8ua/cdvmoK0PBh7vzTAzL0ikMOi6305hY3Nre6e4W9rbPzg8Kh+ftE2casZbLJax7gbUcCkUb6FAybuJ5jQKJO8Ek7u533ni2ohYPeI04X5ER0qEglG0UkuTW1IflCtu1V2ArBMvJxXI0RyUv/rDmKURV8gkNabnuQn6GdUomOSzUj81PKFsQke8Z6miETd+tjh2Ri6sMiRhrG0pJAv190RGI2OmUWA7I4pjs+rNxf+8XorhjZ8JlaTIFVsuClNJMCbzz8lQaM5QTi2hTAt7K2FjqilDm0/JhuCtvrxO2ldVr1atP9QqjW4eRxHO4BwuwYNraMA9NKEFDAQ8wyu8Ocp5cd6dj2VrwclnTuEPnM8fipuN7g==</latexit>
+L5
+<latexit sha1_base64="QTe9ic6du+0Qwwr58hVxsBzI/7E=">AAAB6XicbVA9SwNBEJ2LXzF+RS1tFoNgFe7EoGXAxsIiivmA5Ah7m7lkyd7esbsnhCP/wMZCEVv/kZ3/xk1yhSY+GHi8N8PMvCARXBvX/XYKa+sbm1vF7dLO7t7+QfnwqKXjVDFssljEqhNQjYJLbBpuBHYShTQKBLaD8c3Mbz+h0jyWj2aSoB/RoeQhZ9RY6eGu1i9X3Ko7B1klXk4qkKPRL3/1BjFLI5SGCap113MT42dUGc4ETku9VGNC2ZgOsWuppBFqP5tfOiVnVhmQMFa2pCFz9fdERiOtJ1FgOyNqRnrZm4n/ed3UhNd+xmWSGpRssShMBTExmb1NBlwhM2JiCWWK21sJG1FFmbHhlGwI3vLLq6R1UfUuq7X7y0q9k8dRhBM4hXPw4ArqcAsNaAKDEJ7hFd6csfPivDsfi9aCk88cwx84nz8iUo0t</latexit>
+r=3
+<latexit sha1_base64="QuUna675agV3ky9crDiZX/Pug9E=">AAAB7HicbVBNS8NAEJ3Ur1q/qh69LBbBU0m0oheh4MVjBdMW2lA22027dLMJuxOhlP4GLx4U8eoP8ua/cdvmoK0PBh7vzTAzL0ylMOi6305hbX1jc6u4XdrZ3ds/KB8eNU2SacZ9lshEt0NquBSK+yhQ8naqOY1DyVvh6G7mt564NiJRjzhOeRDTgRKRYBSt5GtySy575Ypbdecgq8TLSQVyNHrlr24/YVnMFTJJjel4borBhGoUTPJpqZsZnlI2ogPesVTRmJtgMj92Ss6s0idRom0pJHP198SExsaM49B2xhSHZtmbif95nQyjm2AiVJohV2yxKMokwYTMPid9oTlDObaEMi3srYQNqaYMbT4lG4K3/PIqaV5UvVr16qFWqbfzOIpwAqdwDh5cQx3uoQE+MBDwDK/w5ijnxXl3PhatBSefOYY/cD5/AIeTjew=</latexit>Fig. 5. (left) GSPNR model of a simple monitoring example with 3 robots and 2 locations. (right) Map of the simulated environment in Stage ,where the
+grey rectangles represent locations and the arrows the edges connecting them. The colored discs represent the robots.
+0 25 50 75 100 125 150 175
+Elapsed time [minutes]025005000750010000125001500017500Accumulated RewardPolicy
+long-run
+discounted
+hand coded
+random
+Fig. 6. Accumulated reward following each policy in the Stage simulation.
+The lines represent the mean and the shadows the standard deviation.
+others baselines even before 3 hours of runtime. Generally
+speaking, we expect real missions to be longer than 3 hours,
+and therefore after 43200 hours we expect to outperform
+the discounted baseline by 3:1105(based on a linear
+extrapolation of the results). The reason is that our method
+optimizes the reward earned taking into account the cyclic
+behavior of the system on an inﬁnite horizon, while the
+discounted approaches take a myopic view even with discount
+factors close to 1. Henceforth, for many applications, this
+gain in performance is worth the one-time cost discussed
+in the previous section. As far as we are aware, all existing
+methods for planning under uncertain action duration in the
+multi-robot community obtain a solution considering a ﬁnite
+horizon or a discounted inﬁnite horizon.
+VII. F UTURE WORK
+In this paper, we have presented a multi-robot planning
+approach for long-term scenarios, that provides policies for
+persistent monitoring scenarios where uncertainty over the
+duration of tasks are taken into consideration.
+In the future, we intend to scale the method for larger
+teams, exploiting sub-optimal policies, through the use of
+heuristics. Additionally, we will investigate the extension of
+the current method to handle other classes of speciﬁcations,
+such as linear temporal logic missions or multi-objective
+problems.ACKNOWLEDGMENT
+This work was supported by the Portuguese Funda c ¸˜ao
+para a Ci ˆencia e Tecnologia (FCT) under the grant
+SFRH/BD/135014/2017 and the LARSyS - FCT Project
+UIDB/50009/2020, and by UK Research and Innovation and
+EPSRC through the Robotics and Artiﬁcial Intelligence for
+Nuclear (RAIN) research hub [EP/R026084/1].
+REFERENCES
+[1]R. R. Murphy, S. Tadokoro, and A. Kleiner, “Disaster robotics,” in
+Springer Handbook of Robotics , 2016.
+[2]C. Azevedo, B. Lacerda, N. Hawes, and P. Lima, “Long-run multi-robot
+planning with uncertain task durations,” in AAMAS , 2020.
+[3]Y . Butkova, R. Wimmer, and H. Hermanns, “Long-run rewards for
+Markov automata,” in TACAS , 2017.
+[4]V . A. Ziparo, L. Iocchi, P. U. Lima, D. Nardi, and P. F. Palamara,
+“Petri net plans – A framework for collaboration and coordination in
+multi-robot systems,” AAMAS , 2011.
+[5]H. Costelha and P. Lima, “Robot task plan representation by Petri nets;
+Modelling, identiﬁcation, analysis and execution,” Aut. Robots , 2012.
+[6]C. Mahulea and M. Kloetzer, “Robot planning based on Boolean
+speciﬁcations using Petri net models,” IEEE-TAC , 2018.
+[7]B. Lacerda and P. Lima, “Petri net based multi-robot task coordination
+from temporal logic speciﬁcations,” Rob. and Aut. Sys. , 2019.
+[8]H. Park and J. R. Morrison, “System design and resource analysis for
+persistent robotic presence with multiple refueling stations,” in ICUAS ,
+2019.
+[9]M. Mansouri, B. Lacerda, N. Hawes, and F. Pecora, “Multi-robot
+planning under uncertain travel times and safety constraints,” in IJCAI ,
+2019.
+[10] H. L. S. Younes and R. G. Simmons, “Solving Generalized Semi-
+Markov Decision Processes using continuous phase-type distributions,”
+inAAAI , 2004.
+[11] J. V . Messias, M. T. J. Spaan, and P. U. Lima, “GSMDPs for multi-robot
+sequential decision-making,” in AAAI , 2013.
+[12] C. Street, B. Lacerda, M. M ¨uhlig, and N. Hawes, “Multi-robot planning
+under uncertainty with congestion-aware models,” in AAMAS , 2020.
+[13] S. Omidshaﬁei, A.-A. Agha-Mohammadi, C. Amato, S.-Y . Liu, J. P.
+How, and J. Vian, “Decentralized control of multi-robot partially
+observable Markov decision processes using belief space macro-actions,”
+IJRR , 2017.
+[14] C. Amato, G. Konidaris, L. P. Kaelbling, and J. P. How, “Modeling
+and planning with macro-actions in decentralized POMDPs,” JAIR ,
+2019.
+[15] A. Velasquez, “Steady-state policy synthesis for veriﬁable control,” in
+IJCAI , 2019.
+[16] D. Guck, H. Hateﬁ, H. Hermanns, J.-P. Katoen, and M. Timmer,
+“Analysis of timed and long-run objectives for markov automata,” LMCS ,
+2014.
+[17] C. Eisentraut, H. Hermanns, J.-P. Katoen, and L. Zhang, “A semantics
+for every GSPN,” in Petri Nets , 2013.
+[18] K. Chatterjee and M. Henzinger, “Faster and dynamic algorithms for
+maximal end-component decomposition and related graph problems in
+probabilistic veriﬁcation,” in SODA , 2011.

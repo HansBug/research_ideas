@@ -1,0 +1,661 @@
+--- Page 1 ---
+PreemptiveJob-Shop Scheduling
+using Stopwatch Automata∗
+YasminaAbdedda ¨ımandOdedMaler
+Verimag,Centre Equation, 2, av. de Vignate 38610 Gi `eres, France
+Yasmina.Abdeddaim@imag.fr Oded.Maler@imag.fr
+Abstract
+In this paper we show how the problem of job-shop schedul-
+ing where the jobs are preemptible can be modeled natu-
+rally as a shortest path problem deﬁned on an extension oftimed automata, namely stopwatch automata where some ofthe clocks might be freezed at certain states. Although gen-eral veriﬁcation problems on stopwatch automata are knownto be undecidable, we show that due to particular propertiesof optimal schedules, the shortest path in the automaton be-longs to a ﬁnite subset of the set of acyclic paths and hencethe problem is solvable. We present several algorithms andheuristics for ﬁnding the shortest paths in such automata andtesttheirimplementationonnumerousbenchmarkexamples.
+Introduction
+In (AM01) we have described a ﬁrst step in a research pro-
+grammeintendedtore-formulateschedulingproblemsusing
+(timed)automata-basedformalisms. Apartfromtheundeni-
+ablejoyofre-inventingthewheel,thisworkismotivatedbythe belief that such automata provide timing problems with
+faithful state-based dynamic models on which a systematic
+study of semantic and computational problems can be done— the reader is referred to (AM01) for some of the mo-
+tivation and background and to (AM99; AGP99; NTY00;
+NY01; BFH
++01) for other recent results in this spirit. In
+this framework the runs of the timed automaton correspond
+to feasible schedules and ﬁnding a time-optimal schedule
+amounts to ﬁnding the shortest path (in terms of elapsedtime)intheautomaton. In(AM01)wehaveshownhowthis
+worksnicelyforthejob-shopschedulingproblemwhichcan
+be modeled by a certain class of acyclictimed automata,
+having ﬁnitely many qualitative
+1runs. Each such qualita-
+tive run is an equivalence class of a non-countable numberof quantitative runs, but as we have shown, one of those (a
+“non-lazy”runwhichmakestransitionsassoonaspossible)
+issufﬁcienttoﬁndtheoptimumoverthewholeclass. Theseobservations allowed us to apply efﬁcient search algorithms
+over single conﬁgurations of clocks rather than work with
+zones.
+∗This work was partially supported by the Euro-
+pean Community Project IST-2001-35304 AMETISThttp://ametist.cs.utwente.nl
+1Byaqualitativerunofatimedautomatonwemeanasequence
+ofstatesandtransitionswithoutmetric timinginformation.In this work we extend these results to preemptible jobs,
+i.e. jobs that can use a machine for some time, stop for a
+while and then resume from where they stopped. Such sit-
+uations are common, for example, when the machines arecomputers. While extending the framework of (AM01) to
+treat thissituation we encounter two problems:
+1. The corresponding class of automata goes beyond timed
+automata because clocks are stopped but not reset to zero
+when a job is preempted. General reachability problems
+for such stopwatch automata (also known as integration
+graphs) are known to be undecidable (C92; KPSY99).
+2. Duetopreemptionandresumption,whichcorrespondsto
+aloopintheunderlyingtransitiongraph,theobtainedau-
+tomata are cyclic (unlike the non-preemptive case) andthey have an inﬁnitenumber of qualitative runs.
+Wewillshowhoweverthattheseproblemscanbeovercome
+for the class of stopwatch automata that correspond to pre-
+emtiblejobshopproblems,andthatefﬁcientalgorithmscanbe constructed.
+The rest of the paper is organized as follows. In sec-
+tion 2 we give a short introduction to the preemptive job-
+shop scheduling problem including a fundamental property
+of optimal schedules. In section 3 we recall the deﬁnitionof stopwatch automata and show how to transform a job-
+shop speciﬁcation into such an automaton whose runs cor-
+respond to feasible schedules. In section 4 we describe ef-ﬁcient algorithms for solving the shortest-path problem for
+these automata (either exactly or approximately) and report
+the performance results of their prototype implementation
+on numerous benchmark examples.
+PreemptiveJob-ShopScheduling
+The Job-shop scheduling problem is a generic resource al-location problem in which common resources (“machines”)
+are required at various time points (and for given durations)by different tasks. The goal is to ﬁnd a way to allocate the
+resources such that all the tasks terminate as soon as pos-
+sible. We consider throughout the paper a ﬁxed set Mof
+resources. A stepisapair (m,d)wherem∈Mandd∈N,
+indicatingtherequiredutilizationofresource mfortimedu-
+rationd.Ajob speciﬁcation isa ﬁnite sequence
+J=(m
+1,d1),(m2,d2),..., (mk,dk)(1)
+7
+
+--- Page 2 ---
+ofsteps,statingthatinordertoaccomplishjob J,oneneeds
+to use machine m1ford1time, then use machine m2ford2
+time,etc.
+Deﬁnition 1 (Job-Shop Speciﬁcation) LetMbe a ﬁnite
+set of resources (machines). A job speciﬁcation over Mis a
+tripleJ=(k,µ,d )wherek∈Nis the number of steps in
+J,µ:{1..k}→Mindicateswhichresourceisusedateach
+step, andd:{1..k}→Nspeciﬁes the length of each step.
+A job-shop speciﬁcation is a set J={J1,...,Jn}of jobs
+withJi=(ki,µi,di).
+In order to simplify notations we assume that each machine
+isusedexactlyoncebyeveryjob. Wedenote R+byT,abuse
+Jfor{1,...,n }and letK={1,...,k }.
+Deﬁnition 2 (Feasible Schedules) LetJ={J1,...,Jn}
+be a job-shop speciﬁcation. A feasible schedule for Jis
+a relationS⊆J×K×Tso that (i,j,t )∈Sindi-
+cates that job Jiis busy doing its jthstep at time tand,
+hence, occupies machine µi(j). We letTi
+jbe the set of
+time instants where job i∈Jis executing its jthstep, i.e.
+Ti
+j={t:(i,j,t )∈S}.2A feasible schedule should satisfy
+the following conditions:
+1.Ordering:i f(i,j,t )∈Sand(i,j/prime,t/prime)∈Sthenj<
+j/primeimpliest<t/prime(steps of the same job are executed in
+order).
+2.Covering: For everyi∈Jandj∈K/integraldisplay
+t∈Ti
+jdt≥di(j)
+(every step isexecuted).
+3.Mutual Exclusion : For every i/negationslash=i/prime∈J,j,j/prime∈Kand
+t∈T,i f(i,j,t )∈Sand(i/prime,j/prime,t)∈Sthenµi(j)/negationslash=
+µi/prime(j/prime)(two steps of different jobs which execute at the
+same time do not use the same machine).
+Notethatweallowajobtooccupythemachine afterthestep
+hasterminated. The length |S|ofascheduleisthesupremal
+tover all (i,j,t )∈S. We say that a step jof jobiis
+enabledin timetift∈Ei
+j= (maxTi
+j−1,maxTi
+j]. The
+optimal job-shop scheduling problem is to ﬁnd a schedule
+of a minimal length. This problem is known to be NP-hard(GJ79). From the relational deﬁnition of schedules one can
+derive the following commonly used deﬁnitions:
+1. Themachine allocation function α:M×T→Jstat-
+ing which job occupies a machine at any time, deﬁned as
+α(m,t)=iif(i,j,t )∈Sandµ
+i(j)=m.
+2. Thetask progress function β:J×T→Mstating what
+machine is used by a job is at a given time, deﬁned as
+β(i,t)=mif(i,j,t )∈Sandµi(j)=m.
+These functions are partial — a machine or a job might be
+idle at certain times.Example 1 : Consider M={m
+1,m 2,m 3}and two jobs
+J1=(m1,3),(m2,2),(m3,4)andJ2=(m2,5).T w o
+schedulesS1andS2appear in Figure 1. The length of S1is
+9and it is the optimal schedule. As one can see, at t=3,
+J1preemptsJ2and takes machine m2.
+2We may assume further that Ti
+jis can be decomposed into a
+countable number ofleft-closedright-open intervals.m1
+m2
+J1
+J2m3m1
+m2
+J1
+J2m3J1
+m3 m2 m1
+m2 m2J1
+J2J1J2 J2J1
+J1
+J1
+m1 m3 m2
+m2
+911S1 S2
+α
+β
+Figure1: Twoschedule S1andS2visualizedasthemachine
+allocation function αand the task progress function β.
+We conclude this section with a reformulation of a
+well-knownresultconcerningoptimalpreemptivescheduleswhich will be used later. In essence this result formalizes
+the following two intuitive observations: 1) When jobs can
+be preempted and resumed at no cost, there is no reason todelayastepnotbeinginaconﬂictwithanother. 2)Twojobs
+that keep on preempting each other do not contribute to the
+general progress.
+Deﬁnition 3 (Conﬂicts and Priorities) LetSbe a feasible
+schedule. We say that job iis in conﬂict with job i
+/primeon ma-
+chineminS(denoted by i∦mi/prime) when there are two re-
+spective steps jandj/primesuch thatµi(j)=µi/prime(j/prime)=mand
+Ei
+j∩Ei/prime
+j/prime/negationslash=∅. Wesaythat ihaspriorityon moveraconﬂict-
+ing jobi/prime(denoted by i≺mi/prime) if it ﬁnishes using mbefore
+i/primedoes, i.e. supTi
+j<supTi/prime
+j/prime.
+Note that conﬂicts and priorities are always induced by a
+scheduleSalthoughSisomitted from the notation.
+Deﬁnition 4 (Efﬁcient Schedules) AscheduleSisefﬁcient
+if for every job iand a stepjsuch thatµi(j)=m, jobi
+usesmduringallthetimeinterval Ei
+jexceptfortimeswhen
+another job i/primesuch thati/prime≺miusesit.
+Thefollowingisafolktheorem,whoserootsgobackatleast
+to(J55)withsomereformulationandproofsin,forexample,
+(CP90; PB96).
+Theorem 0.1 (Efﬁciency isGood) Every preemptive job-
+shop speciﬁcation admits an efﬁcient optimal schedule.
+Sketch of Proof : The proof is by showing that every inefﬁ-
+cient schedule Scan be transformed into an efﬁcient sched-
+uleS/primewith|S/prime|≤|S|. LetIbe the ﬁrst interval when
+inefﬁciencyoccursforjob iandmachine m. Wemodifythe
+schedule by shifting some of the later use of mbyiinto
+I.I fmwas occupied during Iby another job i/primesuch that
+i≺mi/prime, we give it the time slot liberated by i. The termi-
+nation of the step by i/primeis not delayed by this modiﬁcation
+because ithappens anyway after iterminates itsstep.
+AsanillustrationconsidertheschedulesappearinginFig-
+ure 2 withJ1≺mJ2≺mJ3and whereJ2is enabled in the
+interval [t1,t2]. The ﬁrst inefﬁciency in S1is eliminated in
+S2by lettingJ2use the free time slot before the arrival of
+8
+
+--- Page 3 ---
+J1 J3 J2 J3
+J3 J2 J3 J1 J2
+J2J1 J2 J3t1 t2
+J2J1 J2 J3 J3S1
+S2
+S3
+S4
+Figure 2: Removal of inefﬁciency, J1≺J2≺J3.
+J1. The second inefﬁciency occurs when J3uses the ma-
+chine while J2is waiting, and it is removed in S3. The last
+inefﬁciency where J3is waiting while mis idle is removed
+inS4.
+This result reduces the set of candidates for optimality
+from the non-countable set of feasible schedules to the ﬁ-nite set of efﬁcient schedules, each of which corresponds to
+a ﬁxed priority relation.
+3There are potentially kn!priority
+relations but only a fraction of those needs to be consideredbecause when iandi
+/primeare never in conﬂict concerning m,
+the priorityi≺mi/primehas no inﬂuence on the schedule.
+StopwatchAutomata
+Timed automata (AD94) are automata augmented with con-
+tinuous clock variables whose values grow uniformly at ev-
+ery state. Clocks are reset to zero at certain transitions andtests on their values are used as pre-conditions for transi-
+tions. Hence they are ideal for describing concurrent time-
+dependentbehaviors. Therearehoweversituations,preemp-tive scheduling being among those, in which we need to
+measuretheoverallaccumulated timethatasystemsspends
+in some state. This motivated the extension of the modelto have clocks with derivative zero at certain states. Unlike
+timedautomata,thereachabilityproblemfortheseautomata
+isundecidable(C92). Somesub-classes, integrationgraphs ,
+were investigated in (KPSY99), where a decision procedure
+based on reducing the problem into linear constraint sat-
+isfaction was reported. Similar automata were studied in(MV94) and in (CL00) where an implementation of an ap-
+proximate veriﬁcation algorithm was described.
+Deﬁnition 5 (Stopwatch Automaton)
+A stopwatch automaton is a tuple A=(Q,C,s,f, u,∆)
+whereQis a ﬁnite set of states, Cis a ﬁnite set of nclocks,
+u:Q→{0,1}
+nassignsaconstantslopetoeverystateand
+∆is a transition relation consisting of elements of the form
+(q,φ,ρ,q/prime)whereqandq/primeare states,ρ⊆Candφ(the
+transition guard) is a boolean combination of formulae oftheform (c∈I)forsomeclock candsomeinteger-bounded
+intervalI. Statessandfare the initial and ﬁnal states,
+respectively.
+3This might explain the popularity of priority-based approach
+incomputer scheduling.Aclock valuation is a function v:C→R+∪{0},o r
+equivalently a |C|-dimensional vector over R+. We denote
+the set of all clock valuations by H. A conﬁguration of the
+automaton is hence a pair (q,v)∈Q×Hconsisting of
+a discrete state (sometimes called “location”) and a clock
+valuation. Every subset ρ⊆Cinduces a reset function
+Reset ρ:H→H deﬁned for every clock valuation vand
+every clock variable c∈Cas
+Reset ρv(c)=/braceleftbigg
+0i fc∈ρ
+v(c)i fc/negationslash∈ρ
+That is, Reset ρresets to zero all the clocks in ρand leaves
+the others unchanged. We use 1to denote the unit vector
+(1,..., 1),0for the zero vector and uqforu(q), the deriva-
+tive of the clocks at q.
+Astepof the automaton isone ofthe following:
+•A discrete step: (q,v)0−→ (q/prime,v/prime), where there exists
+δ=(q,φ,ρ,q/prime)∈∆, such that vsatisﬁesφandv/prime=
+Reset ρ(v).
+•A time step: (q,v)t−→ (q,v+tuq),t∈R+.
+Arunof the automaton starting from (q0,v0)is a ﬁnite se-
+quence ofsteps
+ξ:(q0,v0)t1−→ (q1,v1)t2− →···tl−→ (ql,vl).
+Thelogical length of such a run is land itsmetric length is
+|ξ|=t1+t2+···+tl. Note that discrete transitions take
+no time.
+Next we construct for every job J=(k,µ,d )a timed
+automaton with one clock such that for every step jwith
+µ(j)=mthere are three states: a state mwhich indicates
+that the job is waiting to start the step, a state mindicating
+that the job is executing the step and a state ˜mindicating
+thatthejobispreemptedafterhavingstarted. Uponentering
+mthe clock is reset to zero, and measures the time spent in
+m. Preemption and resumption are modeled by transitions
+to and from state ˜min which the clock does not progress.
+When the clock value reaches d(j)the automaton can leave
+mto the next waiting state. Let M={m:m∈M},
+˜M={˜m:m∈M}and letµ:K→Mand˜µ:K→˜M
+be auxiliary functions such that µ(j)=mand˜µ(j)= ˜m
+wheneverµ(j)=m.
+Deﬁnition 6 (Stopwatch Automaton for a Job) LetJ=
+(k,µ,d )be a job. Its associated automaton is A=
+(Q,{c},u,∆,s,f )withQ=P∪P∪˜P∪{f}where
+P={µ(1),...µ (k)},P={µ(1),...,µ(n)}and ˜P=
+{˜µ(1),..., ˜µ(n)}. The slope is deﬁned as uq=1when
+q∈Panduq=0otherwise.4The transition relation ∆
+consistsof the following types of tuples
+typeqφ ρ q/prime
+1) begin µ(j)true {c}µ(j)j=1..k
+2) pause µ(j)true ∅ ˜µ(j)j=1..k
+3) resume ˜µ(j)true ∅µ(j)j=1..k
+4) end µ(j)c≥d(j)∅µ(j+1 )j=1..k−1
+endµ(k)c≥d(k)∅f
+4Note that the slope at state mcan be arbitrary because clock c
+isinactiveinthisstate: itisresettozerowithoutbeingtestedupon
+leaving m.
+9
+
+--- Page 4 ---
+c1:= 0
+c1=3
+c1:= 0
+c1=4c1:= 0
+c1=2 c2=5c2:= 0m1
+˜m1 m1
+m2
+m2 ˜m2
+fm2
+m2 ˜m2
+m3
+m3 ˜m3
+f
+Figure 3: The automata corresponding to the jobs J1=
+(m1,3),(m2,2),(m3,4)andJ2=(m2,5).
+The initialstate is µ(1).
+The automata for the two jobs in Example 1 are depicted in
+Figure 3.
+For every automaton Awe deﬁne a ranking function g:
+Q×R+→R+such thatg(q,v)is a lower-bound on the
+time remaining until fisreached from (q,v):
+g(f,v)=0
+g(µ(j),v)=/summationtextk
+l=jd(l)
+g(µ(j),v)=g(µ(j),v)−min{v,d(j)}
+g(˜µ(j),v)=g(µ(j),v)−min{v,d(j)}
+In order to obtain the timed automaton representing the
+whole job-shop speciﬁcation we need to compose the au-
+tomata for the individual tasks. The composition is ratherstandard, the only particular feature is the enforcement of
+mutual exclusion constraints by forbidding global states in
+which two or more automata are in a state corresponding tothe same resource m.A nn-tupleq=(q
+1,...,qn)∈(M∪
+M∪˜M∪{f})nis said to be conﬂicting if it contains two
+distinctcomponents qiandqi/primesuchthatqi=qi/prime=m∈M.
+Deﬁnition 7 (Mutual Exclusion Composition) LetJ=
+{J1,...,Jn}be a job-shop speciﬁcation and let Ai=
+(Qi,Ci,ui,∆i,si,fi)be the automaton corresponding to
+eachJi. Theirmutualexclusioncompositionistheautoma-
+tonA=(Q,C,u,∆,s,f )such thatQis the restriction of
+Q1×...Qnto non-conﬂicting states, C=C1∪...∪Cn,
+s=(s1,...,sn),f=(f1,...,fn). The slope uqfor aglobal state q=(q1,...qn)is(uq1,...,u qn)and the tran-
+sitionrelation ∆contains all the tuples ofthe form
+((q1,...,qi,...,qn),φ,ρ, (q1,...,pi,...,qn))
+such that (qi,φ,ρ,pi)∈∆ifor someiand the global
+states (q1,...,qi,...,qn)and(q1,...,pi,...,qn)arenon-
+conﬂicting.
+Part of the automaton obtained by composing the two au-
+tomata of Figure 3 appears in Figure 4. We have omitted
+thepause/resume transitionsfor m1andm3aswellassome
+other non-interesting paths.
+A run of Aiscomplete if it starts at (s,0)and the last
+step is a transition to f. From every complete run ξone can
+derive in an obvious way a schedule Sξsuch that (i,j,t )∈
+Sξifattimettheithcomponentoftheautomatonisatstate
+µ(j). The length of Sξcoincides with the metric length of
+ξ.
+Claim 1 (Runs and Schedules) LetAbe the automaton
+generated for the preemptive job-shop speciﬁcation Jac-
+cording to Deﬁnitions 6 and 7. Then:
+1. Foreverycompleterun ξofA,itsassociatedschedule Sξ
+isfeasible for J.
+2. For every feasible schedule SforJthere is a run ξofA
+such thatSξ=S.
+Corollary 1 (Preemptive Scheduling and Stopwatch Automata)
+The optimal preemptive job-shop scheduling problem
+can be reduced to the problem of ﬁnding the shortest path
+in a stopwatch automaton.
+ThetwoschedulesofFigure1correspondtothefollowing
+tworuns(weusethenotation ⊥toindicateinactiveclocks):
+S1:
+(m1,m2,⊥,⊥)0−→ (m1,m2,0,⊥)0−→ (m1,m2,0,0)3−→
+(m1,m2,3,3)0−→ (m2,m2,⊥,3)0−→ (m2,˜m2,⊥,3)0−→
+(m2,˜m2,0,3)2−→ (m2,˜m2,2,3)0−→ (m3,˜m2,⊥,3)0−→
+(m3,m2,⊥,3)0−→ (m3,m2,0,3)2−→ (m3,m2,2,5)0−→
+(m3,f ,2,⊥)2−→ (m3,f ,4,⊥)0−→ (f, f,⊥,⊥)
+S2:
+(m1,m2,⊥,⊥)0−→ (m1,m2,0,⊥)0−→ (m1,m2,0,0)3−→
+(m1,m2,3,3)0−→ (m2,m2,⊥,3)2−→ (m2,m2,⊥,5)0−→
+(m2,f ,⊥,⊥)0−→ (m2,f ,0,⊥)2−→ (m2,f ,2,⊥)0−→
+(m3,f ,⊥,⊥)0−→ (m3,f ,0,⊥)4−→ (m3,f ,4,⊥)0−→
+(f, f,⊥,⊥)
+The job-shop automaton admits a special structure: ig-
+noring the pauseandresumetransitions, the automaton is
+acyclicand its state-space admits a natural partial-order. It
+canbepartitionedintolevelsaccordingtothenumberof be-
+ginandendtransitions from sto the state. There are no
+staying conditions (invariants) and the automaton can stayforever in any given state. Recall that in any automaton ex-
+tended with auxiliary variables the transition graph might
+be misleading, because two or more transitions entering the
+10
+
+--- Page 5 ---
+c1=2c1:= 0c2=5c1=3
+c1=2c1:= 0
+c1:= 0m1m2
+m1m2 m1m2
+m1m2
+m2m2 m2˜m2 m2˜m2 ˜m2˜m2
+m3˜m2
+m3m2 m3˜m2
+m3m2
+m3ffm2
+ffc2:= 0
+c1:= 0
+c1:= 0
+c1=4 c2=5
+c2=5c1=4m3fm2fm2f
+Figure 4: The global stopwatch automaton for the two jobs.state action new state remark
+1(m,m)start 1(m,m)
+2(m,˜m)start 1(m,˜m)
+3(m,m )preempt 2(m,˜m)
+4(˜m,m)resume 1(m,m)
+5(˜m,˜m)resume 1(m,˜m)
+6(˜m,m ) (impossible)
+7(m,m)(continue) (m,m)
+8(m,˜m)(continue) (m,˜m)
+9(m,m ) (impossible)
+Table 1: Resolving conﬂicts when J1/precedesequalmJ2.
+samediscrete state, e.g. transitions to (m3,f)in Figure 4,
+mightenteritwithdifferentclockvaluations,andhenceleadtodifferentcontinuations. Consequently,algorithmsforver-
+iﬁcation and quantitative analysis might need to explore all
+thenodesintheunfoldingoftheautomatonintoatree. Twotransitions outgoing from the same state might represent a
+choiceofthescheduler,forexample,thetwotransitionsout-
+goingfrom (
+m2,m 2)representthechoiceofwhetherornot
+to preemptJ2and give machine m2toJ1. On the other
+handsomeduplicationofpathsarejustartifactsduetointer-
+leaving, for example, the two paths leading from (m1,m2)
+to(m1,m 2)are practically equivalent.
+Anotherusefulobservationisthatfromevery(preemptive
+or non-preemptive) job-shop speciﬁcation Jone can con-
+struct its reverse problem J/primewhere the order of every indi-
+vidual job is reversed. Every feasible schedule for J/primecan
+be transformed easily into a feasible schedule for Jhaving
+the same length. Doing a forward search on the automaton
+forJ/primeis thus equivalent to doing a backward search on the
+automaton for J.
+ShortestPathsinStopwatchAutomata
+Inordertoﬁndshortestpathsinstopwatchautomatawewill
+take advantage of Theorem 0.1 to restrict the search to runs
+whose corresponding schedules are efﬁcient.
+Deﬁnition 8 (Efﬁcient Runs) A run of a stopwatch au-
+tomatonconstructedaccordingtoDeﬁnitions6and7isefﬁ-
+cient if all discrete transitions are taken as soon as they areenabled, and all conﬂicts are resolved according to a ﬁxed
+priorityrelation.
+To be more precise, let J
+1andJ2be two jobs which are in
+conﬂict concerning machine mand letJ1be the one with
+the highest priority on m. Table depicts all the potential
+conﬂict situations and how they are resolved.
+In situations 1, 2, 4, and 5 J1is waiting for the machine
+which is not occupied and so it takes it. Such situationscould have been reached, for example, by a third job of
+higher priority releasing mor byJ
+1ﬁnishing its prior step
+and entering m. Situation 3 is similar but with J2occupy-
+ingmand hence has to be preempted to reach situation 2.
+Situation6,where J1ispreemptedand J1isexecuting,con-
+tradicts the priority and is not reachable. In situations 7 and
+11
+
+--- Page 6 ---
+8,J1isexecutingandnopreemptionactionistaken. Finally
+situation 9 violates mutual exclusion.
+The restriction to efﬁcient runs makes the problem de-
+cidable: we can just enumerate all priority relations, derivethe schedules implied by each of them and compare their
+lengths. The search algorithm that we employ on the un-
+foldingoftheautomatongeneratespriorities ontheﬂywhen-
+ever two jobs come into conﬂict. In the example of Figure
+the ﬁrst conﬂict is encountered in state (
+m2,m 2)and from
+there we may choose between two options, either to con-
+tinue with time passage or preempt J2. in the ﬁrst case we
+ﬁxthepriority J2≺J1andletJ2ﬁnishwithoutconsidering
+preemption anymore while in the second case the priority is
+J1≺J2, we move to (m2,˜m2)and the transition back to
+(m2,m 2)becomes forbidden. From there we can only con-
+tinueto (m2,˜m2)andletthetimepassuntil J1releasesm2.
+To formalize this we deﬁne a valid successors relation
+over tuples of the form (q,x,Π,θ)where (q,x)is a global
+conﬁgurationoftheautomaton, Πisa(partial)priorityrela-
+tion andθis the total elapsed time for reaching (q,x)from
+the initial state. When there are no immediate transitionsenabled in (q,x)we have
+Succ (q,x,Π,θ)={(q,x+t·u
+q,Π,θ+t)}
+wheretis the minimal time until a transition becomes en-
+abled, that is, the least tsuch that a guard on a transition
+fromqissatisﬁed at x+t·uq.
+When there are immediate transition enabled in (q,x)we
+have
+Succ (q,x,Π,θ)=L1∪L2∪L3
+where
+L1={(q/prime,x/prime,Π,θ):(q,x)τ−→ (q/prime,x/prime)}
+for every immediate transition τsuch thatτis non-
+conﬂicting or belongs to the job whose priority on the re-
+spective machine is higher than those of all competing jobs.
+In addition, if there is a conﬂict on minvolving a new job i
+whose priority compared to job i∗, having the highest prior-
+ity sofar,has not yet been determined, we have
+L2={(q,x,Π∪{i∗≺i},θ)}
+and
+L3={(q,x,Π∪/uniondisplay
+{i/prime:i/prime∦mi}{i≺i/prime},θ)}.
+The successor in L2represent the choice to prefer i∗over
+i(the priority of irelative to other waiting jobs will be de-
+termined only after i∗terminates), while S3represents the
+choice of preferring iover allother jobs.
+Using this deﬁnition we can construct a search algorithm
+that explores allthe efﬁcient runs of A.
+Algorithm 1 (Forward Reachability for Stopwatch Automata)
+Waiting:= {(s,0,∅,0)};
+whileWaiting /negationslash=∅;do
+Pick (q,x,Π,θ)∈Waiting;
+Forevery (q/prime,x/prime,Π/prime,θ/prime)∈Succ (q,x,Π,θ);
+Insert (q/prime,x/prime,Π/prime,θ/prime)into Waiting;
+Remove (q,x,Π,θ)from Waiting
+endThe length of the shortest path is the least θsuch that
+(f,x,Π,θ)isexplored by the algorithm.
+This exhaustive search algorithm can be improved into a
+best-ﬁrst search as follows (similar ideas were investigated
+in(BFH+01)). Wedeﬁneanevaluationfunctionforestimat-
+ing the quality ofconﬁgurations.
+E((q1,...,q n),(v1,...,v n),Π,θ)=θ+max {gi(qi,vi)}n
+i=1
+wheregiis the previously-deﬁned ranking function asso-
+ciated with each automaton Ai. Note that max{gi}gives
+the most optimistic estimation of the remaining time, as-
+suming that no job will have to wait. It is not hard to see
+thatE(q,x,Π,θ)givesalowerboundonthelengthofevery
+complete run which passes through (q,x)at timeθ.
+The following algorithm orders the waiting list of con-
+ﬁgurations according to their evaluation. It is guaranteed
+to produce the optimal path because it stops the exploration
+only when it is clear that the unexplored states cannot leadto schedules better than those found so far.
+Algorithm 2 (Best-ﬁrstForward Reachability)
+Waiting:= {(s,0,∅,0)};
+Best:= ∞
+(q,x,F,θ ):= ﬁrstin Waiting;
+whileBest>E(q,x,F,θ )
+do
+(q,x,Π,θ):= ﬁrstin Waiting;
+Forevery (q
+/prime,x/prime,Π/prime,θ/prime)∈Succ (q,x,Π,θ);
+ifq/prime=fthen
+Best:= min{Best,E((q/prime,x/prime,Π/prime,θ/prime))}
+else
+Insert (q/prime,x/prime,Π/prime,θ/prime)into Waiting;
+Remove (q,x,Π,θ)from Waiting
+end
+Using this algorithm we were able the ﬁnd optimal sched-
+ules of systems with up to 8jobs and 4machines ( 128dis-
+crete states and 8clocks). In order to treat larger problems
+we abandon optimality and use a heuristic algorithm whichcan quickly generate sub-optimal solutions. The algorithm
+isamixtureofbreadth-ﬁrstandbest-ﬁrstsearchwithaﬁxed
+numberwof explored nodes at any level of the automaton.
+For every level we take the wbest (according to E) nodes,
+generatetheirsuccessorsbutexploreonlythebest wamong
+them, and so on.
+Inordertotestthisheuristicswetook16problemsamong
+themostnotoriousjob-shopschedulingproblems.
+5Foreach
+of these problems we have applied our algorithms for dif-
+ferent choices of w, both forward and backward (it takes,
+on the average few minutes for each problem). In Ta-
+ble we compare our best results on these problems to the
+mostrecentresultsreportedbyLePapeandBaptiste(PB96;PB97) where the problem was solved using state-of-the-art
+constraint satisfaction techniques. As the table shows, the
+resultsour ﬁrstprototype are very close to the optimum.
+5The problems are taken from
+ftp://mscmga.ms.ic.ac.uk/pub/jobshop1.txt
+12
+
+--- Page 7 ---
+problem nonpreempt preemptive
+name #j#m optimum optimum (PB96;PB97) stopwatch deviation
+LA02 105 655 655 655 655 0.00%
+FT10 1010 930 900 900 911 1.21%
+ABZ5 1010 1234 1203 1206 1250 3.76%
+ABZ6 1010 943 924 924 936 1.28%
+ORB1 1010 1059 1035 1035 1093 5.31%
+ORB2 1010 888 864 864 884 2.26%
+ORB3 1010 1005 973 994 1013 3.95%
+ORB4 1010 1005 980 980 1004 2.39%
+ORB5 1010 887 849 849 887 4.28%
+LA19 1010 842 812 812 843 3.68%
+LA20 1015 902 871 871 904 3.65%
+LA21 1015 1046 1033 1033 1086 4.88%
+LA24 1015 936 909 915 972 6.48%
+LA27 1020 1235 1235 1235 1312 5.87%
+LA37 1515 1397 1397 1397 1466 4.71%
+LA39 1515 1233 1221 1221 1283 4.83%
+Table 2: The results of our implementation on the bench-
+marks. Columns #j and #m indicated the number of jobs
+and machines, followed by the best known results for non-
+preemptivescheduling,theknownoptimumforthepreemp-
+tive case, the results of Le Pape and Baptiste, followed byour resultsand their deviation from the optimum.
+Conclusion
+We have demonstrated that the automata-theoretic approachtoschedulingcanbeextendedtopreemptiveschedulingandcan be applied successfully to very large systems. Future
+work will investigate the applicability of this approach to
+scheduling of periodic tasks in real-time systems. In retro-spect, it looks as if the undecidability results for arbitrary
+stopwatch automata have been taken too seriously. Timed
+and stopwatch automata arising from speciﬁc applicationdomains have additional structure and their analysis might
+turn out to be feasible (see also recent resultsin (FPY02)).
+Acknowledgment : We thank Eugene Asarin and Stavros
+Tripakis for numerous useful comments.
+References
+Y. Abdedda ¨ım and O. Maler, Job-Shop Scheduling using
+Timed Automata in G. Berry, H. Comon and A. Finkel
+(Eds.),Proc. CAV’01 , 478-492, LNCS 2102, Springer
+2001.
+K. Altisen, G. Goessler, A. Pnueli, J. Sifakis, S. Tripakis
+and S. Yovine, A Framework for Scheduler Synthesis,
+Proc. RTSS’99 , 154-163, IEEE, 1999.
+R.AlurandD.L.Dill, ATheoryofTimedAutomata, The-
+oretical Computer Science 126, 183-235, 1994.
+E. Asarin and O. Maler, As Soon as Possible: Time Opti-
+mal Control for Timed Automata, Proc. HSCC’99 , 19-30,
+LNCS 1569, Springer, 1999.
+G. Behrmann, A. Fehnker T.S. Hune, K.G. Larsen, P. Pet-
+tersson and J. Romijn, Efﬁcient Guiding Towards Cost-
+Optimality in UPPAAL, Proc. TACAS 2001 , 174-188,
+LNCS 2031, Springer, 2001.
+J. Carlier and E. Pinson, A Practical Use of Jackson’s Pre-
+emptive Schedule for Solving the Job-Shop Problem, An-
+nals of Operations Research 26, 1990.
+F. Cassez and K.G. Larsen, On the Impressive Powerof Stopwatches, in C. Palamidessi (Ed.) Proc. CON-
+CUR’2000 , 138-152, LNCS 1877, Springer, 2000.
+K. Cerans, Algorithmic Problems in Analysis of Real Time
+System Speciﬁcations , Ph.D. thesis, University of Latvia,
+Riga, 1992.
+E.Fersman,P.PetterssonandW.Yi,TimedAutomatawith
+Asynchronous Processes: Schedulability and Decidability,
+TACAS 2002 , thisvolume, 2002.
+M.R.GareyandD.SJohnson, ComputersandIntractabil-
+ity,AGuidetotheTheoryofNP-Completeness ,W.H.Free-
+man and Company, 1979.
+J. R. Jackson, Scheduling a Production Line to Minimize
+Maximum Tardiness, Research Report 43, Management
+Sciences Research Project , UCLA, 1955.
+A.S.JainandS.Meeran,DeterministicJob-ShopSchedul-
+ing: Past, Present and Future, European Journal of Opera-
+tional Research 113, 390-434, 1999.
+Y. Kesten, A. Pnueli, J. Sifakis and S. Yovine, Decidable
+Integration Graphs, Information and Computation 150,
+209–243, 1999.
+J. McManis and P. Varaiya, Suspension Automata: A De-
+cidableClassofHybridAutomata,inD.LDill(Ed.), Proc.
+CAV’94, 105-117, LNCS 818, Springer, 1994.
+P. Niebert, S. Tripakis S. Yovine, Minimum-Time Reach-
+ability for Timed Automata, IEEE Mediteranean Control
+Conference , 2000.
+P. Niebert and S. Yovine, Computing Efﬁcient Operation
+Schemes for Chemical Plants in Multi-batch Mode, Euro-
+pean Journal of Control 7, 440-453, 2001.
+C. Le Pape and P. Baptiste, A Constraint-Based Branch-
+and-Bound Algorithm for Preemptive Job-Shop Schedul-ing,Proc. of Int. Workshop on Production Planning and
+Control, Mons, Belgium, 1996.
+C. Le Pape and P. Baptiste, An Experimental Compara-
+ison of Constraint-Based Algorithms for the PreemptiveJob-shop Sheduling Problem, CP97 Workshop on Indus-
+trialConstraint-Directed Scheduling , 1997.
+13

@@ -1,0 +1,164 @@
+--- Page 1 ---
+VESTA:AStatistical Model-checkerand AnalyzerforProbabilistic Systems
+KoushikSen,MaheshViswanathan,Gul Agha
+Department of Computer Science
+University of Illinois at Urbana Champaign
+{ksen,vmahesh,agha }@cs.uiuc.edu
+Abstract We give a brief overview of the functionality and
+implementation of a statistical model-checking and analy-
+sistoolVESTA.
+1. Overviewof V ESTA
+VESTA is a tool for statistical analysis of probabilis-
+tic systems. It supports statistical model-checking [6, 7]
+and statistical evaluation of expected values of temporal
+expressions. For model-checking V ESTA uses a sequence
+of inter-related statistical hypothesis testing to check i f a
+property speciﬁed in probabilistic computation tree logic
+(PCTL) [3] or continuous stochastic logic (CSL) is satis-
+ﬁed by a stochastic model. Furthermore, V ESTA supports
+the statistical computation of expected values of expres-
+sions written in a query language called Quantitative Tem-
+poral Expressions (or QUATEXin short). We next describe
+thevarious components of thetool.
+ModelsThe analysis algorithms of V ESTA are indepen-
+dent of the modelling language for probabilistic systems.
+VESTA only assumes that it can perform discrete-event
+simulation of the input probabilistic model. It also assume s
+thattheprobabilitymeasureassociatedwiththepathsofth e
+model is ﬁxed. V ESTA allows to plug-in any probabilis-
+ticmodellinglanguageprovidedthatweprovideadiscrete-
+event simulator for the modelling language by implement-
+ingthe following threeinterface methods:
+1.State initialState() : returns the initial state
+of themodel,
+2.State nextState(State current) : com-
+putes a next state of the model from the current
+state using discrete-event simulation and returns the
+computed state,
+3.State duplicate(State current) : dupli-
+cates the current stateand returns it.
+VESTA currently provides interfaces for two modelling
+languages:
+1. a language to specify discrete-time and continuous-
+time Markov chains. The syntax of this language is
+closely relatedtothat inPRISM [5],and2. PMaude, a executable algebraic speciﬁcation lan-
+guage which allows to describe models in probabilis-
+ticrewritetheories [4].
+Interfaces for other modelling languages can be incorpo-
+rated by implementing the above three interface methods
+forthe language.
+Statistical Model Checking VESTA supports statistical
+model-checking algorithms for the transient part of prob-
+abilistic computation tree logic (PCTL) and continuous
+stochasticlogic(CSL).Someexampleofpropertiesthatcan
+expressed usingthese logics areas follows:
+• P≤0.05[♦full]:probabilitythatamessagequeueeven-
+tuallybecomes full islessthan orequal to0.05.
+•reboot ⇒ P ≥0.9[¬dropU≤5recover ]: if a message
+processing server is rebooted then the probability that
+itrecoverswithin5minuteswithoutdroppinganymes-
+sage isgreater than or equal to0.9.
+Themodel-checkingalgorithm Aof VESTA takesasin-
+putaprobabilisticmodel M,aformula φinCSLorPCTL,
+error bounds α∗andβ∗, and three other parameters δ1,
+δ2, andps. The result of model checking on these parame-
+ters,denotedby Aδ1,δ2,ps(M,φ,α∗,β∗),canbeeither true
+orfalse. The algorithm provides the following correctness
+guarantees.
+If themodel Msatisﬁesthefollowing conditions
+C1: Foreverysubformulaoftheform P≥pψintheformula φand
+foreverystate sinM,theprobabilitythatapathfrom ssat-
+isﬁesψmustnotliein therange [p−δ1−α∗
+1−α∗,p+δ1
+1−β∗];
+C2: For any subformula of the form φ1Uφ2and for every state
+sinM, the probability that a path from ssatisﬁes φ1Uφ2
+must not lie in the range (0,δ2
+(1−ps)N], where Nis the num-
+ber of states inthe model M.
+Thenthe algorithmprovides thefollowing guarantees
+Prob[Aδ1,δ2,ps(M, φ, α∗, β∗) =true| M /negationslash|=φ]≤α∗
+Prob[Aδ1,δ2,ps(M, φ, α∗, β∗) =false| M |=φ]≤β∗
+ConditionC1requiresthatthemodelbesuchthatforany
+subformula P≥pψ, the probability of ψbeing satisﬁed at a
+state be bounded away from p. Condition C2 requires that
+either an until formula does not hold in a state or it holds
+1
+
+--- Page 2 ---
+Figure1. V ESTA Screenshot
+with some probability that is bounded away from 0. Under
+suchcircumstances,weguaranteethattheprobabilityofer -
+rorofAiswithintherequired bounds.
+VESTA performs statistical model-checking by invok-
+ingaseriesofinter-dependentstatisticalhypothesistes ting.
+The details of thealgorithm can be found in[6].
+QuantitativeTemporalExpressions Togainmoreinsight
+intoaprobabilisticmodel,werealizedthatmodel-checkin g
+is not sufﬁcient. For example, we wanted to know the ex-
+pected number of clients that get connected to a server in
+the presence of SYN ﬂood attack. Therefore, in addition
+to model-checking, V ESTA supports statistical evaluation
+of expected value of expressions written in a query lan-
+guage called Quantitative Temporal Expressions (or QUA-
+TEXinshort).Thelanguage ismainlymotivatedbyproba-
+bilistic computation tree logic (PCTL), the query language
+of PRISM [5], and E AGLE[2]. In Q UATEX, one can eas-
+ily query about expected time, expected power consump-
+tion, expected queue size etc. Some example queries that
+can be encoded areas follows:
+1. Out of 100 clients, what is the expected number of
+clientsthatsuccessfullyconnecttoaserverunderDoS
+attack?
+2. What is the probability that a client connected to a
+server within 10 seconds after it initiated the connec-
+tionrequest?
+The expected value of a Q UATEXexpression is statisti-
+callyevaluated withrespect totwoparameters αandδpro-
+videdasinput.Speciﬁcally,wecomputetheexpectedvalue
+iterativelybysamplinguntilthesizeof (1−α)100%conﬁ-
+dence interval for the expected value gets bounded by δ. A
+detailed discussion of the Q UATEXisprovided in[1].
+2. ImplementationOverview
+We have implemented V ESTA in Java 1.5.
+The tool is available for download from http:
+//osl.cs.uiuc.edu/∼ksen/vesta2/ ). VESTAcan be used in two modes: command-line mode and graph-
+ical mode. Furthermore, V ESTA can be executed in two
+modes:single-threadedmodeandmultithreadedmode.The
+single threaded mode is suitable for a single processor ma-
+chine; the multithreaded mode allows us to parallelize the
+computation by distributing the task of sample genera-
+tiontodifferent threads.
+We have successfully used V ESTA to analyze several
+DTMC(discrete-timeMarkovchains),CTMC(continuous-
+timeMarkovchains),andprobabilisticrewritetheorymod-
+els.The details of these casestudies can be found in[6, 1].
+References
+[1] G. Agha, C. Gunter, M. Greenwald, S. Khanna, J. Meseguer,
+K.Sen,andP.Thati. Formalmodelingandanalysisofdosus-
+ing probabilistic rewrite theories. In Workshop on Founda-
+tions ofComputer Security (FCS’05) ,2005.
+[2] H. Barringer, A. Goldberg, K. Havelund, and K. Sen. Rule-
+based runtime veriﬁcation. In Proc. of 5th Int. Conference
+on Veriﬁcation, Model Checking and Abstract Interpretation
+(VMCAI’04) ,volume 2937 of LNCS,pages 44–57,2004.
+[3] H. Hansson and B. Jonsson. A logic for reasoning about time
+andreliability. FormalAspectsofComp. ,6(5):512–535,1994.
+[4] N. Kumar, K. Sen, J. Meseguer, and A. Agha. A rewrit-
+ing based model for probabilistic distributed object systems.
+InProceedings of Formal Methods for Open Object-Based
+Distributed Systems (FMOODS’03) , volume 2884 of LNCS,
+pages 32–46.Springer, 2003.
+[5] M. Z. Kwiatkowska, G. Norman, and D. Parker. Prism 2.0:
+A tool for probabilistic model checking. In 1st Int. Confer-
+enceonQuantitativeEvaluationofSystems(QEST’04) ,pages
+322–323. IEEE,2004.
+[6] K. Sen, M. Viswanathan, and G. Agha. On statistical model
+checking of probabilistic systems. In 17th conference on
+Computer Aided Veriﬁcation (CAV’05) , LNCS (To Appear).
+Springer, July2005.
+[7] H. L. S. Younes and R. G. Simmons. Probabilistic veriﬁca-
+tion of discrete event systems using acceptance sampling. In
+Proc.ofComputerAidedVeriﬁcation(CAV’02) ,volume2404
+ofLNCS,pages 223–235, 2002.
+2

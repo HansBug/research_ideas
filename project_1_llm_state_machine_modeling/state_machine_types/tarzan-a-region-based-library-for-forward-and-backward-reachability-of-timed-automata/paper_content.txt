@@ -1,0 +1,1500 @@
+--- Page 1 ---
+Tarzan: A Region-Based Library for Forward
+and Backward Reachability of Timed Automata
+(Extended Version)⋆
+Andrea Manini[0009−0009−6103−9244], Matteo Rossi[0000−0002−9193−9560], and
+Pierluigi San Pietro[0000−0002−2437−8716]
+Politecnico di Milano
+firstname.lastname@polimi.it
+Abstract.The zone abstraction, widely adopted for its notable practi-
+cal efficiency, is the de facto standard in the verification of Timed Au-
+tomata (TA). Nonetheless, region-based abstractions have been shown to
+outperform zones in specific subclasses of TA. To complement and sup-
+port mature zone-based tools, we introduceTarzan, a C++region-based
+verification library for TA. The algorithms implemented inTarzanuse
+a novel region abstraction that tracks the order in which clocks become
+unbounded. This additional ordering induces a finer partitioning of the
+state space, enabling backward algorithms to avoid the combinatorial ex-
+plosion associated with enumerating all ordered partitions of unbounded
+clocks, when computing immediate delay predecessor regions.
+We validateTarzanby comparing forward reachability results against
+the state-of-the-art tools Uppaal and TChecker. The experiments con-
+firm that zones excel when TA have large constants and strict guards. In
+contrast,Tarzanexhibits superior performance on closed TA and TA
+with punctual guards. Finally, we demonstrate the efficacy of our back-
+ward algorithms, establishing a foundation for region-based analysis in
+domains like Timed Games, where backward exploration is essential.
+1 Introduction
+Formally verifying the behavioral correctness of real-time systems (also including
+distributed systems) is essential for ensuring that critical properties hold. Since
+their introduction, Timed Automata (TA) have become one of the most widely
+adopted formalisms for modeling and analyzing such systems [15,31].
+A key challenge in the verification of TA is their infinite state space, addressed
+by theregion[1] abstraction, which provides a finite representation enabling
+algorithmic verification. Alternatives includeBinary Decision Diagrams[35] and
+zones[18], the latter requiringnormalizationfor state space finiteness [9]. Zones,
+typically implemented usingDifference Bound Matrices (DBMs)[16], are widely
+used in tools such as Uppaal [6], TChecker [19], Kronos [13], and Synthia [28].
+⋆The experimental results presented in this paper are reproducible using the artifact
+available on Zenodo [27].arXiv:2602.15435v1  [cs.FL]  17 Feb 2026
+
+--- Page 2 ---
+2 A. Manini, M. Rossi, P. San Pietro
+Zones have shown to be highly efficient in practice and, over the last decades,
+have become the de facto standard for the formal verification of TA, although
+they have well-known limitations [11,24,36]. Yet, prior work has demonstrated
+that for the class ofclosedTA,i.e., TA containing only non-strict guards, region-
+based abstractions may outperform state-of-the-art zone-based tools [21].
+The promising performance of region-based abstractions on appropriate sub-
+classes of TA motivated the development ofTarzan(Timed Automata Region
+and Zone library for real-time systems ANalysis) [26], a C++20 library designed
+to support and complement state-of-the-art zone-based tools for the formal ver-
+ification of TA. Currently,Tarzansupports only region-based reachability of
+TA; optimizations leveraging zones are deferred to future work. The implemen-
+tation of backward reachability algorithms enables the extension ofTarzanto
+domains in which backward analysis is essential, such as Timed Games [25].
+When compared against zone-based state-of-the-art tools including Uppaal
+and TChecker,Tarzanexhibits superior performance on TA and networks of TA
+featuringpunctualguards,i.e., guards with equality constraints, and on closed
+TA, even with large constants or many clocks. However, the size of constants
+remains a significant bottleneck in other classes of TA (e.g., zones excel in TA
+with strict guards). Moreover, sinceTarzanonly supports reachability analysis,
+using forward reachability to verify safety properties for unreachable regions
+requires exploring the entire reachable state space. We show in this paper that
+backward reachability can enhance the verification of safety properties.
+Related worksAbstractions closely related to regions have already been
+proposed to better capture the semantics of TA. In [37], regions are encoded as
+Boolean formulae via discrete interpretations. Theslot-basedabstraction pro-
+posed in [2] groups regions by time using integer-bounded intervals over a global
+clock. A data structure, calledtime-dart, is introduced in [21] to compactly
+encode configurations of TA and their time successors without explicit enumera-
+tion. In [10], regions of bounded TA are represented as tuples combining integer
+clock values and a partition of clocks that reflects the ordering of their fractional
+parts. The region abstraction is extended in [12] todurational-actionTA.
+To the best of our knowledge, no region-based library for TA verification,
+nor any libraries or tools based on the aforementioned abstractions, currently
+exist. Consequently, we compareTarzanagainst the state-of-the-art tools Up-
+paal and TChecker. Existing libraries that explicitly support the analysis of TA
+using DBM-based zone representations include [30,33]. Other libraries offer more
+general polyhedral abstractions beyond zones, such as those provided by [3,29].
+ContributionsThe main contribution of this work is two-fold: (i) we first
+introduce a refined region representation that tracks the order in which clocks
+become unbounded. While this representation may increase the total number of
+regions by inducing a finer partitioning of the state space, a major advantage is
+that it guarantees at most three immediate delay predecessors for any region;
+(ii) building on this new representation, we develop and implement algorithms in
+Tarzanfor computing delay and discrete successors and predecessors of regions.
+Existing tools may integrateTarzanto enhance their verification capabilities.
+
+--- Page 3 ---
+Tarzan: A Region-Based Library for Timed Automata 3
+This paper is organized as follows: Section 2 introduces the necessary theo-
+retical background. Section 3 presents the proposed new region representation,
+from which a classification of regions is derived. Section 4 details the algorithms
+(and their pseudocode) to compute discrete successors and immediate delay pre-
+decessors of regions using this representation. Section 5 presents an overview of
+Tarzanand provides an empirical evaluation of forward and backward reacha-
+bility. Section 6 concludes and outlines future developments. An appendix pro-
+vides additional algorithms, proofs, and full experimental results.
+2 Theoretical Background
+The timing behavior of real-time systems is naturally modeled by the formalism
+of TA, which is obtained by extending classical finite-state automata with real-
+valued clocks. In the following, we use the term action to refer to the events that
+a real-time system can exhibit. TA are defined as follows [1]:
+Definition 1.ATimed AutomatonAis a tupleA= (Act, Q, Q 0, XA, T,Inv),
+where Act is a finite set of actions,Qis a finite set of locations,Q 0⊆Qis a set
+of initial locations,X Ais a finite set of clocks,T⊆Q×Act×Γ(X A)×2XA×Qis
+a transition relation, and Inv:Q→Γ(X A)is an invariant-assignment function.
+LetAbe a TA. Clocks are special variables that can only be reset or compared
+against non-negative integer constants. The value of all clocks is initialized to
+zero and grows with derivative 1 until a reset occurs. When a clock is reset, its
+value becomes zero; after a reset, it starts increasing again.Γ(X A) is the set of
+clock guards,i.e., conditions over clocks that must be satisfied for a transition
+to fire. Clock guards are defined by the following grammar:γ:=ξ|γ∧γ, where
+ξ:=x∼cis aclock constraint,x∈X A,c∈N, and∼ ∈ {≤, <,=, >,≥}. We
+writeξ∈γto indicate that the clock constraintξoccurs within the guardγ.
+For instance, ifγ:=x 1< c∧x 2≥c, thenξ 1:=x 1< candξ 2:=x 2≥c, where
+ξ1, ξ2∈γ. The powerset 2XAindicates that a transition may reset a subset of
+the clocks. We denote byc m∈Nthe maximum constant appearing inAand
+assume, without loss of generality, that it is the same for all clocks ofA.
+A pair (q, v) is aconfigurationof a TAA, whereq∈Qandv:X A→R≥0is
+aclock valuationfunction. We denote byEval Athe set of all clock valuations of
+A. Given a subsetY⊆X Aof clocks, we denote byv[Y←0] the clock valuation
+defined asv[Y←0](x) = 0 ifx∈Yandv[Y←0](x) =v(x) otherwise. Given a
+constantδ∈R ≥0and a clockx∈X A, the value (v+δ)(x) is defined asv(x)+δ.
+Thetransition system TS(A) = (S,Act∪R ≥0, I, ,→) captures the semantics
+of a TAA, whereS=Q×Eval A,I={(q, v)|q∈Q 0∧∀x∈X A:v(x) = 0}, and
+,→is the transition relation containing: (i)discretetransitions ((q, v), a,(q′, v′))
+if there exists a transition (q, a, γ, Y, q′)∈TinAsuch thatvsatisfies bothγand
+Inv(q), andv′(x) =v[Y←0](x) satisfiesInv(q′), wherea∈Act, for allx∈X A,
+and (ii)delaytransitions ((q, v), δ,(q, v′)) if there exists a constantδ∈R ≥0such
+thatv′(x) = (v+δ)(x) satisfiesInv(q), for allx∈X A. A full description of the
+standard transition system semantics of TA is covered in [4, Chapter 9].
+
+--- Page 4 ---
+4 A. Manini, M. Rossi, P. San Pietro
+The infinite state space of TA can be conveniently analyzed by resorting to
+a finite abstraction, known as theregionabstraction [1]. For any real number
+m∈R, we denote its integral and fractional parts by⌊m⌋andfr(m), respectively.
+Definition 2 (Clock equivalence relation).LetA=(Act, Q, Q 0, XA, T,Inv)
+be a TA. Two clock valuationsv, v′∈Eval Aare calledclock-equivalent, denoted
+byv∼=v′, if, and only if, it either holds that:(i)v(x)> c mandv′(x)> c m, for
+allx∈X A, or(ii)for anyx, y∈X A, withv(x), v′(x)≤c mandv(y), v′(y)≤c m,
+it holds that:(ii a)⌊v(x)⌋=⌊v′(x)⌋and fr(v(x)) = 0⇔fr(v′(x)) = 0, and(ii b)
+fr(v(x))∼fr(v(y))⇔fr(v′(x))∼fr(v′(y)), where∼ ∈ {<,=}.
+Definition 3 (Region).LetAbe a TA ands= (q, v)be a configuration ofA.
+Theclock region [v]ofv∈Eval Ais the set of all clock valuations equivalent to
+vunder the relation of Definition 2. Thestate region [s]ofsis:[s] = (q,[v]) =
+{(q, v′)|v′∈[v]};[s]isinitialiffq∈Q 0and∀v′∈[v],∀x∈X A:v′(x) = 0.
+In the remainder of this work, we focus on state regions, referred to simply
+asregions. LetAbe a TA and [s] = (q,[v]) a region ofA. A region [s′] = (q′,[v′])
+is animmediate delay successorof [s] if either: (i)q=q′∧[v] = [v′] and, for
+all ¯v∈[v] andx∈X A, ¯v(x)> c m, or (ii)q=q′∧[v]̸= [v′] and for all ¯v∈[v]
+there existsδ∈R >0such that ¯v+δ∈[v′]∧ ∀0≤δ′≤δ: ¯v+δ′∈([v]∪[v′]).
+A region [s′] is adelay successorof [s] if there exists a finite sequence of regions
+[s0],[s1], . . . ,[s n] such that [s 0] = [s], [s n] = [s′], and each [s i+1] is an immediate
+delay successor of [s i], for 0≤i < n. A region [s′] is adiscrete successorof [s] if
+[v′] = [v[Y←0]], whereY⊆X Ais the subset of clocks reset over the discrete
+transition from [s] to [s′]. Symmetric definitions can be given forimmediate delay
+predecessors,delay predecessors, anddiscrete predecessors.
+3 Representing Regions with Ordered Clock Partitions
+We introduce a new region representation that captures the order in which clocks
+become unbounded (exceedingc m). For bounded clocks (with value up toc m),
+only the ordering of their fractional part is preserved. Our representation builds
+on [10], which focuses on TA with bounded clocks. By also handling unbounded
+clocks, we significantly extend the applicability of region-based state space explo-
+ration to a broader class of TA. While forward exploration remains unaffected,
+our representation influences backward exploration (Theorem 1 and Theorem 2).
+LetA= (Act, Q, Q 0, XA, T,Inv) be a TA,q∈Q. Furthermore, letℓ,r∈N
+be two integers such thatℓ+r≤ |X A|. We denote byX i⊆XAa subset of clocks
+ofA, for−ℓ≤i≤r. We require that these subsets induce a partition ofX A,
+i.e.,X A=S
+iXiand, for all indices−ℓ≤i, j≤rsuch thati̸=j,X i∩Xj=∅.
+Finally, we introduce a functionh:X A→ {0, . . . , c m}that assigns an integer
+value to each clock inX A. A region ofAcan be represented as follows:
+R:={q, h, X −ℓ, X−(ℓ−1) , . . . , X −1, X0, X1, . . . , X (r−1), X r}.(1)
+
+--- Page 5 ---
+Tarzan: A Region-Based Library for Timed Automata 5
+SetX 0is always present even if empty; the other sets are omitted when empty.
+The setsX −ℓ, . . . , X −1represent unbounded clocks, capturing the ordering in
+which these clocks become unbounded (e.g., all clocks inX −1become unbounded
+simultaneously and prior to all clocks inX −2). Conversely, the setsX 1, . . . , X r
+represent bounded clocks, capturing the ordering of their fractional parts (e.g.,
+the fractional parts of all clocks inX 1are equal and less than the fractional parts
+of all clocks inX 2).X 0contains bounded clocks that have no fractional part (we
+also say these clocksare in the unit). The integersℓandrdenote the number of
+sets containing unbounded and bounded clocks, respectively (rdoes not consider
+X0). Their values are automatically updated whenever a set is inserted into or
+removed fromR. We use a subscript to disambiguate between different regions:
+for instance,q Rrefers to the locationqofR,X R,0to the setX 0ofR, andℓ R
+indicates the number of sets containing unbounded clocks inR.
+For conciseness, we also refer to the elements of a regionRas itsstructure.
+Two regionsR,R′arestructurally equivalentif the following holds:q R=qR′∧
+ℓR=ℓR′∧rR=rR′and, for all−ℓ R≤i≤r R,XR,i=XR′,i.
+Example 1.LetAbe a TA with clocksX A={x, y, z, w}andc m= 5. Consider
+the region defined as:{(x, y, z, w)|2< x <3,2< y <3, z >5, w >5, x=y},
+i.e., a region (assumed to be inq∈Q) in whichxandyare bounded and equal
+(they have the same fractional part), while clockszandware unbounded (we as-
+sume thatzbecame unbounded beforew). The region is represented using Equa-
+tion (1) as:R={q, h(x) = 2, h(y) = 2, h(z) = 5, h(w) = 5, X −2, X−1, X0, X1},
+whereX −2={w}, X −1={z}, X 0=∅, X 1={x, y},ℓ= 2, andr= 1.
+Definition 4 (Region class).If the order in which clocks become unbounded is
+tracked, regions can be classified in four distinctclasses—Z (Zero), P (Positive),
+M (Mixed), and U (Unbounded)—defined as:(i)Class Z:ℓ≥0∧r= 0∧X 0̸=∅;
+(ii)Class P:ℓ≥0∧r>0∧X 0=∅;(iii)Class M:ℓ≥0∧r>0∧X 0̸=∅; and
+(iv)Class U:ℓ>0∧r= 0∧X 0=∅.
+ClassZdenotes regions in which some clocks may be unbounded, while all
+bounded clocks have no fractional part and at least one clock must be bounded.
+ClassPdenotes regions where some clocks may be unbounded, and all bounded
+clocks have a fractional part greater than zero (again, at least one clock must be
+bounded). ClassMdenotes regions where some clocks may be unbounded and
+the bounded clocks are partitioned into those with no fractional part and those
+with a fractional part greater than zero (at least two clocks must be bounded,
+one with no fractional part and one with a fractional part greater than zero).
+Finally, classUdenotes regions in which all clocks are unbounded. Notice that
+the region presented in Example 1 belongs to classP. This classification into
+different classes lies at the core of the algorithms that compute the immediate
+delay successor and immediate delay predecessors of a given region.
+Transitioning between classesLetR Z,RP,RM, andR Ube regions of
+classesZ,P,M, andU, respectively. Transitions from a region to its immediate
+delay successor induce the following deterministic transitions between classes:
+
+--- Page 6 ---
+6 A. Manini, M. Rossi, P. San Pietro
+•FromR ZtoR P: at least one clockx∈X RZ,0must increase such that its
+fractional part becomes greater than zero, while remaining bounded. Other
+clocks inX RZ,0can either become unbounded or remain bounded and grow
+at the same rate ofx,i.e., all bounded clocks have the same fractional part.
+•FromR ZtoR U: all clocks inX RZ,0become unbounded simultaneously.
+•FromR PtoR Z: it must hold thatr RP= 1. All clocks inX RP,1must reach
+the next unit (they will be inserted intoX RZ,0) and their integer value is
+incremented by 1, as they have a fractional part greater than zero.
+•FromR PtoR M: it must hold thatr RP>1. All clocks inX RP,rRPmust
+reach the next unit (they will be inserted intoX RM,0) and their integer value
+is incremented by 1, as they have the biggest fractional part.
+•FromR MtoR P: clocks inX RM,0can become unbounded or their fractional
+part can become greater than zero while remaining bounded.
+The missing transitions between classes are explained as follows. By Definition 4,
+transitioning toR Uis only possible fromR Z, sincer RU= 0∧X RU,0=∅must
+hold. It is not possible to transition fromR ZtoR M, since all clocks will exit
+fromX RZ,0. An immediate delay successor ofR Mhas at least one clock with a
+nonzero fractional part, making it impossible to transition fromR MtoR Z.
+Transitions between classes contain no self-loops; the immediate delay succes-
+sor of any region is always a distinct region.R Udoes not have delay successors, as
+clocks can increase indefinitely once unbounded. The structure of regions influ-
+ences transitioning between classes;e.g., fromR Mwithr RM= 3, several cycles
+betweenR PandR Mare required before reachingR Zvia delay transitions; this
+becomes possible oncer RMdecreases to 1 as some clocks become unbounded.
+4 Discrete Successors and Immediate Delay Predecessors
+We present algorithms computing discrete successors and immediate delay prede-
+cessors regions. For brevity, immediate delay successors and discrete predecessors
+algorithms are deferred to the Appendix in Section A and Section B.
+Discrete successorsAlgorithm 1, whose time complexity isO(|T| · |X A|),
+computes the discrete successors of a given regionR. In particular, a set storing
+the resulting discrete successors is initialized in Line 2 and returned in Line 13.
+The loop in Line 3 iterates over all transitionstof the original TA that exit
+from the current locationq RofR, identifying all possible discrete successors of
+R. If the guardγoftis satisfied by combining the integer values of the clocks
+ofR, as returned byh R, with their fractional parts (Line 4), a copyRofRis
+created to represent the successor region (Line 5). The location ofRis updated
+to the target locationqoft(Line 6). The loop in Line 7 iterates over all integers
+−ℓR≤i≤r R, enabling the inner loop in Line 8 to examine each clock set ofR.
+If a clockxis reset int, its integer value is set to zero (Line 9). Moreover, ifxis
+either unbounded or has a nonzero fractional part (Line 10), it is inserted into
+XR,0and removed from its previous clock set (Line 11). Finally, the resulting
+regionRis added to the result set in Line 12.
+
+--- Page 7 ---
+Tarzan: A Region-Based Library for Timed Automata 7
+Algorithm 1:find-discrete-successors(R)
+Data:R: a region.
+Result:The discrete successors ofR.
+1begin
+2res←∅;
+3foreacht= (q R, a, γ, Y, q)∈Tdo
+4ifγis satisfied byRthen
+5R←copy ofR;
+6q R←q;
+7fori=−ℓ RtorRdo
+8foreachx∈X R,isuch thatx∈Ydo
+9h R(x)←0;
+10ifi̸= 0then
+11X R,0←X R,0∪ {x};X R,i←X R,i\ {x};
+12res←res∪ {R};
+13returnres;
+Immediate delay predecessorsThe following theorem (whose proof is
+shown in the Appendix, Section C) establishes that, when tracking the order in
+which clocks become unbounded, the number of immediate delay predecessors
+of a given region does not exhibit exponential blow-up.
+Theorem 1.If the order in which clocks become unbounded is tracked, the num-
+ber of immediate delay predecessors of a given region is at most three.
+Indeed, if the order in which clocks become unbounded is not tracked, com-
+puting the immediate delay predecessors of regions with unbounded clocks would
+require enumerating all ordered partitions of the unbounded clocks, as every or-
+der in which the clocks become unbounded would then be admissible (regions
+without unbounded clocks would have a unique immediate delay predecessor).
+The immediate delay predecessors of a given regionRare computed by Al-
+gorithm 2, whose time complexity isO(|X A|) (we refer topredecessorsin its
+description). In particular, Line 2 initializes a set, returned in Line 20, storing
+the computed predecessors. The algorithm proceeds by analyzing the class ofR
+to compute its predecessors by modifying a copyRofR, created in Line 3.
+IfRis of classU(Line 4), the predecessor is obtained by inserting setX R,−ℓR,
+which contains the clocks that became unbounded while exiting from the unit,
+intoX R,0. Then,X R,−ℓRis removed fromR(Line 5).
+For regions of classZor classM(Line 6), an auxiliary setX tmpis initialized
+(Line 7). The integer part of each clockx∈X R,0(Line 8) is decremented by 1
+(Line 9), andxis moved fromX R,0toX tmp(Line 10). Since these clocks must
+have the highest fractional part,X tmpis inserted to the right ofX R,rR(Line 11).
+IfRis of classP(Line 12), the algorithm considers both the cases where the
+predecessor is of classZor classM. First, clocks inX R,1(those that left the
+
+--- Page 8 ---
+8 A. Manini, M. Rossi, P. San Pietro
+Algorithm 2:find-immediate-delay-predecessors(R)
+Data:R: a region where no clockxis such that:h R(x) = 0∧x∈X R,0.
+Result:The immediate delay predecessors ofR.
+1begin
+2res←∅;
+3R←copy ofR;
+4ifX R,0=∅∧r R= 0then
+5insert clocks ofX R,−ℓRinXR,0and removeX R,−ℓRfromR;
+6else ifX R,0̸=∅then
+7X tmp←∅;
+8foreachx∈X R,0do
+9h R(x)←h R(x)−1;
+10X tmp←X tmp∪ {x};X R,0←X R,0\ {x};
+11insertX tmpto the right ofX R,rR;
+12else
+13insert clocks ofX R,1inXR,0and removeX R,1fromR;
+14ifℓ R≥1then
+15R 1←copy ofR;
+16insert clocks ofX R1,−ℓR1inXR1,0and removeX R1,−ℓR1fromR 1;
+17R 2←copy ofR 1;
+18insert clocks ofX R2,1intoX R2,0and removeX R2,1fromR 2;
+19res←res∪ {R 1,R2};
+20return(res∪ {R});
+unit) are moved intoX R,0(Line 13). Then, Line 14 checks whether unbounded
+clocks must also be handled. If so, two additional regions are created. The first,
+R1, is created on Line 15 as a copy ofRand updated on Line 16 to represent
+the case in which all clocks with zero fractional part in the predecessor became
+unbounded. AfterR 1is updated, it is copied inR 2(Line 17), which is modified
+on Line 18 to capture the case in which only a subset of those clocks became
+unbounded. BothR 1andR 2are collected on Line 19 in the result set.
+Example 2.LetAbe a TA having clocksX A={x, y}and maximum constant
+cm= 2. Consider the regionR 0as depicted in Figure 1a. Here, triangles are used
+to symbolically represent entire regions rather than individual points (e.g., the
+triangle corresponding toR 2represents the region{(x, y)|1< x <2∧y >2}).
+For this reason, they are not drawn on the diagonals, as would be implied by
+Definition 2. For visual clarity, the figure does not represent the portion of the
+state space wherey <1. SinceR 0lies above the diagonal originating from (2,2),
+it corresponds to the case in whichybecame unbounded beforex.R 0can be
+represented as:R 0={q, h(x) = 2, h(y) = 2, X −2={x}, X −1={y}, X 0=∅}.
+We compute the delay predecessors ofR 0using Algorithm 2. For conciseness,
+we stop the computation when reaching a bounded region or because no further
+delay predecessors exist. The algorithm yields a single immediate delay predeces-
+
+--- Page 9 ---
+Tarzan: A Region-Based Library for Timed Automata 9
+Powered by TCPDF (www.tcpdf.org)Powered by TCPDF (www.tcpdf.org)
+(a)Partial computation of delay predecessors ofR 0.Region Class Unbounded
+R0 U yes,{x, y}
+R1 Z yes,{y}
+R2 P yes,{y}
+R3 Z yes,{y}
+R4 Z no,∅
+R5 M no,∅
+R6 P yes,{y}
+R7 Z yes,{y}
+R8 Z no,∅
+R9 M no,∅
+(b)Table listing regionsR i, 0≤i≤9, their
+class, and their unbounded clocks (if any).
+Fig. 1:Example of delay predecessors computation fromR 0(left), stopped upon reach-
+ing bounded regions, and a table with additional information about the regions (right).
+Triangles symbolically represent entire regions rather than specific points within them.
+sor of classZ(Figure 1b):R 1={q, h(x) = 2, h(y) = 2, X −1={y}, X 0={x}}.
+Applying the same algorithm toR 1yields a single immediate delay predecessor:
+R2={q, h(x) = 1, h(y) = 2, X −1={y}, X 0=∅, X 1={x}}.Then, fromR 2,
+three immediate delay predecessors can be computed. Two of them (R 4andR 5)
+are not further analyzed in this example, as they are already bounded. Consider
+the region:R 3={q, h(x) = 1, h(y) = 2, X −1={y}, X 0={x}}.This region
+is structurally equivalent toR 1, except that the integer value ofxhas been
+decremented by 1. The computation fromR 1applies similarly fromR 3.
+The computation of delay predecessors can be optimized. Assume that, for
+a regionR, Algorithm 2 can be appliedntimes. Furthermore, assume that all
+clocks inRare bounded and thatr R>0 holds. We define theperiodofRas
+θ= 2·(r R+ 1) ifX R,0̸=∅;θ= 2·r Rotherwise. Then, decrement the integer
+value of every clock ofRby⌊n/θ⌋(ensuring their integer value does not go below
+zero), obtaining a new regionR′. After this step, if none of the clocks ofR′are
+equal to zero (with no fractional part), it suffices to apply Algorithm 2 only
+nmodθtimes toR′to obtain the final result, possibly stopping earlier if one
+or more clocks become equal to zero during this process. Similar optimizations
+can also be applied when some clocks are unbounded.
+Discrete predecessors (intuition)When computing a discrete successor,
+a subset of clocks may be reset, and therefore appear with value zero in the suc-
+cessor region. Discrete predecessors computation aims to reverse this operation.
+However, starting from a region in which the value of some clocks is zero (with no
+fractional part), a challenge arises, since the original values of these clocks prior
+to being reset are unknown. As a result, all possible combinations of values for
+the reset clocks must be considered (including cases where they may have been
+unbounded) to ensure all discrete predecessors are computed. This process can
+
+--- Page 10 ---
+10 A. Manini, M. Rossi, P. San Pietro
+be simplified using the guard of the transition over which discrete predecessors
+are computed, as it may constrain the possible values of clocks prior to reset.
+The following theorem (whose proof is shown in the Appendix, Section D)
+establishes that, when tracking the order in which clocks become unbounded,
+the number of discrete predecessors of a given region suffers from an inherent
+exponential blow-up that cannot be avoided in general.
+Theorem 2.LetAbe a TA such thatn=|X A|and letRbe a region ofA. If
+the order in which clocks become unbounded must be tracked, then the number of
+discrete predecessors ofRover a single transition isO
+(cm+1
+ln 2)n·(n+ 1)!
+.
+5 Implementation and Experimental Evaluation
+This section introducesTarzanalong with a detailed empirical evaluation of its
+forward and backward reachability algorithms. To express reachability queries,
+we use the standard Computation Tree Logic formula∃♢(φ), meaning that there
+exists a path in the state space in whichφeventually holds true.
+5.1 TheTarzanlibrary
+Tarzanis a C++20 library for performing forward and backward reachability
+analysis of TA and networks of TA, using either breadth-first (BFS) or depth-
+first (DFS) state space exploration.Tarzansupports shared integer variables
+(specified by using general arithmetic expressions), urgent locations, and invari-
+ants. The semantics of both invariants and networks inTarzanfollows those of
+Uppaal [7]. Support for networks of TA and integer variables in backward reach-
+ability is currently under development. Successors and predecessors algorithms
+were revised to allow each clock to have its own maximum constant.
+Tarzanaccepts .txt input files, parsed using the Boost Spirit X3 library, con-
+taining a TA representation written in a domain-specific language calledLiana.
+Each file represents a single TA; a network of TA is defined using multiple files.
+Networks of TAAnetworkof sizenis the parallel composition ofnindivid-
+ual TA [4, Chapter 9]. GivennregionsR 1, . . . ,R n, each corresponding to a TA
+A1, . . . ,A nin the network, anetwork region Ris defined as R:={R 1, . . . ,R n}.
+To compute both immediate delay and discrete successors of R,Tarzanrelies
+on specialized data structures that generalize the applicability of the algorithms
+originally developed for individual regions to network regions. These data struc-
+tures ensure the correctness of on-the-fly immediate delay and discrete successors
+computation across the Cartesian product ofA 1, . . . ,A n. In particular, a C++
+double-ended queue maintains the relative ordering of the fractional parts of all
+clocks within R, partitioning these clocks into ordered equivalence classes. This
+ordering captures the evolution over time of all clocks within R, including which
+clocks will exit the unit (possibly becoming unbounded), reach the next unit, or
+be reset. Furthermore, a C++set identifies the regions in Rthat are of classZor
+M. Since the generalized algorithms for network regions operate by applying the
+
+--- Page 11 ---
+Tarzan: A Region-Based Library for Timed Automata 11
+successors algorithms to a subset of individual regions in R, this classification is
+essential for computing immediate delay successors; indeed, regions of classZor
+Mcontain clocks that will exit the unit; hence, their immediate delay successors
+must be computed prior to those of regions of classP.
+Implementation considerationsSince the focus of this paper is the imple-
+mentation of algorithms using the new representation of Equation (1), most op-
+timizations are deferred to future work. Currently,Tarzandoes not implement
+any optimizations for state space exploration, except for symmetry reduction [8].
+Memory compression optimizations are not implemented either. The algorithms
+also suffer when computing delay successors (predecessors), as these computa-
+tions require generating a sequence of immediate delay successors (predecessors).
+This limitation could be mitigated by implementing the optimization described
+in Section 4 for delay predecessors (which can be adapted for delay successors as
+well). Furthermore, sinceTarzanonly performs reachability analysis, proving
+that a region is unreachable going forward requires exploring the entire reachable
+state space. Due to the aforementioned limitations, a BFS exploration must visit
+all delay successors (predecessors) before visiting discrete successors (predeces-
+sors), which is typically unnecessary and increases the verification time. For this
+reason, unless stated otherwise, all experiments follow a DFS strategy.
+5.2 Forward reachability benchmarks
+q0
+Goal···
+x1= 1
+x1:= 0x2= 2
+x2:= 0
+xn=n
+xn:= 0
+x1=···=x n= 0
+∧y≥1
+Fig. 2:flower.q 0is initial.We comparedTarzanagainst Uppaal 5.0 and
+TChecker (commit d711ace) in forward reachabil-
+ity1. The benchmarks (adjusted to ensure compat-
+ibility across all tools) come from publicly avail-
+able repositories, published literature, or manually
+crafted when required. If possible, the reachability
+queries match those of the original benchmarks;
+otherwise, they have been adapted to fit the capa-
+bilities of the tools. Uppaal was run with standard
+DBM without memory optimizations, TChecker
+was configured with thecovreachflag to match
+the algorithm used in Uppaal. Experiments were
+conducted on a MacBook Pro equipped with an M3 chip and 24 GB of RAM.
+In the following, tables report Verification Time (VT), Execution Time (ET),
+memory (Mem, representing the Maximum Resident Set Size), and the number
+of stored regions and states. ET measures the time elapsed between issuing
+a verification command and receiving the result from a tool. Timings are in
+seconds, memory in MB. The size of a network is denoted byK(forflower,K
+indicates the number of clocks). All values are averages over five runs, with a
+timeout of 600 s set on ET. Timeouts are reported as TO,εdenotes times below
+0.001 s, and out-of-memory events are denoted by OOM. Bold cells indicate the
+1To ensure a fair comparison, symmetry reduction was disabled in bothTarzanand
+Uppaal; notably, this optimization cannot be manually controlled in TChecker.
+
+--- Page 12 ---
+12 A. Manini, M. Rossi, P. San Pietro
+Table 1:When all transitions have punctual guards, regions may outperform zones.
+Here,floweris a single TA, while the others are networks of TA.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶boolean[26] :: [Query:∃♢(ctr 1= 1∧ctr 2= 1∧ ··· ∧ctr K= 1)]◀
+4 ε0.013 7.78 24 ε0.007 6.47 185 0.001 0.052 18.85 185
+60.003 0.016 13.42 425 0.088 0.096 13.80 8502 0.075 0.128 19.91 8502
+80.013 0.027 29.10 1009 75.461 75.980 220.82 566763 77.204 77.523 81.79 566763
+▶flower[21] :: [Query:∃♢(Flower.Goal)]◀
+5 ε0.013 7.92 95 0.001 0.007 6.35 150 0.001 0.056 18.82 150
+7 ε0.022 10.65 573 0.322 0.330 13.12 3508 0.399 0.455 19.76 3508
+90.007 0.022 58.62 9161 — TO — — — TO — —
+▶gates[26] :: [Query:∃♢(Unlocker.Goal)]◀
+5 ε0.013 8.84 76 0.001 0.008 7.19 549 0.001 0.055 19.01 549
+7 ε0.014 11.23 151 0.110 0.122 21.08 32979 0.035 0.092 22.79 32979
+90.001 0.015 15.43 251 47.895 48.771 806.72 3071646 5.228 6.509 451.71 3071646
+▶ring[26] :: [Query:∃♢(P 0.Goal∧P 1.Goal∧...∧P K.Goal)]◀
+40.001 0.015 12.40 542 0.020 0.029 11.56 7738 0.010 0.065 19.52 7738
+60.011 0.025 48.96 3397 12.137 12.561 268.93 1180575 3.406 3.715 128.87 1180575
+80.204 0.225 687.77 47063 — TO — — — TO — —
+fastest VT (on ties, the fastest ET). KO indicates that an error occurred during
+verification. The complete benchmark suite is in the Appendix, Section E.
+TA with punctual guardsRegion-based abstractions can outperform zone-
+based approaches when TA areclosed,i.e., contain only non-strict guards. This
+is particularly evident when guards arepunctual,i.e., restricted to equality con-
+straints. TheflowerTA [21] depicted in Figure 2, which is also used in our
+evaluation of backward reachability, satisfies these requirements. It consists of
+two locations:q 0(which is initial) andGoal, and it featuresn+1 clocks, denoted
+byx 1, . . . , x n, y. The guards over clocksx iare punctual; the guard onyis non-
+strict. Sinceyis never reset, the behavior offloweris equivalent to a model
+featuring only punctual guards. To reachGoal, all clocksx imust simultaneously
+be exactly zero, whileymust satisfyy≥1. Specifically, when transitioning to
+Goal,ymust be equal to the least common multiple of 1,2, . . . , n. Similar behav-
+ior is shown in the additional examples reported in Table 1: these are networks
+of TA with only punctual guards. In all these experiments, punctual guards force
+zones to be repeatedly and finely split, as reflected by the large number of states
+shown in Table 1. The results indicate that Uppaal and TChecker experience a
+substantial decrease in performance whenK≥8.
+Closed TATwo networks of closed TA were adapted from the benchmarks
+available on [32]:medicalWorkflowmodels medical checks for patients, while
+mpeg2models the homonymous compression standard, where compression lever-
+ages a given number of bidirectional frames (BFrames). SinceTarzandoes not
+currently support broadcast channels, these models were rewritten into equiva-
+lent versions that use only point-to-point channels. The results in Table 2 reveal
+a high number of stored states. This indicates that these models restrict the evo-
+lution of clocks in a way that forces zones to be repeatedly and finely split, thus
+pushing these models into a category where zone-based abstractions exhibit poor
+
+--- Page 13 ---
+Tarzan: A Region-Based Library for Timed Automata 13
+Table 2:The results are derived from networks of closed TA, where guards may either
+be punctual or contain non-strict inequalities. In this setting,Tarzancan handle both
+large networks (medicalWorkflow) and large constants (mpeg2).
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶medicalWorkflow[32] :: [Query:∃♢(Patient 1.Done∧Patient 2.Done∧ ··· ∧Patient K−2.Done)]◀
+12 0.007 0.021 33.39 660 0.011 0.030 22.63 639 0.002 0.059 20.83 582
+22 0.056 0.072 204.97 2715 0.316 0.560 173.75 3774 0.032 0.093 31.76 2862
+42 0.609 0.647 2271.65 15025 13.571 16.096 2517.18 25544 1.275 1.379 230.07 16522
+72 5.781 5.959 12891.17 68990 355.827 389.223 16109.45 126949 54.200 54.838 2799.57 74762
+10227.918 28.466 13780.57 189555 KO KO KO KO 593.317 597.306 12364.67 202302
+▶mpeg2[32] :: [Query:∃♢(BFrame 1.Bout∧BFrame 2.Bout∧ ··· ∧BFrame K−4.Bout)]◀
+8 0.365 0.385 451.46 26916 0.003 0.014 8.96 531 0.001 0.058 19.46 537
+12 0.796 0.819 718.63 27238 8.405 8.663 252.70 383103 1.621 1.766 112.33 383109
+16 1.364 1.392 1032.46 27704 — TO — — — TO — —
+Table 3:Large constants negatively impact the VT of regions, unlike zones. Here, the
+first row ofpagerankcorresponds to the variant with truncated constants.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶CSMA/CD[23] :: [Query:∃♢P1.senderRetry∧P 2.senderRetry∧P 3.senderTransm
+∧P4.senderRetry∧ ··· ∧P 7.senderRetry
+]◀
+210.198 0.215 364.96 20936 0.004 0.038 30.32 2320.001 0.061 20.24 269
+310.674 0.701 1194.45 47526 0.018 0.218 117.03 3710.002 0.064 21.11 554
+513.364 3.431 5351.35 131906 0.293 1.386 837.12 1381 0.010 0.077 23.89 1424
+▶pagerank[5] :: [Query:∃♢(Stage7.Completed)]◀
+90.068 0.085 179.33 4193 0.002 0.086 58.54 1129 0.002 0.076 22.89 1129
+94.227 4.361 10950.36 257311 0.002 0.085 58.53 1129 0.002 0.076 23.01 1129
+performance, a phenomenon already demonstrated in the above experiments (see
+Table 1). Furthermore, both Uppaal and TChecker exhibit an unexpectedly high
+verification time inmedicalWorkflow. This indicates that the dominant cost in
+this benchmark originates from zone manipulation, whose operations may have
+quadratic or cubic complexity in the number of clocks [21]. Region-based analy-
+sis avoids this overhead, as its fundamental operations have linear complexity in
+the number of clocks. Interestingly, TChecker aborted execution on the largest
+instances ofmedicalWorkflowraising the error:”ERROR: value out of bounds”.
+Large constantsWhen constants are large, zones are still preferable. Ta-
+ble 3 reports results from two real-world case studies: the Carrier Sense Multiple
+Access / Collision Detection protocol (CSMA/CD) [23] andpagerank[5], a mech-
+anism used to prioritize Web keyword search results. The latter is presented in
+two variants: in the first, the last two digits of the original constants were trun-
+cated, while the second uses the full constants. The largest constant inCSMA/CD
+is 808, whereas inpagerankthey are 101 (truncated) and 10162 (full).
+Safety propertiesWhen safety properties must be verified using forward
+reachability,Tarzanrequires to explore the entire reachable state space. Table 4
+reports the results for the Fischer mutual exclusion protocol [34]. The verified
+property specifies that two given processes must never be in the critical section
+simultaneously. In the reminder of this section, we demonstrate that backward
+
+--- Page 14 ---
+14 A. Manini, M. Rossi, P. San Pietro
+Table 4:Safety properties requireTarzanto visit the entire reachable state space.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶fischer[34] :: [Query:∃♢(Fischer 1.cs∧Fischer 2.cs)]◀
+40.644 0.669 1098.36 180032 ε0.007 6.75 220 0.001 0.055 18.96 220
+519.627 19.849 12948.99 3920652 0.004 0.011 9.30 7270.002 0.057 19.07 727
+6 — — OOM —0.024 0.032 12.25 2378 0.008 0.064 19.43 2378
+reachability may enhance the verification of safety properties by exploring only
+a restricted subset of the state space, potentially avoiding out-of-memory events.
+5.3 Backward reachability analysis withTarzan
+We begin with a backward unreachability example onflower, and then compare
+its forward and backward reachability results. The entireflowerreachable state
+space, when considering five clocks and computed going forward starting from
+the initial regionR 0={q 0, h(x 1) =h(x 2) =h(x 3) =h(x 4) =h(y) = 0, X 0},
+whereX R0,0={x 1, x2, x3, x4, y}, resulted in 1517 regions, computed in 1.18 ms.
+Backward reachability can offer a practical advantage for proving unreacha-
+bility, since it may avoid a complete state space exploration. Consider the region
+R1={q 0, h(x 1) = 1, h(x 2) = 2, h(x 3) =h(x 4) = 0, h(y) = 1, X −1, X0}, where
+XR1,−1={x 2, y}andX R1,0={x 1, x3, x4}.R 1is unreachable: it requires both
+x2andyto become unbounded simultaneously, but the constrainty≥1 forcesy
+to become unbounded beforex 2.TarzanclassifiesR 1as unreachable by verify-
+ing thatR 0is unreachable fromR 1, requiring 272 regions in 0.245 ms. By adjust-
+ingR 1with the correct ordering in which clocks become unbounded, we obtain
+R2={q 0, h(x 1) = 1, h(x 2) = 2, h(x 3) =h(x 4) = 0, h(y) = 1, X −2, X−1, X0},
+whereX R2,−2={x 2},XR2,−1={y}, andX R2,0={x 1, x3, x4}. RegionR 2is
+reachable. ReachingR 0fromR 2required 263 regions in 0.378 ms.
+Now, consider the version offlowerwithK=n+ 1 clocks. LetR Kdenote
+the region in locationGoalin which all clocksx iare exactly equal to zero (no
+fractional part) andy≥1 holds. Table 5 reports the VT and number of regions
+stored byTarzanwhen checking the forward and backward reachability ofR K.
+The results show that forward reachability is generally faster and requires fewer
+regions, while backward reachability remains comparable in this setting.
+Backward reachability was employed to verify that infischertwo processes
+cannot occupy the critical section simultaneously. As backward reachability does
+not currently support networks of TA nor integer variables, we developed a script
+to construct a single TA version offischer[26], in which thepidvariable is
+directly encoded within its locations. The safety property to be verified withK
+processes is described as follows: processes 1 throughK−2 are requesting access
+to the critical section, with their clocks strictly between 1 and 2; processesK−1
+andKare both in the critical section, with their clocks greater than 2;pidis
+equal toK. A preliminary phase was necessary to compute the initial subset of
+regions from which backward reachability was started. This required consider-
+
+--- Page 15 ---
+Tarzan: A Region-Based Library for Timed Automata 15
+Table 5:Backward reachability results.fischergoes out of memory atK= 6. Tests use
+DFS excepttrainAHV93, for which BFS is faster.flowerchecks reachability,fischer
+unreachability, andtrainAHV93reachability (rows 1,2) and unreachability (rows 3,4).
+▶flower[21]:: DFS◀ ▶fischer[26]:: DFS◀ ▶trainAHV93[26]:: BFS◀
+Forward
+K= 11,13,15,17Backward
+K= 11,13,15,17Forward
+K= 3,4,5,6Backward
+K= 3,4,5,6Forward
+K= 4,5,4,5Backward
+K= 4,5,4,5
+VT Regions VT Regions VT Regions VT Regions VT Regions VT Regions
+0.028 30761 0.060 38669 0.007 9083 ε 264 ε 1241 0.171 118868
+0.412 370331 0.615 388911 0.141 183459 0.001 1316 0.026 31516 66.877 31051667
+7.188 5142671 9.414 4921043 4.061 4182681 0.008 8724 0.013 17124 0.030 26914
+16.212 11023829 21.497 11077295 — —0.100 77084 1.000 912597 0.635 614220
+ing all ordered partitions of the fractional parts of bounded clocks as well as all
+ordered partitions of unbounded clocks. Clock constraints in the property were
+introduced to enable the manual computation of this subset. Backward reacha-
+bility results, reported in Table 5, demonstrate superior performance compared
+to forward reachability, to the extent that an out-of-memory event becomes fea-
+sible. Indeed, the unreachable portion of the state space limited the backward
+exploration to a relatively small number of regions. We evaluated the same prop-
+erty with Uppaal (which uses forward reachability) on the samefischermodel
+and obtained: forK= 3, 88 states in 0.001 s; forK= 4, 460 states in 0.004 s;
+forK= 5, 2765 states in 0.025 s; and forK= 6, 19042 states in 0.214 s. In this
+comparison,Tarzanoutperformed Uppaal when using backward reachability.
+Backward reachability was also applied totrainAHV93[26] (we developed a
+script to convert it into a single TA version). Exploration was conducted in BFS,
+as it achieved better performance on this model.trainAHV93allows two or more
+trains to be in the crossing while the gate is down. Rows 1,2 of Table 5 report
+the results for (i) reaching the first region detected by the BFS exploration in
+which at least two trains occupy the crossing while the gate is down, and (ii)
+computing the backward predecessors from this region to an initial one. In this
+case, backward reachability requires substantially more regions than forward
+reachability. We also verified the safety property stating that whenever a train
+is in the crossing, the number of trains in the crossing cannot be zero (i.e., no
+counter malfunction). Such property withK−2 trains, a gate, and a controller,
+is described as follows: trains 1 toK−3 are not in the crossing and their clocks
+are strictly between 2 and 3; trainK−2 is in the crossing and its clock is exactly
+4; the gate’s clock is strictly between 1 and 2, and the controller’s clock is greater
+than 1. As infischer, we first explicitly identified the initial subset of regions
+from which backward reachability was started. Rows 3,4 of Table 5 show that,
+in this case, forward and backward reachability perform comparably.
+6 Conclusion and Future Works
+We introducedTarzan, a region-based verification library supporting forward
+and backward reachability for TA. Our experiments demonstrated thatTarzan
+
+--- Page 16 ---
+16 A. Manini, M. Rossi, P. San Pietro
+exhibits superior performance on closed TA and TA with punctual guards, while
+zone-based approaches remain better suited to other classes of TA. We showed
+that backward reachability withTarzanis often feasible in practice and effective
+for verifying safety properties. For this reason, the integration ofTarzaninto
+existing tools has the potential to enhance their verification capabilities.
+Future work will proceed in several directions. We plan to integrate additional
+optimizations intoTarzan, with a particular focus on improving the computa-
+tion of delay successors and predecessors, while leveraging symbolic techniques
+to reduce memory usage. In addition, we will extend backward reachability al-
+gorithms to networks of TA, thereby laying the foundation for applyingTarzan
+to the synthesis of winning strategies in Timed Games. Finally, we intend to ex-
+plore hybrid approaches that complementTarzanwith zone-based techniques,
+thereby combining the strengths of both abstractions.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theoretical Computer Science
+126(2), 183–235 (1994)
+2. Andr´ e, E., Jacobs, S., Karra, S.L., Sankur, O.: Parameterized verification of timed
+networks with clock invariants (2024)
+3. Apron developers: Apron.https://github.com/antoinemine/apron, accessed:
+2025-11-24
+4. Baier, C., Katoen, J.P.: Principles of Model Checking (Representation and Mind
+Series). The MIT Press (2008)
+5. Baresi, L., Bersani, M.M., Marconi, F., Quattrocchi, G., Rossi, M.: Using for-
+mal verification to evaluate the execution time of spark applications. For-
+mal Aspects of Computing32(1), 33–70 (2020).https://doi.org/10.1007/
+s00165-020-00505-4,https://doi.org/10.1007/s00165-020-00505-4
+6. Behrmann, G., David, A., Larsen, K.G.: A Tutorial on Uppaal, pp. 200–236.
+Springer Berlin Heidelberg, Berlin, Heidelberg (2004)
+7. Bengtsson, J., Yi, W.: Timed Automata: Semantics, Algorithms and Tools, pp. 87–
+124. Springer Berlin Heidelberg, Berlin, Heidelberg (2004).https://doi.org/10.
+1007/978-3-540-27755-2_3,https://doi.org/10.1007/978-3-540-27755-2_3
+8. Boˇ snaˇ cki, D., Dams, D., Holenderski, L.: Symmetric spin. In: Havelund, K., Penix,
+J., Visser, W. (eds.) SPIN Model Checking and Software Verification. pp. 1–19.
+Springer Berlin Heidelberg, Berlin, Heidelberg (2000)
+9. Bouyer, P.: Forward analysis of updatable timed automata. Formal Methods in
+System Design24(3), 281–320 (May 2004)
+10. Bouyer, P., Brinksma, E., Larsen, K.G.: Optimal infinite scheduling for multi-
+priced timed automata. Formal Methods in System Design32(1), 3–23 (February
+2008)
+11. Bouyer, P., Fahrenberg, U., Larsen, K.G., Markey, N.: Quantitative analysis of
+real-time systems using priced timed automata. Commun. ACM54(9), 78–87 (Sep
+2011)
+12. Bouzenada, A., Saidouni, D.E., D´ ıaz, G.: A finite representation of durational
+action timed automata semantics. Mathematics12(24) (2024)
+13. Bozga, M., Daws, C., Maler, O., Olivero, A., Tripakis, S., Yovine, S.: Kronos: A
+model-checking tool for real-time systems. In: Ravn, A.P., Rischel, H. (eds.) Formal
+
+--- Page 17 ---
+Tarzan: A Region-Based Library for Timed Automata 17
+Techniques in Real-Time and Fault-Tolerant Systems. pp. 298–302. Springer Berlin
+Heidelberg, Berlin, Heidelberg (1998)
+14. Comtet, L.: Advanced Combinatorics: The Art of Finite and Infinite Expansions.
+Springer Dordrecht, Dordrecht, Netherlands, 1 edn. (2012), reprint of the 1974
+original edition by D. Reidel Publishing Company
+15. Daszczuk, W.B.: Modeling and verification of asynchronous systems using timed
+integrated model of distributed systems. Sensors22(3) (2022).https://doi.org/
+10.3390/s22031157,https://www.mdpi.com/1424-8220/22/3/1157
+16. Dill, D.L.: Timing assumptions and verification of finite-state concurrent systems.
+In: Sifakis, J. (ed.) Automatic Verification Methods for Finite State Systems. pp.
+197–212. Springer Berlin Heidelberg, Berlin, Heidelberg (1990)
+17. Farkas, R., Bergmann, G.: Towards reliable benchmarks of timed automata. In:
+Pataki, B. (ed.) Proceedings of the 25th PhD Mini-Symposium. pp. 20–23. Bu-
+dapest University of Technology and Economics, Department of Measurement and
+Information Systems (2018)
+18. Henzinger, T., Nicollin, X., Sifakis, J., Yovine, S.: Symbolic model checking for
+real-time systems. Information and Computation111(2), 193–244 (1994)
+19. Herbreteau, F., Srivathsan, B., Tran, T.T., Walukiewicz, I.: Why liveness for timed
+automata is hard, and what we can do about it. ACM Trans. Comput. Logic21(3)
+(2020)
+20. Jensen, N.Ø., Jensen, P.G., Larsen, K.G.: Dynamic extrapolation in extended
+timed automata. In: Li, Y., Tahar, S. (eds.) Formal Methods and Soft-
+ware Engineering (ICFEM 2023). Lecture Notes in Computer Science, vol.
+14308. Springer, Singapore (2023).https://doi.org/https://doi.org/10.1007/
+978-981-99-7584-6_6
+21. Jørgensen, K.Y., Larsen, K.G., Srba, J.: Time-darts: A data structure for verifi-
+cation of closed timed automata. Electronic Proceedings in Theoretical Computer
+Science102, 141–155 (Nov 2012)
+22. Keresk´ enyi-Balogh, Z., Nyul, G.: Fubini numbers and polynomials of graphs.
+Mediterranean Journal of Mathematics18(6), 230 (2021)
+23. Kiviriga, A., Larsen, K.G., Nyman, U.: Randomized reachability analysis in uppaal:
+Fast error detection in timed systems. In: Lluch Lafuente, A., Mavridou, A. (eds.)
+Formal Methods for Industrial Critical Systems (FMICS 2021). Lecture Notes in
+Computer Science, vol. 12863. Springer, Cham (2021).https://doi.org/https:
+//doi.org/10.1007/978-3-030-85248-1_9
+24. Lehmann, S., Schupp, S.: Bounded dbm-based clock state construction for timed
+automata in uppaal. International Journal on Software Tools for Technology Trans-
+fer25(1), 19–47 (February 2023)
+25. Maler, O., Pnueli, A., Sifakis, J.: On the synthesis of discrete controllers for timed
+systems. In: Mayr, E.W., Puech, C. (eds.) STACS 95. pp. 229–242. Springer Berlin
+Heidelberg, Berlin, Heidelberg (1995)
+26. Manini, A.: Tarzan: Timed automata region and zone library for real-time systems
+analysis.https://github.com/andreamanini98/TARZAN(2025)
+27. Manini, A., Rossi, M., San Pietro, P.: TARZAN Artifact (Feb 2026).https://doi.
+org/10.5281/zenodo.18656202,https://doi.org/10.5281/zenodo.18656202
+28. Peter, H.J., Ehlers, R., Mattm¨ uller, R.: Synthia: Verification and synthesis for
+timed automata. In: Gopalakrishnan, G., Qadeer, S. (eds.) Computer Aided Veri-
+fication. pp. 649–655. Springer Berlin Heidelberg, Berlin, Heidelberg (2011)
+29. PPL developers: Ppl: Parma polyhedra library.https://github.com/BUGSENG/
+PPL, accessed: 2025-11-24
+
+--- Page 18 ---
+18 A. Manini, M. Rossi, P. San Pietro
+30. PyDBM developers: Pydbm.https://launchpad.net/pydbm, accessed: 2025-11-24
+31. Rodriguez-Navas, G., Proenza, J.: Using timed automata for modeling distributed
+systems with clocks: Challenges and solutions. IEEE Transactions on Software
+Engineering39(6), 857–868 (2013).https://doi.org/10.1109/TSE.2012.73
+32. TAPAAL Developers: Tapaal: Timed-arc petri net analyzer.https://www.tapaal.
+net/download/, accessed: 2025-11-15
+33. UDBM developers: Udbm: Uppaal dbm library.https://github.com/
+UPPAALModelChecker/UDBM, accessed: 2025-11-24
+34. UPPAAL Developers: Uppaal.https://uppaal.org/, accessed: 2025-11-15
+35. Wang, F.: Efficient verification of timed automata with bdd-like data structures.
+International Journal on Software Tools for Technology Transfer6(1), 77–97 (July
+2004)
+36. Yovine, S.: Model checking timed automata. In: Rozenberg, G., Vaandrager, F.W.
+(eds.) Lectures on Embedded Systems: European Educational Forum School on
+Embedded Systems Veldhoven, The Netherlands November 25–29, 1996, pp. 114–
+152. Springer Berlin Heidelberg, Berlin, Heidelberg (1998)
+37. Yu, F., Wang, B.Y.: Toward unbounded model checking for region automata. In:
+Wang, F. (ed.) Automated Technology for Verification and Analysis. pp. 20–33.
+Springer Berlin Heidelberg, Berlin, Heidelberg (2004)
+
+--- Page 19 ---
+Tarzan: A Region-Based Library for Timed Automata 19
+A Immediate Delay Successors
+Algorithm 3, whose time complexity isO(|X A|), computes the (unique) imme-
+diate delay successor of a given regionR, based on the class to whichRbelongs.
+In particular, Line 2 creates a copyRofR, returned as the result in Line 21.
+IfRbelongs to classU(Line 3), it has no delay successors at all, so we return
+the same region on Line 4. IfRbelongs to either classZor classM(Line 5),
+two auxiliary sets are initialized on Line 6:X tmpstores the clocks that exit the
+unit (i.e., leavingX R,0), whileX oobcollects the clocks that become unbounded.
+For each clockx∈X R,0(with no fractional part), the loop at Line 7 addsxto
+eitherX oob(Line 9) orX tmp(Line 11), and removesxfromX R,0(Line 12). If
+any clocks left the unit, they are inserted to the right ofX R,0, as they now have
+the smallest fractional part (Lines 13,14). If a clock becomes unbounded, it is
+placed to the left ofX R,−ℓR, reflecting that it is the most recently unbounded
+clock (Lines 15,16). IfRis of classP(Line 17), then the clocks with the highest
+fractional part (i.e., those inX R,rR) reach the next unit. The loop at Line 18
+increments their integer value by 1 (Line 19). Since these clocks have entered the
+next unit, they are inserted intoX R,0, andX R,rRis removed fromR(Line 20).
+B Discrete predecessors
+The discrete predecessors of a regionRcan be computed using Algorithm 4.
+In particular, Line 2 initializes a set storing the computed predecessor regions.
+A loop over all transitionstending inq R, the location ofR, begins at Line 3.
+Line 4 initializes a setX bnd, which will contain clocks that were bounded or
+possibly unbounded, and a setX oob, which will contain clocks that were certainly
+unbounded (in a predecessor). A copyRofRis made at Line 5. Line 6 creates a
+referenceX Rto the clock sets ofR, meaning that changes toX R(e.g., removing
+a clock) directly affectR. The location ofRis updated on Line 7 to match the
+one wheretoriginates. Then, the loop at Line 8 examines each reset clockx∈Y:
+(i) ifxappears in an equality clock constraint of the form (x=c)∈γ, only
+the integer value ofxmust be set (Lines 9,10); (ii) ifxwas unbounded,i.e., it
+appears in an inequality constraint of the form (x > c m)∈γ,xis added toX oob
+and removed fromR(Lines 11,13), while its integer value is set toc m(Line 12);
+(iii) otherwise,xwas bounded or possibly unbounded, hencexis added toX bnd
+and removed fromR(Lines 14,15). The latter case also accounts for reset clocks
+x′∈Ythat do not appear in any constraint ofγ, which is equivalent to assuming
+a trivial constraint of the form (x′≥0)∈γ. It is important to note that every
+clock inYis required to be exactly zero,i.e., to have an integer value equal to
+zero and no fractional part, since all clocks inYare reset along transitiont.
+IfX bndis empty (Line 16), the predecessors over the current transition are
+computed by finding all ordered partitions ofX oob, preserving the order of unre-
+set unbounded clocks. This is performed at Line 17 using the auxiliary algorithm
+part-regs(R′, i, j, X,H), which computes all regions derived from the input re-
+gionR′by finding all ordered partitions of a clock setX, while preserving the
+
+--- Page 20 ---
+20 A. Manini, M. Rossi, P. San Pietro
+Algorithm 3:find-immediate-delay-successor(R)
+Data:R: a region.
+Result:The immediate delay successor ofR.
+1begin
+2R←copy ofR;
+3ifX R,0=∅∧r R= 0then
+//Rbelongs to class U
+4returnR;
+5else ifX R,0̸=∅then
+//Rbelongs to either class Z or class M
+6X tmp←∅;X oob←∅;
+7foreachx∈X R,0do
+8ifh R(x) =c maxthen
+9X oob←X oob∪ {x};
+10else
+11X tmp←X tmp∪ {x};
+12X R,0←X R,0\ {x};
+13ifX tmp̸=∅then
+14insertX tmpto the right ofX R,0;
+15ifX oob̸=∅then
+16insertX oobto the left ofX R,−ℓR;
+17else
+//Rbelongs to class P
+18foreachx∈X R,rRdo
+19h R(x)←h R(x) + 1;
+20insert clocks ofX R,rRinXR,0and removeX R,rRfromR;
+21returnR;
+order of clock setsX R′,i, . . . , X R′,j(wherei≤j). For each resulting region, the
+integer value of every clockxis given byH(x). IfX=∅,part-regsreturns the
+input regionR′unchanged. This also covers the case where a transition does not
+reset any clock; in such a situation, bothX bndandX oobare empty, and Line 17
+simply insertsRinto the result set. The pseudocode ofpart-regsis given in
+Algorithm 5, and a detailed description follows at the end of this section.
+Otherwise, all combinations of integer values (and potential unboundedness)
+for clocks inX bndmust be considered. This is done in the loop at Line 19, which
+iterates over all functions ¯hdefined onX bnd. Note that ¯hmaps only clocks in
+Xbnd, whileh Rmaps clocks inX R\X bnd; the conventional valuec m+1 captures
+the case in which a clock was unbounded in the predecessor. All clocks inX bnd
+that are unbounded under ¯h(i.e., the integer value of these clocks returned by ¯h
+iscm+ 1) are collected into a set∆(Line 20). The loop at Line 21 iterates over
+all regions generated bypart-regsfromRpartitioningX oob∪∆, preserving the
+order of unreset unbounded clocks. For each such regionR,part-regsis applied
+
+--- Page 21 ---
+Tarzan: A Region-Based Library for Timed Automata 21
+Algorithm 4:find-discrete-predecessors(R)
+Data:R: a region.
+Result:The discrete predecessors ofR.
+1begin
+2res←∅;
+3foreacht= (q, a, γ, Y, q R)∈Tdo
+4X bnd←∅;X oob←∅;
+5R←copy ofR;
+6X R←a reference to the clocks ofR;
+7q R←q;
+8foreachclockx∈Ydo
+9ifxbelongs to a constraint of the form(x=c)∈γthen
+10h R(x) =c;
+11else ifxbelongs to a constraint of the form(x > c m)∈γthen
+12h R(x) =c m;
+13X oob←X oob∪ {x};X R←X R\ {x};
+14else
+15X bnd←X bnd∪ {x};X R←X R\ {x};
+16ifX bnd=∅then
+17res←res∪part-regs(R,−ℓ R,−1, X oob, hR);
+18else
+19foreachfunction ¯h:X bnd→ {0, . . . , c m+ 1}do
+20∆← {x∈X bnd|¯h(x)> c m};
+21foreachR∈part-regs(R,−ℓ R,−1, X oob∪∆, ¯h∪h R)do
+22res←res∪part-regs(R,0,r R, Xbnd\∆,¯h∪h R);
+23remove fromresall regions not satisfyingγ;
+24returnres;
+on Line 22 toRpartitioningX bnd\∆(i.e., the bounded clocks), preserving the
+order of unreset bounded clocks. On Line 23, all regions not satisfying the guard
+γoftare removed fromres. Line 24 returns the discrete predecessors ofR.
+It is worth noting that the total number of functions ¯hdefined overX bndin
+Line 19 can be reduced by tracking the minimum and maximum integer values
+that the clocks may assume. For example, consider two clocksx, yappearing in
+the constraints 1≤x∧x≤4∧y≥5. In this case, it is unnecessary to generate
+all combinations of integer values forxandyfrom 0 toc m+1; instead, it suffices
+to generate combinations where ¯h(x)∈[1,4] and ¯h(y)∈[5, c m+ 1]. In addition,
+note thatpart-regsmay generate invalid regions that must be discarded. This
+occurs, for instance, when a clockxappears in a constraintx > cand is assigned
+the integer value ¯h(x) =c. In this case,xmust have a fractional part greater than
+zero; however, when computing all possible ordered partitions, it may happen
+thatxis assigned no fractional part. Similarly, ifxappears in a constraintx≤c
+and is assigned ¯h(x) =c, it must have a fractional part equal to zero, but the
+
+--- Page 22 ---
+22 A. Manini, M. Rossi, P. San Pietro
+Algorithm 5:part-regs(R, i, j, X,H)
+Data:R: a region;i, j: two integers such thati≤jholds;X: a set of clocks,
+H: a function assigning integer values to clocks.
+Result:all regions obtained fromRby finding all ordered partitions ofX
+while preserving the relative order ofX R,i, . . . , X R,j.
+1begin
+2res←∅;
+3R←copy ofR;
+4ifX=∅then
+5return{R};
+6foreachx∈Xdo
+7ifi≥0∧ H(x) =c mthen
+8X R,0←X R,0∪ {x};X←X\ {x};
+9X ← {X R,i, . . . , X R,j};
+10Π←all partitions ofX;
+11foreachpartitionπ∈Πdo
+12Z ←ordered partitions of (X ∪π) that preserve the relative order
+of the elements inX; these partitions are obtained by computing all
+permutations ofπand interleaving them withX, allowing elements
+ofπto also be inserted within the elements ofX;
+13foreachordered partitionζ∈ Zdo
+14R←copy ofRsuch that (X ∪π) are partitioned according toζand
+clocks have a value given byH(ifH(x)> c m, then assignc mtox);
+15res←res∪ {R};
+16returnres;
+computation of ordered partitions may assign it a fractional part greater than
+zero. These incorrect edge cases can be handled by adding additional checks to
+Algorithm 4 andpart-regs, which are omitted here for conciseness.
+Description ofpart-regsLine 2 initializes the result set. Then, a copyR
+ofRis made on Line 3 to avoid modifying the original input region. Notice that,
+if the setXis empty (Line 4),Xhas exactly one partition,i.e., the empty set
+itself. Therefore, for convenience, the original region is returned on Line 5. The
+loop at Line 6 processes each clockx∈X, checking if it can be inserted into
+XR,0(Line 7) and doing so at Line 8, while also removingxfromX. This is
+done since a bounded clock can have an integer value equal toc monly when it
+has no fractional part. Lines 9 and 10 compute the sets for which the order must
+be preserved and the partitionsΠofX, respectively.
+The loop at Line 11 iterates overΠ, generating ordered partitions preserving
+the order ofX(e.g., in a valid ordered partition involvingX={X 1, X2, X3},X 1
+appears beforeX 2, which appears beforeX 3). Ordered partitions are computed
+at Line 12; some of them may involve inserting elements of a given partition
+π∈Πinto elements ofX. For each valid ordered partitionζ(Line 13), a region
+
+--- Page 23 ---
+Tarzan: A Region-Based Library for Timed Automata 23
+is created by copyingR(Line 14), updating its sets of clocks according toζ,
+and usingHfor assigning integer values to clocks (the values returned byHare
+clamped to ensure no value exceedsc m). Each such region is added to the result
+set (Line 15), which is returned on Line 16.
+Example 3.LetAbe a TA such thatX A={x, y, w, p, z, s}andc m= 5, and let
+t= (q 0, a, γ, Y, q)∈T, whereγ:=x≥0∧y≥1∧w >5∧p= 1∧z >3∧s >4 and
+Y={x, y, w, p}, be the transition ofAover which, for illustrative purposes, we
+compute only one discrete predecessor, which we refer to asR, of the following
+region:R={q, h(x) =h(y) =h(w) =h(p) = 0, h(z) =h(s) = 4, X 0, X1, X2},
+whereX 0={x, y, w, p},X 1={z}, andX 2={s}. To better understand how
+Algorithm 4 works, we reference some of its lines in the following computation.
+Since clockszandsare not reset int, they do not influence the computation
+ofR. From the analysis ofY(Lines 8 through 15), we can infer the following:
+xandymay have been either bounded or unbounded inR(here, we assume
+they were bounded),wwas unbounded, andphad the value 1 with no fractional
+part. In particular,xandyare now collected inX bnd. Sincexandyare assumed
+to be bounded inR, all possible combinations of their integer values must now
+be considered. For the purposes of this example, a single combination suffices.
+Let¯h(Line 19) be such that ¯h(x) = 3 and ¯h(y) = 2 (this allows to satisfyγ
+on Line 23, sinceh R(w) = 5,h R(p) = 1, andh R(z) =h R(s) = 4). Since the
+order of the fractional parts ofxandyinRis unknown, all possible ordered
+partitions ofX bndandX oobmust be explored, while preserving the order of the
+fractional parts ofzands(they are not reset int). One such ordered partition
+can be generated usingpart-regs(Lines 21,22). Finally,R={q 0, h(x) = 3,
+h(y) = 2, h(w) = 5, h(p) = 1, h(z) =h(s) = 4, X −1, X0, X1, X2, X3}, where
+X−1={w}, X 0={p}, X 1={z}, X 2={x, y},andX 3={s}.
+C Proof of Theorem 1
+Theorem 1.If the order in which clocks become unbounded is tracked, the num-
+ber of immediate delay predecessors of a given region is at most three.
+Proof.We assume that all clocks in a given region have a value greater than zero,
+otherwise a delay predecessor cannot be computed. The proof is conducted by
+considering each class identified in Definition 4 and then analyzing all possible
+ways to transition backwards to predecessor regions using only delay transitions.
+•ClassZ: consider a regionR Zof classZ. The immediate delay predecessor
+regions that can be reached backwards fromR Zbelong to classP. Hence,
+letR Pbe a region of classP. Sincer RZ= 0, it follows that fromR Pwe
+can transition forward toR Zonly ifr RP= 1 holds (every clock must have a
+fractional part equal to zero when reachingR ZfromR P). Since the only way
+to transition backwards fromR ZtoR Pis to remove all clocks fromX RZ,0
+and insert them intoX RP,1, while also decreasing the integer values of those
+clocks by 1, it follows that a region of classZhas exactly one immediate
+delay predecessor region of classP.
+
+--- Page 24 ---
+24 A. Manini, M. Rossi, P. San Pietro
+•ClassP: consider a regionR Pof classP. The immediate delay predecessor
+regions that can be reached backwards fromR Pbelong to classZor class
+M. LetR Zbe a region of classZandR Mbe a region of classM.
+1.FromR Pback toR Z. This happens only ifr RP= 1. We must distinguish
+two further cases: (i)ℓ RP=ℓRZ: in this case,X RZ,0contains the clocks
+that exited from the unit, thus entering inX RP,1. Thus, to transition
+backwards fromR PtoR Z, it suffices to remove all clocks fromX RP,1
+and insert them intoX RZ,0; (ii)ℓ RP=ℓRZ+ 1: in this case,X RZ,0
+contains the clocks that exited from the unit and the clocks that became
+unbounded,i.e.,X RZ,0=XRP,−ℓRP∪XRP,1. Thus, to transition back-
+wards fromR PtoR Z, it suffices to remove all clocks fromX RP,−ℓRPandX RP,1and insert them intoX RZ,0. Hence, a region of classPhas
+at most two immediate delay predecessor regions of classZ.
+2.FromR Pback toR M. IfrRP= 1 holds, there is only one possible way
+to transition forward fromR MtoR P,i.e., whenr RM= 1 and all clocks
+inXRM,0must become unbounded. Hence, it is possible to transition
+backwards fromR PtoR Mby removing all clocks fromX RP,−ℓRPand
+inserting them intoX RM,0. Otherwise, let us assume thatr RP>1. We
+must distinguish three further cases: (i)ℓ RP=ℓRM∧rRP=rRM+ 1: in
+this case,X RM,0contains exactly the clocks that will enterX RP,1; it is
+possible to transition backwards fromR PtoR Mby removing all clocks
+fromX RP,1and insert them intoX RM,0; (ii)ℓ RP=ℓRM+ 1∧r RP=
+rRM+1: in this case,X RM,0contains the clocks inX RP,−ℓRP∪XRP,1; it
+is possible to transition backwards fromR PtoR Mby removing all clocks
+fromX RP,−ℓRPandX RP,1and insert them intoX RM,0; (iii)ℓ RP=
+ℓRM+ 1∧r RP=rRM: in this case,X RM,0contains exactly the clocks
+that will become unbounded inX RP,−ℓRP; it is possible to transition
+backwards fromR PtoR Mby removing all clocks fromX RP,−ℓRPand
+insert them intoX RM,0. Hence, a region of classPcan either have one
+immediate delay predecessor of classMto be added to the (up to two)
+immediate delay predecessors of classZ(whenr RP= 1), or at most
+three immediate delay predecessor regions of classMwhenr RP>1.
+Combining the above results (1) and (2), it follows that a region of classP
+has at most three immediate delay predecessors.
+•ClassM: consider a regionR Mof classM. The immediate delay predecessor
+regions that can be reached backwards fromR Mbelong to classP. Hence,
+letR Pbe a region of classPsuch thatr RP>1 (otherwiseR Pwould reach
+a region of classZ) andr RP=rRM+ 1. The only wayR Mis reachable
+fromR Pis by letting the clocks in setX RP,rRPreach the next unit. Then,
+it is possible to transition backwards fromR MtoR Pby removing all the
+clocks fromX RM,0and inserting them intoX RP,rRP, while also decreasing
+by 1 the integer value of those clocks. It follows that a region of classMhas
+exactly one immediate delay predecessor region of classP.
+•ClassU: consider a regionR Uof classU. The immediate delay predecessor
+regions that can be reached backwards fromR Ubelong to classZ. Hence,
+letR Zbe a region of classZ. The only wayR Uis reachable fromR Zis
+
+--- Page 25 ---
+Tarzan: A Region-Based Library for Timed Automata 25
+when all clocks inX RZ,0become unbounded simultaneously. It is possible to
+transition backwards fromR UtoR Zby removing all clocks fromX RU,−ℓRUand inserting them intoX RZ,0. Hence, a region of classUhas exactly one
+immediate delay predecessor region of classZ.
+It follows that regions in classesZ, M, Uhave one immediate delay predeces-
+sor; regions in classPhave at most three immediate delay predecessors.⊓ ⊔
+D Proof of Theorem 2
+Lemma 1.LetAbe a TA such thatn=|X A|and letRbe a region ofA. If
+the order in which clocks become unbounded must be tracked, then the number of
+discrete predecessors ofRover a single transition is at most:
+nX
+u=0 n−uX
+i=0(cm+ 1)i(cm)n−u−in
+n−u−in−u−iX
+k=0k!n−u−i
+k
+·n
+uuX
+w=0w!u
+w!
+whereα
+β	
+=1
+β!Pβ
+d=0(−1)dβ
+d
+(β−d)αis a Stirling number of the second kind,
+that is, the number of ways to partition a set ofαelements intoβnon-empty
+subsets, for two given natural numbersα, β∈N.
+Proof.We assume that all clocks ofAshare the same maximum constantc m.
+The lemma also applies when each clock has its own maximum constant.
+The proof proceeds by enumerating all possible ordered partitions of bounded
+and unbounded clocks. We consider the following transition over which discrete
+predecessors of a regionRare computed: (q, a, γ, Y, q R)∈T, where the guard is
+of the formγ:=x 1≥0∧ ··· ∧x n≥0, whereX A={x 1, . . . , x n}, and the set of
+reset clocks isY=X A,i.e., all clocks are reset, allowing them to take on any
+possible value up toc mand potentially become unbounded.
+Letudenote the total number of clocks that are unbounded in the predecessor
+ofR(for conciseness, in the following we simply say bounded or unbounded).
+Ifu=n, meaning that all clocks are unbounded, the total number of ordered
+partitions is given by:Pu
+w=0w!u
+w	
+. This corresponds to the definition ofFubini
+numbers[14,22], which count the number of ordered partitions of a given set.
+Ifu= 0, meaning that all clocks are bounded, the total number of ordered
+partitions is given by:Pn
+i=0(cm+ 1)i(cm)n−in
+n−iPn−i
+k=0k!n−i
+k	
+. The indexi
+represents the total number of clocks that have no fractional part. Since these
+clocks do not contribute to the ordering, the number of ordered partitions only
+depends on the remainingn−iclocks, hence the Fubini sum goes up ton−i. To
+also account for all possible ways of choosing whichn−iclocks have a fractional
+part greater than zero, the sum must be repeated over alln
+n−i
+combinations.
+Two additional terms (c m+1)iand (c m)n−iaccount for all possible integer values
+that clocks can assume: clocks with no fractional part can take any value from 0
+tocm(i.e.,c m+ 1 possibilities), while the remaining clocks, having a fractional
+part greater than zero, are limited to the range [0, c m) (i.e.,c mpossibilities).
+
+--- Page 26 ---
+26 A. Manini, M. Rossi, P. San Pietro
+In the general case, it holds that 0≤u≤n. The final result is obtained
+by combining the contributions of both bounded and unbounded clocks for
+each possible value ofu. The contribution from the bounded clocks is given
+by:Pn−u
+i=0(cm+1)i(cm)n−u−in
+n−u−iPn−u−i
+k=0k!n−u−i
+k	
+. The contribution from
+the unbounded clocks is:n
+uPu
+w=0w!u
+w	
+, wheren
+u
+accounts for the choice of
+whichuclocks are unbounded. Multiplying the bounded and unbounded contri-
+butions for each fixedu, and summing over allu∈[0, n], yields the maximum
+number of discrete predecessors ofRover a single transition.⊓ ⊔
+Theorem 2.LetAbe a TA such thatn=|X A|and letRbe a region ofA. If
+the order in which clocks become unbounded must be tracked, then the number of
+discrete predecessors ofRover a single transition isO
+(cm+1
+ln 2)n·(n+ 1)!
+.
+Proof.LetS nbe the formula of Lemma 1.
+The valuea u=Pu
+w=0w!u
+w	
+is theu-th Fubini number. Therefore,
+n−u−iX
+k=0k!n−u−i
+k
+=an−u−i .
+Moreover, (c m+ 1)i(cm)n−u−i<(c m+ 1)n−u. Hence,S nis less than:
+S′
+n=nX
+u=0(cm+ 1)n−un
+u
+aun−uX
+i=0n
+n−u−i
+an−u−i .
+Given thata n=Pn
+i=1n
+i
+an−i, thenPn−u
+i=0n
+n−u−i
+an−u−i = 2a n−u. Therefore,
+S′
+nis equal to:
+2nX
+u=0(cm+ 1)n−un
+u
+an−uau≤2nX
+u=0(cm+ 1)n−u·nX
+u=0n
+u
+an−uau
+≤2(c m+ 1)n+1·nX
+u=0n
+u
+an−uau.
+We want to estimateT n=Pn
+u=0n
+u
+an−uau,whenn→ ∞. Fubini numbers
+satisfy the asymptotic estimatea i=O
+i!
+(ln 2)i
+.Using this estimate, we write:
+n
+u
+an−uau=On
+u
+·(n−u)!
+(ln 2)n−u·u!
+(ln 2)u
+=On
+u
+·(n−u)!·u!·1
+(ln 2)n
+.
+Sincen
+u
+·(n−u)!·u! =n!, each term in the sumT nisO
+n!
+(ln 2)n
+.
+There aren+ 1 such terms, henceT nis:
+O
+(n+ 1)·n!
+(ln 2)n
+=O(n+ 1)!
+(ln 2)n
+i.e.,S nisO
+(cm+1
+ln 2)n·(n+ 1)!
+.⊓ ⊔
+
+--- Page 27 ---
+Tarzan: A Region-Based Library for Timed Automata 27
+q0
+Goal···
+x1= 1
+x1:= 0x2= 2
+x2:= 0
+xn=n
+xn:= 0
+x1=···=x n= 0
+∧y≥1
+(a)flower.q0 q1xi=i
+xi:= 0,ctr i:= 1−ctr i
+xi=i
+xi:= 0,ctr i:= 1−ctr i
+(b)boolean.q0 q1
+q4 Goalxi=i
+xi:= 0
+xi=i
+xi:= 0xi=i
+xi:= 0
+(c)ring.
+q0 Keyiq1 qi−1 qi
+xi=i
+xi:= 0xi=i
+gate:=gate+1
+q0 Unlocker q1 qK−1 Goalx=K−1
+x := 0x=K−1
+∧gate=K−1
+(d)gates.
+Fig. 3:Depiction of the benchmark TA used in both Table 1 and Table 6.boolean,
+ring, andgatesare manually constructed networks of TA, whereasfloweris a single
+TA adapted from [21] (it is included here for completeness).
+E Complete Experimental Evaluation
+This section provides a detailed description of the manually constructed bench-
+marks and reports the complete version of the tables discussed in Section 5.
+Tables report Verification Time (VT), Execution Time (ET), memory (Mem,
+representing the Maximum Resident Set Size), and the number of stored regions
+and states. ET measures the time elapsed between issuing a verification com-
+mand and receiving the result from a tool. Timings are in seconds, memory in
+MB. The size of a network is denoted byK(forflower,Kindicates the number
+of clocks). All values are averages over five runs, with a timeout of 600 s set on
+ET. Timeouts are reported as TO,εdenotes times below 0.001 s, and out-of-
+memory events are denoted by OOM. Bold cells indicate the fastest VT (on ties,
+the fastest ET). KO indicates that an error occurred during verification.
+E.1 Punctual guards benchmarks
+Figure 3 depicts the manually created benchmarks used in Table 1 and Table 6.
+Those are manually constructed networks of TA, except forflower, which is a
+single TA adapted from [21].
+FlowerTheflowerTA (Figure 3a) has two locations:q 0(initial) andGoal,
+and it includesn+ 1 clocks, denoted byx 1, . . . , x n, y. Overq 0there arenself-
+
+--- Page 28 ---
+28 A. Manini, M. Rossi, P. San Pietro
+loops, one for each clockx i. In each self-loop,x iis compared to the constant
+i(i.e., the guard isx i=i) and reset along such transition. To reachGoal, all
+clocksx imust simultaneously be exactly zero (with no fractional part), whiley
+must satisfyy≥1. Consequently, the integer value ofywhen transitioning to
+Goalis equal to the least common multiple of 1,2, . . . , n.
+BooleanThebooleannetwork consists ofKTA of the form shown in Fig-
+ure 3b. For every indexi, with 1≤i≤K, thei-th TA flips the value of the
+integer variablectr ibetween 0 and 1 whenever it transitions between location
+q0and locationq 1. All integer variables are initialized to 0 at the start of exe-
+cution. The query∃♢(ctr 1= 1∧ctr 2= 1∧ ··· ∧ctr K= 1) is satisfied only if
+every variablectr iis set to 1. Since TChecker does not support integer variables
+in reachability queries, an equivalent property was formulated using locations:
+∃♢(Boolean 1.q1∧Boolean 2.q1∧ ··· ∧Boolean K.q1).
+RingTheringnetwork consists ofKTA of the form shown in Figure 3c.
+For brevity, the dashed edge abbreviates the additional locations and identical
+transitions that are not depicted (each TA includes 6 locations and 6 transitions).
+GatesThegatesnetwork consists ofK−1KeyiTA, for 1≤i≤K−1,
+and anUnlockerTA, as depicted in Figure 3d. For brevity, the dashed edges
+abbreviate additional locations and identical transitions that are not depicted.
+The total number of locations and transitions depends on the indexifor each
+Keyiand onKfor theUnlocker. EachKeyiincrements the integer variablegate
+by 1 during its last transition. TheUnlockercan reach theGoallocation only if
+gateequalsK−1, allowing its last transition to fire.
+E.2 Full benchmark tables
+Table 6, Table 7, Table 8, and Table 9 present the extended version of the
+benchmarks discussed in Section 5. In particular, Table 9 includes an additional
+benchmark on the Lynch-Shavit protocol, similar to the Fischer case.
+Symmetry reductionTable 10 shows benchmarks in which the symmetry
+reduction optimization was enabled inTarzanand Uppaal (symmetry reduction
+cannot be manually controlled in TChecker); all symmetric TA were identical.
+EachVikingihad 20 as its maximum constant. ThetrainAHV93benchmark was
+executed using BFS, as this exploration strategy yielded the best performance
+across all three tools. Even thoughTarzanis not the fastest in VT, symmetry
+reduction makes these benchmarks tractable with regions. Indeed, without this
+optimization,Tarzanran out of memory intrainAHV93forK= 10,14,18,22,
+and inbridgeforK= 17,21. Interestingly, the results suggest that TChecker
+does not apply specific optimizations intrainAHV93, but it does inbridge.
+Additional benchmarksTable 11 reports additional benchmarks that were
+conducted. These benchmarks include both small and medium-sized networks of
+TA, as well as single TA. TheexSITHandsimplebenchmarks consist of a single
+TA. Forsimple, the maximum constant was varied (10, 100, and 1000). Apart
+from thesoldiersbenchmark,Tarzanperforms comparably to both Uppaal
+and TChecker in terms of VT, ET, and memory usage. The query∃♢(false)
+required to compute the entire reachable state space.
+
+--- Page 29 ---
+Tarzan: A Region-Based Library for Timed Automata 29
+Table 6:When all transitions have punctual guards, regions may outperform zones.
+Here,floweris a single TA, while the others are networks of TA.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶boolean[26] :: [Query:∃♢(ctr 1= 1∧ctr 2= 1∧ ··· ∧ctr K= 1)]◀
+2 ε0.013 7.62 9 ε0.005 5.92 6 ε0.051 18.80 6
+4 ε0.013 7.78 24 ε0.007 6.47 185 0.001 0.052 18.85 185
+60.003 0.016 13.42 425 0.088 0.096 13.80 8502 0.075 0.128 19.91 8502
+80.013 0.027 29.10 1009 75.461 75.980 220.82 566763 77.204 77.523 81.79 566763
+100.070 0.086 110.29 4050 — TO — — — TO — —
+120.341 0.361 476.73 15961 — TO — — — TO — —
+140.737 0.764 965.29 28679 — TO — — — TO — —
+161.578 1.616 1788.46 43919 — TO — — — TO — —
+▶flower[21] :: [Query:∃♢(Flower.Goal)]◀
+3 ε0.013 7.64 13 ε0.005 5.84 7 ε0.055 18.80 7
+5 ε0.013 7.92 95 0.001 0.007 6.35 150 0.001 0.056 18.82 150
+7 ε0.022 10.65 573 0.322 0.330 13.12 3508 0.399 0.455 19.76 3508
+90.007 0.022 58.62 9161 — TO — — — TO — —
+110.028 0.044 177.34 30761 — TO — — — TO — —
+130.412 0.450 2034.18 370331 — TO — — — TO — —
+157.188 7.398 12900.36 5142671 — TO — — — TO — —
+1716.212 16.562 12942.48 11023829 — TO — — — TO — —
+▶gates[26] :: [Query:∃♢(Unlocker.Goal)]◀
+3 ε0.013 7.79 26 ε0.006 5.99 18 ε0.054 18.86 18
+5 ε0.013 8.84 76 0.001 0.008 7.19 549 0.001 0.055 19.01 549
+7 ε0.014 11.23 151 0.110 0.122 21.08 32979 0.035 0.092 22.79 32979
+90.001 0.015 15.43 251 47.895 48.771 806.72 3071646 5.228 6.509 451.71 3071646
+110.002 0.016 21.87 379 — TO — — — TO — —
+130.004 0.018 31.31 537 — TO — — — TO — —
+150.006 0.020 44.01 708 — TO — — — TO — —
+170.009 0.023 60.85 922 — TO — — — TO — —
+▶ring[26] :: [Query:∃♢(P 0.Goal∧P 1.Goal∧...∧P K.Goal)]◀
+2 ε0.013 7.84 59 ε0.006 6.14 45 ε0.054 18.83 45
+40.001 0.015 12.40 542 0.020 0.029 11.56 7738 0.010 0.065 19.52 7738
+60.011 0.025 48.96 3397 12.137 12.561 268.93 1180575 3.406 3.715 128.87 1180575
+80.204 0.225 687.77 47063 — TO — — — TO — —
+100.272 0.295 897.00 52669 — TO — — — TO — —
+126.901 7.097 13049.36 1067623 — TO — — — TO — —
+14 — — OOM — — TO — — — TO — —
+16 — — OOM — — TO — — — TO — —
+
+--- Page 30 ---
+30 A. Manini, M. Rossi, P. San Pietro
+Table 7:The results are derived from networks of closed TA, where guards may either
+be punctual or contain non-strict inequalities. In this setting,Tarzancan handle both
+large networks (medicalWorkflow) and large constants (mpeg2).
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶medicalWorkflow[32] :: [Query:∃♢(Patient 1.Done∧Patient 2.Done∧ ··· ∧Patient K−2.Done)]◀
+12 0.007 0.021 33.39 660 0.011 0.030 22.63 639 0.002 0.059 20.83 582
+22 0.056 0.072 204.97 2715 0.316 0.560 173.75 3774 0.032 0.093 31.76 2862
+32 0.218 0.241 802.55 7170 2.693 3.591 947.61 11409 0.232 0.305 79.99 7842
+42 0.609 0.647 2271.65 15025 13.571 16.096 2517.18 25544 1.275 1.379 230.07 16522
+52 1.432 1.495 5210.36 27280 48.690 55.370 5724.98 48179 5.524 5.695 598.03 29902
+62 2.860 2.983 10440.43 44935 141.818 156.903 10778.80 81314 19.325 19.648 1366.31 48982
+72 5.781 5.959 12891.17 68990 355.827 389.223 16109.45 126949 54.200 54.838 2799.57 74762
+8210.622 10.889 13519.50 100445 — TO — —133.114 134.367 5257.41 108242
+9217.877 18.264 13811.47 140300 KO KO KO KO 293.285 295.567 9219.25 150422
+10227.918 28.466 13780.57 189555 KO KO KO KO 593.317 597.306 12364.67 202302
+▶mpeg2[32] :: [Query:∃♢(BFrame 1.Bout∧BFrame 2.Bout∧ ··· ∧BFrame K−4.Bout)]◀
+8 0.365 0.385 451.46 26916 0.003 0.014 8.96 531 0.001 0.058 19.46 537
+12 0.796 0.819 718.63 27238 8.405 8.663 252.70 383103 1.621 1.766 112.33 383109
+16 1.364 1.392 1032.46 27704 — TO — — — TO — —
+20 2.521 2.558 1575.82 28314 — TO — — — TO — —
+24 3.865 3.910 2085.50 29068 — TO — — — TO — —
+Table 8:Large constants negatively impact the VT of regions, unlike zones. Here, the
+first row ofpagerankcorresponds to the variant with truncated constants.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶CSMA/CD[23] :: [Query:∃♢P1.senderRetry∧P 2.senderRetry∧P 3.senderTransm
+∧P4.senderRetry∧ ··· ∧P 7.senderRetry
+]◀
+210.198 0.215 364.96 20936 0.004 0.038 30.32 2320.001 0.061 20.24 269
+230.262 0.281 482.81 25422 0.005 0.053 40.75 2540.001 0.061 20.10 318
+260.388 0.409 700.02 32931 0.008 0.079 62.17 2870.002 0.062 20.64 399
+310.674 0.701 1194.45 47526 0.018 0.218 117.03 3710.002 0.064 21.11 554
+513.364 3.431 5351.35 131906 0.293 1.386 837.12 1381 0.010 0.077 23.89 1424
+▶pagerank[5] :: [Query:∃♢(Stage7.Completed)]◀
+90.068 0.085 179.33 4193 0.002 0.086 58.54 1129 0.002 0.076 22.89 1129
+94.227 4.361 10950.36 257311 0.002 0.085 58.53 1129 0.002 0.076 23.01 1129
+Table 9:Safety properties requireTarzanto visit the entire reachable state space.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶fischer[34] :: [Query:∃♢(Fischer 1.cs∧Fischer 2.cs)]◀
+20.001 0.015 9.60 542 ε0.006 6.01 18 0.001 0.055 18.87 18
+30.025 0.039 55.62 9324 ε0.006 6.26 65 0.001 0.055 18.91 65
+40.644 0.669 1098.36 180032 ε0.007 6.75 220 0.001 0.055 18.96 220
+519.627 19.849 12948.99 3920652 0.004 0.011 9.30 7270.002 0.057 19.07 727
+6 — — OOM —0.024 0.032 12.25 2378 0.008 0.064 19.43 2378
+▶lynch[17] :: [Query:∃♢(P 1.CS7∧P 2.CS7)]◀
+20.076 0.091 152.12 32268 ε0.007 6.19 38 ε0.058 18.95 38
+320.137 20.373 12857.20 5289449 ε0.008 6.49 125 0.001 0.056 19.05 125
+4 — — OOM —0.001 0.010 7.38 380 0.001 0.057 19.15 380
+
+--- Page 31 ---
+Tarzan: A Region-Based Library for Timed Automata 31
+Table 10:Symmetry reduction renders some benchmarks tractable with regions. For
+each benchmark, symmetric TA are identical. The maximum constant for eachVikingi
+inbridgeis 20. ThetrainAHV93benchmark was run in BFS.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶trainAHV93[17] :: [Query:∃♢(Controller.controller3)]◀
+60.028 0.042 57.87 3803 0.003 0.011 7.89 970 ε0.055 19.09 29
+100.227 0.249 261.72 18672 1.993 2.021 91.89 110096 0.001 0.056 19.17 30
+140.553 0.572 370.96 33907 159.005 159.662 2347.05 2087686 0.001 0.059 19.26 30
+180.977 0.997 464.34 49143 — TO — —0.001 0.057 19.30 30
+221.520 1.542 559.03 64379 — TO — —0.002 0.057 19.40 30
+▶bridge[34] :: [Query:∃♢(Viking1.safe∧Viking2.safe∧ ··· ∧VikingK−1.safe)]◀
+50.004 0.017 19.00 852 ε0.006 6.24 41 ε0.055 19.03 23
+90.018 0.033 68.88 2271 ε0.008 6.44 149 0.001 0.057 19.07 55
+130.045 0.060 158.88 3883 ε0.011 6.97 321 0.001 0.056 19.13 87
+170.086 0.104 286.59 5687 0.002 0.017 17.07 557 0.002 0.058 19.17 119
+210.144 0.163 448.89 7683 0.004 0.030 31.56 8570.003 0.060 19.26 151
+Table 11:In small to medium-sized benchmarks, regions perform comparably with
+zones. Here,exSITHandsimpleare single TA.
+KTARZAN TChecker UPPAAL
+VT ET Mem Regions VT ET Mem States VT ET Mem States
+▶andOrOriginal[17] :: [Query:∃♢(false)]◀
+30.001 0.016 14.50 640 ε0.007 6.35 9 ε0.052 18.96 8
+▶exSITH[17] :: [Query:∃♢(A.qBad)]◀
+1 ε0.013 8.10 225 ε0.006 5.87 4 ε0.054 18.79 4
+▶latch[17] :: [Query:∃♢(Latch 1.LatchD1E1)]◀
+70.009 0.024 59.34 2025 ε0.008 6.36 7 ε0.056 19.03 7
+▶maler[17] :: [Query:∃♢(Job 1.End1∧Job 2.End2∧Job 3.End3∧Job 4.End4)]◀
+4 ε0.014 8.38 114 ε0.008 6.35 75 ε0.056 19.11 75
+▶rcp[17] :: [Query:∃♢(S1o.S1oEnd)]◀
+50.001 0.014 12.25 346 ε0.010 6.50 270.001 0.056 19.18 18
+▶simple[20] :: [Query:∃♢(false)]◀
+1 ε0.013 7.64 56 ε0.006 5.81 3 ε0.053 18.76 3
+1 ε0.013 7.92 428 ε0.006 5.90 3 ε0.054 18.76 3
+10.001 0.015 12.28 4028 0.001 0.007 6.52 30.001 0.054 18.83 3
+▶soldiers[17] :: [Query:∃♢(E.Escape)]◀
+50.128 0.146 494.43 24194 ε0.007 6.45 93 ε0.056 19.05 93
+▶srLatch[17] :: [Query:∃♢(Env.envFinal)]◀
+3 ε0.013 7.62 9 ε0.007 6.24 5 ε0.052 19.05 4

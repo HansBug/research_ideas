@@ -1,0 +1,1859 @@
+--- Page 1 ---
+Received July 26, 2021, accepted September 23, 2021, date of publication October 4, 2021, date of current version October 12, 2021.
+Digital Object Identifier 10.1 109/ACCESS.2021.31 17852
+A Deployment Framework for Formally
+Verified Human-Robot Interactions
+LIVIA LESTINGI
+1, MEHRNOOSH ASKARPOUR
+2, MARCELLO M. BERSANI
+1,
+AND MATTEO ROSSI
+3
+1Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di Milano, 20133 Milan, Italy
+2Department of Computing and Software, McMaster University, Hamilton, ON L8S 4L8, Canada
+3Dipartimento di Meccanica, Politecnico di Milano, 20156 Milan, Italy
+Corresponding author: Livia Lestingi (livia.lestingi@polimi.it)
+ABSTRACT In the future, assistive robots will spread to everyday settings and regularly interact with
+humans. This paper introduces a deployment approach for assistive robotic applications where human-robot
+interaction is the main element. The deployment infrastructure hinges on a model-to-code transformation
+technique and a ROS-based middleware layer and enables deployment in real life or simulation in a virtual
+environment. The approach ts into a model-driven framework for the formal verication of interactive
+scenarios. At design-time, the application analyst estimates the most likely outcome of the robotic mission
+through Statistical Model Checking of a Stochastic Hybrid Automata network modeling the scenario.
+We introduce an innovative approach to convert a specic subset of Stochastic Hybrid Automata into
+executable code to control the robot and respond to human actions. Deploying or simulating the application
+allows analysts to validate the results obtained at design time or to rene the formal model based on runs
+in the real or the virtual scene. The methodology's effectiveness is tested via simulation of use cases from
+the healthcare setting, which can signicantly benet from this kind of approach thanks to its innovative
+features related to human physiology and autonomous behavior.
+INDEX TERMS Human-robot interaction, service robots, model-driven approach, robot deployment.
+I. INTRODUCTION
+In the future, robots will no longer be conned in factories,
+but they will spread to everyday life settings. Currently, robots
+are either autonomous components of manufacturing lines or
+support humans in collaborative tasks. Factory workers are
+usually thoroughly trained to work side-by-side with robots,
+and, throughout the interaction, they perform a predetermined
+sequence of actions. Service robots, instead, will operate in
+less controlled environments and interact with a more exten-
+sive range of people [1], with different features and demands,
+and likely not used to interact with a machine.
+The robotic community has established strategic objectives
+for robotics development over the upcoming years [2]. For
+the assistive robotics eld, there is a specic emphasis on
+automating the most time-consuming technical tasks (such as
+code generation) so that practitioners can focus on high-level
+mission design and conguration. Furthermore, a recently
+conducted survey on the current state of software engineering
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Yang Liu
+ .for service robotics [3] has highlighted the most pressing
+challenges for this domain. This paper targets the demand for
+acode generation mechanism, deployment framework, and
+validation environment that can cope with the uncertainty due
+to the presence of humans within the environment in which
+robots operate [4].
+We have developed a model-driven framework to analyze
+human-robot interaction scenarios [5], [6]. The methodol-
+ogy covers scenarios that feature: a battery-powered mobile
+robot, one or multiple humans that need to interact with
+the robot, and a closed environment. The agents'the robot
+and the humanbehavior is formally modeled as a network
+of Stochastic Hybrid Automata. The formal model is put
+through Statistical Model Checking to verify the probability
+of completing the mission with success. These elements con-
+stitute the design-time phase of the analysis that is performed
+before the application is conclusively dened.
+This paper focuses on an innovative mechanism to generate
+and deploy executable code for assistive robotic applica-
+tions starting from veried formal models. More precisely,
+the main contributions introduced by this paper areV
+136616This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License.
+For more information, see https://creativecommons.org/licenses/by-nc-nd/4.0/ VOLUME 9, 2021
+
+--- Page 2 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+1) the formal model enhanced with deployment-related
+features;
+2) an approach to convert a subset of Stochastic Hybrid
+Automata into executable code to deploy the applica-
+tion in a real or a simulated environment.
+The approach mentioned above envisages a mapping function
+associating each feature of the automata with an element
+of the deployment framework. The procedure ensures that
+the behavior observable with the deployed version of the
+scenario is comparable with the one dened at design time.
+Although we describe its application to the assistive robotics
+domain, the model-to-code mapping principle is applicable
+to a broader range of cyber-physical systems, as long as they
+can be formally modeled through the same subset of Stochas-
+tic Hybrid Automata and employ a middleware technology
+based on the publish-subscribe pattern.
+The run-time phase allows for the application's deploy-
+ment in a real-life setting and simulation in a virtual envi-
+ronment. This possibility stems from the middleware layer
+of the module, entirely developed using ROS, thus making it
+portable both to 3D simulators and real mobile robots.
+The run-time analysis phase serves a double validation
+purpose. The deployment in a physical setting with data
+provided by real people that interact with the robot potentially
+highlights weaknesses in design-time results. The reason is
+that the humans' formal model is an underapproximation
+of human behavior in real life. On the other hand, in some
+cases, the set-up of an actual testing environment might be
+unfeasible at an early stage of the application's development.
+Therefore, simulation with a realistic physics engine is a
+valuable alternative to highlight potential weaknesses.
+The new module of the framework is tested on experi-
+mental scenarios inspired by case studies from the health-
+care setting. Experiments are carried out in a simulated
+environment with realistic parameter values compatible with
+existing mobile robots, such as the TurtleBot3 Wafe Pi.1
+Human-robot interaction occurs by having real human users
+interact with the simulated robot in the scene.
+The paper is structured as follows: Section II presents the
+background for the work; Section III presents the run-time
+phase of the framework; Section IV introduces the for-
+mal model of the middleware; Section V introduces the
+deployment approach and the formal model-to-code map-
+ping principle; Section VI reports on experimental validation
+results; Section VII compares our work with related ones;
+Section VIII concludes.
+II. PRELIMINARIES
+This section reports on the prerequisites for the work pre-
+sented in this paper and is further subdivided into three
+sub-topics. Firstly, we recall the theoretical and techni-
+cal foundations of the work, which encompass the cho-
+sen formalism and verication technique, plus the primary
+pre-existing technologies underlying the work. Secondly,
+1Full documentation available at: https://www.turtlebot.com/we report on the high-level model-driven robotic develop-
+ment framework that this work aims at expanding. Finally,
+we explain the modeling approach and the previously devel-
+oped formal model, before the modications presented in this
+paper.
+A. TECHNICAL BACKGROUND
+Stochastic Hybrid Automata (SHA) is the modeling formal-
+ism underlying the approach, whose denitionas an exten-
+sion of Hybrid Automata (HA)is reported in the following.
+Denition 1: A Hybrid Automaton Ais a tuple (L;W;F,
+I;C;E;lini)[7], whereV
+1)L is the set of locations, and l ini2L is the initial
+location;
+2)W is the set of real-valued variables of which clocks
+(XW ), dense-counter variables (V dcW ), and
+constants (KW ) are special cases;
+3)FVL!(RC!RW)is the labeling function assign-
+ing a set of ow-conditions to each location, where RW
+is the set of real-valued assignments (i.e., valuations) to
+variables in W ;
+4)IVL!}(RW)is the labeling function assigning a set
+of invariants to each location;
+5)C is the set of channels, including the internal action
+;
+6)ELCW?0(W)4(W )L is the set of edges,
+where CW?is the set of complementary labels involving
+channels in C, 0(W)is the set of guard conditions and
+4(W )is the set of updates [8].
+Unlike ordinary Timed Automata [9], HA locations can be
+endowed with ow conditions i.e., differential equations
+thus supporting generic expressions for the derivatives of
+real-valued variables [7]. Therefore, through HA it is pos-
+sible to model systems with complex non-linear dynam-
+ics. Complex systems consisting of multiple entities can be
+modeled as a combination of HA, thus forming a network.
+Different automata in a network can synchronize with each
+other through channels [10]. Given two edges belonging to
+different automata of the network and labelled as cW(the
+sender ) and c? (the receiver ), where c2Cis a generic
+channel, triggering an event through channel ccauses the two
+transitions to re at the same time.
+Denition 2: A Stochastic Hybrid Automaton Asis a tuple
+(A;;P;c), whereV
+1)Ais a Hybrid Automaton dened according to Def.1;
+2)VLRW![0;1]RCis a labeling function assign-
+ing probability measures over time delays for each state
+ofAs, where states are (l;)pairs constituted by a
+location l2L and a valuation 2RW;
+3)P;c(l;l0)2[0;1]is the probability of switching from
+location l to l0when guard condition is satised and
+a message is triggered through channel c.
+In our model, non-deterministic choices are rened
+through stochastic features. As per Def.2, automata can have
+probability distributions over time delays ((l ;)(d)) and
+VOLUME 9, 2021 136617
+
+--- Page 3 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+over transition outcomes (P ;c(l;l0)). A transition may re
+with a bounded (e.g., within [2; 4] time units after entering
+the location) or unbounded time-delay (e.g., within range
+[2;C1) time units after entering the location). We imple-
+ment our SHA using the Uppaal tool. In Uppaal, probability
+distributions by default are either uniform over a bounded
+delay range or, in case of unbounded delay, exponential [11].
+Nevertheless, it is possible to encode custom distributions
+(e.g., a normal one) by combining different uniformly dis-
+tributed random variables [12]. In addition, transitions can be
+labelled by weights (captured by P;c(l;l0)), which describe
+the probability of landing in a different location when the
+transition is taken.
+SHA are eligible for Statistical Model Checking (SMC),
+which we run through the Uppaal tool and Uppaal SMC
+extension [12]. The extension of SMC to hybrid systems is
+enabled by ODE solvers that implement discretization meth-
+ods. Therefore, it is possible to obtain reliable approximations
+of ODE solutions, although some experimental parameters
+such as the discretization step size require particular care [12].
+The inputs to SMC are a stochastic system (e.g., the network
+of SHA) and a property (in our case, expressed through the
+PCTL logic) [13]. SMC applies statistical techniques to a
+sample set of system runs to check whether the specied
+property is veried or not. The experiment yields a range of
+values for the probability that such property holds within a
+certain time-bound. Unlike with traditional model-checking,
+the state-space is not exhaustively explored, thus mitigating
+the state-space explosion issue.
+FIGURE 1. Scheme representing ROS processes interactions. All nodes
+register to the master. When a message is published over a topic, it is
+received by every node subscribed to such topic.
+For the deployment approach, the chosen middleware is
+ROS (Robot Operating System) [14].2ROS is a framework
+for the development of robotic applications. Specically,
+it provides a set of tools and libraries tailored to robot pro-
+gramming, developed to prioritize modularity, cross-platform
+compatibility, and code re-usability. Using ROS nomencla-
+ture, each process in charge of processing and exchanging
+data represents a node. All nodes communicate with each
+other over named buses, called topics. This exchange of infor-
+mation can occur through messages shared over topics, like in
+thepublish-subscribe pattern (depicted in Fig.1), or through
+requests (and provision) of services (service-client pattern).
+The rst type of procedure is pivotal to our approach since
+the robot does not ask the controller for an instruction, but
+2ROS complete documentation available at: http://wiki.ros.orgthe controller (i.e., the publisher ) transmits instructions to the
+robot (i.e., the subscriber ) which is constantly listening for
+new messages. Since ROS is built to be language-agnostic,
+it provides a basic Interface Denition Language (IDL) to
+dene the messages' structure, specically the elds that
+compose them and their type. The whole framework builds
+upon the peer-to-peer pattern. A process called ROS master
+serves as the conveyor unit that initially deals with nodes'
+registration and sets up the peer-to-peer communication.
+Sending messages through topics is, then, anonymous and
+independent from the master.
+Although our approach is open to deployment on a real test
+bench, validation in a virtual environment is a major feature of
+the framework. Given the nature of the present work, the two
+major requirements that must be satised by a simulation
+environment areV
+1) the capability to integrate with ROS;
+2) the possibility to model humans and their behavior.
+The following were considered as preferable featuresV
+3) prominence of user community support;
+4) openness to general-purpose scenarios.
+Askarpour et al. report a critical comparison of existing
+robotic simulation tools [15]. Among the surveyed open-
+source tools, CoppeliaSim has been selected. CoppeliaSim
+(formerly V-REP)3is a general-purpose simulation tool that
+supports a plethora of robots, ranging from industrial manip-
+ulators to wheeled mobile platforms [16]. The tool provides
+a fully programmable model of a human, which is funda-
+mental for developing interactive applications. This degree of
+exibility is enabled by its inner architecture, which is open
+to different programming techniques. Developers can, thus,
+choose how to distribute the computational power required
+to control the robot and render the simulation. For example,
+the robot controller and the 3D simulation could run on two
+different machines (thus, splitting the computational load)
+and communicate with each other over ROS nodes.
+B. MODEL-DRIVEN ANALYSIS OF ROBOTIC MISSIONS
+The contribution presented in this paper is the runtime
+deployment infrastructure of a model-driven framework that
+formally veries scenarios involving interactions between
+humans and robots. The approach is tailored, though not
+exclusively, to use cases from the healthcare setting. The
+motivation is that people in healthcare-related situations
+are often in critical conditions. For example, patients are
+usually in pain or discomfort, whereas employees can be
+mentally stressed due to harsh work habits. The markedly
+human-oriented nature of the tool-supported framework
+makes it particularly benecial to this area.
+Potential target users also come from the healthcare envi-
+ronment. As stated by Payne et al. [17], in the future, there
+will be professional gures entrusted with the optimization
+of hospital logistics to make services safer and more efcient.
+3Full documentation available at: https://www.coppeliarobotics.com/
+resources
+136618 VOLUME 9, 2021
+
+--- Page 4 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+Given the future evolution perspective described in Section I,
+this will likely also include analyzing possible contingencies
+involving interaction between humans and service robots.
+The framework meets different requirements, mainlyV
+1) the results of the analysis ought to be robust and reliable
+as required by the critical setting;
+2) it has to be strongly focused on human needs;
+3) it has to be user-friendly and accessible to target users.
+The overall workow of the approach is represented in Fig.3.
+As shown in the diagram, we have identied two macro
+phases to analyze interaction scenarios: the design-time phase
+and the run-time phase. The rst one is briey summarised in
+the following (interested readers can refer to [5] and [6] for a
+thorough presentation).
+The toolchain's entry point is the conguration of the
+scenario by the application designer, referred to as the analyst
+from this point forward. This occurs through a conguration
+le with the main parameters of the scenarioi.e., the oor
+layout, how many humans need to be served, the service they
+are requesting, and their physiological features.
+In our scenarios, the interaction between a human and
+a robot conforms to pre-dened patterns. There is a one-
+to-one correspondence between humans in the scenario and
+interaction patterns since patterns semantically match the
+service that each human is requesting. A pattern determines
+how the agents will behave while that specic human is being
+served and what condition needs to be veried to establish
+that a service has been provided. Two notable examples of
+patterns are Human-Follower andHuman-Leader. In the
+rst case, the human needs to follow the robot until they are
+both sufciently close to the destination. In the dual case,
+the robot follows the human and, when the human decides
+to start or stop, the robot follows accordingly.
+As for the physiological features, the analyst can choose a
+fatigue prole for each human that determines how quickly
+the subject will reach full exhaustion. To determine the set
+of fatigue proles, subjects are aggregated based on their age
+(young/elderly) and health condition (healthy/sick) [18].
+The framework automatically processes the input le,
+it generates the formal model (the SHA network) and the
+PCTL property and runs the SMC experiment. By doing
+so, the analyst saves the effort of manually drafting the for-
+mal model, which is likely a distant skill from their tech-
+nical background. The main PCTL property  that we are
+interested in verifying is:  Dscs, that is to say that the
+mission will eventually () end with success, where vari-
+able scsformally models the mission goal achievement.
+As explained in Section II-A, the SMC experiment yields
+a range for the probability of  holding within a time-
+boundVP( )2[pmin;pmax]. The analyst assesses these
+values. If the results are unsatisfactory, the scenario needs to
+be rened and newly undergo formal verication. Possible
+renements of the scenario include scheduling the provision
+of different services or changing the order in which humans
+will be served. On the other hand, if the conguration of thescenario passes the evaluation at design-time, the analyst can
+switch to the second phase, i.e., the run-time analysis which
+is the main contribution of this paper.
+C. HRI SCENARIO FORMAL MODEL
+As explained in Section II-B, the design-time phase of the
+framework relies on a formal model of the system under
+analysis, specically a SHA network. The SHA network is
+made up of the automata modelingV
+(a) humans (one for each interaction pattern);
+(b) the mobile robot;
+(c) the robot battery;
+(d) the robot controller, i.e., the orchestrator.
+The general guidelines to draft the SHA are summed up
+by Table 1 and are explained in the following through the
+running example of the robot automaton, which is fully shown
+in Fig.2. The mathematical notation is based on Def.2.
+TABLE 1. SHA modeling guidelines.
+Agents' automata have two types of locations: ordinary
+locations and operating conditions. Locations ridle,rrec,rturn l,
+andrturn r(also in Fig.2) are ordinary locations. An agent stays
+in an ordinary location for a non-zero time, and, while in these
+locations, the agent does not publish sensor measurements.
+In Fig.2, ordinary locations respectively model the cases in
+which the robot is idle, recharging, or turning left or right.
+From this point forward, we will refer to automata modeling
+the robot, the battery and humans (i.e., the agents of the
+system) as generic automaton x. Operating conditions hopi
+correspond to SHA locations, and will be hereinafter referred
+to with notation xhopi2L. While in xhopilocations, agent
+xperiodically shares a new sensor reading. This modeling
+pattern is presented in detail in Section IV. As for the robot,
+there are three xhopilocations: rstart,rmov, and rstop. These are
+enclosed in as many hopi_pubhidiinstances (also presented
+in Section IV) and represented as dashed boxes in Fig.2 for
+ease of visualization. Constraints within the dashed boxes in
+VOLUME 9, 2021 136619
+
+--- Page 5 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+FIGURE 2. SHA modeling the robot. Invariants and flow conditions are represented in purple, guard conditions in green, channels in red, and
+updates in blue. Real-valued variables Vand2model the robot's velocity and orientation. The three hopilocations (rstart,rmov, and rstop) are
+embedded into corresponding hopi_pubhidiinstances (pattern hopi_pubhidiis presented in Section IV and shown in Fig.6). Locations rturnlandrturnr
+model the case in which the robot is turning leftorright to follow the trajectory.
+Fig.2 represent ow condition and invariant associated with
+the corresponding xhopilocation.
+Each physical variable with non-trivial time dynamics is
+modeled by a real-valued variable in Wn(X[Vdc[K). The
+robot automaton features real-valued variables Vto model the
+robot's velocity, and 2for the robot's orientation.
+Flow conditions on each location constrain the time
+dynamics of real-valued variables in the model through dif-
+ferential equations. The robot's velocity Vevolves according
+to a trapezoidal prole [19], and it is, thus, constrained by the
+three ow conditions in Eq.1. Each ow condition in Eq.1
+models a phase of the velocity prole: acceleration, travel,
+and deceleration, where amax2Kis a constant parameter for
+the robot's maximum acceleration.
+PVD8
+><
+>:amax ifxhopiDrstart
+0 if xhopiDrmov
+amax ifxhopiDrstop(1)
+Real-valued variable 2models the orientation of the robot
+with respect to the x-axis, and the two locations rturn landrturn r
+model the case in which the robot is rotating leftorright with
+constant speed !r2K. Variable2varies according to ow
+conditionsP2D!r(inrturn l) orP2D! r(inrturn r) until the
+desired orientation is reached.
+Clocks are a specic case of real-valued variables whose
+value grows uniformly with time ( PtxD1 holds for all
+tx2XW). A clock tx2Xcan only be reset by transitions
+and this is indicated by label ftxg(e.g.,ftupdgin Fig.2).
+Both the robot and the human are equipped with sensors
+that monitor data required by the orchestrator (e.g., position
+and orientation for the robot). Sensors' readings are modeled
+through dense-counter variables, a special case of real-valued
+variables: specically a variable in VdcWfor each sensor.
+Their value is not explicitly dependent on time ( PvD0 holds
+for any v2Vdc) and it only varies through update instruc-
+tions. Each sensor detects a new value with frequency 1=T poll,
+where Tpoll2Kis a constant parameter. Update instructions
+hstarti ,hmovi , andhstopi24(W ) (also in Fig.2) specic tothe robot are made explicit in Eq.2. The Cartesian coordinates
+of the robot inside the building are measured and periodically
+updated through the dense-counter variables rposxandrposy.
+hstarti;hmovi;hstopiV(
+r0
+posxDrposxCVTpollcos(2)
+r0
+posyDrposyCVTpollsin(2)(2)
+Dense counters do not exclusively model sensor read-
+ings but, more generally, non-constant variables without an
+explicit time-dependency. For example, while in rmov(within
+hmovi_pubh1i), every Tpollseconds the automaton updates
+dense-counter variable 2Vdc, which represents the new
+set-point for orientation 2. To make the path as smooth as
+possible, the robot starts turning only if the set-point is
+greater than a threshold th2K. As in Fig.2, ifjj>th
+holds, the robot switches from rhmovi torturn lorrturn rdepend-
+ing on whether 2Qholds. Finally, the robot switches back
+tormovand publishes the updated position values by sending
+an event through channel p1(label p1Win Fig.2): the details
+of this mechanism will be presented in Section IV.
+The switch between two locations is modeled as an edge
+eD(l;c;;; l0)2Ethat connects the starting location lto
+the destination l0.
+Acontrollable switch occurs if a command is explicitly
+issued by the orchestrator by triggering an event through a
+channel c2C. Channels specically related to the robot,
+the battery, and the human belong to subsets Cr;Cb, and
+Chrespectively. Examples of controllable switches are the
+robot starting to move or stopping, corresponding to channels
+cmd_r start2CrCandcmd_r stop2CrC(see Fig.2).
+Anuncontrollable switch occurs when physical variables
+meet specic constraints (and no command has been issued
+by the orchestrator): the combination of invariant i2Ion
+location land a guard condition on the outgoing edge
+eensures that the transition res only in the intersection
+point between iand. In this case, no channel is necessary
+for the transition and cis the null action. An example of
+uncontrollable switch is the one between rstartandrmovthat
+captures the end of the acceleration phase and the start of
+136620 VOLUME 9, 2021
+
+--- Page 6 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+FIGURE 3. Diagram representing the framework's workflow. The two macro-phases are: design time and run-time analysis. The framework
+automatically generates the formal model Mand the PCTL property  starting from a configuration file, and, then, runs the SMC experiment.
+If verification results are satisfactory, the analysis switches to the run-time phase. The application can either be deployed in a real setting or
+simulated in a virtual environment. Through mapping function 1(presented in Section V), the automata network is translated into an executable
+form. The orchestrator communicates with agents through a ROS-based middleware layer. Deployment in a real environment is set for further
+investigation as future work.
+the travel phase of the velocity prole. The invariant V
+vmaxonrstart(visible withinhstarti_pubh1i) and the guard
+condition Vvmaxon the edge to rmovensure that the switch
+occurs exactly when velocity Vequals the maximum value,
+corresponding to constant vmax2K.
+III. EXTENDING THE FRAMEWORK TO RUN-TIME
+As mentioned in Section I, this work targets the demand for
+well-engineered approaches to service robotics application
+development. The framework presented in this paper is an
+adaptation to the assistive robotics domain of the Multi-
+Paradigm Modeling (MPM) framework [20], which previous
+studies have suggested as a solution to tackle the com-
+plexity of cyber-physical systems [21]. Similarly to MPM,
+we propose a validation approach for robotic applications
+based on the comparison between the results obtained at
+design-time as described in Section II-B with those obtained
+bydeploying the application in a realistic environment. This
+paper contributes with a rigorous methodology to translate
+the formalism from Section II-C into deployable code, which
+is fundamental to carry out the validation process.
+In this section, we present the high-level architecture of the
+run-time phase and its relation to the model-driven framework
+recalled in Section II-B. As a further remark, the formal
+model presented in Section II-C has been enriched to match
+more accurately the deployment architecture. Therefore, it ismarked as ``extended'' in Fig.3. The three main elements of
+the run-time phase (numbered accordingly in Fig.3) areV
+(1) the model-to-code mapping function 1responsible
+for converting automata into deployment units;
+(2) a deployable form of the robot controller, i.e., the exe-
+cutable orchestrator;
+(3) the deployment environment (real or virtual);
+(4) a middleware layer that allows the orchestrator and the
+agents in the environment to communicate via a ROS
+node network.
+Function1is presented in detail in Section V. The exe-
+cutable orchestrator should be a replica of the orchestrator
+from the formal model. This entails that each automaton
+component (e.g., locations, edges, and ow conditions) needs
+to be translated into a suitable deployment unit element.
+The two versions should check the system's state against the
+same set of policies and perform operations with the same
+timing. Section V describes in detail the protocol to obtain a
+deployable version of the automata.
+The middleware layer, as mentioned in Section II-A,
+is based on a network of ROS publisher and subscriber
+nodes. Fig.4 represents how data ows from the deploy-
+ment environment to the orchestrator and vice versa. The
+orchestrator receives sensor updates as messages published
+on dedicated topics and sends commands to the agents via
+the same mechanism. Commands cause agents to react to a
+specic observable situation.
+VOLUME 9, 2021 136621
+
+--- Page 7 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+FIGURE 4. Diagram of the data flow between agents in the deployment
+environment and the orchestrator. Publisher nodes in the scene send the
+latest sensor readings to the orchestrator. The orchestrator sends new
+commands through a dedicated topic, and the agents in the scene receive
+them by subscribing to the same topic.
+The usefulness of the run-time phase is twofold. In the
+rst place, it is possible to deploy the application in a real
+setting so that the interaction between the human and the
+robot can actually occur. As Fig.3 shows, the approach is open
+to deployment in a real environment, as long as it is properly
+instrumented. Specically, the necessary equipment includes
+a wheeled mobile robot compatible with ROS and a set of
+sensors: an Indoor Positioning System (IPS) to locate both
+the robot and the human inside the building, and a wearable
+device to measure health-related variables. The robot should
+also be powered by a lithium battery, typical of electronic
+devices, with a state of charge sensor.
+As per Fig.3, it is also possible to simulate the applica-
+tion in a virtual environment. This operation aims to criti-
+cally compare the results obtained at design-time with those
+obtained with the simulations. Indeed, the formal model
+represents a high-level abstraction of the system, especially
+its human-related component. While developing the formal
+model, our efforts focused on identifying the subpart of the
+whole system that represents the best tradeoff between the
+degree of complexity of the model and its reliability. For
+example, not all physical aspects, such as friction between the
+robot wheels and the oor, are covered as this would require
+an excessive degree of complexity. The residual model-to-
+reality gap needs to be dealt with. Increasing the model's
+complexity is a possible solution, but it may cause veri-
+cation times to rise to a point where the framework is no
+longer usable in practice. The second possibility is to simulate
+the specic scenario in a virtual environment, like a three-
+dimensional simulator. In more detail, this results in a simula-
+tion relying on an executable version of the same orchestrator
+as in the formal model, a scenario with the same features
+as the one analyzed at design-time, but with a model of
+the agents driven by a realistic physics engine. Furthermore,
+the human agent in the simulation moves as a result of user
+input. Therefore, we can say that the robot in the simulation
+scene interacts with a human who provides the inputs even if
+the deployment environment is virtual.
+The simulator's advanced physics engine raises the anal-
+ysis's level of accuracy. Nevertheless, it is inexact to statethat the results obtained with SMC experiments and those
+obtained with a single simulation are directly comparable.
+As a matter of fact, simulation cannot issue an exhaustive
+verdict like a model-checking experiment. For example, if a
+scenario has a 90% probability of success at the end of the
+design-time phase, a single successful run in the simulator
+would not be sufcient to say that the verication results are
+indisputable. On the other hand, a failed run might indicate a
+critical oversight of the formal model. It is possible to identify
+different degrees of the criticality of these aws, depending
+on the level of expertise required to tackle them. Concrete
+examples are reported in Section VI with the presentation of
+experimental results.
+IV. MIDDLEWARE FORMAL MODEL
+As discussed in Section III, it is necessary for the verication
+and the deployment results to be comparable. To this end,
+the formal model presented in Section II-C has been enriched
+with features related to the software and middleware layers.
+Publisher nodes are recurrent within the system since,
+for each sensor, a ROS node periodically shares the latest
+readings with the orchestrator. More specically, the agents
+in the networkthe robot and the humansare responsible
+forpublishing new data, whereas the orchestrator serves as a
+subscriber to such data.
+ROS handles all messages received by subscribers and
+shared by publishers through independent queues. The rate
+at which subscriber queues are emptied is easier to control
+and anticipate than for publisher queues. As a matter of
+fact, the rst one depends either on the time it takes to
+execute a single iteration of the callback function, or on the
+rate explicitly set for the execution of callbacks through the
+rosVVspinOnce() function. On the other hand, the time
+necessary to process a publisher queue depends on how
+quickly the message can reach the subscribers, which is not
+fully controllable [22].
+As argued by Halder et al. [23], a formal model of this
+mechanism should include the following parameters: the
+publisher's publishing rate (T pub), the subscriber's spinrate
+(Tsub), the time required to trasmit messages over channels
+(TminandTmax) and the time required to process callbacks
+(CB minandCBmax). Sensor readings are shared with fre-
+quency 1=T pollwithTpoll2K, therefore TpubDTpollholds.
+In our framework, all subscriber nodes perform no other
+action besides data subscription, thus we can assume that
+TsubD0 holds and the only delay attributable to the sub-
+scriber is the callback execution time. Given that callbacks
+consist of update instruction sets (see, for example, Eq.2),
+we can assume that CBminandCBmaxare negligible com-
+pared to the timeline of a mission (usually in the order of
+minutes). We also choose not to include the tuning of queue
+sizes or formally verify the overow problem avoidance.
+Given the sizing of the system's parameters (for example,
+Tpollis always approximately 1s), the message publishing rate
+is such that the overow issue is not pressing enough to justify
+an increase in model complexity.
+136622 VOLUME 9, 2021
+
+--- Page 8 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+In the following, we present the developed SHA conform-
+ing to Def.2 and modelingV
+1) ROS publisher queues, each referred to as
+ros_pubhidi;
+2) agents' modeling pattern responsible for periodically
+sharing the latest reading, referred to as hopi_pubhidi.
+1) ROS PUBLISHER QUEUE MODEL
+Theros_pubhidiautomaton, also shown in Fig.5, models
+independent publisher queues. This element of the SHA net-
+work models the previously mentioned delays to transmit
+messages stored in queues over ROS topics. To capture the
+uncertain nature of the time required to publish the mes-
+sage, we envisage a probability distribution that approximates
+this delay. Instead of having a dened interval Tminand
+Tmax, we model the delay through variable 2Vdc, whose
+values are randomly generated from a Normal distribution
+N(;2
+). Previous studies have shown that such distribu-
+tion is a suitable approximation for message transmission
+delays [24]. In this way, communication delays due to ROS
+latency are embedded in the model and potential impacts are
+accounted for by the verication process.
+FIGURE 5. ros_pubhidiautomaton modeling ROS publisher queue
+identified by parameter hidi. Color-coding is the same as in Fig.2.
+As in Fig.5, a publisher queue is empty (location pidle)
+until an agent (e.g., the robot) requests the publication of a
+message through channel phidi2C. Parameterhidiidenties
+the selected queue and semantically corresponds to a ROS
+topic. The publication request is captured by edge label phidiW,
+either in the component presented in Section IV-2 (and shown
+in Fig.6) or as seen in Fig.2 (label p1W). As explained in
+Section II-A, when the edge with label phidiWres, the edge
+from location pidletopbusywith label phidi? (see Fig.5) res
+simultaneously.
+Queues are modeled as xed-length arrays, and variable
+bpos2Vdckeeps track of the rst available position's index
+inside the queue. As the publication request is issued (),
+the message is added to the buffer through the update instruc-
+tionenqueue(msg), a new value of is generated through
+update, and the automaton switches to location pbusy. The
+automaton stays in pbusyas long as3holds, where clock
+32Xmodels the message publication latency. Once time
+has elapsed, the rst element of the queue is published to
+the orchestrator through instruction dequeue() (see Fig.5).
+FIGURE 6.hopi_pubhidipattern, applied to all xhopilocations in the
+network to model the message publishing mechanism on queue hidi.
+Color-coding is the same as in Fig.2.
+The latter subsumes the subscriber (e.g., the orchestrator)
+behavior, which, as already argued, is not explicitly modeled
+to limit complexity.
+2) SENSOR DATA PUBLISHING PATTERN
+While ros_pubhidiinstances deal with message queue man-
+agement,hopi_pubhidipatterns are responsible for periodi-
+cally publishing the latest readings. This pattern is applied to
+all agents' operating conditions (see Section II-C). Location
+xhopiin Fig.6 corresponds to a generic operating condition of
+agent x, and ports start, stop, and hold mark the transitions
+that enter and leave xhopi, whose characteristics change from
+case to case. Ports are not ofcially part of the formalism, but
+merely a visual expedient to represent the transitions entering
+and leaving the component.
+While in xhopi, the dynamics of the system are constrained
+by differential equations marked by the generic symbol
+hopi2F. Symbol ihopi2Icorresponds to the set of location-
+dependent invariants, in addition to constraint tupdTpoll,
+which is common to all instances of hopi_pubhidi. Clock
+tupd2Xmeasures time between consecutive readings. Every
+Tpolltime instants, the sensor reading, modeled by a
+dense counter variable v2Vdc, is updated by instruction
+hopi24(W ). It is possible for one hopi_pubhidiinstance to
+be in charge of publishing multiple sensor readings (e.g., the
+human shares data about fatigue and position), thus, multiple
+dense-counter variables are simultaneously updated by hopi.
+The automaton then switches to a committed location xpubi.
+In Uppaal parlance, the automaton must leave a committed
+location without any delay [10] and this ensures that the latest
+sensor readings have precedence over the other transitions.
+Therefore, upon entering xpubi, if the execution of the pattern
+does not need to be put on hold, the automaton immediately
+sends an event through channel phidi, triggering the queueing
+routine on the corresponding ros_pubhidiinstance. If, for a
+specic xhopi, execution can be put on hold, it is represented
+via an edge connecting location xpubito port hold. This is use-
+ful when the operating condition has to be suspendedon an
+exceptional basisto apply some reconguration measure.
+For example, concerning the robot SHA in Fig.2, this occurs
+when the robot has to momentarily stop moving forward to
+adjust its orientation 2.
+VOLUME 9, 2021 136623
+
+--- Page 9 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+There are three instances of the hopi_pubhidipattern in the
+robot automaton, one for each hopi location, also highlighted
+in Fig.2 and identied by a different hidifor each separate
+queue. As per Eq.2, depending on the values of the design
+parameters (i.e., ifvmax
+amaxTpollholds), the robot might keep
+sharing sensors readings also while it decelerates to a full
+stop.
+FIGURE 7. Diagram of the synchronization contingencies between an
+hopi_pubhidipattern and the corresponding ros_pubhidiautomaton.
+Case (a) occurs when 8i;i<Tpollholds, so the buffer never contains
+more than one element. If it is true that 9is:t:iTpoll(case (b)),
+the publisher will send two consecutive messages and switch back to
+pidleonly after the second one has been published.
+Fig.7 displays possible contingencies (cases (a)and(b))
+resulting from the combination of a hopi_pubhidipattern with
+the corresponding ros_pubhidiautomaton. Case (a)occurs
+when8i; iTpollholds, therefore a message is always
+successfully published before the new reading and the queue
+never holds more than one element. If, on the other hand,
+9i;s:t: i>Tpollholds, which corresponds to case (b)in
+Fig.7, more than one position in the queue will be simulta-
+neously occupied and two messages will be published back-
+to-back without switching back to pidle. Case (b)is enabled
+by the two self-loops on pbusy(Fig.5) and guard conditions
+on variable bpos.
+V. DEPLOYMENT FRAMEWORK
+The model presented in Section IV is put through Statistical
+Model Checking, as described in Section II-B. Once the
+results at design-time are deemed adequate, the scenario can
+be either deployed in a real environment or simulated, as per
+Fig.3. This section focuses on the deployment infrastruc-
+ture (summarized by Fig.8) and the model-to-code mapping
+principle. The main elements are the executable orchestrator,
+the middleware layer, and the environment. The high-level
+role they play in the framework is explained in Section III.
+In the following, we explain in detail how each formal model
+feature is mapped to an equivalent deployable form, and how
+we guarantee that the deployed system and the formal model
+behave correspondingly.
+The high-level mapping between the formal model and the
+deployment framework is depicted in Fig.8. Each automaton
+of the SHA network, excluding instances of ros_pubhidi,
+corresponds to an atomic entity of the deployment model.
+The robot, the battery, and the human, which are real entities
+if the application is deployed in a real environment, are
+FIGURE 8. Diagram of the mapping between the formal model and the
+deployment infrastructure. The automata for the robot, the battery and
+the human are each mapped to a deployment unit. The orchestrator is
+ported to a standalone script, that communicates with the agents through
+ROS nodes. Sensor readings are shared with the orchestrator by a
+publisher node for each agent. The orchestrator sends its commands
+through a fourth publisher to all agents but the human, that is directly
+controlled by the human user.
+actuated through scripts internal to the simulator in case of a
+virtual environment. The orchestrator is implemented through
+a standalone script in both cases.
+This architecture allows the analyst to choose between
+deploying the application in a real or virtual environment
+without changing the code. All ros_pubhidiinstances cor-
+respond to a real ROS publisher node (and queue). Nodes
+internal to the simulator are implemented using the ROS
+interface provided by the CoppeliaSim API framework [16],
+while the nodes related to the orchestrator are implemented
+using the rospy library.4
+Note that assistive robotics applications are our running
+example, and we test the effectiveness of this approach on
+use cases from this eld, but it is not the only application
+domain of the model-to-code mapping principle presented
+in the following. A cyber-physical system is eligible for this
+technique if it consists of distributed agents that periodically
+share sensor readings through a publish-subscribe middle-
+ware technology and a centralized controller that monitors
+the system's state and sends instructions accordingly. In the
+future, we plan on deepening the analysis of the generality of
+the approach by testing it on other areas, such as smart homes
+or automated warehouses management systems.
+A. MAPPING MODEL TO CODE
+We exploit the stochastic features of SHA presented in
+Section II-A to capture the uncertain aspects of reality which
+4rospy documentation available at: http://wiki.ros.org/rospy
+136624 VOLUME 9, 2021
+
+--- Page 10 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+TABLE 2. Mapping relations between features of a HA Aand a deployment unit D, as defined by function 1.
+are relevant to our scenarios, i.e., human behavior and unpre-
+dictable network delays. Other elements of the SHA net-
+work represent either electronic devices or software modules
+whose behavior is fully deterministic. Therefore, although all
+automata in the network are dened as SHA, only those mod-
+eling humans and the ros_pubhidiinstances fully exploit the
+stochastic features of SHA. All other automata are designed
+to have a deterministic behavior, that isV
+1) there are no edges that may re with unbounded delay,
+thus described by an exponential distribution;
+2) for all states (l ;), with l2Land2RW, there
+is only one delay d2RCsuch that(l;)(d)D1
+holds, whereas, for all other d02RCsuch that d06Dd,
+(l;)(d0) equals 0. This means that, for each state,
+there is always only one delay which allows an uncon-
+trollable switch (see Section II-C) to re: thus, it is
+necessarily assigned probability 1;
+3) all edges have probability weight 1 (P ;c(l;l0)D1
+holds in any case).
+Under these premises, we can conclude that automata rep-
+resenting electronic devices or software modules in the net-
+work reduce to pure Hybrid Automata (HA). The aspects
+modeled by the stochastic features do not require deployment
+since they are naturally present in the deployment environ-
+ment. Therefore, they are not considered by the deployment
+approach presented in this paper. Hence, from this point for-
+ward, the discussion will focus exclusively on the automata
+that behave like purely HA, as they are the only ones relevant
+to the present work.
+To guarantee that the deployed system is a sound transposi-
+tion of the original network of automata, we dene a mapping
+function1that maps an HA automaton AtoD, a generic
+atomic entity of the deployment framework. An atomic
+deployment unit DD(6;7;8; S;T;B; ini) consists of the
+following artefactsV
+1) the set6of agent states, including the initial one ini;
+2) the set 7ofvariables, including sensor read-
+ings (7 s7), constant parameters (K 7), clocks(X7), and physical variables (real or simulated)
+(7n(X[7s[K));
+3) the set8, which contains physical laws in case of
+deployment in the real world, or the implementation of
+such laws in the case of simulation;
+4) the set S(7) of conditional expressions on variables
+in7;
+5) the set Tof ROS topics over which messages (orcom-
+mands) that trigger a change of state are published, with
+subsets Tr;Tb, and Threlated respectively to the robot,
+the battery, and the human;
+6) the set B6TS(7)A(7)6ofconditional
+statements governing the control ow, where A(7) is
+the set of assignment instructions executed on variables
+in7.
+The denition of Dis to be strictly followed while draft-
+ing the orchestrator script (both in simulated and real
+environments) and the agents' scripts for the simulator.
+As for the agents' deployment units in a real environment,
+since this involves actual robotic systems and humans, this
+denition must be intended as a high-level guideline to
+identify the correspondence between the formal and real
+systems.
+Two reasons underlie this discrepancy in the interpretation.
+Firstly, the robotic system's code might vary signicantly
+depending on the specic manufacturer and model and might
+not be fully accessible to the public. Secondly, since one
+of the agents is an actual person, artefacts composing the
+human deployment unit should not be interpreted in a soft-
+ware engineering-specic sense but as abstract elements con-
+stituting the human decision-making process. An explanatory
+example is the set S that cannot contain classic Boolean
+expressions for the human, but notionally corresponds to the
+set of questions that someone (consciously or not) ponders to
+make a decision [25].
+Table 2 displays how function 1maps each element of A
+to an element of Dand is presented in detail in the following.
+Each non-committed location in Lcorresponds to a state in
+6, that is to say a block of code that denes the behavior of an
+VOLUME 9, 2021 136625
+
+--- Page 11 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+agent under certain circumstances (e.g., the human walking or
+standing still).
+Dense-counter variables in VdcWhave an equivalent
+variable in set 7s7. In particular, variables represent-
+ing sensor readings are periodically updated with frequency
+1=Tpolllike dense-counter variables in the formal model.
+Constants in KWare mapped to constant parameters
+inK7, which match design parameters of the physical
+equipment.
+Each real-valued variable in Wn(X[Vdc[K) matches a
+physical variable in 7n(X[7s[K), whereas ow condi-
+tions in Fcorrespond to physical laws (or their implementa-
+tions) in8.
+Each clock in XWis mapped to a special case of
+variable in X7that evolves uniformly with time. As for
+the orchestrator, staying in a certain location until clock
+tx2XWreaches threshold k2KWis implemented
+as asleep( ) instruction, where 2K7is expressed in
+seconds. This binds the behavior of the orchestrator deploy-
+ment unit to the system time, which can be considered an
+element of set X7. Time in the simulated environment
+is discrete with a time-step 1tthat has a minimum value
+of 10ms. Given the system's time variables sizing (e.g., Tpoll
+equals 1s, which is two orders of magnitude greater than 1t),
+the error caused by the discretization interval has a negligible
+impact on the system's behavior and, therefore, on the results
+of the analysis. Let us consider, for example, the model of
+fatigue Fwhile the human is walking, which evolves accord-
+ing to equation F(t)D1et[26]. To prevent the human
+from reaching full exhaustion, the orchestrator instructs them
+to stop when it detects that FD0:7 holds. If the reaching of
+this threshold is detected at time tstopwith a continuous-time
+model, in simulation it is detected at time tstopC1tat the
+latest. With the most critical fatigue prole, that is with the
+highest rateD0:025, the value of Fwhen the reaching of
+the threshold is detected is F(tstopC1t)0:700075, which
+approximately corresponds to a 0:11% error. Similar conclu-
+sions can be drawn about the other physical variables. Con-
+sidering that the nature of the system does not require a sharp
+real-time synchronization among the various components,
+we can reasonably conclude that the order of magnitude
+of the errors does not critically threaten the model-to-code
+transposition soundness.
+As for commands issued by the orchestrator, it is necessary
+to make a distinction between the ones destined to the robot
+or the battery and the ones destined to humans. In the rst
+case, triggering an event through channel c2(Cr[Cb)C
+corresponds to publishing a message over a ROS topic
+t2(Tr[Tb)T. The format of these messages is xed
+and dened a-priori. On the other hand, the way com-
+mands are sent to the human constitutes a slight discrepancy
+between the formal and the deployment model. Within the
+HA network, the orchestrator shares its commands with the
+human through channels identically to what it does with the
+robot. The unpredictability of human behavior is embed-
+ded in the formal model in terms of stochastic features [5].Specically, once the command has been received, edges are
+also labelled by probability weights that determine whether
+the human will obey ordisobey. Furthermore, the human
+can also make autonomous decisions, approximated by a
+Bernoulli probability distribution. At deployment-time, these
+stochastic approximations are lifted by having a real human
+either providing keyboard input (in simulation) or directly
+operating in the environment. In the latter case, human
+``inputs'' are not explicit (e.g., when a human stops walking)
+and need to be inferred from sensors data. Therefore, human-
+related channels in ChCmatch user inputs t2ThT.
+Edges in Eare translated to scripts' conditional state-
+ments and callback functions in B, representing the switch
+of an agent from state 26to a new state 026.
+As discussed in Section II-C, edges can model control-
+lable and uncontrollable switches. Controllable switches are
+triggered by ROS messages, i.e., commands sent by the
+orchestrator. Uncontrollable switches occur in correspon-
+dence of the intersection between values that satisfy i2I
+and values that satisfy condition 20(V) on the outgoing
+edge. An edge eD(l;?;;; l0) modeling an uncontrol-
+lable switch is mapped to conditional statement (i.e., if-then
+construct)D(;?;s;a;0), where states and0map
+locations landl0, respectively. Condition is mapped to the
+conditional expression s2S(7) guarding. Update instruc-
+tionsare mapped to a2A(7), representing the (set of)
+assignment instruction(s) performed as soon as is executed
+andsevaluates to true.
+B. DEPLOYABLE CODE PATTERNS
+Applying this mapping principle to recurrent modeling pat-
+terns in the HA model leads to recurrent code patterns, pre-
+sented in the following. Lines in Table 3, 4, 5, and 6 are
+color-coded to highlight differences between deployment in
+a real and simulated environment.
+TABLE 3. Controllable Switch pattern model (on the left) to code (on the
+right) transformation. Color-coding for the automaton is the same as in
+Fig.2, except for channel labels which, for visualization purposes, are
+black instead of red. The code pattern highlights mutually exclusive lines
+that are present if the application is simulated (in dark blue) or deployed
+in a real environment (in red).
+Hereinafter, while presenting code patterns, we use nota-
+tiona(!b2B) to indicate how a formal model element a
+is mapped to a deployment unit element b2B: for example,
+the fact that guard condition jis mapped to conditional
+136626 VOLUME 9, 2021
+
+--- Page 12 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+TABLE 4. Uncontrollable Switch pattern model-to-code transformation.
+Color-coding is the same as in Table 3 for both columns.
+TABLE 5. Sensor reading pattern (h opi_pubhidi) model-to-code
+transformation. Color-coding is the same as in Table 3 for both columns.
+expression sjis expressed as j(!sj2S(7)). We recall that,
+as in Section II-C, the automata that model the robot, the bat-
+tery, and the humans are generically labeled as x, whereas the
+location capturing a generic operating condition hopi of agent
+xis labelled as xhopi. The pattern featuring locations labelled
+asois instead a subcomponent of the orchestrator automaton
+and is, thus, realized by a standalone script.
+As for the patterns for simulation scripts (described in
+Section V-B1, Section V-B2, and Section V-B3), a fur-
+ther remark is necessary about their apparently non-cyclical
+nature. The scripts implement a standard interface provided
+by the simulator. All the code blocks shown in Table 3, 4,
+and 5 belong to a function of the interface that deals with
+agents' actuation in the scene and is, by default, re-run at each
+time step (1tD10ms) throughout the whole simulation.
+1) CONTROLLABLE SWITCH PATTERN
+The rst pattern, shown in Table 3, is the controllable switch.
+The resulting code pattern consists ofVTABLE 6. System monitoring pattern model-to-code transformation. The
+generic automaton and code patterns are shown on the left, whereas the
+right column features the specific instance of this pattern in our
+framework. Color-coding is the same as in Table 3 for both columns.
+aforloop so that, during initizialization, agent xsub-
+scribes to ROS topics tj2T;
+acallback function t_cb j(one for each subscribed
+topic) which is invoked every time a new message mis
+received through topic tj: within the function, operating
+condition x:lis updated, then assignment instructions
+ahop;op j(m)iare executed.
+A controllable switch occurs when a change of operating
+condition fromhopi tohopjiis appropriate according to the
+orchestrator policies. In the formal model, this causes the
+related channel cjto re; the orchestrator triggers an event
+(cjW) and an agent reacts to it (c j?). In the deployment model,
+commands are shared via ROS. Therefore, the orchestrator
+script publishes the command through a dedicated ROS pub-
+lisher node. The script internal to the simulator corresponding
+to the destination agent, having subscribed to ROS topic cj
+(!tj2T) at the beginning of the simulation/execution,
+receives such command over the same topic.
+While in the corresponding status hopi, the agent is con-
+stantly listening on topic cj(!tj2T). As soon as a
+new message is published, the script executes the callback
+function, generically called t_cb j.
+In the real script, the whole ROS message mis passed as
+input parameter to the callback function. The target operating
+condition is a function of message mand is, thus, with a slight
+abuse of notation, referred to in Table 3 as hopj(m)i.
+The content of function t_cb jreplicates the corresponding
+edge of the automaton: rstly the variable x:l27s7
+VOLUME 9, 2021 136627
+
+--- Page 13 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+that keeps track of agent x's current location is updated
+toxhopj(m)i. Subsequently, the actions performed (or simu-
+lated) by agent xin reaction to the command are captured
+by update instructions hop;op j(m)i(!ahop;op j(m)i2A(7)).
+As per Table 3, in case of deployment in a real set-
+ting, this would correspond to the execution of proprietary
+functions dealing with lower-level tasks (e.g., trajectory
+planning).
+2) UNCONTROLLABLE SWITCH PATTERN
+The uncontrollable switch pattern, shown in Table 4, consists
+ofV
+nif-then-else statementsj2Bguarded by as
+many conditional expressions sj^x:lDxhopi, where
+sj2S(7) holds for all j2[1;n]: when one of conditions
+sjevaluates to true, assignment instructions ahop;op jiare
+executed.
+Note that combining the modeling patterns that formally
+model the scenario in our framework leads to uncontrollable
+switches which are guaranteed to be well-formed, that is, that
+have the following featuresV
+1) given the invariant iand guardassociated with the
+switchV
+a)jNi\Nj>0 holds for all uncontrollable
+switches, where NiRWandNRWare the
+sets of valuations that satisfy iandrespectively;
+b) there exists at least one real-valued vari-
+able or clock v2WnVdc[Ksuch that
+i;var(v)Dj;var(v)Dvholds for some v2Rfor
+alli;var2Niand allj;var2Nj;
+2) given nuncontrollable edges outgoing from the same
+location and guarded by as many jconditions, such
+conditions must be disjoint :\n
+jD1NjD;holds, where
+Njis the set of valuations satisfying j.
+In case of an uncontrollable switch, as in Table 4, the edge
+from location xhopitoxhopjiis guarded by condition j
+and ihopji(!sj2S(7)) is a member of the invariant of
+xhopi. The way in which invariants ihopji(!sj2S(7)) are
+enforced in scripts is explained in Section V-B3, here
+we focus only on how outgoing edges are translated into
+code.
+As explained in Section IV, the automaton is forced to
+switch to xhopjiwhen variable and clock values simulta-
+neously satisfy both ihopjiandj. Note that, as previously
+mentioned, in our model guard conditions on uncontrollable
+edges are guaranteed to be disjoint. For this reason, in the
+corresponding code pattern reported in Table 4, it is correct
+that, when one of the j^x:lDxhopiconditions is veried,
+no other ifbranch is visited. Constraint x:lDxhopiis
+necessary because the location might also be updated by a
+callback function, as explained in Section V-B1. As soon as
+aj(!sj2S(7)) condition becomes true, update hop;op ji
+(!ahop;op ji2A(7)) is executed (or proprietary functions
+are invoked). Finally, x:lis updated to xhopji.3) SENSOR READING PATTERN
+The third pattern is the one presented as hopi_pubhidiin
+Section IV, which consists ofV
+anupdate of variable t27through simulator-specic
+function getSysTime();
+anif-then statement12Bwhich is executed if: agent x
+is in operating condition xhopi, expression shopji2S(7)
+is true for all j2[1;n], and ttlastTpollholds.
+If all of these conditions hold, physical variables evolve
+according to laws hopi;
+anif-then statement22Bwhich is executed if: agent x
+is in operating condition xhopi, and ttlastTpollholds.
+Assignment instructions ahopiare subsequently executed
+and each sensor reading 27sis published on topic
+thidi2Tthrough a forloop.
+As per Table 5, every time this block of code is reached,
+variable t2X7storing time is updated using proprietary
+functions provided by the system [16]. In the automaton,
+the value of clock tupdis compared against Tpollto check
+whether a new sensor reading is available. As for the code,
+a support variable t last27s7keeps track of the time
+at which the previous sensor measurement was published.
+It follows that the expression t tlastis uniform to clock tupd.
+If all invariants ihopji(!shopji2S(7)) hold, the simulated
+physical variables are then updated according to laws hopi
+(!hopi28). If the condition guarding the end of a sen-
+sor's refresh period (i.e., t tlastTpoll) is satised, t lastis
+updated and variables in 7s7corresponding to sensor
+readings are updated as required by hopi(!ahopi2A(7)).
+Since the committed location prescribes that no time
+elapses before the following instruction is executed (i.e.,
+triggering channel phidi), the script immediately instructs a
+dedicated ROS node to publish the updated sensor readings
+on topichidithrough the ROS interface provided by the
+simulator. At this point, message publication occurs asyn-
+chronously with respect to the agent's script. As a matter of
+fact, ROS handles the publisher's queue independently of the
+script, which in the formal model is captured by a specic
+instance of template ros_pubhidipresented in Section IV.
+4) SYSTEM MONITORING PATTERN
+The nal pattern in Table 6 is the subcomponent
+hopi_chkhxi[5], which is applied to all hopi locations of the
+orchestrator. The purpose of this pattern is to periodically
+check the state of the system every Tinttime instants against
+a set of policies and, if necessary, send commands to the
+agents (e.g., stop the robot if it has reached the destination).
+Note that the pattern is also applicable to other systems with
+a likewise behavior (i.e., sampling-based system monitoring
+with custom policy enforcement). While Table 6 displays the
+generic pattern in the left column, in the following, to explain
+how the pattern works, we exploit the specic instance from
+our framework, which is shown on the right in Table 6.
+136628 VOLUME 9, 2021
+
+--- Page 14 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+We recall that the orchestrator controls the execution from
+a high abstraction level. Using as reference the abstraction
+levels proposed by Lutz et al. [27], the orchestrator in our
+framework operates at the tasklevel, meaning that it manages
+when and how the robot does something, irrespective of the
+underlying implementation. All the lower-level details (e.g.,
+the trajectory-planning algorithm) should be proprietary to
+the robot manufacturer and dependent on the specic robot
+model involved in the application. An implementation of
+these low-level algorithms has been provided to test the
+model-driven framework, though we do not claim it is the
+optimal one, since, for the reasons listed above, it is not
+the core of this research.
+The resulting code pattern consists ofV
+awhile loop that runs as long as all expressions
+sj2S(7) that map the automaton's jconditions,
+with j2[1;n], are false: in our specic instance,
+these are sscs,sfail, and sstop. Within the loop,
+the script: updates the state to ohopi26; pauses for
+time Tint2K(sleep(T int)); executes assignments
+aO2A(7); switches to ochkhxi26; and pauses for
+Tproc2Kseconds (sleep(T proc)).
+Upon switching to checking location ochkhxi, the automaton
+applies the orchestrator's set of policies, referred to as O
+(!aO2A(7)) [5], to the agents. After executing all the
+instructions in O, one of the following guard conditions
+might become trueV
+1) the condition that determines whether the mission has
+ended with successscs(!sscs2S(7));
+2) the condition that determines whether the mission has
+failedfail(!sfail2S(7));
+3) the condition that determines, for every controlled
+agent in the system, whether the current agent's action
+has to stopstop(!sstop2S(7)).
+In the formal model, the time required by the orchestrator to
+make a decision based on the current system state is modeled
+by parameter Tproc2KW. Once time Tprochas elapsed
+(procDtactTprocholds), if one of the outgoing edges
+is enabled ( scs_stop_failholds), the subcomponent
+hopi_chkhxiis left, otherwise the orchestrator switches back
+toohopi. The corresponding code block, shown in Table 6,
+captures the cyclical succession of ohopiandochkhxi. The
+orchestrator script is put on hold for Tintseconds, while
+the system evolves, through the programmatic instruction
+sleep (the same happens afterwards for Tprocseconds in
+ochkhxi). A set of policies equivalent to O(!aO2A(7)) is
+enforced afterwards.
+The variable o:l27s7that keeps track of the location
+is updated to ochkhxiand a second sleep instruction is issued
+to pause the execution for Tprocseconds (thus, procis not
+part of the condition for the while cycle). Identically to the
+hopi_chkhxipattern, at this point the loop condition is re-
+evaluated and, if scs_stop_failholds, the loop ends along
+with the execution of this pattern.As per Table 6, for the last pattern the cycle is explicitly
+dened since it is part of an ordinary script external to the
+simulator or the real agent, whose execution ow requires
+explicit programming.
+VI. EXPERIMENTAL VALIDATION
+As discussed in Section II-B, Statistical Model-Checking is
+a valuable tool to analyze cyber-physical systems' settings at
+an early design stage. However, it cannot provide all-inclusive
+results on its own [28]. The deployment module presented in
+this paper strengthens the model-driven framework by pro-
+viding users with additional tools to test and validate interac-
+tive scenarios. These features are enabled by the fact that the
+deployment framework elements are a rigorous transposition
+of the HA network. Therefore, the approach ensures that the
+system will display corresponding behavior at design-time
+and at deployment time.
+In the following, we discuss the deployment module's
+validation process and present relevant case studies that serve
+the following two purposesV
+P1: provide evidence that the formally modeled and the
+deployed agents behave correspondingly;
+P2: showcase the relevance of the deployment module to
+the overall assessment process.
+Through simulation, analysts can test applications in phys-
+ically accurate environments. Moreover, they can focus
+their assessment on manually induced situations theoretically
+unlikely to occur, but critical for the mission's outcome.
+As explained in Section I, the mission ends with success if
+the robot successfully serves all humans. Failure, instead, can
+occur in two ways: 1) the robot's battery gets fully discharged,
+which makes the robot unable to move autonomously; 2) one
+of the humans reaches full-exhaustion; therefore, they can no
+longer move nor interact with the robot. To test the effective-
+ness of the approach in all its possible use cases, our exper-
+iments have focused on charge-critical orfatigue-critical
+congurations that are tting sources of stress to the system.
+EXPERIMENTAL SETTING
+Though the approach is general, the performed experiments
+are based on healthcare-related settings. The chosen exper-
+imental setting is represented in Fig.9. The scenario fea-
+tures a T-shaped hospital corridor with doors leading to
+ofces and two cupboards with medical equipment. Specif-
+ically, the main corridor of the oor layout has an area of
+22m4m, whereas the shorter aisle leading to the cupboards
+is 14m2m. We assume that a mobile platform is deployed
+in this environment to assist patients and employees. In this
+specic example, two humans are requesting the robot's
+assistance. The rst person needs to fetch an item whose
+location is unknown to them but known to the robot. There-
+fore, the robot has to lead the human to their destination
+(DEST 1 in Fig.9), and the suitable interaction pattern is
+Human-Follower. The second human is a doctor who needs
+the robot to carry some tools. The doctor has to leadthe robot
+VOLUME 9, 2021 136629
+
+--- Page 15 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+FIGURE 9. Experimental setting used for both experiments. The picture
+captures the layout from the simulator, which is identically replicated in
+the formal model. The two humans and the robot are represented in their
+starting positions. The picture also highlights the two destination points
+and the location of the recharge station.
+to the tools' location (point DEST 2 in Fig.9), conforming
+to the Human-Leader interaction pattern. Both patterns are
+described in more detail in Section II-B.
+Results obtained by applying our model-driven approach
+to this scenario signicantly vary depending on parameter
+values. As already discussed, the two critical factors are the
+robot battery charge (C start) and the fatigue proles of the
+two humans (p f1;pf2), presented in Section II-B. The fatigue
+prole determines the Maximum Endurable Time (MET)
+valuei.e., how long a subject can walk non-stop before
+reaching full exhaustion. The MET is an indicator of how
+critical a fatigue prole is. When the human is walking,
+fatigue grows exponentially (F (t)D1et) [26]. Since
+full exhaustion occurs when Fequals 1, it follows that the
+MET value isln ()
+, where parameter represents an uncer-
+tainty factor due to sensors' inaccuracy and human physiol-
+ogy variability. If we assume that equals 0:01, full exhaus-
+tion is reached when Fequals 0:99. The Young/Healthy
+fatigue prole corresponds to a MET of 9210:34s [29].
+With an Elderly/Healthy prole, the MET equals 575:65s,
+whereas with the Young/Sick prole the MET equals 460:51s
+(see Table 7).
+We present two signicant use cases, hereinafter referred
+to as Experiment 1 and Experiment 2. Experiment 1 presents a
+charge-critical conguration and consists of two iterations of
+the approach (labelled as Experiment 1a and 1b). Experiment
+2 starts with a fatigue-critical conguration. Table 7 sum-
+marizes the parameters for each experimental conguration.
+As explained in Section V, the listed design parameters and
+the low-level algorithms are specied for a generic mobile
+platform t for testing purposes. However, they would need to
+be tuned (or come pre-packaged with the simulation model)
+based on the specic robot model to be deployed in a real
+environment.
+EXPERIMENTAL VALIDATION PROCESS
+The validation process we followed to assess if the deploy-
+ment framework is an accurate translation of the formalTABLE 7. Summary of experimental parameters set. Parameters that
+make the configuration critical are marked in red, whereas the ones the
+decrease the degree of criticality are in green.
+model (i.e., goal P1) consists of the following steps (also
+conforming to the framework presented in Section II-B):
+1) automatically generate the formal model congured
+according to parameters in Table 7;
+2) run the SMC experiment to estimate the probabil-
+ity of success by verifying property  presented in
+Section II-B. The upper part of Table 8 displays the
+chosen time-bound values and performance data (dura-
+tion of the experiment and number of states explored);
+3)deploy the application in the simulated environment,
+with a real human user giving instructions to the human
+avatar in the scene;
+4) collect the simulations' log les and compute metrics
+tocompare the system's behavior at design-time and
+at runtime and draw conclusions about the soundness of
+the deployment approach. The bottom part of Table 8
+displays the resulting values of such metrics for each
+experiment, which will be analyzed in more detail later
+in this section.
+Further remarks are necessary about the data shown in
+Table 8 and how we have calculated it. Firstly we have empiri-
+cally analyzed single traces for all experiments to estimate the
+average duration of the mission and choose the time-bound 
+accordingly. Hence, we reasonably rule out the possibility of
+obtaining a low probability of success due to an insufcient
+time-bound.
+In the second place, it is necessary to explain why the num-
+ber of runs differs between design-time and runtime. Before
+running the SMC experiment, Uppaal automatically com-
+putes the number of traces (i.e., runs) necessary to reach the
+required level of condence 0:95. Since the set of statistical
+136630 VOLUME 9, 2021
+
+--- Page 16 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+TABLE 8. Metrics to evaluate the correspondence between the formal model (FM) and the simulated system behavior at deployment time (SIM). The
+upper part of the table reports performance data about the Statistical Model-Checking experiments and the number of runs for each experiment. In the
+bottom part, the above-mentioned metrics are listed. These metrics concern the average mission duration in simulation and the time-bound ( ) for the
+verification, the resulting probability of success within the specified time-bound, and the expected values for the most critical physical variables: the two
+humans' fatigue (Fh1andFh2, respectively) and robot battery charge (C ).
+parameters (including the condence) of Uppaal is the same
+for all experiments, this computation yields the same result,
+that is, 389 runs of the system. The deployment phase is not
+subject to such statistical requirements. Therefore, we choose
+to produce a number of simulation runs that is meaningful for
+practical reasons. If we assume that about 40 people might
+be served by the robot every day for 5 workdays a week and
+2 humans are served in each run, simulating the mission about
+100 times realistically corresponds to testing the deployment
+framework over the span of a week.
+To fulll goal P2, the validation process also envisages the
+following stepV
+5) while simulating the application, force situations that
+can lead to mission failure which are not covered
+by the formal model and, thus, not accounted for by
+verication results. Some examples and possible coun-
+termeasures for each experiment are presented in the
+corresponding subsections.
+The deployment framework used for the experiments is
+available at [30]. Recording of sample simulation runs is also
+provided for interested readers [31]. The formal model is
+created with Uppaal v.4.1.24 [12].5The virtual environment
+is created using CoppeliaSim v.3.6.2. The deployment units'
+scripts are implemented in Python v.3.6.9 and the LUA script-
+ing language.6Finally, the middleware layer is built using the
+ROS Melodic distribution v.1.14.7.
+A. EXPERIMENT 1: CHARGE-CRITICAL CONFIGURATION
+Experiment 1a involves two young healthy humans and a
+robot with a low charge value (C startD30%). With this con-
+guration, when the mission starts, the robot approximately
+has 350s of battery life remaining. If both humans start walk-
+ing as soon as it is their turn to be served and they perform
+5SMC experiments are performed on a Linux machine with 128 cores,
+515GB of RAM, and Debian Linux version 10.
+6Simulations are executed on a Ubuntu 18.04 virtual machine with 2 cores
+and 4GB of RAM.awlessly, 350s are sufcient to complete the mission. As
+Table 8 shows, the average mission completion time observed
+in the simulations is 65:32s. This result is compatible with
+the time-bound empirically chosen for the formal verica-
+tion (70s), which leads to a success probability interval
+estimated with SMCof [0 :90186; 1]. This success rate is
+conrmed while deploying the application since processing
+the collected log les reveals that in 96:1% of the simulations
+the mission was indeed successfully completed within 70s.
+Note that, with a slight abuse of notation, both in Table 8
+and below the success rate of the deployed application is still
+indicated as P(scs), as in the formal model; however,
+it is not calculated through SMC, but as the ratio between how
+many runs feature the mission successfully ending within 
+and the total number of runs, as per Eq.3.
+P(scs)D# successful runs within 
+# runs(3)
+Besides the success rate, it is crucial to also verify that
+physical variables are accurately simulated. To this end,
+we have calculated through Uppaal the expected value for
+the maximum value of fatigue reached by the two humans
+and the residual battery charge at the end of the mission
+(thus, the minimum value since, in these scenarios, the robot
+never recharges). The same three metrics are extracted from
+the simulation logs. By comparing these indicators, we can
+conclude that both fatigue and charge evolutions in time are
+consistent with the results obtained with the formal model.
+In both phases, the two humans reach a negligible value of
+fatigue (1%) as they both conform to the ``best'' fatigue
+prole and only walk for about 30s each, whereas the residual
+level of charge is approximately 24%.
+After a thorough evaluation of the system's behavior in
+``regular'' circumstances, the analyst can forcedly induce the
+situation in which the second human does not start as soon
+as it is their turn, and the whole execution of the mission is
+delayed (see Fig.10). The cause of the delay in a real setting
+could be the doctor being unexpectedly held up or failing to
+VOLUME 9, 2021 136631
+
+--- Page 17 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+FIGURE 10. Plot of the unsuccessful simulation run from Experiment 1a.
+Green lines correspond to human fatigue ([0 100]), while the orange
+line corresponds to the battery charge ([0 10]). Human 2 starts walking
+att'320s, about 270s after the first human has been served, causing
+mission failure (bch'0%).
+react immediately, which is a common human mistake [32].
+The consequently extended duration of the mission leads
+to the robot being fully discharged before its completion,7
+which is one of the two possible causes of failure.
+The analyst is now able to assess the unsuccessful simula-
+tion run. They might decide that this manifestation of human
+free will is plausible in real life and critical enough to moti-
+vate a scenario renement and an additional iteration of the
+design-time analysis. Since humans cannot be programmati-
+cally instructed to perform actions in a machine-like manner
+(neither in the formal model nor in real life), the most sensible
+renement action would be selecting a higher value of Cstart.
+If multiple mobile platforms are available, this can be realized
+by choosing a different robot from the eet, otherwise by
+recharging the robot before starting the mission.
+The new conguration is shown in Table 7 as Experiment
+1b, with the updated value of CstartD90%. The second
+iteration of SMC experiments, with D70s, yields the same
+success rate P(scs)2[0:90186; 1] (see Table 8). Re-
+running the batch of simulations leads to similar results as
+for Experiment 1a: the average completion time is approx-
+imately 66s and the success rate within 70s is 94:5%. Note
+that metrics concerning fatigue are almost unchanged with
+respect to Experiment 1a and are still comparable to the ones
+estimated with the formal model. As expected, the residual
+battery charge is higher than for Experiment 1a (about 89%)
+coherently with the different value of Cstart.
+B. EXPERIMENT 2: FATIGUE-CRITICAL CONFIGURATION
+The setup for Experiment 2 is more critical in terms of
+human endurance to physical strain. Specically, criticality
+arises from the different fatigue proles Elderly/Healthy and
+Young/Sick, as in Table 7. In practice, the second subject
+could be an employee with an undiagnosed condition affect-
+ing their respiratory capacity and physical endurance.
+7Although the robot can recharge itself both in the formal model and dur-
+ing simulation, it is effectively busy serving a leader human when it reaches
+the recharge threshold (C D20%). Under these circumstances, the robot
+cannot halt service delivery even if the human is delaying their action.For this experiment, we have calculated the same metrics
+described in Section VI-A, whose resulting values are also
+shown in Table 8. The chosen value for in this case is
+80s, which is slightly higher than for Experiment 1 since
+humans walk at a slower pace due to the critical health
+conditions. The SMC experiment yields a success proba-
+bility range of [0:90186; 1]. Therefore, as in Experiment 1,
+the analyst would have sufcient evidence to consider the
+mission t for deployment. Also in this case, the results
+obtained at design-time are conrmed by deploying the appli-
+cation. The average mission completion time is 70:95s which,
+as expected, is slightly higher than for Experiment 1 and
+compliant with the chosen time-bound. More specically,
+all the performed simulations were successfully completed
+withinD80s(P(scs)D100%). The expected values
+for the fatigue peaks are signicantly higher than in the
+previous experiment (20% 1%) due to the different
+fatigue proles, but they are still compliant with the values
+calculated through Uppaal at design-time. The same stands
+for the robot battery charge. Therefore, also in this second
+experiment, the deployed system's behavior shows evidence
+of an accurate transposition of the formal model.
+Nevertheless, suppose now that the second subjectwith
+a more critical fatigue prolefollows an erratic trajec-
+tory and not the shortest one. This situation can be sim-
+ulated in the virtual environment. Fig.11 shows a specic
+simulation run in which the second human exhibits this
+behavior and keeps walking until full exhaustion. The rst
+human reaches their destination in approximately 50s (as
+in Fig.11, they stop walking and start resting). The second
+human starts walking at around tD20sand keeps moving
+for about 450s. As in Table 7, a subject with the Young/Sick
+fatigue prole can walk non-stop at most for approximately
+7:5min (MET 2D460:51s). Therefore, the mission fails after
+about 500s because the second human reaches the maximum
+endurable value of fatigue.
+FIGURE 11. Plot of the unsuccessful simulation run for Experiment 2.
+Green lines correspond to human fatigue ([0 100]), while the orange
+line corresponds to the battery charge ([0 100]). The plot shows that the
+first human is successfully served in about 50s as expected, whereas
+the second one keeps moving until they reach full exhaustion leading to
+mission failure (Fh2'100%).
+This specic manifestation of human autonomy is not
+covered by the formal model in its current development
+stage. It follows that SMC experiments do not account for
+136632 VOLUME 9, 2021
+
+--- Page 18 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+this possibility and yield a very high value for the chances
+of success. Indeed, as explained in Section V, the formal
+model accounts for human autonomy only to some extent;
+in particular, it covers the possibility of a human disobeying
+a command or freely deciding when to start or stop. On the
+other hand, it currently does not allow for the possibility that
+the human freely strays from the planned trajectory, as in the
+simulation in Fig.11.
+C. DISCUSSION
+Firstly, the experiments in Section VI-A and Section VI-B
+provide evidence that the formally modeled and the virtu-
+ally simulated agents behave correspondingly. Comparing
+the average completion times and success rates allows us to
+conclude that the deployed robot controller issues the same
+commands as the corresponding automaton and with the same
+timing, leading to mission success in a comparable amount of
+time. As for human fatigue and battery charge metrics, it is not
+surprising that fatigue isapparentlyless accurately simu-
+lated than charge: the average formal model-to-deployment
+error for fatigue is 5 :35% while it is only 0:13% for the
+battery charge. This discrepancy is due to the higher degree
+of variability of fatigue ascribable to the unpredictability of
+human behavior. On the other hand, battery charge evolution
+in time is entirely deterministic, thus leading to a minor error.
+In this regard, we highlight possible limitations to our
+comparison between the formal model and the deployed
+system. Firstly, experiments are entirely carried out in a
+simulated environment: running the robotic application in a
+more dynamic setting such as a real hospital corridor may
+lead to unexpected contingencies that alter the presented
+metrics. Nevertheless, as previously discussed, simulation is
+sufcient to assess the accuracy of the model-to-code trans-
+lation principle, which is the core of this work. Furthermore,
+the fatigue-related metrics involved in the discussion of the
+experimental results may also be rened. In fact, during
+simulation, we exploit benchmark data to simulate human
+fatigue without considering the variability due to subjects'
+characteristics that would provide a more comprehensive pic-
+ture of the human fatigue phenomenon. In the future, we plan
+to include the fatigue's volatility in the simulated environment
+to run a more in-depth analysis.
+By assessing these experimental results it is possible to
+identify two types of model-to-reality discrepancies that can
+be detected through deployment. In the rst case, as in Exper-
+iment 1, even if the deployment highlights a failure due to a
+gap in the formal model, it is still feasible to counteract it by
+tuning the parameters of the scenario, e.g., the initial battery
+charge Cstart. In the second case, of which Experiment 2 is
+an example, the failure caused by the gap in the formal model
+can only be tackled at design-time by rening the formal
+model itself. The fundamental difference is that the rst case
+can be directly handled by the analyst (Type I renement),
+whereas the second case requires expertise in formal model-
+ing that they are unlikely to possess (Type II renement). The
+next step in the development of the approach is, therefore,the creation of an automated procedure that processes data
+from scenarios deployed in real-life settings and renes the
+SHA network. By doing so, it will become possible to identify
+and counteract Type II failures with multiple iterations of the
+design-time analysis.
+VII. RELATED WORK
+The work presented in this paper mainly revolves around a
+code generation technique that translates a Stochastic Hybrid
+Automata network into a robotic deployment framework.
+There are several works in literature with a comparable
+goal, though often targeting a different formalism or a dif-
+ferent phase of the software development process. In some
+cases, testing rather than deployment is the main purpose,
+as TA can be exploited to automatically generate ofine
+and online test-cases (e.g., for ROS packages [33]). There
+are also previous attempts at porting a formal model to
+a simulation environment. One such example is the TestIt
+framework, that generates a simulator-agnostic simulation
+environment for multi-agent robotic applications starting
+from Timed Automata [34]. Other works focus on code anal-
+ysis and explore the possibility to highlight potential aws
+in a ROS-based infrastructure through model-checking [23].
+Another notable example is the work by Wang et al. [35], pre-
+senting a model-driven framework to convert a TA network
+into CCC code, which is tested on a robot grasping task.
+This brief survey suggests that developing code generation
+techniques starting from formal models is valuable to the
+robotic eld. The approach allows for testing and deploy-
+ment of robotic applications whose properties (for example,
+concerning safety or efciency) have been formally veried.
+On the other hand, the assistive robotics domain, to which
+this work is tailored, calls for a sound mathematical formu-
+lation of human physiological and behavioral properties to
+be involved in the formal verication process. More complex
+time-dynamics mean that Timed Automataincluding the
+non-deterministic or probabilistic extensionsor temporal
+logic-based notations [36] no longer sufce as they require
+ahybrid formalism.
+Pre-existing works that introduce translation principles of
+Hybrid Automata into executable code do not suit robotic
+applications. In some cases, modular architectures with paral-
+lel components are the target [37], whereas interactive robotic
+applications require a hierarchical deployment structure with
+an intermediary middleware layer. As previously noted, some
+works target testing and code coverage rather than deploy-
+ment [38], or model-to-model transformations, such as HA
+to SLSF diagrams [39]. To the best of the authors' knowledge,
+the work presented in this paper is the rst introducing a
+mapping principle between a HA network and a software
+architecture compatible with a ROS-based robotic system.
+The research line on verication and simulation techniques
+for analyzing human-robot interaction is also worthy of dis-
+cussion. Simulation can be used to estimate the nal level of
+satisfaction of the human customer after short-term human-
+robot interactions [40]. Some works focus on the planning
+VOLUME 9, 2021 136633
+
+--- Page 19 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+phase of the robotic mission, for example analyzing alter-
+native workows for the task driven by human input [41].
+Quintas et al. [42] investigate how an agent's performance
+is affected by interaction workows in its decision-making
+process. The framework processes a high-level description
+of the scenario and the human that will interact with the
+robot to generate a mission plan graph. The inclusion of a
+human operator model is also of paramount importance in the
+Virtual Commissioning (VC) of collaborative manufacturing
+tasks, whose purpose is to test in advance the reaction of the
+system to malfunctions [43]. Webster et al. [44] also argue
+that different verication and validation (V&V) techniques
+are not fully exhaustive when they are used alone, but should
+be combined into a corroborative approach to considerably
+increase their effectiveness.
+To conclude, an approach based on formal methods, such
+as the one presented in this paper, can signicantly benet the
+software development lifecycle in terms of dependability. The
+vast majority of industry professionals who have employed
+formal verication techniques report a quality boost for the
+nal product [45], and demand for this kind of approach
+is rapidly growing [46]. This kind of approach can prove
+especially benecial to cyber-physical systems, where robots
+interact with the environment and humans [4]. Therefore,
+software running on robots in charge of decision-making
+must result from a trustworthy verication process. The
+deployment approach presented in this paper paves the way
+for a dependable code generation technique retaining the
+features veried while designing the robotic application.
+VIII. CONCLUSION AND FUTURE WORK
+We have presented a model-driven deployment approach to
+generate deployable code from a specic subset of SHA.
+If applied to the assistive robotics domain, the methodol-
+ogy allows roboticists to deploy formally-veried interactive
+applications or simulate them in a realistic virtual environ-
+ment. The model-to-code conversion principle ensures that
+the deployed system behaves correspondingly to the original
+formal model, thus guaranteeing the retention of properties
+veried at design time. We provide empirical evidence of
+code conformity through experimental use cases from the
+healthcare setting. Simulation can also prove valuable to
+induce problematic contingencies which are not covered by
+the formal model and might call for a renement of the
+robotic mission.
+The approach lends itself to several future development
+directions. First and foremost, the framework ought to be
+validated in a real environment, as mentioned in Section III.
+Furthermore, the framework will be further expanded with a
+module in charge of automatically rening the SHA network,
+specically the human behavior model, based on logs from
+real-life runs. We also plan to improve the user-friendliness
+of the approach by developing a Domain-Specic Lan-
+guage (DSL) that allows users to congure scenarios in more
+detail.REFERENCES
+[1] T. Gwon, H. Park, D. Seo, S. Lee, D. Kim, and S. Jeon, ``A study on safety
+evaluation criteria of the personal carrier robot based on ISO 13482,'' in
+Proc. 3rd IEEE Int. Conf. Robotic Comput. (IRC), Feb. 2019, pp. 477482.
+[2] SPARC, ``Robotics 2020 multi-annual roadmap for robotics in Europe,''
+SPARC Robot., Brussels, Belgium, Tech. Rep. 1, 2016.
+[3] S. García, D. Strüber, D. Brugali, T. Berger, and P. Pelliccione, ``Robotics
+software engineering: A perspective from the service robotics domain,'' in
+Proc. 28th ACM Joint Meeting Eur. Softw. Eng. Conf. Symp. Found. Softw.
+Eng., Nov. 2020, pp. 593604.
+[4] S. García, D. Strüber, D. Brugali, A. Di Fava, P. Schillinger, P. Pelliccione,
+and T. Berger, ``Variability modeling of service robots: Experiences and
+challenges,'' in Proc. 13th Int. Workshop Variability Modeling Softw.-
+Intensive Syst., Feb. 2019, pp. 16.
+[5] L. Lestingi, M. Askarpour, M. M. Bersani, and M. Rossi, ``Formal verica-
+tion of human-robot interaction in healthcare scenarios,'' in Proc. SEFM.
+Amsterdam, The Netherlands: Springer, 2020, pp. 303324.
+[6] L. Lestingi, M. Askarpour, M. M. Bersani, and M. Rossi, ``A model-
+driven approach for the formal analysis of human-robot interaction sce-
+narios,'' in Proc. IEEE Int. Conf. Syst., Man, Cybern. (SMC), Oct. 2020,
+pp. 19071914.
+[7] R. Alur, C. Courcoubetis, N. Halbwachs, T. A. Henzinger, P.-H. Ho,
+X. Nicollin, A. Olivero, J. Sifakis, and S. Yovine, ``The algorithmic anal-
+ysis of hybrid systems,'' Theor. Comput. Sci., vol. 138, no. 1, pp. 334,
+1995.
+[8] S. Feo-Arenis, M. Vujinovi¢, and B. Westphal, ``On implementable timed
+automata,'' in Proc. Int. Conf. Formal Techn. Distrib. Objects, Compon.,
+Syst. Valletta, Malta: Springer, 2020, pp. 7895.
+[9] R. Alur and D. L. Dill, ``A theory of timed automata,'' Theory Comput.
+Scince, vol. 126, no. 2, pp. 183235, 1994.
+[10] G. Behrmann, A. David, and K. G. Larsen, ``A tutorial on UPPAAL,'' in
+Formal Methods for the Design of Real-Time Systems. Bertinoro, Italy:
+Springer, 2004, pp. 200236.
+[11] A. David, K. G. Larsen, A. Legay, M. Miku£ionis, D. B. Poulsen,
+J. Van Vliet, and Z. Wang, ``Statistical model checking for networks of
+priced timed automata,'' in Proc. Int. Conf. Formal Modeling Anal. Timed
+Syst. Aalborg, Denmark: Springer, 2011, pp. 8096.
+[12] A. David, K. G. Larsen, A. Legay, M. Miku£ionis, and D. B. Poulsen,
+``Uppaal SMC tutorial,'' Int. J. Softw. Tools Technol. Transf., vol. 17, no. 4,
+pp. 397415, Aug. 2015.
+[13] G. Agha and K. Palmskog, ``A survey of statistical model checking,'' ACM
+Trans. Model. Comput. Simul., vol. 28, no. 1, pp. 139, Jan. 2018.
+[14] M. Quigley, K. Conley, B. Gerkey, J. Faust, T. Foote, J. Leibs, R. Wheeler,
+and A. Y. Ng, ``ROS: An open-source robot operating system,'' in Proc.
+ICRA, vol. 3, no. 3, 2009, p. 5.
+[15] M. Askarpour, M. Rossi, and O. Tiryakiler, ``Co-simulation of human-
+robot collaboration: From temporal logic to 3D simulation,'' 2020,
+arXiv:2007.11737. [Online]. Available: http://arxiv.org/abs/2007.11737
+[16] E. Rohmer, S. P. N. Singh, and M. Freese, ``CoppeliaSim (formerly V-
+REP): A versatile and scalable robot simulation framework,'' in Proc.
+IROS, Nov. 2013, pp. 13211326.
+[17] P. Payne, M. Lopetegui, and S. Yu, ``A review of clinical workow studies
+and methods,'' in Cognitive Informatics. Cham, Switzerland: Springer,
+2019, pp. 4761.
+[18] R. Acharya, N. Kannathal, O. W. Sing, L. Y. Ping, and T. Chua, ``Heart rate
+analysis in normal subjects of various age groups,'' Biomed. Eng. OnLine,
+vol. 3, no. 1, p. 24, Dec. 2004.
+[19] T. Chettibi, M. Haddad, H. E. Lehtihet, and W. Khalil, ``Suboptimal trajec-
+tory generation for industrial robots using trapezoidal velocity proles,'' in
+Proc. IEEE/RSJ Int. Conf. Intell. Robots Syst., Oct. 2006, pp. 729735.
+[20] H. Vangheluwe, J. De Lara, and P. J. Mosterman, ``An introduction to multi-
+paradigm modelling and simulation,'' in Proc. Int. Conf. AI, Simulation
+Planning High Autonomy Syst., 2002, pp. 920.
+[21] Y. Van Tendeloo and H. Vangheluwe, ``The modelverse: A tool for multi-
+paradigm modelling and simulation,'' in Proc. Winter Simulation Conf.
+(WSC), Dec. 2017, pp. 944955.
+[22] J. M. O'Kane, ``A gentle introduction to ROS,'' Dept. Comput. Sci. Eng.,
+Univ. South Carolina, Columbia, SC, USA, Tech. Rep. 1, 2014.
+[23] R. Halder, J. Proenca, N. Macedo, and A. Santos, ``Formal veri-
+cation of ROS-based robotic applications using timed-automata,'' in
+Proc. IEEE/ACM 5th Int. FME Workshop Formal Methods Softw. Eng.
+(FormaliSE), May 2017, pp. 4450.
+[24] D. Tardioli, R. Parasuraman, and P. Ögren, ``Pound: A multi-master ROS
+node for reducing delay and jitter in wireless multi-robot networks,'' Robot.
+Auto. Syst., vol. 111, pp. 7387, Jan. 2019.
+136634 VOLUME 9, 2021
+
+--- Page 20 ---
+L. Lestingi et al.: Deployment Framework for Formally Verified Human-Robot Interactions
+[25] O. Svenson, ``Decision making and the search for fundamental psycho-
+logical regularities: What can be learned from a process perspective?''
+Organizational Behav. Hum. Decis. Processes, vol. 65, no. 3, pp. 252267,
+Mar. 1996.
+[26] S. Konz, ``Work/rest: Part II-the scientic basis (knowledge base) for the
+guide 1,'' Ergonom. Guidelines Problem Solving, vol. 1, no. 401, p. 38,
+2000.
+[27] M. Lutz, D. Stampfer, A. Lotz, and C. Schlegel, ``Service robot control
+architectures for exible and robust real-world task execution: Best prac-
+tices and patterns,'' Informatik, vol. P-232, pp. 12951306, Jul. 2014.
+[28] N. Li, C. Tsigkanos, Z. Jin, Z. Hu, and C. Ghezzi, ``Early validation
+of cyberphysical space systems via multi-concerns integration,'' J. Syst.
+Softw., vol. 170, Dec. 2020, Art. no. 110742.
+[29] K. Yoshino, T. Motoshige, T. Araki, and K. Matsuoka, ``Effect of prolonged
+free-walking fatigue on gait and physiological rhythm,'' J. Biomech.,
+vol. 37, no. 8, pp. 12711280, Aug. 2004.
+[30] (2020). HRI Deployment. [Online]. Available: https://github.com/
+LesLivia/hri_deployment
+[31] (2020). HRI Deployment Demo. [Online]. Available: https://tinyurl.
+com/y2p2lrbx
+[32] M. Askarpour, D. Mandrioli, M. Rossi, and F. Vicentini, ``Formal model
+of human erroneous behavior for safety analysis in collaborative robotics,''
+Robot. Comput. Integr. Manuf., vol. 57, pp. 465476, Jun. 2019.
+[33] J. Ernits, E. Halling, G. Kanter, and J. Vain, ``Model-based integration
+testing of ROS packages: A mobile robot case study,'' in Proc. Eur. Conf.
+Mobile Robots (ECMR), Sep. 2015, pp. 17.
+[34] G. Kanter and J. Vain, ``Model-based testing of autonomous robots using
+TestIt,'' J. Reliable Intell. Environ., vol. 6, no. 1, pp. 1530, 2020.
+[35] R. Wang, Y. Guan, H. Song, X. Li, X. Li, Z. Shi, and X. Song, ``A formal
+model-based design method for robotic systems,'' IEEE Syst. J., vol. 13,
+no. 1, pp. 10961107, Mar. 2019.
+[36] F. Vicentini, M. Askarpour, M. G. Rossi, and D. Mandrioli, ``Safety assess-
+ment of collaborative robotics through automated formal verication,''
+IEEE Trans. Robot., vol. 36, no. 1, pp. 4261, Feb. 2020.
+[37] A. Malik, P. S. Roop, S. Andalam, M. Trew, and M. Mendler, ``Modular
+compilation of hybrid systems for emulation and large scale simulation,''
+ACM Trans. Embedded Comput. Syst., vol. 16, no. 5s, pp. 121, Oct. 2017.
+[38] J. Eddeland, J. G. Cepeda, R. Fransen, S. Miremadi, M. Fabian, and
+K. Åkesson, ``Automated mode coverage analysis for cyber-physical
+systems using hybrid automata,'' IFAC-PapersOnLine, vol. 50, no. 1,
+pp. 92609265, 2017.
+[39] S. Bak, O. A. Beg, S. Bogomolov, T. T. Johnson, L. V. Nguyen, and
+C. Schilling, ``Hybrid automata: From verication to implementation,''
+Int. J. Softw. Tools Technol. Transf., vol. 21, no. 1, pp. 87104, Feb. 2019.
+[40] K. Zheng, D. F. Glas, T. Kanda, H. Ishiguro, and N. Hagita, ``Designing and
+implementing a humanrobot team for social interactions,'' IEEE Trans.
+Syst., Man, Cybern. Syst., vol. 43, no. 4, pp. 843859, Jul. 2013.
+[41] Y. Kim and W. C. Yoon, ``Generating task-oriented interactions of ser-
+vice robots,'' IEEE Trans. Syst., Man, Cybern., Syst., vol. 44, no. 8,
+pp. 981994, Aug. 2014.
+[42] J. Quintas, G. S. Martins, L. Santos, P. Menezes, and J. Dias, ``Toward
+a context-aware humanrobot interaction framework based on cognitive
+development,'' IEEE Trans. Syst., Man, Cybern. Syst., vol. 49, no. 1,
+pp. 227237, Jan. 2019.
+[43] P. Rueckert, S. Muenkewarf, and K. Tracht, ``Human-in-the-loop sim-
+ulation for virtual commissioning of human-robot-collaboration,'' Proc.
+CIRP, vol. 88, pp. 229233, Jan. 2020.
+[44] M. Webster, D. Western, D. Araiza-Illan, C. Dixon, K. Eder, M. Fisher,
+and A. G. Pipe, ``A corroborative approach to verication and validation
+of humanrobot teams,'' Int. J. Robot. Res., vol. 39, no. 1, pp. 7399,
+Jan. 2020.[45] J. Woodcock, P. G. Larsen, J. Bicarregui, and J. Fitzgerald, ``Formal
+methods: Practice and experience,'' ACM Comput. Surv., vol. 41, no. 4,
+pp. 136, 2009.
+[46] M. Gleirscher and D. Marmsoler, ``Formal methods in dependable systems
+engineering: A survey of professionals from Europe and North America,''
+Empirical Softw. Eng., vol. 25, no. 6, pp. 44734546, Nov. 2020.
+LIVIA LESTINGI received the M.Sc. degree in
+automation engineering from the Politecnico di
+Milano, in 2017, where she is currently pur-
+suing the Ph.D. degree in information technol-
+ogy. Her research interests include the analysis
+of humanrobot interaction through formal meth-
+ods and formal modeling techniques of human
+behavior.
+MEHRNOOSH ASKARPOUR is currently an
+Adjunct Assistant Professor with McMaster Uni-
+versity. Her current research interests include ver-
+ication of safety-critical system properties and
+application of formal methods for safe robotics and
+autonomous vehicles.
+MARCELLO M. BERSANI is currently a Senior
+Assistant Professor with the Politecnico di
+Milano. His research interests include formal
+methods, temporal logic, and verication.
+MATTEO ROSSI is currently an Associate Profes-
+sor with the Politecnico di Milano. His research
+interests include formal methods for safety-critical
+and real-time systems, architectures for real-time
+distributed systems, and transportation systems
+both from the point of view of their design, and
+of their application in urban mobility scenarios.
+VOLUME 9, 2021 136635

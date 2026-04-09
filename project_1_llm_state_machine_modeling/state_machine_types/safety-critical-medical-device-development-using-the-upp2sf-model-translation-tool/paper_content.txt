@@ -1,0 +1,1664 @@
+--- Page 1 ---
+A
+Safety-critical Medical Device Development using the UPP2SF Model
+Translation Tool
+MIROSLAV PAJIC , University of Pennsylvania
+ZHIHAO JIANG , University of Pennsylvania
+INSUP LEE , University of Pennsylvania
+OLEG SOKOLSKY , University of Pennsylvania
+RAHUL MANGHARAM , University of Pennsylvania
+Software-based control of life-critical embedded systems has become increasingly complex, and to a large
+extent has come to determine the safety of the human being. For example, implantable cardiac pacemakers
+have over 80,000 lines of code which are responsible for maintaining the heart within safe operating limits.
+As ﬁrmware-related recalls accounted for over 41% of the 600,000 devices recalled in the last decade, there is
+a need for rigorous model-driven design tools to generate veriﬁed code from veriﬁed software models. To this
+effect we have developed the UPP2SF model-translation tool, which facilitates automatic conversion of ver-
+iﬁed models (in UPPAAL) to models that may be simulated and tested (in Simulink/Stateﬂow). We describe
+the translation rules that ensure correct model conversion, applicable to a large class of models. We demon-
+strate how UPP2SF is used in the model-driven design of a pacemaker whose model is (a) designed and
+veriﬁed in UPPAAL (using timed automata), (b) automatically translated to Stateﬂow for simulation-based
+testing, and then (c) automatically generated into modular code for hardware-level integration testing of
+timing-related errors. In addition, we show how UPP2SF may be used for worst-case execution time estima-
+tion early in the design stage. Using UPP2SF, we demonstrate the value of integrated end-to-end modeling,
+veriﬁcation, code-generation and testing process for complex software-controlled embedded systems.
+Categories and Subject Descriptors: C.3 [ SPECIAL-PURPOSE AND APPLICATION-BASED SYS-
+TEMS ]: Real-time and embedded systems; J.3 [ LIFE AND MEDICAL SCIENCES ]: Health; D.2.10 [ De-
+sign ]: Methodologies
+General Terms: Design, Veriﬁcation, Measurement
+Additional Key Words and Phrases: Model-based development, model translation, medical devices validation
+and veriﬁcation, real-time embedded systems
+ACM Reference Format:
+Miroslav Pajic, Zhihao Jiang, Insup Lee, Oleg Sokolsky, and Rahul Mangharam, 2013. Safety-critical Medi-
+cal Device Development using the UPP2SF Model Translation Tool. ACM Trans. Embedd. Comput. Syst. V,
+N, Article A (January YYYY), 25 pages.
+DOI: http://dx.doi.org/10.1145/0000000.0000000
+1. INTRODUCTION
+During the last decade, Model-Driven Development (MDD) has been widely used for
+design of real-time and cyber-physical systems (CPS). In the case of safety-critical sys-
+tems, this methodology advocates for design procedures that start with formal mod-
+Authors’ addresses: M. Pajic and R. Mangharam, Department of Electrical & Systems Engineering, Univer-
+sity of Pennsylvania, 200 S. 33rd Street, Philadelphia, PA 19104; email: fpajic,rahulmg@seas.upenn.edu;
+Z. Jiang, I. Lee and O. Sokolsky, Department of Computer & Information Science, University of Pennsylva-
+nia, 3330 Walnut Street, Philadelphia, PA 19104; email: fzhihaoj, lee, sokolsky g@cis.upenn.edu;
+Permission to make digital or hard copies of part or all of this work for personal or classroom use is granted
+without fee provided that copies are not made or distributed for proﬁt or commercial advantage and that
+copies show this notice on the ﬁrst page or initial screen of a display along with the full citation. Copyrights
+for components of this work owned by others than ACM must be honored. Abstracting with credit is per-
+mitted. To copy otherwise, to republish, to post on servers, to redistribute to lists, or to use any component
+of this work in other works requires prior speciﬁc permission and/or a fee. Permissions may be requested
+from Publications Dept., ACM, Inc., 2 Penn Plaza, Suite 701, New York, NY 10121-0701 USA, fax +1 (212)
+869-0481, or permissions@acm.org.
+cYYYY ACM 1539-9087/YYYY/01-ARTA $15.00
+DOI: http://dx.doi.org/10.1145/0000000.0000000
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 2 ---
+A:2 M. Pajic et al.
+eling of the system, followed by the model’s veriﬁcation at an early stage. Since the
+initial input to the system designers is usually a set of informal speciﬁcations, this
+approach enables early detection of the speciﬁcation and modeling errors.
+For real-time systems, timed-automata [Alur 1999] are a commonly used modeling
+formalism, allowing designers to exhaustively explore the possible behaviors of the sys-
+tem and prove its safety. Design of CPS is more complex, since these systems feature a
+tight coupling between the real-time discrete controller and (usually) continuous phys-
+ical environment. For the systems’ veriﬁcation, it is necessary to provide the model of
+the closed-loop system, which also takes into account the interaction between the con-
+troller and the environment. Although in the general case this interaction can be mod-
+eled as a hybrid system, the complexity of this approach usually renders it out of reach
+of current veriﬁcation tools [Alur et al. 1995]. Thus, in the initial design stage, timed-
+automata models that abstract away complex system dynamics, replacing it with tim-
+ing constraints, are commonly used for veriﬁcation of CPS (e.g., [Pajic et al. 2012c]).
+Since parts of the veriﬁed models represent over-approximations of the realistic
+models, in the later stages of MDD, detailed models of the environment and its in-
+teraction with the controller are developed. These models enable high-ﬁdelity system
+simulation with real system dynamics, and are used to validate the initial assump-
+tions used in the veriﬁcation stage. During the validation procedure, it is necessary to
+ensure equivalence between the controller models used for veriﬁcation and simulation.
+Therefore, it is essential to provide guarantees that the properties veriﬁed in the early
+stage are still satisﬁed, as the system model gets complex and more reﬁned.
+Finally, the veriﬁed model must be translated into executable code for physical im-
+plementation, which is then validated using different testing procedures that have
+been built on the initial system’s speciﬁcation. However, since the veriﬁcation is per-
+formed on a closed-loop system model, the veriﬁed model usually has the structure as
+the one shown in Figure 1(a), meaning that, besides the controller model, it contains
+model of the environment (which includes the interface controller $environment).
+Hence, to obtain valid controller code it is necessary to decouple the controller code
+from the code synthesized for the whole closed-loop model. In scenarios with complex
+interfaces between the controller and environment, this can be a very tedious and error
+prone process. Consequently, to prevent introduction of errors during the decoupling it
+is necessary to provide a procedure for modular code synthesis .
+In this work, we present a model-translation tool, UPP2SF, and show how it enables
+a model-driven design framework for safety-critical real-time embedded systems (Fig-
+ure 1(b)). UPP2SF facilitates automatic conversion of veriﬁed models (in UPPAAL) to
+models that may be simulated and tested (in Simulink/Stateﬂow). By using Simulink
+support for code generation, this allows for automatic end-to-end model translation
+across multiple levels of abstraction to modular code synthesis. Consequently, the
+proposed framework ensures that successive models are consistent through the de-
+velopment process: (a) a timed-automata based UPPAAL modeling of the controller
+software, the model veriﬁcation and model-based worst case execution time (WCET)
+estimation; (b) automatic translation of the model to Stateﬂow using the developed
+UPP2SF tool; (c) testing of the Stateﬂow model; and (d) automatic modular code gen-
+eration, test generation and testing of timing related errors on the hardware platform.
+UPPAAL [Larsen et al. 1997; Behrmann et al. 2004] is a standard free tool for model-
+ing and veriﬁcation of real-time systems, based on networks of timed automata. Thus,
+it does not support simulation of continuous-time dynamics. Although there exists
+some work on code generation from timed-automata models (e.g., [Altisen and Tri-
+pakis 2005; Amnell et al. 2004]), there are only few tools [Amnell et al. 2004; Hendriks
+2001] with limited capabilities in generating C code from UPPAAL models (see Sec-
+tion 2.2). Furthermore, none of these tools supports modular code generation from
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 3 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:3
+Fig. 1 . (a) The standard model architecture used for veriﬁcation; (b) MDD-based framework: From UPPAAL
+to Stateﬂow to generated code – covering model veriﬁcation, simulation-based testing and platform testing.
+UPPAAL models. On the other hand, Simulink is a commercially available tool, used
+for modeling and simulation of CPS, while its toolbox, Stateﬂow, supports design and
+simulation of state machines and control logic. Simulink provides full support for C,
+C++, VHDL and Verilog code generation. However, Simulink has had a limited suc-
+cess with model veriﬁcation [Leitner and Leue 2008; Sch ¨urenberg 2012], and (more
+importantly), due to Simulink’s deterministic execution semantics, it currently does
+not support veriﬁcation of non-deterministic systems; this is a signiﬁcant limitation in
+closed-loop CPS, where behavior of the environment is usually nondeterministic.
+In this paper, we demonstrate the use of the framework on a detailed case study for
+the development of a safety-critical system medical system – an implantable cardiac
+pacemaker . We focus on the pacemaker case study as there is a need to develop a
+methodology for the design and analysis of safety critical closed-loop medical device
+software and systems [Lee et al. 2006]. From 1990-2000, ﬁrmware issues resulted in
+over 200,000 implantable device recalls [rec 2010]. From 1996-2006, the percentage
+of software-related causes in medical device recalls have grown from 10% to 21% [rec
+2010]. Furthermore, during the period January-June of 2010, at least six recalls of
+defective devices, issued by the US Food and Drug Administration (FDA), were caused
+by some sort of software issues [Sandler et al. 2010]. These recalls were categorized as
+Class I , which means that there is a “reasonable probability that use of these products
+will cause serious adverse health consequences or death.”
+We start the case study from informal pacemaker requirements [Boston Scientiﬁc
+2007], which we formalize, and use for veriﬁcation by designing an appropriate set of
+monitors in UPPAAL. We also show how a WCET estimation can be done in the early
+stage in UPPAAL, before the veriﬁed model is translated to Simulink. Furthermore,
+we illustrate the approach used toward modular code synthesis – extracting the con-
+troller’s Stateﬂow model by decoupling the controller (i.e., pacemaker) from environ-
+ment (i.e., the heart). Finally, we extend the method for testing real-time requirements
+from [Clarke and Lee 1995] to validate the physical implementation of the device.
+The paper is organized as follows: in Sec. 2 and 4, we present brief overviews of
+UPPAAL and Stateﬂow. In Sec. 3, we show that for a large class of UPPAAAL mod-
+els, a run can be obtained by evaluating transitions at integer time-points only. Sec. 5
+presents the model translation procedure, while in Sec. 6 we show that the UPP2SF-
+derived chart has the execution trace that corresponds to one of the maximal progress
+assumption runs of the initial UPPAAL model. Sec. 7 introduces the pacemaker case
+study and presents a set of formal pacemaker speciﬁcations, which we veriﬁed in UP-
+PAAL using the developed pacemaker model (Sec. 7.2). Finally, we present the obtained
+Stateﬂow closed-loop system model and the procedure used to decouple the controller
+and environment (Sec. 8), followed by device implementation on an RTOS (Sec. 9).
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 4 ---
+A:4 M. Pajic et al.
+1.0.1. Notation. We use the standard notation where Z;N;N0denote the sets of inte-
+gers, natural numbers and nonnegative integers, respectively, while R+is the set of
+nonnegative reals. Finally, bzcdenotes the largest integer that is not larger than z.
+2. A BRIEF OVERVIEW OF UPPAAL
+In this section, we present an overview of the UPPAAL tool, including some of the
+UPPAAL extensions [Larsen et al. 1997; Behrmann et al. 2004; Bengtsson and Yi 2004]
+of the timed-automata formalism from [Alur 1999]. Also, to illustrate the need for a tool
+like UPP2SF we survey existing tools for code synthesis from UPPAAL models.
+2.1. UPPAAL Modeling of Real-time Systems
+UPPAAL supports networks of timed automata. Each automaton is a state machine,
+equipped with special real-valued variables called clocks . Clocks spontaneously in-
+crease their values with time, at the same ﬁxed rate. Locations (i.e., states) in au-
+tomata have invariants that are predicates over clocks. A location in an automaton
+can be active as long as its invariant is satisﬁed. Transitions in automata have guards
+that are predicates over clocks and variables. A transition can be taken only if its
+guard is true. Because clock values increase, an initially false guard can eventually
+become true, allowing us to model time-dependent behaviors, such as delays and time-
+outs. When a transition is taken, an associated action is executed, which can update
+variable values and reset clocks to integer values (possibly non-zero).
+Automata in the network execute concurrently. They can communicate via shared
+variables, as well as via events over synchronous channels. If cis a channel, c?repre-
+sents receiving an event from c, whilec!stands for sending an event on c. In the general
+case, an edge from location l1to location l2can be described in a form l1g;;r!l2, if there
+is no synchronization over channels ( denotes an ’empty’ action), or l1g;c;r!l2. Here,
+cdenotes a synchronization label over channel c(i.e.,2f !;?g),grepresents a guard
+for the edge and rdenotes the reset operations performed when the transition occurs.
+2.1.1. Timed-Automata Semantics in UPPAAL. We denote with Cthe set of all clocks and
+with V the set of all data (i.e., boolean and integer) variables. A clock valuation is a
+functionu:C!R+, and we use RCto denote the set of all clock valuations. A simple
+valuation is the function u0(x) = 0 , for allx2C. Similarly, a data valuation is a
+functionv:V!Z, while ZVdenotes the set of all data valuations. A valuation w,
+denoted by w= (u;v), is a function w:CV!R+Zsuch thatw(x;i) = (u(x);v(i)),
+for clock valuation uand data valuation v. Also, for a valuation w= (u;v),w+ddenotes
+the valuation where (w+d)(x) = (u+d)(x) =u(x) +dforx2C, and (w+d)(i) =v(i)
+fori2Z. In the rest of the paper, a clock valuation uthat satisﬁes that for all x2C,
+u(x)2N0will be referred to as integer clock valuation , while a valuation w= (u;v),
+whereuis an integer clock valuation will be referred to as an integer valuation .
+Furthermore, let B(C;V)denote the set of conjunctions over simple clock and vari-
+able conditions of the form x./n ,xy./n orij ./k , wheren2N,x;y2C,i;j2V,
+k2Zand./2f;;=;<;>g.1Similarly,B(C)denotes the set of all conjunctions over
+the clock variable conditions. Thus, a guard can be deﬁned as an element of B(C;V).2
+Reset operations are used to manipulate clocks and data variables. They have the form
+x=nori=c1j+c2, wherex2C,i;j2V,c1;c22Zandn2N0. We useRto denote
+the set of all possible reset operations, and for a reset operation r2Rand valuation w,
+r(w)is the valuation obtained from wwhere all clocks and data variables speciﬁed in r
+1In the latest UPPAAL versions ncan also denote an expression over integer variables. Since all results
+from this section are valid in the latter case, we use the simpliﬁed notation where nis a constant integer.
+2The default guard is true.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 5 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:5
+l1l0t<=10
+e2?
+t=2t>=10
+e1!
+t=0
+(a) P0 automaton
+l1 l0
+e2!e1? (b) P1 automaton
+ (c) A run of the model
+Fig. 2 . An UPPAAL model example.
+are assigned to the values obtained from the appropriate expressions. Finally, we use
+Kto denote the set of all channels, and A=f?j2Kg[f!j2Kg[fgto denote
+the set of all actions. Here, denotes an ’empty’ action – without synchronization.
+Deﬁnition 2.1.An automatonAis a tuple (L;l0;A;C;V;E;I )whereLdenotes the
+set of locations in the timed automaton, l0is the initial location, Ais a set of of actions,
+Ca set of clocks, Vis a set of data variables, and ELAB(C;V)RLdenotes
+the set of edges, while Iassigns invariants to locations (i.e., I:L!B(C)is a mapping
+of each location to a constraint over some clocks).
+If a clock valuation usatisﬁes the invariants at location l, we abuse the notation and
+writeu2I(l). Similarly, we denote with w2I(l), ifw= (u;v)andu2I(l). Also, if a
+valuationwsatisﬁes a condition g2B(C;V)we writew2g.
+A network of ntimed automata is obtained by composing Ai= (Li;l0
+i;C;A;V;E i;Ii),
+i2f1;:::;ng. In this case, a location vector is deﬁned as l= (l1;l2;:::;ln). In addition,
+the invariant for location vector lis deﬁned as I(l) =^iIi(li). To denote the vector
+whereithelement of vector l(i.e.,li) is substituted with l0
+iwe use the notation l[l0
+i=li].
+Deﬁnition 2.2.LetA=fA1;A2:::;Angbe a network of ntimed automata, and let
+l0= (l0
+1;l0
+2;:::;l0
+n)be the initial location vector. The semantics of the network is deﬁned
+as a transition system hS;s0;!i, whereS= (L1L2:::Ln)(RCZV)is the set
+of states,s0= (l0;w0)is the initial state, where w0= (u0;v0)andv0is any initial data
+valuation, and!SS is the transition relation deﬁned by:
+(1)(l;w)!(l;w+d)if for alld0such that 0d0d;it follows that w+d02I(l);
+(2)(l;w)!(l[l0
+i=li];w0)if existslig;;r!l0
+isuch thatw2g,w0=r(w)andw02I(l[l0
+i=li]);
+(3)(l;w)!(l[l0
+j=lj;l0
+i=li];w0)if there exist ligi;c?;ri!l0
+iandljgj;c!;rj!l0
+jsuch that
+w2(gi^gj),w0= (ri[rj)(w)andw02I(l[l0
+j=lj;l0
+i=li]).
+Since the ﬁrst type of transitions is the result of time-passing, unless otherwise stated,
+in the rest of the paper when we use the term UPPAAL transition we will refer to either
+case (2) or (3) of the above deﬁnition.
+To illustrate the above deﬁnition, consider the model from Figure 2, where both au-
+tomata have separate local clocks t. LocationP0:l0has invariant t10, while the edge
+P0:l0!P0:l1has the guard condition t10, reset action t= 0, and transmission over
+channele1. Hence, synchronization over the channel e1ensures that the transitions
+P0:l0!P0:l1andP1:l0!P1:l1occur simultaneously. Finally, note that clocks do not
+have to be reset to zero (e.g., as on the edge P0:l1!P0:l0).
+For semanticshS;s0;!i, a sequenceR:= (l0;w0)!(l1;w1)!:::!(li;wi)!:::;is
+called a run, and we use notation wR
+k=wk,lR
+k=lk, for allk0. An example run for
+the model from Figure 2 is shown in Figure 2(c). To simplify the notation, we assume
+that in each run Rno two consecutive transitions are result of time-elapsing (case (1)
+of Def. 2.2), since these transitions can be merged into a single transition of that type.
+2.1.2. Additional UPPAAL Extensions of the Timed-Automata Formalism. Beside integer vari-
+ables and synchronization channels, UPPAAL extends timed-automata with commit-
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 6 ---
+A:6 M. Pajic et al.
+tedand urgent locations where time is not allowed to pass (i.e., no delay is allowed).
+Committed locations are more restrictive and they are usually used to model atomic
+sequences of actions. In a network of timed automata, if some automata are in commit-
+ted locations then only transitions outgoing from the committed locations are allowed.
+UPPAAL also introduces broadcast channels , where one sender can synchronize with
+multiple receivers (e.g., zero, one, or more than one). Furthermore, urgent channels can
+be used for synchronization, to specify that if a transition with synchronization over
+an urgent channel is enabled, then the transition should occur without any delay.
+2.2. Code Synthesis from UPPAAL Models
+There are only few tools that can be used for automatic implementation of timed-
+automata models designed in UPPAAL (e.g., [Amnell et al. 2004; Hendriks 2001]). A
+commonly used tool is Times [Amnell et al. 2004] that supports code generation for
+general platforms, extended with task support for Lego MindstormTMplatform.
+The code synthesized using Times has a very simple structure, where all transitions
+are stored in an array. Each transition is represented with four ﬁelds: an activity ﬂag,
+source and destination location ids, and a synchronization id. The transitions are eval-
+uated in automatically generated check trans function, and for the code to operate
+correctly the values for all clocks should be updated in a separate procedure, triggered
+by the system timers. Since check trans performs a single evaluation for each transi-
+tion (in the order speciﬁed by the array structure), to ensure that no transitions are
+missed the check trans function has to be continuously invoked within an inﬁnite loop,
+unless the code is executed on a LEGO Mindstorm RCX brick running brickOS. Thus,
+in the general case, the code generated with Times completely utilizes the CPU, disal-
+lowing instantiation of any other tasks. As we will show later in the paper, this is not
+the case for the code that is synthesized using our development framework.
+Due to this array-based structure, with the code obtained using Times it is not
+straightforward to decouple the controller (in our case the pacemaker) and the environ-
+ment (e.g., the heart) in scenarios described in Figure 1(a). For example, to facilitate
+the decoupling [Kim et al. 2011] propose a modiﬁcation of the initial UPPAAL model by
+specifying the interaction between the controller and the environment using boolean
+shared variables. Although the solution preserves behaviors of the initial model, as
+pointed out by the authors, this type of manual modiﬁcations is effectively one of the
+most error prone aspects of the model-based development. Hence, to avoid this type of
+errors, it is necessary to provide modular code synthesis from veriﬁed UPPAAL mod-
+els. We will later show that UPP2SF resolves this issue, since the obtained code has a
+modular structure (instead of maintaining an array of transitions).
+Finally, the code generated from Times models does not guarantee that some aspects
+of the UPPAAL timed-automata semantics will be preserved [Ayoub et al. 2010]. For
+example, it does not ensure that the requirement for committed states is satisﬁed.
+3. EXTRACTING RUNS FROM UPPAAL MODELS
+To develop the UPP2SF model translation tool, we consider the problem of extracting
+runs for UPPAAL models. We focus on a large class of UPPAAL models without clock
+conditions of the form x>E , wherexis a clock and Ean expression. The restriction,
+while not limiting in modeling of real control system, guarantees that all invariants
+and guards are expressed as intersections of left semi-closed (LSC) intervals. Thus, we
+refer to this class as Class LSC , and in this work we consider only this type of models.
+To obtain a run of an UPPAAL model it is sufﬁcient to simulate the model only
+at integer time points [Pajic et al. 2012a], which allows for the use of discrete-time
+based tools for model simulation. Since the execution of UPPAAL models is non-
+deterministic, a transition in UPPAAL can occur at any point at which it is enabled.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 7 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:7
+However, at each time instance it may not be straightforward to determine whether a
+currently enabled transition will still be enabled at the next integer-time point. There-
+fore, to simplify the translation procedure we consider runs of UPPAAL models that
+are obtained using the maximal progress assumption (MPA).
+Deﬁnition 3.1.For semanticshS;s0;!i, a runR:= (l0;w0)!:::!(li;wi)!:::,
+satisﬁes the maximal progress assumption (MPA) if for all k0such that
+(1)lk+1=lkandwk+1=wk+dfor somed>0, and
+(2)(lk+1;wk+1)!(lk+2;wk+2)satisﬁes either case (2) or (3) of Def. 2.2,
+there does not exist a d0,0d0< d, for which there exist a transition (lk;wk+d0)!
+(lk[l0
+j=lj];w0)or a transition (lk;wk+d0)!(lk[l0
+p=lp;l0
+q=lq];w0)for the given semantics.
+A run that satisﬁes the MPA will be referred to as an MPA run . Note that from the
+deﬁnition, if some transitions in an MPA run are enabled, one of them should occur.
+THEOREM 3.2. Consider an UPPAAL model from the Class LSC. For every MPA
+runRof the model and for all k0, the clock valuation uR
+ksatisﬁes that for each
+clockx,uR
+k(x)2N0(i.e., all transitions of Roccur at integer time points).
+PROOF . Lets assume that the theorem does not holds – i.e., there exists an MPA
+runRfor which there exists k0and a clock xsuch that uR
+k(x)=2N0. Byk0we
+denote the ﬁrst (i.e., lowest) such k. Since all clocks are initialized to zero, k0>0and
+wk01= (uk01;vk01)is an integer valuation. Thus, consider the part (lk01;wk01)!
+(lk0;wk0)!(lk0+1;wk0+1)of the runR. From Def. 2.2 one of the following cases is valid:
+(1)(lk01;wk01)!(lk0;wk0)satisﬁes case (1) of Def. 2.2 (i.e., time passing). Then
+from the deﬁnition of a run, the transition (lk0;wk0)!(lk0+1;wk0+1)is described by
+either case (2) or (3) from Def. 2.2. In the former case lk0+1=lk0[l0
+i=li], meaning that
+there exists lig;;r!l0
+isuch thatwk0= (uk0;vk0)2g,wk0+1=r(wk0), andwk0+12
+I(lk0+1). Consider the valuation w0
+k0=bwk0c= (buk0c;vk0). Sincewk02gthenw0
+k0
+also satisﬁes all variable conditions from g. For each clock x, ifuk0(x)satisﬁes the
+clock guard conditions of the form x ./ n , wheren2N0and./2f;;=;<g, then
+uk0(x)belongs to an intersection of left-closed intervals with integer boundaries.
+Thus,buk0(x)cbelongs to the same intersection of the intervals, meaning that u0
+k0=
+buk0csatisﬁes this type of clock constraints from g. Furthermore, if for some clocks
+xandy, valuation uk0satisﬁes constraints of the form xy ./ n , it follows that
+uk0(x)uk0(y)./ n. Fromuk0=uk01+d(wheredis the elapsed time), we have:
+u0
+k0(x)u0
+k0(y) =buk0(x)cbuk0(y)c=uk01(x)+bdc(uk01(y)+bdc) =uk01(x)
+uk01(y) =uk01(x) +duk01(y)d=uk0(x)uk0(y):Thus,u0
+k0(x)u0
+k0(y)./nis
+true, and all clock constraints of this form are also satisﬁed, implying that w0
+k02g.
+Similarly, for w0
+k0+1=r(w0
+k0) = (u0
+k0+1;v0
+k0+1), fromw0
+k0=bwk0candwk0+1=r(wk0)
+it follows that v0
+k0+1=vk0+1andu0
+k0+1=buk0+1c(all reset clocks are equal, since
+clocks are reset to integer values). Therefore, as for the guard, it can be shown that
+wk0+12I(lk0+1)implies that w0
+k0+12I(lk0+1), which proves that the transition
+(lk0;w0
+k0)!(lk0+1;w0
+k0+1)was also enabled. Since w0
+k0(x)<wk0(x)it follows that in
+this caseRis not an MPA run, which violates our initial assumption.
+A similar proof can be used in the latter case when (lk0;wk0)!(lk0+1;wk0)satisﬁes
+case (3) of Def. 2.2, by showing the existence of a transition enabled for buk0c. Since
+buk(x)c<uk(x), the transition (lk0;wk0)!(lk0+1;wk0+1)cannot be in an MPA run.
+(2)(lk01;wk01)!(lk0;wk0)satisﬁes either case (2) or (3) of Def. 2.2. Then, there ex-
+ists a transition with reset rsuch thatwk0=r(wk01), or a synchronized transition
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 8 ---
+A:8 M. Pajic et al.
+with resets ri;rjsuch thatwk0= (ri[rj)(wk01). However, since wk01is an integer
+valuation, in both cases uk0(x)2Nbecause no clock can be reset to a non-integer
+value. This conﬂicts our initial assumption, and thus concludes the proof.
+The theorem presents the basis for the translation procedure. It allows us to obtain
+an MPA run by evaluating transitions from active locations in each automaton only at
+integer time points. Note that each automaton may be evaluated more than once, as
+more than one transition could occur within a single automaton at any integer time.
+Theorem 3.2 can be easily extended for UPPAAL models with committed and urgent
+locations, and urgent and broadcast channels. For example, urgent locations can be
+modeled by adding an extra clock xuthat is reset to zero on all incoming edges to urgent
+locations, and adding condition xu0to invariants in all urgent locations. Yet, this
+does not affect the proof of Theorem 3.2, and thus the theorem is still valid. In addition,
+semantics for UPPAAL models that employ urgent channels is similar to the semantics
+from Def. 2.2, with an additional condition in case (1) of the deﬁnition. In this case
+(l;w)!(l;w+d), if for alld0;0d0<dit holds that w+d02I(l), and for any urgent
+channelcthere does not exist ligi;c?;ri!l0
+iandljgj;c!;rj!l0
+jsuch thatw+d02(gi^gj)
+and(ri[rj)(w+d0)2I(l[l0
+j=lj;l0
+i=li]). Similarly, broadcast channels semantics does not
+require that exactly one transition with receiving channel occurs simultaneously with
+a transition that contains a transmission over the channel – with broadcast channels
+none, one or more than one ’receiving’ transitions could occur. Thus, Theorem 3.2 is
+also satisﬁed even if urgent and broadcast channels are used.
+4. BRIEF OVERVIEW OF STATEFLOW
+A Stateﬂow chart (i.e., model) employs a concept of ﬁnite state machines extended with
+additional features, including support for different data types and events that trigger
+actions in a part or the whole chart. Here, we present a small subset of the Stateﬂow
+features used in the translation procedure. Detailed descriptions of other features can
+be found in [sta 2012; Scaife et al. 2004; Hamon and Rushby 2007; Hamon 2005].
+A state in a Stateﬂow chart can be active or inactive, and the activity dynamically
+changes based on events and conditions. States can be deﬁned hierarchically – i.e., a
+state can contain other states (referred to as substates ). A decomposition of a chart (or
+a state) determines if its states (substates) are exclusive orparallel states. Within a
+chart (or a state), no two exclusive states can be active at the same time, while any
+number of parallel states can be simultaneously activate (but executed sequentially).
+Unlike in UPPAAL, transitions between states in Stateﬂow are taken as soon as
+enabled. They are described in the form (where each part of the description is optional)
+Event [condition ]fconditionactionsg=ftransition actionsg (1)
+Event identiﬁes the event that enables the transition (which is enabled by default if
+Event is not stated), if the condition (if speciﬁed, by default it is true) is valid. The
+condition is described using basic logical operations on conditions over chart variables
+and Stateﬂow operators. Actions in conditionactions andtransition actions include
+event broadcasting and operations on data variables. The Stateﬂow semantics speciﬁes
+that when a transition from a state sito statesjoccurs, then conditionaction are
+executed ﬁrst, before the state sibecomes inactive. This is followed by the execution
+oftransition actions , and ﬁnally activation of the state sj(i.e., during the execution of
+transition actions none of the states is active).
+A Stateﬂow chart runs on a single thread and it is executed only when an event
+occurs. All actions that occur during an execution triggered by an event are atomic to
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 9 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:9
+that event. After all activities that take place based on the event are ﬁnished, the exe-
+cution returns to its prior activity (i.e., activity before receiving the event). All parallel
+states within a chart (and similarly, all parallel substates in a state) are assigned with
+a unique execution order. Furthermore, all outgoing transitions from a state have dif-
+ferent execution indices. Thus, the execution of a Stateﬂow chart is fully deterministic
+– Stateﬂow semantics speciﬁes that active states are scheduled, and state transitions
+are evaluated in the execution order (starting from the lowest execution index).3
+4.0.1. Notion of Time in Stateﬂow. Stateﬂow temporal logic can be used to control execu-
+tion of a discrete-time chart in terms of time. It deﬁnes time periods using absolute-
+time operators based on the simulation time, or event-based operators that use the
+number of event occurrences. Absolute-time logic deﬁnes operators after ,before as
+after (n;sec) =
+0;ift<n
+1;iftn; before (n;sec) =not(after (n;sec)) (2)
+wheretdenotes the time that has elapsed since the activation of the associated state
+(i.e., from the last transition to the state - including self-transitions). The value for
+timetcan be obtained using the operator temporalCount (sec). Similarly, event-based
+temporal logic operators are used for event counting – e.g., after (n;clk )returns 1 if the
+eventclkhas occurred more than (n1)times after the state has been activated.
+5. UPP2SF: MODEL TRANSLATION PROCEDURE
+In this section, we present an overview of the UPP2SF translation procedure. We also
+describe the translation rules for UPPAAL models with urgent and broadcast channels,
+urgent and committed locations, and local clocks, as these functionalities are used for
+the pacemaker modeling. For the full UPP2SF description refer to [Pajic et al. 2012b].
+5.1. Overview of UPP2SF
+Consider an UPPAAL model with automata P1;:::;Pn. The UPP2SF translation pro-
+cedure would produce a two-level Stateﬂow chart as in Figure 3, with parallel states
+P1;:::;Pn(referred to as the parent states) derived from the automata, parallel states
+Gcx1;:::;Gcxm(referred to as clock states ) that model all global clocks x1;:::;xmfrom
+the UPPAAL model,4and the state Eng that is used as the chart’s control execution
+engine. In addition, the chart has predeﬁned global data variables (and constants)
+with appropriate variable ranges and initial values obtained from the UPPAAL model.
+Since all automata in UPPAAL are simultaneously active, the obtained Stateﬂow chart
+is a collection of parallel states with unique execution orders. Also, in every UPPAAL
+automaton exactly one location is active at a time. Thus, each of the parent states is a
+collection of exclusive states, extracted from locations in the UPPAAL automaton.
+To ensure that the extracted chart is simulated at integer time points, input trigger
+eventclkis added to the chart and a signal generator block is added to the parent
+Simulink model. We call a clkexecution the execution of the chart from the moment the
+chart is triggered by a clkevent, until processing of the event has been ﬁnished. Since
+our goal is to derive a Stateﬂow chart whose execution is one of the MPA runs of the
+initial UPPAAL model, it is possible that more than one transition within the model
+(and even within a single automaton) occur at any time point. Therefore, the chart
+can (re)activate itself by transmitting local (within the scope of the chart) events from
+3The user can specify the execution index for each transition and state – default values are assigned by the
+order of instantiation. Parallel states (or transitions from a state) must have different execution indices.
+4Note that if no global clocks are used in the UPPAAL model, the obtained Stateﬂow chart would not contain
+parallel global clocks states Gcxj.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 10 ---
+A:10 M. Pajic et al.
+Fig. 3 . Structure of Stateﬂow charts derived by UPP2SF. Parent states P1;:::;Pnare derived from au-
+tomata, while the clock statesGcx1;:::;Gcxmmodel all global clocks x1;:::;xmfrom the UPPAAL model.
+The stateEng is used to control execution of the chart.
+the additional parallel state Eng, which is executed last of all chart’s parallel states.
+Processing of the events triggered during a clkexecution is considered a part of the clk
+execution . Since event processing is atomic in Stateﬂow, no time elapses (in Simulink)
+during aclkexecution regardless how many additional event broadcasts have occurred.
+With this approach, a single activation of the chart triggers all transitions enabled at
+that integer time point, effectively extracting an MPA execution trace of the model.
+Finally, any UPPAAL edge from location lkitolkjin any automaton Pk, which does
+not use global clocks and synchronization over binary channels, is mapped into a State-
+ﬂow transition Pk:lki!Pk:lkjbetween the corresponding substates in the parent state
+Pk. In the rest of the section we provide a description of the edge translation procedure.
+Remark 5.1. In the general case, the edge lkig;;r!lkj(where2f;c!;c?gandcis
+a binary or broadcast channel) is mapped into a more complex structure in Stateﬂow
+between the substates Pk:lkiandPk:lkj. If the edge uses global clocks then a junction
+Jijand transition Pk:lki!Pk:Jijare introduced to update global clock values used
+in the edge’s guard and invariants. Also, if does not use a binary channel, a single
+transition is introduced from JijtoPk:lkj. However, if uses a binary channel, to
+preserve the semantics three edges and a junction are added between JijandPk:lkj.
+5.2. Mapping UPPAAL Edges Without Synchronization
+Consider an UPPAAL edge lkig;;r!lkjin automaton Pk. The guard gcan be split into
+a conjunction of data and clock conditions, and thus during the translation UPP2SF
+introduces a Stateﬂow transition Pk:lki!Pk:lkjof the form:
+[GC(I(lki)^g)^GV(g)^GC(r;I(lkj))| {z }
+GC;V(lki;lkj;g;r)]=fRV(r);RC(r);|{z}
+RC;V(r)RS(r);g (3)
+where:
+(1)GC(h)(GV(h)) translates the clock (data) conditions from UPPAAL condition hinto
+an equivalent Stateﬂow condition,
+(2)RC(r)(RV(r)) maps clock (data) resets in rto an equivalent Stateﬂow assignment,
+(3)GC(r;I(lkj))maps the condition that the clock valuation after the reset rsatisﬁes
+the invariant at the ‘new’ location lkj,
+(4)RS(r)controls execution of the chart.
+Data resets ( RV(r)) and guard conditions ( GV(g)) are directly mapped into the iden-
+tical Stateﬂow expressions. Mapping local clocks’ resets and guards is described below.
+5.2.1. Mapping Clock Conditions and Resets. In UPPAAL, each clock condition h2B(C)
+is speciﬁed as h=h1^h2^:::^hM, wherehi’s are basic clock conditions. Therefore,
+GC(h) =GC(h1)^GC(h2)^:::^GC(hM), and it is only necessary to provide a set of
+rules for the translation of basic clock conditions of the form x./n orxy./n , where
+x;y2Candn2Z(or an expression over integer variables and constants).
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 11 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:11
+Table I. Mapping UPPAAL conditions over clocks into Stateﬂow
+UPPAAL condition ( x2C;n2N0)Stateﬂow condition – xis replaced with uS(x)
+xn (temporalCount (clk)nnx)
+x<n before (nnx;clk)
+x=n (temporalCount (clk) ==nnx)
+xn after (nnx;clk)
+xy./n nxny./n
+To specify conditions over clocks, UPP2SF employs event based Stateﬂow tempo-
+ral logic operators that (only) count the number of clkevent occurrences. When the
+temporal logic operators are used in a chart with the two-level hierarchy shown in
+Figure 3, Stateﬂow associates a unique counter with each parallel (i.e., parent) state.
+It is important to highlight here that Stateﬂow semantics speciﬁes that when the ap-
+propriate event activates the chart (i.e., when clktriggers the chart) all these counters
+are incremented at the beginning of the chart’s execution - i.e., even before the ﬁrst
+parallel state begins its execution. Consequently, when each of the parallel states is
+executed, the counter value is equal to the number of the event’s appearances from
+the activation of its currently active substate. For each parent state Pkthis values
+istemporalCount (clk), and thus we denote this value by tCPk. In addition, we deﬁne
+tCx=tCPkifxis a local clock deﬁned in the automaton Pk.
+Unlike in UPPAAL where clocks might not be reset to zero during a transition, for a
+parallel state in the Stateﬂow chart the aforementioned counter is always reset when
+a transition occurs (when the associated substate is activated). Thus, while mapping
+edges from the automaton Pk, we explicitly model each local (fromPk)clockxby in-
+troducing the accounting variable nxthat maintains the clock value from the moment
+of the last state activation. This is done using RC(r)from (3), which is speciﬁed as
+[RC(r)](x) =
+nx=nx+temporalCount (clk);ifx =2r
+nx=r(x); ifx2r(4)
+Our goal is that at integer time points UPPAAL valuation uof the clock x(i.e.,u(x))
+is equal to the value uS(x)deﬁned as uS(x) =nx+tCx(we will show this in the next
+section). Note that a single counter value is used for all local clocks deﬁned within the
+same automaton (i.e., tCx=tCyifx;yare local clocks deﬁned in automaton Pk).
+The transformation of the basic clock conditions presented in Table I employs event-
+based temporal logic operators while taking into account the values of the accounting
+variables for all used clocks. In the mapping each clock xis replaced with the value
+uS(x). In addition, we used a relationship between Stateﬂow temporal logic operators
+from (2) to simplify the notation. For example, the condition x < n for a local clock x
+is mapped into nx+temporalCount (clk)<n, which is equivalent to before (nnx;clk)
+(sincebefore (nnx;clk) = 1,temporalCount (clk)<nnx).
+Finally, as speciﬁed in Def. 2.2, the requirement that the new clock valuation satis-
+ﬁes the invariant at the (new) location lkjis equivalent to the condition that both the
+non-reset and the reset clock values satisfy the clock invariants at location lkj. Hence,
+ifI(lkj) =h1^:::^hk, thenGC(r;I(lkj)) =GC(r;h1))^:::^GC(r;hk))where
+GC(r;x./n ) =r(x)./n; ifx2r
+uS(x)./n ifx =2r; GC(r;xy./n ) =8
+>><
+>>:r(x)r(y)./n; ifx;y2r
+r(x)uS(y)./n; ifx2r;y =2r
+uS(x)r(y)./n; ifx =2r;y2r
+uS(x)uS(y)./n ifx;y =2r(5)
+The expression for GC(r;I(lkj))can be signiﬁcantly simpliﬁed. If r(x)resets the clock
+xto a constant (which is the prevailing case in UPPAAL), conditions from (5) can be
+evaluated during the translation and can be replaced with ﬁxed terms ( false ortrue).
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 12 ---
+A:12 M. Pajic et al.
+Table II. Mapping UPPAAL edges from automaton Pkinto Stateﬂow transitions
+UPPAAL edge Stateﬂow transition
+lig;;r!lj [(sent == 0)^GC;V(li;g;r;lj)]=fRC;V(r);RS(r);g
+ligj;c!;rj!lj [(sent == 0)^GC;V(li;g;r;lj)]=fRC;V(r);sent =ID(c);g
+ligi;c?;ri!ljc[(sent=ExO (Pk))^GC;V(li;g;r;lj)]=fRC;V(r);g
+5.3. Obtaining an MPA Execution of the Chart
+The execution semantics of Stateﬂow ensures that in each of the parent states tran-
+sitions from the active state will be evaluated at least once during a clkexecution.
+However, to obtain an MPA run of the model, after a transition occurs it is necessary
+that in each parent state transitions from the active state are reevaluated. We guar-
+antee this by reactivating the chart if at least one transition has occurred. Thus, in
+the chart, UPP2SF introduces the parallel state Eng (Figure 3), which is executed last
+among the parent (and clock) states. Furthermore, additional chart event ttand ﬂag
+actare deﬁned, and as a part of each transition, by adding act= 1; toRS(r)from (3),
+actis set to 1. Finally, Eng contains a single substate and it broadcasts the event ttto
+the chart if acthas been set to 1, using the lowest priority self-transition of the form
+[act== 1]fact= 0;send(tt)g (6)
+5.4. Translating Broadcast Channels
+Events in Stateﬂow are a good semantic match for broadcast channels in UPPAAL.
+Therefore, for each broadcast channel c, UPP2SF deﬁnes a Stateﬂow event cassigned
+with a unique positive integer ID(c). To translate edge lig;c!;r!ljfrom automaton
+Pk, UPP2SF uses a centralized approach where the Eng state broadcasts events and
+controls execution of the chart by using additional variable sent that can have the
+following values (here, ExO (Pk)>0is the execution order of the parent state Pk)
+sent =(ID(c); event cis scheduled for broadcast
+0; no event scheduled for broadcast
+ExO (Pk);an event is broadcast, only receiving edges are enabled(7)
+Note thatID(c)>0, andExO (Pi)6=ExO (Pj)ifPi6=Pj.
+Table II shows the mapping of UPPAAL edges into Stateﬂow. Action c!is mapped into
+sent =ID(C)assignment, thus disabling all ‘non-receiving’ transitions due to their
+condition (sent == 0) . Similarly, condition (sent=ExO (Pk))disables all ‘receiving’
+transitions in the parent state Pk, ensuring that the parent state does not synchronize
+with itself. Finally, the Eng state is used to broadcast events by adding for each event
+cthe following self-transition in the state:
+[(sent ==ID(c))]fsent =ExO (Pk);send(c);g (8)
+In addition, to reset sent and to ensure that all previously disabled transitions are
+reevaluated by reactivating the chart after the event is processed (i.e., after all parent
+states are re-executed), UPP2SF adds the following self-transition in the state Eng
+[(sent< 0)]fsent = 0;send(tt);g (9)
+Transitions (8), (9) have precedence (i.e., lower execution order) over the transition (6).
+Remark 5.2. In general, more than one UPPAAL automaton could transmit over a
+shared broadcast channel. In this case, Eng state would not always be able to deter-
+mine the parent state Pkthat has initiated the event broadcast. Thus, variable ExOP
+would have to be deﬁned along with additional reset action ExOP =ExO (Pk)in tran-
+sitions with sent =ID(c);(from Table II). Also, transition (8) would take the form
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 13 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:13
+[(sent ==ID(c))]fsent =ExOP ;send(c);g. However, since this case does not occur in
+most UPPAAL models, due to the space limitation we present the simpler formulation.
+5.5. Translating Urgent and Committed States
+UPP2SF also preserves semantics of urgent and committed states, and urgent chan-
+nels. By extracting MPA runs of the UPPAAL model we ensure that no time passes
+in the states from which there exists an enabled transitions. Thus, as a byproduct,
+semantics of urgent channels and locations are preserved. On the other hand, if some
+automata in UPPAAL are in committed locations, then only transitions outgoing from
+one of the committed locations are allowed. Thus, to deal with committed locations
+we introduce a new ‘control’ variable comm that always contains the number of ac-
+tive committed states. For all transitions incoming to a committed state expression
+comm =comm + 1;is added to the reset operations (i.e., RS(r)from (3)). Similarly, for
+all outgoing transitions from a committed state comm =comm1;is added to the re-
+set. To disable transitions from non-committed states when there exists an active com-
+mitted state, guard condition (comm == 0) is added to all ‘non-receiving’ transitions
+outgoing from a non-committed state. Note that setting actto 1 (as speciﬁed in (6), for
+all transitions in parent states) reactivates the chart to ensure that all transitions are
+reevaluated, including the ones that have been disabled due to (comm == 0) condition.
+5.6. Stateﬂow Chart Optimization
+Stateﬂow charts obtained using the described set of rules can usually be signiﬁcantly
+simpliﬁed. For example, clock guards and invariants specify ﬁxed left-closed intervals
+if in conditions from Table I ndenotes a constant. These intervals can be expressed in
+Stateﬂow with maximum two terms from Table I (e.g., invariant tnand guard tn
+can be combined into a single Stateﬂow condition temporalCount (clk) ==nnt). In
+addition, it is possible to remove updates to an accounting variable nxfrom transitions
+incoming to a state, if on all paths from the state there exist resets of the clock xbefore
+the clock is used in a transition guard or invariant. Similarly, due to (9) there is no
+need to reactivate the chart with the act= 1reset on transitions to a committed/urgent
+state that are conditioned with event receiving. The same holds if outgoing transitions
+from a new state are disabled (which is a common case) at the time of activation, and
+no shared variable has been updated on the incoming transition. For example, in the
+buffer from Figure 5(f), for dLa > 0, afterl1is entered the clock guard disables the
+outgoing transition. Thus, the assignment act= 1 does not have to be added to the
+Stateﬂow transitions from l1tol0. Finally, transitions between two states with the
+same conditions and transition actions can be combined into a single transition.
+6. CORRECTNESS OF THE TRANSLATION PROCEDURE
+In this section, we show that the set of rules speciﬁed in the previous section preserves
+the UPPAAL semantics. Speciﬁcally, we show that the execution of the obtained State-
+ﬂow chart presents one of MPA runs of the initial UPPAAL model. However, since the
+Stateﬂow semantics is informally deﬁned, formally proving correctness of the trans-
+lation procedure is not possible. For a subset of Simulink features, there exist some
+attempts to derive formal semantics (e.g., [Hamon and Rushby 2007; Hamon 2005]),
+which have been validated by testing on many examples. We follow a similar approach
+in this work. We start by formulating basic assumptions on the semantics of the State-
+ﬂow charts obtained by UPP2SF – i.e., with the structure shown in Figure 3 and which
+utilize only a small subset of Stateﬂow functionalities.
+Consider a deadlock-free UPPAAL model with automata P1;:::;Pn, where each au-
+tomaton has at least one location, and the extracted two-level Stateﬂow chart as in
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 14 ---
+A:14 M. Pajic et al.
+Figure 3, with parent states P1;:::;Pnand the parallel state Eng. Since none of the
+chart’s parallel states has transitions5the following proposition holds.
+PROPOSITION 6.1. All parallel states in the chart will always be active.
+The translation rules specify that all transitions in parent states do not have
+conditionaction (from (1)), and no event broadcasting is speciﬁed in transition actions .
+Thus, when a transition Pk:l!Pk:l0occurs in a parent state Pk, substate l0will be
+directly activated (i.e., activity will be directly passed from ltol0).6In addition, tran-
+sitions in the Eng state do not have transition actions and they broadcasts events as
+part ofconditionactions .7That means that the state Eng:l 0will never be deactivated.
+PROPOSITION 6.2. Each parallel state in the chart always has an active substate.
+In the general case, event broadcasting to the whole chart introduces recursive be-
+havior (we will also see this later, in Section 9.1, during the analysis of the pacemaker
+code – Listing 5, Figure 6). These recursions are in general very difﬁcult to control and
+analyze, and [Hamon and Rushby 2007] restricted the use of events to the deﬁnition of
+sequencing behaviors. In UPP2SF-derived charts, only Eng can broadcast events, on
+self-transitions from the (only) substate Eng:l 0. SinceEng state is executed last within
+each chart activation, and within its execution only a single transition may occur, lo-
+cal event broadcasts can only occur at the end of chart activations . Therefore,
+although event broadcasts from the self-transitions in Eng state introduce recursive
+behavior to the chart, we can consider these recursive runs as series of sequential chart
+activations with different active events – i.e., we can disregard the recursive behavior.
+Consequently, we can describe the state of the chart as a S= (lS;wS;fS), where
+lSis the vector of size ncontaining active substates for each of the nparent states.8
+In addition, wS= (uS;vS)whereuSis deﬁned in (5.2.1) and vSdenotes the Stateﬂow
+variables mapped from UPPAAL variables – i.e., vS(i)is the value of the Stateﬂow
+variablei. Finally,fS= (act;sent;comm;AE;k )denotes the values of all control ﬂags
+introduced by UPP2SF. AE(AE2fclk;tt;;SCEg[fcjc2Kg) is the currently active
+event being processed by the chart,9whilek,k2f0;1;:::;n;n + 1g, is the state index
+of the currently executed parallel state.10We denote by lS[lkj=lki]a vector where the
+active substate of the parent state Pkin vector lShas changed from lkitolkj, and use a
+similar notation for wSandfSupdates – e.g., fS[k=k+ 1]denotesfSwhere only kis
+increased by 1. For UPPAAL models we use the notation from Sec. 2, and for w= (u;v)
+we writew=wS(andu=uS;v=vS) if8x2C;i2V,u(x) =uS(x)andv(i) =vS(i).
+We can now formalize the behavior (i.e., semantics) of extracted Stateﬂow charts.
+From translation rules, the initial vector of active substates lS
+0is equal to the initial
+location vector in UPPAAL (i.e., lS
+0=l0), andwS
+0=w0(w0is the initial UPPAAL valu-
+ation),fS
+0= (0;0;0;SCE; 1)(AE=SCE , as charts are executed during initialization).
+5Parallel states in Stateﬂow do not typically use transitions [sta 2012; Hamon and Rushby 2007].
+6Broadcasting events in transition actions would result in deactivation of the substate land event broad-
+casting before the substate l0is activated. Thus, during the event’s processing (including processing events
+sent during the event’s processing) the parent state Pkwould not have active substates and would be ef-
+fectively removed from the execution. On the other hand, broadcasting events in conditionactions would
+usually result in an inﬁnite behavior (since in most cases the condition would still be satisﬁed) [sta 2012].
+7Note that in this case inﬁnite cycle behavior does not occur, since the data values enabling a transition
+guard are changed before broadcasts – this disables the transition in the next activation.
+8Note that since Eng state has a single substate that is always active, we do not specify it in the vector lS.
+9Here,denotes the case when no event is active - when the chart is sleeping, between consecutive clkexe-
+cutions, while SCE is the Simulink Call Event, an intrinsic way for Simulink to activate a Stateﬂow chart.
+10In general, fshould also contain a transition index denoting the transition (from the active substate of
+the parallel state k) which is being evaluated. However, to simplify our notation we have omitted this term.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 15 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:15
+Deﬁnition 6.3.Atransition relation for a UPP2SF-derived chart is deﬁned as:
+(1)(lS;wS;fS)!(lS;wS[uS=uS+ 1];fS[k=k+ 1]) ifk= 0andAE=clk,
+(2)(lS;wS;fS)!(lS;wS;fS[AE=clk])ifk= 0andAE=,
+(3)(lS;wS;fS)!(lS;wS;fS[k=k+ 1]) ifk= 0andAE =2fclk;g,
+(4)(lS;wS;fS)!(lS
+1;wS
+1;fS
+1)ifk2f1;:::;ng, where
+(lS
+1;wS
+1;fS
+1) =8
+>><
+>>:(lS[lki0=lk];Ri0
+C;V[wS];Ri0
+S[fS][k=k+ 1]);9i;(Gi
+s^Gi
+C;V) =True; and
+(einot speciﬁed or AE=ei)
+i0= mini
+(lS;wS;fS[k=k+ 1]); otherwise
+and all transitions outgoing from the active substate lk(inPk) are represented as
+ei[Gi
+s^Gi
+C;V]=fRi
+C;V;Ri
+S;g(iis the transition index, and for example, Ri0
+C;V[wS]de-
+notes the value of wSafter reset operations speciﬁed in Ri0
+C;Vare performed on wS);
+(5)(lS;wS;fS)!(lS;wS;fS
+1)ifk=n+ 1, where
+fS
+1=
+Ri0
+S[fS][k= 0;AE =ei];9i;Gi
+s=True; wherei0= mini
+fS[k= 0;AE =]); otherwise
+and all self-transitions in Eng state are described as [Gi
+s]fRi
+S;send(ei);g.
+We deﬁne the chart’s execution trace RSas a sequence of consecutive chart states
+S
+0!S
+1:::!S
+t!:::. We also denote by S
+t0 !S
+ti(referred to as an SF-transition ) a
+sequenceS
+t0!S
+t1:::!S
+tiof the execution such that one of the following holds:
+— the sequence does not contain any transitions mapped from UPPAAL edges, and
+k= 1;AE =clkinS
+ti; in this case we denote the sequence by S
+t0(+d)!S
+ti, since (as
+none of the transitions in parent states has occurred during the sequence) for some
+d2N(wheni>0), for allx;y2C;uS
+ti(x)uS
+t0(x) =uS
+ti(y)uS
+t0(y) =d.
+—k6= 0orAE6=clkin allS
+tj;ji1; also,S
+ti1!S
+tiis a transition mapped from
+some UPPAAL edge lfg;;r!lj, and it is the only transition in the sequence mapped
+from any UPPAAL edge; in this case we also use the notation S
+t0!S
+ti,
+—k6= 0orAE6=clkin allS
+tj;ji1, and the sequence contains exactly one tran-
+sition mapped from some UPPAAL edge lfg;b!;r!lj, which is the ﬁrst transition
+in the sequence that is mapped from any UPPAAL edge; followed by a number of
+transitions (i.e., 0, 1 or more) mapped from UPPAAL edges of the form lpg;b?;r!lq
+(i.e., receiving over channel b), whereS
+ti1!S
+tiis the last of them; in addition, the
+next transition in the execution trace which is mapped from an UPPAAL edge is not
+mapped from an edge lng;b?;r!lm; here, we also use the notation S
+t0b!?!S
+ti.
+From the above deﬁnition, the following lemma follows directly.
+LEMMA 6.4. IfS
+t0!S
+tithen for all n2ft0;:::;ti1g,lS
+n=lS
+t0andwS
+n=wS
+t0.
+PROPOSITION 6.5. Assume that S
+t0!S
+ti, and lS
+t0=landwS
+t0=w. IfS
+ti1!S
+ti
+is a transition mapped from UPPAAL edge lkfg;;r!lkjin automaton Pk(kis the state
+index from f), then (l;w)!(l[lkj=lkf];r(w))in UPPAAL, and r(w) =wS
+ti;l[lkj=lkf] =lS
+ti.
+PROOF . From Lemma 6.4, lS
+ti1=lS
+t0=landwS
+ti1=wS
+t0=w. SinceS
+ti1!S
+ti
+is a transition mapped from lkfg;;r!lkj, it follows that l[lkj=lkf] =lS
+ti, and from (3)
+GC(I(lkf)^g)^GV(g)^GC(r;I(lkj))is satisﬁed. GV(g)presents the identical conditions
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 16 ---
+A:16 M. Pajic et al.
+over data variables as in the UPPAAL guard g, and since vS
+ti1satisﬁesGV(g), thenv
+satisﬁes data conditions in g. Similarly, since uS
+ti1satisﬁesGC(I(lkf)^g)from Table I,
+then fromuS
+ti1=uwe have that usatisﬁes the guard and invariant at lkf– i.e.,u2g
+andu2I(lkf). Finally,uS
+ti1satisﬁesGC(r;I(lkj))deﬁned in (5), and using the same
+reasoning we have that r(u)2I(I(lkj)), implying w2gandr(w)2I(I(lkj)).
+In addition, wS
+ti= (uS
+ti;vS
+ti), wherevS
+ti=RV(r)[vS
+ti1]anduS
+ti=RC(r)[uS
+ti1]. Since
+RV(r)speciﬁes the identical data expressions as r,vS
+ti=r(vS
+ti1) =r(v). On the other
+hand, when a transition occurs temporalCount (clk)is reset. Thus, for all x2C,uS
+ti(x) =
+nx, and ifx2rfrom (4)uS
+ti(x) =r(x); otherwise nx=uS
+ti1(x), meaning that uS
+ti(x) =
+uS
+ti1(x). Consequently, uS
+ti=r(u), andwS
+ti=r(w), which concludes the proof.
+The following results can be proven using similar approaches as in the above proof.
+PROPOSITION 6.6. Assume that S
+t0b!?!S
+ti, for a broadcast channel b, and lS
+t0=l
+andwS
+t0=w. If the sequence contains transitions mapped from UPPAAL edges
+ljgj;b!;rj!l0
+jin automaton Pj, andljigji;b?;rji!l0
+jiin automata Pji(i= 0;:::;m ), then
+(l;w)!(l[l0
+j=lj;l0
+j0=lj0;:::;l0
+jm=ljm];(rj[m
+i=0rji)(w))in UPPAAL. Furthermore,
+(rj[m
+i=0rji)(w) =wS
+tiandl[l0
+j=lj;l0
+j0=lj0;:::;l0
+jm=ljm] =lS
+ti.
+PROOF SKETCH . We ﬁrst show that after the transition mapped from the edge
+ljgj;b!;rj!l0
+joccurs it is not possible in the obtained chart to have a ’non-receiving’
+transition, or a ’receiving’ transition conditioned with an event c, wherec6=b. We
+prove then that j6=jifori= 0;:::;m , andjp6=jqforp;q= 0;:::;m andp6=q(i.e., an au-
+tomaton cannot synchronize with itself, or synchronize twice with another automaton
+for a single broadcast). After showing these properties, using a similar approach as for
+Prop. 6.5 we show that the UPPAAL semantics for broadcast channels is preserved.
+PROPOSITION 6.7. Consider a sequence S
+t0(+d)!S
+ti, for some d2N, and lets
+assume lS
+t0=landwS
+t0=w. ThenwS
+ti=w+d, and (l;w)!(l;w+d)is the only
+transition relation in the semantics of the UPPAAL model from (l;w)– i.e., there does
+not exist a transition (l;w)!(l1;w1)speciﬁed by either case (2) or (3) of Def. 2.2.
+Note that the chart’s execution trace RScan be decomposed into a sequence of SF-
+transitions . Therefore, since the initial UPPAAL location vector l0and valuation w0are
+equal to the initial Stateﬂow vector of active states and valuation wS, from the above
+three propositions and Theorem 3.2 we have that the sequence of SF-transitions for the
+UPP2SF-derived chart corresponds to an MPA run of the initial UPPAAL model. Fur-
+thermore, it is worth noting that these proofs can be easily extended to show that the
+semantics of committed locations is also preserved by the translation rules (semantics
+of urgent channels and locations are guaranteed by the MPA-runs requirement).
+In the rest of the paper, we will demonstrate the use of the UPP2SF-based MDD
+framework on the pacemaker case study.
+7. IMPLANTABLE CARDIAC PACEMAKERS
+The primary function of an implantable pacemaker is to maintain an adequate heart
+rate, and ensure safe and efﬁcient cardiac output. Pacemakers usually have two leads
+placed in the atrium and ventricle, capable of both sensing electrical activity in the
+heart and pacing the heart. To illustrate the UPP2SF-enabled MDD framework, we
+developed the most commonly used pacemaker mode, the DDD mode that paces both
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 17 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:17
+Fig. 4 . (a) Pacemaker timing cycles [Jiang et al. 2012]; (b) Structure of the pacemaker model in UPPAAL,
+including the interaction between the pacemaker and heart, and the monitors used for veriﬁcation.
+the atrium and ventricle, senses both, and employs the dual tracked response that syn-
+chronizes the chambers. We start by presenting DDD mode requirements from [Boston
+Scientiﬁc 2007], followed by the pacemaker modeling and veriﬁcation in UPPAAL (UP-
+PAAL modeling of more complex pacemaker modes can be found in [Jiang et al. 2012]).
+7.1. Pacemaker Speciﬁcation
+We use the term ventricular event to specify either a pace in the ventricle (denoted VP)
+or a sense of electrical pulse (i.e., ventricular sense - VS). Similarly, we use atrial event
+to denote either atrial sense (AS) or pace (AP). However, not every intrinsic electrical
+activity will be registered as a sense in a chamber because some of the intrinsic pulses
+might fall within time intervals where sensing is disabled (refractory periods).
+For heart therapy in DDD mode, the following requirements are deﬁned:
+—Lowest Rate Interval (LRI) deﬁnes the longest allowable VP interval if no VS is
+detected; the interval should start when a ventricular event occurs.
+—Upper Rate Interval (URI) speciﬁes the minimum time between a ventricular event
+and the next VP.
+—Atrio-Ventricular Interval (AVI) is the time period from an atrial event to a VP.
+—Ventricular Refractory Period (VRP) speciﬁes the time interval following a ventricu-
+lar event when intrinsic ventricular activity does not inhibit paces.
+—Post Ventricular Atrial Refractory Period (PVARP) is the time interval following a
+ventricular event during which atrial cardiac event should not trigger a delayed VP.
+Figure 4(a) illustrates the pacemaker’s basic timing cycles. Beside imposing limits
+on the heart-rate and the synchronization requirement between the atrium and ven-
+tricle, the above speciﬁcations introduce refractory periods after ventricular events.
+These intervals are used to ﬁlter noise, ventricular signal reﬂections, and early events
+which could otherwise cause undesired pacemaker behavior. To achieve this, during a
+refractory interval sensing in the appropriate chamber (atrium for PVARP and ventri-
+cle for VRP) should be disabled. For example, in Figure 4(a) AR denotes intrinsic atrial
+activity that is not taken into account since it occurs within the PVARP interval.
+To be able to perform system veriﬁcation we used the above (informal) system re-
+quirements to derive a set of formal speciﬁcations. Due to space constraint, the de-
+scription of the formal pacemaker speciﬁcations can be found in online appendix A.
+7.2. Pacemaker Modeling and Veriﬁcation in UPPAAL
+To obtain a pacemaker model in UPPAAL, we modeled each of the (informal) require-
+ments from Section 7.1 as a separate timed-automaton. Furthermore, as described
+in the introduction, to enable closed-loop system veriﬁcation in UPPAAL it is nec-
+essary to provide models of the environment (i.e., the heart), along with the models
+of the interfaces (i.e., interaction) between the environment and controller (as shown
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 18 ---
+A:18 M. Pajic et al.
+LRI_ASLRI
+t<=LRId-AVId
+v_s?
+t=0v_p?
+t=0
+a_s?
+t>=LRId-AVId
+a_p!
+t=0v_s?
+t=0v_p?
+t=0
+(a) LRI component
+st3C st3
+st2
+t<=AVIdst1v_p!uri_s?
+t>=AVId && (URIex==0)t>=AVId && (URIex==1)
+v_p!
+v_s?a_p?
+t=0a_s?
+t=0 (b) AVI component
+URIst2URIst1
+t<=URIdt>=URId
+uri_s!
+URIex=1
+v_s?
+t=0v_p?
+t=0
+v_p?
+t=0, URIex=0v_s?
+t=0, URIex=0 (c) URI component
+ARPst2
+t<=ARPd
+interARPst1
+a_s!v_s?
+t=0v_p?
+t=0
+t>=ARPd
+AinB?
+(d) PVARP component
+inter
+VRPst2
+t<=VRPdVRPst1v_s!
+t=0VinB?
+t=0
+t>=VRPdv_p?
+t=0 (e) VRP component
+l1t<= dH_a
+l0t>=dL_a
+AinB!
+t=0Ain?
+t=0 (f) Atr. Buffer
+l1t<= dH_v
+l0t>=dL_v
+VinB!
+t=0Vin?
+t=0 (g) Ven. Buffer
+RH
+t<=MaxW
+Art_pace?
+t=0t>=MinWait
+Pulse!
+t=0 (h) Random Heart
+Fig. 5 . DDD pacemaker model in UPPAAL - each automaton uses its local clock; two Random Heart tem-
+plates were instantiated for Atrium (Pulse:=Ain, Art pace:=a p) and Ventricle (Pulse:=Vin, Art pace:=v p).
+in Figure 4(b)). Thus, the UPPAAL pacemaker model contains the following software
+components, shown in Figure 5, where each automaton only uses its own local clocks.
+1. LRI automaton (Figure 5(a)) models the LRI requirement that keeps the heart
+rate above a minimum value by delivering atrial pace events (AP). The LRI timer is
+reset after a ventricular event (VP or VS). Also, if no atrial event has been sensed (AS)
+before the timer runs out, the pacing event will be delivered from the atrial lead (AP).
+2. AVI automaton from Figure 5(b) models the AVI requirement, by mimicking
+the intrinsic AV delay to synchronize the atrial and ventricular events. The timer is
+started by a sensed or paced atrial event (AP or AS) and can be terminated by a sensed
+ventricular event (VS). If no ventricular event is sensed before the timer times out, the
+pacemaker generates a ventricular pace (VP) if the Upper Rate Limit is not violated.
+Guarantees for this are provided by the URI component.
+3. URI automaton in Figure 5(c) limits the ventricular pacing rate by enforcing a
+lower bound on the time between consecutive ventricle events.
+4. PVARP and VRP automata are used to model the refractory periods. The
+PVARP and VRP automata generate atrial (AS) and ventricular (VS) sensing events
+from the buffered atrial and ventricular inputs ( AinB and VinB , respectively). The
+PVARP automaton (Figure 5(d)) models the blocking interval after each ventricular
+event (VP or VS) where the atrial sensing (AS) cannot occur. The VRP automaton
+(Figure 5(e)) models the blocking interval for ventricular events. The interval follows
+ventricular events and no ventricular sensing should occur during the interval.
+5. Inputs buffers (Fig. 6(d),(h)) are used to model delays imposed by processing
+inputs Ain and Vin from the heart. For example, these delays can be introduced by the
+design of the analog interface between the heart and device.
+6. Random Heart (RH) automata (Figure 5(h)) model the heart as two (for both
+chambers) uncorrelated random pulse generators with a single constraint that in each
+chamber the times between two consecutive events are within the predeﬁned interval.
+The descried pacemaker model was used to verify the formal pacemaker speciﬁca-
+tions in UPPAAL. We present the veriﬁcation approach in online appendix B.
+8. PACEMAKER STATEFLOW DESIGN
+From the model shown in Figure 5, using the UPP2SF tool we obtained the pace-
+maker Stateﬂow chart presented in Figure 6. For closed-loop veriﬁcation in UPPAAL
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 19 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:19
+Fig. 6 . Pacemaker Stateﬂow chart extracted using UPP2SF from the UPPAAL model in Figure 5; the heart
+and buffer models are highlighted.
+we modeled both the heart and pacemaker, and therefore the obtained chart contains
+both models of the controller (i.e., pacemaker) and environment (i.e., the heart). To be
+able to use the obtained Stateﬂow chart for both simulation and code generation it was
+necessary to decouple the pacemaker from the heart model.
+Note that the veriﬁed UPPAAL model also contains several monitors used to specify
+veriﬁcation queries. Since none of these monitors uses shared variables, and they only
+interact with the rest of the model by receiving synchronization over broadcast chan-
+nels, they do not affect behavior of the basic automata from Figure 5. Thus, to simplify
+Figure 6, we did not show the parallel states that were obtained from them.
+8.1. Decoupling the Controller and Environment
+Here we present the approach used to decouple the pacemaker and heart. The same
+approach can be used to decouple models of the environment and controllers in most
+commonly used scenarios where they only interact by broadcasting events.
+Figure 4(b) shows the interaction between the pacemaker and the heart. Since the
+interaction is modeled using synchronization over broadcast channels, the pacemaker
+model can be easily extracted from the chart shown in Figure 6. This is done by remov-
+ing the parent states that model the heart and buffers (RH a, RH b, ASbuf, VSbuf),
+and by deﬁning AinB andVinB as input events. Also, the Eng state has to be modiﬁed
+to remove the transitions used to broadcast these input events. In our case we removed
+the transitions that broadcast AinB orBinB (highlighted in red in Figure 6).
+Stateﬂow does not allow the use of output events to condition internal transitions.
+Hence, it is necessary to deﬁne additional output events from the chart, and in our case
+for local events a p and v p two output events (AP and VP) were deﬁned. These events
+are broadcast on the same transitions used to broadcast a p and v p, respectively. In
+addition, to deal with some implementation issues (details are provided in Section 9),
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 20 ---
+A:20 M. Pajic et al.
+Fig. 7 . Structure of the pacemaker code obtained from the Stateﬂow chart shown in Figure 6.
+for each output Event an empty C function sendHW Event is added using Simulink fea-
+tures for integrating custom C code. The function does not affect Simulink chart sim-
+ulations, but allows for the correct output generation from the synthesized code. For
+example, the Eng transition highlighted with dotted green rectangle was modiﬁed to
+[(sent == 3)]fsent =1;send(VP);sendHWVP();send(vp);g
+Note that if the user speciﬁes all components that are part of the controller, UPP2SF
+can automatically perform the above actions to decouple it from the environment.
+It is interesting to compare the chart from Figure 6 with the manually designed
+Stateﬂow model of the DDD pacemaker [Jiang et al. 2010], which is slightly simpler as
+it does not use event broadcasting. Thus, each clk execution has a single chart activa-
+tion, causing a violation of several of the pacemaker requirements from Sec. 7.1 (and
+appendix A). For example, the URI requirement is not satisﬁed because URI state is
+always scheduled after AVI state; since the chart is not reactivated within a clk exe-
+cution , afterURI period expires, AP will be generated late – in the next clk activation .
+Since the UPP2SF mapping has been validated, we ensure that the chart’s execution
+will be equivalent to one of the MPA runs of the initial UPPAAL model. However, the
+chart also contains the model the environment and has no inputs and outputs, and
+thus we performed validation of the pacemaker Stateﬂow chart after the decoupling,
+by extending the approach for testing real-time constraints by [Clarke and Lee 1995].
+Due to space limitations, more details can be found in online appendix C.
+9. PACEMAKER IMPLEMENTATION
+We generated C code from the pacemaker Stateﬂow chart using the Simulink Real-
+Time Workshop Embedded Coder (RTWEC).11;12The code was generated for the gen-
+eral embedded real-time target and as a result we obtained the main procedure,
+rtOneStep , which processes the three input events, VinB ,AinB andclk. To ensure
+that the model semantics is preserved (modulo the execution time), clkinput events
+should be created every 1ms, followed by the procedure’s activation.13This makes it
+suitable for implementation on top of a real-time operating system (RTOS).
+9.0.1. Code Structure. The structure of the code is straightforward. The current state
+of the procedure and all variables deﬁned in the chart are maintained in the structure
+11Since Matlab 2011b, RTWEC toolbox is referred to as Simulink Embedded Coder.
+12Although we focus on a speciﬁc implementation, code with the same structure would be generated from
+all Stateﬂow charts obtained from UPPAAL models using UPP2SF (due to the derived charts’ structure).
+13In this case, the procedure’s execution corresponds to the clkexecution.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 21 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:21
+rtDWork , along with counter values used for temporal logic operators (i.e., a counter
+per parallel state). In addition, rtDWork contains a structure (List. 1, Figure 7) that for
+each parent state speciﬁes if it is active, along with which of its substates is active.
+For example, for the state AVI variable isactive AVIdescribes whether the state is
+active, while isAVIspeciﬁes which of its exclusive substates is active.14
+The structure of rtOneStep is shown in List. 2, Figure 7. After detecting active
+input events, an execution of the chart procedure c1ChartName is invoked for each
+active input event. The variable sfEvent is used to denote the event that is processed
+during the chart execution. As in Stateﬂow, starting from input events with lower
+indices, the events are processed in a prespeciﬁed order (using c1ChartName function).
+After all events are processed the procedure updates the outputs and event states in
+the prespeciﬁed order. This means that although we broadcast output events and the
+local events corresponding to them (e.g., VP and v p) as a part of same transitions, the
+outputs will be actually updated at the end of rtOneStep procedure. This can cause a
+couple of problems. First, ordering of the generated output events can differ from the
+order of the corresponding local events. Note that this does not affect simulations in
+Simulink, since all actions within a clkexecution are atomic from perspective of the
+rest of the Simulink model. The second problem is that with this approach, for each
+output event only a single output trigger can be generated at the end of a clkexecution .
+Thus, if an output event is broadcast more than once within a single clkexecution , the
+corresponding output events will be actually generated one by one, at the end of the
+consecutive clkexecutions (i.e., separated by the duration of clkperiod).
+These issues are resolved using the aforementioned SendHW EventName functions.15
+Using Simulink features for integrating custom C code with Stateﬂow charts in
+Simulink, we deﬁne empty C functions for each output event (e.g., for VP we deﬁne
+SendWH VP). When the code is implemented on a particular hardware platform, the
+user needs to deﬁne these functions. For example, the simplest implementation would
+include toggling a particular CPU pin every time the function is invoked.
+At the beginning of the chart execution procedure (List. 3, Figure 7) all counters as-
+sociated with the event (stored in sfEvent ) are increased. Since the pacemaker code
+uses onlyclkevent in temporal logic operators, the ﬁve counters will be incremented
+only when clkis processed. After this, the functions associated with each of the parallel
+states are called in the order speciﬁed by the execution order.
+List. 4 from Figure 7 presents a pseudo-code for processing each of the parallel
+states. If the state is active, all transitions outgoing from its active substate are eval-
+uated in the prespeciﬁed execution order. The ﬁrst enabled transition is taken and as-
+sociated transition actions are executed. In the generated code only Eng state, which
+is executed last, is used to broadcast events as part of its transition actions. As shown
+in List. 5, Figure 7, broadcasting an event associates the (current event) variable
+sfEvent with the event, before it reactivates the chart (by calling c1ChartName() ).
+9.1. Platform Implementation
+The pacemaker code generated by the Simulink RTWEC was executed on nanoRK [nan
+2013], a ﬁxed-priority preemptive RTOS that runs on a variety of resource constrained
+platforms. We tested the implementation on the TI MSP-EXP430F5438 Experimenter
+14Note that since all parent states are decomposed into exclusive states, activity status for all of the sub-
+states within a parent state can be speciﬁed with a single variable. However, in the general case, if a state
+consists of a group of parallel states, RTWEC would deﬁne a new variable for each of the parallel states.
+15These issues do not present a problem for the pacemaker design from Figure 6, since only a single AP
+or a single VP can be broadcast within one clkexecution . However, in this paper we describe the general
+approach that allows utilization of the UPP2SF translation tool for all UPPAAL models.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 22 ---
+A:22 M. Pajic et al.
+Fig. 8 . Hardware setup with MSP430F5438 experimenters board.
+Board interfaced with a signal generator that provides inputs for the pacemaker code
+(Figure 8). The compiled (without optimization) pacemaker procedure uses 2536 B for
+code and additional 180 B for data. To interface the code with the environment, each
+of the inputs ( AinB ,VinB ) triggers an interrupt routine used to set the appropriate
+event for rtOneStep function.
+The pacemaker code was run as a task with period 1ms. Table III shows measured
+execution times for the pacemaker tasks, for two different CPU frequencies. As ex-
+pected, an increase in CPU frequency scales into a reduction in the task’s execution
+time. Note that the measurements from Table III can be mapped to CPU utilization
+for the pacemaker task. With the average utilization of 9.2% for an 8MHz CPU, we
+can run multiple tasks on the RTOS. More details about platform testing, including
+testing of the pacemaker formal requirements can be found in online appendix D.
+9.2. Decoupling the Controller and the Environment
+In Sec. 8 and 9.1 we have described the method we used to decouple models of the
+pacemaker and the heart. The solution guarantees that the implemented code gener-
+ates output events as soon as the corresponding local events are generated. However,
+our implementation introduces some problems regarding processing of input signals.
+By introducing an interrupt routine that sets a ﬂag if the input occurs, we effectively
+synchronize asynchronous input signals. This has a twofold effect on the implemented
+code. First, each input signal will be processed at most once even if it appears more
+than one time between consecutive task’s activations. This is not a problem for the
+pacemaker, since in the initial UPPAAL model, due to the buffers, all inputs after the
+ﬁrst input in a cycle are disregarded until at least dLa(ordLv) time. Second, it in-
+troduces a latency up to the task’s period (i.e., clkinterval, in our case 1ms) before the
+input signals are processed. To solve this issue, the extracted procedure could be acti-
+vated as soon as an input appears. Beside problems with tasks scheduling, if the input
+signal could affect clock valuations in the initial UPPAAL model this would introduce
+a time measurement error in the code. For example, if Ain occurs 0.5ms before the
+nextclkactivation and the procedure is instantaneously activated as a result of the
+input, the clock in ASbuf would be reset to zero. Thus, the next clkactivation of the
+procedure would set tto 1, although only 0.5 ms have passed since the input.
+Table III. Execution times for the pacemaker procedure; OL de-
+notes open-loop, without inputs from the signal generator.
+CPU Average Minimal Maximal Standard
+frequency ex. time ex. time ex. time deviation
+4MHz, OL 176:1s 167:6s 462:9s 14:2s
+4MHz 180:9s 167:6s 738:2s 17:3s
+8MHz, OL 89:5s 84:7s 234:6s 7:2s
+8MHz 92:0s 84:9s 370:4s 13:7s
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 23 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:23
+t<=1t>=1
+t=0, tr_cnt=0
+(a) Basic monitor
+l2
+t<=1l1
+t<=1l0
+t<=1t>=1
+t=0, tr_cnt=0t>=1
+t=0, tr_cnt=0
+t>=1
+t=0, tr_cnt=0VinB? AinB? (b) Transition automaton with input ordering
+Fig. 9 . Transition monitors ( TrMonitor ) used for the worst-case execution time estimation.
+This problem occurs even if the code has been generated using Times, or any other
+tool, since the number of clocks used in models is usually greater than the number of
+timers that CPU provides. To avoid this type of errors, we opted to use the aforemen-
+tioned approach where input events only set a ﬂag to indicate the need to process input
+events in the following procedure activation. To take this into account in the initial
+UPPAAL model, we reveriﬁed the safety properties for the model where input buffers
+increase the upper bound on the introduced delay (i.e., dHa;dHv). The bounds are
+increased to incorporate the maximal input latency introduced by synchronous pro-
+cessing of the input events (in our case 1ms).
+9.3. Worst Case Execution Time Estimation in UPPAAL
+Correctness of the generated code relies on the assumption that execution of the code
+completes before the next external activation. To make sure that it does, we need to
+estimate the WCET of the code execution, taking into account that the c1ChartName
+procedure (i.e., the chart) may be internally activated multiple times. We propose an
+approach that does not require translation from UPPAAL to Stateﬂow. Rather it uses
+the initial UPPAAL model to calculate an upper bound on the maximal number of
+internal activations Niwithin an external activation (i.e., per clkexecution). This en-
+ables a WCET estimation at an early stage, during system modeling in UPPAAL.
+Since the chart is reactivated with event broadcasts and some transitions, to deter-
+mine the bound for Niwe extend the model with the following accounting features:
+— Global variable trcntand the automaton TrMonitor (Figure 9) that resets the vari-
+able at integer time points,
+— In the controller part of the UPPAAL model, reset operation trcnt=trcnt+1should
+be added to all edges with transmissions over a broadcast channel, or edges that
+would be translated into Stateﬂow transitions with act= 1reset (i.e., the transition
+for whichEng state would reactivate the chart),
+— Resettrcnt=trcnt+ 1to the edges with transmissions over broadcast channels
+that present inputs to the controller,
+— Introduce UPPAAL temporal formula A2trcnt~Ni.
+With the above changes the variable trcntbounds the number of internal activa-
+tions of the chart. Therefore, if the above proposition is satisﬁed, the value ~Ni+ 1
+provides an upper bound for the number of chart executions within a single clkexecu-
+tion (1 is due to external activation). For the pacemaker UPPAAL model from Figure 5
+we added the reset operation to 8 transitions. We proved that the formula holds for
+~Ni= 5. Note that since the UPPAAL model contains a model of the environment (i.e.,
+the heart), ~Nitakes into account chart activations caused by inputs. On the other hand,
+when we considered open-loop execution of the pacemaker (without input events from
+the heart), using the pacemaker model Figure 5 without the model of the environment
+(i.e., RH automata) we proved that the formula holds for ~Nol
+i= 1. Thus, in this case at
+most two chart executions can occur within a single clkexecution (i.e., task activation).
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 24 ---
+A:24 M. Pajic et al.
+If these results are compared with the execution time measurements from Table III,
+we can notice that for the open-loop experiments, the ratio between the maximal and
+minimal execution time is less than 3. Similarly, for the experiments with the test
+generator, the ratio is less than 5. Since in our case the minimal execution time corre-
+sponds to a single chart execution during the task’s activation (which in general might
+not be the case), we can infer that Nol
+i= 1andNi= 3. Therefore, our WCET analysis
+provided the exact bound for the open-loop scenario and a conservative bound for the
+closed-loop case.
+The reason for this is that the transition monitor from Figure 9(a) does not take into
+consideration the order of the input events processing, and if both AinB !andVinB !
+occur at the same time instance, the UPPAAL model might synchronize over the chan-
+nelAinB ﬁrst. On the other hand, the pacemaker model in Stateﬂow, and thus the ob-
+tained code, have a ﬁxed input ordering, meaning that the inputs are always processed
+in the predeﬁned order; in the pacemaker code VinB is always processed before AinB
+(and theclkevent is processed last). To take this into account we used the monitor
+from Figure 9(b) and speciﬁed the proposition as A2((trcnt~Ni)jj(TrMonitor:l 2)).
+This effectively disregards scenarios in which AinB is processed before VinB within
+a task execution. We proved that this formula holds for ~Ni= 4, thus improving the
+bound. Note that if the obtained code has more than two inputs (beside clk) it is nec-
+essary to specify all possible invalid combinations of the inputs’ ordering, which might
+signiﬁcantly increase the veriﬁcation time.
+10. CONCLUSION
+We have described the design of the UPP2SF tool for automatic translation of UP-
+PAAL models in Stateﬂow. We have shown that for a large class of UPPAAL models,
+UPP2SF preserves behavior of the initial UPPAAL model. Furthermore, we have pre-
+sented an UPP2SF-enabled Model-Driven Development framework for safety-critical
+system design. By applying the UPP2SF model translation tool on the dual-chamber,
+implantable cardiac pacemaker case study, we have demonstrated the process start-
+ing from the formalization of the device speciﬁcations, followed by system modeling
+and veriﬁcation in UPPAAL, to closed-loop system simulation in Simulink/Stateﬂow
+and testing of the physical implementation. We have also shown how the translation
+tool provides a way to estimate WCET during modeling and veriﬁcation stage in UP-
+PAAL, and facilitates development of modular code from UPPAAL timed-automata
+based models. The presented case-study ﬁts into the scenarios where the system is
+controlled using a single, centralized, controller. We plan to investigate the use of the
+UPP2SF-based MDD framework for code synthesis for distributed applications.
+ELECTRONIC APPENDIX
+The electronic appendix for this article can be accessed in the ACM Digital Library.
+ACKNOWLEDGMENTS
+The authors would like to thank Anaheed Zaki for fruitful discussions during the preparation of this paper.
+This research was supported in part by NSF CNS-0720518, NSF CNS-1035715, NSF MRI-0923518, and
+NSF CAREER-1253842 grants. Preliminary version of this paper have appeared in [Pajic et al. 2012a].
+REFERENCES
+2010. List of Device Recalls, U.S. Food and Drug Admin., (last visited Jul. 19, 2010). (2010).
+2012. Matlab R2012a Documentation !Stateﬂow. http://www.mathworks.com/help/toolbox/stateﬂow.
+(2012).
+2013. nano-RK Sensor RTOS. http://nanork.org. (2013).
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 25 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool A:25
+K. Altisen and S. Tripakis. 2005. Implementation of Timed Automata: An Issue of Semantics or Modeling?
+InFormal Modeling and Analysis of Timed Systems . Vol. 3829. 273–288.
+R. Alur. 1999. Timed Automata. In Computer Aided Veriﬁcation . Vol. 1633. 688–688.
+R. Alur, C. Courcoubetis, N. Halbwachs, T.A. Henzinger, P.-H. Ho, X. Nicollin, A. Olivero, J. Sifakis, and S.
+Yovine. 1995. The algorithmic analysis of hybrid systems. Theoretical Computer Science 138, 1 (1995),
+3–34.
+T. Amnell, E. Fersman, L. Mokrushin, P. Pettersson, and W. Yi. 2004. TIMES: A Tool for Schedulability Anal-
+ysis and Code Generation of Real-Time Systems. In Formal Modeling and Analysis of Timed Systems .
+Vol. 2791. 60–72.
+A. Ayoub, A. Wahba, A. Salem, and M. Sheirah. 2010. Code Synthesis for Timed Automata: A Comparison
+Using Case Study. In Abstract State Machines, Alloy, B and Z . Lecture Notes in Computer Science, Vol.
+5977. 403–403.
+G. Behrmann, A. David, and K. Larsen. 2004. A Tutorial on UPPAAL. In Formal Methods for the Design of
+Real-Time Systems . Vol. 3185. 33–35.
+J. Bengtsson and W. Yi. 2004. Timed Automata: Semantics, Algorithms and Tools. In Lectures on Concur-
+rency and Petri Nets . Vol. 3098. 87–124.
+Boston Scientiﬁc. 2007. PACEMAKER System Speciﬁcation. (2007).
+D. Clarke and I. Lee. 1995. Testing Real-Time Constraints in a Process Algebraic Setting. In Proceedings of
+the International Conference on Software Engineering . 51–60.
+E. M. Clarke and E. A. Emerson. 1981. Design and Synthesis of Synchronization Skeletons Using Branching
+Time Temporal Logic. In Workshop on Logic of Programs (LNCS) , Vol. 131. 52–71.
+G. Hamon. 2005. A Denotational Semantics for Stateﬂow. In EMSOFT’05: Proc. of the 5th ACM international
+conference on Embedded software . 164–172.
+G. Hamon and J. Rushby. 2007. An Operational Semantics for Stateﬂow. International Journal on Software
+Tools for Technology Transfer 9, 5 (2007), 447–456.
+M. Hendriks. 2001. Translating UPPAAL to Not Quite C . Technical Report CSI-R0108. Comp. Sc. Institute.
+Z. Jiang, M. Pajic, A. Connolly, S. Dixit, and R. Mangharam. 2010. Real-Time Heart Model for Implantable
+Cardiac Device Validation and Veriﬁcation. In 22nd Euromicro Conference on Real-Time Systems
+(ECRTS) . 239–248.
+Z. Jiang, M. Pajic, and R. Mangharam. 2012. Cyber-Physical Modeling of Implantable Cardiac Medical
+Devices. Proc. IEEE 100, 1 (2012), 122–137.
+Z. Jiang, M. Pajic, S. Moarref, R. Alur, and R. Mangharam. 2012. Modeling and Veriﬁcation of a Dual Cham-
+ber Implantable Pacemaker. In TACAS’12: 18th Conf. on Tools and Algorithms for the Construction and
+Analysis of Systems . 188–203.
+B. G. Kim, A. Ayoub, P. Jones, O. Sokolsky Y. Zhang, R. Jetley, and I. Lee. 2011. Safety-Assured Development
+of the GPCA Infusion Pump Software. In EMSOFT’11: ACM conf. on Embedded software . 89–98.
+K. G. Larsen, P. Pettersson, and W. Yi. 1997. Uppaal in a nutshell. International Journal on Software Tools
+for Technology Transfer 1, 1 (1997), 134–152.
+I. Lee, G. J. Pappas, R. Cleaveland, J. Hatcliff, B.H. Krogh, P. Lee, H. Rubin, and L. Sha. 2006. High-
+Conﬁdence Medical Device Software and Systems. IEEE Computer 39, 4 (2006), 33–38.
+F. Leitner and S. Leue. 2008. Simulink Design Veriﬁer vs. SPIN - a Comparative Case Study. In FMICS’08:
+ERCIM Workshop on Formal Methods for Industrial Critical Systems .
+M. Pajic, Z. Jiang, I. Lee, O. Sokolsky, and R. Mangharam. 2012a. From Veriﬁcation to Implementation: A
+Model Translation Tool and a Pacemaker Case Study. In 18th IEEE Real-Time and Embedded Technol-
+ogy and Applications Symposium (RTAS) . 173–184.
+M. Pajic, I. Lee, R. Mangharam, and O. Sokolsky. 2012b. UPP2SF: Translating UPPAAL models to Simulink .
+Technical Report. University of Pennsylvania.
+M. Pajic, R. Mangharam, O. Sokolsky, D. Arney, J. Goldman, and I. Lee. 2012c. Model-Driven Safety
+Analysis of Closed-Loop Medical Systems. IEEE Transactions on Industrial Informatics 99 (2012), 13.
+DOI: http://dx.doi.org/10.1109/TII.2012.2226594
+K. Sandler, L. Ohrstrom, L. Moy, and R. McVay. 2010. Killed by Code: Software Transparency in Implantable
+Medical Devices. Software Freedom Law Center (2010).
+N. Scaife, C. Sofronis, P. Caspi, S. Tripakis, and F. Maraninchi. 2004. Deﬁning and Translating a ”Safe”
+Subset of Simulink/Stateﬂow into Lustre. In EMSOFT’04: ACM conf. on Embedded software . 259–268.
+Max Sch ¨urenberg. 2012. Scalability Analysis of the Simulink Design Veriﬁer on an Avionic System. (2012).
+Received July 2012; revised April 2013; accepted September 2013
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 26 ---
+Online Appendix to:
+Safety-critical Medical Device Development using the UPP2SF Model
+Translation Tool
+MIROSLAV PAJIC , University of Pennsylvania
+ZHIHAO JIANG , University of Pennsylvania
+INSUP LEE , University of Pennsylvania
+OLEG SOKOLSKY , University of Pennsylvania
+RAHUL MANGHARAM , University of Pennsylvania
+A. FORMAL PACEMAKER SPECIFICATION
+We classiﬁed the real-time constraints for the pacemaker into two categories: behav-
+ioral constraints that describe time intervals that end when the required input is ap-
+plied, and performance constraints describing intervals that end when the required
+output is produced. For example, a behavioral constraint is that a certain input E1
+must occur within time interval [t1;t2)and as a result it should produce output E2.
+Similarly, a performance constraint is a requirement that output has to occur within
+time interval [t1;t2). From the system requirements it can be noted that pacemakers
+exert a highly repetitive behavior, where every requirement needs to be satisﬁed in
+each time interval between consecutive ventricular and/or atrial events. Therefore, to
+formalize the speciﬁcations for DDD pacemaker it is necessary to consider two time
+axes,tvandtathat measure the time since the last ventricular event (VP or VS)
+and the last atrial event (AP or AS), respectively. Now, we can deﬁne a set of formal
+pacemaker requirements (performance constraints are denoted by Pand behavioral
+with B):
+1.Pacing in the atrium :
+P1.1. AP cannot occur during the interval tv2[0;LRIdAVId);
+B1.1. If AS does not occur within interval tv2[0;LRIdAVId), an AP should occur at
+tv=LRIdAVId;
+B1.2. If AS occurs at tv2[0;LRIdAVId), AP should not be applied at tv=
+LRIdAVId.
+2.Pacing in Ventricle :
+P2.1. VP cannot occur during the interval ta2(0;AVId);
+P2.2. VP cannot be generated within tv2(0;URIdef);16
+B2.1. If VS does not occur in intervals ta2(0;AVId)andtvURId, VP should occur
+atta=AVId;
+B2.2. If VS occurs at ta2(0;AVId), a VP should not be generated at ta=AVId.
+3.Atrial Sensing (requirements for ARP):
+P3.1. AS cannot occur within the interval tv2(0;ARPd];
+B3.1. If atrial input (Ain) occurs within interval tv2(0;ARPd), it should be disre-
+garded (no AS is generated within tv2(0;ARPd));
+B3.2 If Ain occurs at tvARPd, AS is to be created at tv.
+4.Ventricular Sensing (requirements for VRP):
+16The requirement speciﬁes a lower bound on intervals between consecutive events in ventricle – the re-
+quirement for URI component.
+cYYYY ACM 1539-9087/YYYY/01-ARTA $15.00
+DOI: http://dx.doi.org/10.1145/0000000.0000000
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 27 ---
+App–2 M. Pajic et al.
+P4.1. A ventricular sense (VS) cannot be generated within interval tv2(0;VRPd);
+B4.1. If a ventricular input (Vin) occurs at time tv2(0;VRPd)it should be ignored (no
+VS is generated within tv2(0;VRPd));
+B4.2 If Vin occurs at tvVRPd, VS is to be created at tv.
+A.0.1. Pacemaker Speciﬁcations with Tolerances. The above speciﬁcations are referred to
+as the ideal pacemaker speciﬁcation. However, each of the intervals is assigned with a
+certain level of tolerance [Boston Scientiﬁc 2007]. Thus, we deﬁne realistic pacemaker
+speciﬁcations, where each of the real-time constraints is modiﬁed to incorporate a tol-
+erance. For example, we modify constraints P1.1 andB1.1 for pacing in the atrium to:
+P1.1 : AP cannot occur during at tv2[0;LRIdAVIdap);
+B1.1 : If AS does not occur within interval tv2[0;LRIdAVIdap), an AP should
+occur attv; tv2[LRIdAVId;LRIdAVId+ ap];
+In the above formulations apdeﬁnes the tolerance for the atrial pacing require-
+ments. Similarly, we (re)deﬁne all of the remaining speciﬁcation using the tolerances:
+vp- tolerance for ventricular pacing; as- tolerance for atrial sensing; vs- toler-
+ance for ventricular sensing. A set of parameters values, along with their tolerances,
+is speciﬁed in [Boston Scientiﬁc 2007] for each of the aforementioned intervals.
+B. PACEMAKER VERIFICATION IN UPPAAL
+The ﬁrst sanity check that was done for the model is to verify the absence of deadlocks
+in the model.17Furthermore, we veriﬁed the formal properties from Section A by de-
+signing a set of monitors to specify the corresponding UPPAAL queries. We express
+the queries in the subset of the Computational Tree Logic (CTL) [Clarke and Emerson
+1981] used by UPPAAL. The main temporal operators of this logic that we use are
+A2, which means that is satisﬁed in every state along every execution path from
+the current state, and A}, meaning that is satisﬁed eventually along every path.
+In this section we present the veriﬁcation procedure for the representative prop-
+erties, performance P1.1 and behavioral B2.1 speciﬁcations. A similar approach was
+used to verify the rest of the formal speciﬁcations. To verify these two properties we de-
+veloped monitors Eventoccur (Hevent )),Timer (Sense;Pulse )andURImon from Fig-
+ure 10.18AutomataEventoccur andURImon can be used to specify propositions that
+require information related to occurrences of certain events, while the clock tdeﬁned
+for the monitor Timer measures the time from the last pulse or sense signal. For ex-
+ample, in automaton Timer (as;ap)the clockthas the value of the previously deﬁned
+timeta- the time since the last atrial activity.
+To specify the property P1.1 in UPPAAL we used monitors MEap =
+Eventoccur (ap))from Figure 10(a) and MTv=Timer (vs;vp)from Figure 10(b).
+Furthermore, we speciﬁed the property as:
+A2(MEap:occur)(MTv:tLRIdAVId )); (10)
+and veriﬁed it in UPPAAL. Similarly, for the property B2.1 we used monitors MEvp=
+Eventoccur (vp)),MTa=Timer (as;ap), andURImon (Figure 10(c)). The veriﬁed
+query was formulated as:
+A2(MEvp:occur^not(URImon:vped ))(MTa:tAVId )): (11)
+17It is worth noting that the initial UPPAAL model must be deadlock-free to guarantee that the UPP2SF
+will derive a Stateﬂow chart with execution that corresponds to an MPA run of the UPPAAL model.
+18In the UPPAAL notation, input parameters for a component are speciﬁed between brackets.For example,
+Eventoccur (ap)denotes the automaton Eventoccur whereHevent :=ap.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 28 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool App–3
+occur IdleHevent?
+(a)Eventoccur (Hevnt )
+monitor
+rect=0 t=0Pace?Sense?
+t=0(b)Timer (Sense;Pace )
+monitor
+vpeduried start
+VP?uri_s?(c) URI monitor
+Fig. 10 . Monitors used for veriﬁcation of the pacemaker model in UPPAAL - each automaton uses its own
+local clock.
+Fig. 11 . Test points for behavioral real-time constraints.
+C. STATEFLOW MODEL VALIDATION
+We performed validation of the pacemaker Stateﬂow chart after the decoupling by ex-
+tending the approach for testing real-time constraints described in [Clarke and Lee
+1995]. The same approach was also used for the testing of the ﬁnal physical imple-
+mentation (Section D).
+In [Clarke and Lee 1995], the authors proposed a testing procedure for behavioral
+and performance constraints (as the ones speciﬁed in Section A) if the following as-
+sumptions are satisﬁed:
+(1) All output sequences of a system under test must be eventually distinguishable.
+(2) All time bounds must be constant.
+(3) There is no sharing of resources between concurrent threads.
+(4) Speciﬁcation intervals are implemented in software as continuous, linear domains.
+In our case, all of the assumptions are inherently satisﬁed, and thus we adapted
+the method for the pacemaker testing. From the formal speciﬁcations we derived an
+appropriate set of tests to validate correctness of the obtained pacemaker design. For
+each performance constraint we used a test that validates whether the appropriate
+output has been generated within the required interval. On the other hand, testing
+behavioral constraints was more complex. For each interval boundary we generated
+two tests. For closed boundaries we applied inputs that were exactly at the boundary
+point and tests that were outside the interval, at the distance from the boundary
+point (see Figure 11). For open boundaries we generated inputs that were inside and
+outside the interval, at the distance from the boundary point.
+To perform validation of the Stateﬂow chart and the physical implementation, we
+used the model parameters from Table IV. For testing in Simulink we considered only
+tests for the ideal system speciﬁcations. Since the chart was activated every 1ms, and
+transitions in Stateﬂow are instantaneous (all transition actions are atomic) we used
+= 0:5msand= 1msfor simulations. All the ‘ideal’ real-time constraints (and thus,
+the constraints with tolerances) were satisﬁed in Simulink. This was expected since all
+actions within a clkexecution are atomic to the event and no simulation time elapses
+during them.
+In addition, the chart exhibited the same behaviors as the initial UPPAAL model.
+For example, for the aforementioned model parameters, when no inputs were applied
+the chart generated AP and VP pulses at the same time points as the UPPAAL model
+(i.e., AP were generated at tap
+i= (850 + 1000( i1))ms; i = 1;2;:::, and VP at tvp
+i=
+(1000i)ms; i = 1;2;:::). Similarly, no time was spent in committed states st3CCCin
+AVI, andinterCCstates in PVARP and VRP parallel states, and outgoing transitions
+from the states would occur immediately after the states were activated. To illustrate
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 29 ---
+App–4 M. Pajic et al.
+Fig. 12 . A test screen shot for property B4.2 ;clkpulses are highlighted.
+a more complex behavior we also showed that, as in UPPAAL, if st3state in AVI parent
+state was active when the transition URIst 1!URIst 2occurred (causing broadcast
+ofurisevent), then no time had elapsed in the URIst 2state, before the transition
+URIst 2!URIst 1conditioned with vptook place.
+D. TESTING OF THE PHYSICAL IMPLEMENTATION
+We validated the physical implementation using the procedure from Section C. Unlike
+validation of the Stateﬂow chart, for physical testing we considered two types of tests.
+For the ideal system speciﬁcations we used 80s, since 84:9swas the chart’s
+minimal execution time (Table III). Similarly, since the values for all the predeﬁned
+tolerances are4ms, for the second set of tests we used 4ms<4:08ms.
+Table V presents testing results for the pacemaker implementation executed on the
+MSP430 Experimenter Board. When the tolerances are not taken into account some
+of the properties that were veriﬁed in UPPAAL and validated in Simulink were vio-
+lated during the tests. The reason is that the UPPAAL semantics uses an unrealistic
+assumption that the machine executing the code is inﬁnitely fast (i.e., no time elapses
+during transitions) and the system’s reaction to synchronization is instantaneous. In
+the general case, the execution delays can cause violation of the UPPAAL semantics in
+the obtained physical implementation, which is the main reason for violation of some
+of the veriﬁed safety properties. However, when interval tolerances are taken into ac-
+count, all properties were satisﬁed, as shown in Table V.
+For example, consider the property B4.2 . Figure 12 presents one of the oscilloscope
+screenshots obtained during the testing. The signals shown are Ain(top),AS(middle)
+andclk(bottom). As shown, Ainappeared right after the ﬁrst clkoccurrence. It sets the
+Table IV. Pacemakers parameters.
+Parameter Range Value Tolerance
+LRId 343-1200 ms 1000ms4ms
+AVId 70-300 ms 150ms4ms
+URId 1000 ms 400ms4ms
+VRPd 150-500 ms 150ms4ms
+ARPd 150-500 ms 200ms4ms
+Table V. Results of the tests performed on the setup from Figure 8.
+Requirement P1.1 B1.1 B1.2 P2.1 P2.2 B2.1 B2.2
+Ideal Pass Fail Pass Pass Pass Fail Fail
+With tolerance Pass Pass Pass Pass Pass Pass Pass
+Requirement P3.1 B3.1 B3.2 P4.1 B4.1 B4.2
+Ideal Pass Fail Fail Pass Fail Fail
+With tolerance Pass Pass Pass Pass Pass Pass
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.
+
+--- Page 30 ---
+Safety-critical Medical Device Development using the UPP2SF Model Translation Tool App–5
+appropriate ﬂag in the interrupt routine, but the processing of the corresponding event
+occurred with the next clk. The event processing takes approximately 232sbefore AS
+is generated. This, along with the time (up to 1ms) betweenAinand the following clk,
+results in delay of up to 1:232ms. Thus, ideal requirement B4.2 is violated. However,
+since the delay is within the tolerance bound, the requirement is satisﬁed when the
+tolerances are taken into account.
+ACM Transactions on Embedded Computing Systems, Vol. V, No. N, Article A, Publication date: January YYYY.

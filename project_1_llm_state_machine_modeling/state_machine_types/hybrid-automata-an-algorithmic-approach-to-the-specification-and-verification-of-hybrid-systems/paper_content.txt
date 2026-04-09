@@ -1,0 +1,1067 @@
+--- Page 1 ---
+Hybrid Automata:
+An Algorithmic Approach to the Specification
+and Verification of Hybrid Systems
+
+Rajeev Alur*
+Costas Courcoubetis**
+Thomas A. Henzinger***
+Pei-Hsin Ho***
+
+TR 93-1343
+May 1993
+
+Department of Computer Science
+Cornell University
+Ithaca, NY 14853-7501
+
+*AT&T Bell Laboratories, Murray Hill, NJ 07974.
+
+“Institute of Computer Science, FORTH, and Department of Computer Science,
+University of Crete, Heraklion, Greece. Supported in part by the BRA ESPRIT project
+REACT.
+
+“*“Department of Computer Science, Cornell University, Ithaca, NY 14853.
+Supported in part by the National Science Foundation under grant CCR-9200794
+and by the United States Air Force Office of Scientific Research under contract
+F49620-93-1-0056.
+
+
+--- Page 3 ---
+Hybrid Automata:
+
+An Algorithmic Approach to the Specification and Verification of
+Hybrid Systems
+
+Rajeev Alur! Costas Courcoubetis? Thomas A. Henzinger? Pei-Hsin Ho?
+
+Abstract
+
+We introduce the framework of hybrid automata as a model and specification language for
+hybrid systems. Hybrid automata can be viewed as a generalization of timed automata, in which
+the behavior of variables is governed in each state by aset of differential equations. We show that
+many of the examples considered in the workshop can be defined by hybrid automata. While
+the reachability problem is undecidable even for very restricted classes of hybrid automata, we
+present two semidecision procedures for verifying safety properties of piecewise-linear hybrid
+automata, in which all variables change at constant rates. The two procedures are based,
+respectively, on minimizing and computing fixpoints on generally infinite state spaces. We show
+that if the procedures terminate, then they give correct answers. We then demonstrate that
+for many of the typical workshop examples, the procedures do terminate and thus provide an
+automatic way for verifying their properties.
+
+1 Introduction
+
+More and more real-life processes, from elevators to aircrafts, are controlled by programs. These
+reactive programs are embedded in continuously changing environments and must react to environ-
+ment changes in real time. Obviously, correctness is of vital importance for reactive programs. Yet
+traditional program verification methods allow us, at best, to approximate continuously changing
+environments by discrete sampling. A generalized formal model for computing systems is needed
+to faithfully represent both discrete and continuous processes within a unified framework. Hybrid
+automata present such a framework.
+
+A hybrid system consists of a discrete program within an analog environment. Hybrid automata
+are generalized finite-state machines for modeling hybrid systems. As usual, the discrete transitions
+of a program are modeled by a change of the program counter, which ranges over a finite set of
+control locations. In addition, we allow for the possibility that the global state of a system changes
+continuously with time according to the laws of physics. For each control location, the continuous
+activities of the environment are governed by a set of differential equations. We label each location
+also with an invariant condition that must hold while the control resides at the location, and each
+transition is labeled with a guarded set of assignments. This model for hybrid systems is inspired
+
+ 
+
+* AT&T Bell Laboratories, Murray Hill, NJ 07974.
+
+Institute of Computer Science, FORTH, and Department of Computer Science, University of Crete, Heraklion,
+Greece. Supported in part by the BRA ESPRIT project REACT.
+
+*Department of Computer Science, Cornell University, Ithaca, NY 14853. Supported in part by the National
+Science Foundation under grant CCR-9200794 and by the United States Air Force Office of Scientific Research under
+contract F49620-93-1-0056.
+
+
+--- Page 4 ---
+by the phase transition systems of [MMP92] and [NSY92], and can be viewed as a generalization
+of timed automata [AD90].
+
+The current paper pursues three objectives. First, hybrid automata are defined and their
+suitability for specification is demonstrated through some paradigmatic examples. Second, the
+verification problem for hybrid automata is studied and shown to be intrinsically difficult even
+under severe restrictions. Third, and most importantly, we successfully verify interesting properties
+of truly hybrid system behaviors. We note that Nicollin et al. have independently developed an
+approach similar to ours [NSOY].
+
+For verification purposes, we restrict ourselves to linear hybrid automata. In a linear hybrid
+automaton, for each variable the rate of change with time is constant — though this constant may
+vary from location to location — and the terms involved in the invariants, guards, and assignments
+are required to be linear. An interesting special case of a linear hybrid automaton is a timed
+automaton [AD90]. In a timed automaton each continuously changing variable is an accurate
+clock whose rate of change with time is always 1. Furthermore, in a timed automaton all terms
+involved in assignments are constants, and all invariants and guards only involve comparisons of
+clock values with constants. Even though the reachability problem for linear hybrid automata is
+undecidable, it is PSPACE-complete for timed automata. In this paper, we show that some of the
+algorithms for the analysis of timed automata can be extended to obtain semidecision procedures for
+solving the verification problem for linear hybrid automata. In particular, we consider the fixpoint
+computation method presented in [HNSY92] and the minimization procedure for timed automata
+presented in [ACHt92]. Both methods perform a reachability analysis over the infinite state space
+of a timed automaton by computing with sets of states. We show that the primitive steps of the
+two algorithms can be performed relatively easily even in case of linear hybrid automata and, thus,
+both methods can be generalized. The crucial observation is that each set of states computed by
+the algorithms is definable by a linear formula; that is, it is a union of convex polyhedra. However,
+as we move from timed automata to linear hybrid automata, the termination of the two procedures
+is no longer guaranteed.
+
+Both methods we consider can be used to prove invariant properties of linear hybrid systems.
+We illustrate these methods on three examples, and in each case the procedures terminate. The
+first example involves a water level monitor. It is a truly hybrid system, since the water level
+increases and decreases continuously in phases. We show how to prove that the water level always
+remains within the specified bounds. The second example proves the mutual exclusion property of
+a real-time mutual exclusion protocol. Earlier algorithmic methods based on timed automata fail
+when the bounds on the various delays are not known. We show how to perform a symbolic analysis
+so as to deduce constraints between the various bounds. Our third example involves leakage in a
+gas burner. This is an example of a so-called integrator system in which we are required to prove
+a bound on the ratio of two durations.
+
+2 Modeling Hybrid Systems
+We define a formal model and a specification language for hybrid systems.
+
+2.1. Hybrid traces
+
+An interval is a nonempty convex subset of the nonnegative real line R+. Intervals may be open,
+halfopen, or closed; bounded or unbounded. The left end-point of an interval I is denoted by ly
+and the right end-point, for bounded J, is denoted by rz. Two intervals [, and In are adjacent if
+
+
+--- Page 5 ---
+(1) rz, = ly, and (2) either J, is right-open and J is left-closed, or J, is right-closed and J, is left-
+open. An interval sequence Ip I Iz... is a finite or infinite sequence of intervals that partitions Rt:
+
+1. Any two neighboring intervals J; and I;4; are adjacent.
+2. For all t € Rt, there is some interval J; with t € Jj.
+
+In particular, Jo is left-closed and Jj, = 0. The last interval of any finite interval sequence is
+unbounded. The interval sequence J, refines the interval sequence [, if TJ, is obtained from Ty
+by splitting some intervals. We henceforth identify an interval sequence 7 with its refinement
+closure {J | J refines T}. Clearly, for any finite set Z of interval sequences there is an interval
+sequence (|Z that refines all sequences in TZ.
+
+Let V be a finite set of real-valued variables. A state is an interpretation of all variables in V.
+We write & for the set of states. A trace is a function from R+ to D. Equivalently, a trace r is a
+collection of functions r(x) from R* to R, one for each variable « € V. We say that the trace 7
+has property P if all of its constituent functions r(z), for z € V, have property P. We will use the
+following properties of functions:
+
+e A function f: Rt — Ris piecewise smooth if there exists an interval sequence 7 = 7om7m...
+and a sequence fofi fo... of C™-functions such that the restriction of f to each interval J;
+coincides with the restriction of f; to J;. Each restriction of f to an interval J; is called a
+phase of f. The phases of a piecewise-smooth trace 7 are the restrictions of r to the intervals
+
+of the sequence J’ = ur [a eV}.
+e A piecewise-smooth function f: Rt — R is piecewise linear if each phase of f is linear.
+e A piecewise-linear function f: Rt — R is a step function if the slope of all phases of fis 1.
+
+e A piecewise-linear function f: Rt — R is a clock function if the slope of all phases of fis 1.
+
+A piecewise-linear function f: Rt — R is a skewed-clock function if there is some constant
+k € R such that the slope of all phases of f is k.
+
+A piecewise-linear function f: Rt — R is an integrator function if the slope of each phase
+of f is either 0 or 1.
+
+A timed trace r is a trace each of whose constituent functions r(x), for 2 € V, is either a step
+function or a clock function. A set S of traces is fusion-closed if for all traces 1,72 € S and
+all t1,t2 € Rt, if 71(t1) = T2(t2), then 7 € S for the trace 7 with T(t) = 71(t) for all t < t, and
+T(t) = To(t + tg — #1) for al t > ty.
+
+2.2. Hybrid automata
+
+We model a hybrid system as fusion-closed set S of piecewise-smooth traces. Each trace rT € S
+represents a possible behavior of the system over real time. The piecewise smoothness of r ensures
+that in any bounded interval of time, there are only finitely many discontinuous state changes.
+The fusion closure of S ensures that each state contains all information necessary to determine the
+future evolution of the system.
+
+We define sets of traces by graphs whose edges represent discrete transitions and whose vertices
+represent continuous activities. A hybrid system A = (Vp, Q, /41, /42, U3) is given by six components:
+
+
+--- Page 6 ---
+e A finite set Vp of real-valued data variables. A data state is an interpretation of all variables
+in Vp. We write Xp for the set of data states.
+
+e A finite set Q of vertices called locations. We use the variable pe ¢ Vp as a control variable
+that ranges over the set Q of locations (properly encoded in R), and let V = {pc} U Vp.
+Thus, © = Q x Xp; that is, a (system) state is a pair (¢,0) consisting of a location € € Q and
+a data state 0 € Up.
+
+A labeling function 4; that assigns to each location in Q a set of possible activities. Each
+activity is a C®-function from Rt+ to Dp.
+
+A labeling function 12 that assigns to each location ¢ € Q an exception set p2(£) C Ep. The
+system control must leave location £ before an exception j12(£) occurs. The complement Ep 一
+[42(€) is called the invariant of the location 4.
+
+A labeling function yg that assigns to each pair e € Q? of locations a transition rela-
+tion y3(e) © £2. We require that for all locations ¢ € Q and all data states o € Xp,
+(7,0) € us(é,£). The state (o’, £’) is called a successor of the state (£,0) iff (o,0") € ua(Z,@’).
+
+At any time instant, the state of a hybrid system specifies a control location and values for all data
+variables. The state can change in two ways: (1) by an instantaneous transition that changes the
+entire state according to the successor relation, and (2) by elapse of time that changes only the
+values of data variables in a continuous manner according to the activities of the current location.
+The exceptions of a hybrid system enforce the progress of the underlying discrete transition system:
+some transition must be taken before an exception occurs. Typical exceptions are timeouts and
+sensor readings that trigger a discrete state change.
+Formally, a run of the hybrid system A is a finite or infinite sequence
+Pp: eo (£0; Jo, fo) of or (41,4, fr) of a2 (£2, Ia, fo) nw       ()
+
+0
+
+of data states ai) af E Xp, locations é; € Q, intervals J;, and activities f; such that
+1. for all i > 0, the state (£;41, 0:41) is a successor of the state (£:, 04);
+2. IptiIg... is an interval sequence;
+
+3. for all i > 0, the activity f; is in w4(é;), and (1) f,(0) = 0; and
+fi(rs, — lz,) = of, and (2) for all t € Jj, fi(t — li,) ¢ wo(&).
+
+Each run p of A uniquely determines a trace 7,: for all i > 0 and t € Jj, let T(t) = (4; fi(t — ly,)).
+Observe that, for all i > 0, if J; is left-closed, then the state at time J;,, that is, at the time of
+transition from state o/_, to state oj, is defined to be o;. On the other hand, if J; is left-open, then
+the state at time ly, is defined to be o/_,.
+
+By Sa we denote the set of all traces r, that correspond to runs p of the system A. The
+set S4 is fusion-closed, because at any time instant during a run, the configuration of the system
+is completely determined by the location in which the control resides and the values of all data
+variables.
+
+
+--- Page 7 ---
+Linear hybrid systems
+
+A linear term a over a set of variables 了 is a linear combination of the variables in V with rational
+coefficients. A linear formula 由 over Y is a boolean combination of inequalities between linear
+terms over V.
+
+The hybrid system A = (Vp, Q, }11, 2, 3) is linear if its activities, exceptions, and transition
+relations can be defined by linear expressions over the set Vp of data variables:
+
+1. For all locations £ € Q, the possible activities are linear functions defined by a set of differential
+equations of the form 2’ = kz, one for each data variable x € Vp, where ky is a rational
+constant:
+
+f € ui() iff all te Rt and x € Vp, f(t)(x) = f(0)(x) + ket.
+We write 441(£,2) = ky to define the activities of the linear hybrid system A.
+
+2. For all locations ¢ € Q, the exception is defined by a linear formula ¢ over Vp: o € H2(2) iff
+o(¢).
+
+3. For all pairs e € Q? of locations, the transition relation i3(e€) is defined by a guarded set of
+assignments
+@ > {r:=az|2€ Vp},
+
+where ¢ is a linear formula over Vp and each a is either a linear term over Vp or “?”:
+
+(a, 0’) € ys(e) iff o(¢) and for all z € Vp, either a, =? or
+
+o'(x) = o(az).
+An assignment of the form x :=? indicates that the value of the variable x is changed nonde-
+terministically to an arbitrary value. We write y3(e,z) for the term az.
+
+Various special cases of linear hybrid systems are of particular interest:
+
+e If w1(¢,2) = 0 for each location ¢ € Q, then a is a discrete variable. Thus a discrete variable
+changes only when the location of control changes. A discrete system is a linear hybrid system
+all of whose data variables are discrete variables.
+
+A discrete variable x is a proposition if u3(e,c) € {0,1} for all pairs e € Q?. If all the data
+variables are propositions, then a linear hybrid automaton is same as a finite-state system
+whose states are labeled with propositions.
+
+If pi(é,z) = 1 for each location £ and yg(e,z) € {0,2} for each pair e € Q?, then z is a
+clock. Thus the value of a clock variable increases with time uniformly; a transition of the
+automaton either resets it to 0, or leaves it unchanged. A (finite-state) timed system is a
+linear hybrid system all of whose data variables are propositions and clocks.
+
+If there is a constant k € R such that y(¢,2) = k for each location @ and us(e,x) € {0,2}
+for each pair e € Q*, then z is a skewed clock. Thus a skewed clock is similar to a clock
+variable except that it changes with time at some (fixed) rate different from 1. A multirate
+timed system is a linear hybrid system all of whose data variables are propositions and skewed
+clocks. An n-rate timed system is a multirate timed system whose skewed clocks proceed at
+n different rates.
+
+
+--- Page 8 ---
+x<6 > x:=x-1
+
+ 
+
+Figure 1: Graphical representation
+
+e If wi(é,2) € {0,1} for each location £ and Ha人ez) € {0,2} for each pair e € Q?, then z is
+an integrator. Thus an integrator is like a clock that can be stopped and restarted, and can
+measure accumulated durations. An integrator system is a linear hybrid system all of whose
+data variables are propositions and integrators.
+
+e A discrete variable is a parameter if y3(e,) = 2 for all pairs e € Q?. Thus a parameter is
+a symbolic constant which can be used, for instance, in the guards of the transitions. For
+different special types of linear hybrid automata defined above, we can define its parameterized
+version also. For instance, a parameterized timed system is a linear hybrid system all of whose
+data variables are propositions, parameters, and clocks.
+
+Clearly, if A is linear (discrete; timed; multirate timed; integrator) system, then all traces in S4
+are piecewise linear (step traces; timed traces; skewed-clock traces; integrator traces, respectively).
+
+Graphical representation
+
+Instead of using exceptions, we label locations with their invariants. We suppress location labels
+of the form 2’ = 0 for activities and true for invariants. For transition labels, we suppress the
+guard true and assignments of the form z := 2. Reflexive transitions with the label true are
+suppressed altogether.
+
+As an example, consider the linear hybrid system of Figure 1 with the single data variable z.
+This system has two locations, €; and €9. In location ¢;, the value of x decreases at a constant rate
+of 1. The transition from ¢; to £, may be taken at any time after the value of z has fallen below 6,
+and it must be taken before the value of x falls below 5. When the transition is taken, the value
+of x is instantaneously decreased by 1. Once in location ¢, the rate of x starts to increase at the
+constant rate of 2. The transition back to location ¢, is taken exactly when the value of z hits 10.
+Indeed, at the very time instant when x = 10, the control of the system is already in location ¢;,
+because location £2 has the invariant x < 10.
+
+Initial and acceptance conditions
+
+We can turn a hybrid system A into an automaton by adding initial and acceptance conditions.
+The initiality criterion is given by a labeling function jg that assigns to each location £ € Q an
+initial condition p4(£) C Xp. The Muller acceptance criterion is given by a collection F C 2? of
+acceptance sets of locations. The run p ({) of the hybrid Muller automaton (A, 4, F) is accepting
+if
+
+4. 90 € pa(lo);
+
+5. either p is finite with final location ¢, and {€,} € F, or poo € F for the set Poo Of locations that
+are visited infinitely often during p (i.e, poo is the set {€| € = ¢; for infinitely many i > 0}).
+
+6
+
+
+--- Page 9 ---
+The hybrid automaton (4,H4, 天) is linear 这4is alinear hybrid system and for all locations te @Q，
+the initial condition is defined by a linear formula ¢ over Vp (i.e., o € pa(£) iff o(¢)).
+
+Parallel composition
+
+A hybrid system typically consists of many components operating concurrently and coordinating
+with each other. Such a system can be constructed from the descriptions of its components using
+a product operation. Let Ay = (Vj, Q?, ut, ug, ud) and Ap = (VZ,Q?, u?, 13, u2) be two hybrid
+systems. The product A, x Ag of A; and Ap is the hybrid system (VA U V2, Q? x Q?, 41, luo, us)
+such that
+
+e An activity f belongs to j1(¢1, é2) iff the restriction of f to the data variables Vj, denoted
+by flva, isin wt (41), and flys is in yj(42);
+
+e A data state o over VA U VA is in pa人bb) 证 cy， the projection of o onto the variables
+V4, is in w4(£1), or oly2 is in p3(é2);
+
+-  (9, a’) € Ha((41, £2), ( 人  2)) iff (olvs.o'lva) € P3(£1, 4) and (olyzso'lyz) € Ha(l2, £9).
+
+It is not hard to see that traces of the product system are precisely those hybrid traces whose
+projections are traces of the component systems. It follows that the product of two linear hybrid
+systems is again linear, etc. An accepting run of a product automaton must meet the initial and
+acceptance conditions of both component automata.
+
+2.3. Examples of hybrid systems
+
+We model a thermostat, a water level monitor, a clock-based mutual-exclusion protocol, and a
+leaking gas burner as hybrid systems.
+
+Temperature controller
+
+Our first example describes a nonlinear hybrid system. The temperature of a plant is controlled
+through a thermostat, which continuously senses the temperature and turns a heater on and
+off [NSY92]. The temperature is governed by differential equations. When the heater is off, the tem-
+perature, denoted by the variable x, decreases according to the exponential function a(t) = be~**,
+where ¢ is the time, 6 is the initial temperature, and K is a constant determined by the plant;
+when the heater is on, the temperature follows the function 2(t) = 6e~** + h(1 — e~**), where
+h is a constant that depends on the power of the heater. Suppose that initially the temperature
+is M degrees and the heater is turned off. We wish to keep the temperature between m and M
+degrees. The resulting system can be described by the hybrid automaton of Figure 2 (note the
+representation of the initial condition c = M). The automaton has two locations: in location fo,
+the heater is turned off; in location £;, the heater is on.
+
+Water level monitor
+
+Our next example describes a linear system. The water level in a tank is controlled through a
+monitor, which continuously senses the water level and turns a pump on and off. Unlike the
+temperature, the water level changes as a piecewise-linear function over time. When the pump is
+off, the water level, denoted by the variable y, falls by 2 inches per second; when the pump is on,
+the water level rises by 1 inch per second. Suppose that initially the water level is 1 inch and the
+
+
+--- Page 10 ---
+ 
+
+Figure 2: Temperature controller
+
+ 
+
+Figure 3: Water level monitor
+
+pump is turned on. We wish to keep the water between 1 and 12 inches. But from the time that
+the monitor signals to change the status of the pump to the time that the change becomes effective,
+there is a delay of 2 seconds. Thus the monitor must signal to turn the pump on before the water
+level falls to 1 inch, and it must signal to turn the pump off before the water level reaches 12 inches.
+
+The linear hybrid automaton of Figure 3 describes a water level monitor that signals whenever
+the water level passes 5 and 10 inches, respectively. The automaton has four locations: in loca-
+tions 9 and £, the pump is turned on; in locations £2 and ¢3, the pump is off. The clock z is used
+to specify the delays: whenever the automaton control is in location ¢; or ¢3, the signal to switch
+the pump off or on, respectively, was sent x seconds ago. In the next section, we will prove that
+the monitor indeed keeps the water level between 1 and 12 inches.
+
+Mutual-exclusion protocol
+
+This example describes a parameterized multirate timed system. We present a timing-based algo-
+rithm that implements mutual exclusion for a distributed system with skewed clocks. Consider an
+asynchronous shared-memory system that consists of two processes P, and P, with atomic read
+and write operations. Each process has a critical section and at each time instant, at most one of
+the two processes is allowed to be in its critical section. Mutual exclusion is ensured by a version
+of Fischer’s protocol [Lam87], which we describe first in pseudocode. For each process P;, where
+1 一 12:
+
+
+--- Page 11 ---
+x2bAkol
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+ 
+
+k:=0
+
+ 
+
+ 
+
+Figure 4: Mutual-exclusion protocol
+
+repeat
+repeat
+await k = 0
+kisi
+delay 6
+until k =i
+Critical section
+k:=0
+forever
+
+The two processes P; and P2 share a variable k and process P, is allowed to be in its critical
+section iff k = 7. Each process has a private clock. The instruction delay b delays a process for
+at least 6 time units as measured by the process’s local clock. Furthermore, each process takes
+at most a time units, as measured by the process’s clock, for a single write access to the shared
+memory (i.e., for the assignment 有 := 7). The values of a and 6 are the only information we have
+about the timing behavior of instructions. Clearly, the protocol ensures mutual exclusion only for
+certain values of a and 8. If both private processor clocks proceed at precisely the same rate, then
+mutual exclusion is guaranteed iff a < b.
+
+To make the example more interesting, we assume that the two private clocks of the processes P;
+and Pp, proceed at different rates, namely, the local clock of P) is 1.1 times faster than the clock
+of P,. The resulting system can be modeled by the product of the two hybrid automata presented
+in Figure 4.
+
+Each of the two automata models one process, with the two critical sections being represented
+by the locations 4 and D. The private clocks of the processes P, and P; determine the rate of
+change of the two skewed-clock variables x and y, respectively. In the next section, we will prove
+that mutual exclusion is guaranteed if a = 2 and b = 3: in this case, it will never happen that the
+control of P; is in location 4 while the control of P, is in location D.
+
+Leaking gas burner
+
+Now we consider an integrator system. In [CHR91], the duration calculus is used to prove that a
+gas burner does not leak excessively. It is known that (1) any leakage can be detected and stopped
+within 1 second and (2) the gas burner will not leak for 30 seconds after a leakage has been stopped.
+We wish to prove that the accumulated time of leakage is at most one twentieth of the time in any
+
+9
+
+
+--- Page 12 ---
+ 
+
+30<x 一 X:=0
+
+Figure 5: Leaking gas burner
+
+interval of at least 60 seconds. The system is modeled by the hybrid automaton in Figure 5. The
+automaton has two locations: in location £;, the gas burner leaks; £2 is the nonleaking location.
+The integrator ¢ records the cumulative leakage time; that is, the accumulated amount of time
+that the system has spent in location ¢;. The clock x records the time the system has spent in
+the current location; it is used to specify the properties (1) and (2). The clock y records the total
+elapsed time. In the next section, we will prove that y > 60 — 20t < y is an invariant of the
+system.
+
+2.4 Undecidability of verification
+
+The design of verification algorithms for hybrid systems is impaired by the fact that the emptiness
+problem (“Does a hybrid system have a run?”) is undecidable already for very restricted classes of
+systems. On the positive side, the emptiness problem for timed automata (only propositions and
+clocks) is PSPACE-complete [AD90]. On the negative side, the emptiness problem is undecidable
+for asynchronous timed systems (propositions and skewed clocks that proceed at different rates)
+and for integrator systems (propositions and integrators).
+
+To obtain strong undecidability results, we restrict the classes of multirate timed systems and
+integrator systems further. A linear hybrid system is simple if all linear atoms in exceptions and
+transition guards are of the form z < k, and all assignments are of the form z := x or z := k,
+for « € Vp and k € Z. In particular, for n-rate timed systems the simplicity condition prohibits
+the comparison of clocks with different rates.
+
+Theorem 1 The emptiness problem is undecidable for 2-rate timed systems and for simple inte-
+grator systems.
+
+Proof. The first part of the theorem follows from the undecidability of the halting problem for
+nondeterministic 2-counter machines (NCMs). Given any two distinct clock rates, a 2-rate timed
+system can encode the computations of an NCM. Suppose we have three “accurate” clocks of rate 1
+and two skewed clocks x; and 22 of rate 2. Then we can encode the values of two counters in the
+a-th machine configuration by the values of x1 and x2 at accurate time i: the counter value n is
+encoded by the clock value 1/2”.
+
+The accurate clock y is reset whenever it reaches 1 and thus marks intervals of length 1. It is
+obvious how a counter can be initialized to 0 and tested for being 0. Hence it remains to be shown
+how a counter can be incremented and decremented. To increment the counter represented by the
+skewed clock x from time i to time i + 1, start an accurate clock z with z in the interval {¢- 1,2)
+and reset z when it reaches 1; then nondeterministically reset x in the interval [t,¢+ 1) and test
+«= zat time 2+ 1. To decrement the counter represented by the skewed clock x from time i to
+time 7+ 1, nondeterministically start an accurate clock z in the interval [i— 1, i) and test z = z at
+
+10
+
+
+--- Page 13 ---
+time i when z reaches 1 in the interval [¢,i+ 1), reset 2. Given an NCM M, we can so construct
+a 2-rate timed system that has a run iff M halts. (Indeed, using acceptance conditions, we can
+construct a 2-rate timed automaton that has a run iff a counter is 0 infinitely often along some run
+of M; this shows that the emptiness problem is D}-complete for 2-rate timed automata [HPS83].)
+
+The second part of the theorem follows from an undecidability result for timed systems with
+memory cells [Cerans]. m
+
+We point out that the emptiness problem is decidable for simple n-rate timed automata. This is
+because any simple asynchronous timed automaton can be transformed into a timed automaton by
+(1) factoring into 1-process timed automata, (2) scaling all 1-process timed automata to the same
+clock rate, and (3) constructing the product. An analogous result holds for real-time temporal
+logics [WME92].
+
+3 Verification Procedures
+
+Consider a linear hybrid system A = (Vp, Q, 11, 2,3). Given a linear formula ¢ over Vp, we wish
+to determine whether ¢ is an invariant of A:
+
+“Is @ true in all states that occur on some trace of A?”
+
+Recall that © = @ x Ep is the state space of A. We define the following reachability relations
+between states:
+
+¢ Time step. For all locations € € Q and data variables 2 € Vp, let u1(£,2) = ky and let fo(£) =
+¢. For all data states 0 € Yp and nonnegative reals 6 € Rt, define (9 + 6) € Ep to be the
+data state that assigns to each data variable x € Vp the value o(a)+6-k,. Then >; C 3? is
+the smallest relation such that
+
+if “(0 + 6')(9) for all 0 < 6’ < 6, then (£,0) +1 (€,0 +6);
+=>, C D? is the smallest relation such that
+
+if a(o + 6')(¢) for all 0 < 6’ < 6, then (£,0) >, (£,0 + 6);
+and >), C ¥? is the smallest relation such that
+
+if -(o + 6’)(¢) for all 0 < 6’ < 6, then (£,0) +1, (€,0 + 6).
+In other words, >), =>;N =>,.
+
+¢ Transition step. The relation > C ¥:? is the smallest relation such that for all pairs (€, £’) € Q?
+and all data states 01,02 € Up,
+
+if (01,02) € pa(l,é’), then (£,01) > (é’, a9).
+Note that the relation > is reflexive.
+e Single step. For all states 01,02 € D,
+
+cl => 0 iff there exist oj,0 € ¥ with either o, =>), oO, > Oh >, O2 or 01 >
+01P a9 全 2.
+
+e The reachability relation +* C D? is the transitive closure of the single-step relation >.
+
+11
+
+
+--- Page 14 ---
+The single-step reachability relation can be extended to sets of states，For a stateo ET anda
+set R C ¥ of states, let o > R iff o > o' for some o’ € R; for two sets Ry, Ro C ¥ of states, define
+Ri > Ry iff o > Ry for some o € Ry. Again, >* denotes the transitive closure of >.
+
+Given two sets R;, Ry € D of states, we wish to find out if the reachability relation R; >* Ry
+holds. A solution to this reachability problem allows the verification of safety properties of the
+hybrid system A. Suppose the initial condition is given by the labeling function j4, then take R; to
+be the set defined by (¢,0) € R; iff o € i4(£). To check whether a linear formula ¢ is an invariant
+of A, we consider the set Ry of “bad” states: o € Ry iff x¢(c). Now ¢ is an invariant iff the
+reachability relation R; =>* Ry does not hold.
+
+From the undecidability of the emptiness problem, it follows that the reachability problem is
+undecidable for linear hybrid automata. As the state space ¥ of A is generally infinite, we will
+attempt to work on a quotient of the state-transition graph (©,>). Our method will succeed
+only if there is a finite quotient of the state space in which states are identified whenever they are
+“equivalent” with respect to the given reachability problem (Ri, Ry). This problem can be attacked
+in many different ways:
+
+e We can choose from two definitions of state equivalence. We can move “forward” from the
+initial set R; and identify two states whenever they can be reached from R; by the same
+sequence of single steps. Alternatively, we can move “backward” from the final set Ry and
+identify two states whenever they can reach Ry; by the same sequence of single steps.
+
+¢ Working forward from R; (backward from Ry), we can choose to add one equivalence class
+of states at a time until either the current set intersects with Ry (or R;, respectively) or
+no new states can be added. We refer to this category of verification methods as fixpoint
+methods, because the computation can be viewed as the iterative approximation of a fixpoint
+that defines the class of reachable states.
+
+Alternatively, we can start with an initial partition of the state space and refine it until it
+respects the equivalence relation, and thus can be used for checking reachability. The verifi-
+cation methods in this category are called minimization methods, because the computation
+can be viewed as constructing a bisimulation relation, namely, the minimal (coarsest) state
+partition that respects single-step reachability.
+
+In this paper, we present one instance of the fixpoint computation approach and one instance of
+the minimization approach. Both procedures rely on the same set of primitive operations.
+
+3.1 Fixpoint computation
+
+We define a backward fixpoint computation procedure that solves the reachability problem (Rj, Rs)
+provided it terminates. The procedure starts with the set Reur = Ry; and repeatedly adds states
+from which any state in R,,, can be reached. The procedure terminates with the answer YES
+(indicating that Ry is reachable from R,) if at some stage an initial state in R; is added, and it
+terminates with the answer NO if no new states can be added. The procedure may, of course,
+not terminate at all; it is a semidecision procedure for the reachability problem of linear hybrid
+systems.
+
+12
+
+
+--- Page 15 ---
+ 
+
+Backward fxpoint computation:
+
+Roig := 6; Reur = Ry
+
+while Ry, NR; =O and Rew Z Roig do
+R:= pre(Reur)
+Ro := Roa U Reurs Rew i= R
+
+od
+
+return Roy, 1 R; ZO.
+
+ 
+
+ 
+
+The crucial step is the computation of the state set
+pre(R) = {o€L|o> R}.
+
+This computation is possible due to the fact that all state sets encountered by the procedure are
+definable by linear formulas, and hence, for two state sets R and R’, the problems of deciding
+whether R C R’ and whether RN R’ = O have algorithmic solutions. A data region Rp C Sis a set
+of data states of the form {¢ € Ep | o(¢)}, for some linear formula ¢ over Vp. A region (€, Rp) C ©
+consists of a location £ € @ and a data region Rp. The union R C ¥ of regions (£, Ri), one for
+each location £ € Q, is called a region family. The following central lemma ensures that for linear
+hybrid systems, all required state sets are computable:
+
+Lemma 1 /f RCD isa region family, then so is pre(R).
+Proof. It suffices to show that if Rp is a data region, then so is the set
+pre(Rp) = {9 € Up | (1,0) => (42, Rp)},
+
+for each pair e = (£1, £2) of locations. Let p be the linear formula that defines Rp. We construct a
+linear formula pre,(~) that defines the set pre,(Rp). If % contains n variables, we can think of 幼
+as defining a set of points in n-dimensional space. This set is an n-dimensional polyhedron whose
+bounding hyperplanes are linear functions with rational coefficients.
+
+First let us extend the time-step and transition-step relations to linear formulas. For any linear
+formula ~ and location ¢ of A:
+
+p(e,v) = {0 € Ep | Jo’ € Xp. (H(o") A (L1,0) > (£2, 0°))},
+=> (6,0) = {0 € Up | 30’ € Up. (W(o’) A (€,0) = (£,0’))}
+for -€ {>1,>,,>1}. Then the linear formula pre,() is the following disjunction:
+pre.(p) = = ir (€1,>(€, > (€2,%))) V 1 (1, 0(€, Sir (Ln, P)))-
+
+The transition-step relation > can be computed by substitution. Let ¢ be the guard of Ha(e) and
+for all x € Vp, let Ha人ez) = ar. Then:
+
+p(e, p) 二  ¢ A (%[z = az]),
+
+where the linear formula 7[z := a,] is obtained by replacing all occurrences of z in w with a,.
+
+The time-step relations can be computed by quantifier elimination. For all locations £ of A, let
+H2(£) = de. If wi(é,x) = ke for all x € Vp, then the linear formulas »+¢6 and # —¢6 result from o
+by replacing all occurrences of x with x + kz-6 or x — ky-6, respectively. Then:
+
+=>, (6,0) = (46 >0.(o A rade) +0 6 NWO < € < 6. 7¢¢ +¢ €),
+
+13
+
+
+--- Page 16 ---
+=> (2,0) = (WA rade) V (36 > 0.% +06 A VO < €< 6. 7¢¢ +2 €),
+
+and >), (£,%) = 7¢geA =, (€,%). It remains to be shown how the quantifiers can be elimi-
+nated from these formulas. We first convert all quantifiers into existential form and translate all
+quantifier-free subformulas into disjunctive normal form. Since existential quantifiers distribute over
+disjunction, it suffices construct a linear formula over V that is equivalent to the formula 46 € R. y,
+where y is a conjunction of linear inequalities over V U {6}. Note that the formula 36. y defines a
+convez rational polyhedron. To eliminate the existential quantifier, (1) solve all inequalities for 6
+and (2) construct the conjunction of all 6-free inequalities that are implied by transitivity. m
+
+As for timed systems [HNSY92], the fixpoint method can be extended to check properties of
+linear hybrid systems that are specified in real-time extensions of branching-time logics such as CTL.
+
+3.2. Minimization
+
+Let 7 be a partition of the state space D into regions. A region R € 7 is stable if
+VR' € n.(R => R’ implies Vo € R.o > R’).
+
+The partition 7 is a bisimulation if every region of m is stable. The partition 7 respects R; if for
+every region R € 7, either R C Ry or RN Rs = O. Observe that if a partition 7 that respects Ry
+is a bisimulation, then it can be used for reachability analysis: to see if Ry is reachable from Rj,
+check if there exists a path from some m-region R; such that Ry NR; # @ to some m-region R2 such
+that Ro C Ry. Our objective is to construct the coarsest bisimulation provided it is finite. For
+this purpose, we can adopt algorithms for performing a simultaneous reachability and minimization
+analysis of transition systems [BFH90, LY92].
+
+The minimization procedure of [BFH90] is given below. Let ™ = {(€, true) | £ € Q} be the
+initial partition of © into regions — one region per location. The initial partition is refined into
+™ =m N{R;,U — Rg} so that it respects Ry.
+
+ 
+
+Minimization:
+
+T:=™m;a:={R| ROR; £0}; 8:=0
+while a # 8 do
+
+choose R € (a — f)
+
+let a! := split(R, 7)
+
+if ao’ = {2} then
+
+B:= BU{R}
+
+a:=aU{Rer|R=> RP}
+else
+
+a:=a—{R}
+
+if JR’ € a’ such that R'N Rj #0 then a:= aU {RK} fi
+6:=68-{Rer| Rk => R}
+mT :=(t-{R})Ua!’
+
+od
+return there is R € a such that RC Ry.
+
+ 
+
+ 
+
+ 
+
+Starting from 7, the procedure selects a region R and checks if R is stable with respect to the
+current partition; if not, then R is split into smaller regions. Additional book-keeping is needed
+
+14
+
+
+--- Page 17 ---
+to record which regions are reachable from the region containing the initial state. In the following
+procedure, a is the current partition, a is the set of m-regions that have been found reachable
+from (the region of) the initial state, and is the set of t-regions that have been found stable
+with respect to 7. The function split(R,7) splits the 7-region R into subregions that are “more”
+stable with respect to 7: split(R,7) := {R', R — R’} if there is some region R” € m such that the
+region R’ = pre(R”)/O R is a proper subset of R, and split(R,7) := {R} otherwise. Since the
+operation split is computed using pre, all state sets encountered by the minimization procedure are
+again definable by linear formulas. The procedure terminates if the coarsest bisimulation has only
+a finite number of equivalence classes.
+
+If the minimization procedure terminates, we obtain a finite bisimulation of © with respect
+to =. As with timed automata [ACHt 92], the resulting reachability graph can be used to solve also
+the emptiness problem for A, even in presence of acceptance conditions, and for model checking
+branching-time properties. The minimization procedure may be replaced by the more efficient
+procedure presented in [LY92], which can also be implemented using the primitive pre.
+
+3.3 Verification examples
+In the following, we demonstrate that both the fixpoint computation procedure and the minimiza-
+tion procedure terminate in many cases.
+
+Minimization: water level monitor
+
+Let A be the hybrid automaton defined in Figure 3. We use the minimization procedure to prove
+that the formula 1 < y < 12 is an invariant of A. It follows that the water level monitor keeps the
+water level between 1 and 12 inches.
+
+By (#%), for a linear formula over V, we denote the set of all states (£,0) such that o satis-
+fies %[pc := £]. Let the set R; of initial states be so defined by
+
+Ri = (pe=ONt=O0A y=1)
+and let the set Ry of “bad” states be defined by
+Ry = (y<1Vy> 12).
+
+The initial partition is to = {(¢, true) | € € {€0, 1, £2, €3}}. We next partition each region of the
+initial partition into “good” and “bad” states: 7, = {
+
+Co = (pe=O0A1L<Sy< 12),  Col= (pe=O0A (y<1V y>12)),
+Cio = (pe=1Al<y< 12),  Cu = (poe=1 A (y<1 Vv y>12)),
+Co = (pe=2A1l<y< 12),  Cu = (pe=2A (y<1Vy>12))
+)
+
+Cs0= (pe=3Al<y< 12),  C31 = (pe=3 A (y<1V y>12))}.
+
+The bad states are in the regions Cj, for i € {0,1,2,3}. Since the initial region R; is contained
+in Coo, let a = {Coo}. Considering R = Coo € a, we find that split(Coo, 71) = {
+
+Cooo = (pe=0A1<y< 10),
+Coo1 = (pe=0 A 10<y< 12)}.
+
+Therefore, 2 = {Coo0, Coo1, Cor, Cio, C11, C20, C21, C30, Cai}. Now Rj © Cooo, so take a = {Cooo}
+and 6 = 9. Considering R = Coo, we find that it is stable with respect to m2. Thus a= aU{R'€
+
+15
+
+
+--- Page 18 ---
+a | R => R'} = {Cooo, Coo1, Cio} and B = {Cooo}. Since R = Coo: is also stable in 7 and is not
+reaching any new states not in a, a remains the same and § = {Cooo, Coo1}. However, considering
+R= Co, we obtain split(Cyo, m2) = {
+
+C00  =  (pe =1 AND<4<2A l<y< 12),
+
+Cio. =  (pe =1 Az>2Al<y<12)}.
+
+These two regions together with the regions in m2, except for Cy9, constitute 73. The new Bis
+obtained by removing {R’ € 1 | R’ = R} = Cooo from the old 3. The new a becomes {Cooo, Coo1}-
+Now R = Cooo is stable in 73. Hence a = {Coo0, Coo1, C1oo} and 8 = {Couo, Coo1}. Since R = Choo
+is stable in 73, We have a= {Coo0; Coo1; C100; C'101, C20} and B = {Cooo, Coo1, C100}- R= Cio1 is
+also stable in 73, so 8 = {Coo0, Coo1, C100, C101} and @ remains unchanged. Considering R = C20,
+we obtain split(C 9,73) = {
+
+Coo = (pe=2AN5<y< 12),
+Cor = (pe=2Al<y<5)}.
+Now mq contains C299 and C91, and thus C199 must be reconsidered. It is split into split(C90, 74) = {
+
+Ciooo =  (pe=lLADS&<2A3<y<S12ZA3<y-2< 12),
+Ciool = (pc=1A0OSz<2A1<SVy<S5A l<y-2<3)}.
+Thus m5 contains Cyg99 and C1001. After finding that Cog, Coo and C99 all are stable, we finally
+have a = {Co00, Coo1, C1000; C200; C201, C30} and 8 = {Co00, Coo1, C1000, C200}. So let R = C29. It
+is stable, so 8 = 6 U {C299} and a does not change. Then R = C39 is partitioned into {
+C300 =  (pe=3 A0<2<2A l<y< 12),
+Caol = (pe=3At>2A1<y<12)}.
+C200 has to be considered again. It is stable with respect to the current partition. Then R = C399
+is considered and split(C300, me) = {
+Caoo = (pe=3A0<z<2Al<y<12A5<y+2z<14)，
+C3001 = (pc=3AO<Sz<2A1<y<5A Ll<y+2zu < 5)}.
+We must consider C'99 again. It turns out that it is still stable. After considering R = C3000, we
+have 8 = {Coo0, Coo1; C1000; C200, C201; C3000} and a = aU {Cooo}. Now the partition is
+Tz = {Coo0; Coo1, Cor, Cr000; C1001, C101; C1;
+C200, C201, C21, C3000, C3001, C301, C31}.
+
+Since Coo is stable in 77, we have a = 3 = {Cooo; Coo1; C1000, C200, C201; C3000}. Notice that no
+region in @ contains any bad states from R;. Therefore, the invariant property has been verified.
+
+Fixpoint computation: mutual-exclusion protocol
+
+Let A be the product of the two hybrid automata defined in Figure 4, for a = 2 and 6 = 3. We use
+the fixpoint computation procedure to prove that the formula pe # (4, D) is an invariant of A. It
+follows that the protocol ensures mutual exclusion.
+
+16
+
+
+--- Page 19 ---
+Let Rj = (pe = (1, A)) be the region of initial states and let Ry = (pe = (4, D)) be the region
+of “bad” states. Let R* denote the value of R = pre(Reur) after the i-th iteration of the algorithm.
+Then R°=R f and
+
+ 
+
+R! = pre(Reuw) = ((pey =3 A peg = DAL=Kk) V (pey =4 A pep =C A2=h)),
+
+where pe;, for i = 1,2, denotes the i-th component of the control variable pe. We keep computing
+Rt] = pre(R') as long as R* and R; are disjoint:
+
+RF = ((pey =2 A peg= DA 2 <2)V (pey=4 A peg = BAY <2)
+V(pey =3 A peg= BA y<S2A13< llg-1l0yA1=hk)
+V(pey =2 A peg=CArS2A8<-lle+10y A 2=k)
+V(pey = 2 A peg=C ArS 2A 30< 10yA2=hk)
+V(pey =3 A pep = BAYS 2A3<aA1=k))
+
+Re = ((pey =1 A peg =D AV=K) V (pe, =4 A peg =A AO0=h)
+V(pey =2 A peg=CA2=kKAX<SIA 8K -llz + 10y)
+V(pey =3 A pep =BAL=KA YS 2A -20< -10y A 13 < lla —- 10y)
+V(pey =2 A pep= BASIN Y<S2A 13 < —-10y))
+
+RY = ((pey = 4 A peg = D) V (pey = 3. A peg = D AV =k)
+V(pey = 4 A peg=C A0=k) V (pey =3 A pegp=DA1=k)
+V (pe; = 4 A peg =C A 2=k)
+V (pe; = 2 A pep =AA8R<-1lt A0=k)
+V(pey =2 A peg= BAy<2A8< -Il1z)
+V(pey =2 A pep= BAS 2A Y<2A 13 < -10y)
+V(pey =1 A pey= BAOV=kAY<2A 13< —10y))
+
+Re = ((pey =3 A pey=DA1L=k) Vv (pey =4A pey=C A2=K)
+V (pey = 2 A pey= D Ax <2) V (pey=4 A pep = BA y <2)
+V(pey =2 A peg = AA8<-lla A0=k)
+V(pey =1 A peg= BAyS2A13<-10yA0=k)
+V (pe; = 2 A peg=C A8<~-lle A 38 < -1lz+10y A 0=h)
+V(pey = 3 A peg= BAyS 2A 13< 1le-10yA1=h)
+V(pey =3 A pegp=BAyS2A3<2aA1=hk)
+V(pey =2 A pep=CAtS2ZA8<-llz+10y A 2=hk)
+V(pey =2 A peg=C AtS2AN3<yA2=k)
+V(pey = 3 A pep = BAYS 2A 135 -10y A 46 < lle -10y A0=h))
+
+RE = ((pey=1A peg =DAV=k)V (Ape, =4 A prey =A A0=K)
+V(pey = 2 A peyp=DA2<2)V (pey=4A pey= BA y <2)
+V(pey = 2 A pep =C A8<-Ilz A 38< -1lz+10y A 0=h)
+V(pey = 3. A pep = BAyS2A 13<1l2-10yA1=k)
+V(pey =3 A peg= BAyS2AN3<2A1=k)
+V(pey = 2A pep =CAxS2A8<-1le+10y A 2=k)
+V(pey = 2A pep= CALS 2AN3<yA2=k)
+V(pey =2A pep = BAS 2ANYSIA 13< -10y)
+V (pe, =3 A pep = BAYS2A 13<-10y A 46 < 112 10y A 0=k))
+
+Since R® C RU R>, a fixpoint is found in 6 iterations. Notice that the fixpoint Up<;<s R’ contains
+no initial states from R;. Therefore, the invariant property has been verified.     ~o
+
+17
+
+
+--- Page 20 ---
+Fixpoint computation: leaking gas burner
+
+Let A be the integrator system defined in Figure 5. We use the fixpoint computation procedure to
+prove that the formula y > 60 — 20¢ < y is an invariant of A. It follows that the gas burner leaks
+at most one twentieth of the time in any interval of at least 60 seconds. Let Rj = (pe=1At=
+0 A x = 0) be the region of initial states and let Ry = (y > 60 A 20t > y) be the region of “bad”
+states. Let R' again denote the value of R = pre(Reur) after the i-th iteration of the algorithm.
+Then:
+
+ 
+
+Ro = Ry
+R= ((pe=2n -19< Wt-yA lL <Wt+r—-yA2W<tAV<StaA0<z)
+V(pe= 1A -19< 20t- 19% -yA2<t-2@A-1<-2 A0<2))
+R= ((pe=1A-8<20(-19z-yAl<t-zA-l<-zA0<z)
+V(pe=2A -19< Wti-yA2<tA1l<Wt+2-y A0<z))
+RB = ((pe=2N-8<Wt-yAL<tA22<Wtt+e-yA0<a)
+V(pe=1A -8 < 20t-19%-yA1<t-xA-1<-2A0<2))
+RA = ((pe=lLAV<t-a@A3< 2t-192-yA -1<-2A0<2)
+V(pe=2A-8<Wti-yAL<tA22< Wt+e-yA0<z2))
+RP = ((pe=2A0<tA3<20t-yA33<20t+z-yAO<z)
+V(pe=1A0<t-aA38< 20t-19%-y A -1<-2 AD<z))
+Ro = ((pe=1LA-1<t-@A 14 < Wi-19e-y A -1<-c¢A0<2)
+V(pe=2AN0<tA3<Wt-y A 33< 20t+«e—yA0<2))
+Roo = ((pe=2Al4<20t-yA44<20t+z-yAOSLAO<z)
+V(pe=1LA-1<t-a2A 14 < 20t-19%-y A -1<-2 A0<2))
+RS = ((pe=1A 25 < 2t-19e-yA-1<t-2#A-1<-2 A0<:2)
+V(pe=2A 14< 20t-y A 44< 20tt+r-yAD<StA0<2z))
+R = ((pe= 2A 25< Wt-—yA55<2t+er-yAV<tA0<z)
+
+V(pe=1A 25 < 20t-19%@-y A-1<t-2@A-1<-2 A0<2))
+
+Since R° C R§, a fixpoint is found in 9 iterations. As the fixpoint Uo<icg R* contains no initial
+states from R;, the invariant property has been verified.
+
+Acknowledgements. Amir Pnueli and Joseph Sifakis have influenced the ideas contained in this
+paper through numerous discussions.
+
+References
+
+[ACH*92] R. Alur, C. Courcoubetis, N. Halbwachs, D.L. Dill, and H. Wong-Toi. Minimization
+of timed transition systems. In W.R. Cleaveland, editor, CONCUR 92: Theories of
+
+Concurrency, Lecture Notes in Computer Science 630, pages 340-354. Springer-Verlag,
+1992.
+
+[AD90]    R. Alur and D.L. Dill. Automata for modeling real-time systems. In M.S. Paterson,
+editor, ICALP 90: Automata, Languages, and Programming, Lecture Notes in Computer
+Science 443, pages 322-335. Springer-Verlag, 1990.
+
+18
+
+
+--- Page 21 ---
+[BFH90]
+
+Cerans]
+
+CHR91]
+
+HNSY92j
+
+HPS83]
+
+Lam87]
+
+ 
+
+LY92]
+
+[MMP99]
+
+[NSOY]
+
+[NSY92]
+
+[WME92]
+
+A. Bouajjani, J.C. Fernandez, and N. Halbwachs. Minimal model generation. In R.P.
+Kurshan and E.M. Clarke, editors, CAV 90: Automatic Verification Methods for Finite-
+state Systems, Lecture Notes in Computer Science 531, pages 197-203. Springer-Verlag,
+1990.
+
+K. Cerans.  Decidability of bisimulation equivalence for parallel timer processes. In
+CAV 92: Automatic Verification Methods for Finite-state Systems, Lecture Notes in
+Computer Science. Springer-Verlag. To appear.
+
+Z. Chaochen, C.A.R. Hoare, and A.P. Ravn. A calculus of durations. Information
+Processing Letters, 40(5):269-276, 1991.
+
+T.A. Henzinger, X. Nicollin, J. Sifakis, and $. Yovine. Symbolic model checking for real-
+time systems. In Proceedings of the Seventh Annual Symposium on Logic in Computer
+Science, pages 394-406. IEEE Computer Society Press, 1992.
+
+D. Harel, A. Pnueli, and J. Stavi. Propositional dynamic logic of regular programs.
+Journal of Computer and System Sciences, 26(2):222-243, 1983.
+
+L. Lamport. A fast mutual exclusion algorithm. ACM Transactions on Computer
+Systems, 5(1):1-11, 1987.
+
+D. Lee and M. Yannakakis. Online minimization of transition systems. In Proceedings
+of the 24th Annual Symposium on Theory of Computing. ACM Press, 1992.
+
+O. Maler, Z. Manna, and A. Pnueli. From timed to hybrid systems. In J.W. de Bakker,
+K. Huizing, W.-P. de Roever, and G. Rozenberg, editors, Real Time: Theory in Practice,
+Lecture Notes in Computer Science 600, pages 447-484. Springer-Verlag, 1992.
+
+X. Nicollin, J. Sifakis, A. Olivero, and S. Yovine. An approach to the description and
+analysis of hybrid systems. To appear.
+
+X. Nicollin, J. Sifakis, and S. Yovine. From ATP to timed graphs and hybrid systems.
+In J.W. de Bakker, K. Huizing, W.-P. de Roever, and G. Rozenberg, editors, Real Time:
+Theory in Practice, Lecture Notes in Computer Science 600, pages 549-572. Springer-
+Verlag, 1992.
+
+F. Wang, A.K. Mok, and E.A. Emerson. Real-time distributed system specification and
+verification in asynchronous propositional temporal logic. In Proceedings of the 12th
+International Conference on Software Engineering, 1992.
+
+19
+

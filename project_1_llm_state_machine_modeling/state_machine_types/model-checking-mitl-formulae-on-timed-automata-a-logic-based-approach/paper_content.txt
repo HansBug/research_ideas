@@ -1,0 +1,2270 @@
+--- Page 1 ---
+Model Checking MITL formulae on Timed Automata:
+a Logic-Based Approach
+CLAUDIO MENGHI, SnT - Interdisciplinary Centre for Security, Reliability and Trust, University of
+Luxembourg, Luxembourg
+MARCELLO M. BERSANI, Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di
+Milano, Italy
+MATTEO ROSSI, Dipartimento di Meccanica, Politecnico di Milano, Italy
+PIERLUIGI SAN PIETRO, Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di
+Milano, Italy
+Timed Automata (TA) is de facto a standard modelling formalism to represent systems when the interest is the
+analysis of their behaviour as time progresses. This modelling formalism is mostly used for checking whether
+the behaviours of a system satisfy a set of properties of interest. Even if efficient model-checkers for Timed
+Automata exist, these tools are not easily configurable. First, they are not designed to easily allow adding
+new Timed Automata constructs, such as new synchronization mechanisms or communication procedures,
+but they assume a fixed set of Timed Automata constructs. Second, they usually do not support the Metric
+Interval Temporal Logic (MITL) and rely on a precise semantics for the logic in which the property of interest
+is specified which cannot be easily modified and customized. Finally, they do not easily allow using different
+solvers that may speed up verification in different contexts.
+This paper presents a novel technique to perform model checking of Metric Interval Temporal Logic
+(MITL) properties on TA. The technique relies on the translation of both the TA and the MITL formula into an
+intermediate Constraint LTL over clocks (CLTLoc) formula which is verified through an available decision
+procedure. The technique is flexible since the intermediate logic allows the encoding of new semantics as well
+as new TA constructs, by just adding new CLTLoc formulae. Furthermore, our technique is not bound to a
+specific solver as the intermediate CLTLoc formula can be verified using different procedures.
+CCS Concepts: •Theory of computation →Verification by model checking ;Logic and verification ;
+Logic ;
+Additional Key Words and Phrases: Model Checking, Timed Automaton, Signal-Based Semantics
+ACM Reference Format:
+Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro. 2020. Model Checking MITL
+formulae on Timed Automata: a Logic-Based Approach. 1, 1 (February 2020), 44 pages. https://doi.org/10.
+1145/nnnnnnn.nnnnnnn
+Authors’ addresses: Claudio Menghi, SnT - Interdisciplinary Centre for Security, Reliability and Trust, University of
+Luxembourg, H29 Avenue John F. Kennedy, Luxembourg, 1855, Luxembourg, claudio.menghi@uni.lu; Marcello M. Bersani,
+Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di Milano, via Golgi 42, Milan, 20133, Italy, marcello.
+bersani@polimi.it; Matteo Rossi, Dipartimento di Meccanica, Politecnico di Milano, via Golgi 42, Milan, 20133, Italy,
+matteo.rossi@polimi.it; Pierluigi San Pietro, Dipartimento di Elettronica, Informazione e Bioingegneria, Politecnico di
+Milano, via Golgi 42, Milan, 20133, Italy, pierluigi.sanpietro@polimi.it.
+Permission to make digital or hard copies of all or part of this work for personal or classroom use is granted without fee
+provided that copies are not made or distributed for profit or commercial advantage and that copies bear this notice and
+the full citation on the first page. Copyrights for components of this work owned by others than ACM must be honored.
+Abstracting with credit is permitted. To copy otherwise, or republish, to post on servers or to redistribute to lists, requires
+prior specific permission and/or a fee. Request permissions from permissions@acm.org.
+©2020 Association for Computing Machinery.
+XXXX-XXXX/2020/2-ART $15.00
+https://doi.org/10.1145/nnnnnnn.nnnnnnn
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 2 ---
+:2 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+1 INTRODUCTION
+Model checking is an automatic technique to verify whether a model of a system satisfies a property
+of interest. Various formalisms have been proposed for representing the model and its properties,
+often in terms of state machines and temporal logics, both having specific peculiarities depending
+on the designer’s goals and tool availability.
+Timed Automata [ 4] (TA) are one of the most popular formalisms to describe system behavior
+when real time constraints are important. Various tools are available to verify TA: Kronos [ 33], the
+de facto standard tool Uppaal [ 26], RED [ 32],Mitl 0,∞BMC tool [ 25] and MCMT [ 16] (though the
+latter can only perform reachability analysis of—parametric—networks of TA).
+We believe that novel model checking tools for TA should address three main challenges: ( C1)
+providing different semantics of TA including the continuous time ; (C2) supporting high level
+expressive complex logics that easily allow the specification of the properties of interest, such
+as the Metric Interval Temporal Logic (MITL); and ( C3) being extensible, i.e., allowing users to
+add new constructs easily, such as adding new synchronization mechanisms or communication
+procedures for TA. The main issues related to those challenges are summarized hereafter.
+C1. The paradigm of time that is overwhelmingly adopted in practice is based on timed words [ 4]—
+i.e., infinite words where each symbol is associated with a real-valued time-stamp—and most tools
+(except [ 25]) are founded on such semantics. The so-called signal-based semantics is a different
+interpretation, where each instant of a dense temporal domain (e.g., R≥0) is associated with a state,
+called a signal. Signals are more expressive than timed words (as proved in [ 20]), thus allowing
+a more precise representation of the system state over time. In particular, if a signal changes its
+value at an instant t, it is possible to specify the value of the signal both in t(the “signal edge”)
+and in arbitrary small neighborhoods of t. This allows, for instance, to represent the location of
+an automaton both just before and immediately after an instantaneous state transition. Despite
+its greater expressiveness, signal-based semantics has been so far confined mainly to theoretical
+investigations [ 5,12,20,31] and seldom used in practice [ 25], due the difficulty in developing
+a feasible decision procedure. More precisely, Kindermann et al. [ 25] implemented a decision
+procedure for BMC of TA against MITL 0,∞which is based on the so-called “super-dense” time
+(also adopted by Uppaal). Under a super-dense time assumption, a TA can fire more than one
+transition in the same (absolute) time instant; thus, two or more transitions can be fired one after
+the other and produce many simultaneous, but distinct, configuration changes such that time does
+not progress. Super-dense time is a modeling abstraction to represent systems that are much faster
+than the environment they operate in, so their reaction to external events has a negligible delay. In
+the current work, the signal-based semantics is not “super-dense”, i.e., at any time instant each
+TA is in exactly one state. This choice is mainly dictated by the use of [ 9] to translate MITL to
+CLTLoc, which is defined over the a more “traditional” dense-time; still, CLTLoc may be extended
+to super-dense time.
+C2. Temporal Logics with a metric on time, such as MITL [ 5], have been proposed to specify real-
+time properties, but they are not fully supported by TA verification tools, that typically provide just
+some baseline functionalities to address reachability problems (safety assessment) or to perform
+model-checking of temporal logics without metric (e.g., LTL, CTL) or of fragments of Timed
+CTL [ 33]. For example, Uppaal [ 26] supports only a limited set of reachability properties. However,
+its ability to express that a certain condition triggers a reaction within a certain amount of time
+provides a clear improvement over being able only to specify that a reaction will eventually occur.
+The gap of almost 20 years between the proof of the decidability of MITL [ 5] and its applicability in
+practice can be justified mainly with the practical complexity of the underlying decision procedure,
+hampering the development of efficient tools, until more recent developments of new decision
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 3 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :3
+procedures, typically based on efficient SMT-solvers. In fact, both [ 8,25] developed a decision
+procedure for the satisfiability of MITL, a problem which very recently was also tackled by [ 15]. In
+particular, [ 25] proposed a verification procedure for a fragment of MITL, namely MITL 0,∞, on TA,
+but under a semantics based on super-dense signals. It is however still unknown whether MITL 0,∞
+is equivalent to MITL under the latter semantics. There are several procedures to convert MITL
+specifications into TA [ 5,28], but, to the best of our knowledge, only one has been successfully
+implemented [ 13–15]. These procedures could be the basis for a model checking tool that (i)
+transforms the MITL formula to be checked into (a set of) TA; (ii) combines the obtained automata
+with a network of TA modeling the system; and (iii) performs an emptiness check on the result.
+However, there is no available automated tool supporting this complete workflow, even in the case
+of a system modeled by a single TA, as the approach still poses significant conceptual and technical
+problems—for example when the system is modeled through a network of interacting automata
+(see Section 6 for further details). In this work, we follow a different approach, entirely based on
+temporal logic, which allowed us to overcome these problems.
+To the best of the authors’ knowledge, a verification procedure supporting MITL over (standard)
+signals is still not available. A proof of the language equivalence of TA and CLTLoc over timed
+words was given for the first time in [ 10]; however, the translation presented therein did not
+consider signals and had only the purpose of proving the equivalence of the formalisms, rather
+than being intended to be implemented in a tool. For instance, it makes use of many additional
+clocks that would hinder the performance of any decision procedure. Those limitations fostered the
+definition of a new, more practical translation, which is also radically different. The new encoding
+has been devised to be as optimized and extensible as possible, rather than being intended to
+prove language-theoretical results. Moreover, it also supports networks of TA, whose traces are
+interpreted for the evaluation of MITL formulae over atomic propositions and arithmetical formulae
+of the form n∼d, where nis an integer variable manipulated by the automata; to this end, the
+new encoding allows the representation of the signals associated with the atomic propositions on
+the locations and with the integer variables elaborated by the network. The new encoding also
+includes three synchronization primitives and allows the representation of the signal edges at the
+instant where transitions are taken.
+C3. Even if a variety of tools supporting the analysis of TA and networks of TA is available, they
+usually are not easy to tailor and extend. (1) They only provide a fixed set of modeling constructs that
+support designers in modeling the system under development, but which are not easily modifiable
+and customizable. Typical examples are discrete variables (often on finite domains) as well as
+some communication and synchronization features among different TA. For example, Uppaal
+provides designers with binary and broadcast synchronization primitives, whereas RED offers
+sending/receiving communication features via finite FIFO channels. However, often new modeling
+requirements may prompt designers to formulate specific communication/synchronization features,
+also based on data structures such as queues, stacks, priority mechanisms. Common model checkers
+do not explicitly support extending their features and constructs in the above directions, since this
+could cause a significant variation of the underlying semantics. Ad hoc modifications of a tool
+are often possible, but they may require a deep knowledge of the tool internals, whose software
+implementation may be quite complex (depending also in the architecture and the programming
+language) and scantly documented. (2) The existing model checkers are typically solver-dependent,
+since they rely on a strong relation between the problem domain and the solution domain—i.e.,
+respectively, the models to be verified and the input language that is used by a verification engine.
+(3) The cited tools explicitly support only TA, but not other timed formalisms such as, for instance,
+Time Petri Nets [ 21,30], unless an ad hoc front-end is developed (as for instance done by the Romeo
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 4 ---
+:4 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+CLTLocTA MITLϕ
+CLTLoc solverSect.4 [9]
+[11]
+Fig. 1. A generic framework for checking the satisfaction of MITL formulae on TA.
+toolkit [ 27]). Hence, they not easily allow multi-formalism analysis [ 7], e.g., to design systems with
+heterogeneous components which are more naturally modeled by different formalisms.
+Contribution. This paper describes a novel technique to model check networks of TA over
+properties expressed in MITL over signals, by relying on a purely logic-based approach. The
+technique is exemplified in the diagram of Fig. 1. It is based on the solution presented in [ 9] to
+translate both a MITL formula and a TA into an intermediate logical language, which is then
+encoded into the language of the underlying solver. This intermediate level has thus a similar role
+as the Java bytecode for Java program execution on different architectures. The advantages are that,
+on the one hand, new TA constructs, logic formalisms or semantics can be dealt with by defining
+new encodings into the intermediate language; on the other hand, the intermediate language can
+independently be “ported” to different (possibly more efficient) solvers, by translating into the
+respective solver languages.
+A TA and a MITL formula are translated into CLTLoc , a metric temporal logic [ 11].CLTLoc is a
+decidable extension of Linear Temporal Logic (LTL) including real-valued variables that behave like
+TA clocks. The satisfiability of CLTLoc can be checked by using different procedures; a bounded
+approach based on SMT-solvers is available as part of the Zot formal verification tool [ 6]. This
+intermediate language easily allows for different semantics of TA such as, for instance, the signal
+edges that are generated by the TA when transitions are fired (see Sect. 3). Moreover, different
+features of the TA modeling language can be introduced by simply adding or changing formulae
+in the CLTLoc encoding. As an example, finite queues or other data structures can be easily
+included as long as the new features can be expressed in terms of CLTLoc formulae. The CLTLoc
+formula encoding the network of TA and the MITL property is modular, in the sense that the parts
+that translate the MITL property are separated from the formulae translating the TA network.
+Moreover, each aspect of the semantics of the (network of) TA is isolated in a specific formula,
+with only few interconnecting points with the other parts. Therefore, each part of the resulting
+translation is self-reliant, thus easily allowing changes or extensions. In this work we consider
+three different baseline semantics for the shape of the edge with which signals change values,
+which correspond to different types of signals that can be generated by a (network) of TA (Table 7).
+Furthermore, we formalize three different baseline semantics that can be introduced depending
+on the synchronization constructs (Tables 2), and four different baseline semantics that can be
+defined for the liveness of the transitions (Tables 1). For each of these semantics an encoding
+into intermediate CLTLoc formulae is presented. The semantics of the (network of) TA, and the
+intermediate CLTLoc encoding, depends on the baseline semantics chosen for the constructs of the
+TA.
+The technique presented in this work is implemented in a Java tool, called TACK (https://
+github.com/claudiomenghi/TACK), which is built on the QTLSolver (https://github.com/fm-polimi/
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 5 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :5
+qtlsolver), and extends the translation of [ 11] to deal with a network of TA and to add a new
+front-end for the specification of the network and its properties. TACK takes as input a (network of)
+TA, described with a syntax compatible with Uppaal, and the MITL property to be verified. Unlike
+Uppaal, TA and MITL are interpreted according to the signal-based semantics . The CLTLoc formula
+produced by TACK is then fed to Zot for automated verification.
+To evaluate the benefits that ensue from the adoption of an intermediate language, this work
+shows how to deal with different signal-based semantics, synchronization primitives and liveness
+conditions. Furthermore, to show the flexibility achieved by decoupling the model-checking prob-
+lem and the resolution technique, different solvers are employed for verifying the intermediate
+CLTLoc encoding. The efficiency of technique is evaluated over some standard benchmarks, namely
+the Fischer (see e.g. [ 3]), the CSMA/CD (see e.g. [ 1]) and the Token Ring (see e.g. [ 23]) protocols.
+The Fischer protocol was verified also through the Mitl 0,∞BMC tool for a partial comparison
+(where possible and reasonably meaningful) of the two approaches. We also study the timed lamp
+model verified in [15] for a qualitative comparison with the approach introduced in that work.
+The paper is structured as follows. Section 2 presents the background and the notation used in
+the rest of this work. Section 3 introduces the continuous time semantics of TA. Section 4 presents
+the algorithm to convert a TA into a CLTLoc formula. Section 5 describes the model checking
+algorithm to verify MITL formulae on automata with time. Section 6 evaluates TACK and discusses
+the experimental results. Section 7 concludes.
+2 BACKGROUND
+This section presents TA (enriched with integer-valued variables and synchronization), MITL and
+CLTLoc.
+2.1 Timed automata
+LetXbe a finite set of clocks with values in R.Γ(X)is the set of clock constraints over Xdefined by
+the syntax γBx∼c|¬γ|γ∧γ, where∼∈{ <,=},x∈Xandc∈N. Let Actbe a set of events,
+Actτis the set Act∪{τ}, whereτis used to indicate a null event. Finally, we indicate by ℘the
+power set operator.
+Definition 2.1 (Timed Automaton). LetAPbe a non-empty set of atomic propositions, Xbe a set
+of clocks and Actbe a set of events. A Timed Automaton is a tupleA=⟨AP,X,Actτ,Q,q0,Inv,
+L,T⟩, where: Qis a finite set of control states (also called locations); q0∈Qis the initial state;
+Inv:Q→Γ(X)is an invariant assignment function; L:Q→℘(AP)is a function labeling the
+states in Qwith elements of AP;T⊆finQ×Q×Γ(X)×Actτ×℘(X)is a finite set of transitions.
+Note that, to define the finite set of transitions T, we use relation⊆finsince the set of clock
+constraints Γ(X)—i.e., the universe of constraints that can be defined for a set of clocks—is infinite.
+A transition t=(q,q′,γ,α,ζ)∈Tis written as qγ,α,ζ−−−−→ q′; the notations t−,t+,tд,te,tsindicate,
+respectively, the source q, the destination q′, the clock constraint γ, the event αand the set of
+clocksζto be reset when firing the transition. Fig. 2(a) shows a simple example of TA.
+LetIntbe a finite set of integer variables with values in Zand∼∈{ <,=};Assiдn(Int)is the set
+of assignments of the form n:=exp, where n∈Intandexpis an arithmetic expression over the
+integer variables and elements of Z—i.e., expis defined by the syntax exp:=exp+exp|exp−exp
+|exp×exp|exp÷exp|n|c, where n∈Intandc∈Z.Γ(Int)is the set of variable constraints γ
+over Intdefined asγBn∼c|n∼n′|¬γ|γ∧γ, where nandn′are integer variables and c∈Z.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 6 ---
+:6 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+q2
+cq0
+aq1
+x≤5sync :e1
+guard :x<5
+sync :e2 sync :e3
+guard :x=10
+assign :x
+(a) An example of TA.q2
+cq0
+aq1
+x≤5sync :e1
+guard :x<5
+assign :n:=2
+sync :e2
+assign :
+n:=1sync :e3
+guard :x=10
+assign :x,n:=0
+(b) An example of TA with Variables.
+Fig. 2. The TA in (a) has three locations, q0,q1,q2, and one clock x. The transition from q2toq0is labeled
+with guard x=10. When the transition is taken, clock xis reset—i.e., it is set to 0. Location q1is associated
+with invariant x≤5. Locations q0andq2are labeled with atomic propositions aandc, respectively. The
+TA in (b) is the same as the one of (a), except for the presence of integer variable n, which is set to 0,1or2
+depending on the transition taken.
+Definition 2.2 (TA with Variables). LetAPbe a non-empty set of atomic propositions, Xbe a set
+of clocks, Actbe a set of events and Intbe a finite set of integer variables. A Timed Automaton with
+Variables is a tupleA=⟨AP,X,Actτ,Int,Q,q0,v0
+var,Inv,L,T⟩, where: Qis a finite set of control
+states (also called locations); q0∈Qis the initial state; v0
+var:Int→Zassigns each variable with
+a value in Z;Inv:Q→Γ(X)is an invariant assignment function; L:Q→℘(AP)is a function
+labeling the states in Qwith elements of AP;T⊆finQ×Q×Γ(X)×Γ(Int)×Actτ×℘(X)×℘(Assiдn(Int))
+is a finite set of transitions.
+A transition is written as qγ,ξ,α,ζ,µ−−−−−−−−→ q′whereξis a constraint of Γ(Int)andµis a set of assign-
+ments from ℘(Assiдn(Int)). The notations tdandtuindicate, respectively, the variable constraint ξ
+and the set of assignments µassociated with a transition t. An example of TA with Variables is
+presented in Fig. 2(b).
+Remark 1. A set of assignments µ∈℘(Assiдn(Int))might be inconsistent, i.e., it may assign
+different values to the same variable. For example, µ={x=2,x=3}is inconsistent since two values
+are assigned to variable x. In this case, a transition associated with µcannot be fired.
+Remark 2. It is easy to see that TA with variables as defined in Definition 2.2 are undecidable,
+unless suitable restrictions are introduced. Indeed, as mentioned in Section 3, in this paper we consider
+only variables with finite domains. Note, however, that one of the goals of this paper is to present an
+encoding that (i) is general; (ii) considers different semantics of the (network of) TA; and (iii) can be
+implemented into a tool of practical usage. For this reason, we directly encode features such as variables
+with (finite) integer domains into CLTLoc, instead of relying on equivalent formulations of TA that
+only use a minimal number of constructs—e.g., by representing the value of variables with finite integer
+domains through suitable locations. Indeed, the current encoding can potentially be adopted even when
+infinite domains, combined with suitable constraints to ensure decidability, are considered (e.g., TA
+extended with reversal bounded integer counters, as in [17]).
+When networks of TA are considered, the event symbols labeling the transitions are used to
+synchronize automata. Every event symbol α∈Actis associated with one communication channel,
+which can be identified with the event symbol itself, i.e., channel α. To simplify the notation, even
+in the case of a network of TA we use Actτto indicate the set of actions of the network, which
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 7 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :7
+is redefined to include also the synchronization symbols. Specifically, when networks of TA are
+considered, the set of actions Actτis now defined as Actτ={τ}∪{Act×Sync}, where Syncis a set
+of synchronization primitives and τindicates that no synchronization primitive is associated with
+the transition. In this work, Syncis restricted to{!,?,#,@,&,∗}where the symbols !and?indicate
+that a TA emits and receives an event, respectively, #denotes a broadcast synchronization sender
+and@denotes a broadcast synchronization receiver, &denotes a one-to-many synchronization
+sender and∗denotes a one-to-many communication receiver. Symbols α!,α?,α#,α@,α&andα∗
+indicate the element (α,!),(α,?),(α,#),(α,@),(α,&)and(α,∗)such that(α,!),(α,?),(α,#),(α,@),
+(α,&)and(α,∗)is contained in the set {Act×Sync}.
+Definition 2.3 (Network of TA). A networkNof TA is a setN={A1, . . . ,AK}of TA defined
+over the same set of atomic propositions AP, actions Actτ, variables Intand clocks X.
+Remark 3. LetNbe a network of TA defined over the set of clocks X; a clock x∈Xis alocal
+clock of an automatonAi∈N ifxis used in the invariants, guards or resets of Aiand there is no
+other automatonAj∈N, withAi,Aj, using xin its invariants, guards or resets. Let Intbe a set
+of variables ofN, a variable n∈Intis alocal variable of an automatonAi∈N ifnis used in the
+guards or assignments of Aiand there is no other automaton Aj∈N , withAi,Aj, using the
+variable nin its guards or assignments.
+2.2 Metric Interval Temporal Logic
+An interval Iis a convex subset of R≥0of the form⟨a,b⟩or⟨a,∞), where a≤bare non-negative
+integers; symbol⟨is either(or[; symbol⟩is either)or].
+The syntax of (well-formed) MITL formulae is defined by the grammar
+ϕBα|ϕ∧ϕ|¬ϕ|ϕUIϕ
+whereαare atomic formulae. Since MITL is here used to specify properties of TA enriched with
+variables, atomic formulae αare either propositions of APor formulae of the form n∼d, where
+n∈Int,d∈Zand∼∈{ <,=}. In the following, set APvindicates the universe of the formulae of
+the form n∼d.
+The semantics of MITL is defined w.r.t. signals. Let ZIntbe the set of total functions from InttoZ.
+Asignal is a total function M:R≥0→℘(AP)×ZInt. Let Mbe a signal; the semantics of an MITL
+formula is defined as follows.
+M,t|=p iff M(t)=(P,vvar)andp∈P
+M,t|=n∼d iff M(t)=(P,vvar)andvvar(n)∼d
+M,t|=¬p iff M,t|=¬ϕ
+M,t|=ϕ∧ψ iff M,t|=ϕandM,t|=ψ
+M,t|=ϕUIψ iff ∃t′>t,t′−t∈I,M,t′|=ψand∀t′′∈(t,t′),M,t′′|=ϕ
+An MITL formula ϕissatisfiable if there exists a signal M, such that M,0|=ϕ. In this case, Mis
+called a model ofϕ.
+2.3 Constraint LTL over clocks
+CLTLoc is a temporal logic where formulae are defined over a finite set of atomic propositions
+and a set of dense variables over R≥0representing clocks. CLTLoc has been recently extended
+by supporting expressions over a set of arithmetical variables [ 29].CLTLoc is the intermediate
+language that is adopted to solve the model-checking problem of TA with MITL specifications.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 8 ---
+:8 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+CLTLoc allows for two kinds of atomic formulae: over clocks and over arithmetical variables. An
+atomic formula over a clock xis for instance x<4, whereas an atomic formula over arithmetical
+variables is for example n+m<4, with n,m∈Z. Similarly to TA, a clock xmeasures the time elapsed
+since its last “reset”. CLTLoc also exploits the “next” Xmodality applied to integer variables [ 19]:
+ifnis an integer variable, the term X(n)represents the value of nin the next position.
+LetXbe a finite set of clocks and Intbe a finite set of integer variables; formulae of CLTLoc
+with counters are defined by the grammar:
+ϕBp|x∼c|exp1∼exp2|X(n)∼exp|ϕ∧ϕ|¬ϕ|Xϕ|ϕUϕ
+where p∈AP,c∈N,x∈X,exp,exp1andexp2are arithmetic expressions over the sets IntandZ
+(defined as described in Section 2.1), n∈Intand∼is a relation in{<,=}.X,Uare the usual “next"
+and “until" operators of LTL. Modalities such as “eventually” ( F), “globally” (G), and “release” (R)
+are defined as usual. Symbol ⊤(true) abbreviates(p∨¬p), for some p∈AP.
+The strict linear order (N, <)is the standard representation of positions in time. The interpretation
+ofclocks is defined by means of a clock valuation σ:N×X→R≥0assigning, for every position
+i∈N, a real value σ(i,x)to each clock x∈X. As in TA, a clock xmeasures the time elapsed since
+the last time when x=0, i.e., the last “reset" of x. The semantics of time evolution is strict , namely
+the value of a clock must strictly increase in two adjacent time positions, unless it is reset (i.e., for
+alli∈N,x∈X, it holds that σ(i+1,x)>σ(i,x), unlessσ(i+1,x)=0holds)1. To ensure that
+time strictly progresses at the same rate for every clock, σmust satisfy the following condition: for
+every position i∈N, there exists a “time delay" δi>0such that for every clock x∈X:
+σ(i+1,x)=(
+σ(i,x)+δiprogress
+0 reset x
+If this is the case, then σis called a clock assignment . The initial value σ(0,x)may be any non-
+negative value. Moreover, a clock assignment is such thatÍ
+i∈Nδi=∞, i.e., time is always pro-
+gressing.
+The interpretation of variables is defined by a mapping ι:N×Int→Zassigning, for every
+position i∈N, a value in Zto each variable of set Int. Letιbe a valuation and ibe a position; exp(ι,i)
+indicates the evaluation of expobtained by replacing each arithmetical variable n∈Intthat occurs
+inexpwith value ι(i,n). An interpretation of CLTLoc is a triple(π,σ,ι), whereπ:N→℘(AP)is a
+mapping associating a set of propositions with each position i∈N,σis a clock assignment and ιis
+a valuation of variables. Let xbe a clock, nbe a variable and cbe a constant in N, the semantic
+ofCLTLoc at a position i∈Nover an interpretation (π,σ,ι)is defined as follows (standard LTL
+modalities are omitted):
+(π,σ,ι),i|=x∼c iff σ(i,x)∼c
+(π,σ,ι),i|=exp1∼exp2 iff exp1(ι,i)∼exp2(ι,i)
+(π,σ,ι),i|=X(n)∼exp iff ι(i+1,n)∼exp(ι,i)
+(π,σ,ι),i|=a iff a∈π(i)
+ACLTLoc formulaϕissatisfiable if there exist an interpretation (π,σ,ι)such that(π,σ,ι),0|=ϕ.
+In this case,(π,σ,ι)is called a model ofϕ, written(π,σ,ι)|=ϕ. It is easy to see that CLTLoc is
+undecidable, as it can encode a 2-counter machine; however, in this work a decidable subset of
+CLTLoc is adopted, where the domain of arithmetical variables is finite .
+1As discussed in the following this assumption does not allow us to capture the super-dense semantics of TAs.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 9 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :9
+3 CONTINUOUS TIME SEMANTICS FOR TIMED AUTOMATA
+The behavior of TA over time is described by means of execution traces that define the evolution of
+the APs, variables and clocks of the automata changing their values because transitions are taken
+or because time elapses. When networks of synchronizing TA are considered, the formal definition
+of the semantics of (network of) TA has to deal with the following issues:
+a)how the automata progress over time by means of transitions associated with actions (liveness
+conditions); and
+b)how the automata synchronize when transitions labeled with !,?,#,@,&and∗are fired.
+Only the general case semantics of a network of TA with variables is discussed hereafter. Obvi-
+ously, the semantics of a network of TA without variables or of a single TA are just special cases.
+Furthermore, in the rest of this paper, integer variables are restricted to finite domains.
+3.1 Preliminaries
+LetXbe a set of clocks and γ∈Γ(X)be a clock constraint. A clock valuation is a function
+v:X→R≥0; the notation v|=γindicates that the clock valuation vsatisfiesγ—i.e., by replacing
+v(x)forxin any subformula of the form x∼dthe clock constraint γevaluates to true. Let r
+be an element of R,v+rdenotes the clock valuation mapping clock xto valuev(x)+r—i.e.,
+(v+r)(x)=v(x)+rfor all x∈X. In the following, without loss of generality, the clock constraints
+associated with transitions of TA are supposed to define convex sets of R. Every transition in a TA
+whose guard is non-convex can be replaced by at most an exponential number of fresh transitions,
+each one labeled with a convex guard. In fact, any non-convex sets of Rdefined by a clock constraint
+can be defined as the union of finitely many convex ones. For this reason, in the next sections, clock
+constraints are restricted to conjunctions of atomic clock constraints of the form x∼d, where∼is
+a relation in{<,=, >,≤,≥}.2
+A transition from qtoq′labeled with a non-convex guard can be equivalently replaced with a
+set of transitions, all starting in qand leading to q′, labeled with convex guards.
+Before providing the formal definition of the transition relation for networks of TA, the notion
+ofweak satisfaction relation |=wover clock valuations and clock constraints is introduced. The
+weak satisfaction relation may be used to evaluate the invariants in the locations when a transition
+is fired, to allow different ways of performing an instantaneous transition. In particular, relation
+|=wis never satisfied when a clock constraint has the form x=d, where xis a clock and dis a
+positive integer. The importance of weak satisfaction will be clearer later. Relation |=wweakens
+the evaluation of clock constraints of the form x<dandx>d. Those two constraints are weakly
+satisfied for v(x)=d−ϵorv(x)=d+ϵ(whereϵ>0) as in the non-weak case, but they are weakly
+satisfied also for v(x)=d(i.e., as if the constraints were of the forms x≤dandx≥d). Formally,
+a clock valuation vweakly satisfies a clock constraint γ, writtenv|=wγ, when the following
+conditions hold:
+v|=wx∼diffv(x)∼dorv(x)=d∼∈{ <, >,≤,≥}
+v̸|=wx=dfor any x∈X,d∈N
+Naturally,|=wcan be extended to conjunctions of formulae x∼d. For instance, the formula
+x<1∧y>1is both satisfied and weakly satisfied by the clock evaluation such that v(x)=0.8
+andv(y)=1.2, but it is only weakly satisfied if v(x)=1andv(y)=1.
+Avariable valuation vvaris a function vvar:Int→Zthat maps each variable in Intto an integer
+number; also, if ξ∈Γ(Int)is a variable constraint, vvar|=ξindicates that valuation vvarsatisfiesξ.
+2Relations≤,≥,>can obviously be obtained by combining atomic clock constraints x∼d(with∼∈{ <,=}) and the
+negation operator ( ¬).
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 10 ---
+:10 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Lett=qγ,ξ,α,ζ,µ−−−−−−−−→ q′be a transition, vbe a clock valuation and vvarbe a variable valuation, tis
+enabled in the valuation when vsatisfiesγandvvarsatisfiesξ. In addition, a satisfaction relation for
+assignments is here introduced. Let vvarandv′
+varbe two variable valuations; (v′
+var,vvar)|=µindicates
+that all the assignments in µare satisfied by means of v′
+varandvvar. Formally, all assignments of
+the form n=exphold when nis replaced with v′
+var(n)and every occurrence of m∈Intinexpis
+replaced with vvar(m). Moreover, let U(µ)be the set of variables that are updated by µ—that is,
+that appear as the left-hand side in an assignment of µ—and let U(t)indicate the set U(µ)given a
+transition t.
+Remark 4. Relation|=does not hold for inconsistent transitions, i.e., assigning multiple distinct
+values to a variable. For example, if µ={n=2,n=3}, there is no assignment to nsuch that both
+n=2andn=3hold.
+Definition 3.1. LetNbe a network of KTA. A configuration ofNis a tuple(l,vvar,v)where lis
+a vector[q1, . . . , qK]— s.t. q1, . . . , qKare locations ofA1, . . . ,AK—vvar(resp.,v) is a variable (resp.,
+clock) valuation for the set Int(resp., X) including all integer variables (resp., clocks) appearing in
+the TA of the network.
+When a network of TA is considered, it is possible that some automata in the network take
+a transition while the remaining others do not fire a transition and keep their state unchanged.
+Firing a transition labeled with the null event τ(i.e., a transition that does not synchronize) is
+however different from not taking a transition at all. Symbol _indicates that an automaton kdoes
+not perform any transition in Tk.
+The notation l[k]indicates the location of automaton Ak—i.e., if l[k]=j, then automatonAk
+is in location qk
+j, assuming that the locations of each automaton are numbered, with 0indicating
+the initial one.
+Two kinds of configuration changes may occur when an automaton in the network performs a
+transition from a state qtoq′. They are indicated in Def. 3.2 with symbols ei(excluded-included)
+andie(included-excluded). Intuitively, these symbols constraints how the network behaves when
+a transition is fired. The symbol eiforbids an automaton to be in state q(excluded) in the instant in
+which the transition from qtoq′is fired, while it forces the automaton to be in state q′(included).
+Vice versa, the symbol ieforces an automaton to be in state q(included) in the instant in which the
+transition from qtoq′is fired, while it forbids the automaton to be in state q′(excluded). Consider,
+for instance, a location qlabeled with x<1and an outgoing transition. If the automaton is in q,
+then the transition can be executed when v(x)<1, in which case the corresponding configuration
+change can be arbitrarily marked either with eior with ie. The transition can be executed even
+whenv(x)=1holds, but in this case the kind of configuration change can only be ei.
+Definition 3.2. LetNbe a network of KTA. Let(l,vvar,v),(l′,v′
+var,v′)be two configurations,
+letδ∈R>0andΛbe a tuple of Ksymbols such that Λ[k]∈{ Actτ×{ei,ie}}∪{ _}for every
+1≤k≤K. Then, a configuration change is either a transition (l,vvar,v)Λ− →(l′,v′
+var,v′)or a
+transition(l,vvar,v)δ− →(l′,v′
+var,v′)defined as follows.
+(1)(l,vvar,v)Λ− →(l′,v′
+var,v′)occurs if
+(a) for each Λ[k]=(α,b)there is a transition l[k]γ,ξ,α,ζ,µ−−−−−−−−→ l′[k]inAksuch that:
+(i)v|=γandvvar|=ξ,
+(ii)v′(x)=0holds for all x∈ζ,
+(iii)(v′
+var,vvar)|=µ,
+(iv) when b=eithen:
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 11 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :11
+•v|=wInv(l[k])and
+•v′|=Inv(l′[k])
+(v) when b=ie:
+•v|=Inv(l[k])and
+•v′|=wInv(l′[k])
+(b) for each Λ[k]=_ it holds that:
+(i)l′[k]=l[k];
+(ii)v|=Inv(l[k])andv′|=Inv(l′[k]).
+(c)for each clock x∈X(resp., integer variable n∈Int), ifx(resp., n) does not appear in any
+ζ(resp., it is not assigned by any A) of one of the transitions taken by A1, . . . ,AK, then
+v′(x)=v(x)(resp.,v′
+var(n)=vvar(n));
+(2)(l,vvar,v)δ− →(l′,v′
+var,v′)occurs if l′[k]=l[k],v′
+var=vvar,v′=v+δand for all 1≤k≤K,
+v′|=wInv(l[k]).
+A configuration change (l,vvar,v)Λ− →(l′,v′
+var,v′), for some Λ∈{{Actτ×{ei,ie}}∪{ _}}K,
+satisfying (1) is called a discrete transition . If it satisfies (2) then it is called a time transition . For
+convenience of notation, symbols (α,ei)and(α,ie), for someα∈Actτ, are hereinafter denoted
+respectively with α)[andα](, meaning that the discrete transition performed by the k-th automaton,
+such that Λ[k]=(α,ei)(resp., Λ[k]=(α,ie)), isopen-closed (resp., closed-open ). The use of symbols
+α)[orα](allows the distinction of two different ways of performing a transition by means of an
+actionα. The two modes are determined by the conditions in (1)(a)iv and (1)(a)v and depend on the
+invariants of the locations involved in the transition, the clock values and the resets applied in the
+configuration change. Location invariants and resets make it possible to constrain every symbol
+Λ[k], associated withAk, and hence to define how the configuration change in Akis realized.
+Cases (1) and (2) are discussed in detail in the following.
+Case (1). If the discrete transition is open-closed—i.e., the symbol is α)[—then (1)(a)iv holds.
+The conditions of this case impose that v′satisfies the invariant of the destination location and
+vweakly satisfies the invariant of the source location. Therefore, if the invariant of the source
+state is x<1, then the transition can be taken with v(x)≤1. This is achieved through the weak
+satisfaction relation that guarantees the (weak) satisfaction of the invariant x<1withv(x)=1.
+Conversely, if the discrete transition is closed-open—i.e., the symbol is α](—then (1)(a)v holds. The
+conditions defined therein allow the invariant of the destination location to be weakly satisfied and
+the transition to be fired with v(x)≥1, if the invariant of the destination state is x>1.
+Based on the invariants and resets, the symbol Λ[k]is either non-deterministically chosen
+betweenα)[andα](because both symbols are allowed, or it is determistically defined because
+only one is permitted, according to conditions (1)(a)iv and (1)(a)v. Figure 3 shows two automata
+and the possible transitions. The case of a transition on a symbol α)[is exemplified in Fig. 4(a).
+Whenv(x)≤1holds, the invariant Inv(l[k])of the first location is weakly satisfied by v—i.e.,
+v|=wInv(l[k])holds. In such a case, since Inv(l′[k])is empty—hence it is trivially true—symbol α)[
+is allowed. In the automaton of Fig. 4(b), instead, only symbol α](is allowed, because the constraint
+on the second location requires that xis not reset. Constraint v′|=wInv(l′[k])of condition (1)(a)v
+is satisfiable with v′(x)=0. Conversely, v|=Inv(l[k])of condition (1)(a)iv would be falsified
+because of the reset and, hence, α)[is prevented. In addition, α](is also allowed in the automaton
+of Fig. 4(a) when v(x)<1holds, because v|=Inv(l[k])holds in that case.
+Case (2). It defines the time transitions by means of the weak relation |=w. Consider an open-
+closed transition that changes the location of an automaton currently in q, for some q, and the last
+time transition immediately preceding it which makes the time progress of δtime units, for some
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 12 ---
+:12 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+δ>0. In order to perform the open-closed transition, v+δweakly satisfies Inv(q), as required
+by (1)(a)iv. The use of relation |=instead of|=win (2) would prevent the occurrence of some
+open-closed configuration changes, i.e., those that would be caused by an Inv(q)being weakly, but
+not strongly, satisfied in the time transition. In case of closed-open transitions, v+δ(strongly)
+satisfies Inv(q), as required by (1)(a)v. Hence, v+δalso weakly satisfies Inv(q), as in condition (2).
+For instance, in Fig. 4(a), if the automaton is in the location labeled with x<1andv(x)=0.8then
+the time progress δ=0.2is permitted by (2) in order to perform the outgoing transition in an
+open-closed manner with v′(x)=1. Moreover, if the time progress δis such that the invariant of
+the current location qis such that v+δ|=Inv(q)holds, then both kinds of transitions are allowed.
+The combination of conditions (1) and (2) describe how the configuration of a network of TA
+changes.
+Based on the previous arguments, the symbols α)[andα](will be considered in Sec. 5 to define
+the signals associated with atomic propositions and variables when discrete transitions are taken.
+The notion of trace is now introduced. Recall that, v0
+var:Int→Zassigns each variable with a
+value in Z(see Def 2.2) .
+Definition 3.3. LetNbe a network of KTA. A trace is an infinite sequence
+η=(l0,vvar,0,v0),e0,(l1,vvar,1,v1),e1,(l2,vvar,2,v2),e2, . . .
+such that:
+(1) for all i∈N,ei=Λiorei=δi;
+(2) for all i∈Nit holds that(li,vvar,i,vi)ei−→(li+1,vvar,i+1,vi+1);
+(3)e0=δ0, for someδ0∈R>0;
+(4)for all 1≤k≤K, it holds that l0[k]=0,v0|=Inv(l0[k]), for all x∈Xit holds that v0(x)=0,
+and for all n∈Intit holds that vvar,0(n)=v0
+var(n).
+(5)discrete transitions must be followed by time transitions; that is, if eiis a discrete transition
+(ei=Λi), then ei+1is a time transition ( ei=Λi).
+The word w(η)of a traceηis the sequence e0e1. . ..
+With a slight abuse of notation, a trace (l0,vvar,0,v0),e0,(l1,vvar,1,v1),e1,(l2,vvar,2,v2),e2, . . .
+can be written as(l0,vvar,0,v0)e0−→(l1,vvar,1,v1)e1−→(l2,vvar,2,v2)e2−→. . ..
+Notice that case (2) of Definition 3.2 does not impose that, when a transition (li,vvar,i,vi)δi−→
+(li+1,vvar,i+1,vi+1)is taken, the invariant hold at the beginning of the interval of length δ(i.e., for
+valuationvi), but only at its end (i.e., for valuation vi+1). Indeed, transitions are meaningful only in
+the context of traces, and the fact that the invariant holds for viis guaranteed by condition (4) of
+Definition 3.3 if i=0, otherwise by the definition of transition (li−1,vvar,i−1,vi−1)ei−1−−−→( li,vvar,i,vi)
+in the trace (no matter the nature of ei−1).
+Since by condition (5) there cannot be two consecutive discrete transitions, and since any finite
+sequence of consecutive delays δh. . .δh+k, with k≥0, is equivalent to a single delayÍh+k
+i=hδi,
+a trace can always be rewritten into a new one such that discrete and time transitions strictly
+alternate. Moreover, by the previous property, every time transition δhcan always be replaced
+with a finite sequence of mpairs of time and discrete transition δh,0Λh,0δh,1Λh,2. . .δh,m, strictly
+alternating, such that in Λh,i[k]=_, for all 0≤i≤m−1andδh=Ím
+i=0δh,i. This property is used
+in Sec. 5 to allow the use of [ 9] in the resolution of the model-checking problem of TA with MITL.
+To facilitate future discussions, a trace is represented with the following notation where the
+numbering of configurations increases only after the discrete transitions:
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 13 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :13
+Fig. 3. Two examples of transitions enforcing a different and unique configuration change.
+x<1
+(a) TA allowing Λ)[only, forv(x)=
+1; and either Λ)[orΛ](, forv(x)<1.x>0assign :x
+(b) TA allowing Λ](only.
+(l0,vvar,0,v0)δ0−→(l′
+0,v′
+var,0,v′
+0)Λ0−−→( l1,vvar,1,v1)δ1−→. . .
+3.2 Liveness and synchronization
+Definition 3.3 only provides weak conditions on the occurrences of discrete transitions and does not
+express any restriction on how TA synchronize. In fact, beside the first three conditions requiring
+that traces are sequences of configuration changes starting from a specific initial configuration,
+only Condition (5) expresses a restriction on how the configuration changes occur, which only
+prevents discrete transitions from occurring consecutively, one after the other. However, one is
+typically interested in “live” traces, in which some transition is eventually taken and where the
+effect of the synchronizing primitives is precisely defined.
+3.2.1 Liveness. Table 1 shows the formal definition of the following four possible liveness
+conditions, for a generic trace of a network with Ktimed automata.
+•Strong (Weak) transition liveness: at any time instant, each (resp., at least one ) automaton of
+the network eventually performs a transition.
+•Strong (Weak) guard liveness: at any time instant, for each automaton (resp., there exists an
+automaton such that) the values of clocks and variables will eventually enable one of its
+transitions3.
+Even if the previous conditions restrict the occurrence of transitions or the satisfiability of guards
+along the trace, they do not prevent, in general, the progress of time from slowing down. This issue
+is well-known in the literature of timed verification and, intuitively, it is caused by so-called time
+convergent traces, where the sum of all the delays δiassociated with time transitions is bounded by
+some positive integer. Therefore, the previous liveness conditions allow Zeno traces, i.e., where
+infinitely many actions can occur in finite time. Avoiding Zeno traces can be done in several ways.
+For instance, one can require strong transition liveness and introduce a new TA in the network
+which infinitely many times along the trace resets a clock when the clock value reaches 1.
+3.2.2 Synchronization. Section 2 introduced qualifiers !,?,#,@,&, and∗labeling actions on
+the transitions with the goal of capturing different ways in which the automata of a network
+can synchronize. Qualifiers !and?describe a so-called channel-based synchronization; qualifiers
+#and@describe a broadcast synchronization; and qualifiers &and∗describe a one-to-many
+synchronization.
+Channel-based, broadcast and one-to-many synchronizations can be arbitrarily mixed in the
+same configuration change. Table 2 shows the formal definition of the channel-based, broadcast
+and one-to-many synchronization mechanisms for a generic trace of a network of TA.
+3The constraint does not force the transition to be taken. Moreover, alternative definitions can be given by considering only
+clock or variable guards.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 14 ---
+:14 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 1. Formal definition of different liveness properties for traces.
+Name Formulation of the Semantics
+Strong transition
+livenessFor every h≥0and 1≤k≤K, there exists j>hsuch that
+(l′
+j,v′
+var,j,v′
+j)Λj−−→( lj+1,vvar,j+1,vj+1)belongs to the trace and Λj[k],_.
+Weak transition
+livenessFor every h≥0there exist 1≤k≤Kandj>hsuch that(l′
+j,v′
+var,j,v′
+j)Λj−−→
+(lj+1,vvar,j+1,vj+1)belongs to the trace and Λj[k],_.
+Strong guard
+livenessFor every h≥0and1≤k≤K, there exist j>hand a configuration
+(l′
+j,v′
+var,j,v′
+j)in the trace such that there is a transition qγ,ξ,α,ζ,µ−−−−−−−−→ q′with
+q=l′
+j[k], for which vvar,j|=ξandvj|=γhold.
+Weak guard
+livenessFor every h≥0there exist 1≤k≤K,j>h, and a configuration
+(l′
+j,v′
+var,j,v′
+j)in the trace such that there is a transition qγ,ξ,α,ζ,µ−−−−−−−−→ q′with
+q=l′
+j[k], for which vvar,j|=ξandvj|=γhold.
+•Channel-based synchronization: for any discrete transition, every “sending” (qualifier !) action
+in a TAAkmust be matched by exactly one corresponding “receiving” (qualifier ?) action in
+another TAAk′on the same channel (e.g., α!andα?) labeling an enabled transition.
+•Broadcast synchronization: for any discrete transition, every “sending” (qualifier #) action in a
+TAAkis matched by all and only “receiving” (qualifier @) actions in TAAk′labeling an
+enabled transition. In other words, either Ak′,Aktakes a transition labeled with α@, or it
+does not exist any enabled transition for Ak′labeled with α@.
+•One-to-many synchronization: for any discrete transition, every “sending” (qualifier &) action
+inAkis matched by a (non empty) set of “receiving” (qualifier ∗) actions inAk′labeling an
+enabled transition. The one-to-many synchronization is a variation of the broadcast in which
+when an automaton Aksends a message it is received by at least one receiver. However, not
+all the automata that have a transition labeled with α∗are forced to receive the message.
+Notice that, for any channel α, the previous synchronizations allow only one TA to send a message
+onαat any time instant; on the other hand, distinct TA can send messages concurrently on separate
+channels.
+4 FROM TIMED AUTOMATA TO CLTLOC
+This section shows that, given a network Nof TA, it is possible to construct a CLTLoc formula
+ΦN=φN∧φl∧φs∧φefwhose models represent the traces of N. FormulaeφN,φl,φsandφefencode,
+respectively: the behavior of the network, that is the effect of the transitions on the configuration
+of the network including how clocks are reset, how variables and locations are modified and when
+transitions can be taken ( φN); a set of constraints on the liveness conditions ( φl); the semantics
+of the firing of the transitions that depend on the synchronization modifiers that decorate their
+labeling events ( φs); and constraints on the types of edges (open-closed or closed-open) with which
+transitions are taken ( φef). Before discussing CLTLoc formulaeφN,φlφsandφef, formulaϕclockis
+first introduced to encode a set of constraints on the CLTLoc clocks used in φN.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 15 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :15
+Table 2. Definition of different constraints on traces depending on synchronization primitives.
+Type Formulation of the Semantics
+Channels For every configuration change (l′
+h,v′
+var,h,v′
+h)Λh−−→( lh+1,vvar,h+1,vh+1)and1≤
+k≤Ksuch thatα!=Λh[k]holds, there exists exactly one 1≤k′≤Ksuch that
+k′,kandα?=Λh[k′]hold, and vice-versa.
+Broadcast For every configuration change (l′
+h,v′
+var,h,v′
+h)Λh−−→( lh+1,vvar,h+1,vh+1)and1≤
+k≤Ksuch thatα#=Λh[k]holds, for every 1≤k′≤K, with k′,k, it holds
+thatα#,Λh[k′]and either α@=Λh[k′]holds, or no transition qγ,ξ,α@,ζ,µ−−−−−−−−−→ q′
+inAk′is such that v′
+var,h|=ξandv′
+h|=γhold.
+One-to-
+manyFor every configuration change (l′
+h,v′
+var,h,v′
+h)Λh−−→( lh+1,vvar,h+1,vh+1)and1≤
+k≤Ksuch thatα&=Λh[k], there exists at least one 1≤k′≤Ksuch that k′,k
+andα∗=Λh[k′]hold.
+Table 3. Encoding of the clocks of the automata.
+ϕ1BÓ
+x∈X(x0=0∧x1>0∧xv=0)
+ϕ2(j)BÓ
+x∈X(xj=0)→X(( x(j+1)mod 2 =0)R(( xv=j)∧(xj>0)))
+4.1 Encoding constraints over clocks ( ϕclock)
+Unlike those in TA, clocks in CLTLoc formulae cannot be tested and reset at the same time. For
+instance, while it is possible that a transition in a TA both has guard x>5and resets clock x, in
+CLTLoc simultaneous test and reset would yield a contradiction, as testing x>5and resetting xin
+the same position equals to formula x>5∧x=0. Therefore, for each clock x∈X, two clocks x0
+andx1are introduced in ΦNto represent a single clock xof the automaton. An additional Boolean
+variable xvkeeps track, in any discrete time position, of which clock between x0andx1is “active”
+(xvbeing equal to 0 or 1 respectively). Clocks x0andx1are never reset at the same time and their
+resets alternate. If xv=0(resp., xv=1) at position iof the model of ΦN, then x0(resp., x1) is the
+active clock at iandσ(i,x0)(resp.,σ(i,x1)) is the value used to evaluate the clock constraints at i.
+If the reset of xhas to be represented at i, clock x1(resp., x0) is set to 0and the value xvin position
+i+1is set to 1 (resp., 0)—i.e., the active clock is switched.
+Table 3 shows the formulae ϕ1andϕ2that are used to define ϕclock. Formulaϕ1specifies that
+initially, the active clock is x0. In position 0 variable xvis equal to 0(indicating that x0is the active
+clock), x0is also equal to 0andx1has an arbitrary value greater than zero. Formula ϕ2specifies
+that if xjis reset, it cannot be reset again before x(j+1)mod 2 is reset. For instance, if clock x0is reset,
+then it cannot be reset again (it remains grater than zero) and it is the active clock ( xv=0) as long
+asx1is different from 0.
+Formulaϕclockis defined as ϕ1∧G(ϕ2(0)∧ϕ2(1)). Since every clock xis represented by two
+variables x0andx1, all clock constraints of the form x∼dinΓ(X)that appear in the automaton
+are translated by means of the following CLTLoc formula (notice that a CLTLoc clock constraint
+of the form xi>dis an abbreviation for ¬(xi<d∨xi=d), and so on):
+ϕx∼d:=((x0∼d)∧(xv=0))∨(( x1∼d)∧(xv=1)).
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 16 ---
+:16 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+0 1 2 3 4 5 6 7 8x:=0 x>5,x:=0 x<1 x=3,x:=0
+x0=0 x0>5x1=0 x1<1 x1=3
+x0=0xv=0 xv=0 xv=1 xv=1
+σ(0,x0)=0 σ(3,x0)>5σ(3,x1)=0σ(5,x1)<1σ(5,x1)=3
+σ(5,x0)=0
+Fig. 4. Representation of tests and resets of clock xby means of the two copies x0andx1.
+Example 4.1. Figure 4 depicts a sequence of tests and resets of clock xover 9 discrete positions.
+The first row shows the sequence of operations [x:=0],[x>5,x:=0],[x<1]and[x=3,x:=0],
+where[x>5,x:=0], for instance, means that xis tested against 5 and it is reset simultaneously.
+In the second row, all the operations on xare represented by means of clocks x0andx1. Based on
+the value of xvati, the active clock at that position is used to realize the corresponding operation.
+A continuous line identifies the regions where either clock x0orx1is active. The third row shows
+the constraints on σthat are enforced by the operations on x.
+4.2 Encoding the network ( φN).
+FormulaφNencodes both the relatione− →between pairs of configurations and all (and only) the
+conditions of Def. 3.3 defining a trace. However, φNdoes not express any restriction on automata
+synchronization and it does not impose any specific liveness condition. The discrete positions of
+theCLTLoc model render the configurations of the network evolving over the continuous time
+by means of a discrete sequence of points. All those positions in the model represent the discrete
+transitions performed by the automata of Nthat modify the values of variables, clocks and locations
+and also the time transitions that produce the elapsing of time. The model of the formula φNis
+thus a (representation of a) possible trace realized by the network N.
+A generic configuration (l,vvar,v)ofNis represented in the CLTLoc formula by means of the
+values of clocks and variables and a set of auxiliary variables representing locations and transitions
+of the automata. An array lofKinteger variables in the CLTLoc formula encodes the location
+of each automaton in the network, with l[k]∈{ 0, . . . ,|Qk|−1}for every 1≤k≤K. Given
+an enumeration of the elements in Qk,l[k]=iindicates thatAkis in the location qiofQk. An
+array tofKinteger variables encodes the transitions of each automaton in the network, with
+t[k]∈{ 0, . . . ,|Tk|−1}∪{ ♮}, for every 1≤k≤K. Given an enumeration of the elements in Tk,
+t[k]=iindicates the execution of transition tiofTk, while t[k]=♮indicates that no transition of
+Tkis performed (it represents the symbol _in the discrete transitions of traces). An array edge](of
+KBooleans represents the kind of transition taken by each automaton Ak. Ifedge]([k]is true, then
+the configuration change of Akat the current position is closed-open; otherwise, it is open-closed.
+Finally, for each variable n∈Int, a corresponding CLTLoc integer variable is introduced.
+The configuration change determined by a discrete transition is explicitly encoded with a formula
+that expresses the effect of the transition on the network configuration. Conversely, since in CLTLoc
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 17 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :17
+c0 c′
+0c1 c′
+1
+c2 c′
+2c3
+e1 e2e3
+||||||
+|
+i= 01 2 3 4 5 6 7 8 9
+l=
+n=
+x=
+edge =q0q0q0 q0 q1 q1 q1 q2 q2 q0
+00 0 0 2 2 2 1 1 0
+00.7·· 3.2
+x:=0·· 4.5· 10
+x:=0
+····](··)[·](
+t[0]=e1 t[0]=e2 t[0]=e3
+x<5 x=10
+x≤5 x≤5Inv(q1)
+Fig. 5. Interpretation of atom in φN.
+time progress is inherent in the model, the encoding does not explicitly deal with time transitions
+of traces because between any pair of adjacent positions iandi+1the time always advances. To
+facilitate understanding and future discussions, a trace is written as:
+(l0,vvar,0,v0)δ0Λ0−−−→( l1,vvar,1,v1)δ1Λ1−−−→( l2,vvar,2,v2). . .
+where time and discrete transitions are paired together and the notation (li,vvar,i,vi)δiΛi−−−→
+(li+1,vvar,i+1,vi+1)is simply a rewriting of
+(li,vvar,i,vi)δi−→(l′
+i,v′
+var,i,v′
+i)Λi−−→( li+1,vvar,i+1,vi+1).
+for some configuration (l′
+i,v′
+var,i,v′
+i). FormulaφNis built by assuming that the configuration
+of the network does not change over the intervals of time delimited by a pair of positions of the
+CLTLoc model, except for clocks progressing. Hence, any pair of positions iandi+1of the model
+ofφNrepresents (the pair of transitions) (li,vvar,i,vi)δiΛi−−−→( li+1,vvar,i+1,vi+1).
+The atomic propositions and variables, appearing in φN, are interpreted with the following
+meaning:
+•ifl[k]=jholds at position i, then automatonAkis in state qk
+jover the interval of time that
+starts at iand ends in i+1.
+•ift[k]=jholds at position i, then automatonAkperforms transition jini+1.
+Example 4.2. Figure 5 shows a trace of the automaton depicted in Fig. 2(b) that consists of various
+time transitions and three discrete transitions associated with events e1,e2ande3. To facilitate
+readability, the discrete transitions such that Λ[0]=_are indicated with a vertical bar and the
+discrete transitions where at least one automaton executes (in the next position) a transition are
+drawn by showing the primed configurations. Every discrete transition corresponds to a unique
+position in the CLTLoc model and every time transition determines the time progress between pairs
+of adjacent positions. The first area below the trace shows the discrete positions iof the CLTLoc
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 18 ---
+:18 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 4. Encoding of the automaton.
+φ1BÓ
+k∈[1,K](l[k]=0) φ2BÓ
+n∈Intn=v0var(n) φ3BÓ
+k∈[1,K]Inv(l[k])
+φ4BÓ
+k∈[1,K]
+q∈Qk((l[k]=q∧t[k]=♮)→X( Inv(q)∧r1(Inv(q)))
+φ5BÓ
+k∈[1,K],t∈Tkt[k]=t→
+l[k]=t−∧ϕξ∧X( l[k]=t+∧ϕγ∧ϕµ∧ϕζ∧ϕedge(t−,t+,k)
+ϕedge(a,b,i)Bϕα]((a,b,i)∨ϕα)[(a,b,i)
+ϕα]((a,b,i)BInv(a)∧r2(Invw(b))∧edge]([i]
+ϕα)[(a,b,i)BInvw(a)∧r2(Inv(b))∧¬ edge]([i]
+φ6BÓ
+k∈[1,K],q,q′∈Qk|q,q′ 
+((l[k]=q)∧X( l[k]=q′))→Ô
+t∈Tk,t−=q,t+=q′(t[k]=t)!
+φ7BÓ
+x∈X©­­­
+«X(x0=0∨x1=0)→Ô
+k∈[1,K]
+t∈Tk|x∈tst[k]=tª®®®
+¬φ8BÓ
+n∈Int©­­­
+«(¬(n=X(n)))→Ô
+k∈[1,K]
+t∈Tk|n∈U(t)t[k]=tª®®®
+¬
+model and the second one, for each position i, provides the values of the variables representing
+location l, variable n, clock x(a dot stands for a monotonically increasing positive value), and
+the value of variable edge (a dot represents an irrelevant assignment to edge ). The first discrete
+transition labeled with e1occurs at position 4, where the guard x<5holds; at that moment,
+clock x, whose value is equal to 3.2, is reset and the location changes from q0toq1. The second
+transition—associated with event e2—occurs at position 7when x=4.5holds, before the value of x
+violates the invariant x≤5of location q1, and produces the change of location from q1toq2. The
+last transition, associated with event e3, occurs at position 9with x=10, it resets xand changes
+location to q0. In the CLTLoc model, discrete transitions are represented one position earlier than
+the position where they actually occur, namely at position 3, 6, and 8, respectively.
+Remark 5. As specified in Definition 3.3, Condition (3), the first configuration change is associated
+with a time transition. Thus, it is not possible to fire a discrete transition at position i=0.
+The third segment of Fig. 5 shows the exact positions where transitions t[0]=e1,t[0]=e2
+and t[0]=e3occur (first line), the positions where the guards are evaluated in the CLTLoc
+model (second line) and the sequence of positions where the invariant of q1holds (third line). For
+convenience of notation, the assignment for edge is shown by means of symbols ](and)[. At
+positions 4, 7 and 9 it is shown one among the possible assignments that are compatible with the
+clock values in the model. For instance, )[is also possible at position 4.
+A network of TA is transformed into a CLTLoc formula using the formulae in the Table 4. In
+the following, the invariant of location qis indicated with Inv(q)and the weak version of Inv(q),
+where all relations <, > are replaced with≤,≥and the equalities are replaced with false, is denoted
+with Invw(q). With slight abuse of notation, Inv(q)andInvw(q)are used in Fig. 4 to indicate the
+CLTLoc formula corresponding to the invariant of qand its weak version.
+Before explaining the formulae of Table 4 in details, a short description is first provided. Formulae
+φ1,φ2andφ3specify the initial conditions that must hold in the TA. Formula φ4specifies the behavior
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 19 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :19
+of a TA when a time transition is fired. Formula φ5and formulae φ6-φ8define, respectively, the
+necessary and the sufficient conditions that must hold when a discrete transition is performed with
+a symbol different from ♮, i.e., when the corresponding symbol in the trace is not _4. More precisely,
+formulaeφ6-φ8force the execution of (at least) a transition in the network if a reset or a change of
+the value of variables or locations occurs and they prevent a variation in the values of the model
+that is not caused by the occurrence of a transition. Each of the formulae is discussed in detail in
+the following.
+•Formulaφ1specifies that at position 0 every automaton is in its initial state;
+•Formulaφ2specifies that at position 0 every variable nis assigned its initial value vvar,0(n);
+•Formulaφ3specifies that at position 0 the invariant of the initial state of each TA holds;
+•Formulaφ4encodes the case (1)b of Def. 3.2 requiring that, for every 1≤k≤K, if automaton
+Akdoes not perform a transition when other TA do, then the clocks still satisfy the invariant
+of the current location l[k]. Formula Inv(q)∧r1(Inv(q))guarantees that the values of the
+active clocks satisfy Inv(q), even in the case when they are reset. Unlike Inv(q),r1(Inv(q))
+does not make use of formulae ϕx∼dto evaluate constraints x∼dwhen the clock assignments
+are equal to 0. In fact, the evaluation of a constraint x∼dthroughϕx∼donly depends on the
+active value of x, which is always different from 0 by definition (see Sec. 4.1). To this goal,
+the mapping r1, defined below, replaces every constraint of the form x∼dwith the value of
+0∼difxis reset. Given an atomic formula β(x)of the form x∼d, where∼∈{ <,≤,=,≥, >},
+letβ[x←c]be true or false depending on the value of the formula obtained by replacing xin
+β(x)with the constant c. Then, for a clock constraint γ, letr1(γ)be defined as the formula
+obtained from γby replacing, for all clocks x, each occurrence of an atomic formula β(x)
+with the formula:
+(x0=0∨x1=0)→β[x←0].
+When xis reset, x0orx1are equal to 0, and β[x←0]establishes the value of β(x). Since a
+CLTLoc model represents the occurrence of a transition one time position before the effect,
+φ4imposes that the invariant Inv(q)associated with the current location l[k]=qis satisfied
+in the next position if no transition is taken in the current one, i.e, when t[k]=♮. The value
+ofedge]([k]is irrelevant because no transition of Akis occurring. Hence, no constraint is
+specified for it.
+•Formulaφ5encodes the case (1)a of Def. 3.2. Similarly to formula φ4, the value of active clocks
+and their resets have to be considered carefully in the evaluation of the invariants of l[k]
+andl′[k]. In the definition of discrete transitions of Def. 3.2, the invariant of l[k]is always
+evaluated with respect to vwhereas the one of l′[k]is evaluated with respect to v′. Function
+r2is used to encode the conditions in (1)(a)v and (1)(a)iv, that require the satisfaction of
+Inv(l′[k]), or possibly its weak version, with v′. Letγ,βandβ[x←c]be formulae defined as
+above and let r2(γ)be the formula where all the occurrences x∼dare replaced with the
+formula
+((x0>0∧x1>0)→ϕx∼d)∧(( x0=0∨x1=0)→( x∼d)[x←0]).
+For instance, by means of r2, the value of a constraint x∼doccurring in Inv(l′[k])is either
+(x∼d)[x←0], ifxis reset by the transition (i.e., v′(x)=0); orϕx∼dif it is not. In the latter
+case, its value is determined by the active clock for xthat is equal to v′(x).
+4Inφ5. . .φ8, symbols of Actτdo not appear, as events are only used to define how the TA synchronize and they will be
+discussed in the next section.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 20 ---
+:20 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Lettbeqγ,ξ,α,ζ,µ−−−−−−−−→ q′∈Tk, letϕγbe the CLTLoc formula expressing the guard γ, letϕξ
+be the formula expressing the constraints on the integer variables, let ϕζbe the formulaÓ
+x∈ζ(x0=0∨x1=0)encoding in CLTLoc the effect of resets applied by ton clocks in ζand
+letϕµbe the formula translating the assignments of the form n:=expthat appear in tinto a
+(semantically) equivalent CLTLoc formula.
+Recall that t[k]=trepresents the execution of transition tin the next position of time and
+thatt+,t−are the locations qandq′connected by t. Ift[k]=tholds at position i(hence,
+transition tis actually performed by Akati+1) then:
+(1)AutomatonAkis currently in qand changes location to q′in the next position of time.
+Hence, l[k]atiandi+1is, respectively, q=t−andq′=t+.
+(2)The condition on the integer variables holds. Formula ϕξis satisfied at position ibecause
+the effect of ton the integer variables is enforced at i+1.
+(3)The condition on the clocks holds. Formula ϕγis satisfied by the clock assignments in i+1.
+(4)All the clock resets and variable assignments are performed. Hence, formulae ϕζandϕµ
+hold at position i+1, i.e., resets and updates are performed when tis actually taken.
+(5)The configuration change is either open-closed or closed-open. Formula ϕedgeencodes
+the cases (1)(a)v and (1)(a)iv. If the configuration change is closed-open then, according
+to (1)(a)v,v|=Inv(l[k])andv′|=wInv(l′[k])must hold. The first condition is ensured
+byInv(t−), while the second by r2(Invw(t+)), where t−=l[k]andt+=l′[k]. Since the
+transition is closed-open, then edge]([i]is set to true. If the configuration change is open-
+closed then, according to (1)(a)iv, v|=wInv(l[k])andv′|=Inv(l′[k])must hold. The first
+condition is ensured by Invw(t−), while the second by r2(Inv(t+)), where t−=l[k]and
+t+=l′[k]. Since the transition is not closed-open, then edge]([i]is false.
+•Formulaφ6specifies that if automaton Akmodifies its location from qtoq′over two adjacent
+positions, then a transition t∈Tksuch that q=t−andq′=t+is taken at i+1—i.e., t[k]=t
+holds at position i.
+•Formulaφ7specifies that if a reset of x(i.e., either x0=0orx1=0) occurs at i+1then a
+transition resetting clock xis performed at i+1—i.e., t[k]=tholds at position i, for some
+1≤k≤Kandt∈Tksuch that x∈ts(where tsis the set of clocks that transition tresets).
+•Formulaφ8specifies that if the value of variable nini+1is not equivalent to the one in
+ithen a transition modifying nis performed at i+1—i.e., t[k]=tholds at position i, for
+some 1≤k≤Kandt∈Tksuch that n∈U(t)(where U(t)is the set of integer variables that
+transition tupdates by means of the assignments in µ).
+FormulaφNencoding the network is then defined in Formula (1).
+φN=ϕclock∧φ1∧φ2∧φ3∧G(Û
+4≤i≤8φi) (1)
+Remark 6. The proposed encoding allows the simultaneous execution, by different automata, of
+transitions with edges of type α)[andα](.
+The correctness of the CLTLoc encoding is demonstrated by showing a correspondence between
+the traces of a network N(Def 3.3) and the models (π,σ,ι)of the CLTLoc formulaφN. Without
+loss of generality, assume that the set of clocks XofNis not empty (if X=∅, one could always
+add a clock that is never reset, nor tested, and the behavior of the network would not change).
+At the core of the proof there is a mapping, ρ, between traces of TA and CLTLoc models. First of
+all, every trace ηof TA can be given the form
+(l0,vvar,0,v0)δ0Λ0−−−→( l1,vvar,1,v1)δ1Λ1−−−→( l2,vvar,2,v2). . .
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 21 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :21
+since any pair of consecutive time transitions can be seen as a pair of time transitions separated by
+a discrete transition in which the action is _(i.e., nothing happens in between). Then, given a trace
+η, aCLTLoc model(π,σ,ι)that belongs to ρ(η)can be built as follows.
+For every position h∈N, the function ιassigns each CLTLoc variable l[k]to location lh[k]
+(that is,ι(h,l[k])=lh[k]). The value of variables n∈Intis defined as ι(h,n)=vvar,h(n). Function
+πassigns values to the atomic propositions of lh, for every index h∈N:p∈π(h)if, and only
+if,p∈L(lh[k]), for some k. The clock valuation σspecifies the assignments to both active and
+inactive clocks. Recall that (lh,vvar,h,vh)δhΛh−−−−→( lh+1,vvar,h+1,vh+1)is a shortcut for
+(lh,vvar,h,vh)δh−−→( l′
+h,v′
+var,h,v′
+h)Λh−−→( lh+1,vvar,h+1,vh+1)
+where the time transition (lh,vvar,h,vh)δh−−→( l′
+h,v′
+var,h,v′
+h)only updates clocks, while locations
+and integer variables are unchanged. For convenience of writing, let xaandxibe, respectively, the
+active and the inactive clocks associated with xin a given position. Initially, the active clock is x0(i.e.,
+xaisx0), and its value is 0; that is,σ(0,x0)=0andι(0,xv)=0(the value of x1—i.e., xi—is arbitrary,
+hence it can be any positive value). For all h∈N,x∈X, defineσ(h+1,xa)=σ(h,xa)+δh;
+and alsoσ(h+1,xi)=σ(h,xi)+δhunless xis reset in position h+1of the trace, in which
+caseσ(h+1,xi)=0; clock xibecomes the active clock from h+1(excluded), and the value of
+ι(h+2,xv)=(ι(h+1,xv)+1)mod 2 .
+The value of predicate t[k]at position his defined based on configurations (l′
+h,v′
+var,h,v′
+h),
+(lh+1,vvar,h+1,vh+1)and on symbol Λh[k]. In particular, define ι(h,t[k])=♮when Λh[k]=_.
+Instead, define ι(h,t[k])=twhen there is t=qγ,ξ,α,ζ,µ−−−−−−−−→ q′such that l′
+h[k]=q,lh+1[k]=q′,
+Λh[k]=α, andv′
+h,vh+1,v′
+var,hvvar,h+1are compatible with γ,ξ,ζ,µaccording to the semantics of
+Def. 3.2. Finally, the value of edge]([k]is set according to Λh[k]: ifΛh[k]=(α,b)for some action α,
+then edge]([k]∈π(h+1)if, and only if, b=ie; otherwise, if Λh[k]=_, the value of edge]([k]in
+h+1is arbitrary (it is also arbitrary in the origin).
+Notice that, given a trace η, its mapping ρ(η)contains more than one CLTLoc model (for example,
+the value of xiin the origin is arbitrary). The inverse mapping ρ−1, instead, defines, for each CLTLoc
+model(π,σ,ι), a unique trace η=ρ−1((π,σ,ι)); indeed, the presence of at least a clock xinN
+entails that at each position h+1at least one of the two corresponding CLTLoc clocks x0,x1is not
+reset, which in turn uniquely identifies the delay δh.
+The rest of this section sketches the proof for the following result.
+Theorem 4.3. LetNbe a network of TA and φNbe its corresponding CLTLoc formula.
+For every trace ηofN, every CLTLoc model(π,σ,ι)such that(π,σ,ι)∈ρ(η)is a model of φN.
+Conversely, for all CLTLoc models(π,σ,ι)ofφN,ρ−1((π,σ,ι))is a trace ofN.
+Proof. From traces to models.
+Letη=(l0,vvar,0,v0)δ0Λ0−−−→( l1,vvar,1,v1)δ1Λ1−−−→( l2,vvar,2,v2). . .be a trace ofN, and(π,σ,ι)∈
+ρ(η). Formulae φ1,φ2andφ3ofφNare satisfied since they trivially hold at position 0.
+The following arguments show that, at every position h∈N,CLTLoc formulaeφ4,φ5are satisfied
+by(π,σ,ι)(i.e.,(π,σ,ι),h|=φ4and(π,σ,ι),h|=φ5both hold). Different cases are considered,
+depending on the nature of Λh[k](where 1≤k≤K).
+(1) Case Λh[k]=_. In this case, the conditions (1)b of Definition 3.2 hold in the trace:
+•lh[k]=lh+1[k];
+•v′
+h|=Inv(lh[k])andvh+1|=Inv(lh+1[k]).
+The antecedent of φ4holds at position hand formula Inv(l[k])∧r1(Inv(l[k]))holds at h+1—
+hence satisfying the entailment—because the second condition of (1)b holds in the trace.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 22 ---
+:22 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Indeed, all clock constraints βinInv(l[k])of the form x∼dcorrespond to formula ϕβinφ4,
+evaluated with the values of the active clocks at position h+1. Hence,v′
+h(x)satisfiesβif, and
+only if,ϕβholds at position h+1, since by construction σ(h+1,xa)=v′
+h(x). Moreover, in case
+of reset of xath+1in the trace (in which case, by construction, σ(h+1,xi)=vh+1(x)=0
+holds), every clock constraint βof the form x∼dcorresponds to CLTLoc formula r1(β),
+which in turn reduces to the constant β[x←0], and which equals to the evaluation of βin
+vh+1(x).
+IfΛh[k]=_, then by construction ι(h,t[k])=♮andφ5is vacuously satisfied.
+(2)CaseΛh[k]=α](. Let tbe the transition such that ι(h,t[k])=t. By Def. 3.2 condition (1)a ,
+the constraints hold in the trace (notice that vvar,h=v′
+var,h):
+•v′
+h|=γandv′
+var,h|=ξ,
+•vh+1(x)=0for all x∈ζ,
+•(vvar,h+1,v′
+var,h)|=µ,
+•v′
+h|=Inv(lh[k])and
+•vh+1|=wInv(lh+1[k]).
+Thus, formula φ4vacuously holds in h.
+Formulaφ5holds since the antecedent of φ5holds for the case t[k]=tand the consequent is
+satisfied as follows. By construction, it holds that ι(h,l[k])=lh[k]andι(h+1,l[k])=lh+1[k].
+Formulaϕγholds at position h+1withσ(h+1,xa)=v′
+h(x), for every clock x; also,ϕξholds
+at position hwithι(h,n)=vvar,h(n)=v′
+var,h(n)for every variable n. Formulae ϕζandϕµ
+hold at h+1, sinceσ(h+1,xi)=vh+1(x)=0for all clock x∈ζ, andι(h+1,n)=vvar,h+1(n)
+for all variable n∈Int. The first condition on the invariants of l[k]is evaluated as follows.
+Each clock constraint βinInv(t−)corresponds to CLTLoc formulaϕβ, evaluated with the
+values of the active clocks at position h+1ofσ. Hence, since σ(h+1,xa)=v′
+h(x),ϕβholds
+at position h+1if, and only if, v′
+h(x)satisfiesβ. The formula r2(Invw(t+))must hold at h+1
+to guarantee the enforcement of the last condition in the model. By definition of r2, each
+clock constraint βinInvw(t+)of the form x∼dcorresponds to formula ϕβ, evaluated with
+the values in σof the active clocks at position h+1, if the clock is not reset; otherwise, β
+reduces toβ[x←0], whose value is that of βwhen valuation vh+1is considered. By construction,
+edge]([k]∈π(h+1)holds, soϕedge(t−,t+,k)also holds in h+1.
+(3)CaseΛh[k]=α)[. The proof is similar to the previous one. The only differences are the
+conditions on the invariants, that are Invw(t−)andr2(Inv(t+)). However, the same arguments
+of the previous case hold.
+Formulaeφ6andφ8are trivially satisfied when the location l[k]does not change in η—hence it
+does not change in (π,σ,ι)—and for all variables nthat have the same value in handh+1; similarly,
+φ7is satisfied when a clock xis not reset in h+1(hence, both xaandxiare not 0). Otherwise, if
+between positions handh+1in the trace the location changes, or a variable is updated, or a clock
+is reset, then there must be a transition taken in the TA, hence by construction in (π,σ,ι)both the
+antecedents and the consequences of formulae φ6−φ8trivially hold.
+From models to traces. Let(π,σ,ι)be a model of φN. The proof shows that η=ρ−1((π,σ,ι))=
+(l0,vvar,0,v0)δ0Λ0−−−→( l1,vvar,1,v1)δ1Λ1−−−→( l2,vvar,2,v2). . .is a trace ofNaccording to Def. 3.3 (and
+the related Def. 3.2).
+Since formulae φ1,φ2,φ3hold in at position 0 of (π,σ,ι), the values of l0,vvar,0,v0defined by
+mappingρ−1constitute an initial configuration of Naccording to Def. 3.3.
+The following arguments show that, at each position h∈Nofη, for all k(with 1≤k≤K) the
+conditions of Def. 3.2 hold. Separate cases are considered, depending on the value of ι(h,t[k]).
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 23 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :23
+(1)ι(h,t[k])=♮. Then, l[k]is the same in handh+1andφ4ensures that Inv(l[k])∧r1(Inv(l[k]))
+holds at h+1, which in turn entails that v′
+h|=Inv(l[k])andvh+1|=Inv(l[k])both hold.
+Hence, condition (1)b holds.
+(2)ι(h,t[k])=t,♮andedge]([k]∈π(h+1), where t=qγ,ξ,α,ζ,µ−−−−−−−−→ q′is a transition ofAk.
+Sinceφ5holds in h, then the following conditions hold:
+•ι(h,l[k])=qandι(h+1,l[k])=q′,
+•ϕξholds in hand
+•ϕγ,ϕµ,ϕζandϕedge(q,q′,k)hold in h+1.
+All conditions in (1)a, and in particular those in (1)(a)v corresponding to the case α](, for
+some action α, hold as follows:
+(a)v′
+h|=γandv′
+var,h|=ξ(condition (1)(a)i) are guaranteed by ϕγholding in h+1andϕξ
+holding in h, respectively (notice that in h+1variables are updated by µand clocks are
+possibly reset, but γis evaluated through the active clocks).
+(b)vh+1(x)=0(condition (1)(a)ii) holds, for all x∈ζ, sinceϕζholds in h+1.
+(c)(vvar,h+1,vvar,h)|=µ(condition (1)(a)iii) holds, since ϕµholds in h+1.
+(d)v′
+h|=Inv(l′
+h[k])holds because, by ϕedge(q,q′,k),Inv(q)holds in h+1, andρ−1defines that
+l′
+h[k]isq; then, the first condition of (1)(a)v holds.
+(e)vh+1|=wInv(lh+1[k])holds because, again by ϕedge(q,q′,k),r2(Invw(q′))holds in h+1,
+andρ−1defines that lh+1[k]isq′; then, the second condition of (1)(a)v holds.
+(3)ι(h,t[k])=t,♮andedge]([k]<π(h+1). The proof, which now focuses on condition
+(1)(a)iv, is similar to the previous case—with the only differences being the conditions on the
+invariants, which are now Invw(q)andr2(Inv(q′))—and it is omitted for simplicity.
+Condition (1)c follows from φ7andφ8holding at h, which impose the occurrence of a transition
+that resets a clock xor modifies the value of a variable nifxis reset or nis updated at position
+h+1. Finally, condition (2) holds because, as mentioned above, formula φ4imposes that Inv(l[k])
+holds at h+1, hencev′
+h|=Inv(l[k])also holds, which in turn implies that v′
+h|=wInv(l[k])holds
+(notice that a model for φNcannot reach a location that includes constraints of the form x=d
+in its invariant, since time is strictly monotonic, and the residence time in the location cannot be
+null). In addition, formula φ5defines that Inv(l[k])orInvw(l[k])holds at h+1, and both entail
+thatv′
+h|=wInv(l[k])holds. □
+4.3 Encoding liveness, synchronization and edge constraints ( φl,φsandφef)
+As seen in Section 3.2, different liveness conditions and synchronization mechanisms for networks
+of TA can be considered. This section describes how the liveness conditions and synchronization
+mechanisms presented in Section 3.2 can be encoded in CLTLoc . Several liveness conditions could
+be required for a network of TA, so Formula φlcaptures a conjunction of the following conditions,
+each one encoded by a CLTLoc formula in Table 5 (if no liveness condition is required, φlreduces
+to true).
+•Strong transition liveness: at any time instant, at least one transition in every automaton is
+eventually fired.
+•Weak transition liveness: at any time instant, at least one transition in at least one automaton
+is eventually fired.
+•Strong guard liveness: at any time instant, every automaton eventually reaches a state that
+has an outgoing transition whose guard holds.
+•Weak guard liveness: at any time instant, at least one automaton eventually reaches a state
+that has an outgoing transition whose guard holds.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 24 ---
+:24 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 5. Formulae encoding the different liveness conditions.
+Liveness Property
+Strong transitionÓ
+k∈[1,K]G
+FÔ
+t∈Tkt[k]=t
+Weak transition G 
+F 
+Ô
+k∈[1,K],t∈Tkt[k]=t!!
+Strong guardG 
+Ó
+k∈[1,K] 
+Ó
+q∈Qkl[k]=q→FÔ
+t∈Tk,t−=qϕtγ∧ϕtγvar!!
+Weak guardG 
+Ô
+k∈[1,K] 
+Ó
+q∈Qkl[k]=q→FÔ
+t∈Tk,t−=qϕtγ∧ϕtγvar!!
+Synchronization is encoded by relying on the following abbreviations, where α∈Actτ,k,h∈
+[1,K]andSis a set of indices in [1,K]. Recall that, given a transition t,te∈Actτrepresents the
+symbols that labels t.
+ϕsync -on(k,α)BÜ
+t∈Tk|te=α(t[k]=t) (2)
+ϕsync -on-but(S,α)BÜ
+д∈{i|i∈[1,K]}\Sϕsync -on(д,α) (3)
+ϕsame -edge(k,h)BX(edge]([k]↔ edge]([h]) (4)
+Formulaϕsync -on(k,α)specifies that a transition tofAklabeled with the action αis fired. Formula
+ϕsync -on-but(S,α)specifies that a transition tlabeled with the action α, and belonging to a TA whose
+index does not belong to set S, is fired. Finally, ϕsame -edge(k,h)specifies that the transitions taken by
+AkandAhhave the same edge structure, i.e., either they are both open-closed or both closed-open.
+The abbreviations in Formulae (2),(3)and(4)are used in Table 6 to encode the channel-based,
+the broadcast and the one-to-many synchronizations. The intermediate CLTLoc formulaϕsync_type
+(where sync_type ischannel ,broadcast orone-to-many ) isϕsync_typeBG(υ1∧υ2), whereυ1andυ2
+depend on the selected type of synchronization. Then, if multiple synchronizations are considered,
+ϕsis the conjunction of the corresponding ϕsync_type, one for each type of synchronization. Note
+that the syntax of MITL adopted in this work does not allow event symbols to appear in the
+formulae, being the language limited to constrain the values of the variables in Intand the atomic
+propositions in APover the time. For this reason, symbols of Actτdo not have a corresponding
+CLTLoc representation, yet they are used to instantiate the formulae encoding the synchronization
+among the TA.
+•Channel-based synchronization. Formulaυ1specifies that any sending event α!in a transition
+tof an automaton kmust be matched by exactly one corresponding receiving event α?of a
+transition t′of another automaton h. This is specified by stating that there exists one of the
+automata with index hthat syncs on α?and all the others (with index different than kandh)
+do not sync on α?. Furthermore, the shape of the edges of the transitions of the automata
+that sync on action αmust correspond.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 25 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :25
+Table 6. Formulae encoding different types of synchronizations.
+Name Property
+Channelυ1BÓ
+k∈[1,K]
+t∈Tk|te=α!©­­
+«t[k]=t→Ô
+h∈[1,K],h,k©­­
+«ϕsync -on(h,α?)∧¬ϕsync -on-but({k,h},α?)
+∧
+ϕsame -edge(k,h)ª®®
+¬ª®®
+¬
+υ2BÓ
+k∈[1,K]
+t∈Tk|te=α? 
+t[k]=t→Ô
+h∈[1,K],h,k ϕsync -on(h,α!)∧¬ϕsync -on-but({k,h},α!)!
+Broadcastυ1BÛ
+k∈[1,K]
+t∈Tk|te=α# t[k]=t→ ¬ϕsync -on-but({k},α#)
+∧
+Û
+k∈[1,K]
+t∈Tk|te=α#©­­­­
+«t[k]=t→©­­­­
+«Û
+h∈[1,K]
+h,k©­­­­
+«ϕsync -on(h,α@)∧ϕsame -edge(k,h)
+∨
+Û
+t′∈Tk′|t′
+e=α@(X(¬ϕt′γ)∨¬ϕt′γvar∨l[h],t′−)ª®®®®
+¬ª®®®®
+¬ª®®®®
+¬
+υ2BÓ
+k∈[1,K]
+t∈Tk|te=α@ t[k]=t→ϕsync -on-but({k},α#)
+One-to-
+manyυ1BÓ
+k∈[1,K]
+t∈Tk|te=α& t[k]=t→ ¬ϕsync -on-but({k},α&)∧ϕsync -on-but({k},α∗)
+υ2BÓ
+k∈[1,K],
+t∈Tk|te=α∗ t[k]=t→ϕsync -on-but({k},α&)
+Formulaυ2specifies that any receiving event α?must be matched by exactly one correspond-
+ing sending event α!in one of the other automata.
+•Broadcast synchronization. Formulaυ1first specifies that if an automaton kbroadcasts on
+a channelα, no other automaton broadcasts on that channel. Then, it specifies that if an
+automaton kbroadcasts on a channel α, all the other automata heither sync and receive on
+that channel, and also match the shape of the transition, or they do not sync. If the automaton
+does not sync, either it is in a state that has no outgoing transition labeled with α@, or the
+guards of the outgoing transitions labeled with α@are not satisfied (i.e., no transitions are
+enabled).
+Formulaυ2specifies that any receiving event α@must be matched by exactly one corre-
+sponding sending event α#in one of the other automata.
+•One-to-many. Formulaυ1specifies that if an event α&is sent, no other automaton sends the
+same event, and at least one automaton receives the event α∗. Formulaυ2specifies that if an
+eventα∗is received by an automaton, some automaton has sent event α&.
+As mentioned in Remark 6, the semantics—and corresponding encoding—of networks of TA
+allows for transitions with different types of edged to be taken at the same time. As depicted in
+Fig. 5, it also allows the same automaton to take transitions with different edges over time. However,
+one might desire to restrict this behavior (for example for synchronization reasons), and only allow
+transitions to be taken with a certain type of edge. These restrictions (if any), are captured by
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 26 ---
+:26 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 7. Formulae encoding different types of edges.
+Name Property
+closed-openGÓ
+k[1,K]edge]([k]
+open-closedGÓ
+k[1,K]¬edge]([k]
+unrestricted ⊤
+formulaφef. Table 7 shows some examples of restrictions and corresponding CLTLoc constraints.
+In particular, the “closed-open” (resp., open-closed) restriction states that, when a transition is
+taken, it must with some symbol α]((resp.,α)[). The “unrestricted” case obviously means that no
+constraint is introduced, hence it corresponds to true. Other possibilities could be envisaged, but
+these are the most relevant for our purposes.
+The following theorem extends Theorem 4.3 to liveness conditions and synchronization mecha-
+nisms.
+Theorem 4.4. LetNbe a network of TA, lbe a (set of) liveness conditions, sbe the (set of)
+synchronization mechanisms used in network N, and efthe set of restrictions on edges. Let ΦNbe the
+CLTLoc formulaφN∧φl∧φs∧φef.
+For every trace ηofNthat satisfies the selected liveness conditions l, synchronization mechanisms
+s, and edge restrictions edдe, any CLTLoc model(π,σ,ι)such that(π,σ,ι)∈ρ(η)is a model of ΦN.
+Conversely, for each CLTLoc model(π,σ,ι)ofΦN,ρ−1((π,σ,ι))is a trace ofNthat satisfies the
+selected liveness conditions l, synchronization mechanisms s, and edge restrictions e f.
+The proof is omitted for reasons of brevity, as it is rather standard. Indeed, it is a straightforward
+extension of the proof of Theorem 4.3, and follows from the fact that each CLTLoc formula listed
+in Table 5 (resp., Table 6) encodes the corresponding semantics described in Table 1 (resp., Table 2);
+in addition, the formulae of Table 7 capture the corresponding restrictions on edges.
+5 CHECKING THE SATISFACTION OF MITL FORMULAE OVER TA
+Traces encode executions of TA by means of denumerable sequences of time and discrete transitions.
+However, the evolution of a network of TA is continuous, hence it is more naturally represented by
+means of signals (see Section 2.2). Timed words, instead of signals, are commonly adopted to repre-
+sent the semantics of TA: although they are expressive enough in many cases, they cannot describe
+the values at the edge of signals—i.e., in correspondence of configuration changes. For instance, in a
+temporal logic such as MITL one can indeed state properties whose value is affected by signal edges;
+e.g., the set of signals of symbol pthat change value only over intervals that are left-closed/right-
+open can be specified with the MITL formula G[0,+∞) (p⇒pU(0,+∞)⊤)∧(¬ p⇒¬pU(0,+∞)⊤).
+Therefore, model checking a TA against such an expressive language requires modeling edges as
+well.
+Traces are tightly bound to signals: intuitively, given a trace η, the projection over the real line
+of the values of its integer variables and atomic propositions determines a signal Mη. To be able
+to consistently associate signals with traces of a TA, however, we need to impose the following
+restriction on traces.
+Definition 5.1. LetNbe a network of TA. A trace ηofNisedge-consistent if, for any configuration
+change(l′
+h,v′
+var,h,v′
+h)Λh−−→( lh+1,vvar,h+1,vh+1)there are two transitions l′
+h[k]γ,ξ,α,ζ,µ−−−−−−−−→ l′
+h+1[k]
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 27 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :27
+andl′
+h[¯k]¯γ,¯ξ,¯α,¯ζ,¯µ−−−−−−−−→ l′
+h+1[¯k], of two distinct TA k,¯k, which both set the value of variable n(in a
+compatible manner), then the edge of the transitions is the same; that is, either they are α](and ¯α](,
+or they are α)[and ¯α)[.
+In the rest of this section, only traces that are edge-consistent are considered.
+Letηbe an edge-consistent trace (l0,vvar,0,v0)δ0−→( l′
+0,v′
+var,0,v′
+0)Λ0−−→( l1,vvar,1,v1)δ1−→. . .; we
+indicate by ϒ(e)the “time” of a symbol e(where ecan be either δorΛ), defined as follows:
+•ϒ(δ0)=0;
+•ϒ(Λh)=ϒ(δh)+δhfor all h≥0;
+•ϒ(δh)=ϒ(Λh−1)for all h>0.
+Recall that, given a trace η, its associated word w(η)is the sequence δ0Λ0δ1Λ1. . .; also, given a
+set of assignments µ,U(µ)is the set of variables updated by µ. Let(l,vvar,v)be a configuration; we
+denote as c(l,vvar,v)the pair(∪1≤k≤KL(lh[k]),vvar,h)∈℘(AP)×ZIntof the atomic propositions
+and variable assignments that hold in the configuration (l,vvar,v).
+Definition 5.2. Letηbe an edge-consistent trace of a network Nof TA. The signal Mηassociated
+withηis the function Mη:R≥0→℘(AP)×ZIntsuch that:
+(1)Mη(0)=c(l0,vvar,0,v0);
+(2)for allδhinw(η), for all r∈R≥0such that ϒ(δh)<r<ϒ(δh)+δhthen Mη(r)=
+c(lh,vvar,h,vh);
+(3) for all Λhinw(η),Mη(ϒ(Λh))=(A,vvar)∈℘(AP)×ZIntwhere, for all p∈APandn∈Int:
+(a)p∈Aif, for some α∈Actτand for some 1≤k≤K:
+•p∈L(lh[k])andΛh[k]∈{ _,α](}holds, or
+•p∈L(lh+1[k])andΛh[k]=α)[holds
+(b)vvar(n)=vvar,h(n)if one of the following conditions holds:
+•there is no transition l′
+h[k]γ,ξ,α,ζ,µ−−−−−−−−→ lh+1[k]compatible with the configuration change
+and such that n∈U(µ);
+•there is 1≤k≤Kand a transition l′
+h[k]γ,ξ,α,ζ,µ−−−−−−−−→ lh+1[k]—compatible with the
+configuration change—such that Λh[k]=α](andn∈U(µ).
+(c)vvar(n)=vvar,h+1(n)if there is 1≤k≤Kand a transition l′
+h[k]γ,ξ,α,ζ,µ−−−−−−−−→ lh+1[k]—
+compatible with the configuration change—such that Λh[k]=α)[andn∈U(µ)hold.
+Condition (2) defines the correspondence between the time transitions in a trace ηand the values
+of the signal within the left-open/right-open intervals of Mη. In particular, any trace ηdefines an
+infinite set of intervals Ihof the form(ϒ(δh),ϒ(δh)+δh), for all h≥0. The value of signal Mηin
+every interval Ihis determined by the propositions and variable assignments c(lh,vvar,h,vh)that
+hold in Ih.
+Condition (3) handles the case of a discrete transition in hand defines the value of Mηat time
+ϒ(eh)when a configuration change occurs (i.e., when eh=Λhholds). Conditions (3)a, (3)b and (3)c
+define, respectively, the atomic propositions and the value of the integer variables based on the
+transition l′
+h[k]γ,ξ,α,ζ,µ−−−−−−−−→ lh+1[k]performed at time ϒ(Λh)by automatonAk, for every 1≤k≤K.
+Condition (3)a specifies that Mη(ϒ(Λh))includes the atomic propositions in L(lh[k])if the discrete
+transition performed by Akis closed-open (i.e., Λh[k]=α](holds), or if no transition is taken;
+otherwise, if the discrete transition is open-closed (i.e., Λh[k]=α)[holds), Mη(ϒ(Λh))includes
+the atomic propositions in L(lh+1[k]). Conditions (3)b and (3)c define the value vvar(n)of variable
+nat time ϒ(Λh). The value of vvar(n)is the same as vvar,h(n)if there is an automaton Akthat
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 28 ---
+:28 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 8. Definition of different types of signals based on the symbols occurring in the corresponding traces.
+Signal Discrete transitions
+right-closed α](
+left-closed α)[
+unrestricted α](orα)[
+performs a closed-open discrete transition that modifies n, or if none of the automata updates n
+(condition (3)b). Conversely (condition (3)c), the value of nbecomesvvar,h+1(n)at time ϒ(Λh)if
+there is an automaton Akthat performs a open-closed discrete transition that modifies n.
+Consider a trace ηand its associated signal Mη.Mηisleft-closed when, for all r∈R≥0, if
+Mη(r)=(A,vvar)for some A,vvar, then there is ε∈R>0such that, for all r<r′<r+εit also holds
+Mη(r′)=(A,vvar). Dually, Mηisright-closed when, for all r∈R>0, ifMη(r)=(A,vvar)for some A,
+vvar, then there is ε∈R>0such that, for all r−ε<r′<rit also holds Mη(r′)=(A,vvar).Mηis
+unrestricted if there are no constraints on the value of the signal in the neighborhood of each time
+instant.
+The shape of a signal Mηis determined by the transitions taken by the automata of the network.
+Consider, for instance, a variable nwith value 2, and a transition t=qγ,ξ,α,ζ,µ−−−−−−−−→ q′that, when it
+is taken, assigns value 1ton. There are different possibilities concerning the value of variable n
+in the instant when tis taken: if it must be 2(i.e., it is not yet assigned by the transition), then
+the corresponding signal cannot be left-closed; if it must be 1(i.e., it is already assigned by the
+transition), then the signal cannot be right-closed. There is an obvious relation (captured by Table 8)
+between a signal Mηbeing right-closed, left-closed, or unrestricted, and the edges of the transitions
+taken inη. Indeed, when all edges are open-closed (i.e., α)[), the signal is left-closed; when they are
+all closed-open (i.e., α]() the signal is right-closed; when they can be both, the signal is unrestricted.
+Leaving signals unrestricted—which means that, when transitions are fired, the choice of whether
+variables are already assigned their new values or still retain their old ones is non-deterministic—is
+a common approach in literature that has been used in some seminal works on TA [5].
+Then, by imposing constraints on the types of edges that the transitions of a network Nof
+TA can have, one can restrict the set of corresponding signals to contain only left-closed or only
+right-closed ones.
+Definition 5.3. LetNbe a network of TA, lbe a set of liveness conditions selected from Table 1,
+sbe the synchronization primitives (among those of Table 2) used in N, and efa restriction on the
+types of edges for the transitions taken by N(such as those of Table 8).
+T(N ,l,s,ef)is the set of edge-consistent traces that satisfy the liveness conditions l, the seman-
+tics of synchronizations s, and the restriction on edges ef.
+In addition,S(N ,l,s,ef)is the corresponding set of signals.
+Example 5.4. Figure 6 shows the same trace of Fig. 5 and the values of landnthat contribute to
+the definition of the signal deriving from the trace. At the bottom, three different types of signals—as
+specified on the right-hand side of the figure—are drawn according to the selected restrictions on
+the edges. The last signal is based on the assignment of variable edge in Fig. 5, whereas the first
+two are derived by restricting the kind of discrete transitions of the traces. Similarly to Fig. 5, the
+value of edge is explicitly written by means of ](or)[. In correspondence to the events e1,e2ande3
+its value defines the edge of the current interval, while it is left unspecified in the other positions
+to avoid cluttering the figure.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 29 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :29
+c0 c′
+0c1 c′
+1
+c2 c′
+2c3
+e1 e2e3
+||||||
+|
+l=
+n=q0q0 q0q0 q1 q1 q1 q2 q2q0
+00 00 2 2 2 1 10
+edge =[ ]c0( ]c1(]c2
+Right
+Closed····](··](·](
+edge =[ )c0[ )c1[)c2
+Left
+Closed····)[··)[·)[
+edge =[ ]c0( )c1[]c2
+Unrestricted····](··)[·](
+Fig. 6. Illustration of the right-closed, left-open and unrestricted semantics on the trace presented in Fig. 5
+generated by the TA of Fig. 2(b).
+5.1 Verification problem of networks of TA with respect to MITL formulae
+The properties of networks of TA are encoded by formulae that predicate over the values of the
+variables of set Intand over the atomic propositions which are labeling locations. This section
+defines when a network Nof TA satisfies a MITL property ψand states the verification problem
+of networks of TA against a MITL formula. Both definitions are based on the idea of selecting a
+(possibly proper) subset of traces of N, with respect to some selection criterion T.
+Given a networkNof TA, a selection criterion Tfor the traces ofNidentifies a subset of traces
+ofN. An example of selection criterion Tcould be “the set of traces that correspond to right-closed
+signals”. A trivial selection criterion simply identifies the set of all traces of N. With a slight abuse
+of notation, in the following, Tindicates both the selection criterion and the set of traces that it
+identifies.
+Definition 5.5 (Satisfiability of MITL formulae over networks of TA). LetNbe a network of TA, T
+a selection criterion, and ψa MITL formula.Nsatisfiesψrestricted to T(writtenN|=Tψ) if every
+signal Mη∈Tis such that Mη,0|=ψholds.
+Definition 5.6 (Verification problem). LetNbe a network of TA, Tbe a selection criterion, and ψ
+be a MITL formula. The verification problem for the network of TA Nrestricted to Tagainst a
+MITL formula ψconsists in determining whether N|=Tψholds.
+In the rest of this paper, the adopted selection criteria restrict the traces of interest to those that
+satisfy some liveness conditions l, the semantics of the synchronization primitives sappearing inN,
+and some restriction efon the edges of the transitions taken. Such a selection criterion is denoted
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 30 ---
+:30 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+c0 c′
+0c1 c′
+1
+c2 c′
+2c3
+e1 e2e3
+||||||
+|
+l=
+n=q0q0 q0q0 q1 q1 q1 q2 q2q0
+00 00 2 2 2 1 10a
+a
+a
+a
+a
+← −a← −a← −a← −a← −ac
+c
+← −c← −cn=2
+n=2
+←−−−−n=2←−−−−n=2←−−−−n=2
+aa aa a¬a¬a¬a¬a¬a
+¬c¬c¬c¬c¬c¬c¬c¬c cc
+¬n=2 n=2 ¬n=2
+F(0,1)(c)
+Fig. 7. Relationship between a trace and the MITL signal derived by Formula φsig.
+asT=⟨l,s,ef⟩. In this case, the set of selected traces is T(N ,l,s,ef), and the corresponding signals
+areS(N ,l,s,ef).
+In the following, the verification problem of Def. 5.6 is reduced to the problem of checking the
+satisfiability of CLTLoc formula Φsig∧Φ¬ψ, where ΦsigandΦ¬ψare computed as specified in
+Sections 5.3 and 5.2, respectively. Section 5.4 shows the correctness of the proposed procedure.
+5.2 CLTLoc encoding of MITL signals
+Bersani et al. [ 9] showed how to build a CLTLoc formula Φψfrom a MITL formula ψsuch that
+the set Mψof signals that are models of ψ(i.e., Mψ={M|M,0|=ψ}) is represented by the set
+of models of Φψ—hence, the satisfiability of ψis reduced to the satisfiability of Φψ. Mapping a
+continuous-time signal Mto a denumerable sequence of elements is done by partitioning R≥0into
+infinitely many bounded intervals, each one representing a portion of Min which the values of
+propositions and integer variables do not change (except possibly in the endpoints). In particular,
+letIbe an interval of the form (a,b), with a<b, and I0,I1, . . . be a denumerable set of adjacent
+intervals (i.e., ai+1=biholds for all i>0) covering R≥0—i.e., such thatÐ
+i≥0(Ii∪{ai})=R≥0holds,
+with a0=0. Every position iin aCLTLoc model of Φψrepresents the “configuration of ψ”—i.e., the
+value of all its subformulae—in interval Iiand at instant ai, according to the semantics of MITL.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 31 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :31
+Remark 7. As already remarked in Sec. 3, every sequence of consecutive time transitions in a trace
+can be replaced by an equivalent sequence of alternating time and discrete transitions, such that the
+total amount of elapsed time is the same as the original time transition and in all introduced discrete
+transitions every automaton does not perform any configuration change. Every position of the models
+ofΦsig∧Φ¬ψrepresents a time instant where either the configuration of N, or the configuration of
+¬ψ, changes, or both possibly change at the same time. Therefore, in case ¬ψchanges configuration
+at position h—i.e., one of its subformulae changes value—but Ndoes not, then hin the trace ofN
+corresponds to a discrete transition Λhsuch that Λi[k]=_, for all 1≤k≤K. Figure 7, which will be
+discussed more in depth in Example 5.8, exemplifies this situation by showing a formula that changes
+value while the automaton does not take any transition.
+5.3 CLTLoc encoding of network signals
+LetNbe a network of TA, lbe a set of liveness conditions selected from Table 1, sbe the semantics
+of the synchronization primitives appearing in N(selected from Table 2), and efbe a restriction on
+the edges of the transitions taken by N; this section defines the CLTLoc formula Φsigrepresenting
+the set of signals in S(N ,l,s,ef). By Def. 5.2, every trace ηis associated with a signal Mηthat can be
+decomposed into the initial value Mη(0), an infinite set of intervals (ϒ(δ0),ϒ(δ1)),(ϒ(δ1),ϒ(δ2)), . . .,
+defined by the time transitions δh, and a set of time instants ϒ(Λh)corresponding to discrete
+transitions with symbol Λh, where h≥0.
+According to [ 9], suitable CLTLoc atoms can be used to represent the signal defined by the
+atomic propositions labeling the locations of automata and the arithmetical formulae occurring
+in a MITL formula. In the following, AFindicates the universe of propositions of the form n∼d,
+where nis an integer variable and dis a constant. For every β∈AP∪AF, the value of βin the
+intervals(ϒ(δh),ϒ(δh+1))is represented by proposition← −β, called restofβ; similarly, the value of β
+in time instants ϒ(Λh)is represented by a proposition
+β, called first ofβ.
+Formula Φsigis built by combining formula ΦNdefined in Theorem 4.4, representing the traces η
+ofN, and a formula that constrains the propositions
+βand← −β, so that the signal Mηis correctly
+defined and all the conditions in Def. 5.2 are satisfied. Even though a signal Mηspecifies a valuation
+vvarin every time instant, and it defines the exact assignment for every variable n∈Int, formula
+Φsigonly represents the signal of the formulae n∼dthat appear in the MITL formula ψ, because
+the truth of ψis determined only by the value of its subformulae. The value of
+n∼dand←−−−−n∼d,
+however, is defined in every time position iof the model of Φsigby the value ι(i,n).
+Formula Φsigis defined in (5). It is composed by two parts, formula ΦNand formula φsig, which
+maps traces to signals as defined in (6).
+Φsig:=ΦNz                    }|                    {
+φN∧φl∧φs∧φef∧φsig (5)
+Recall that, as defined in Formula (1),φNencodes the network of TA in CLTLoc ; in addition, φl,φs
+andφefimpose the liveness conditions, synchronization mechanisms and restrictions on edges by
+means of the formulae in Tables 5, 6 and 7. Finally, formula φsigis defined as follows, through the
+formulae of Table 9.
+φsig:=Û
+i∈[1,6]χi (6)
+Formulaeχ1–χ6create a mapping between the values of the atomic propositions and of the variables
+and the corresponding signals. More precisely, formulae χ3andχ4(resp.,χ1andχ2) bind the values
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 32 ---
+:32 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 9. Formulae encoding the relation between the network of TA and the signal at the initial time instant
+and within the intervals.
+χ1BÓ
+k∈[1,K],
+p∈AP 
+p↔Ô
+p∈L(q0,k)l[k]=q0,k!
+χ2BÓ
+(n∼d)∈AF n∼d↔n∼d
+χ3BGÓ
+p∈AP 
+← −p↔Ô
+k∈[1,K],q∈Qk,p∈L(q)l[k]=q!
+χ4BGÓ
+(n∼d)∈AF(←−−−−n∼d↔n∼d)
+χ5BGÓ
+p∈AP©­­­­­­
+«X(
+p)↔©­­­­­­
+«Ü
+k∈[1,K],q∈Qk,p∈L(q)l[k]=q∧
+t[k]=♮∨(t[k],♮∧edge]([k])
+∨Ü
+k∈[1,K],q∈Qk,p∈L(q)X(l[k]=q)∧t[k],♮∧¬edge]([k]ª®®®®®®
+¬ª®®®®®®
+¬
+χ6BGÓ
+(n∼d)∈AF©­­­­­­­­­­­­­
+«X(
+n∼d)↔©­­­­­­­­­­­­­
+«n∼d∧©­­­­­­
+«¬Ü
+k∈[1,K],t∈Tk,n∈U(t)t[k]=t
+∨Ü
+k∈[1,K],t∈Tk,n∈U(t)t[k]=t∧edge]([k]ª®®®®®®
+¬
+∨
+X(n∼d)∧Ü
+k∈[1,K],t∈Tk,n∈U(t)t[k]=t∧¬edge]([k]ª®®®®®®®®®®®®®
+¬ª®®®®®®®®®®®®®
+¬
+of the atomic propositions and of the variables to the corresponding signal within each time interval
+(ϒ(δh),ϒ(δh+1))(resp., in the origin). Formulae χ5andχ6, instead, bind the values of the atomic
+propositions and of the variables to the corresponding signals at the boundaries of the intervals—i.e.,
+at time instants ϒ(Λh).
+Lemma 5.7. LetNbe a network of TA, lbe a set of liveness conditions selected from Table 1, s
+be the semantics of the synchronization primitives appearing in N(selected from Table 2), efbe a
+restriction on the edges of the transitions taken by N(from Table 8), and Φsigbe the corresponding
+CLTLoc formula (5).
+For every edge-consistent trace ηofNthat also belongs to T(N ,l,s,ef), and whose associated
+signal is Mη, there exists a model (π,σ,ι)ofΦsigsuch that:
+(1)for every time instant r∈R≥0such that ϒ(δh)<r<ϒ(δh+1), for some h∈N, ifMη(r)=
+(P,vvar), the following conditions hold:
+p∈Piff(π,σ,ι),h|=← −p (7)
+vvar(n)∼diff(π,σ,ι),h|=←−−−−n∼d (8)
+(2)for every time instant r∈R≥0such that r=ϒ(Λh), for some h∈N, ifMη(r)=(P,vvar), the
+following conditions hold:
+p∈Piff(π,σ,ι),h+1|=
+p(9)
+vvar(n)∼diff(π,σ,ι),h+1|=
+n∼d(10)
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 33 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :33
+Conversely, for every model (π,σ,ι)ofΦsig, there exists an edge-consistent trace ηofNthat belongs
+to setT(N ,l,s,ef), with associated signal Mη, for which conditions (1) and (2) hold.
+Sketch of Proof. Letηbe an edge-consistent trace of Nthat also belongs to set T(N ,l,s,ef).
+By Theorem 4.4, every (π,σ,ι)such that(π,σ,ι)∈ρ(η)is a model of ΦN. Formula ΦNdoes not
+constrain propositions
+βand← −β, withβ∈AP∪AF. Hence, it has to be proven that, if (π,σ,ι), and
+Mηare also such that conditions (7)-(10)hold, then(π,σ,ι)is a model of Φsig. Since(π,σ,ι)is a
+model for ΦN(Thm. 4.3), it is enough to show that (π,σ,ι)is a model also for φsig. By definition, η
+meets the conditions of Def. 5.2.
+It is straightforward to show that subformulae χ1andχ2ofφsighold because of condition (1)
+of Def. 5.2, since they state that in the origin of the signal predicates
+βand← −β, forβ∈AP∪AF,
+correspond to the initial configuration of N. Similarly, subformulae χ3andχ4hold because of
+condition (2), since they capture the fact that, in each interval (ϒ(δh),ϒ(δh+1)), the predicates
+that hold are those of position hof(π,σ,ι), which derives, by mapping ρ, from configuration
+(lh,vvar,h,vh).
+Consider now formula χ5. The first disjunct of the right-hand side states that the label pholds at
+the beginning of an interval Ih+1—i.e., at time instant ϒ(Λh), forh≥0—if it held in the previous
+interval Ihf or an automatonAk, and eitherAkdoes not take any transition (i.e., Λh[k]=_) or, if
+takes one transition, it does so with an ](edge (i.e., Λh[k]=α](}); this corresponds to the first bullet
+of condition (3)a of Def. 5.2. The second disjunct, instead, states that pholds at the beginning of an
+interval Ih+1if there is an automaton Akthat takes a transition, and it does so with an )[edge (i.e.,
+Λh[k]=α)[}), which corresponds to the second bullet of condition (3)a of Def. 5.2. Similarly, the
+first disjunct of the right-hand side of formula χ6captures condition (3)b of Def. 5.2 (each disjunct
+in the subformula corresponds to one of the bullets of condition (3)b), while the second disjunct
+captures condition (3)c.
+The second part of the statement is proven by showing that, given a model (π,σ,ι)ofΦsig, the
+corresponding trace η=ρ−1((π,σ,ι))is such that conditions (7)-(10)hold for signal Mη. This can
+be done using similar arguments as those presented in the first part of the proof, and is omitted for
+brevity. □
+5.4 Model-checking of networks of TA with respect to MITL formulae
+Lemma 5.7 establishes a correspondence between signals derived from traces of network Nand
+models of formula Φsig. The models of formula Φsiginclude predicates of the type
+βand← −β, which
+act as a “bridge” with the encoding of MITL formulae that predicate over β. The next example
+shows how this allows us to match MITL constraints with signals derived from networks of TA.
+Example 5.8. Figure 7 shows the relation between the trace of Example 4.2 depicted in Fig. 5 and
+the MITL signals referring to the atomic propositions a,cand the subformulae n=2andF(0,1)(c).
+It shows the assignments to landn, and the atoms representing the signals of a,candn=2
+in correspondence to the positions where their value is true. For instance, at position 4,
+aand
+←−−−−n=2hold, whereas
+c,← −c,← −aand
+n=2are false. The bottom part of the figure shows the signals
+that are built according to the value of CLTLoc atoms
+βand← −β. The signal of each proposition
+is drawn on two levels: the top one represents the value true and the bottom one represents the
+value false. In every position, the value of the proposition is specified by a filled circle that defines
+the value in the exact time instant corresponding to the position and every line between adjacent
+positions represents the value of the proposition in the corresponding interval. An empty circle at
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 34 ---
+:34 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+the beginning or at the end of an interval indicates that the value of the formula in the interval
+does not extend also to the infimum or to the supremum of the interval, respectively. At position
+6formulaF(0,1)(c)changes value, because one time unit later (which corresponds to position
+7in this example) formula cbecomes true; the automaton, instead, at position 6has the same
+configuration—if clock assignments are not considered—as at position 5.
+The next proposition shows how, given a network Nof TA, a selection criterion T, and a MITL
+propertyψ, the problem of checking whether N|=Tψholds can be reduced to that of determining
+the satisfiability of CLTLoc formula Φsig∧Φ¬ψ.
+Proposition 1. LetNbe a network of TA, ψbe a MITL formula, and T=⟨l,s,ef⟩—where lis a
+set of liveness conditions selected from Table 1, sis the semantics of the synchronizations primitives
+appearing inN(selected from Table 2), and efis a restriction on the edges of the transitions taken
+byN(from Table 8). Also, let ΦsigandΦψbe the CLTLoc formulae defined in Section 5.3 and in
+Section 5.2, respectively. Then, N|=Tψholds if, and only if, Φsig∧Φ¬ψdoes not have any models.
+Sketch of Proof. By Lemma 5.7 and by the results of [ 9],Φsig∧Φ¬ψadmits a model if, and
+only if, there is(π,σ,ι)that corresponds to a signal Mηthat satisfies MITL formula ¬ψ, and such
+that traceηbelongs toT(N ,l,s,ef). That is, Φsig∧Φ¬ψdoes not have any models if, and only if,
+S(N ,l,s,ef)∩M¬ψ=∅holds. This, in turn, is equivalent to saying that S(N ,l,s,ef)⊆Mψholds,
+which corresponds to Def. 5.5. □
+Since there are automated tools for checking the satisfiability of CLTLoc formulae [ 6,9], Propo-
+sition 1 establishes an effective technique to solve the verification problem of networks of TA with
+respect to MITL formulae: given a network Nof TA, a selection criterion T=⟨l,s,ef⟩, and a MITL
+formulaψ, it is enough to build CLTLoc formulae ΦsigandΦ¬ψ, then check the satisfiability of
+formula Φsig∧Φ¬ψ.
+6 EVALUATION
+The procedure proposed in Section 5.4 has been implemented in TACK (Timed Automata ChecKer)5.
+TACK is a Java 8 application that takes as input a model expressed using the Uppaal input format
+and a property expressed in MITL. The model and the property are converted in a CLTLoc formula
+as specified in Sect. 5. The satisfiability of the CLTLoc formula is verified using the Zot formal
+verification tool [6].
+To evaluate TACK , a full direct comparison with existing tools, i.e., Uppaal, Mitl 0,∞BMC [25],
+and MightyL [ 15], was not performed as such comparison would not be meaningful, for several
+reasons.
+(i) Neither Uppaal, nor Mitl 0,∞BMC fully support MITL. Uppaal supports a restricted subset
+of the TCTL logic, which allows the specification only of properties in the form: ∀G(e)(“for all
+executions eglobally holds"); ∀F(e)(“for all executions eeventually holds"); ∃G(e)(“there exists
+an executions in which eglobally holds"); ∃F(e)(“there exists an executions in which eeventually
+holds") and, finally, the so called “leads-to” formula which is encoded as ∀G(e⇒∀F(e′))(“in
+every execution it is always true that the occurrence of ealways makes e′hold”), where eande′are
+state formulae (i.e., expressions over state variables or automata locations). Mitl 0,∞BMC , instead,
+considers the fragment MITL 0,∞, but it does not provide any information on how the encoding
+can be extended to cover MITL. In fact, Mitl 0,∞BMC adopts a super-dense semantics for time,
+requiring a suitable change of MITL semantics. Indeed, some useful properties [ 22][28] that hold
+for the standard MITL semantics, e.g., proving that the fragment MITL 0,∞has the same expressive
+5The tool is available at http://github.com/claudiomenghi/TACK.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 35 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :35
+power as MITL, are not valid anymore over super-dense time. Therefore, extending the logical
+language used in Mitl 0,∞BMC to MITL appears to be far from straightforward.
+(ii) As mentioned above, both Uppaal and Mitl 0,∞BMC [25] adopt the super dense semantics of
+time. This allows a TA to fire consecutive transitions without requiring time to progress. Uppaal
+introduces the syntactic notion of “committed locations” to prevent time from progressing—i.e.,
+when an automaton is in a committed location, only action transitions can be fired and time cannot
+advance. The underlying notion of time adopted in this work is based on the CLTLoc semantics,
+which relies on the strict progress of time between adjacent positions and does not enable such
+modeling facility.
+(iii)Mitl 0,∞BMC is mainly a proof-of-concept tool that has not been further supported since
+2013 and does not support a direct implementation of synchronization events ( α!andα?). The lack
+of suitable documentation (such as a user manual) does not allow a clear understanding of the
+potential offered by the tool.
+(iv) MightyL [ 14,15] allows users, at least in principle, to perform model checking of MITL
+formulae on TA using both the pointwise and the continuous (signal-based) semantics. However,
+the MightyL approach assumes that the model of the system to be checked is specified as a bipartite
+Signal Automaton (SA)—or, at the very least, as a TA that has the properties guaranteed by the
+transformation of SA into TA defined by Proposition 10 of [ 15]—, which then needs to be converted
+(together with the SA computed from the MITL formula) into a TA that can be checked using the
+LTSmin[24] model checker. However, the transformation from SA to TA defined by Proposition 10
+of [15] is not supported by a publicly available tool. Moreover, TACK supports the verification of
+interacting networks of TA, whereas MightyL assumes that the model is captured through a single
+automaton, and the inclusion of synchronization primitives in models to be input to MightyL would
+further complicate the matter. Finally, only one example of model checking of MITL properties on
+TA through MightyL is presented in the literature [ 15], and for the reasons above we cannot adapt
+our own benchmarks to MightyL.
+To summarize, since the capabilities of Uppaal and Mitl 0,∞BMC are significantly different
+from those provided by TACK (especially in terms of the logic used to express the property), and
+performing model checking experiments with MightyL poses crucial obstacles, an exhaustive, direct
+comparison of TACK with these tools is not significant. Nevertheless, in addition to carrying out
+an extensive experimental evaluation of TACK , we also performed a limited set of experiments
+with Mitl 0,∞BMC on one of our benchmarks, and we provided a brief, qualitative comparison of
+TACK and MightyL.
+Concerning the experimental evaluation of TACK , we focused on the following features: (i) the
+efficiency of TACK in verifying MITL properties of TA; (ii) how TACK enables the introduction
+of the synchronization constructs and semantic constraints presented in Section 3. The ease of
+performing verification has been estimated through a bounded model checking technique that
+relies on two different solvers available in the Zot formal verification tool [ 6]. Both solvers check
+the satisfiability of CLTLoc formulae, but they are based on different techniques. They rely on SMT
+(Satisfiability Modulo Theories) solvers (Microsoft Z3 [ 18] in our case), as the satisfiability problem
+ofCLTLoc has been tackled so far by reducing it to an SMT instance. The first solver, ae2Zot [11],
+reduces the satisfiability problem of CLTLoc formulae to that of a fragment of the first-order logic
+over real difference arithmetic; the second, ae2SBVZot [6], instead uses a Bit-Vector encoding.
+The ability of TACK to consider different features of TA is evaluated by selecting benchmarks that
+exploit different constructs such as, for example, different synchronization primitives.
+Three different benchmarks are used in this first set of experiments focusing solely on TACK : the
+Fischer mutual exclusion protocol [ 3], the CSMA/CD protocol [ 1] and the Token Ring protocol [ 23].
+All selected benchmarks have also been classically implemented in the Uppaal model checker [2].
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 36 ---
+:36 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+TACK ran using the ae2Zot andae2SBVZot solvers, version 4.7.1of Z3, on a machine equipped
+with an Intel(R) Core(TM) i7-4770 CPU (3.40GHz) with 8 cores, 16GB of RAM and Debian Linux
+(version 8.8). To test the scalability of the approach, various configuration of the protocols were
+tested, each one determined by a different number nof involved agents. In particular, variable n
+indicates: for the Fischer benchmark, the number of participants; for the CSMA/CD protocol, the
+number of competing stations; for the Token Ring protocol, the number of processes. In the tests, n
+spans from 2to10. Since the CLTLoc solvers we used relied on a bounded model-checking approach,
+we considered a bound kspanning from 10to30, with increments of 5. For each combination of
+values of nandkwe considered a timeout of 2hours.
+Fischer benchmark . This benchmark describes a mutual exclusion algorithm in which npartici-
+pants try to enter a critical section. Before trying to enter the critical section, a participant first
+checks if another one is in the critical section. If this is not the case, it writes its (unique) identifier
+in a shared variable. After waiting a certain amount of time, it checks again the shared variable.
+If its identifier is still in the shared variable, it proceeds to the critical section. Otherwise, it goes
+back to start since another process had simultaneously checked whether the critical section was
+empty and set the shared variable. The synchronization among the participants is obtained through
+shared clocks and no synchronization on the transitions is present.
+The following six properties (a subset of them was also considered in [25]) were verified.
+live-one :=G[0,∞) p1.req→F[0,∞)p1.wait
+live-two :=G[0,∞) p1.req→F[0,3]p1.wait
+live-three :=G[0,∞) p1.req→F(0,3)p1.cs
+live-four :=G[0,∞) p1.req→F(0,3)p1.wait
+live-five :=G[0,∞) p1.req→F[0,3]p1.cs
+live-six :=G[0,∞) 
+¬ Ü
+i=1:n−1 
+pi.cs∧ Ü
+j=i+1:n!
+pj.cs!!!
+Properties live-oneandlive-sixare not metric, asF[0,∞)andG[0,∞)are equivalent to the LTL
+“eventually” and “globally” modalities. Properties live-two(resp., live-three ) and live-four (resp.,
+live-five) differ with respect to the interval specified in the Foperator.
+The results are presented in Table 10. The rows show the time (in seconds) required by the
+model-checking procedure with different bounds k. Symbol “−" indicates a timeout. The columns
+contain the results obtained by considering an increasing number nof participants. For properties
+live-one,live-two,live-four andlive-sixTACK always returned the correct result. For properties
+live-three andlive-five, when kwas equal to 10, the value of nis too large, compared to the bound
+k, to allow TACK to find a counterexample (i.e., to allow the underlying satisfiability procedure
+forCLTLoc to detect a contradiction). However, increasing the bound allows TACK to detect the
+counterexample.
+When ae2Zot is used, the time required by TACK to verify models increases as the values of
+nandkincrease, whereas the results obtained with ae2SBVZot are less homogeneous. Indeed,
+even if ae2SBVZot is in general more efficient than ae2Zot , some tests carried out by ae2SBVZot
+resulted in a timeout. For example, this is the case of property live-three with k=15andn=6
+which, conversely, has been successfully solved by ae2Zot . To understand the reason of this result
+and, in particular, whether it was caused by the adopted Zot plugin, two different versions of Z3
+were compared with each other. A general variation of the performance of TACK —even when
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 37 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :37
+Table 10. Time (s) required to check the properties of the Fischer benchmark. The symbol ✓indicates that
+the property is satisfied, i.e., the CLTLoc formula is unsatisfiable. The symbol ✗indicates that the property is
+not satisfied, i.e., the CLTLoc formula is satisfiable.
+TACK ae2zot
+n
+k 2 3 4 5 6 7 8 9 10live-one10 0.9 ✓ 1.2∗✓ 0.9✓ 1.1✓ 1.4✓ 1.4∗✓ 1.9✓ 2.2✓ 2.0∗✓
+15 0.9 ✓ 0.9∗✓ 1.1∗✓ 1.7✓ 4.9✓ 2.7✓ 3.0∗✓ 3.7∗✓ 4.2∗✓
+20 1.0 ✓ 1.2✓ 1.6✓ 2.5✓ 3.0∗✓ 5.1✓ 4.4∗✓ 78.7∗✓ 12.8✓
+25 1.1 ✓ 1.9✓ 2.8✓ 3.0∗✓ 5.5✓ 10.2✓ 9.6∗✓ 12.6∗✓ 15.1∗✓
+30 1.3 ✓ 15.6∗✓ 3.1✓ 4.0∗✓ 6.5∗✓ 11.1∗✓ 20.5✓ 17.8✓ 22.4∗✓live-two10 1.8 ✓ 1.8∗✓ 2.6✓ 2.9✓ 2.6∗✓ 4.7✓ 5.5✓ 5.1✓ 4.3∗✓
+15 7.9 ✓ 18.3✓ 28.1✓ 40.1✓ 70.1✓ 131.3✓ 211.9✓ 166.5∗✓ 218.1∗✓
+20 42.1 ✓ 96.5✓ 139.9✓ 514.8✓ 897.1✓ 1395.4 ✓ 5837.2 ✓− −
+25 208.8 ✓ 859.9✓ 813.1✓ 2026.9 ✓ 6770.0 ✓− − − −
+30 392.7 ✓ 793.5✓ 2678.2 ✓ 4193.4 ✓− − − − −live-three10 1.1 ✗ 1.6✗ 1.4✗ 1.7∗✗ 3.7∗✗ 13.7∗✓ 13.4∗✓ 18.1∗✓ 23.0∗✓
+15 1.2 ✗ 1.6✗ 2.4∗✗ 4.3✗ 15.0∗✗ 42.3∗✗ 33.5∗✗ 143.7✗ 100.4∗✗
+20 1.5 ✗ 2.1∗✗ 3.3∗✗ 4.1∗✗ 10.6∗✗ 41.4✗ 94.2✗ 64.0∗✗ 386.2∗✗
+25 2.3 ✗ 3.4✗ 5.0✗ 11.0∗✗ 20.4∗✗ 15.4∗✗ 84.5∗✗ 354.0✗ 648.9∗✗
+30 2.4 ✗ 4.9✗ 5.7∗✗ 12.2∗✗ 30.1✗ 37.6∗✗ 124.5∗✗ 532.3✗ 155.8✗live-four10 1.4 ✓ 1.4∗✓ 2.2✓ 2.5✓ 2.9✓ 3.5✓ 2.7∗✓ 3.4∗✓ 5.9✓
+15 4.7 ✓ 7.3✓ 14.3✓ 22.7✓ 46.0✓ 93.3✓ 146.8✓ 145.0∗✓ 177.8∗✓
+20 10.4 ✓ 24.4✓ 54.5✓ 98.5✓ 199.9✓ 797.2✓ 2526.5 ✓− −
+25 48.5 ✓ 112.9✓ 191.0✓ 779.3✓ 1783.1 ✓ 5437.316 ✓− − −
+30 153.0 ✓ 255.2✓ 675.6✓− − − − − −live-five10 1.1 ✗ 1.8✗ 2.0✗ 4.1✗ 3.9∗✓ 15.1∗✓ 17.3∗✓ 23.2∗✓ 23.7∗✓
+15 1.5 ✗ 1.9✗ 3.8✗ 9.1✗ 16.3∗✗ 20.6∗✗ 42.2✗ 24.7∗✗ 182.7∗✗
+20 2.8 ✗ 3.2✗ 6.6✗ 11.8∗✗ 19.7∗✗ 37.8✗ 65.0∗✗ 176.4∗✗ 117.5∗✗
+25 3.5 ✗ 4.1∗✗ 5.0∗✗ 18.1∗✗ 28.2✗ 54.6✗ 123.1∗✗ 420.2∗✗ 794.4∗✗
+30 3.3∗✗ 7.6✗ 11.2∗✗ 22.6✗ 31.9∗✗ 39.3∗✗ 257.4✗ 261.6∗✗ 1940.4∗✗live-six10 0.9 ✓ 1.8✓ 1.7∗✓ 2.8∗✓ 5.0∗✓ 6.3∗✓ 11.1∗✓ 13.0✓ 21.9∗✓
+15 1.2 ✓ 2.2∗✓ 5.4∗✓ 9.3∗✓ 22.0∗✓ 57.2∗✓ 144.0∗✓ 209.8∗✓ 318.7∗✓
+20 1.3∗✓ 4.7∗✓ 16.7∗✓ 51.6∗✓ 146.5∗✓ 350.6∗✓ 857.6∗✓ 1635.9∗✓ 3734.3∗✓
+25 2.5 ✓ 10.6∗✓ 30.8∗✓ 260.3∗✓ 922.0∗✓ 2388.1∗✓ 3894.1∗6019.3∗−
+30 4.7 ✓ 32.3✓ 139.4∗✓ 667.5∗✓ 1906.6∗✓ 5955.3∗− − −
+TACK ae2sbvzot
+n
+k 2 3 4 5 6 7 8 9 10live-one10 0.7 ✓ 0.7✓ 0.8✓ 0.9✓ 0.9✓ 1.0✓ 2.4✓ 1.1✓ 1.3✓
+15 0.7 ✓ 0.8✓ 1.0✓ 1.2✓ 1.0✓ 1.2✓ 1.0∗✓ 1.9✓ 1.9✓
+20 0.7 ✓ 0.8✓ 1.0✓ 1.4✓ 1.5✓ 2.1✓ 2.0✓ 2.1✓ 2.2∗✓
+25 0.8 ✓ 1.2✓ 1.1∗✓ 2.0∗✓ 1.9✓ 2.7✓ 4.5✓ 2.7∗✓ 5.5∗✓
+30 0.9 ✓ 1.2✓ 1.7∗✓ 1.7✓ 2.1✓ 2.2∗✓ 2.2✓ 3.6∗✓ 4.8✓live-two10 1.2 ✓ 1.3✓ 1.7✓ 1.5✓ 1.6✓ 1.5✓ 1.7✓ 1.9✓ 2.3✓
+15 3.3 ✓ 3.7✓ 4.6✓ 6.4✓ 8.9∗✓ 18.7✓ 28.6✓ 44.8✓ 87.2✓
+20 5.5 ✓ 13.8✓ 19.0✓ 45.0∗✓ 54.3✓ 60.2∗✓ 127.5✓ 60.2✓ 1133.4∗✓
+25 16.2∗✓ 17.9∗✓ 51.6✓ 93.5✓ 33.1✓ 136.9∗✓ 592.0∗✓ 3232.4∗✓ 2359.7∗✓
+30 33.5∗✓ 24.1✓ 136.9✓ 50.7✓ 82.8∗✓ 463.8∗✓ 1750.6∗✓ 1927.7∗✓−live-three10 0.8 ✗ 1.0✗ 1.1✗ 1.8∗✗ 2.9∗✗ 7.7✓ 11.8∗✓ 14.9✓ 16.9✓
+15 1.4 ✗ 1.1✗ 1.2∗✗ 2.0✗ 13.5∗✗ 17.8∗✗ 15.1∗✗ 17.4✗ 23.5✗
+20 1.1 ✗ 1.3∗✗ 1.9✗ 3.5✗ 6.1✗ 4.5✗ 6.7✗ 51.6✗ 87.1✗
+25 1.1 ✗ 1.8✗ 3.9✗ 2.8✗ 11.8✗ 23.8✗ 520.6✗ 388.7✗ 241.6∗✗
+30 1.3 ✗ 2.2✗ 2.9∗✗ 16.8✗ 10.3✗ 30.8∗✗ 126.6✗ 71.4∗✗ 142.2∗✗live-four10 0.9 ✓ 1.0✓ 1.2✓ 1.3✓ 1.4✓ 1.6✓ 1.5✓ 2.1✓ 1.8✓
+15 2.2 ✓ 2.2∗✓ 3.2✓ 4.2∗✓ 8.9✓ 12.1∗✓ 28.6∗✓ 45.2✓ 82.3✓
+20 4.0 ✓ 6.6✓ 9.0✓ 8.0∗✓ 35.8✓ 69.6✓ 19.9✓ 345.6∗✓ 1071.0∗✓
+25 11.0 ✓ 16.6✓ 22.1✓ 17.2∗✓ 31.2∗✓ 474.6✓ 2241.1∗✓ 329.4✓ 335.3∗✓
+30 16.1 ✓ 28.7∗✓ 17.9∗✓ 30.7∗✓ 137.1✓ 252.2∗✓ 80.3∗✓ 1611.8 ✓ 598.9∗✓live-five10 0.9 ✗ 1.3✗ 1.9∗✗ 1.3∗✓ 3.2∗✓ 17.9✓ 16.5✓ 17.9✓ 13.4∗✓
+15 1.0 ✗ 1.3✗ 2.7✗ 2.3✗ 7.6∗✗ 19.4✗ 19.2∗✗ 26.6✗ 26.6∗✗
+20 1.6∗✗ 1.7✗ 3.6∗✗ 4.7∗✗ 4.8✗ 16.8∗✗ 36.2✗ 179.5∗✗ 36.9✗
+25 1.7 ✗ 4.0✗ 5.0∗✗ 6.1✗ 6.4∗✗ 7.2✗ 263.6∗✗ 378.8∗✗ 308.5✗
+30 1.5 ✗ 3.9✗ 4.7✗ 6.0∗✗ 24.1✗ 27.1∗✗ 53.8✗ 57.3✗−live-six10 0.9 ✓ 1.0✓ 1.0∗✓ 2.6✓ 3.9∗✓ 2.4∗✓ 6.4∗✓ 12.1✓ 11.3∗✓
+15 0.8 ✓ 1.6✓ 3.5✓ 5.2✓ 21.1✓ 39.9✓ 65.5✓ 112.3✓ 205.7✓
+20 1.2 ✓ 3.5✓ 6.9✓ 17.3✓ 40.5∗✓ 170.6✓ 278.3∗✓ 650.8∗✓ 2555.4 ✓
+25 1.5 ✓ 4.8∗✓ 19.5∗✓ 75.2✓ 110.3∗✓ 672.1✓ 1485.4∗✓ 3596.3∗✓ 5861.6∗✓
+30 1.9 ✓ 11.7✓ 35.1✓ 116.3∗✓ 506.6∗✓ 2522.8∗✓ 3945.9∗✓− −
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 38 ---
+:38 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+using the same plugin—is evident, and it stems from the tactics that are used by Z3 to solve the
+satisfiability problem. In fact, the experiments using version 4.4.1of Z3 show that TACK is able
+to complete the verification for the cases that resulted in timeouts using version 4.7.1, though it
+timed out in others. This evidence proves that the choice of the Zot plugin does not determine the
+presence or absence of the timeouts. In Table 10, the cases in which version 4.4.1of Z3 significantly
+outperformed version 4.7.1(by at least around 25%) are marked with the∗symbol.
+CSMA/CD Protocol. The CSMA/CD protocol (Carrier Sense, Multiple-Access with Collision
+Detection) aims at assigning a bus to one of ncompeting stations. When a station has data to send,
+it first listens to the bus. If no other station is transmitting (the bus is idle), the station begins
+the transmission. If another station is transmitting (the bus is busy), it waits a random amount of
+time and then repeats the previous steps. The synchronization among the participants is obtained
+through a broadcast transition-based synchronization.
+The following MITL property was tested. It is inspired by the one considered in the Uppaal
+benchmark [26].
+live-csma :=G[0,∞)(P1.start _send→(¬ collision _af ter _transm)) (11)
+P1.start _send :=(¬P1.send)∧(P1.sendU(0,inf)⊤)) (12)
+collision _af ter _transm :=G(0,52](P1.send∧(P1.sendU[0,inf)(P1.send∧P2.send))) (13)
+The property live-csma predicates on the occurrence of a collision—i.e., P1andP2simultaneously
+sending a message. It specifies that a collision does not occur after P1is transmitting for 52time
+units or more. Let us consider formula P1.start _send (12). Formula¬P1.send specifies that P1is not
+sending at the current time t. Formula P1.sendU[(0,∞)⊤specifies that there exists a t′such that,
+for every t′′s.t.t<t′′<t′holds, P1.send holds. Thus, formula P1.start _send is true when P1starts
+sending a message. Let us now consider formula collision _af ter _transm (13), which specifies that
+P1transmits for 52time units or more, and then a collision is detected. Operator G(0,52]forces
+formula(P1.send)∧(P1.sendU[0,∞)(P1.send∧P2.send)))to hold continuously from the current
+time instant, until 52time units from now, included. Since the formula must also hold at time
+instant 52from now, it forces a collision to be detected at a time instant that is after 52time units
+from now. Furthermore, since the formula must hold in interval (0,52],P1must keep sending a
+message within this interval. The results of the experiments are presented in Table 11.
+Token Ring. The token ring benchmark considers nsymmetric stations that are organized in
+a ring, plus one process that models the ring. The ring moves the token on a given direction
+among the nprocesses. The processes may hand back the token in a synchronous (high-speed) or
+an asynchronous (low priority) fashion. The synchronization among the participants is obtained
+through a channel transition-based synchronization.
+The following MITL property was tested. It is inspired by—though it is not the same as—the one
+considered in the Uppaal benchmark [26].
+live-token :=G(0,∞)(¬((ST1.zsync∨ST1.zasync∨ST1.ysync∨ST1.yasync)∧
+(ST2.zsync∨ST2.zasync∨ST2.ysync∨ST2.yasync)))
+Property live-token specifies that two stations ST1andST2can not simultaneously sync—i.e., while
+one of them is in a synchronize state the other must be idle. The results are presented in Table 12.
+The results presented in Tables 10, 11 and 12 show that in all the cases the verification time
+is reasonable for practical adoptions of the proposed verification technique. Furthermore, the
+proposed technique easily allows considering different semantics—e.g., different synchronization
+mechanisms—without directly changing the verification algorithm.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 39 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :39
+Table 11. Time (s) required to check the property of the CSMA/CD Protocol. The symbol ✓indicates that the
+property is satisfied, i.e., the CLTLoc formula is unsatisfiable. The symbol ✗indicates that the property is not
+satisfied, i.e., the CLTLoc formula is satisfiable.
+TACK ae2zot
+n
+k 2 3 4 5 6 7 8 9 10live-csma10 2.6 ✓ 5.4✓ 5.8✓ 7.1✓ 9.9✓ 7.6✓ 11.3✓ 12.3✓ 16.0✓
+15 10.5 ✓ 19.5✓ 23.1✓ 45.8✓ 64.0✓ 135.4✓ 123.9✓ 221.5✓ 453.3✓
+20 20.8 ✓ 46.5✓ 97.3✓ 140.8✓ 409.9✓ 663.5✓ 1146.6 ✓ 1102.9 ✓ 1299.4 ✓
+25 81.2 ✓ 125.4✓ 220.3✓ 387.9✓ 1278.6 ✓ 1959.1 ✓ 4742.7 ✓ 2820.2 ✓ 7184.4 ✓
+30 98.8 ✓ 389.4✓ 868.0✓ 1500.9 ✓ 2195.1 ✓ - - - -
+TACK ae2sbvzot
+n
+k 2 3 4 5 6 7 8 9 10live-csma10 1.6 ✓ 1.7✓ 2.1✓ 2.2✓ 2.9✓ 2.8✓ 3.3✓ 3.8✓ 3.9✓
+15 4.4 ✓ 6.9✓ 8.8✓ 7.6✓ 8.4✓ 24.3✓ 32.9✓ 24.2✓ 21.1✓
+20 9.0 ✓ 15.5✓ 12.0✓ 26.2✓ 32.3✓ 35.2✓ 49.4✓ 75.6✓ 65.0✓
+25 19.2 ✓ 21.7✓ 45.3✓ 68.9✓ 107.4✓ 143.6✓ 178.5✓ 267.2✓ 245.7✓
+30 70.3 ✓ 68.7✓ 151.6✓ 130.0✓ 438.9✓ 328.9✓ 4441.8 ✓ 854.2✓ 6649.4 ✓
+Table 12. Time (s) required to check the property of the Token Ring. The symbol ✓indicates that the property
+is satisfied, i.e., the CLTLoc formula is unsatisfiable. The symbol ✗indicates that the property is not satisfied,
+i.e., the CLTLoc formula is satisfiable.
+TACK ae2zot
+n
+k 2 3 4 5 6 7 8 9 10live-token10 0.9 ✓ 1.1✓ 1.3✓ 2.1✓ 1.9✓ 2.1✓ 2.1✓ 2.3✓ 2.2✓
+15 1.5 ✓ 1.5✓ 1.8✓ 2.2✓ 3.9✓ 4.8✓ 3.7✓ 3.2✓ 9.0✓
+20 2.2 ✓ 2.2✓ 4.8✓ 3.1✓ 5.0✓ 10.6✓ 7.1✓ 18.9✓ 10.4✓
+25 2.7 ✓ 5.0✓ 3.7✓ 5.8✓ 5.7✓ 24.3✓ 25.6✓ 19.6✓ 58.2✓
+30 6.0 ✓ 9.9✓ 6.9✓ 17.6✓ 27.3✓ 36.3✓ 43.8✓ 21.3✓ 36.0✓
+TACK ae2sbvzot
+n
+k 2 3 4 5 6 7 8 9 10live-token10 0.9 ✓ 0.9✓ 0.9✓ 1.0✓ 1.1✓ 1.2✓ 1.3✓ 1.5✓ 1.6✓
+15 1.2 ✓ 1.1✓ 1.1✓ 1.1✓ 1.2✓ 1.4✓ 1.5✓ 1.7✓ 1.7✓
+20 2.1 ✓ 1.9✓ 1.8✓ 1.6✓ 1.8✓ 1.8✓ 1.8✓ 2.1✓ 2.2✓
+25 2.5 ✓ 3.7✓ 3.5✓ 3.1✓ 2.3✓ 2.4✓ 2.5✓ 2.9✓ 2.9✓
+30 3.6 ✓ 5.6✓ 4.8✓ 5.3✓ 4.1✓ 3.5✓ 3.0✓ 3.2✓ 3.9✓
+As mentioned above, an exhaustive, direct comparison of TACK with Mitl 0,∞BMC and MightyL
+over the considered benchmarks is not possible. For example, both the models of CSMA/CD and
+Token Ring protocols rely on synchronization primitives that are not supported by Mitl 0,∞BMC and
+MightyL. However, a model of Fischer protocol, which does not need synchronization primitives
+to be used, is available in the Mitl 0,∞BMC distribution, so it is at least possible to perform a
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 40 ---
+:40 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+Table 13. Time (s) required to check the properties of the Fischer benchmark using the Mitl 0,∞BMC tool. The
+symbol ✓indicates that the property is satisfied, i.e., the formula input to the underlying solver is unsatisfiable.
+The symbol ✗indicates that the property is not satisfied, i.e., the formula input to the underlying solver is
+satisfiable.
+n
+k 2 3 4 5 6 7 8 9 10live-one10 0.4 ✓ 0.4✓ 0.5✓ 0.7✓ 0.8✓ 0.9✓ 1.1✓ 1.3✓ 1.6✓
+15 0.9 ✓ 1.0✓ 1.2✓ 1.5✓ 1.8✓ 2.4✓ 2.7✓ 3.0✓ 3.5✓
+20 2.0 ✓ 2.3✓ 2.4✓ 3.0✓ 3.4✓ 4.3✓ 5.2✓ 5.7✓ 6.4✓
+25 4.4 ✓ 4.1✓ 4.4✓ 4.9✓ 5.7✓ 7.3✓ 8.5✓ 9.7✓ 10.7✓
+30 8.2 ✓ 7.2✓ 6.8✓ 10.7✓ 13.3✓ 11.2✓ 12.7✓ 20.8✓ 16.3✓live-two10 0.6 ✓ 0.9✓ 1.0✓ 1.1✓ 1.6✓ 1.7✓ 2.0✓ 2.1✓ 3.6✓
+15 3.1 ✓ 6.9✓ 16.4✓ 13.4✓ 25.3✓ 11.3✓ 19.5✓ 20.8✓ 91.0✓
+20 27.9 ✓ 43.6✓ 65.6✓ 123.4✓ 181.8✓ 138.6✓ 210.5✓ 233.5✓ 458.2✓
+25 168.2 ✓ 120.8✓ 163.1✓ 271.1✓ 346.1✓ 294.6✓ 626.5✓ 358.6✓ 935.5✓
+30 462.1 ✓ 270.8✓ 307.3✓ 444.5✓ 609.7✓ 587.7✓ 1229.1 ✓ 714.7✓ 1491.1 ✓live-three10 0.2 ✗ 0.3✗ 0.4✗ 0.4✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+15 0.2 ✗ 0.3✗ 0.4✗ 0.4✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+20 0.2 ✗ 0.3✗ 0.4✗ 0.4✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+25 0.2 ✗ 0.3✗ 0.4✗ 0.4✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+30 0.2 ✗ 0.3✗ 0.4✗ 0.4✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗live-four10 0.5 ✓ 0.9✓ 1.0✓ 1.5✓ 1.6✓ 1.6✓ 2.4✓ 2.6✓ 2.4✓
+15 3.3 ✓ 7.2✓ 8.6✓ 12.9✓ 43.4✓ 13.9✓ 73.3✓ 46.0✓ 77.7✓
+20 23.8 ✓ 63.5✓ 54.2✓ 82.1✓ 146.7✓ 140.5✓ 116.4✓ 189.0✓ 215.7✓
+25 107.3 ✓ 159.3✓ 142.8✓ 246.1✓ 293.3✓ 245.5✓ 380.7✓ 300.7✓ 663.2✓
+30 367.8 ✓ 372.6✓ 444.5✓ 707.7✓ 572.6✓ 658.3✓ 1156.7 ✓ 1457.8 ✓ 1351.1 ✓live-five10 0.2 ✗ 0.3✗ 0.4✗ 0.5✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+15 0.2 ✗ 0.3✗ 0.4✗ 0.5✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+20 0.2 ✗ 0.3✗ 0.4✗ 0.5✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+25 0.2 ✗ 0.3✗ 0.4✗ 0.5✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗
+30 0.2 ✗ 0.3✗ 0.4✗ 0.5✗ 0.5✗ 0.6✗ 0.7✗ 0.8✗ 0.9✗live-six10 0.2 ✓ 0.4✓ 0.6✓ 0.8✓ 0.9✓ 1.3✓ 1.5✓ 1.7✓ 2.0✓
+15 0.7 ✓ 2.5✓ 6.1✓ 9.7✓ 13.9✓ 21.5✓ 26.2✓ 35.1✓ 52.1✓
+20 2.5 ✓ 19.7✓ 57.5✓ 93.4✓ 151.7✓ 239.8✓ 350.7✓ 548.9✓ 738.9✓
+25 7.9 ✓ 123.5✓ 364.2✓ 597.9✓ 1177.0 ✓ 1985.5 ✓ 4001.2 ✓ 6956.2 ✓−
+30 20.2 ✓ 538.0✓ 1764.0 ✓ 3651.1 ✓− − − − −
+Table 14. Time (s) required by TACK (for different bounds k) to model check the timed lamp [ 11], and the
+results obtained by Brihaye et al. [15] when MightyL is combined with LTS MIN to verify this example.
+MightyL + LTSMIN TACK
+[15] k
+with minimality w/o minimality 10 15 20 25 30
+φ1 1.73 1.77 1.3✗ 1.5✗ 2.4✗ 2.6✗ 2.8✗
+φ2 2.36 13.18 1.4✓ 1.6✓ 1.7✓ 2.3✓ 3.1✓
+set of verification experiments with it. In addition, properties live-onetolive-sixare MITL 0,∞
+formulae, so they can be verified by Mitl 0,∞BMC without modification. Nevertheless, the semantic
+discrepancies between TACK andMitl 0,∞BMC highlighted above still remain, so even if in the
+case of the Fischer protocol a comparison between the two tools has some merit, it is still not fully
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 41 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :41
+meaningful. Despite these issues, we verified properties live-onetolive-sixfor the Fischer protocol,
+using Mitl 0,∞BMC with the same experimental setup (parameters and hardware configuration) as
+those used for TACK to obtain the results of Table 10. Table 13 shows the execution times obtained.
+It can be noticed that, when the properties hold for the model ( ✓, which means that the formula
+analyzed by the tool is unsatisfiable), in most cases TACK is faster. When the properties do not
+hold, though ( ✗, which means that the formula analyzed is satisfiable), the incremental fashion
+thatMitl 0,∞BMC uses to explore the state space proves to be very beneficial. Indeed, an analysis
+of the trace returned by the tool in these cases shows that after reaching bound k=6the tool
+determines that the formula is satisfiable, so it stops the exploration (in fact, the execution times
+are independent of the bound, which is always greater than 6). Notice also that, for properties
+live-three andlive-five, a bound of 10 may not be enough for TACK to find the counterexample,
+whereas it is for Mitl 0,∞BMC ; this further highlights that the two tools, being based on slightly
+different semantics, are not entirely comparable, even given the similarity in their approaches.
+Finally, even though, for the reasons outlined above, we could not run MightyL with the same
+configuration as the one used for TACK , we used the results presented in [ 15] on a small example,
+namely the timed lamp [ 11], over two different properties φ1andφ2. Table 14 reports the results
+presented in [ 15] and those obtained using TACK (with ae2zot and Z3 4.7.1) for different bound
+values k. The results are not meant to be compared directly, but provide a qualitative comparison
+among the tools, and further show the viability of our approach.
+7 CONCLUSION
+This paper presented a flexible approach for checking networks of TA against properties expressed
+in MITL. The technique relies on an intermediate artifact—i.e., a CLTLoc formula—in which
+both the model and the property are encoded. The intermediate artifact is then evaluated using
+suitable satisfiability checkers. The proposed technique addresses three main challenges: (i) it allows
+considering a signal-based semantics; (ii) it allows verifying properties expressed using the MITL;
+(iii) it allows easily adding new TA constructs and changing their semantics (e.g., synchronization
+mechanisms, liveness conditions and edge constraints).
+The technique has been implemented in an open source tool called TACK (Timed Automata
+ChecKer), which is publicly available at http://github.com/claudiomenghi/TACK. Evaluation is
+performed by assessing: (i) the efficiency of TACK in verifying MITL properties of TA; (ii) the
+possibility of considering different synchronization constructs and semantic constraints. The
+intermediate artifact is evaluated through a bounded model checking technique that relies on
+two different solvers available in the Zot formal verification tool [ 6]. Evaluation mainly relies on
+three different benchmarks that have been used to evaluate similar artifacts (e.g., [ 2]), namely the
+Fischer mutual exclusion protocol [ 3], the CSMA/CD protocol [ 1] and the Token Ring protocol [ 23].
+The results show that the verification time is reasonable for practical adoptions of the proposed
+verification technique and prove that the proposed technique easily allows considering different
+semantics—e.g., different synchronization mechanisms—by simply adding and removing formulae
+in the intermediate CLTLoc encoding.
+ACKNOWLEDGEMENTS
+This work has received funding from the European Research Council under the European Union’s
+Horizon 2020 research and innovation programme (grant agreement No 694277).
+We are grateful for the feedback provided by the anonymous reviewers.
+REFERENCES
+[1] [n. d.]. IEEE Web Page. http://www.ieee802.org/3
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 42 ---
+:42 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+[2] [n. d.]. Uppaal Web Page. http://www.uppaal.org/
+[3]Martín Abadi and Leslie Lamport. 1994. An old-fashioned recipe for real time. Transactions on Programming Languages
+and Systems (1994), 1543–1571.
+[4]Rajeev Alur and David L Dill. 1994. A theory of timed automata. Theoretical computer science 126, 2 (1994), 183–235.
+[5]Rajeev Alur, Tomás Feder, and Thomas A Henzinger. 1996. The benefits of relaxing punctuality. Journal of the ACM
+(JACM) 43, 1 (1996), 116–146.
+[6]Luciano Baresi, Mohammad Mehdi Pourhashem Kallehbasti, and Matteo Rossi. 2016. How Bit-vector Logic Can Help
+Improve the Verification of LTL Specifications over Infinite Domains. In Annual ACM Symposium on Applied Computing
+(SAC) . ACM.
+[7]Marcello M. Bersani, Carlo A. Furia, Matteo Pradella, and Matteo Rossi. 2009. Integrated Modeling and Verification of
+Real-Time Systems through Multiple Paradigms. In Software Engineering and Formal Methods, SEFM . IEEE, 13–22.
+[8]Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro. 2013. Deciding the Satisfiability of MITL Specifications. In
+Proc. of the Int. Symp. on Games, Automata, Logics and Formal Verification (GandALF) . 64–78.
+[9]Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro. 2015. An SMT-based approach to Satisfiability Checking
+of MITL. Inform. and Comp. 245 (2015), 72–97.
+[10] Marcello M Bersani, Matteo Rossi, and Pierluigi San Pietro. 2016. A logical characterization of timed regular languages.
+Theoretical Computer Science (2016).
+[11] Marcello M Bersani, Matteo Rossi, and Pierluigi San Pietro. 2016. A tool for deciding the satisfiability of continuous-time
+metric temporal logic. Acta Informatica 53, 2 (2016), 171–206.
+[12] Patricia Bouyer, Fabrice Chevalier, and Nicolas Markey. 2010. On the expressiveness of TPTL and MTL. Information
+and Computation 208, 2 (2010), 97–116.
+[13] Thomas Brihaye, Gilles Geeraerts, Hsi-Ming Ho, Arthur Milchior, and Benjamin Monmege. 2018. Efficient algorithms
+and tools for MITL model-checking and synthesis. In International Conference on Engineering of Complex Computer
+Systems (ICECCS) . IEEE, 180–184.
+[14] Thomas Brihaye, Gilles Geeraerts, Hsi-Ming Ho, and Benjamin Monmege. 2017. MightyL: A Compositional Translation
+from MITL to Timed Automata. In International Conference on Computer Aided Verification . Springer, 421–440.
+[15] Thomas Brihaye, Gilles Geeraerts, Hsi-Ming Ho, and Benjamin Monmege. 2017. Timed-Automata-Based Verification of
+MITL over Signals. In Symposium on Temporal Representation and Reasoning (TIME) (Leibniz International Proceedings in
+Informatics (LIPIcs)) , Sven Schewe, Thomas Schneider, and Jef Wijsen (Eds.), Vol. 90. Schloss Dagstuhl–Leibniz-Zentrum
+fuer Informatik.
+[16] Alessandro Carioni, Silvio Ghilardi, and Silvio Ranise. 2010. MCMT in the Land of Parametrized Timed Automata. In
+International Verification Workshop (VERIFY) . EasyChair, 47–64.
+[17] Zhe Dang. 2003. Pushdown timed automata: a binary reachability characterization and safety verification. Theoretical
+Computer Science 302, 1 (2003), 93 – 121. https://doi.org/10.1016/S0304-3975(02)00743-0
+[18] Leonardo De Moura and Nikolaj Bjørner. 2008. Z3: An efficient SMT solver. In International conference on Tools and
+Algorithms for the Construction and Analysis of Systems . Springer, 337–340.
+[19] Stéphane Demri and Deepak D’Souza. 2007. An automata-theoretic approach to constraint LTL. Information and
+Computation 205, 3 (2007), 380–415.
+[20] Deepak D’Souza and Pavithra Prabhakar. 2007. On the expressiveness of MTL in the pointwise and continuous
+semantics. International Journal on Software Tools for Technology Transfer (STTT) 9, 1 (2007), 1–4.
+[21] Carlo A. Furia, Dino Mandrioli, Angelo Morzenti, and Matteo Rossi. 2012. Modeling Time in Computing . Springer.
+[22] Yoram Hirshfeld and Alexander Moshe Rabinovich. 2004. Logics for Real Time: Decidability and Complexity. Funda-
+menta Informaticae 62, 1 (2004), 1–28.
+[23] Raj Jain. 1994. FDDI handbook: high-speed networking using fiber and other media . Addison-Wesley Longman Publishing
+Co., Inc.
+[24] Gijs Kant, Alfons Laarman, Jeroen Meijer, Jaco van de Pol, Stefan Blom, and Tom van Dijk. 2015. LTSmin: high-
+performance language-independent model checking. In International Conference on Tools and Algorithms for the
+Construction and Analysis of Systems . Springer.
+[25] Roland Kindermann, Tommi Junttila, and Ilkka Niemelä. 2013. Bounded model checking of an MITL fragment for
+timed automata. In International Conference on Application of Concurrency to System Design (ACSD) . IEEE, 216–225.
+[26] Kim G Larsen, Paul Pettersson, and Wang Yi. 1997. UPPAAL in a nutshell. International Journal on Software Tools for
+Technology Transfer 1, 1 (1997), 134–152.
+[27] Didier Lime, Olivier H Roux, Charlotte Seidner, and Louis-Marie Traonouez. 2009. Romeo: A parametric model-checker
+for Petri nets with stopwatches. In International Conference on Tools and Algorithms for the Construction and Analysis
+of Systems . Springer.
+[28] Oded Maler, Dejan Nickovic, and Amir Pnueli. 2006. From MITL to Timed Automata. In Proc. of FORMATS . LNCS,
+Vol. 4202. 274–289.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 43 ---
+Model Checking MITL formulae on Timed Automata: a Logic-Based Approach :43
+[29] Francesco Marconi, Marcello M Bersani, Madalina Erascu, and Matteo Rossi. 2016. Towards the Formal Verification
+of Data-Intensive Applications Through Metric Temporal Logic. In International Conference on Formal Engineering
+Methods . Springer.
+[30] P. M. Merlin. [n. d.]. A study of the recoverability of computing systems. PhD thesis. University of California - Irvine,
+CA.
+[31] Joël Ouaknine and James Worrell. 2008. Some Recent Results in Metric Temporal Logic. In FORMATS (LNCS) , Vol. 5215.
+Springer, 1–13.
+[32] Farn Wang. 2001. Symbolic Verification of Complex Real-Time Systems with Clock-Restriction Diagram. In International
+Conference on Formal Techniques for Networked and Distributed Systems (FORTE) . Kluwer, B.V.
+[33] Sergio Yovine. 1997. Kronos: A Verification Tool for Real-Time Systems. (Kronos User’s Manual Release 2.2). Interna-
+tional Journal on Software Tools for Technology Transfer 1 (1997), 123–133.
+A SIMPLIFIED ENCODING
+The encoding used in the experiments is simpler than the general one presented in Fig. 4 of Sec. 4
+because it is tailored only to signals whose intervals are all left-open and right-closed. In such a
+case, the encoding can be simplified as the distinction between the kind of transitions is no longer
+needed.
+A.1 Encoding of traces for left-open right-closed signals.
+The following Fig. 8 shows the simplified encoding of the network traces which, however, still
+retains the structure of the general one. In particular, the atom edge](becomes irrelevant, and then
+it can be removed, and the formulae φ4andφ5are modified.
+φ1BÓ
+k∈[1,K](l[k]=0)φ2BÓ
+n∈Intn=v0var(n) φ3BÓ
+k∈[1,K]Inv(l[k])
+φ4BÓ
+k∈[1,K]
+q∈Qk((l[k]=q∧t[k]=♮)→X( r1(Inv(q)))
+φ5BÓ
+k∈[1,K],t∈Tkt[k]=t→
+l[k]=t−∧ϕξ∧X( l[k]=t+∧ϕγ∧ϕµ∧ϕζ∧ϕα]((t−,t+,k)
+ϕα]((a,b,i)BInv(a)∧r2(Invw(b))
+φ6BÓ
+k∈[1,K],q,q′∈Qk|q,q′ 
+((l[k]=q)∧X( l[k]=q′))→Ô
+t∈Tk,t−=q,t+=q′(t[k]=t)!
+φ7BÓ
+x∈X©­­­
+«X(x0=0∨x1=0)→Ô
+k∈[1,K]
+t∈Tk|x∈tζt[k]=tª®®®
+¬φ8BÓ
+n∈Int©­­­
+«(¬(n=X(n)))→Ô
+k∈[1,K]
+t∈Tk|n∈U(t)t[k]=tª®®®
+¬
+Fig. 8. Encoding of the automaton.
+A.2 Encoding of left-open right-closed signals.
+The following Fig. 9 shows the simplified encoding of the signals. The formulae φ1andφ2are
+the same as those in the general encoding in Fig. 9. The definition of the signal in every interval
+determined by the trace is simpler because it does not depend anymore on the kind of transition
+performed by the automata. For instance, if automaton kis in l[k]at position hthen the over the
+interval Ihand in its right end-point the atomic propositions in the signal include those associated
+with l[k]. A similar argument holds for the value of integer values.
+, Vol. 1, No. 1, Article . Publication date: February 2020.
+
+--- Page 44 ---
+:44 Claudio Menghi, Marcello M. Bersani, Matteo Rossi, and Pierluigi San Pietro
+µ1BGÓ
+a∈AP← −a↔Ô
+k∈(0,K],q∈Qk,a∈L(q)(l[k]=q)µ2BGÓ
+(n∼d)∈AF(←−−−−n∼d↔n∼d)
+µ3BÓ
+k∈(0,K],
+a∈AP
+a↔Ô
+a∈L(q0,k)l[k]=q0,kµ4BÓ
+(n∼d)∈AF n∼d↔n∼d
+µ5BÓ
+k∈(0,K],
+a∈AP← −a→X(
+a) µ6BÓ
+k∈(0,K],
+(n∼d∈AF)←−−−−n∼d→X(
+n∼d)
+Fig. 9. Encoding of left-open right-closed signals.
+, Vol. 1, No. 1, Article . Publication date: February 2020.

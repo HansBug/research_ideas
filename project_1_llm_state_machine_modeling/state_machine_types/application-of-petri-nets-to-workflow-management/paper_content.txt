@@ -1,0 +1,1465 @@
+--- Page 1 ---
+The Applicationof Petri Nets
+to WorkﬂowManagement
+W.M.P. vanderAalst
+DepartmentofMathematicsandComputingScience,EindhovenUniversityofTechnology,
+P.O.Box513,NL-5600MB, Eindhoven,The Netherlands,telephone: -31402474295,e-mail: wsinwa@win.tue.nl
+Abstract
+Workﬂow management promises a new solution to an age-old problem: control-
+ling,monitoring,optimizingandsupportingbusinessprocesses. Whatisnewaboutworkﬂow management is the explicit representation of the business process logicwhichallowsfor computerizedsupport. Thispaper discusses theuse ofPetrinets
+inthecontextofworkﬂowmanagement. Petrinetsareanestablishedtoolformod-
+elingandanalyzingprocesses. Ontheonehand,Petrinetscanbeusedasadesignlanguageforthespeciﬁcationofcomplexworkﬂows. Ontheother hand,Petri nettheory provides for powerful analysis techniques which can be used to verify thecorrectnessofworkﬂowprocedures. Thispaperintroducesworkﬂowmanagement
+as an application domain for Petri nets, presents state-of-the-art results with re-
+spect to the veriﬁcation of workﬂows, and highlights some Petri-net-based work-ﬂowtools.
+1 Introduction
+In former times, information systems were designed to support the execution ofindividual tasks. Today’s information systems need to support the business pro-cesses at hand. It no longer sufﬁces to focus on just the tasks. The information
+system also needs tocontrol, monitorand supportthe logisticalaspects ofa busi-
+ness process. Inotherwords, theinformationsystem also has to manage theﬂowofworkthroughtheorganization. Manyorganizationswithcomplexbusinesspro-cesses have identiﬁed the need for concepts, techniques, and tools to support themanagement of workﬂows. Based on this need the term workﬂow management
+wasborn(cf.[HL91, Kou95]).
+Untilrecentlytherewerenogenerictoolstosupportworkﬂowmanagement. Asa
+result, parts of the business process were hard-coded in the applications. For ex-ample,anapplicationtosupporttaskXtriggersanotherapplicationtosupporttask
+1
+
+--- Page 2 ---
+Y. This means thatone application knows about theexistence of anotherapplica-
+tion. This is undesirable, because every time the underlying business process is
+changed, applications need to be modiﬁed. Moreover, similar constructs need tobe implemented in several applications and it is not possible to monitor and con-troltheentireworkﬂow. Therefore,several softwarevendorsrecognizedthe needforworkﬂow managementsystems . A workﬂowmanagement system (WFMS)is
+agenericsoftwaretoolwhichallowsforthedeﬁnition,execution,registrationand
+control of workﬂows(cf. [Law97]). At the moment many vendors are offeringaworkﬂowmanagement system. This shows that the software industry recognizesthepotentialofworkﬂowmanagementtools.
+OSDBMSUIMSWFMSAPPL
+OSAPPL
+OSAPPLDBMS
+OSDBMS
+APPLUIMS
+1960’s 1970’s 1980’s 1990’s
+Figure1: Workﬂowmanagementsystems ina historicalperspective.
+In order to become aware of the impact of workﬂowmanagement in the near fu-
+ture,itisusefultoconsidertheevolutionofinformationsystemsoverthelastfour
+decades(cf.[Aal96b]). Figure1showsthephenomenonofworkﬂowmanagementina historicalperspective. The ﬁgureillustratesthe evolutionofinformationsys-temsinthelastfourdecadesbydescribingthearchitectureofatypicalinformationsystemintermsofitscomponents. Inthesixtiesaninformationsystemwascom-
+posed of a number of stand-alone applications. For each of these applications an
+application-speciﬁc user interface and database system had to be developed, i.e.,eachapplicationhad itsownroutinesforuserinteractionanddata storageandre-trieval. In the seventies data was pushed outof the applications. For this purposedatabase management systems (DBMSs) were developed. By using a database
+managementsystem,applicationswerefreedfromtheburdenofdatamanagement.
+Intheeightiesasimilarthinghappenedforuserinterfaces. Theemergenceofuserinterface management systems (UIMSs) enabled application developers to pushtheuserinteractionoutoftheapplications. Inouropinionworkﬂowmanagementsystems arethe next step in pushing genericfunctionalityout ofthe applications.
+Theninetieswillbemarkedbytheemergenceofworkﬂowsoftware,allowingap-
+plicationdevelopers topushthe business proceduresoutoftheapplications.Figure1clearlyshowsthat,inessence, theworkﬂowmanagementsystemisage-neric building block to support business processes. Many information systems
+2
+
+--- Page 3 ---
+could beneﬁt from such a building block, because many organizations are start-
+ingtoseetheneedforadvancedtoolstosupportthedesignandexecutionofbusi-
+nessprocesses. Thereareseveralreasonsfortheincreasedinterestinbusinesspro-cesses. First of all, management philosophies such as Business Process Reengi-neering (BPR) and Continuous Process Improvement (CPI) stimulated organiza-tionstobecomemoreawareofthebusinessprocesses. Secondly,today’sorganiza-
+tionsneedtodeliverabroadrangeofproductsandservices. Asaresultthenumber
+ofprocessesinsideorganizationshasincreased. Considerforexamplemortgages.A decade ago therewere just a few types of mortgages, at the momentnumeroustypes are available. Not only the number of products and services has increased,also the lifetimeof products and services has decreased in the last three decades.
+Asaresult,today’sbusinessprocessesarealsosubjecttofrequentchanges. More-
+over,thecomplexityoftheseprocesses increasedconsiderably. Allthesechangesintheenvironmentoftheinformationsysteminanaverageorganization,havemadebusinessprocesses animportantissue inthedevelopmentofinformationsystems.Therefore,thereisaclearneedforabuildingblocknamed‘workﬂowmanagementsystem’.
+The main purpose of a workﬂow management system is the support of the def-
+inition, execution, registration and control of processes . Because processes are
+a dominant factor in workﬂowmanagement, it is important to use an establishedframeworkformodelingandanalyzingworkﬂowprocesses[HL91,Kou95,Law97].
+InthispaperweuseaframeworkbasedonPetrinets. Petrinetsareawell-founded
+process modeling technique. The classical Petri net was invented by Carl AdamPetriinthesixties([Pet62]). SincethenPetrinetshavebeenusedtomodelandana-lyzeallkindsofprocesseswithapplicationsrangingfromprotocols,hardware,andembedded systems to ﬂexible manufacturingsystems, user interaction, and busi-
+ness processes. In the last two decades the classical Petri net has been extended
+with color, time and hierarchy ([Aal94, Jen96]). These extensions facilitate themodelingofcomplexprocesses wheredata andtime areimportantfactors. Thereareseveralreasons forusingPetrinets forworkﬂowmodeling:/formalsemanticsAworkﬂowprocess speciﬁedin termsof a Petrinet has a clear and precisedeﬁnition, because the semantics of the classical Petri net and several en-hancements(color,time, hierarchy)have been deﬁnedformally./graphicalnaturePetri nets are a graphical language. As a result, Petri nets are intuitive and
+easy to learn. The graphical nature also supports the communication with
+end-users.
+3
+
+--- Page 4 ---
+/expressiveness
+Petrinetssupportalltheprimitivesneededtomodelaworkﬂowprocess. All
+theroutingconstructspresentintoday’sworkﬂowmanagementsystemscanbemodeled. Moreover,thefactthatstates arerepresentedexplicitly,allowsforthemodelingofmilestones andimplicitchoices./propertiesInthelastthreedecades manypeoplehaveinvestigatedthebasicpropertiesof Petri nets. The ﬁrm mathematical foundation allows for the reasoningabout these properties. As a result, there is a lot of common knowledge, in
+theformofbooks andarticles, aboutthismodelingtechnique./analysisPetrinetsaremarkedbytheavailabilityofmanyanalysistechniques. Clearly,
+this is a great asset in favorof the use of Petri nets forworkﬂowmodeling.These techniques can be used to prove properties (safetyproperties, invari-anceproperties, deadlock, etc.) andto calculateperformancemeasures (re-sponse times, waiting times, occupation rates, etc.). In this way it is possi-
+bletoevaluatealternativeworkﬂowsusingstandardPetri-net-basedanalysis
+tools./vendorindependent
+Petrinetsprovideatool-independentframeworkformodelingandanalyzing
+processes. Petrinetsarenotbasedonasoftwarepackageofaspeciﬁcvendoranddonotceasetoexistifanewversionisreleasedorwhenonevendortakesoveranothervendor.
+Other references where the use of Petri nets for workﬂow modeling is advocated
+are[Aal96b,WR96,MEM94,EKR95,EN93,AH97]. Intheremainderofthispa-per we will show how Petri nets can be applied to the domain of workﬂowman-agement. To do this, we ﬁrst introduce the basic concepts of workﬂow manage-
+ment and workﬂowmanagement systems. Then we introduce the basic Petri-net
+terminology. Insection4weshowhowtheworkﬂowmanagementconceptscanbemappedontoPetrinets. Section5isconcernedwiththeanalysisofworkﬂowpro-cessesspeciﬁedintermsofaPetrinet. Beforeweconclude,wedescribeanumberofPetri-net-basedworkﬂowtoolstoillustratetheuse ofPetrinetsinthis domain.
+4
+
+--- Page 5 ---
+2 Workﬂowmanagement(systems)
+The termworkﬂowmanagementreferstothedomainwhichfocuses onthelogis-
+tics ofbusiness processes. Thereare also peoplethatuse theterm ofﬁce logistics .
+Theultimategoalofworkﬂowmanagementistomakesurethattheproperactivi-
+ties are executed by the right person at the right time. Although it is possible todo workﬂow management without using a workﬂow management system, mostpeopleassociateworkﬂowmanagementwithworkﬂowmanagement systems. The
+Workﬂow Management Coalition (WfMC) deﬁnes a workﬂow management sys-
+tem as follows ([WFM96]): A system that completely deﬁnes, manages, and ex-
+ecutes workﬂows through the execution of software whose order of execution isdriven by a computer representation of the workﬂow logic . Other terms to char-
+acterizeaworkﬂowmanagementsystemare: ‘businessoperatingsystem’, ‘work-ﬂowmanager’, ‘case manager’and ‘logisticcontrol system’. On the one hand, itis a pity that workﬂow management is often associated with workﬂow manage-
+ment systems, because it limits the application domain of workﬂowmanagement
+inanunnecessarymanner. (Itispossibletodoworkﬂowmanagementwithoutus-ing a workﬂowmanagement system.) On the other hand, workﬂowmanagementsystemsgiveconcreteformtotheessentialconcepts, techniques,andmethodsforworkﬂowmanagement.
+Workﬂowsare case-based ,i.e.,everypieceofworkisexecutedforaspeciﬁc case.
+Examplesofcases areamortgage,aninsuranceclaim,ataxdeclaration,anorder,or a request for information. Cases are often generated by an external customer.However,it isalso possible that acase is generatedbyanother departmentwithin
+the same organization(internal customer). The goal of workﬂowmanagement is
+to handle cases as efﬁciently and effectively as possible. A workﬂow process isdesigned to handle similar cases. Cases are handled by executing tasksin a spe-
+ciﬁc order. The workﬂow process deﬁnition speciﬁes which tasks need to be ex-
+ecuted and in what order. Alternative terms for workﬂow process deﬁnition are:
+‘procedure’,‘ﬂowdiagram’and‘routingdeﬁnition’. Sincetasksareexecutedina
+speciﬁcorder,itisusefultoidentify conditions whichcorrespondtocausaldepen-
+denciesbetweentasks. Aconditionholdsordoesnothold(trueorfalse). Eachtaskhas pre-andpostconditions: thepreconditionsshould holdbeforethe taskis exe-cuted, andthepostconditions shouldholdafterexecution ofthetask. Many casescanbehandledbyfollowingthesameworkﬂowprocessdeﬁnition. Asaresult,the
+same task has to be executed formany cases. A task which needs to be executed
+foraspeciﬁccaseiscalleda workitem . Anexampleofaworkitemis: executetask
+‘sendrefundformtocustomer’forcase‘complaintsentbycustomerBaker’. Mostworkitemsareexecutedbya resource. Aresourceiseitheramachine(e.g.aprinter
+orafax)oraperson(participant,worker,employee). Inmostofﬁcestheresources
+5
+
+--- Page 6 ---
+are mainly human. However, because workﬂow management is not restricted to
+ofﬁces, we prefer the term resource. Resources are allowed to deal with speciﬁc
+workitems. To facilitate the allocation of workitems to resources, resources aregroupedintoclasses. A resourceclass isagroupofresourceswithsimilarcharac-
+teristics. Theremaybemany resourcesinthesame class andaresourcemaybeamemberofmultipleresourceclasses. Ifaresourceclassisbasedonthecapabilities
+(i.e. functional requirements) of its members, it is called a role. If the classiﬁca-
+tionisbasedonthestructureoftheorganization,sucharesourceclassiscalledanorganizational unit (e.g. team, branch or department). A work item which is be-
+ing executed by a speciﬁc resource is called an activity. If we take a photograph
+ofaworkﬂow,wesee cases, workitemsandactivities. Workitemslinkcases and
+tasks. Activitieslinkcases, tasks, andresources.
+case dimensionprocess dimensionresource dimension
+task
+casework itemactivityresource
+Figure2: A threedimensionalviewofaworkﬂow.
+Figure2shows thata workﬂowhas threedimensions: (1)thecase dimension, (2)
+the process dimension and (3) the resource dimension. The case dimension sig-
+niﬁes the fact that all cases are handled individually. From the workﬂow point
+of view, cases do not directly inﬂuence each other. Clearly they inﬂuence eachother indirectly via the sharing of resources and data. In the process dimension,theworkﬂowprocess,i.e., thetasksandtheroutingalongthesetasks,isspeciﬁed.Intheresourcedimension,theresourcesaregroupedintorolesandorganizationalunits. We can visualize a workﬂowas a number of dots in the three dimensional
+viewshowninFigure2. Eachdotrepresentseitheraworkitem(case+task)oran
+activity(case+task+resource). Figure2showsthatworkﬂowmanagementisthegluebetweenthe cases, thetasks, andtheorganization.
+6
+
+--- Page 7 ---
+(a)ABCsequential
+routing
+B
+CADrouting(b) parallel
+B
+CADrouting(c) conditional
+ABCrouting(d) iterative
+Figure3: Fourroutingconstructs.
+Inthispaperwefocusontheﬁrsttwodimensions,i.e.,weconcentrateonthework-
+ﬂowprocesswhichisdeﬁnedtohandlecases. Wewillnotdiscusshumanresource
+aspects such as the classiﬁcation of resources (organizational modeling) and the
+mappingofresourcestoworkitems(scheduling)inmuchdetail. Wewilljustshowthe mechanisms. A detailed discussion on resource management is beyond thescopeofthispaper,becauseweconcentrateontheapplicationofPetrinets. SincePetrinetsareaprocessmodelingtechnique,theapplicationisrestrictedtotheﬁrst
+twodimensions.
+For the ﬁrst two dimensions, the routing of cases is one of the main issues. A
+workﬂowprocessdeﬁnitionspeciﬁeshowthecasesareroutedalongthetasksthatneedtobeexecuted. Figure3showstheroutingconstructsidentiﬁedbytheWork-
+ﬂowManagementCoalition(WfMC).TheWfMCisaninternationalorganization
+whosemissionistopromoteworkﬂowandestablishstandardsforworkﬂowman-agementsystems. TheWfMCwasfoundedin1993andinJanuary1995theWfMCreleased a glossary whichprovides a commonset of termsforworkﬂowvendors,end-users, developers, and researchers ([WFM96]). In this glossary fourtypes of
+routingareidentiﬁed:/sequentialTasksareexecutedsequentiallyiftheexecutionofonetaskisfollowedbythe
+nexttask. InFigure3(a)task Bis executed aftertask Ahas beencompleted
+andbeforetask Cis started.
+7
+
+--- Page 8 ---
+/parallel
+InFigure3(b)task BandtaskCare executedinparallel. This meansthat B
+andCareexecutedatthesametimeorinanyorder. Tomodelparallelrout-
+ing, twobuildingblocks are identiﬁed: (1)the AND-split and(2) the AND-
+join. The AND-split in Figure 3(b) enables BandCto be executed after A
+hasbeencompleted. TheAND-joinsynchronizesthetwoparallelﬂows,i.e.,
+taskDmaystartafter B andChavebeen completed./conditional
+InFigure3(c)eithertask BortaskC(exclusiveOR)isexecuted. Tomodela
+choicebetweentwoormorealternativesweusetwobuildingblocks: (1)the
+OR-splitand(2)the OR-join. IftaskAisexecuted,achoiceismadebetween
+BandC. TaskDmaystartafter Bo rCis completed./iteration
+Sometimes it is necessary to execute a task multiple times. In Figure 3(d)taskBis executed oneormoretimes.
+In Section 4, these routingconstructs are mapped onto Petri nets. This way con-
+ceptssuchascase, task,workitem,activityandworkﬂowprocessaredeﬁnedinamuchmoreexplicitmanner. Theissueof triggering isalsodiscussedinSection4.
+The triggeringconcept is very importantin the context of workﬂowmanagement
+([Joo94]).
+unstructured
+centriccollaborativeproduction
+administrative
+workflowworkflow
+ad-hoc
+workflow
+processesstructured
+information
+centricworkflow
+process
+Figure4: Workﬂowprocesses versus collaborativeprocesses.
+Noteverybusinessprocessisaworkﬂowprocess. Inouropinion,aworkﬂowpro-
+8
+
+--- Page 9 ---
+cess is characterized by three qualities. First of all, a workﬂow process is case-
+driven. Secondly,theprocess itselfis consideredtobeessential. Thirdly,thepro-
+cess can be deﬁned in an explicit manner. Many people use the term workﬂowmanagementinabroadersense. Forexample,sometimesgroupwaresoftwaretoolssuch as Lotus Notes and Microsoft Exchange are called workﬂow managementsystems. Thisisnotcorrectsincetheseproductsdonotsupporttheworkﬂowpro-
+cess itself, they just allowpeople tocollaborateby sendingmessages and sharing
+information. Figure4 showsthe spectrumofcase-based business processes. Pro-
+duction workﬂow is concerned which highly structured processes with almost no
+variations. Thistypeofworkﬂowneedstocopewithmanycasesperday. Thepro-cessingofinsuranceclaimsisatypicalexampleofproductionworkﬂow. Adminis-
+trativeworkﬂow correspondstocase-drivenprocesseswhichfollowawell-deﬁned
+procedure. Alternativeroutingofacaseispossible,butneedstobepredeﬁned. Ad-
+hocworkﬂow relatestoprocesses wheretheprocedureisnotdeﬁned(completely)
+in advance. Per case the procedure needs to be deﬁned or an existing procedureneedstobemodiﬁed. Collaborativeprocesses areoutsidethescopeofourdeﬁni-
+tionofworkﬂow. Inacollaborativeprocesstheemphasisisoncommunicationand
+thesharingofinformationratherthanthedeﬁnitionofprocesses. Forcollaborative
+processes it is not possible or not necessary to make the workﬂow processes ex-plicit. Today’s workﬂowmanagementsystems suchas COSA(COSASolutions),Flowmark(IBM),OPEN/Workﬂow(EastmanSoftware),Staffware(Staffware)andVisualWorkﬂow(FileNet)supportproduction/administrativeworkﬂow. Justafew
+products support ad-hoc workﬂow, e.g., Ensemble (FileNet). Collaborative pro-
+cesses can be supported by groupware tools such as Lotus Notes and MicrosoftExchange. Although these groupwaretools do not support the logistic control ofworkﬂow processes, they can be used as a communication layer in a proprietaryworkﬂowsystem.
+Inthispaperwerestrictourselvestorealworkﬂowmanagementsystems,i.e.,sys-
+temstosupportproductionworkﬂow,administrativeworkﬂowand/orad-hocwork-ﬂow. The WfMC also focuses on this type of software tools. Many vendors andusersoftheserealworkﬂowmanagementsystemshavejoinedtheWfMCtoiden-
+tifythecommoncharacteristicsofthesetools,tostandardizeterminology,andde-
+ﬁne standard architecturesand interfaces. One of the ﬁrst results achieved by theWfMC was the deﬁnitionofa referencemodel forthe architectureofa workﬂowsystem. However, before we describe the reference model, we stop at the subtledifferencebetweenthe term‘workﬂowmanagementsystem’ andthe term‘work-ﬂowsystem’. Aworkﬂowmanagementsystemisagenericsoftwareproductwhich
+can be applied in many organizations, e.g., Staffware or COSA. However, if the
+workﬂowmanagementsystem is notinstalled, conﬁgured,andﬁlledwithdata onprocess deﬁnitions and applications, it cannot be used. Therefore, we reserve the
+9
+
+--- Page 10 ---
+Figure5: ReferencemodeloftheWorkﬂowManagement Coalition(WfMC).
+term workﬂow system for the whole of the installed workﬂow management sys-
+tem, the process deﬁnition data, the organizational data, the applications, the ap-
+plicationdata, thedatabasemanagementsystem,theconﬁgurationﬁles,andother
+softwarecomponentsintheperipheryoftheactualworkﬂowmanagementsystem.Figure 5 shows an overview of this reference model. The reference model de-scribes the majorcomponentsand interfaceswithin a workﬂowarchitecture. Thecore of any workﬂow system is the workﬂow enactment service . The workﬂow
+enactmentserviceprovidestherun-timeenvironmentwhichtakescareofthecon-
+trol and execution of the workﬂow. For technical reasons or managerial reasonstheworkﬂowenactment service mayuse multiple workﬂow engines . Aworkﬂow
+engine handles selected parts of the workﬂow and manages selected parts of theresources. The process deﬁnition tools are used to specify and analyze workﬂow
+process deﬁnitions and/orresource classiﬁcations. These tools are used at design
+time. Inmostcases,theprocessdeﬁnitiontoolscanalsobeusedasaBPR-toolset.Most workﬂow management systems provide three process deﬁnition tools: (1)a tool with a graphical interfaceto deﬁne workﬂowprocesses, (2) a tool to spec-ify resource classes (organizational model), and (3) a simulation tool to analyze
+a speciﬁed workﬂow. The end-user communicates with the workﬂowsystem via
+theworkﬂow client applications . An example of a workﬂowclient application is
+thewell-known in-basket. Viasuchanin-basketworkitemsareofferedtotheend
+user. By selecting a work item, the user can execute a task for a speciﬁc case. Ifnecessary,theworkﬂowengineinvokesapplicationsviainterface3. The adminis-
+10
+
+--- Page 11 ---
+trationandmonitoringtools areusedtomonitorandcontroltheworkﬂow. These
+toolsareusedtoregistertheprogressofcasesandtodetectbottlenecks. Moreover,
+these tools are used to set parameters, allocate people and handle abnormalities.Viainterface4theworkﬂowsystem canbeconnectedtootherworkﬂowsystems.TostandardizetheﬁveinterfacesshowninFigure5,theWfMCaimsatacommonWorkﬂow ApplicationProgrammingInterface (WAPI).TheWAPIisenvisagedas
+acommonsetofAPIcallsandrelatedinterchangeformatswhichmaybegrouped
+togetherto supporteach oftheﬁve interfaces(cf.[Law97]).
+ThearchitectureshowninFigure5hasbeenadoptedbymostvendors. Formostof
+theinterfaces,standardshave beenproposed. Unfortunately,theseproposedstan-
+dards are at a technical level with the emphasis on syntax instead of semantics.
+Thereisnoconsensusataconceptuallevel. Considerforexampleinterface1. Thesyntax ofthe exchange formathas been deﬁned withoutformalizingthe meaningofstates andessential buildingblockssuch as theAND/OR-split/join. Therefore,there is a need for a conceptual standard which clearly speciﬁes the semantics ofthe basic constructs needed. We claim that a workﬂowframeworkbased on Petri
+netswouldbeagoodcandidateforsuchastandard. Intheremainderofthispaper
+wewillsubstantiate thisclaim.
+3 Petrinets
+Thissection introducesthebasic Petrinetterminologyandnotations. Readers fa-
+miliarwithPetrinetscan skipthis section.
+/1
+Historicallyspeaking,PetrinetsoriginatefromtheearlyworkofCarlAdamPetri
+([Pet62]). Sincethen the use and study of Petrinets have increased considerably.For a review of the history of Petri nets and an extensive bibliographythe readerisreferredto [Mur89].
+3.1 ClassicalPetrinet
+Theclassical Petrinetisadirectedbipartitegraphwithtwonodetypescalled pla-
+cesandtransitions . The nodes are connected via directed arcs. Connections be-
+tweentwonodesofthesametypearenotallowed. Placesarerepresentedbycirclesandtransitionsbyrectangles.
+/1Notethatstatesarerepresentedbyweightedsumsandnotethedeﬁnitionof(elementary)paths.
+11
+
+--- Page 12 ---
+Deﬁnition1 (Petrinet) A Petri net isa triple /( P/;; T /;; F /):
+- Pis aﬁniteset ofplaces,
+- Tis aﬁnite setof transitions( P /\ T /= /;;),
+- F / /( P / T /) /[ /( T / P /)is aset ofarcs (ﬂowrelation)
+Aplace piscalledan inputplace ofatransition tiffthereexistsadirectedarcfrompto t. Place piscalledan outputplace oftransition tiffthereexistsadirectedarc
+from tto p. Weuse / ttodenotethesetofinputplacesforatransition t. Thenota-
+tions t /, / pand p /have similarmeanings, e.g., p /is thesetoftransitionssharingpas an input place. Note that we restrict ourselves to arcs with weight 1. In the
+contextof workﬂowproceduresitmakes nosense to have otherweights, becauseplaces correspondto conditions.
+Atany timea place contains zeroofmore tokens, drawnas blackdots. The state,
+often referred to as marking, is the distribution of tokens over places, i.e.,M /2P /!IN. We will represent a state as follows: /1 p/1
+/+/2 p/2
+/+/1 p/3
+/+/0 p/4is the state
+withonetokeninplace p/1,twotokensin p/2,onetokenin p/3andnotokensin p/4.W e
+canalsorepresentthisstateasfollows: p/1
+/+/2 p/2
+/+ p/3. Tocomparestateswedeﬁne
+a partial ordering. For any two states M/1and M/2, M/1
+/ M/2iff for all p /2 P:M/1
+/( p /) / M/2
+/( p /)
+Thenumberoftokensmaychangeduringtheexecutionofthenet. Transitionsare
+theactive componentsin aPetrinet: theychange the state ofthenet accordingto
+thefollowing ﬁringrule :
+(1) Atransition tissaidtobe enablediffeachinputplace pof tcontainsatleast
+onetoken.
+(2) Anenabled transitionmay ﬁre. Iftransition tﬁres, then tconsumes oneto-
+kenfromeachinputplace pof tandproduces onetokenineachoutputplacepof t.
+GivenaPetrinet /( P/;; T /;; F /)and astate M/1, wehave thefollowingnotations:
+- M/1
+t/! M/2: transition tis enabled in state M/1and ﬁring tin M/1results in
+state M/2
+- M/1
+/! M/2: thereis a transition tsuch that M/1
+t/! M/2
+- M/1
+//! Mn: the ﬁring sequence / /= t/1
+t/2
+t/3
+/:/:/:tn /; /1leads from state M/1to
+state Mn, i.e., M/1
+t/1/! M/2
+t/2/! /:/:/:
+tn /; /1/! Mn
+12
+
+--- Page 13 ---
+A state Mnis calledreachable from M/1(notation M/1
+//! Mn) iff there is a ﬁr-
+ing sequence / /= t/1
+t/2
+/:/:/:tn /; /1such that M/1
+//! Mn. Note that the empty ﬁring
+sequence isalso allowed,i.e., M/1
+//! M/1.
+Weuse /( PN /;;M /)todenoteaPetrinet PNwithaninitialstate M. Astate M
+/0isa
+reachable state of /( PN /;;M /)iff M
+//! M
+/0. Let us deﬁnesome propertiesforPetri
+nets.
+Deﬁnition2 (Live) A Petri net /( PN /;;M /)is live iff for every reachable state M
+/0
+andevery transition t,there is astate M
+/0/0reachable from M
+/0which enables t.
+Deﬁnition3 (Bounded,safe) A Petri net /( PN /;;M /)is bounded iff for each placepthere is a natural number nsuch that for every reachable state the number of
+tokens in pis less than n. The net is safe iff for each place the maximum number
+oftokensdoes notexceed 1.
+Paths connect nodes by a sequence of arcs. A path is elementary if each node is
+unique. Forconvenience, we also introducethe alphabetoperator /onpaths.
+Deﬁnition4 (Path,elementary, alphabet) Let PNbeaPetrinet. Apath Cfrom
+anode n/1toanode nkisasequence h n/1
+/;;n/2
+/;;/:/:/: /;;nk
+isuchthat h ni
+/;;ni /+/1
+i/2 Ffor/1 / i / k /; /1. / /( C /)/= f n/1
+/;;n/2
+/;;/:/:/: /;;nk
+gisthealphabetof C. Ciselementaryiff
+forany twonodes niand njon C, i /6/= j /) ni
+/6/= nj.
+Deﬁnition5 (Stronglyconnected) A Petri net is strongly connected ifffor every
+pair of nodes (i.e. places and transitions) xand y, there is a path leading from x
+to y.
+3.2 High-levelPetrinets
+The classical Petri net allows for the modeling of states, events, conditions, syn-chronization, parallelism, choice, and iteration. However, Petri nets describingreal processes tend to be complex and extremely large. Moreover, the classicalPetri net does not allow for the modeling of data and time. To solve these prob-lems, many extensions have been proposed. Three well-known extensions of the
+basicPetrinetmodelare: (1)theextensionwithcolortomodeldata,(2)theexten-
+sion with time, and (3) the extension with hierarchyto structure large models. APetri net extended with color, time, and hierarchy is called a high-level Petri net .
+In this paper we will use these extensions to model speciﬁc aspects. However, aformalizationoftheseaspectsisbeyondthescopeofthispaper. Therefore,wein-
+troducethethreeextensions inan informalmanner.
+13
+
+--- Page 14 ---
+/extensionwith color
+Tokens oftenrepresent objects (e.g. resources, goods, humans) inthe mod-
+eled system. Therefore, we often want to represent attributes of these ob-jects. Ifan insurance claimis modeled by a tokenin the Petrinet, we wanttorepresentattributessuch as thenameoftheclaimant,identiﬁcationnum-ber,date, and amount. Sincethese attributesarenoteasily representedbya
+tokenina classical Petrinet, weextend the Petrinetmodel with coloredor
+typedtokens . Ina colored Petrinet each tokenhas a value oftenreferredto
+as ‘color’. Transitions determine the values of the produced tokens on thebasisofthevaluesoftheconsumedtokens,i.e.,atransitiondescribesthere-lationbetweenthevalues ofthe‘inputtokens’andthevaluesofthe‘output
+tokens’. It is also possible to specify ‘preconditions’which take the colors
+oftokenstobeconsumed intoaccount./extensionwith time
+For real systems it is often important to describe the temporal behavior of
+the system, i.e., we need to model durations and delays. Since the classi-calPetrinetisnotcapableofhandlingquantitativetime,atimingconceptisadded. There are many ways to introduce time intothe Petri net. Time canbeassociated withtokens, places, and/ortransitions./extensionwith hierarchyAlthoughtimed coloredPetri nets allow fora succinct description of manybusiness processes, precise speciﬁcations for real systems have a tendency
+to become large and complex. This is the reason we provide a hierarchy
+construct, called subnet. A subnet is an aggregate of a number of places,
+transitions,and subsystems. Sucha constructcanbe used tostructurelargeprocesses. Atone level we wantto givea simple descriptionof theprocess(withouthavingtoconsiderallthedetails). Atanotherlevelwewanttospec-
+ifya more detailed behavior. The extension with hierarchyallows forsuch
+anapproach.
+Foramoreelaboratediscussion on these extensions andotherkinds ofhigh-level
+Petrinets, the readerisreferredto [Jen96, Aal94, Hee94].
+14
+
+--- Page 15 ---
+4 Mappingworkﬂow managementconceptsonto
+Petrinets
+Mostworkﬂowmanagementsystemsandmethodologiestosupportworkﬂowman-
+agementseparatethemodelingoftheworkﬂowprocess(How?) fromthemodeling
+of the structureof the organizationand the resources withinthe organization(Bywhom?). ThedistinctionbetweenthesetwoaspectsisillustratedbyFigure2whichrelatestheprocessdimensionandtheresourcedimension. Therearemanyreasonsfordecouplingthese two dimensions when specifyinga workﬂow. The complex-
+ity is reduced, reuse is stimulated, and it is possible to modify a process without
+changing the organizational model (and vice-versa). In this section we will ﬁrstshowthat Petrinets are suitableforthe modelingof theprocess dimension. Thenwewillshow howtoincorporatetheresource dimension.
+4.1 Workﬂow processdeﬁnition
+In the process dimension, it is speciﬁed which tasks need to be executed and inwhatorder. ModelingaworkﬂowprocessdeﬁnitionintermsofaPetrinetisratherstraightforward: tasksaremodeledby transitions ,conditions aremodeledby pla-
+ces, andcasesaremodeledbytokens.
+To illustrate the mapping of workﬂow management concepts onto Petri nets we
+considertheprocessingofcomplaints. Firstthecomplaintisregistered(task regis-
+ter),theninparallelaquestionnaireissenttothecomplainant(task send
+questionn-
+aire)andthecomplaintisevaluated(task evaluate). Ifthecomplainantreturnsthe
+questionnairewithintwoweeks,thetask process
+questionnaire isexecuted. Ifthe
+questionnaire is not returned within two weeks, the result of the questionnaire is
+discarded (task time
+out). Based on the result of the evaluation, the complaint is
+processedornot. Theactualprocessingofthecomplaint(task process
+complaint )
+isdelayeduntilthequestionnaireisprocessedoratime-outhasoccurred. Thepro-cessingofthecomplaintischeckedviatask check
+processing . Finally,task archive
+isexecuted.Figure6showsaworkﬂowprocessdeﬁnitionfortheprocessingofcomplaintsspec-
+iﬁedintermsofa Petrinet. Thetasks register,send
+questionnaire ,evaluate,pro-
+cess
+questionnaire ,time
+out,process
+complaint ,check
+processing andarchivehave
+beenmodeledbytransitions. Thetransitions processing
+ OKandprocessing
+ NOK
+havebeenaddedtomodelthetwopossibleoutcomesofexecutingtask check
+pro-
+cessing. The transitions no
+processing andprocessing
+ requiredhave been added
+forsimilarreasons. Tomodelthestatesbetweentasks,conditionshavebeenadded.
+Each condition is modeled by a place. For example, place c2corresponds to the
+condition ‘ready to evaluate complaint’. Condition c5is true (i.e. place c5con-
+15
+
+--- Page 16 ---
+i oc1 c3
+c4c6
+c7c9registerarchive
+evaluate no_processing
+check_processingprocessing_OK
+processing_NOKprocessing_requiredc5
+process_complaintc2
+c8time_out
+send_questionnaireprocess_questionnaire
+Figure6: APetrinetfortheprocessingofcomplaints.
+tains a token)if the questionnaire has been processed ora time-outhas occurred.
+Note that c5is a prerequisite forthe task archiveand the task process
+complaint .
+Condition iisthe startconditionandcondition ois theendcondition.
+TheworkﬂowprocessdeﬁnitionshowninFigure6modelsthelife-cycleofasin-glecase. Ingeneral,therearemanycaseswhicharehandledaccordingtothesameworkﬂowprocess deﬁnition. Each of these cases corresponds to one or more to-
+kens. If tokens of multiple cases reside in the same Petri net, then these tokens
+may get mixed. For example, transition archivemay consume two tokens which
+correspond to differentcases. Clearly, this is undesirable. There are twoways tosolve this problem. First of all, it is possible to use a high-level Petri net whereeachtokenhasavalue(color)whichcontainsinformationabouttheidentityofthe
+correspondingcase (case identiﬁer). Transitions arenotallowedtoﬁreifthecase
+identiﬁersofthe tokensto be consumed donot match, i.e., a preconditionis usedwhich inspects and compares token values. Figure7 shows a high-level Petri netwith case identiﬁers. The dotted lines are used to associate tokens to cases, e.g.,the token in place c1has value 3 thus linking it to case 3. Another way to solve
+this problem is the following. Each case corresponds to a unique instance of the
+Petrinet. Ifthere arencases, thenthere are ninstances ofthe Petrinet. One can
+thinkofsuchaninstanceasalayer. Iftheselayersareputontopofeachother,itispossibletoseethecasesinthesamediagram. Thelatterisinterestingfromaman-agementpointofview,because onegetsanoverviewofthestateoftheworkﬂow.
+For example, if a place contains a lot of tokens, this might indicate a bottleneck.
+Intheremainderofthispaper,weconsiderPetrinetswhichdescribethelife-cycleofonecase inisolation.
+16
+
+--- Page 17 ---
+i oc1 c3
+c4c6
+c7c9registerarchive
+evaluate no_processing
+check_processingprocessing_OK
+processing_NOKprocessing_requiredc5
+process_complaintc2
+c8time_out
+send_questionnaireprocess_questionnairecase 1
+case 4case 6
+case 5case 2case 3
+Figure7: Tokenshave a case identiﬁerwhichallows forthe separationofcases.
+A Petrinet which models a workﬂowprocess deﬁnition(i.e. the life-cycle of one
+case in isolation) is called a WorkFlow net (WF-net). A WF-net satisﬁes two re-
+quirements. First of all, a WF-net has one input place ( i) and one output place
+( o). A token in icorresponds to a case which needs to be handled, a token in o
+corresponds to a case which has been handled. Secondly, in a WF-net there arenodanglingtasks and/orconditions. Everytask (transition)and condition(place)shouldcontributetotheprocessingofcases. Therefore,everytransitiont(place p)
+should be located ona pathfromplace ito placeo. The latterrequirementcorre-
+spondstostronglyconnectednessif oisconnectedto iviaanadditionaltransitiont
+/(see Figure23).
+Deﬁnition6 (WF-net) A Petri net PN /=/( P/;; T /;; F /)is a WF-net (WorkFlow net)
+ifandonlyif:
+(i) PNhastwospecialplaces: iand o. Place iisasourceplace: / i /= /;;. Placeoisa sinkplace: o / /= /;;.
+(ii) Ifweaddatransition t
+/to PNwhichconnectsplace owith i(i.e. / t
+//= f o g
+and t
+// /= f i g),thentheresulting Petri netis stronglyconnected.
+Placesintheset Pcorrespondtoconditions,transitionsintheset Tcorrespondto
+tasks. Notethattherequirementsstated inDeﬁnition6are minimalrequirements.
+Eveniftheserequirementsaresatisﬁeditisstillpossibletodeﬁneaworkﬂowpro-
+cess deﬁnitionwithpotentialdeadlocks and/orlivelocks.
+Tokens in a WF-net represent the workﬂow state of a single case. The workﬂow
+17
+
+--- Page 18 ---
+statecontainspartialinformationaboutthestateofacase. Inadditionthecasehas
+workﬂow attributes andapplication data . The workﬂowstate corresponds to the
+distributionof tokens over the places (marking). Consider for example Figure 7.Theworkﬂowstateofcase5is c3/+c7. Aworkﬂowattributeisaspeciﬁcpieceof
+informationusedfortheroutingofacase. Onecanthinkofaworkﬂowattributeasa controlvariableor alogistic parameter. A workﬂowattributemay be theage of
+thecomplainant, the departmentresponsibleforthe complaint,or theregistration
+date. We willalso use the term case attribute to refertothe workﬂowattributeof
+aspeciﬁccase. TheclassicalPetrinetPN /=/( P/;; T /;; F /)abstractsfromthesework-
+ﬂowattributes. However,inahigh-levelPetrinet,theextensionwithcolorcanbeusedtomodelworkﬂowattributes. Theapplicationdataisnotusedtomanagethe
+workﬂow,it is used to execute the task. The application data is outside the scope
+of the workﬂow process deﬁnition and the workﬂowmanagement system has noknowledgeofthis information. (Nevertheless, oftenthere areworkﬂowattributeswhichcanbederivedfromtheapplicationdata.) Examplesofapplicationdataaretheaddress ofthecomplainantandthe evaluationreport.
+4.2 Routing constructs
+Inthe processdimension, buildingblockssuch as theAND-split,AND-join,OR-splitandOR-joinareused tomodelsequential, conditional,parallel,anditerativerouting(WfMC[WFM96]). Clearly,aWF-netcanbeusedtospecifytheroutingofcases. InSection2,fourtypesofroutinghavebeenidentiﬁed: sequential,parallel,conditional,anditeration.
+ABC
+c1 c2 c3 c4
+Figure8: Sequentialrouting.
+Sequential routing is used to deal with causal relationships between tasks. Con-
+sider twotasks AandB. IftaskBis executed afterthe completion oftask A, then
+AandBare executed sequentially. Figure8 shows that sequential routing can be
+modeled by adding places. Place c2models the causal relationship between task
+AandtaskB,i.e.,place c2representsapostconditionfortask Aandaprecondition
+fortaskB. Placec3modelsthe causal relationshipbetween task Band taskC.
+Parallelrouting isusedinsituationswheretheorderofexecutionislessstrict. For
+example, two tasks BandCneed to be executed but the order of execution is ar-
+bitrary. To model such a parallel routing, two building blocks are used: (1) the
+18
+
+--- Page 19 ---
+A
+c1c2B
+C
+c3c4
+c5c6AND-split AND-join
+D
+Figure9: Parallelrouting.
+AND-split and (2) the AND-join. Figure 9 shows that both building blocks can
+be modeled by ordinarytransitions. One can think of these transitions as control
+tasksthathavebeen addedforroutingpurposes. However,a normaltask canalso
+act as an AND-split and/or an AND-join. The execution of AND-split Aenables
+bothtask BandtaskC.AND-join Disenabledafterexecutionboth BandC,i.e.,D
+isusedtosynchronizetwosubﬂows. Asaresult,task BandtaskCareexecutedin
+parallel. This means that BandCareexecuted inarbitraryorder. Itis even possi-
+blethattheexecutionof BandCcoincides,i.e.,foronecase,tasksoverlapintime.
+In several workﬂow management systems, it is not possible to execute two tasks
+forthe same case atthe same time. In thiscase, we use the term semi-parallel .I f
+semi-parallelroutingisusedinFigure9,then Bisexecutedbefore Corviceversa,
+i.e., interleaving semantics are used to interpret the workﬂow process deﬁnition.Sometimes,semi-parallelroutingisusedtoavoidserioustechnicalproblems. For
+example,foreachcase,applicationsand/ortasksintheworkﬂowmanagementsys-
+tem share data. In this case, the locking mechanism in the database mangementsystem maypreventtasks tobeexecuted concurrentlyforthesame case.
+A
+c1B
+Cc4 c2 c3OR-split OR-join
+D
+Figure10: Conditionalrouting.
+Conditionalrouting is usedto allowforaroutingwhichmayvarybetweencases.
+Inthisway,theroutingofacasemaydependontheworkﬂowattributesofacase,the behavior of the environment, or the workload of the organization. To modela choice between two of more alternatives, two building blocks are used: (1) theOR-split and (2) the OR-join (in both cases an exclusive OR). An OR-split can
+be modeled by a place with multiple outgoing arcs, an OR-join is modeled by a
+19
+
+--- Page 20 ---
+place with multiple ingoing arcs. Figure 10 shows the situation where task Ais
+followed by either task Bor taskC, i.e., a choice is made between BandC. The
+execution of one of these two tasks is followedby the execution of task D. Place
+c2isapreconditionforboth BandC.However,justoneofthesetwotaskswillbe
+executed forthe case inplace c1.
+Ifc2containsatoken,anon-deterministicchoiceismadebetween BandC.How-
+ever, thechoice between alternativesoftendepends on workﬂowattributes. Ifthe
+choice is based on workﬂowattributes, it is a deterministic choice. For example,the routingofan insurance claim may depend on the compensationcosts. There-fore, a workﬂowattribute is used to take into account the compensation costs. Ifthesecosts exceed a certainamount,additionalchecks are necessary. The routing
+of a trafﬁc violation may depend on the type of the trafﬁc violation represented
+by the corresponding workﬂow attribute. There are two ways to model a choicebased onworkﬂowattributes. (Recallthattheextension withcolorisused tomo-del workﬂowattributes.) We can use the construct shown in Figure 10 and add aprecondition(i.e.anadditionalenablingrequirementbased ononeormorework-ﬂowattributes)toeachofthetaskssuchthateither BorCisenabledif c2contains
+atoken. Anotherwaytomodeladeterministicchoicebetween BorCisshownin
+c1B
+COR-join
+c4 c5c2
+c3A
+x <= 0x > 0
+Dexplicit OR-split
+Figure11: Explicitchoicebetween BandCbased onworkﬂowattribute x.
+Figure11. Transition Ahastwooutputplaces c2andc3. Transition Aproducesei-
+theratokenin c2orc3. Thechoicebetween c2orc3isbasedonworkﬂowattribute
+x.I fxis positive, task Bwill be executed, otherwise task C. A special symbol is
+usedtodenotethefactthattask AisanOR-split(exclusiveOR).Notethatthenon-
+deterministicchoiceinFigure10differsfromthechoiceinFigure11withrespecttothemomentofchoice . InFigure11thechoiceismadethemomenttask Aiscom-
+pleted, in Figure 10 the choice is made the moment BorCis executed. We will
+usetheterm explicitOR-split forachoicebasedonworkﬂowattributes. Theterm
+implicitOR-split isreservedforthesituationwherethemomentofchoiceisaslate
+as possible. For workﬂowmodeling it is of the utmost importance to distinguishbetweenimplicitandexplicitOR-splits.
+InFigure11weintroducedaspecialnotationforanexplicitOR-split. Wewillalso
+20
+
+--- Page 21 ---
+OR-split OR-join
+OR-splitexplicit
+OR-joinexplicitimplicit implicitAND-split AND-join
+Figure12: The buildingblocksforworkﬂowmodeling.
+denotethefactthata taskis anAND-split,an AND-join,and/oranOR-join. Fig-
+ure 12 lists the main constructs. The AND-split and the AND-joincorrespond to
+the normal behavior of a transition in a classical Petri net. The implicit OR-splitand OR-join are modeled by places. The explicit OR-split is modeled by a tran-sitionwhich produces one tokeninone of its outputplaces, i.e., it is an exclusiveOR (XOR).The place is selected onthe basis ofthe workﬂowattributes. The ex-
+plicitOR-joinismodeledbyatransitionwhichisenabledifoneoftheinputplaces
+contains a token. In general, the explicit OR-join can be modeled by an implicitOR-join(i.e.aplace). ThereisnocompellingneedtodistinguishbetweenimplicitandexplicitOR-joins. Therefore,wewillavoidtheuseofexplicitOR-joinsinthispaper. However,thedistinctionbetweentheimplicitOR-splitandtheexplicitOR-splitisofpracticalrelevanceandwillbediscussedinmoredetailwhentheconcept
+oftriggeringisintroduced.
+The last formof routing is iteration. Iterationcan be modeled using the building
+blocksshowninFigure12. Considerforexampletheworkﬂowprocessdeﬁnitionshown in Figure 13. Task Cis a control task which checks the result of task B.
+Basedonthischeck,task Bmaybeexecutedoncemore. InFigure13task Bisex-
+ecutedoneormoretimes. Itisalsopossibletospecifythattask Bisexecutedzero
+ormore times. Iterationis oftenconsidered to be an undesirableform ofrouting,
+21
+
+--- Page 22 ---
+AB
+c1 c2 c3 c4C
+Figure13: Iteration: Bmaybe executed multipletimes.
+becauseitcorrespondstotherepeatedexecutionofthesametask withoutmaking
+anyrealprogress. Unfortunately,therearemanysituationswhereiterationcannotbeavoided. Forexample, the informationsupplied bythecustomeris incompleteorarequest isrefused.
+4.3 Triggering
+Aworkﬂowprocessdeﬁnition,suchastheoneshowninFigure6,speciﬁeshowacaseisrouted,i.e.,whichtasksneedtobeexecutedandinwhatorder. Foranarbi-trarycaseinaspeciﬁcstate(workﬂowstateandworkﬂowattributes)itisspeciﬁedwhichtasks canbe executed. Itis importanttonote thatthe factthatif atask can
+be executed for a speciﬁc case, then this does not mean that the task is executed
+directly. For example, if a task is to be executed by an employee, then the em-ployee has to be available and willing to execute the task. If the employee is ill,on holidays or having lunch, then the task will not be executed. Another exam-ple is the processing of a form which is returned by a customer. If the customer
+doesnotreturntheform,thecorrespondingtaskcannotbeexecuted. Theseexam-
+ples show that for many tasks additionalconditions (e.g. availabilityof resourcesorinformation)needtobesatisﬁed. Theexecutionofthesetaskscannotbeforcedbythe workﬂowmanagement system. The workﬂowmanagement system cannotforcecustomerstoreturnformsnorcanitforceemployeestoexecutespeciﬁctasks.The workﬂowmanagementsystem is not in complete control, it just supports the
+workﬂow. Therefore,itisimportanttodifferentiatebetweentheenablingofatask
+andtheexecutionofatask. Sincetheenablingofataskdoesnotimplythatthetaskwillbeexecuted(immediately),itiscrucialtohavethisdistinction. Therefore,weintroducethe conceptof triggering .
+Atriggerisanexternalconditionwhichleadstotheexecutionofanenabledtask.
+The execution ofa task instance fora speciﬁc case starts the moment the task in-
+stanceistriggered. Ataskinstancecanonlybetriggeredifthecorrespondingcaseis in a state which enables the execution of the task. Inthis paper, we distinguishbetweenfourtypesoftasks./Automatic : a task is triggered the moment it is enabled. This kind of trig-
+geringisusedfortaskswhichareexecutedbyanapplicationwhichdoesnot
+22
+
+--- Page 23 ---
+automatic
+usermessage
+time
+Figure14: Fourtypes oftriggering.
+requirehumaninteraction./User: ataskistriggeredbyahumanparticipant,i.e.,auserselectsanenabled
+task instance to be executed. In a workﬂowmanagement system each user
+has a so-called ‘in-basket’. This in-basket contains tasks instances that areenabled and may be executed by the user. By selecting a task instance thecorrespondingtask instanceis triggered./Message: anexternalevent(i.e.amessage)triggersanenabledtaskinstance.
+Examples of messages are telephone-calls, fax messages, e-mails or EDI
+messages./Time: an enabled task instance is triggered by a clock, i.e., the task is exe-
+cutedatapredeﬁnedtime. Forexample,thetask‘removedocument’istrig-geredifacase is trappedina speciﬁcstate formorethan 15hours.
+Only forautomatic tasks do the enabling and the actual start of the execution co-
+incide. Inthe workﬂowprocess deﬁnitionwe willuse the symbols shown in Fig-ure14todenotethe typeoftriggerrequired.
+Figure15showstheworkﬂowprocess deﬁnitionfortheprocessingofcomplaints
+using the buildingblocks introduced in Figure 12. The tasks no
+processing ,pro-
+cessing
+required,processing
+ OKandprocessing
+ NOK(seeFigure6)arereplaced
+by the OR-split evaluateand the OR-split check
+processing . The diagram is also
+extendedwithtriggeringinformation. Thetasks register,evaluate,process
+compl-
+aintandcheck
+processing requirea user triggerbecause they are executed byhu-
+manresources. Thetasks send
+questionnaire andarchiveareexecutedbyanappli-
+cationwhich does not requirehuman interaction. The task process
+questionnaire
+canonlybeexecutedifthecomplainantreturnstheform,i.e.,anexternaltriggerisrequiredtoexecutethistask. Thetask time
+outrequiresatimetrigger. Ifthework-
+ﬂowstateofacaseissuchthatthereisatokenin c3(Figure15),thentherearetwo
+possibilities: either process
+questionnaire isexecutedbecausethecomplainantre-
+turnstheformintimeor time
+outisexecutedthemomentacertainperiodoftime
+23
+
+--- Page 24 ---
+i oc1 c3
+c6registerc5
+c2
+c8time_out
+send_questionnaireprocess_questionnaire
+c7
+process_complaintcheck_processingevaluatearchive
+Figure15: A workﬂowprocess deﬁnitionextendedwithtriggeringinformation.
+expires. Notethatthemomentofchoicebetween process
+questionnaire andtime
+out
+isaslateaspossible. Therefore,animplicitOR-splitisusedinsteadofanexplicitOR-split.
+The introductionof triggerscan be used to illustratethe essence ofthe difference
+betweentheimplicitandtheexplicitOR-split. IftheimplicitOR-splitinFigure15is replaced by an explicit OR-split (i.e. send
+questionnaire chooses between pro-
+cess
+questionnaire andtime
+out),thebehaviorchangesdramatically. Forexample,
+itispossiblethatformswhicharereturnedintimearerejected,orcasesareblocked
+ifsomeoftheformsarenotreturnedatall. AnotherexampleisgiveninFigure16.Inbothprocess deﬁnitionstheexecution oftask Ais followedbytheexecutionof
+BorC. In the ﬁrst process deﬁnition (a), the moment of choice is as late as pos-
+sible. After the execution of A, there is a ‘race’ between BandC. If the external
+messagerequiredfortask Carrivesbeforesomeonestartsexecutingtask B,thenC
+isexecuted,otherwise B.Inthesecondworkﬂowprocessdeﬁnition(b),thechoice
+is ﬁxedafterthe execution of A. IftaskBis selected, thenthe arrivalof theexter-
+nalmessage hasnoinﬂuence. If Cisselected, then Bcannotbeusedtobypass C.
+Figure 16 shows the importance of the explicit representation of triggers, states,and the moment of choice. Many workﬂow management systems abstract from
+states between subsequent tasks, thereforethey have problems modeling implicit
+OR-splits. They alsohaveproblemsmodeling milestones suchasc5inFigure15.
+Clearly, the explicit representation of states is important. Fortunately, Petri netsallowfortheexplicit representationofstates in averyelegant manner.
+24
+
+--- Page 25 ---
+A
+c1B
+Cc4 c2 c3
+c1B
+C c4 c5c2
+c3Aimplicit OR-split
+(a)
+(b)D
+Dexplicit OR-split
+Figure16: Anexampletoillustratethedifferencebetween(a)theimplicitOR-split
+and(b)theexplicitOR-split.
+4.4 Tasks, work itemsand activities
+Atask correspondstoagenericpieceofwork. Atask is notdeﬁnedforaspeciﬁccase, butforatypeofcases, i.e., ataskmaybeexecuted formanycases. Toavoidconfusionbetween(1)atask,(2)theenablingofatask, and(3)theexecutionofatask, we introducetwoadditionalterms: work item andactivity. Aworkitemisa
+taskwhichisenabledforaspeciﬁccase,i.e.,aworkitemcorrespondstoaconcrete
+pieceofwork. Inasense,aworkitemisthecombinationofatask,acaseandatrig-
+ger(optional). In a workﬂowmanagement system, workitems whichcorrespondtointeractivetasksareofferedtotheuserviatheso-calledin-basket. Anactivityistheactual executionofa workitem, i.e., atask is executed fora speciﬁc case. Anactivitycombinesatask,acase, atriggerand/oraresource(optional). Itiseasyto
+mapthetermstask,workitem,andactivityontoPetri-netterminology. Ataskscor-
+respondstoatransition,aworkitemcorrespondstoanenabledtransition(binding)andanactivitycorrespondstoatransitionﬁring. ConsiderforexampleFigure15.Transition process
+complaint correspondstoatask. Ifboth c5andc7containato-
+ken with case-identiﬁer91212123, then the enabled transition process
+complaint
+corresponds to a work item. If process
+complaint ﬁres while consuming the two
+tokenswithcase-identiﬁer91212123, thenthisﬁringcorrespondstoanactivity.
+One can think of a trigger as an additional condition which needs to be satisﬁed
+before a task can be executed. If we model this in terms of Petri nets, a triggercorresponds to a tokenin an additionalinput place of the task. Thus far, we have
+25
+
+--- Page 26 ---
+c1
+c2c3
+c4t
+c2commit
+c4c3
+rollbackstart
+c1
+c2trigger_place
+Figure17: The low-levelbehaviorofa task.
+modeledtasks bytransitions. By mappingtasks ontotransitionswe abstractfrom
+theinternalbehaviorofatask. Thisabstractionisconvenientforworkﬂowmodel-ing. However,ifweconsiderataskinmoredetail,thenitisclearthattheexecutionof a task takes time, i.e., time elapses between start and completion. In fact, it is
+possible that during the execution of a task some anomalies occur, e.g., an appli-
+cation crashes, the database is down, or information is missing. Therefore, it ispossible that the execution of a task is postponed orcanceled. Figure 17 shows asimplePetrinet modelofthe low-levelbehaviorofa task. The startofanactivity(transition startﬁres)is followedbyeitheracommit(transition commit)oraroll-
+back(transition rollback). Notethatthetriggerismodeledbyatokenintheplace
+trigger
+place.
+Onecanthinkofataskasa LogicalUnitofWork (LUW)andanactivityasa trans-
+action. Just like a transaction, an activity should satisfy the well-known ACID
+properties . The acronymACIDstands for:/atomicity
+An activity is executed successfully (commit)or is rolled back completely,
+i.e., a task cannotbecompletedpartially.
+26
+
+--- Page 27 ---
+/consistency
+The executionofan activityleads toa consistent state./isolationThe effect of the execution of an activity in parallel with other activities is
+equaltothe effectoftheexecution ofoneactivityinisolation./durabilityThe resultofacommittedactivitycannot getlost.
+TheACIDpropertiesimposetechnicalconstraintsonthesizeofa task. Choosing
+tasks whichhave the ‘right’size is one ofthe mainissues in workﬂowmodeling.Ifthetasksaretoosmall,thenthereisalotofoverhead(setuptimes)andthework-
+ﬂow becomes too complex to manage. If the tasks are too large, then it may be-
+come a problem to execute a task in one go, because it is not possible to commita partially completed task or put parts of the task out to contract. Moreover, themanagement of resources, i.e., the allocation of work items to users, is not ﬁne-grainedenoughif thetasks aretoo largeto allowforspecialization. Notethat the
+granularityofthemanagementofresourcesisdeterminedbythesizeofeachtask.
+4.5 Resourceclassiﬁcation
+Clearly,Petrinetsarewell-suitedforthemodelingofworkﬂowprocessdeﬁnitions.However,thusfarwefocusedontheprocessdimensionandnotontheresourcedi-
+mension. Theresourcedimensionisconcernedwithorganizationalissues suchastheformationofteamsandtheauthorizationofusers. Mostworkﬂowmanagementsystemsprovideadesigntooltomodeltheorganization. Thesetoolscanbeusedtostructuretheresourcedimensionandfacilitatethespeciﬁcationoftherulesusedto
+allocateworkitemstoresources. Wewillusetheterm resourceforanactorwhich
+is able to execute speciﬁc tasks. In most environments where workﬂowmanage-ment systems are used, the resources are mainly human. However, as indicatedin Section 2, we prefer the term resource over employee or participant, becauseworkﬂowmanagementis notrestrictedtoofﬁces.
+Foreachtask,weneedtospecify whoisallowedtoexecutethetask. However,ex-
+plicitlylinkingresourcesandtasksisconsideredtobeharmful. Ifataskislinkedtoaspeciﬁc user,thenthe taskwillbeblockedifthe userisabsent. Theuse oflinksto speciﬁc resources reduces ﬂexibility. Moreover, the workﬂow process deﬁni-tion needs to be modiﬁed each time a new employee is hired (or an existing em-ployeeis discharged). To avoid links tospeciﬁc resources, resources aregrouped
+into classes. A resource class is a group of resources with similar characteris-
+tics. Notethataresourcemaybeamemberofmultipleresourceclasses. Considerforexample Figure18. There are four resource classes: Complaints
+department ,
+27
+
+--- Page 28 ---
+Evaluators Support_staffProcessing_staffComplaints_department
+Mike
+MarianSuzan
+Pete
+JohnTracy
+BillHarry
+Kate
+Eric
+Figure18: Resource classiﬁcation.
+Evaluators ,Processing
+ staffandSupport
+staff. Marianisamemberof Evaluators ,
+Processing
+ staff, andComplaints
+ department , but she is not a member of the re-
+source class Support
+staff. The resourceclassiﬁcation shown inFigure 18can be
+used tospecify which resources are allowedtoexecute the fourusertasks in Fig-
+ure 15. Tasks register,evaluate,process
+complaint andcheck
+processing should
+be executed by a member of the class Complaints
+ department . Moreover, regis-
+terrequires a member of the class Support
+staff,evaluaterequires a member of
+the class Evaluators ,process
+complaint requires a member of the class Process-
+ing
+staff, andcheck
+processing requires a member of the class Evaluators . Note
+thatwithoutexplicitlylinkingtasksandresourcesitisspeciﬁedthatMarianisone
+ofthethreepersons allowedtoexecute thetask check
+processing .
+In Section 2, two types of resource classes were introduced: roles and organiza-
+tionalunits. Ifaresourceclassisbasedonthecapabilities(i.e.functionalrequire-
+ments)ofitsmembers,itiscalleda role. Theresourceclasses Support
+staff,Eval-
+uatorsandProcessing
+ staffareexamples ofroles. Iftheclassiﬁcationisbased on
+thestructureofthe organization,such aresource class is calledan organizational
+unit(e.g.team,branchordepartment). Theclass Complaints
+ department isanex-
+ampleofresourceclasswhichisbasedonthestructureoftheorganizationinstead
+ofthecapabilitiesofitsmembers. Manyworkﬂowmanagementsystemsassociate
+aroleandanorganizationalunitwitheachtask. Thismeansthatthetaskshouldbe
+28
+
+--- Page 29 ---
+organisational units
+roles
+resource
+Figure19: Resourceclassiﬁcation: aresourceisamemberoforganizationalunits
+androles.
+executedbyaresourcewhichisamemberofbotharesourceclass basedonfunc-
+tionalrequirements(role)andaresourceclassbasedonthestructureoftheorgani-zation(organizationalunit). Figure19 illustrates the orthogonalrelationbetweenrolesandorganizationalunits.
+Byassociating a roleand an organizationalunitwith eachtask, thenumberofre-
+sources allowedto execute thistask is reducedto the intersectionofboth classes.Sometimesmoreadvancedconcepts areneeded tospecify whois allowedtoexe-cuteaspeciﬁcworkitem. Sometimestheroleortheorganizationalunitassociated
+withataskiscase-dependent. Forexample,insuranceclaimswithestimatedcom-
+pensation costs of more than 1000 dollars are handled by a senior employee, orcomplaintsabout a speciﬁc departmentare handled by team A. It is also possiblethatspeciﬁcresourcesareexcludedbecause theyhaveexecuted relatedtasks. Forexample,thetasks evaluateandcheck
+processing inFigure15shouldbeexecuted
+bydifferentresources. This means thatifMarian executed thetask evaluatefora
+speciﬁccase,sheisnotallowedtoexecute check
+processing forthesamecase(i.e.
+itshould beexecuted by MikeorEric). We use theterm’separationof functions’forthis additionalrequirement.
+29
+
+--- Page 30 ---
+4.6 Resourcemanagement
+The resourceclassiﬁcationand moreadvancedconcepts such as theseparationof
+functions are used to specify who is allowedto execute a work item. If there are
+multipleresourcesallowedtoexecuteaworkitem,achoicehastobemade. There
+aretwomechanismsto resolvethis choice:/pushcontrolTheworkﬂowmanagementsystemmakesachoiceandsendseachworkitemto a speciﬁc user, i.e., for each workitem a resource is chosen. The choicemaybebased onstatistical information,workload,orsimpleheuristics./pullcontrolTheworkﬂowmanagementsystemsendsacopyofeachworkitemtoeveryuserwhoisallowedtoexecuteit. Themomentoneuserselectsaworkitem,allothercopiesdisappear.
+Inmostsituations,pullcontrolisthepreferredmechanismtodistributeworkitems.
+Notethatpushcontrolreduces theﬂexibilitybylinkingworkitemstospeciﬁcre-sources. Theusersoftheworkﬂowmanagementsystemoftendislikepushcontrol
+because theyfeelcontrolledbythesystem.
+The choice between multipleresources allowed to execute a workitem is not theonlydecision to be made. Ifthere are many workitems, the orderin which theseworkitems have to be executed needs to be decided. Well-known queuing disci-plinesknownfromoperationsmanagement([Wil89])canbeusedtoorderpending
+workitems: FIFO(ﬁrstinﬁrstout),LIFO(lastinﬁrstout),SPT(shortestprocess-
+ingtime),SRPT(shortestremainingprocessingtime),EDD(earliestduedate)andPRIO(tasks withprioritygoﬁrst). Ifpush controlis used, theworkﬂowmanage-mentsystemwillforcetheexecutionofworkitemsinaspeciﬁcorder. Ifpullcon-trolisused,theusercandeviatefromtheordersuggestedbythesystem. Notethat
+theorderingofworkitems andthe selectionofresources arecloselyrelated.
+Each time a user executes a work item, a setup is required both for the case and
+the task. To reduce setup times some workﬂow management systems allow forchained execution andpiled execution . Chained execution corresponds to the ex-
+ecutionofmultiplesubsequent tasks forthesame case inone goand byone user.
+ConsiderforexampletheworkﬂowprocessshowninFigure15. Ifthetasks regis-
+ter,send
+questionnaire , andevaluatecan beexecuted byaspeciﬁcresource, then
+chainedexecutionwouldmeanthatiftheresourcestarts thetask register, thetwo
+other tasks will follow automatically (for the same case). Chained execution al-lowstasks to be clusteredintomacrotasks. Piledexecution correspondsto there-
+peatedexecutionofonetask formultiplecases. Forexample, a resourceexecutes
+30
+
+--- Page 31 ---
+thetaskregisterfora batchofcases. Chained executionreduces theoverallsetup
+timeneededtogetacquaintedwiththecase. Piledexecutionhelpstheusertobuild
+routine.A concept which is closely related to chained execution is case management .I f
+casemanagementisused,theneachcasehasacasemanager. Thecasemanagerisresponsible for the case and executes as many tasks forthe case as possible. The
+use of case management has two beneﬁts: setup times are reduced and the case
+manager serves as a contact for the customer whose case is handled. Only a fewworkﬂow management systems support advanced concepts such as chained exe-cution,piledexecution, and case management.
+4.7 Summary
+In this section we introduced a number of workﬂow concepts and showed howthese concepts canbe mapped ontoPetrinets. The fourroutingconstructs identi-ﬁedbytheWfMChavebeenmappedontoWF-nets. ThePetri-netformalismalsoallowed us to experience the subtle difference between the implicit OR-split andthe explicit OR-split. More advanced topics such as milestones, triggers, and thedifferencebetweentasks,workitems,andactivitieshavebeenillustratedbyusing
+some examples. These examples show that the Petri-netformalismis well-suited
+to deal with the ﬁrst two dimensions shown in Figure 2. To establish a link be-tween the workﬂowprocess deﬁnitiondeﬁned interms of a WF-netand the thirddimension(resource dimension), we discussed the classiﬁcation of resources andallocationofresourcestoworkitems(resourcemanagement).
+5 Analysisof workﬂows
+Inthissectionwefocusontheanalysisofworkﬂows. Westartwithanoverviewofthevarioustypesofworkﬂowanalysis. Thenweconcentrateonaaspeciﬁctypeofanalysis: veriﬁcation. For this purpose, we willintroduce a notion of correctness
+called ‘soundness’ and devote the rest of this section to Petri-net-based analysis
+techniques toestablish soundness. The results presented inthis section willillus-tratethepotentialofPetrinets inthe workﬂowdomain.
+5.1 Introduction
+The correctness, effectiveness,and efﬁciencyofthe business processes supportedby the workﬂow management system are vital to the organization. A workﬂow
+process deﬁnition which contains errors may lead to angry customers, back-log,
+damageclaims,andlossofgoodwill. Flawsinthedesignofaworkﬂowdeﬁnition
+31
+
+--- Page 32 ---
+may also lead to high throughputtimes, lowservice levels, and a need forexcess
+capacity. This is why it is importantto analyzea workﬂowprocess deﬁnitionbe-
+foreitis putintoproduction. Basically, therearethree typesofanalysis:/validation ,i.e., testing whethertheworkﬂowbehaves as expected,/veriﬁcation ,i.e., establishing thecorrectnessofa workﬂow,and/performance analysis , i.e., evaluatingthe abilitytomeet requirementswith
+respecttothroughputtimes, service levels, andresourceutilization.
+Validation can be done by interactive simulation: a numberof ﬁctitious cases are
+fedtothesystemtoseewhethertheyarehandledwell. Forveriﬁcationandperfor-manceanalysismoreadvancedanalysistechniquesareneeded. Fortunately,manypowerfulanalysistechniqueshavebeendevelopedforPetrinets([Mur89]). Linear
+algebraictechniques can be used to verifymany properties, e.g., place invariants,
+transition invariants, and (non-)reachability. Coverability graph analysis, modelchecking, and reduction techniques can be used to analyze the dynamic behaviorofaPetrinet. SimulationandMarkov-chainanalysiscanbeusedforperformanceevaluation(cf.[MBea95]). Theabundanceofavailableanalysistechniquesshows
+thatPetrinetscan be seen as asolver independentmediumbetweenthe designof
+theworkﬂowprocessdeﬁnitionandthe analysis oftheworkﬂow.
+Today’sworkﬂowmanagementsystemsgivelimitedsupporttoperformanceanal-
+ysis. Mostworkﬂowmanagementsystemsprovidearudimentarysimulatororpro-vide a gateway to a simulation tool. Simulation can be used to estimate key per-
+formance indicators by experimenting with the speciﬁed workﬂow under the as-
+sumptionofaspeciﬁcbehavioroftheenvironment. Examplesofkeyperformanceindicatorsare: averagethroughputtimeofcases,averagewaitingtime,occupationratesofresources, service levels, andtheaverage numberofpendingcases.Most workﬂowmanagement systems do not give any support for the veriﬁcation
+ofworkﬂows. Asaresult,workﬂowprocessdeﬁnitionsbecomeoperationalbefore
+they are thoroughly checked for correctness. This often results in runtime errorswhich need to be repaired on-the-ﬂyat high costs. Both manufacturersand usersofworkﬂowmanagement systems see the needforanalysis tools whichtake careof the veriﬁcation of workﬂows. Unfortunately, most manufacturers do not have
+the technology to build such tools. In the remainderof this section we will show
+thatworkﬂowsspeciﬁedintermsofPetrinetscanbeveriﬁedusingstate-of-the-artanalysis techniques.
+32
+
+--- Page 33 ---
+5.2 Soundness property
+Considerthe WF-netshown inFigure20. Itis easy tosee thatthis workﬂowpro-
+cess deﬁnition contains several deﬁciencies. If time
+out
+1andprocessing
+ 2ﬁre,
+ortime
+out
+2andprocessing
+ 1ﬁre, then the WF-net will not terminate properly
+because a token gets stuck in c5orc4.I ftime
+out
+1andtime
+out
+2ﬁre, then the
+taskprocessing
+ NOKwill be executed twice and because of the presence of two
+tokensin othe momentofterminationis notclear.
+iregisterc1
+c2time_out_1
+time_out_2
+processing_2processing_1
+processing_OKprocessing_NOK c3
+c4
+c5o
+Figure20: AnotherWF-netfortheprocessing ofcomplaints.
+Clearly the WF-net shown in Figure 20 is not correct, but what is the deﬁnition
+of correctness? The correctness criterionwe use in this paper is a set of minimal
+requirementsanyworkﬂowprocessdeﬁnitionshouldsatisfy. Firstofall,thework-ﬂowprocess deﬁnitionshould satisfy the tworequirementslisted in Deﬁnition6:(1)a WF-net has a source placei(start condition) and a sink place o(end condi-
+tion),and(2)eachtask/conditionisonapathfrom ito o. These requirementscan
+veriﬁed statically, i.e., they only relate to the structure of the Petri net. However,
+thereisa thirdrequirementwhichshouldbe satisﬁed:
+Foranycase,theprocedurewillterminateeventuallyandthemoment
+the procedure terminates there is a tokenin place o and allthe other
+placesare empty.
+Moreover, thereisa fourthrequirement:
+Thereshouldbenodeadtasks,i.e., itshouldbepossibletoexecutean
+arbitrary task byfollowingtheappropriateroute thoughtheWF-net.
+These twoadditionalconstraints correspondtotheso-called soundness property .
+33
+
+--- Page 34 ---
+Deﬁnition7 (Sound) AproceduremodeledbyaWF-net PN /=/( P/;; T /;; F /)issound
+ifandonlyif:
+(i) Foreverystate Mreachablefromstate i,thereexistsaﬁringsequencelead-
+ingfromstate Mto state o. Formally:
+/2/8M
+/( i
+//! M /) /) /( M
+//! o /)
+(ii) State oistheonlystatereachablefromstate iwithatleastonetokeninplaceo. Formally:/8M
+/( i
+//! M /^ M / o /) /) /( M /= o /)
+(iii) Thereare no deadtransitions in /( PN /;;i /). Formally:/8t /2 T
+/9M/;; M
+/0i
+//! M
+t/! M
+/0
+Note that the soundness property relates to the dynamics of a WF-net. The ﬁrst
+requirement in Deﬁnition 7 states that starting from the initial state (state i), it is
+always possible to reach the state with one token in place o(stateo). If we as-
+sume fairness(cf. [Val87, Mur89])then the ﬁrst requirementimpliesthat eventu-
+ally state owill be reached. The fairness assumption is reasonable in the context
+ofworkﬂowmanagement: allchoicesaremade(implicitlyorexplicitly)byappli-cations, humans, or external actors. Clearly, they should not introducean inﬁniteloop. (Wewillcomebacktoissueoffairness.) ThesecondrequirementinDeﬁni-tion7 states that the momenta tokenis put in place o, all the other places should
+beempty. Sometimestheterm propertermination isusedtodescribetheﬁrsttwo
+requirements [GCEV72]. The third and last requirement states that there are nodead transitions (tasks) in the initialstate i, i.e., foreach transitiontit is possible
+toreach(startingfrom i)astate where tis enabled.
+Deﬁnition 7 assumes that the workﬂowis speciﬁed in terms of a WF-net. Recall
+that a WF-net is a classical Petri net which satisﬁes certain properties. However,wehaveenhancedtheworkﬂowprocessdeﬁnitionwithtriggersandworkﬂowatt-ributes. The analysis techniques presented in the remainderofthis paperwill ab-stract from this additional information. Triggers are simply removed. An AND-
+split/AND-join corresponds to a normal transition in the Petri net. Tokens have
+no value (uncolored). However, we cannot map an OR-split and/or OR-join taskontoasingletransition. AnOR-splitisunfoldedintoasmallnetworkwithatran-sitionforeachalternative. AnOR-joinisalsoreplacedbytwoormoretransitions.
+/2Note that there is an overloadingof notation: the symbol iis used to denote boththe place i
+andthestatewithonlyone tokeninplace i(see Section3).
+34
+
+--- Page 35 ---
+t
+tt
+t_a
+t_b
+t_a
+t_bt
+Figure21: Removingtriggersand unfoldingtasks toobtaina WF-net.
+Figure21showsthetranslationintoaWF-netbyremovingtriggersandunfolding
+tasks.
+There are several reasons for abstracting from triggers and workﬂow attributes.
+First of all, the behavior of the environment cannot be modeled completely. Theenvironment(e.g.employeesandcustomers)generatestriggersandsetsworkﬂowattributes. Forsimulationpurposesitisnecessarytomodelthebehavioroftheen-vironmenttoacertainextent. However,forveriﬁcationpurposesitisverydanger-oustouseanexplicitlymodeledenvironment. Iftherealenvironmentdiffersfrom
+the modeled environment, veriﬁcation is pointless. Incorrect assumptions about
+the environment, may hide errors in the design of a workﬂowprocess deﬁnition.Therefore,weabstractfromtriggersandworkﬂowattributes. Wejustassumethattheenvironmentiswillingtogeneratetriggersandeachchoiceisconsideredtobenon-deterministic. Considerforexamplethetask evaluateinFigure15. Thistask
+is replaced by two transitions to model the two possible outcomes of the evalua-
+tion. Inreality,thechoiceisbasedonworkﬂowattributes,applicationdataand/orthebehaviorofthe evaluator. Clearly, thiscannot bemodeledcompletely. There-fore,weconsiderthechoicetobeanon-deterministicone. Thereareotherreasonsfor abstracting from the triggers and workﬂowattributes. If we are able to prove
+soundness for the situation without triggers and workﬂow attributes, it will also
+holdforthe situationwithtriggersandworkﬂowattributes. Last butnotleast, weabstractfromtriggersandworkﬂowattributesbecauseitallowsustouseclassicalPetrinetsinsteadofhigh-levelPetrinets. Fromananalysispointofview,theclas-sical Petri net is preferable because of the availability of efﬁcient algorithms and
+35
+
+--- Page 36 ---
+powerfulanalysis tools.
+iregister
+c2oc1 c3
+c4processing_1time_out_1
+time_out_2
+processing_2archive
+Figure22: A soundWF-nettoillustratethefairnessassumption.
+Deﬁnition 7 states the requirements to guarantee that it is possible to terminate,
+i.e., staring in state iit is always possible to reach the ﬁnal state o. Consider for
+example the WF-net shown in Figure 22. From any state reachable from state i,
+there is a ﬁring sequence that leads to state o. However, this does not guarantee
+that the ﬁring sequence will occur. For example, it is possible that always one ofthetime-outsoccurs beforethetask archiveoccurs. Therefore, weassume strong
+fairness(cf. [Val87, Mur89]). This means that if we consider a arbitrary inﬁnite
+ﬁringsequenceoftheextendednet(
+PN,seeFigure23),eachtransitionoccursin-
+ﬁnitelyoften. (Intheextendednetanextratransition t
+/isaddedwhichconnects o
+and i, thusmakingthenet cyclic.) Strongfairnesscorrespondstotheprobablistic
+interpretationoffairness,e.g., theenablingtimeofeachtaskisnegativeexponen-tially distributed, or enabled tasks are selected in random order (cf. [MBea95]).
+Assuming soundness and strong fairness, it is guaranteed that each case will end
+upinplaceoeventually. Aweakerformoffairnessisoftennotsufﬁcient. Consider
+forexamplethefollowingnotionoffairness: atransitionthatis enabledinﬁnitelyoften, will ﬁre eventually. If we assume this notion of fairness, it is not guaran-teedthatstateowillbereachedinFigure22. Ifthetasks processing
+ 1,time
+out
+1,
+processing
+ 2, andtime
+out
+2ﬁrealternately, thentask archivewillnever become
+enabled and, in spite of the weak-fairness assumption, terminationis not guaran-teed. However,itisreasonabletoassumestrongfairnessinthecontextofworkﬂowmanagement. Moreover, it is quite easy to detect behavior which violates the as-sumptionofstrongfairness,e.g., countthe numberoftimes each taskis executed
+fora speciﬁccase.
+36
+
+--- Page 37 ---
+5.3 A necessaryand sufﬁcient conditionforsoundness
+Given a WF-net PN /=/( P/;; T /;; F /), we want to decide whether PNis sound. For
+this purpose we deﬁne an extended net
+ PN /=/(
+ P/;;
+ T/;;
+ F /).
+ PNis the Petri net
+obtained by adding an extra transition t
+/which connects oand i. The extended
+Petri net
+ PN /=/(
+ P/;;
+ T/;;
+ F /)is deﬁned as follows:
+ P /= P,
+ T /= T /[f t
+/g, and
+F /= F /[f h o/;; t
+/i /;; h t
+//;;i ig. Figure23illustratestherelationbetween PNand
+ PN.
+The extended net
+ PNcan be used to facilitate the veriﬁcation of the soundness
+property. The following theorem shows that the extended net allows for the for-
+mulation of the soundness property in terms of well-known Petri net properties.
+PN
+*
+it
+o
+Figure23:
+ PN /=/( P/;; T /[f t
+/g /;;F /[f h o/;; t
+/i /;; h t
+//;;i ig /).
+Theorem 1 A WF-net PNis sound ifandonlyif /(
+ PN /;;i /)is liveand bounded.
+Proof.
+See[Aal97]or[Aal96a]. /
+ThistheoremshowsthatstandardPetri-net-basedanalysis techniquescanbeused
+toverifysoundness. Considerforexampletheworkﬂowprocessdeﬁnitionshown
+inFigure15. WecanuseoneofthemanystandardPetri-net-basedanalysistoolstoverifythat theextended netis liveand bounded. Therefore,theworkﬂowprocessspeciﬁed in Figure 15 is guaranteed to behave properly (cf. Deﬁnition 7). Theo-rem1isanextensionoftheresultspresentedin[Aal95, SH95]. In[Aal95]were-strictourselvestofree-choiceWF-nets. Infree-choicePetrinetsitisnotallowedto
+mixchoiceandsynchronization(seeDeﬁnition8). Independently,StraubandHur-
+tado[SH95]foundnecessaryandsufﬁcientconditionsforthesoundnessofCOPAnets. (COPAnets correspondtoa subclass offree-choicePetrinets.)
+5.4 Structuralcharacterizationsof soundness
+Theorem1givesausefulcharacterizationofthequalityofaworkﬂowprocessdef-
+inition. However,therearea numberofproblems:
+37
+
+--- Page 38 ---
+/Fora complex WF-netit may be intractable to decide soundness. For arbi-
+traryWF-netssoundnessisdecidablebutalsoexpensiveintermsoftimeand
+spacecomplexity. Iffact,theproblemofdecidinglivenessandboundednessisEXPSPACE-hard(cf. [CEP93])./Soundnessisaminimalrequirement. Readabilityandmaintainabilityissuesarenotaddressed byTheorem1./Theorem1doesnotshowhowanon-soundWF-netshouldbemodiﬁed,i.e.,itdoes notidentifyconstructs whichinvalidatethe soundness property.
+These problems stem from the fact that the deﬁnition of soundness relates to the
+dynamics of a WF-net while the workﬂow designer is concerned with the static
+structureoftheWF-net. Therefore,itisinterestingtoinvestigatestructuralcharac-terizationsofsoundWF-nets. Forthispurposeweintroducethreeinterestingsub-classesofWF-nets: free-choiceWF-nets,well-structuredWF-nets,andS-coverableWF-nets.
+5.4.1 Free-choice WF-nets
+Mostoftheworkﬂowmanagementsystemsavailableatthemoment,abstractfrom
+states between tasks, i.e., states are not represented explicitly. These workﬂowmanagementsystems use buildingblocks such as the AND-split,AND-join, OR-split and OR-jointo specify workﬂowprocedures. The AND-splitand the AND-
+joinareused forparallelrouting. The OR-splitandthe OR-joinareused forcon-
+ditionalrouting. Becausethesesystemsabstractfromstates, everychoiceismadeinsideanOR-splitbuildingblock. IfwemodelanOR-splitintermsofaPetrinet,
+the OR-split corresponds to a numberof transitions sharing the same set of inputplaces (seeFigure21). This means thatforthese workﬂowmanagementsystems,aworkﬂowprocedurecorrespondstoa free-choice Petri net .
+Deﬁnition8 (Free-choice) A Petri net is a free-choice Petri net iff for every two
+transitionst/1and t/2, / t/1
+/\/ t/2
+/6/= /;;implies / t/1
+/= / t/2.
+ItiseasytoseethataprocessdeﬁnitioncomposedoutofAND-splits,AND-joins,
+OR-splitsandOR-joinsis free-choice([Aal97]). Iftwotransitions t/1and t/2share
+aninputplace( / t/1
+/\/ t/2
+/6/= /;;),thentheyarepartofanOR-split,i.e.,a‘freechoice’
+between a number of alternatives. Therefore, the sets of input places of t/1and t/2
+should match ( / t/1
+/= / t/2). Figure 20 shows a free-choice WF-net. The WF-net
+showninFigure15isnotfree-choice: archiveandprocess
+complaint shareanin-
+putplacebutthe twocorrespondinginputsets differ.
+We have evaluated many workﬂowmanagement systems and only a few of these
+38
+
+--- Page 39 ---
+systems(e.g.COSA,INCOME, andLEU)allowforaconstructionwhichiscom-
+parable to a non-free choice WF-net. Therefore, it makes sense to consider free-
+choicePetrinets. Clearly,parallelism,sequential routing,conditionalroutinganditerationcan be modeledwithoutviolatingthe free-choiceproperty. Anotherrea-son for restrictingWF-nets to free-choicePetri nets is the following. If we allownon-free-choicePetrinets,thenthechoicebetweenconﬂictingtasks maybeinﬂu-
+encedbytheorderinwhichtheprecedingtasksareexecuted. Theroutingofacase
+shouldbeindependentoftheorderinwhichtasksareexecuted. Asituationwherethe free-choice property is violated is often a mixture of parallelism and choice.Figure24 shows such a situation. Firingtransition t1introduces parallelism. Al-
+though there is no real choice between t2andt5(t5is not enabled), the parallel
+executionof t2andt3resultsinasituationwhere t5isnotallowedtooccur. How-
+ever, if the execution of t2is delayed until t3has been executed, then there is a
+real choice between t2andt5. In our opinion parallelism itself should be sepa-
+rated from the choice between two or more alternatives. Therefore, we considerthenon-free-choiceconstructshowninFigure24tobeimproper. Inliterature,thetermconfusion isoftenused torefertothesituationshownin Figure24.
+t2
+t3it4
+t5t1
+oc1
+c2c3
+c4
+Figure 24: A non-free-choice WF-net containing a mixture of parallelism and
+choice.
+Free-choice Petri nets have been studied extensively (cf. [Bes87, DE95, Des92,
+Esp90, Hac72])because they seem to be a good compromise between expressivepowerand analyzability. It is a class of Petrinets forwhich strong theoreticalre-sults and efﬁcient analysis techniques exist. For example, the well-known RankTheorem([DE95])allowsus toformulatethe followingcorollary.
+Corollary1 A free-choice WF-net can be checked for soundness in polynomial
+time.
+Proof.
+See[Aal96a]./
+Corollary1showsthat,forfree-choicenets,thereareefﬁcientalgorithmstodecide
+soundness. Itcanalsobeshownthatsoundfree-choiceWF-netsaresafe([Aal96a]).
+39
+
+--- Page 40 ---
+Although most workﬂow management systems only allow for free-choice work-
+ﬂows,free-choiceWF-netsarenotacompletelysatisfactorystructuralcharacteri-
+zation of‘good’workﬂows. On the one hand, thereare non-free-choiceWF-netswhich correspond to sensible workﬂows(cf. Figure 15). On the other hand therearesoundfree-choiceWF-netswhichmakenosense. Nevertheless,thefree-choicepropertyisadesirableproperty. Ifonecanmodelaworkﬂowasafree-choiceWF-
+net,oneshoulddoso. Aworkﬂowspeciﬁcationbasedonafree-choiceWF-netcan
+beenactedbymostworkﬂowsystems. Moreover,afree-choiceWF-netallowsforefﬁcientanalysistechniquesandiseasytounderstand. Non-free-choiceconstructssuch as the construct shown in Figure24 are a potential source of anomalous be-havior(e.g. deadlock)whichis difﬁculttotrace.
+5.4.2 Well-structuredWF-nets
+Another approach to obtain a structural characterization of ‘good’ workﬂows, is
+to balance AND/OR-splits and AND/OR-joins. Clearly, two parallel ﬂows initi-ated byan AND-split, should not be joinedby an OR-join. Two alternativeﬂowscreatedviaanOR-split,shouldnotbesynchronizedbyanAND-join. Asshownin
+Figure25,anAND-splitshouldbecomplementedbyanAND-joinandanOR-split
+shouldbecomplementedbyan OR-join.
+AND-split AND-join AND-split
+AND-join OR-split OR-joinOR-join
+OR-split
+Figure25: Goodandbadconstructions.
+OneofthedeﬁcienciesoftheWF-netshowninFigure20isthefactthattheAND-
+splitregisteris complemented by the OR-join c3or the OR-join o. To formalize
+theconceptillustratedinFigure25we givethefollowingdeﬁnition.
+Deﬁnition9 (Well-handled,well-structured) APetrinet PNiswell-handlediff
+for any pair of nodes xand ysuch that one of the nodes is a place and the other
+a transition and for any pair of elementary paths C/1and C/2leading from xto y,/ /( C/1
+/) /\ / /( C/2
+/)/= f x/;; y g/) C/1
+/= C/2. A WF-net PNis well-structured iff the
+extendednet
+ PNis well-handled.
+40
+
+--- Page 41 ---
+i oc1 c3
+c6registerc5
+c2
+c8time_out
+send_questionnaireprocess_questionnaire
+c7
+process_complaintcheck_processingevaluatearchive
+Figure26: Aworkﬂowprocess deﬁnitionwhichis notwell-structured.
+Consider for example the alternative complaints handling process shown in Fig-
+ure26. The WF-netisnotwell-structuredbecausetheAND-split registeriscom-
+plementedbytheOR-join c6: therearetwodisjunctpathsleadingfrom registerto
+c6,oneviac2andevaluate,andonevia c1,send
+questionnaire ,c3,process
+quest-
+ionnaire,c5,process
+complaint ,c8andcheck
+processing . These twopaths high-
+light the fact that the workﬂow process shown in Figure 26 is not sound. If taskevaluateputs a token in c6, then a token gets trapped in the second path (e.g. in
+placec5). If the arc from c5toprocess
+complaint is replaced by an arc from c5
+toarchive, thentheAND-split registeriscomplementedbytheAND-join archive
+andtheWF-netis sound.Figure20showsanotherexampleofaWF-netthatisnotwell-structured. TheWF-netis notwell-structuredbecause AND-split registeris complementedby c3.
+t3 t5 t1t2 t4
+oic2c1
+c3c4
+Figure27: Awell-structuredWF-net.
+Figure27shows atypicalexampleofa well-structuredWF-netwhichis notfree-
+choice. The WF-netshowninFigure22isanotherexampleofwell-structurednet
+41
+
+--- Page 42 ---
+whichisnotfree-choice. AlthoughbothWF-netsarenotfree-choice,itispossible
+toverifysoundness forsuch a WF-netvery efﬁciently.
+Corollary2 A well-structured WF-net can be checked for soundness in polyno-
+mialtime.
+Proof.
+See[Aal96a]. The proofuses theresultspresented in[ES90]and[BCD95]. /
+Well-structuredWF-netsandfree-choiceWF-netshavesimilarproperties. Inboth
+cases soundness can be veriﬁed very efﬁciently and soundness implies safeness.
+In spite of these similarities, there are sound well-structured WF-nets which arenotfree-choice(Figure27)andtherearesoundfree-choiceWF-netswhicharenotwell-structured. Infact,itispossibletohaveasoundWF-netwhichisneitherfree-choicenorwell-structured(Figures15 and24).
+5.4.3 S-coverableWF-nets
+What about the sound WF-nets shown in Figure 15 and Figure 24? The WF-net
+showninFigure24can betransformedintoa free-choicewell-structuredWF-net
+by separating choice and parallelism. The WF-net shown in Figure15 cannot betransformedintoafree-choiceorwell-structuredWF-netwithoutyieldingamuchmorecomplexWF-net. Place c5actsassomekindofmilestonewhichistestedby
+thetaskprocess
+complaint . Traditionalworkﬂowmanagementsystems which do
+not makethe state ofthe case explicit, are not able to handle the workﬂowspeci-
+ﬁed by Figure 15. Only workﬂowmanagement systems such as COSA ([SL96])have the capability to enact such a state-based workﬂow. Nevertheless, it is in-teresting to consider generalizations of free-choice and well-structured WF-nets:S-coverableWF-nets can beseen as such ageneralization.
+Deﬁnition10 (S-coverable) AWF-netPNisS-coverableifftheextendednet
+ PN/=/( P/;; T /;; F /)satisﬁesthefollowingproperty. Foreachplace pthereissubnet PNs
+/=/( Ps
+/;;Ts
+/;;Fs
+/)such that: p /2 Ps, Ps
+/ P, Ts
+/ T, Fs
+/ F, PNsis strongly con-
+nected, PNsisastatemachine(i.e. eachtransitionin PNshasoneinputandone
+output arc), and for every q /2 Psand t /2 T: /( q/;; t /) /2 F /) /( q/;; t /) /2 Fsand/( t/;; q /) /2 F /) /( t/;; q /) /2 Fs.
+Thisdeﬁnitioncorrespondstothedeﬁnitiongivenin[DE95]. Asubnet PNswhich
+satisﬁes the requirements stated in Deﬁnition 10 is called an S-component . PNs
+is a strongly connected state machine such that for every place q:i f qis an input
+(output)place ofa transition tin
+ PN, then qis alsoan input(output)placeof tinPNs.
+42
+
+--- Page 43 ---
+TheWF-netsshowninFigure15andFigure24areS-coverable. TheWF-netshown
+in Figure 26 is not S-coverable because c5is not in any S-component. The fol-
+lowing theorem shows that a S-coverability is a generalization of the free-choicepropertyandwell-structuredness.
+Theorem 2 A sound free-choice WF-net is S-coverable. A sound well-structured
+WF-net isS-coverable.
+Proof.
+See[Aal96a]./
+AllthesoundWF-netspresentedinthispaperareS-coverable. EveryS-coverableWF-net is safe. The two WF-nets which are not sound, see Figure 26 and Fig-ure20, are notS-coverable. These examples show that there is a high correlation
+between S-coverability and soundness. It seems that S-coverability is one of the
+basic requirements any workﬂow process deﬁnition should satisfy. From a for-mal point of view, it is possible to construct WF-nets which are sound but not S-coverable. Typically,thesenetscontainplaceswhichdonotrestricttheﬁringofatransition, but which are not in any S-component. (See for example Figure 65 in
+[Rei85].) Fromapracticalpointofview,theseWF-netsaretobeavoided. WF-nets
+which are not S-coverable are difﬁcult to interpret because the structural and dy-namicalpropertiesdonotmatch. Forexample,thesenetscanbeliveandboundedbutnotstructurallybounded. Thereisnopracticalneedforusingconstructswhichviolate the S-coverabilityproperty. Therefore, we consider S-coverabilityto be a
+basic requirementanyWF-netshouldsatisfy.
+S-coverability can be veriﬁed in polynomial time. Unfortunately, in general it is
+notpossibletoverifysoundnessofanS-coverableWF-netinpolynomialtime. ThecomplexityofdecidingsoundnessforanS-coverableWF-netisPSPACE-complete.
+Formostapplicationsthisisnotarealproblem. Inmostcasesthenumberoftasks
+inoneworkﬂowprocessdeﬁnitionislessthan100andthenumberofstatesislessthan200.000. Tools usingstandardtechniques such as theconstructionoftheco-verability graph have no problems in coping with these workﬂowprocess deﬁni-tions.
+5.5 Summary
+Thethreestructuralcharacterizations(free-choice,well-structured,andS-coverable)turnouttobeveryusefulfortheanalysisofworkﬂowprocessdeﬁnitions. S-cover-ability is a desirable property any workﬂow deﬁnition should satisfy. Constructsviolating S-coverability can be detected easily and tools can be build to help the
+43
+
+--- Page 44 ---
+designertoconstructanS-coverableWF-net. S-coverabilityisageneralizationof
+well-structuredness and the free-choice property (Theorem 2). Both well-struc-
+turednessandthefree-choicepropertyalsocorrespondtodesirablepropertiesofaworkﬂow. AWF-netsatisfyingatleastoneoneofthesetwopropertiescanbean-alyzedveryefﬁciently. However,wehaveshownthatthereareworkﬂowsthatarenotfree-choiceandnotwell-structured. ConsiderforexampleFigure15. Thefact
+thattaskprocess
+complaint testswhetherthereisatokenin c5preventstheWF-net
+frombeingfree-choice orwell-structured. Althoughthis is a very sensible work-ﬂow,mostworkﬂowmanagementsystems donot supportsuch anadvanced rout-ingconstruct. Evenifoneisabletousestate-basedworkﬂows(e.g.COSA)allow-ingforconstructs which violatewell-structurednessand the free-choiceproperty,
+thenthestructuralcharacterizationsarestilluseful. Ifa WF-netisnotfree-choice
+or not well-structured, one should locate the source which violates one of theseproperties and check whether it is really necessary to use a non-free-choice or anon-well-structuredconstruct. Ifthe non-free-choiceor non-well-structuredcon-struct is really necessary, then the correctness of the construct should be double-checked,because it isa potentialsourceoferrors.
+6 Toolset
+Workﬂowmanagement is a very rewardingapplicationdomain forPetrinets. Ontheonehand,Petrinetsallowforthedesignofcomplexworkﬂowsusingadvancedroutingconstructs. Ontheotherhand,powerfulanalysistechniquescanbeusedto
+verifythecorrectnessofaworkﬂowprocessdeﬁnition. Unfortunately,mostwork-
+ﬂowmanagementsystemsarenotbasedonPetrinets. Therearejustafewproductswhich use Petri nets as a design language, e.g., COSA (SoftwareLey/COSA So-lutions,Pullheim,Germany),INCOME(Promatis,Karlsbad,Germany),andLEU(Vebacom, Bochum,Germany).
+WehavealotofpracticalexperiencewiththeapplicationofCOSA.COSAisone
+oftheleadingproductsattheDutchworkﬂowmarket. TheCOSAworkﬂowman-agementsystem consists ofanumberofcomponents:/COSA Network Editor (CONE)CONE is a tool to design workﬂowprocess deﬁnitions. Figure 28 shows awindowofCONE./COSA User Editor (COUE)COUE is used forthe classiﬁcation ofresources intermsof rolesand orga-nizationalunits.
+44
+
+--- Page 45 ---
+Figure28: ACOSAworkﬂowprocess deﬁnitionmadewith CONE./COSA Simulator(COSI)
+COSIis aprimitivesimulationtoolwhichcanbeused tovalidateworkﬂowprocessdeﬁnitions./COSA RuntimeService (CORS)CORSisaworkﬂowenactmentservicewhichconsistsofoneormorework-ﬂowengines./COSA MemoBox (COMB)COMBisaworkﬂowclientapplication(in-basket)whichoffersworkitemstotheend user./COSA Networkstatus Displayer (COND)CONDisanextensionofCOMBwhichallowstheendusertoseethework-
+ﬂowstate ofa case./COSA Administrator (COAD)
+COADisanadministrationandmonitoringtoolwhichcanbeusedtohandle
+abnormalities, execute changes, detect problems, and collect management
+information.
+COSA is based on Petri nets: CONE uses Petri nets as a design language, COSI
+andCONDvisualizetheworkﬂowintermsofaPetrinet,andCORSusestheﬁringruletoenactthe workﬂow.
+45
+
+--- Page 46 ---
+COSAallowsforthemodelingandenactmentofcomplexworkﬂowprocesseswhich
+useadvancedroutingconstructs. However,COSAdoesnotsupportveriﬁcation,it
+doesnotallowfordetailedsimulation,anditisdifﬁculttouseforuserswhicharejust interested in business process modeling. We use COSA in combination withthree other products to overcome these problems: Protos,ExSpect, andWoﬂan.
+These products can interface with each other. Figure 29 shows the relations be-
+tweenCOSA, Protos,ExSpect, andWoﬂan.
+Woflan
+Protos COSA
+(Pallas Athena)(EUT)
+(Software-Ley)
+(re)design enactmentExSpect
+(Bakkenist/EUT)
+(performance) analysisverification
+Figure 29: An integrated set of tools for the design, analysis and enactment of
+workﬂows.
+Protos(PallasAthena,Plasmolen,The Netherlands)isaso-calledBPR-tool. Pro-
+tossupportsBusinessProcessReengineering(BPR)effortsandcanbeusedtomo-del and analyze business processes ([Pal97]). The tool is very easy to use andis based on Petri nets. To facilitate the modeling of simple workﬂows by usersnot familiar with Petri nets, it is possible to abstract from states. Another exam-
+pleofaBPR-toolbasedonPetrinetsisStructware/BusinessSpecs(IvyTeam,Zug,
+Switzerland). Thistoolcanbeusedtomodelandsimulatebusinessprocesseswhichcan beexported toStaffware(Staffware,London, UnitedKingdom). Staffwareisoneoftheleadingworkﬂowproductsinthe world.
+ExSpect (Bakkenist Management Consultants, Diemen, The Netherlands) can be
+used to model and simulate processes modeled in terms of high-level Petri nets
+([Bak96]). (The ﬁrst versions of ExSpect have been developed by members ofthe departmentof Mathematics and Computing Science of Eindhoven Universityof Technology.) Workﬂow processes modeled with Protos or COSA can be im-portedinto ExSpect. During the simulation of a workﬂowprocess with ExSpect,
+theworkﬂowisanimatedandkeyperformanceindicators(e.g.averagethroughput
+timeandoccupationrate)aremeasured.
+46
+
+--- Page 47 ---
+Figure30: One ofthemany analysiswindows ofWoﬂan.
+Woﬂan (Eindhoven University of Technology, Eindhoven, The Netherlands) is a
+Petri-net-basedworkﬂowanalyzer([HVA97,AHV97]). Woﬂan(WOrkFLowAN-
+alyzer)can be used to verifythe correctness ofa workﬂow. The tool is workﬂowmanagementsystem independent, i.e., a numberof importfunctionstodownloadworkﬂow scripts in Woﬂan (e.g. from COSA and Protos) are provided. Woﬂanuses standard Petri-net-based analysis techniques. However, the analysis results
+arepresentedinsuch amannerthatend-usersareabletounderstandtheoutputof
+Woﬂan. Moreover, Woﬂan guides the end-user in correcting an erroneous work-ﬂow. OneofthecentralissueswhichisanalyzedbyWoﬂanisthesoundnessprop-erty. Decidingwhethertheworkﬂowdeﬁnitionissoundisnotsufﬁcient. Inmanycasesmorerequirementsneedtobesatisﬁed. Moreover,iftheworkﬂowdeﬁnition
+is not sound, then the user should be guided in detecting the source of the error
+and supportshould be given to repairthe error. This is whyWoﬂan offersa largeselection of analysis methods including the methods discussed in this paper. Forexample, Woﬂan detects constructs which violate the free-choice property, well-structuredness or S-coverability, calculates invariants, detects unbounded places,
+andreportsdeadtransitions.
+47
+
+--- Page 48 ---
+7 Conclusion
+In this paper we discussed the application of Petri nets to the workﬂow domain.
+Workﬂowmanagementturnsouttobean applicationdomainwhichcouldbeneﬁt
+fromthefeaturesofPetrinets. ThereareatleastthreegoodreasonsforusingPetri
+netsforworkﬂowmodelingand analysis ([Aal96b]):/Formalsemantics despite thegraphical nature
+On the one hand, Petri nets are a graphical language which allows for the
+modelingofthe workﬂowprimitivesidentiﬁedby the WfMC. On theotherhand, the semantics of Petri nets (including most of the extensions) havebeen deﬁned formally. Many of today’s available workﬂow managementsystems provide ad-hoc constructs to model workﬂow procedures. More-
+over, there are workﬂow management systems that impose restrictions on
+the workﬂowprimitives shown in Figure12. Some workﬂowmanagementsystemsalsoprovideexoticconstructswhosesemanticsarenot100%clear.Because of these problems it is better to use a well-established design lan-guagewithformalsemantics./State-basedinsteadofevent-basedIn contrast with many other process modeling techniques, the state of casecanbemodeledexplicitlyinaPetrinet. Processmodelingtechniquesrang-
+ingfrominformaltechniquessuchasdataﬂowdiagramstoformaltechniques
+such as process algebra’s are event-based , i.e., transitions are modeled ex-
+plicitlyandthestatesbetweensubsequenttransitionsaremodeledimplicitly.Today’sworkﬂowmanagementsystemsaretypicallyevent-based,i.e.,tasksaremodeled explicitlyand states between subsequent tasks are suppressed.
+Thedistinctionbetweenanevent-basedandastate-baseddescriptionseems
+to be very subtle, butexamples in this paper (e.g. Figure16) show that thisis of the utmost importance for workﬂow modeling. For example, in mostworkﬂowmanagementsystems whichabstractfromstates itisnotpossibletouse theimplicitOR-split./Abundanceofanalysis techniquesPetrinetsaremarkedbytheavailabilityofmanyanalysistechniques. Clearly,thisis a great asset infavorofa Petrinets. In thispaper, we focused on the
+veriﬁcationof workﬂows. We have seen that Petri-net-basedanalysis tech-
+niques can beused todeterminethe correctness ofa workﬂowprocess def-inition. The availability of these techniques illustrates that Petri-nettheorycan be used to add powerful analysis capabilities to the next generation ofworkﬂowmanagementsystems.
+48
+
+--- Page 49 ---
+Today’s situation with respect to workﬂow management software is comparable
+to the situation as regards to database management software in the early seven-
+ties. Inthebeginning oftheseventies mostof thepioneers inthe ﬁeldofDBMSswereusingtheirownad-hocconcepts. This situationofdisorderand lackofcon-sensus resulted in an incomprehensive set of DBMSs. However, emerging stan-dardssuchastheRelationalDataModel[Cod70]andtheEntity-RelationshipMo-
+del[Che76]leadtoacommonformalbasisformanyDBMSs. Asaresult,theuse
+of these DBMSs boosted. There are many similarities between today’s workﬂowmanagement systems and the DBMSs of the early seventies. Despite the effortsoftheWorkﬂowManagementCoalitionarealconceptualstandardismissing. Asa result, many organizations are reluctant to use existing workﬂow management
+software. InouropinionPetrinetsconstituteagoodbasisforstandardization. We
+have just given three solid reasons for using a Petri-net-basedworkﬂowmanage-mentsystem. Inspiredbypracticalexperiences,wehavecometorealizethatmanyofthefeaturesofthePetrinetformalismareusefulinthecontextofworkﬂowman-agement.
+References
+[Aal94] W.M.P. vanderAalst. PuttingPetrinetstoworkinindustry. Comput-
+ersin Industry , 25(1):45–54,1994.
+[Aal95] W.M.P. van der Aalst. A class of Petri net for modeling and analyz-
+ingbusinessprocesses. ComputingScienceReports95/26,EindhovenUniversityofTechnology, Eindhoven, 1995.
+[Aal96a] W.M.P. van der Aalst. Structural Characterizations of Sound Work-
+ﬂowNets. Computing Science Reports 96/23, Eindhoven UniversityofTechnology,Eindhoven, 1996.
+[Aal96b] W.M.P.vanderAalst. ThreeGoodreasonsforUsingaPetri-net-based
+WorkﬂowManagementSystem. InS.NavatheandT. Wakayama,ed-itors,Proceedings of the InternationalWorking Conference on Infor-
+mationandProcess IntegrationinEnterprises (IPIC’96) ,pages179–
+201,Camebridge, Massachusetts, Nov 1996.
+[Aal97] W.M.P.vanderAalst. VeriﬁcationofWorkﬂowNets. InP.Azemaand
+G.Balbo,editors, ApplicationandTheoryofPetriNets1997 ,volume
+1248ofLectureNotesinComputerScience ,pages407–426.Springer-
+Verlag, Berlin,1997.
+49
+
+--- Page 50 ---
+[AH97] W.M.P. van der Aalst and K.M. van Hee. Workﬂow Management:
+Modellen, Methoden en Systemen (in Dutch) . Academic Service,
+Schoonhoven,1997.
+[AHV97] W.M.P. van der Aalst, D. Hauschildt, and H.M.W. Verbeek. A Petri-
+net-based Tool to Analyze Workﬂows. In B. Farwer, D. Moldt, andM.O. Stehr, editors, Proceedings ofPetri Nets inSystem Engineering
+(PNSE’97) , pages 78–90, Hamburg, Sept 1997. University of Ham-
+burg(FBI-HH-B-205/97).
+[Bak96] BakkenistManagementConsultants. ExSpect5.0UserManual ,1996.
+[BCD95] K. Barkaoui, J.M. Couvreur, and C. Dutheillet. On liveness in Ex-
+tended Non Self-Controlling Nets. In G. De Michelis and M. Diaz,editors,Application and Theory of Petri Nets 1995 , volume 935 of
+Lecture Notes in Computer Science , pages 25–44. Springer-Verlag,
+Berlin,1995.
+[Bes87] E. Best. Structure theory of Petri nets: the free choice hiatus. In
+W. Brauer, W. Reisig, and G. Rozenberg, editors, Advances in Petri
+Nets 1986 Part I: Petri Nets, central models and their properties ,
+volume 254 of Lecture Notes in Computer Science , pages 168–206.
+Springer-Verlag,Berlin,1987.
+[CEP93] A. Cheng, J. Esparza, and J. Palsberg. Complexity results for 1-safe
+nets. InR.K. Shyamasundar,editor, Foundationsofsoftwaretechnol-
+ogyandtheoreticalcomputerscience ,volume761of LectureNotesin
+ComputerScience , pages 326–337. Springer-Verlag,Berlin,1993.
+[Che76] P.P.Chen. TheEntity-RelationshipModel: Towardsauniﬁedviewof
+Data.ACM Transactions on DatabaseSystems , 1:9–36,Jan 1976.
+[Cod70] E.F. Codd. A Relational Model for Large Shared Data Banks. Com-
+municationsoftheACM , 13(6):377–387,June1970.
+[DE95] J. Desel and J. Esparza. Free choice Petri nets , volume 40 of Cam-
+bridge tracts in theoretical computer science . Cambridge University
+Press, Cambridge,1995.
+[Des92] J.Desel.AproofoftheRanktheoremforextendedfree-choicenets.In
+K.Jensen, editor, ApplicationandTheory ofPetri Nets 1992 ,volume
+616ofLectureNotes inComputerScience , pages134–153.Springer-
+Verlag, Berlin,1992.
+50
+
+--- Page 51 ---
+[EKR95] C. Ellis, K. Keddara, and G. Rozenberg. Dynamic change within
+workﬂowsystems. InN.ComstockandC.Ellis,editors, Conf.onOr-
+ganizationalComputingSystems ,pages10–21.ACMSIGOIS,ACM,
+Aug1995. Milpitas, CA.
+[EN93] C.A.EllisandG.J. Nutt. ModellingandEnactmentofWorkﬂowSys-
+tems. In M. AjmoneMarsan, editor, Application and Theory of Petri
+Nets 1993 , volume691 of Lecture Notes in Computer Science , pages
+1–16.Springer-Verlag,Berlin, 1993.
+[ES90] J. Esparza and M. Silva. Circuits, Handles, Bridges and Nets. In
+G. Rozenberg, editor, Advances in Petri Nets 1990 , volume 483 of
+LectureNotesinComputerScience ,pages210–242.Springer-Verlag,
+Berlin,1990.
+[Esp90] J. Esparza. Synthesis rules for Petri nets, and how they can lead to
+newresults. InJ.C.M. Baeten andJ.W. Klop, editors, Proceedings of
+CONCUR 1990 , volume 458 of Lecture Notes in Computer Science ,
+pages 182–198.Springer-Verlag,Berlin,1990.
+[GCEV72] K.Gostellow,V.Cerf,G.Estrin,andS.Volansky. ProperTermination
+ofFlow-of-controlinProgramsInvolvingConcurrentProcesses. ACM
+Sigplan,7(11):15–27,1972.
+[Hac72] M.H.T. Hack. Analysis production schemata by Petri nets. Mas-
+ter’sthesis,MassachusettsInstituteofTechnology,Cambridge,Mass.,1972.
+[Hee94] K.M.vanHee. InformationSystemEngineering: aFormalApproach .
+CambridgeUniversityPress, 1994.
+[HL91] K. Hayes and K. Lavery. Workﬂowmanagement software: the busi-
+ness opportunity. Technicalreport,OvumLtd, London, 1991.
+[HVA97] D. Hauschildt, H.M.W. Verbeek, and W.M.P. van der Aalst.
+WOFLAN: a Petri-net-based Workﬂow Analyzer. Computing
+Science Reports 97/12, Eindhoven University of Technology,Eindhoven, 1997.
+[Jen96] K.Jensen. ColouredPetriNets.Basicconcepts,analysismethodsand
+practicaluse. EATCSmonographsonTheoreticalComputerScience.
+Springer-Verlag,Berlin,1996.
+51
+
+--- Page 52 ---
+[Joo94] S. Joosten. Trigger ModellingforWorkﬂowAnalysis. In G. Chroust
+and A. Benczur, editors, Proceedings CON’94: Workﬂow Manage-
+ment, Challenges, Paradigms and Products , pages 236–247, Vienna,
+Oct1994.
+[Kou95] T.M.Koulopoulos. TheWorkﬂowImperative .VanNostrandReinhold,
+NewYork,1995.
+[Law97] P. Lawrence, editor. Workﬂow Handbook 1997, Workﬂow Manage-
+mentCoalition . JohnWiley andSons, NewYork,1997.
+[MBea95] M.AjmoneMarsan,G.Balbo,G.Conte,etal. ModellingwithGener-
+alizedStochasticPetriNets .Wileyseriesinparallelcomputing.Wiley,
+NewYork,1995.
+[MEM94] G. De Michelis, C. Ellis, andG. Memmi, editors. Proceedings of the
+second Workshop on Computer-Supported Cooperative Work, Petrinetsand relatedformalisms , Zaragoza, Spain,June 1994.
+[Mur89] T. Murata. Petri Nets: Properties, Analysis and Applications. Pro-
+ceedingsof theIEEE , 77(4):541–580,April1989.
+[Pal97] Pallas Athena. Protos User Manual . Pallas Athena BV, Plasmolen,
+The Netherlands,1997.
+[Pet62] C.A. Petri. Kommunikation mit Automaten . PhD thesis, Institut f¨ ur
+instrumentelleMathematik, Bonn, 1962.
+[Rei85] W. Reisig. Petri nets: an introduction , volume 4 of Monographs
+in theoretical computer science: an EATCS series . Springer-Verlag,
+Berlin,1985.
+[SH95] P.A. Straub and C. Hurtado. The Simple Control Property of Busi-
+ness Process Models. In XV InternationalConference of the Chilean
+ComputerScience Society , 1995.
+[SL96] Software-Ley. COSA User Manual . Software-LeyGmbH, Pullheim,
+Germany,1996.
+[Val87] R.Valk. InﬁniteBehaviourandFairness. InW.Brauer,W.Reisig,and
+G.Rozenberg,editors, AdvancesinPetriNets1986PartI:PetriNets,
+central models and their properties , volume 254 of Lecture Notes in
+ComputerScience , pages 377–396. Springer-Verlag,Berlin,1987.
+52
+
+--- Page 53 ---
+[WFM96] WFMC. WorkﬂowManagementCoalitionTerminologyandGlossary
+(WFMC-TC-1011). Technical report, WorkﬂowManagement Coali-
+tion,Brussels, 1996.
+[Wil89] R. Wild. Production and Operations Management : Principles and
+Techniques . Cassell, London, 1989.
+[WR96] M.WolfandU.Reimer,editors. ProceedingsoftheInternationalCon-
+ferenceonPracticalAspects ofKnowledgeManagement(PAKM’96),
+Workshop onAdaptiveWorkﬂow , Basel, Switzerland,Oct1996.
+53

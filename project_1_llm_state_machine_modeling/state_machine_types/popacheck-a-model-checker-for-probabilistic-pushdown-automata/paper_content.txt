@@ -1,0 +1,716 @@
+--- Page 1 ---
+POPACheck: A Model Checker 
+for Probabilistic Pushdown Automata 
+Francesco Pontiggia(B) , Ezio Bartocci , and Michele Chiari 
+TU Wien, Vienna, Austria 
+{francesco.pontiggia,ezio.bartocci, 
+michele.chiari}@tuwien.ac.at 
+Abstract. We present POPACheck, the ﬁrst model checking tool for 
+probabilistic Pushdown Automata (pPDA) supporting temporal logic speciﬁcations. POPACheck provides a user-friendly probabilistic model-
+ing language with recursion that automatically translates into Proba-bilistic Operator Precedence Automata (pOPA). pOPA are a class of pPDA that can express all the behaviors of probabilistic programs: sam-
+pling, conditioning, recursive procedures, and nested inference queries. On pOPA, POPACheck can solve reachability queries as well as qualita-
+tive and quantitative model checking queries for speciﬁcations in Linear 
+Temporal Logic (LTL) and a fragment of Precedence Oriented Tempo-
+ral Logic (POTL), a logic for context-free properties such as pre/post-conditioning. 
+Keywords: Probabilistic Model Checking · Pushdown Model 
+Checking · Temporal Logic · Operator Precedence Languages 
+1 Introduction 
+Fig. 1. Sherwood Binary search. The last two decades saw great eﬀorts 
+towards the analysis of probabilistic Push-
+down Automata (pPDA) [ 3– 6, 14, 31], and 
+the equivalent model of Recursive Markov 
+Chains (RMCs) [ 16– 20, 54] as a succinct for-
+malism to express inﬁnite-state probabilis-
+tic systems and to model probabilistic pro-
+grams with nested and possibly recursive pro-
+cedures. However, no existing tool implements the presented temporal logic model checking 
+algorithms, due to their computational com-plexity and many practical obstacles. With POPACheck, we leverage various recent results on pPDA analysis to produce 
+an eﬃcient model checking tool that scales beyond toy examples, and forms a baseline for future veriﬁcation tools for inﬁnite-state probabilistic systems. 
+Illustrative Example. Consider the Sherwood [ 34] variant of the binary search 
+(Fig. 1), a well-known recursive algorithm. B() searches for val in the array 
+a[left..right]. Unlike the deterministic version, in each iteration B() selects 
+c/circlecopyrtThe Author(s) 2025 
+R. Piskac and Z. Rakamarić (Eds.): CAV 2025, LNCS 15932, pp. 105–121, 2025. https://doi.org/10.1007/978-3-031-98679-6
+_5
+
+--- Page 2 ---
+106 F. Pontiggia et al.
+the pivot mid randomly among the remaining portion of a. Thanks to random-
+ness, worst-, best- and average runtime align. If a has a ﬁnite bound and its 
+elements have a ﬁnite domain, B() can be translated into a ﬁnite-state pPDA: 
+automaton states model global and local variable values, while stack symbols 
+model procedure parameter values. A relevant property for this program is par-tial correctness [ 
+37]: when B() is invoked in a state where left ≤ right, 
+a[left..right] is sorted and val occurs in a[left..right], then at return 
+mid stores the index of a where val lies. This property, just like pre/post-conditioning, requires to match each call to B() in the recursion to its correspond-
+ing return, and skip inner calls to B() in the execution trace. It is a context-free 
+property beyond LTL’s expressivity, limited to regular properties. POTL [ 
+9]i s 
+an expressive logic based on Operator Precedence Languages (OPLs) [ 22], a 
+subclass of context-free languages, and expresses partial correctness as:
+/square(call ∧ B ∧ sorted ∧ valOccurs ∧ left ≤ right =⇒ χu 
+F a[mid]= = val) 
+Probabilistic Programming. Probabilistic programs have recently gained popular-
+ity in AI and machine learning [ 23], where they are employed as succinct models 
+for Bayesian inference [ 26]. In addition to randomized assignment, a prominent 
+feature of this programming model is conditioning, which allows for adding evi-
+dence of observed events by conditioning the program variables to take certain 
+values. When using rejection sampling, a probabilistic program contains state-
+ments observe(e),w h e r e e is a Boolean condition. If e is not satisﬁed, the 
+current execution trace is rejected: in such a case, we assume that the program is restarted. The semantics of a probabilistic program is the probability distri-bution in the return statement, also called posterior. Probabilistic programs can 
+also be nested: a program samples a value from a distribution represented by another probabilistic program. They are known under the name of nested queries [ 
+24], and model scenarios beyond the expressivity of ﬂat probabilistic programs: 
+most notably, metareasoning patterns (the so called Theory of Mind) [ 48, 55], 
+linguistics [ 45], cognitive science [ 25], multi-agent planning [ 46] and sequential 
+decision making [ 21]. To the best of our knowledge, pOPA [ 40] are the small-
+est subclass of pPDA that can model eﬀectively these behaviors. OPA traces are OPLs. Unlike general context-free languages, OPLs are closed under most relevant Boolean operations [ 
+33]. Let B be an (deterministic or separated) Oper-
+ator Precedence Büchi Automaton (ωOPBA), the class of automata recognizing 
+OPLs. When a pOPA A is deﬁned over the same alphabet as B, we can verify 
+automatically A against B via automata-based model checking [ 40]. 
+Our Approach. The main challenge in pPDA model checking is computing the termination probabilities, which involves solving a system of non-linear equa-
+tions. While tools like PReMo [ 
+53] approximate them from below, for general 
+model checking we need to know whether these quantities sum up to exactly 1. We could employ oﬀ-the-shelf SMT solvers (e.g. Z3 [ 
+35]) with decision proce-
+dures for the Existential ﬁrst-order Theory of the Reals (ETR) (qf_nra), but 
+they oﬀer only doubly exponential decision procedures [ 30], although ETR is 
+in pspace [ 7, 43]. We thus devise a semi-algorithm leveraging both certiﬁcates 
+for termination probabilities [ 51] via a numeric method called Optimistic Value
+
+--- Page 3 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 107
+Iteration (OVI), and certiﬁcates for expected runtimes [ 52]. A second challenge 
+is the need for deterministic automata (or weak variants thereof) in probabilistic 
+veriﬁcation—a common problem already occurring in the far simpler setting of 
+LTL model checking for Markov Chains [ 1, 2, 11]. In this regard, we exploit [ 19, 40] 
+which provide resp. single exponential model checking algorithms (i.e., avoiding 
+determinization) for LTL and a fragment of POTL (POTLfχ). These algorithms 
+represent the theoretical ground of POPACheck. 
+POPACheck is hosted on Github at https:// github. com/michiari/ POMC/ .I t 
+is an extension of the POMC tool [ 8, 39, 41], and relies on its modules for con-
+structing automata from formulae. 
+Contributions. We present i) a semi-algorithm overcoming numerical issues regarding computing termination probabilities; ii) POPACheck, a model checker 
+for pPDA based on this semi-algorithm; iii) a user-friendly domain-speciﬁc lan-guage for recursive probabilistic programs; and iv) an extensive experimental 
+evaluation with a benchmark of programs and LTL/POTLfχ formulae. 
+2 Background 
+2.1 Probabilistic Operator Precedence Automata (pOPA) 
+pOPA are pPDA with state labels from a set Σ. State labels drive the stack 
+behavior of pOPA through three Precedence Relations (PRs): given two labels 
+a and b,w es a y a yields precedence to b iﬀ a⋖b, a and b are equal in precedence iﬀ a .= b,a n d a takes precedence from b iﬀ a⋗b. An Operator Precedence Matrix 
+(OPM) is a total function M : Σ
+2 →{⋖, .=,⋗}; the special symbol # is s.t. #⋖a 
+for all a ∈ Σ. In the following, let D(S)= {f : S → [0, 1] |/summationtext
+s∈S f(s)=1} 
+denote he set of probability distributions on a ﬁnite set S. 
+Deﬁnition 1 ( [ 40]). Ap O P Ai sat u p l e A =(Σ, M, Q, u 0,δ ,Λ) where: Σ is 
+a ﬁnite set of state labels; M is an OPM; Q is a ﬁnite set of states; u 0 is the 
+initial state; Λ : Q → Σ is a state labeling function; and δ is a triple of transition 
+functions δ push : Q → D(Q), δ shift : Q → D(Q),a n d δ pop :(Q × Q) → D(Q), 
+such that pop moves have the following condition, for all u, s, v ∈ Q: 
+δpop(u, s)(v) > 0=⇒∀a ∈ Σ : a⋗Λ(u)=⇒ a⋗Λ(v). 
+The semantics of A is an inﬁnite Markov chain [ 1] Δ(A) with vertex set 
+Q × (Γ ∗{⊥}) where ⊥ is the initial stack symbol, which can never be pushed 
+or popped, and Γ = Σ × Q is the set of stack symbols. PRs decide whether to 
+push onto the stack, update the topmost symbol, or pop from it. For any stack contents A ∈ Γ 
+∗{⊥}: 
+push: (u, A) x → (v, [Λ(u),u]A) if smb(A)⋖Λ(u) and δ push (u)(v)= x; 
+shift: (u, [a, s]A) x → (v, [Λ(u),s]A) if a .= Λ(u) and δ shift (u)(v)= x; 
+pop: (u, [a, s]A) x → (v, A) if a⋗Λ(u) and δ pop(u, s)(v)= x; 
+where smb(⊥)=# and smb([a, r]) = a for [a, r] ∈ Γ . 
+Stack symbols are pairs of a label and a state, and the PR between the label 
+in the topmost stack symbol and that of the current state decides the next move.
+
+--- Page 4 ---
+108 F. Pontiggia et al.
+If such PR is⋖, a push move puts the current state and its label onto the stack. 
+Since smb(⊥)=#, the ﬁrst move is always a push. If the PR is .=,as h i f tm o v e 
+updates the topmost stack symbol by replacing its label with the current state’s. 
+Finally, if the PR is⋗, the topmost stack symbol gets popped. 
+Ar u n o f A is a path in Δ(A) starting in (u 0, ⊥). The probability space on the 
+set of runs is obtained by the cylinder set construction as for Markov chains [ 1]. 
+The set of inﬁnite words formed by labels of states in a run is an OPL [ 40]. 
+Fig. 2. OPM M call. PRs guide the stack behavior of pOPA, and PRs 
+between state labels completely determine whether the pOPA pushes, updates, or pops a stack symbol. This 
+dependency of the stack behavior on labels, and hence 
+traces, enables the deﬁnition of stack-aware context-
+free modalities in the speciﬁcation formalism (POTL), 
+by allowing the deﬁnition of a synchronized product 
+between pOPA and a pushdown automaton encoding 
+the speciﬁcation (cf. [ 
+40]). We thus deﬁne state labels to describe events that 
+aﬀect the program stack, and we deﬁne PRs between state labels so that such 
+events have the same eﬀect on the pOPA stack that they have on the stack of 
+activation frames in a high-level procedural probabilistic programming language with rejection sampling. 
+1
+State labels in OPM M call (Fig. 2) represent traces of probabilistic programs. 
+call and ret are function calls and returns, stm statements that do not aﬀect the 
+stack (e.g., randomized assignments). qry is the conditional sampling operator 
+(roughly corresponding to query in Church [ 24]): it reiﬁes the posterior distri-
+bution of a probabilistic program, allowing for sampling from it. obs denotes an 
+unsatisﬁed observation. The table is to be read by row—e.g., we have call .= ret 
+and ret⋗call. PRs are such that a pOPA always pushes from a call state 
+(call⋖call, etc.), and pops after being in a ret state through a shift move 
+(call .= ret and ret takes precedence from other symbols). This way, the pOPA 
+stack mimics the program’s stack. stm causes a push immediately followed by a 
+pop (because stm⋗all labels), thus leaving the stack unchanged. Moreover, obs 
+triggers pop moves that unwind the stack until they reach the ﬁrst qry symbol. 
+Thereby, the pOPA excludes (or rejects) the trace at hand from the posterior 
+distribution of the current probabilistic program without aﬀecting outer queries, 
+eﬀectively simulating nested rejection sampling [ 36]. 
+2.2 Speciﬁcation Formalism 
+We express speciﬁcations through a temporal logic with the following syntax: 
+ϕ :=a | T |¬ϕ | ϕ ∨ ϕ |/Circleϕ | ϕ U ϕ |/Circlet ϕ | χt 
+F ϕ | ϕ Ut 
+χ ϕ 
+Formulae are evaluated in the ﬁrst position of program traces, and subformulae 
+in further positions. a is an atomic proposition from a ﬁnite set AP containing
+1 Note that PRs are not ordering relations, so they need not enjoy standard properties 
+such as reﬂexivity and transitivity. 
+
+--- Page 5 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 109
+labels from Fig. 2 and names of program functions. T is any term of the form 
+e1⊿/triangleleft e 2,w h e r e⊿/triangleleftis a binary comparison operator (=, >, etc.) and e 1,e2 are 
+integer arithmetic expressions involving program variables and constants. ¬ and 
+∨ are propositional operators, to which we add the derived operators ∧ and 
+=⇒ with the usual semantics./Circleϕ and ϕ 1 U ϕ 2 are the next and until operators 
+from LTL [ 38], resp. meaning that ϕ will hold in the next time instant, and that 
+ϕ1 holds until a time instant in which ϕ 2 does. We use the derived operators 
+eventually /Diamondϕ ≡/latticetopU ϕ,a n d globally /squareϕ ≡¬ /Diamond¬ϕ. 
+The remaining operators form a fragment of POTL called POTLfχ.T h e y 
+move up (t = u) and down (t = d) among function frames in the program stack.
+/Circled ϕ holds if the next time instant belongs to the same or a lower frame and ϕ 
+holds in it, and vice versa for/Circleu. χd 
+F moves along a binary relation that links 
+function calls to their returns and inner function calls. 
+Fig. 3. Program stub. In the program of Fig. 3, the relation links events 
+representing callst o f1() to those representing the 
+inner call to f2() and f1’s return statement. E.g., 
+if evaluated in an instant labeled with a call to f1, 
+χd F (call∧ x > 0) holds if x > 0 in the instant when f1 
+calls f2,a n d χd 
+F (ret∧ y > 0) holds if f1 returns in an 
+instant in which y > 0.M o r e o v e r , χu 
+F obs holds if a 
+false observe is encountered anytime during the execution of f1.T h e s e m a n t i c s 
+of Ut 
+χ are the same as the LTL until, except it works on paths obtained by 
+iterating the/Circlet and χt F operators, for t ∈{u, d}. For a complete deﬁnition, 
+cf. [ 10]. 
+3 Model Checking Algorithm 
+3.1 The Support Chain 
+Let A =(Σ, M, Q, u 0,δ ,Λ) be a pOPA. A support is a sequence of pOPA moves 
+u0 → u 1/axisshort/axisshort/arrowaxisright.../axisshort/axisshort/arrowaxisrightu /lscriptu0 ⇒ u /lscript+1, denoted as u 0/leadstou /lscript+1,t h a to c c u rf r o mt h e m o v e 
+pushing a stack symbol [Λ(u 0),u 0] to the move popping it. Given u, v ∈ Q and 
+α ∈ Γ , we deﬁne/llbracketu, α | v/rrbracketas the probability that A starting in (u, α⊥) reaches 
+v at the end of the support that put α on top of the stack. Such termination 
+probabilities [ 4, 18] are the least non-negative solutions of the equation system 
+v = f (v),w h e r e v is the vector of triples/llbracketu, α |v/rrbracketfor all u, v ∈ Q, α ∈ Γ and 
+f (/llbracketu, α | v/rrbracket) is given by
+
+--- Page 6 ---
+110 F. Pontiggia et al.
+⎧ 
+⎪⎨ 
+⎪⎩/summationtext
+r,t∈Q δpush (u)(r)/llbracketr, [Λ(u),u] | t/rrbracket/llbrackett, α | v/rrbracketif α = ⊥,o r α =[a, s] and a⋖Λ(u)/summationtext
+r∈Q δshift (u)(r)/llbracketr, [Λ(u),s] | v/rrbracketif α =[a, s] and a . = Λ(u) 
+δpop(u, s)(v)if α =[a, s] and a⋗Λ(u) 
+The probability that α ∈ Γ is never popped after a run visits a conﬁguration 
+(u, αA) for u ∈ Q and some stack contents A is/llbracketu, α ↑/rrbracket=1 −/summationtext
+v∈Q/llbracketu, α |v/rrbracket. 
+The support chain is a ﬁnite Markov chain that replaces supports with single 
+transitions, and describes the behavior of pOPA runs while preserving their 
+probability distribution. 
+Deﬁnition 2 ( [ 40]). The support chain M A of A is a Markov chain with 
+states in C = {(u, α) ∈ Q × Γ ⊥ |/llbracketu, α ↑/rrbracket> 0}, initial state (u 0, ⊥),a n d a 
+transition probability function δ MA such that 
+– δMA(u, [a, s])(v, [Λ(u),s]) = δ shift (u)(v)/llbracketv, [Λ(u),s]↑/rrbracket//llbracketu, [a, s]↑/rrbracket
+for all (u, [a, s]), (v, [Λ(u),s]) ∈C such that a .= Λ(u); 
+– otherwise, for all (u, α), (v, α/prime) ∈C, 
+δMA(u, α)(v, α/prime)=(P push + P supp )/llbracketv, α/prime↑/rrbracket//llbracketu, α ↑/rrbracketwhere 
+• Ppush = δ push (u)(v) if smb(α)⋖Λ(u),a n d P push =0 otherwise; 
+• Psupp =/summationtext
+v/prime∈Q δpush (u)(v/prime)/llbracketv/prime, [Λ(u),u]| v/rrbracket,i f α = α/prime, smb(α)⋖Λ(u), 
+and A has a support u/leadstov,a n d P supp =0 otherwise. 
+Fig. 4. Overview of the semi-algorithm for building the support chain (SC).
+During inﬁnite runs of A, the stack contains symbols that are never popped. 
+States of M A consist of such symbols, and the current state of A when they are 
+put on the stack. M A has three types of transitions: push and shift moves that 
+put on the stack (resp. update) a symbol that will never be popped, and support edges, which summarize the ﬁnite portion of a run from when a stack symbol is pushed to when it is popped—a support. Probabilities assigned to edges c → c
+/prime
+are conditioned on the fact that the stack symbol in the target node c/primeis never 
+popped, given that the one in the starting node c is also never popped: hence all probabilities are multiplied by/llbracketc
+/prime↑/rrbracket//llbracketc ↑/rrbracket. Probabilities for push and shift edges 
+follow directly from A’s δ distributions, while those for support edges include 
+Psupp, the probability that the stack symbol underlying the edge is popped. 
+Thus, M A describes the limit behavior of A by only considering permanent 
+stack symbols and transitions that created them, while summarizing with single edges run portions that involve stack symbols that are eventually popped.
+
+--- Page 7 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 111
+To build the support chain of A, we must check whether/llbracketc ↑/rrbracket> 0 for all 
+c ∈ Q×Γ ⊥. We propose the approach sketched in Fig. 4. We further optimize this 
+algorithm by applying all steps bottom-up to Strongly Connected Components 
+(SCCs) of the graph of nodes c. 
+Let v∗ be the least solution of v = f (v), i.e., the vector of termination 
+probabilities/llbracketc | v/rrbracket. Recall that/llbracketc ↑/rrbracket=1 −/summationtext
+v∈Q/llbracketc | v/rrbracket. First, we ﬁnd an upper 
+bound v∗ for v∗, which we use to compute a lower bound/llbracketc ↑/rrbracket for/llbracketc ↑/rrbracket.I f
+/llbracketc ↑/rrbracket> 0,t h e n/llbracketc ↑/rrbracket> 0 and we add c to the support chain. Otherwise, we make 
+the hypothesis that/llbracketc ↑/rrbracket=0, i.e., that c is almost-surely terminating (ast), and 
+check the stronger condition that c is positively ast (past). A node c =(u, α) is 
+past if stack symbol α is popped with probability 1 in ﬁnite expected time.W e 
+check past by solving with Z3 a system of linear equations [ 52] for the expected 
+termination times. If a solution exists, then c is past and therefore ast:w ed o 
+not add c to the support chain. Otherwise, the whole algorithm is inconclusive. 
+We ﬁnd the upper bound v∗ in two diﬀerent ways. In both cases, we ﬁrst ﬁnd 
+a lower bound v∗ to v∗ via a decomposed variant of Newton’s method [ 12, 18], 
+after cleaning the system from zero-solution variables via value iteration. 
+– In the ﬁrst method, we give v∗ as a hint to Z3, and obtain v∗ as a model for 
+v in the query v∗ ≤ v ≤ v∗ + ε ∧ v ≥ f(v), for a small positive ε. 
+– The other method employs OVI [ 51], which computes v∗ numerically. We run 
+OVI initialized on v∗. 
+3.2 A void Determinization with a Separation-Based Approach 
+A prominent approach to LTL model checking on probabilistic systems expresses 
+speciﬁcations as deterministic automata. Storm [ 28] and PRISM [ 32] translate 
+the input formula into a Deterministic Rabin Automaton (DRA) [ 1], with a 
+worst-case doubly exponential blowup. While singly exponential algorithms that avoid determinization exist [ 
+2, 11], a common argument for using the conceptu-
+ally simpler notion of Rabin automata is the existence in practice of eﬀective translations from LTL formulae to relatively small-sized DRA [ 
+13]. Unfortu-
+nately, the same cannot be said for POTL formulae: the automata construction 
+for POTL is much more involved [ 8], and easily generates intractable automata. 
+Fig. 5. Overview of model checking probabilistic programs against POTLf χformulae.
+POPACheck takes a diﬀerent approach, outlined in Fig. 5.L T L f o r m u l a e c a n 
+be translated into separated Büchi automata, i.e., such that the languages they 
+accept starting from diﬀerent states are disjoint [ 11]. Similarly, POTLfχ formulae
+
+--- Page 8 ---
+112 F. Pontiggia et al.
+can be translated into ωOPBA, i.e., pushdown automata that capture the class 
+of inﬁnite-word OPLs, that are separated. Thanks to separation, we can build 
+a synchronized product between the support chain of the pOPA modeling the 
+program and the automaton encoding the formula. We then perform qualitative 
+model checking by analyzing the SCCs of the product. Since formulae are trans-lated into automata of exponential size [ 
+8, 49], the whole procedure requires time 
+exponential in formula size and space polynomial in pOPA size. For quantitative model checking, we compute numerically the probabilities associated with edges in the synchronized product: edges subsuming supports require solving equation 
+systems resembling those for termination probabilities. We compute bounds for them with OVI. Since the product has size exponential in formula length, quan-titative model checking is in expspace.C f . [ 
+40] for details. 
+4 Input Language 
+POPACheck analyzes programs written in MiniProb, a simple probabilistic pro-
+gramming language (Fig. 6). MiniProb supports (un)signed integer variables of 
+arbitrary width (u8 is an 8-bit unsigned type) and ﬁxed-size arrays. Functions 
+take parameters by value or value-result (with &). Actual parameters can only be variable identiﬁers for value-result parameters, and any expression if passed 
+by value. Expressions consist of variables, array indexing, integer constants, 
+Fig. 6. MiniProb syntax. and the usual arithmetic and 
+Boolean operators, including com-
+parisons. Boolean operators han-
+dle integers (0 means false, every-
+thing else true). Programs may sample from Bernoulli(e
+1,e2), 
+which returns 1 with probability p = e
+1/e2, and 0 with probabil-
+ity 1−p,o rf r o m Uniform(e 1,e2), 
+which samples uniformly among integers from e
+1 to e 2 − 1.R a n -
+d o ma s s i g n m e n t so ft h e f o r m 
+x = e 1{e2/e3}e4 mean that x is 
+assigned the value of e 1 with prob-
+ability e 2/e3,a n d e 4 with prob-
+ability 1 − e 2/e3. Finally, func-
+tions can query the distribu-tion on value-result parameters 
+of another function, and condi-
+tion on a Boolean expression with 
+observe.
+
+--- Page 9 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 113
+Table 1. Benchmark formulae.
+#Formula #Formula 
+Q.1 /Diamond/square(¬obs) Q.2 /square/parenleftbig
+qry =⇒/Circled (call ∧¬ χu 
+F obs) ∨ χd F (call ∧¬ χu F obs)/parenrightbig
+Q.3 /square(call ∧ Alice ∧ p ≥ 0.4=⇒¬χu F obs) Q.4 ¬sampleA U (call ∧ sampleA ∧ χd F (qry ∧/Circled (call ∧ sampleA))) 
+Q.5 ¬/Diamond/parenleftbig
+qry ∧ χu F (sampleA ∧ opR == 0 ∧ opC == 1)/parenrightbig
+Q.6 (¬elder) Ud 
+χ (young ∧ f ) 
+Q.7 /Diamond/parenleftbig
+χd F (/Circled elder) ∧ χu F (elder ∧¬f )/parenrightbig
+Q.8 χu F (aliceLoc == 1) 
+Q.9 /Diamond/parenleftbig
+ret ∧ main ∧ aliceLoc == 1/parenrightbig
+Q.10 ¬ χu F (R == 0 ∧ C == 2) 
+Q.11 ¬ χu F (R == 0 ∧ C == 1) Q.12 ¬obs U (call ∧ Bob ∧ χu F obs) 
+Q.13 ¬Alice U (call ∧ Alice ∧¬χu 
+F obs) Q.14 /Diamond(ret ∧ main ∧ R == 0 ∧ C == 2) 
+Q.15 ¬obs U (call ∧ Alice ∧ χu 
+F obs) 
+Q.16 ¬sampleA U (call ∧ sampleA ∧ χd 
+F (qry ∧/Circled (call ∧ sampleA ∧ χd F (qry ∧/Circled (call ∧ sampleA))))) 
+S.1 /square(call ∧ B ∧ sorted ∧ valOccurs ∧ left ≤ right =⇒ χu 
+F a[mid]= = val) 
+S.2 /square(call ∧ B ∧ sorted ∧¬valOccurs ∧ left ≤ right =⇒ χu F a[mid]/negationslash= val) 
+S.3 /square(call ∧ B ∧ sorted ∧ valOccurs ∧ left < right =⇒/Circled/Diamond(call ∧ B)) 
+S.4 /square(call ∧ B ∧ sorted ∧¬valOccurs ∧ left < right =⇒/Circled/Diamond(call ∧ B)) 
+5 Evaluation 
+We devised our experiments around the following questions: can our approach 
+build support chains for probabilistic programs of medium size? How large equa-
+tions systems arise in quantitative model checking? How scalable is our imple-
+mentation, i.e., how large programs can our tool solve in a reasonable time? 
+Setup. Our benchmark consists of three programs (Schelling, Tic-tac-toe and 
+Virus) and 16 mixed LTL/POTLfχ formulae (Table 1, Q formulae). All pro-
+grams consist of a potentially unbounded sequence of nested queries. This places 
+them at the frontier of probabilistic programming: even solving simple questions about their posterior distribution is a hardly tractable problem [ 
+42]. Addition-
+ally, to inquire scalability, we provide a case study on the Sherwood binary 
+search with increasing program state space, against four formulae (Table 1, S 
+formulae). We run the experiments on a machine with a 4.5GHz 8-core AMD 
+CPU and 64 GB of RAM running Ubuntu 24.04. We do not oﬀer an experimental 
+comparison with PReMo [ 53]n o r P r a y [ 51], since they only compute termina-
+tion probabilities on pPDA. This task is not the bottleneck of the overall model 
+checking algorithm—our tool always computes them in less than one second. 
+We describe in the following the three programs, (some of) the formulae 
+we verify on them, and their results. Afterwards, we present the case study separately. Two formulae inspecting conditioning are of interest for all three (Q.1 
+and Q.2). If an observe statement conditions on an event with zero probability, all runs of a query are rejected. Such ill-deﬁned queries [ 
+29] do not represent 
+a valid probability distribution, which is undesired. LTL property Q.1 means 
+that a run is always sooner or later reinstantiated into a feasible one. However, if queries indeﬁnitely call each other in a nonterminating program, a diverging run
+
+--- Page 10 ---
+114 F. Pontiggia et al.
+indeﬁnitely hits unsatisﬁed observations in the inﬁnite nesting. POTLfχ formula 
+Q.2 means that no procedure is indeﬁnitely reinstantiated by an observation: 
+either it terminates, or it diverges. 
+Fig. 7. Schelling. Schelling (Fig. 7). We consider an instance of a 
+Schelling coordination game [ 44, 48]. Two agents 
+wish to meet in town but cannot communicate. However, they know perfectly each other’s prefer-ences. Each agent samples both a location accord-
+ing to its preference, and one obtained simulating the behavior of the other agent. Finally, it con-ditions on the two being equal. The original pro-
+gram [ 
+48] bounds the recursion depth by a con-
+stant. Conversely, we allow for unbounded recur-sion, but we introduce a global variable p control-
+ling the recursion probability. We ﬁx p’s distribu-
+tion so that the program is ast.F o r m u l a Q.13 
+is the event that the ﬁrst call to Bob is rejected, 
+while Q.14 that the ﬁrst call to Alice is not 
+rejected. Since Bob is not always fair, his proce-dure is much less likely to be rejected. 
+Tic-tac-toe. Recursive probabilistic programs also model multi-player games involving sequential decision-making, i.e., where the best move in a turn depends 
+on moves in subsequent turns. In these games, players choose actions 
+Fig. 8. [ 48] that maximize future rewards by simulating, through nested 
+queries, other players’ turns as the game progresses. We consider 
+tic-tac-toe [ 48]. A procedure modelling a player’s reasoning ﬁrst 
+marks uniformly at random a cell between those not taken yet; 
+then it recursively queries itself to simulate the other player’s 
+behaviour with the updated grid. This way, the whole game is 
+recursively simulated, ending in a draw or in one of the two play-
+ers winning. Finally, it conditions on a coin ﬂip with weight corresponding to 
+the utility of the outcome, thus performing softmax optimal decision making. We inspect the max/min number of turns until termination of the game, corre-
+sponding to the program’s max/min recursion depth. Q.4 means that there are 
+at least two recursive calls (i.e., two turns) —what we would expect from the initial state of Fig. 
+8, where no move can immediately terminate the game. We 
+also examine the players’ meta-reasoning: Q.5 excludes that a player ever thinks 
+that the other one will pick cell [0, 1] in the next turn, which is indeed already 
+marked at the beginning.
+
+--- Page 11 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 115
+Fig. 9. Virus (sketch). Virus (Fig. 9). Recursive probabilistic programs 
+encode epidemiological models and general multi-
+type Branching Processes [ 17, 27]a sm o d e l so f 
+population dynamics in biology. They consist of an unbounded population of susceptible individ-uals belonging to distinct species. In the pro-
+grams, the stack models the individuals currently involved in the system, and diﬀerent procedures model diﬀerent species’ behaviors. We consider 
+the program from [ 
+50, Fig. 1]: a virus outbreak. 
+Our population is composed of either young or elder individuals. We introduce conditioning in 
+the model expressing that young ones are less likely to transmit the virus. Q.6 encodes the 
+CaRet formula of [ 
+50, p. 3]: a chain of infections of 
+young people leads to the death of an elder person. In POTLfχ, (¬elder)U
+d 
+χ (young ∧ f ),w h e r e f is a boolean variable representing 
+an elder person passing away. Young people cannot pass away in our model. Note here the need for the χ variant of the U operator to capture exactly the property. 
+Consider the case of a young person infecting ﬁrst an elder person who survives, 
+and then an elder who passes away. There would be only one young person in the 
+chain of infections, however the LTL (¬elder)U (young∧ f ) would not hold: the 
+ﬁrst elder’s infection happens temporally before the death, although not part of 
+the chain. POTLfχ instead captures this context-free property: U
+d 
+χ exploits the 
+χ relation to skip the ﬁrst call to elder()—this example trace would satisfy it. 
+Q.7 means that eventually an elder person infects at least one elder person, but none of them passes away. 
+Results. We report the experimental results for building the support chain (Table 
+3, cf. Fig. 4) and for solving qualitative and quantitative model check-
+ing (Table 4, cf. Fig. 5). All times are in seconds and the timeout is 1 h. A key 
+metric is the number of equations arising from each instance. Since we decom-pose the graph into SCCs and solve it bottom-up, many equations are solved 
+just by propagating already computed values. We thus report how many equa-
+tions actually require running our semi-algorithm because they introduce circular 
+dependency between variables in the system. We call them non-trivial (NT) 
+equations. In Table 
+3, |QA|,|f| (A), |fNT |(A) are the number of resp. states, equa-
+tions and non-trivial equations that arise when analysing pOPA A modeling the program. To estimate the size of individual SCCs we feed to OVI/Z3, we 
+report also |f
+NT (SCC)| max (A), the maximum number of non-trivial equations in 
+an SCC of the equation system of A.I nT a b l e 4, AS tells whether the formula 
+holds almost surely. If it is not the case, we perform quantitative model checking 
+to get probability P, for which we provide the same metrics as above, but on ˆA, 
+the cross-product between A and the formula automaton (Sect. 3.2). 
+Sherwood. The pOPA state space is ruled by two parameters: K,t h e n u m b e r o f 
+bits of each array element, and M, the array’s size. We investigate K ∈ [1, 4] and
+
+--- Page 12 ---
+116 F. Pontiggia et al.
+Fig. 10. Sherwood binary search: qualitative model 
+checking of all formulae (both axis are on logarithmic 
+scale). Table 2.Sherwood binary 
+search: quantitative model 
+checking of S.3 for some values of K and M. 
+Quantitative MC 
+KM|f |( ˆA)ttot P 
+11 154k 1.18 1 
+12 2M 12.12 ∼ 0.906 
+13 8M 53.87 ∼ 0.882 
+21 598k 5.20 1 
+2215 M 111.36 ∼ 0.961 
+31 2M 23.24 1 
+41 9M 123.63 1 
+Table 3. Experimental results for the computation of termination probabilities. tZ3
+(resp. tOV I) is the time required to compute upper bounds with Z3 (OVI).
+name |QA| |f| (A) |fNT |(A) |fNT (SCC)| max (A) tZ3 tOVI tPAST 
+Schelling 311 1230 266 52 TO 0.03 0.03 
+Tic-tac-toe 1780 3443 248 36 0.02 0.01 0.08 
+Virus 427 21211 6490 6488 TO 0.38 0 
+M ∈ [1, 7]. For each instance, the main procedure randomly initializes the array 
+and a value to search, and calls B(). We assume that calls to uniform() diverge 
+if left > right.F o r m u l a S.1 is partial correctness from Sect. 1.F o r m u l a S.2 
+i s ad u a lv e r s i o n .F o r m u l a e S.3 and S.4 are stack-inspection properties: if B() 
+is invoked in a state where left ≤ right, a[left..right] is sorted and val 
+occurs in a[left..right] (does not, in S.4), then there is a recursive call to B(). 
+All formulae hold almost surely except S.3: if the array has multiple elements, 
+the randomized pivot selection may pick the searched value, terminating the 
+program immediately. Figure 10 and Table 2 show results for qualitative model 
+checking on all formulae, and quantitative for some parameters of S.3.
+
+--- Page 13 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 117
+Table 4. Qualitative and quantitative MC. tG,tOVIare times spent resp. analyzing the
+synchronized product and computing with OVI upper bounds for non trivial equations.
+Qualitative MC Quantitative MC 
+name ϕ tG ttot AS |f|( ˆA) |fNT |( ˆA) |fNT (SCC)| max ( ˆA)tOVI ttot P Schelling Q.1 0.02 0.15 ✓ - - - - -1 
+Q.2 26.28 26.40 ✓ - - - - -1 
+Q.3 1.25 1.37 ✗893k 68k 7.3k 11.71 20.58 ∼ 0.895 
+Q.8 0.22 0.34 ✗214k 15k 1.4k 3.80 5.70 ∼ 0.610 
+Q.9 0.04 0.16 ✗36k 3.2k 252 1.29 1.57 ∼ 0.610 
+Q.12 1.01 1.14 ✗651k 61k 6.7k 11.56 20.10 ∼ 0.096 
+Q.13 0.67 0.80 ✗599k 43k 5.7k 6.48 13.28 ∼ 0.506 
+Q.15 0.95 1.07 ✗762k 63k 7.5k 12.49 23.21 ∼ 0.543 Tic-tac-toe Q.1 0.12 0.2 ✓ - - - - -1 
+Q.2 122.16 122.33 ✓ - - - - -1 
+Q.4 9.79 9.98 ✓ - - - - -1 
+Q.5 8.22 8.41 ✓ - - - - -1 
+Q.10 2.94 3.10 ✗ 1.1 M 77k 3k0.79 10.45 ∼ 0.712 
+Q.11 2.96 3.13 ✓ - - - - -1 
+Q.14 0.54 0.71 ✗280k 20k 1.5k 0.17 2.30 ∼ 0.288 
+Q.16 386.10 386.22 ✓ - - - - -1 Virus Q.1 0.18 2.13 ✗243k 25k 12k 0.50 9.72 ∼ 0.239 
+Q.2 263.94 265.9 ✓ - - - - -1 
+Q.6 14.96 16.95 ✗ ? ? ? ? ?TO 
+Q.7 891.45 893.37 ✗ ? ? ? ? ?TO 
+6 Discussion and Future Work 
+Experimental results show that OVI scales better than Z3 in solving systems for 
+building the support chain. Z3 already times out when provided with a system of 
+52 equations. For quantitative model checking, the exponential blow-up on the 
+formula automaton generates in our benchmark hundred of thousands of equa-tions. This suggests that determinization-based approaches, leading to another 
+exponentiation, would not work. Finally, our tool scales up to a few million of equations, supporting checking non-trivial formulae on medium-size pPDA. 
+Future improvements may come from ﬁnding ways of modeling non-trivial 
+probabilistic programs with less expressive pPDA subclasses that have more eﬃcient model checking algorithms. pPDA with one single state (or stochastic 
+context-free grammars) admit P-time algorithms for computing the probability of termination [ 
+15]; probabilistic one-counter automata admit P-time algorithms 
+for model checking ω-regular properties [ 47].
+
+--- Page 14 ---
+118 F. Pontiggia et al.
+Acknowledgments. We thank Tobias Winkler and Joost-Pieter Katoen (RWTH 
+Aachen) for the fruitful discussions and advice on implementing OVI. This 
+work was funded by the Vienna Science and Technology Fund (WWTF) grants [10.47379/ICT19018] (ProbInG) and ICT22-023 (TAIGER), and by the Hori-
+zon Europe programme grants No. 101034440 (MSCA Doctoral Network Log-iCS@TU Wien) and No. 101107303 (MSCA Postdoctoral Fellowship CORPORA)
+. 
+Disclosure of Interests. The authors declare no competing interests for this article. 
+References 
+1. Baier, C., Katoen, J.: Principles of Model Checking. MIT Press (2008) 
+2. Baier, C., Kiefer, S., Klein, J., Müller, D., Worrell, J.: Markov chains and unam-
+biguous automata. J. Comput. Syst. Sci. 136, 113–134 (2023). https:// doi.org/10. 
+1016/J.JCSS. 2023.03.005 
+3. Brázdil, T., Brozek, V., Holecek, J., Kucera, A.: Discounted properties of prob-
+abilistic pushdown automata. In: LPAR 2008. LNCS, vol. 5330, pp. 230–242. 
+Springer (2008). https:// doi.org/10.1007/978-3-540-89439- 1_17 
+4. Brázdil, T., Esparza, J., Kiefer, S., Kucera, A.: Analyzing probabilistic pushdown 
+automata. Formal Methods Syst. Des. 43(2), 124–163 (2013). https:// doi.org/10. 
+1007/s10703- 012-0166-0 
+5. Brázdil, T., Esparza, J., Kucera, A.: Analysis and prediction of the long-run behav-
+ior of probabilistic sequential programs with recursion (extended abstract). In: FOCS 2005, pp. 521–530. IEEE Computer Society (2005). 
+https:// doi.org/10.1109/ 
+SFCS. 2005.19 
+6. Brázdil, T., Kiefer, S., Kucera, A., Vareková, I.H.: Runtime analysis of probabilistic 
+programs with unbounded recursion. J. Comput. Syst. Sci. 81(1), 288–310 (2015). 
+https:// doi.org/10.1016/J.JCSS. 2014.06.005 
+7. Canny, J.F.: Some algebraic and geometric computations in PSPACE. In: STOC 
+1988, pp. 460–467. ACM (1988). https:// doi.org/10.1145/62212. 62257 
+8. Chiari, M., Mandrioli, D., Pontiggia, F., Pradella, M.: A model checker for operator 
+precedence languages. ACM Trans. Program. Lang. Syst. 45(3) (2023). https:// 
+doi.org/10.1145/3608443 
+9. Chiari, M., Mandrioli, D., Pradella, M.: Model-checking structured context-free 
+languages. In: Silva, A., Leino, K. (eds.) CAV 2021. LNCS, vol. 12760, pp. 387– 410. Springer, Cham (2021). 
+https:// doi.org/10.1007/978-3-030-81688- 9_18 
+10. Chiari, M., Mandrioli, D., Pradella, M.: A ﬁrst-order complete temporal logic for 
+structured context-free languages. Log. Methods Comput. Sci. 18:3 (2022). https:// 
+doi.org/10.46298/ LMCS- 18(3:11)2022 
+11. Couvreur, J., Saheb, N., Sutre, G.: An optimal automata approach to LTL model 
+checking of probabilistic systems. In: LPAR 2003. LNCS, vol. 2850, pp. 361–375. Springer (2003). 
+https:// doi.org/10.1007/978-3-540-39813- 4_26 
+12. Esparza, J., Kiefer, S., Luttenberger, M.: Computing the least ﬁxed point of posi-
+tive polynomial systems. SIAM J. Comput. 39(6), 2282–2335 (2010). https:// doi. 
+org/10.1137/090749591 
+13. Esparza, J., Kretínský, J., Sickert, S.: A uniﬁed translation of linear temporal 
+logic to ω-automata. J. ACM 67(6), 33:1–33:61 (2020). https:// doi.org/10.1145/ 
+3417995
+
+--- Page 15 ---
+POPACheck: A Model Checker for Probabilistic Pushdown Automata 119
+14. Esparza, J., Kucera, A., Mayr, R.: Model checking probabilistic pushdown 
+automata. In: LICS 2004, pp. 12–21. IEEE Computer Society (2004). https:// 
+doi.org/10.1109/LICS. 2004.1319596 
+15. Etessami, K., Stewart, A., Yannakakis, M.: Polynomial time algorithms for multi-
+type branching processes and stochastic context-free grammars. In: STOC 2012, 
+pp. 579–588. ACM (2012). https:// doi.org/10.1145/2213977. 2214030 
+16. Etessami, K., Yannakakis, M.: Algorithmic veriﬁcation of recursive probabilistic 
+state machines. In: TACAS 2005. LNCS, vol. 3440, pp. 253–270. Springer (2005). 
+https:// doi.org/10.1007/978-3-540-31980- 1_17 
+17. Etessami, K., Yannakakis, M.: Recursive Markov chains, stochastic grammars, and 
+monotone systems of nonlinear equations. In: STACS 2005. LNCS, vol. 3404, pp. 
+340–352. Springer (2005). https:// doi.org/10.1007/978-3-540-31856- 9_28 
+18. Etessami, K., Yannakakis, M.: Recursive Markov chains, stochastic grammars, and 
+monotone systems of nonlinear equations. J. ACM 56(1), 1:1–1:66 (2009). https:// 
+doi.org/10.1145/1462153. 1462154 
+19. Etessami, K., Yannakakis, M.: Model checking of recursive probabilistic systems. 
+ACM Trans. Comput. Log. 13(2), 12:1–12:40 (2012). https:// doi.org/10.1145/ 
+2159531. 2159534 
+20. Etessami, K., Yannakakis, M.: Recursive Markov decision processes and recur-
+sive stochastic games. J. ACM 62(2), 11:1–11:69 (2015). https:// doi.org/10.1145/ 
+2699431 
+21. Evans, O., Stuhlmüller, A., Salvatier, J., Filan, D.: Modeling agents with proba-
+bilistic programs (2017). http:// agentmodels. org 
+22. Floyd, R.W.: Syntactic analysis and operator precedence. J. ACM 10(3), 316–333 
+(1963). https:// doi.org/10.1145/321172. 321179 
+23. Ghahramani, Z.: Probabilistic machine learning and artiﬁcial intelligence. Nat. 
+521(7553), 452–459 (2015). https:// doi.org/10.1038/NATURE14541 
+24. Goodman, N.D., Mansinghka, V.K., Roy, D.M., Bonawitz, K.A., Tenenbaum, J.B.: 
+Church: a language for generative models. In: UAI 2008, pp. 220–229. AUAI Press 
+(2008) 
+25. Goodman, N.D., Tenenbaum, J.B., The ProbMods contributors: probabilistic mod-
+els of cognition. http:// probmods. org/v2 (2016). Accessed 22 May 2025 
+26. Gordon, A.D., Henzinger, T.A., Nori, A.V., Rajamani, S.K.: Probabilistic pro-
+gramming. In: FOSE 2014, pp. 167–181. ACM (2014). https:// doi.org/10.1145/ 
+2593882. 2593900 
+27. Haccou, P., Jagers, P., Vatutin, V.A.: Branching Processes: Variation, Growth, and 
+Extinction of Populations. Cambridge University Press (2005) 
+28. Hensel, C., Junges, S., Katoen, J., Quatmann, T., Volk, M.: The probabilistic 
+model checker Storm. Int. J. Softw. Tools Technol. Transf. 24(4), 589–610 (2022). 
+https:// doi.org/10.1007/s10009- 021-00633- z 
+29. Jacobs, J.: Paradoxes of probabilistic programming: and how to condition on events 
+of measure zero with inﬁnitesimal probabilities. ACM Program. Lang. 5(POPL), 
+1–26 (2021). https:// doi.org/10.1145/3434339 
+30. Jovanovic, D., de Moura, L.: Solving non-linear arithmetic. ACM Commun. Com-
+put. Algebra 46(3/4), 104–105 (2012). https:// doi.org/10.1145/2429135. 2429155 
+31. Kucera, A., Esparza, J., Mayr, R.: Model checking probabilistic pushdown 
+automata. Log. Methods Comput. Sci. 2(1) (2006). https:// doi.org/10.2168/ 
+LMCS- 2(1:2)2006 
+32. Kwiatkowska, M.Z., Norman, G., Parker, D.: PRISM 4.0: veriﬁcation of proba-
+bilistic real-time systems. In: CAV 2011. LNCS, vol. 6806, pp. 585–591. Springer (2011). 
+https:// doi.org/10.1007/978-3-642-22110- 1_47
+
+--- Page 16 ---
+120 F. Pontiggia et al.
+33. Mandrioli, D., Pradella, M.: Generalizing input-driven languages: theoretical and 
+practical beneﬁts. Comput. Sci. Rev. 27, 61–87 (2018). https:// doi.org/10.1016/j. 
+cosrev. 2017.12.001 
+34. McConnell, J.: Analysis of Algorithms. Jones & Bartlett Publishers (2007) 
+35. de Moura, L.M., Bjørner, N.S.: Z3: an eﬃcient SMT solver. In: TACAS 2008. LNCS, 
+vol. 4963, pp. 337–340. Springer (2008). https:// doi.org/10.1007/978-3-540-78800-
+3_24 
+36. Olmedo, F., Gretz, F., Jansen, N., Kaminski, B.L., Katoen, J., McIver, A.: Con-
+ditioning in probabilistic programming. ACM Trans. Program. Lang. Syst. 40(1), 
+4:1–4:50 (2018). https:// doi.org/10.1145/3156018 
+37. Olmedo, F., Kaminski, B.L., Katoen, J., Matheja, C.: Reasoning about recursive 
+probabilistic programs. In: LICS 2016, pp. 672–681. ACM (2016). https:// doi.org/ 
+10.1145/2933575. 2935317 
+38. Pnueli, A.: The temporal logic of programs. In: FOCS 1977, pp. 46–57. IEEE 
+Computer Society (1977). https:// doi.org/10.1109/SFCS. 1977.32 
+39. Pontiggia, F.: POMC. A model checking tool for operator precedence languages 
+on omega-words. Master’s thesis, Politecnico di Milano (2021). http:// hdl.handle. 
+net/10589/ 176028 
+40. Pontiggia, F., Bartocci, E., Chiari, M.: Model checking probabilistic operator prece-
+dence automata. CoRR (2024). https:// doi.org/10.48550/ arXiv. 2404.03515 
+41. Pontiggia, F., Chiari, M., Pradella, M.: Veriﬁcation of programs with exceptions 
+through operator precedence automata. In: SEFM 2021. LNCS, vol. 13085, pp. 
+293–311. Springer, Berlin, Heidelberg (2021). https:// doi.org/10.1007/978-3-030-
+92124- 8_17 
+42. Rainforth, T.: Nesting probabilistic programs. In: Globerson, A., Silva, R. (eds.) 
+UAI 2018, pp. 249–258. AUAI Press (2018). http:// auai.org/uai2018/ proceedings/ 
+papers/ 92.pdf 
+43. Renegar, J.: On the computational complexity and geometry of the ﬁrst-order 
+theory of the reals, parts I-III. J. Symb. Comput. 13(3), 255–352 (1992). https:// 
+doi.org/10.1016/S0747- 7171(10)80003- 3 
+44. Schelling, T.C.: The Strategy of Conﬂict. Harvard University Press (1980) 
+45. Scontras, G., Tessler, M.H., Franke, M.: Probabilistic language understanding: an 
+introduction to the rational speech act framework. https:// www.problang. org/. 
+Accessed 22 May 2025 
+46. Seaman, I.R., van de Meent, J.W., Wingate, D.: Nested reasoning about 
+autonomous agents using probabilistic programs (2020). https:// arxiv.org/abs/ 
+1812.01569 
+47. Stewart, A., Etessami, K., Yannakakis, M.: Upper bounds for Newton’s method on 
+monotone polynomial systems, and P-time model checking of probabilistic one-
+counter automata. J. ACM 62(4), 30:1–30:33 (2015). https:// doi.org/10.1145/ 
+2789208 
+48. Stuhlmüller, A., Goodman, N.D.: Reasoning about reasoning by nested condition-
+ing: modeling theory of mind with probabilistic programs. Cogn. Syst. Res. 28, 
+80–99 (2014). https:// doi.org/10.1016/J.COGSYS. 2013.07.003 
+49. Vardi, M.Y., Wolper, P.: Reasoning about inﬁnite computations. Inf. Comput. 
+115(1), 1–37 (1994). https:// doi.org/10.1006/INCO. 1994.1092 
+50. Winkler, T., Gehnen, C., Katoen, J.: Model checking temporal properties of recur-
+sive probabilistic programs. In: FOSSACS 2022. LNCS, vol. 13242, pp. 449–469. 
+Springer (2022). https:// doi.org/10.1007/978-3-030-99253- 8_23
+
+--- Page 17 ---
+POPACheck : A Model Checker for Probabilistic Pushdown Automata 121
+51. Winkler, T., Katoen, J.: Certiﬁcates for probabilistic pushdown automata via opti-
+mistic
+ value iteration. In: TACAS 2023. LNCS, vol. 13994, pp. 391–409. Springer 
+(2023). https:// doi.org/10.1007/ 978-3-031-30820- 8_24 
+52. Winkler, T., Katoen, J.: On certiﬁcates, expected runtimes, and termination in 
+probabilistic
+ pushdown automata. In: LICS 2023, pp. 1–13 (2023). https:// doi. 
+org/10.1109/ LICS56636. 2023.10175714 
+53. Wojtczak, D., Etessami, K.: PReMo: An analyzer for probabilistic recursive models. 
+In:
+ TACAS 2007. LNCS, vol. 4424, pp. 66–71. Springer (2007). https:// doi.org/10. 
+1007/978-3-540-71209- 1_7 
+54. Yannakakis, M., Etessami, K.: Checking LTL properties of recursive Markov chains. 
+In:
+ QEST 2005, pp. 155–165. IEEE (2005). https:// doi.org/10.1109/ QEST.2005. 8 
+55. Zhang, Y., Amin, N.: Reasoning about “reasoning about reasoning”: semantics 
+and
+ contextual equivalence for probabilistic programs with nested queries and 
+recursion. ACM Program. Lang. 6(POPL), 1–28 (2022). https:// doi.org/10.1145/ 
+3498677 
+Open Access This chapter is licensed under the terms of the Creative Commons 
+A
+ttribution 4.0 International License (http:// creativecommons. org/licenses/ by/4.0/), 
+which permits use, sharing, adaptation, distribution and reproduction in any medium 
+or format, as long as you give appropriate credit to the original author(s) and the 
+source, provide a link to the Creative Commons license and indicate if changes were 
+made. 
+The images or other third party material in this chapter are included in the 
+chapter’s Creative Commons license, unless indicated otherwise in a credit line to the 
+material. If material is not included in the chapter’s Creative Commons license and 
+your intended use is not permitted by statutory regulation or exceeds the permitted 
+use, you will need to obtain permission directly from the copyright holder. 

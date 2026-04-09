@@ -1,0 +1,352 @@
+--- Page 1 ---
+LydiaSyft: A Compositional Symbolic Synthesis
+Framework for LTL fSpecifications
+Abstract. There has been a massive interest in utilizing Linear Tem-
+poral Logic on finite traces ( ltlf) as a specification language in the
+last decade, particularly in reactive synthesis. This highlights the need
+for a unified and efficient framework to fulfil the increasing demand for
+easy-to-use implementations of synthesis (and reasoning) algorithms for
+ltlf. To that end, we introduce LydiaSyft , an open-source compositional
+symbolic synthesis framework that integrates efficient data structures
+and techniques focused on ltlfspecifications. LydiaSyft supports both
+explicit-DFA and symbolic-DFA construction from ltlfformulas, essen-
+tial DFA manipulations, and offers an extensible framework for reactive
+synthesis of ltlfspecifications, accommodating more complex synthesis
+scenarios. We demonstrate this feasibility by supporting ltlfsynthesis
+as well as ltlfsynthesis with ltlenvironment specifications expressed
+in various forms. LydiaSyft is highly efficient and versatile, providing
+user-friendly C++ interfaces and extensive benchmarks that cater to a
+diverse audience, including computer scientists, practitioners, students,
+and the reactive synthesis research community.
+Keywords: Reactive synthesis ·Linear Temporal Logic on finite traces
+·Symbolic synthesis ·Open-source framework
+1 Introduction
+Recently, there has been massive interest in reactive synthesis for specifications
+expressed in Linear Temporal Logic on finite traces ( ltlf) [12]. The first ltlf
+synthesizer Syft demonstrated the practical scalability of ltlfsynthesis [ 25],
+which opened the door to a whole dimension of utilizing ltlfin various domains
+such as planning [ 11], robotics [ 16], and reinforcement learning [ 6]. This massive
+interest in ltlfled to an increasing demand for easy-to-use implementations of
+synthesis and reasoning algorithms for ltlfspecifications.
+We introduce LydiaSyft , an open-source software framework for ltlfreason-
+ing and synthesis. The reasoning component leverages ltlf-to-DFA construc-
+tion, reducing ltlfreasoning to automata-based reasoning. LydiaSyft adopts the
+©The Author(s) 2025
+A. Gurfinkel and M. Heule (Eds.): TACAS 2025, LNCS 15696, pp. 295–302, 2025.
+https://doi.org/10.1007/978-3-031-90643-5_15
+Shufang Zhu1(B)and Marco Favorito2
+1University of Liverpool, Liverpool, UK
+shufang.zhu@liverpool.ac.uk
+2Banca d’Italia, Rome, Italy
+marco.favorito@bancaditalia.it
+S. Zhu and M. Favorito—Equal contribution.
+
+--- Page 2 ---
+296 S. Zhu and M. Favorito
+compositional automata construction technique from Lydia [9], providing both
+explicit-state DFA and symbolic-state DFA construction and manipulation. Un-
+likeLydia andSyft, which handle only standard ltlfsynthesis (though Lydia in-
+troduces a novel compositional ltlf-to-DFA construction technique), LydiaSyft
+supports a broader range of synthesis settings for ltlfspecifications, including
+ltlfsynthesis [13,25], maximally permissive strategy of ltlfsynthesis [24], ltlf
+synthesis with simple Stability or Fairness environment specification [23], and
+ltlfsynthesis with Generalized-Reachability(1) environment specification [7,8].
+LydiaSyft leverages the symbolic game-solving techniques from Syft[25] to deal
+with the synthesis problems and offers reusable C++ libraries of two-player game
+solvers. These solvers support customization, enabling users to create and effi-
+ciently solve custom games, e.g., the reachability game solver used in robotics
+task planning [16].
+The primary goal of LydiaSyft is to provide an easy-to-extend platform for
+ltlfreasoning and synthesis, focusing on usability and extensibility over peak
+performance optimizations, such as those for standard ltlfsynthesis [21,10,15,22].
+Despite this focus, LydiaSyft features an efficient, modular C++ implementation
+of core data structures and synthesis techniques, earning it 2nd place in the
+ltlfsynthesis track of SYNTCOMP 2024. Due to space constraints, additional
+experimental results and further technical details are provided in the Appendix.
+LydiaSyft is available at https://github.com/whitemech/LydiaSyft, and the
+documentation at https://whitemech.github.io/LydiaSyft/index.html. The peer-
+reviewed artifact is available at https://zenodo.org/records/13927906.
+2 Architecture
+The main components of LydiaSyft ’s architecture are depicted in Figure 1 (All
+the techniques implemented in LydiaSyft also support Linear Dynamic Logic on
+finite traces ( ldlf) [12] specifications). LydiaSyft accepts ltlfformulas written
+in a syntax following the TLSF format [18]. Depending on the synthesis task,
+LydiaSyft takes additional inputs capturing safety (expressed in ltlf), simple
+Fairness, simple Stability, and Generalized-Reactivity(1) specifications [23,7,8].
+Explicit-state DFA construction. LydiaSyft leverages the compositional ltlf-
+to-DFA construction techniques from Lydia [9] to build an explicit-state DFA of
+the input ltlfspecification. This process involves a fully compositional tech-
+nique that aggressively minimizes partial results so that the state space of the
+DFA is kept at the minimum. A novel contribution of our integration is to pro-
+vide a better code interface to handle automata, enhancing interoperability with
+other modules and, potentially, with external tools.
+Symbolic-state DFA construction. The constructed explicit-state DFA is
+then transformed into a symbolic-state DFA , both the state space and the tran-
+sitions of which are represented symbolically in BDDs. This provides a compact
+form of the DFA, facilitating subsequent computational steps. In particular, the
+data structure used is known in the literature as partitioned DFA representa-
+tion [25]. LydiaSyft provides novel implementations for representing and manip-
+ulating symbolic DFAs using the same interface used for explicit-state DFAs.
+
+--- Page 3 ---
+LydiaSyft 297
+Explicit-state DF A
+construction
+Symbolic-state DF A
+construction
+Build suitable two-player
+games on symbolic
+automata
+Reachability game
+Buchi-Reachability game
+coBuchi-Reachability game
+coGR(1)-Reachability gameGames on DF A - Standard L TLf synthesis
+ - Maximally permissive strategy of L TLf
+ Simple Stability  -> L TLf synthesis 
+ Simple Fairness  -> L TLf synthesis 
+ - GR(1) -> L TLf synthesis
+ - (GR(1)+safety) -> (L TLf+safety) synthesis  - LTLf to explicit-state DF A construction
+ - Manipulations of explicit-state DF As
+ - LTLf to symbolic-state DF A construction
+ - Manipulations of symbolic-state DF AsLTLf formula
+(Also for safety) Simple Fairness 
+ Simple Stability
+ GR(1)
+Workflow
+FeaturesL ydiaSyft
+Benchmark
+collections
+Fig. 1: An architecture overview of LydiaSyft .
+Game construction. On top of the symbolic automata, LydiaSyft builds a two-
+player game data structure, possibly incorporating additional specifications like
+GR(1). These games form the backbone of the synthesis process, where the agent
+has to find a strategy that wins the game against the environment. LydiaSyft also
+supports adaptable player orders: agent-first or environment-first. We default to
+an agent-first setting in the rest of the paper, as in [13].
+Games on DFA for synthesis. LydiaSyft supports various synthesis scenarios
+forltlfspecifications through reducing to games on DFA, addressing diverse
+problems: ( i)reachability game , forltlfsynthesis [13,25] ( ii)maxset reachability
+game , for computing the maximally permissive strategy of ltlfsynthesis [24].
+(iii)Büchi-Reachability game , for ltlfsynthesis with simple Stability environ-
+ment specifications [23]. ( iv)coBüchi-Reachability game , forltlfsynthesis with
+simple Fairness environment specifications [23]. ( vi)coGR(1)-Reachability game ,
+forltlfsynthesis with GR(1) environment specifications, and possible addi-
+tional safety conditions to both the environment and the agent [7,8]. A computed
+winning strategy, if it exists, can be printed in DOT format.
+3 Compositional ltl f-to-DFA Construction
+The basic building block for LydiaSyft is the ltlf-to-DFA construction. This sec-
+tion details how the explicit-state/symbolic-state DFA construction parts work
+and which data structures and procedures have been used.
+
+--- Page 4 ---
+298 S. Zhu and M. Favorito
+ltlfBasics. Linear Temporal Logic on finite traces (ltlf) [12] is a specification
+language expressing temporal properties on finite, nonempty traces. In partic-
+ular, ltlfshares syntax with ltl, which is instead interpreted over infinite
+traces [20]. LydiaSyft also supports the variant that works for empty traces [4].
+Given a set of atomic propositions Prop ,ltlfformulas are generated as follows:
+φ::=tt|a|φ∧φ| ¬φ|◦φ|φUφ, where ttis the tautology, a∈Prop is an
+atom ,◦(Next) andU(Until ) are temporal operators. We make use of standard
+Boolean abbreviations, e.g., ff≡ ¬tt,∨(or) and →(implies), true andfalse.
+In addition, we define the following abbreviations: Weak Next •φ≡ ¬◦¬φ,
+Eventually ♢φ≡trueUφandAlways □φ≡falseRφ, where Ris for Release .
+The detailed semantics of ltlfcan be found in [12]. It is shown that, for every
+ltlfformula φ, one can construct a Deterministic Finite Automaton (DFA) that
+accepts exactly the same language as the ltlfformula [12]. Notably, an ltlf
+formula can be transformed into an equivalent DFA in at most 2EXPTIME [12].
+Build explicit-state DFA. An explicit-state DFA [17] is a tuple A=⟨Σ, S, s 0, δ,
+F⟩, where: Σis the alphabet, Sis a finite set of states, s0∈Sis the initial state,
+δ:S×Σ→Sis a total transition function and F⊆Sis the set of accepting
+states. Given an ltlfformula φ,LydiaSyft leverages the compositional DFA con-
+struction in Lydia [9], which inductively applies a transformation procedure to
+each subformula of φ. This construction is “bottom-up”, computing the DFAs of
+subformulas and combining them based on the ltlfoperator under transforma-
+tion. LydiaSyft extends Lydia ’s DFA library, which represents explicit-state DFAs
+using Shared Multi-terminal Binary Decision Diagrams (ShMTBDDs) [5,19]. To
+ensure compatibility with subsequent symbolic-state DFA construction, Lydi-
+aSyft provides convenient wrappers for these libraries. Notably, LydiaSyft en-
+hances explicit-state DFA manipulation by offering operations such as comple-
+ment, product, state and transition restrictions, and printing.
+Build symbolic-state DFA. Given an explicit-state DFA A= (2X∪Y, S, s 0, δ, F ),
+the corresponding symbolic-state DFA is defined as D= (X,Y,Z, ι, η, f ), where
+XandYare as in A, andZis a set of ⌈log2|S|⌉propositions, with each state
+s∈Scorresponding to an interpretation Z∈2Z. The initial state s0is repre-
+sented by ι∈2Z. The transition function η={η0, η1,···, ηk}(|η|=|Z|)maps
+interpretations X∈2X,Y∈2YandZ∈2Zto the successor state δ(s, X∪Y)
+such that ηi(X, Y, Z ) = 1 iff the value of zi∈ Z is1in the interpretation
+Z′∈2Zcorresponding to δ(s, X∪Y). Finally, the set of accepting states fis a
+Boolean formula over Z, satisfied by Ziff it corresponds to an accepting state
+s∈F[25]. LydiaSyft utilizes the same symbolic-state DFA representation as
+Syft, which represents a symbolic-state DFA Das a sequence of BDDs. However,
+while Syftmanually converts explicit-state DFAs (represented as ShMTBDDs)
+into symbolic-state DFAs by traversing the ShMTBDD and generating proposi-
+tional evaluations for each explicit state, LydiaSyft takes a different approach. It
+employs Algebraic Decision Diagrams (ADDs) [2] as an intermediate step, lever-
+aging the BDD/ADD library CUDD-3.0.0. We first convert a ShMTBDD to a
+sequence of ADDs, and then use the rich API functions, in particular BddIthBit ,
+provided by CUDD to obtain the BDD sequence, avoiding the manual conversion.
+
+--- Page 5 ---
+LydiaSyft 299
+Additionally, LydiaSyft supports a range of symbolic-state DFA manipulations,
+including complement, product, state and transition restrictions, and printing.
+4 Synthesis Settings for ltl fSpecifications
+This section outlines the synthesis settings for ltlfspecifications supported by
+LydiaSyft . LetXandYbe Boolean variables, with Xcontrolled by the envi-
+ronment and Ycontrolled by the agent. An agent strategy is a function σagn:
+(2X)∗→2Y, and an environment strategy is a function σenv: (2Y)+→2X.
+An agent strategy induces a trace π= (X0∪Y0)(X1∪Y1)··· ∈ (2X∪Y)ωif
+σagn(ϵ) =Y0andσagn(X0X1···Xj) =Yj+1for every j≥0. An environment
+strategy induces a trace π∈(2X∪Y)ωifσenv(Y0Y1···Yj) =Xjfor every j≥0.
+The unique trace induced by an agent strategy σagnand an environment strategy
+σenvis denoted by play(σagn, σenv)or simply πwhen clear from the context.
+ltlfSynthesis. The problem is described as a tuple P= (X,Y, φ), where φis
+anltlfformula over X ∪Y . Realizability of Pchecks whether ∃σagn∀σenv:∃k≥
+0.playk(σagn, σenv)|=φ. Synthesis of Pcomputes a strategy σagnif exists [13].
+LydiaSyft integrates the preprocessing techniques for ltlfsynthesis introduced
+in [21] for effective realizability check andunrealizability check . If preprocessing
+fails, LydiaSyft constructs a symbolic-state DFA Dφforφ, and builds a reacha-
+bility game G= (Dφ,Reach (t)), where tis a set of target states. LydiaSyft follows
+the symbolic synthesis technique presented in [25] to solve G= (Dφ,Reach (t)),
+providing a C++ library Reachability .h.
+ltlfMaxSet Synthesis. ltlfmaxset synthesis P= (X,Y, φ)aims at com-
+puting the maximally permissive strategy (MaxSet), which represents the set of
+all agent winning strategies [24]. As shown in [24], MaxSet for P= (X,Y, φ)
+can be solved by reasoning about the maxset reachability game on Dφ.Lydi-
+aSyft provides a C++ library ReachabilityMaxSet .h, which takes the reachability
+game G= (Dφ,Reach (t))as input and computes two nondeterministic strategies
+characterizing MaxSet, if there is at least one winning strategy.
+ltlfSynthesis with Simple Stability/Fairness Env. Specs. We now out-
+line the LydiaSyft -supported synthesis settings for ltlfspecifications involving
+two-player games on DFAs that extend beyond reachability, focusing specifically
+onltlfsynthesis with environment specifications. Following [1], we specify the
+environment behaviour by an ltlformula envand call it environment specifica-
+tion, and the agent goal is an ltlfformula φ. Formally, given an ltlformula
+env, we say that an environment strategy enforces env, written σenv▷env, if
+for every agent strategy σagnwe have play(σagn, σenv)|=env. The problem of
+ltlfsynthesis with environment specifications is to find an agent strategy σagn
+such that ∃σagn∀σenv▷env:∃k.playk(σagn, σenv)|=φ.
+Anltlformula envis considered as a simple Stability specification if it
+is of the form ♢□(α), and a simple Fairness specification if it is of the form
+□♢(α), where αis a Boolean formula involving only environment variables [23].
+As shown in [23], ltlfsynthesis with simple Stability/Fairness environment
+specification can be reduced to Büchi-Reachability and coBüchi-Reachability
+
+--- Page 6 ---
+300 S. Zhu and M. Favorito
+games on Dφ, respectively. LydiaSyft provides a C++ library BuchiReachability .h,
+which takes a constructed Büchi-Reachability game G= (Dφ,BuchiReach (t, β))
+as input, performs a nested fixpoint computation to solve the game. The library
+coBuchiReachability .hsupports coBüchi-Reachability game solving.
+ltlfSynthesis with Generalized Reachability(1) Env. Specs. GR(1) is
+a syntactic fragment of LTL, providing a powerful notion of fairness [3]. The
+problem of ltlfsynthesis with GR(1) environment specifications introduced
+in [7,8] successfully brought the advances of GR(1) synthesis and ltlfsynthesis.
+LydiaSyft employs the solution proposed in [7,8] reducing the synthesis problem
+to a coGR(1)-Reachability game. LydiaSyft also allows adding additional safety
+conditions to both the environment and the agent, expressed in ltlfformulas, as
+in [7,8]. It provides a C++ library coGR1Reachability .h, which takes a coGR(1)-
+Reachability game (with possible safety conditions) as input, reduces it further
+to a GR(1) game and uses Slugs [14] to solve it.
+An example of using LydiaSyft as a CLI tool for ltlfsynthesis is shown in
+Listing 1.1.
+Listing 1.1: Example CLI Commands for ltlfSynthesis
+# Usage :
+> LydiaSyft synthesis --help
+solve a classical LTLf synthesis problem
+Usage : LydiaSyft synthesis [ OPTIONS ]
+Options :
+-h,-- help Print this help message and exit
+--help - all Expand all help
+-f,--spec - file TEXT : FILE REQUIRED
+Specification file
+-s,--syfco - path TEXT : FILE Path to Syfco binary
+# Example of usage :
+> LydiaSyft synthesis -f examples / test . tlsf # UNREALIZABLE
+> LydiaSyft synthesis -f examples / test1 . tlsf # REALIZABLE
+5 Conclusion and Future Works
+In this paper, we presented LydiaSyft , an open-source synthesis framework that
+integrates efficient data structure and synthesis techniques, focusing on agent
+goals expressed in ltlfspecifications. We believe that LydiaSyft provides a sig-
+nificant foundation to address the increasing demand for synthesis and reasoning
+ofltlfspecifications. LydiaSyft offers researchers, practitioners, and students
+convenient access to flexible automata construction from ltlfspecifications,
+and various synthesis settings. Furthermore, it provides a unified and accessible
+approach for reproducibility. We are actively working on the framework to inte-
+grate further and future synthesis settings into LydiaSyft . Using the permissive
+MIT license, we hope that LydiaSyft will be used and extended by various com-
+munities that are closely connected to ltlfsynthesis, such as reactive synthesis,
+AI planning, and task planning in robotics.
+
+--- Page 7 ---
+LydiaSyft 301
+References
+1. Aminof, B., De Giacomo, G., Murano, A., Rubin, S.: Planning under LTL envi-
+ronment specifications. In: ICAPS. pp. 31–39 (2019)
+2. Bahar, R., Frohm, E., Gaona, C., Hachtel, G., Macii, E., Pardo, A., Somenzi, F.:
+Algebraic decision diagrams and their applications. In: ICCAD. pp. 188–191 (1993)
+3. Bloem, R., Jobstmann, B., Piterman, N., Pnueli, A., Sa’ar, Y.: Synthesis of Reac-
+tive(1) designs. J. Comput. Syst. Sci. 78(3), 911–938 (2012)
+4. Brafman, R.I., De Giacomo, G., Patrizi, F.: LTL f/LDL fnon-markovian rewards.
+In: AAAI. pp. 1771–1778 (2018)
+5. Bryant, R.E.: Symbolic Boolean Manipulation with Ordered Binary-Decision Dia-
+grams. ACM Comput. Surv. 24(3) (1992)
+6. Camacho, A., Icarte, R.T., Klassen, T.Q., Valenzano, R.A., McIlraith, S.A.: LTL
+and beyond: Formal languages for reward function specification in reinforcement
+learning. In: IJCAI. pp. 6065–6073 (2019)
+7. De Giacomo, G., Di Stasio, A., M. Tabajara, L., Y. Vardi, M., Zhu, S.: Finite-
+trace and generalized-reactivity specifications in temporal synthesis. In: IJCAI.
+pp. 1852–1858 (2021)
+8. De Giacomo, G., Di Stasio, A., Tabajara, L.M., Vardi, M.Y., Zhu, S.: Finite-trace
+and generalized-reactivity specifications in temporal synthesis. In: Formal Methods
+Syst. Des. (2023)
+9. De Giacomo, G., Favorito, M.: Compositional approach to translate LTL f/LDL f
+into deterministic finite automata. In: ICAPS. pp. 122–130 (2021)
+10. De Giacomo, G., Favorito, M., Li, J., Vardi, M.Y., Xiao, S., Zhu, S.: Ltl fsynthesis
+as AND-OR graph search: Knowledge compilation at work. In: IJCAI. pp. 2591–
+2598 (2022)
+11. De Giacomo, G., Fuggitti, F.: FOND4LTL: FOND Planning for LTL/PLTL Goals
+as a Service (2021)
+12. De Giacomo, G., Vardi, M.Y.: Linear Temporal Logic and Linear Dynamic Logic
+on Finite Traces. In: IJCAI. pp. 854–860 (2013)
+13. De Giacomo, G., Vardi, M.Y.: Synthesis for LTL and LDL on Finite Traces. In:
+IJCAI. pp. 1558–1564 (2015)
+14. Ehlers, R., Raman, V.: Slugs: Extensible GR(1) synthesis. In: CAV. Lecture Notes
+in Computer Science, vol. 9780, pp. 333–339 (2016)
+15. Favorito, M.: Forward LTL fsynthesis: DPLL at work. In: IPS-RCRA-
+SPIRIT@AIxIA. vol. 3585 (2023)
+16. He, K., Wells, A.M., Kavraki, L.E., Vardi, M.Y.: Efficient Symbolic Reactive Syn-
+thesis for Finite-Horizon Tasks. In: ICRA. pp. 8993–8999 (2019)
+17. Hopcroft, J.E., Motwani, R., Ullman, J.D.: Introduction to automata theory, lan-
+guages, and computation, 3rd Edition. Pearson international edition, Addison-
+Wesley (2007)
+18. Jacobs, S., Perez, G.A., Schlehuber-Caissier, P.: The temporal logic synthesis for-
+mat tlsf v1.2 (2023)
+19. Morten, B., Nils, K., Theis, R.: Mona: decidable arithmetic in practice (demo). In:
+FTRTFT. pp. 459–462 (1996)
+20. Pnueli, A.: The temporal logic of programs. In: FOCS. pp. 46–57 (1977)
+21. Xiao, S., Li, J., Zhu, S., Shi, Y., Pu, G., Y. Vardi, M.: On-the-fly synthesis for LTL
+over finite traces. In: AAAI. pp. 6530–6537 (2021)
+22. Xiao, S., Li, Y., Huang, X., Xu, Y., Li, J., Pu, G., Strichman, O., Vardi, M.Y.:
+Model-guided synthesis for LTL over finite traces. In: VMCAI. pp. 186–207 (2024)
+
+--- Page 8 ---
+302 S. Zhu and M. Favorito
+23. Zhu, S., Giacomo, G.D., Pu, G., Vardi, M.Y.: LTL fsynthesis with fairness and
+stability assumptions. In: AAAI. pp. 3088–3095 (2020)
+24. Zhu, S., De Giacomo, G.: Synthesis of maximally permissive strategies for LTL f
+specifications. In: IJCAI. pp. 2783–2789 (2022)
+25. Zhu, S., Tabajara, L.M., Li, J., Pu, G., Vardi, M.Y.: Symbolic LTL fSynthesis. In:
+IJCAI. pp. 1362–1369 (2017)
+Open Access. This chapter is licensed under the terms of the Creative Commons
+Attribution 4.0 International License (http://creativecommons.org/licenses/by/4.0/),
+which permits use, sharing, adaptation, distribution, and reproduction in any medium
+or format, as long as you give appropriate credit to the original author(s) and the
+source, provide a link to the Creative Commons license and indicate if changes were
+made.
+The images or other third party material in this chapter are included in the
+chapter’s Creative Commons license, unless indicated otherwise in a credit line to the
+material. If material is not included in the chapter’s Creative Commons license and
+your intended use is not permitted by statutory regulation or exceeds the permitted
+use, you will need to obtain permission directly from the copyright holder.
+

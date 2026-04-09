@@ -1,0 +1,658 @@
+--- Page 1 ---
+Copyless Cost-Register Automata: Structure,
+Expressiveness, and Closure Properties
+Filip Mazowiecki1and Cristian Riveros2
+1 University of Warsaw, Poland
+2 Pontiﬁcia Universidad Católica de Chile, Chile
+Abstract
+Cost register automata (CRA) and its subclass, copyless CRA, were recently proposed by Alur
+et al. as a new model for computing functions over strings. We study structural properties,
+expressiveness, and closure properties of copyless CRA. We show that copyless CRA are strictly
+less expressive than weighted automata and are not closed under reverse operation. To ﬁnd a
+better class we impose restrictions on copyless CRA, which ends successfully with a new robust
+computational model that is closed under reverse and other extensions.
+1998 ACM Subject Classiﬁcation F.4.1. Computational logic
+Keywords and phrases Cost Register Automata, Weighted Automata, Semirings
+Digital Object Identiﬁer 10.4230/LIPIcs.STACS.2016.53
+1 Introduction
+Weighted automata (WA) are an expressible extension of ﬁnite state automata for computing
+functions over strings. They have been extensively studied since Schützenberger [ 17], and its
+decidability problems [ 12,1], extensions [ 7], logic characterization [ 7,11], and applications [ 14,
+6] have been deeply investigated.
+Unfortunately, there exists a lack of research on understanding subclasses of functions
+below the class of WA. Recently Alur et al. [ 2,4] introduced the computational model of
+cost register automata (CRA), an alternative model for computing functions over strings.
+The idea of this model is to enhance deterministic ﬁnite automata with registers that can be
+combined by using operations over a ﬁxed semiring. In contrast to previous models with
+counters, CRA blindly updates its registers on each transition by using values computed on
+the previous state. In [ 2], it was shown that CRA are strictly more expressive than WA.
+Interestingly, it was also shown that a natural subfragment of CRA is equally expressive to
+WA, which gives a new representation for understanding this class of functions.
+A new representation for WA allows to study natural subclasses of functions that could
+not be proposed from the classical perspective. This is the case for the class of copyless CRA
+that where proposed in [ 2]. The idea of the so-called copyless restriction is to use each register
+at most once in every transition. Intuitively, this automaton model is register-deterministic
+in the sense that it cannot copy the content of each register, similar to a deterministic
+ﬁnite automaton that cannot make a copy of its current state. The copyless restriction
+was successfully used in the context of streaming tree transducers [ 3] for capturing MSO-
+transductions over trees and it was proposed as a natural restriction over CRA. Furthermore,
+copyless CRA are an excellent candidate for having good decidability properties. It was
+stated in [ 2] that the existing proofs of undecidability in WA rely on the unrestricted non-
+deterministic nature of the model and, thus, it is believed that copyless CRA might have good
+decidability properties. Despite that this is a natural and interesting model for computing
+©Filip Mazowiecki and Cristian Riveros;
+licensed under Creative Commons License CC-BY
+33rd Symposium on Theoretical Aspects of Computer Science (STACS 2016).
+Editors: Nicolas Ollinger and Heribert Vollmer; Article No.53; pp.53:1–53:13
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+53:2 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+functions, research on this line has not been pursued further and not much is known about
+copyless CRA.
+In this paper we study the structure, expressiveness, and closure properties of copyless
+CRA. We start by developing a toolkit of structural properties for analysing copyless CRA.
+Towards this goal, we introduce a normal form on the registers of copyless CRA. We show
+that every copyless CRA can be put in this normal form which considerably simpliﬁes the
+analysis of this model. With this restriction we provide further results that explain the ﬂow
+and grow of registers content during a run. Speciﬁcally, we prove that from its normal form
+one can identify a subset of registers, called stableregisters, that cannot be reset and are
+constantly growing during a run. We show that stable registers lead the behaviour of copyless
+CRA and that they are crucial to analyse the growing rate of loops.
+Then we turn our attention on studying the expressivity of copyless CRA. As a proof of
+concept, weusethestructuralpropertiesdevelopedinthispapertocomparetheexpressiveness
+of copyless CRA with the class of functions deﬁned by WA. We show that copyless CRA are
+strictly less expressive than WA. Furthermore, we show that copyless CRA are strictly less
+expressive than regular cost functions, a class of functions introduced in [ 2]. It is important
+to stress that it was previously believed that copyless CRA was strictly less expressive than
+WA, but this is the ﬁrst paper which proves this statement formally.
+In the last sections, we focus on the robustness of copyless CRA in terms of its closure
+properties. The robustness of a computational model is usually measured in terms of how
+stable is the model when new operations or extensions are allowed. Deterministic ﬁnite
+automata are a good example for the previous statement: they are closed under several
+extensions/operations like set operations (e.g union, intersection), diﬀerent ﬂavours of non-
+determinism, regular look-ahead, two-directions (in particular, under reverse), etc. These
+properties are probably one of the reasons behind its fruitful connection with MSO logic or
+ﬁnite monoids [ 5,16]. Unfortunately, this measure of robustness put copyless CRA in an
+undesirable position: our expressiveness result shows that copyless CRA are not closed under
+reverse and, furthermore, under any extensions regarding directions of its reading head. This
+implies that the behaviour of copyless CRA is asymmetric with respect to the input, which
+buried our expectations of a robust class for computing functions.
+The lack of good closure properties for copyless CRA fuels our interest in its subclasses.
+We consider a natural fragment of copyless CRA, called bounded alternation copyless CRA
+(BAC). This class was previously introduced in [ 13] and characterized in terms of the so-called
+Maximal Partition logic . Interestingly, this fragment of copyless CRA does not lose much
+in terms of expressivity. In fact, most examples in [ 2] and in this paper are deﬁnable by
+BAC. Furthermore, all the structural toolkit introduced for copyless CRA also extend for
+this class. In contrast to copyless CRA, BAC are robust under several and natural extensions
+previously considered in [ 2,3]. Speciﬁcally, we show that BAC are closed under unambiguous
+non-determinism, regular look-ahead and under reverse. These results emphasize that BAC
+is a promising computational model in the world of quantitative functions and show that
+there exists a rich theory of functions below the class of WA.
+Organization. In Section 2 we introduce copyless CRA and some basic deﬁnitions. In
+Section 3 we introduce the normal form and analyze the content of registers during the runs
+of copyless CRA. Then we show in Section 4 that the class of copyless CRA is not closed
+under reverse. In Section 5 we deﬁne BAC and show some closure properties of this class.
+We conclude in Section 6 with possible directions for future research. Due to the page limit
+all full proofs are moved to the appendix, available online.
+
+--- Page 3 ---
+F. Mazowiecki and C. Riveros 53:3
+2 Preliminaries
+In this section, we recall the deﬁnitions of cost register automata and the copyless restriction.
+We start with the deﬁnitions of expressions and substitutions over a semiring that are
+standard in this area.
+Semirings and functions. A semiring is a structure S=(S,⊕,⊙,0,1)where(S,⊕,0)is a
+commutative monoid, (S−{0},⊙,1)is a monoid, multiplication distributes over addition,
+and0⊙s=s⊙0=0for eachs∈S. If the multiplication is commutative, we say that
+Sis commutative. In this paper, we always assume that Sis commutative. For the
+sake of simplicity, we usually denote the set of elements Sby the name of the semiring
+S. As standard examples of semirings we will consider the semiring of natural numbers
+N(+,⋅)=(N,+,⋅,0,1), themin-plus semiring N∞(min,+)=(N∞,min,+,∞,0)and themax-
+plus semiring N−∞(max,+)=(N−∞,max,+,−∞,0)which are standard semirings in the ﬁeld
+of weighted automata [8].
+In this paper, we study the speciﬁcation of functions from strings to values, namely, from
+Σ∗toS. We say that a function f∶Σ∗→Sis deﬁnable by a computational system A(e.g.
+weighted automaton, or CRA) if f(w)=/uni27E6A/uni27E7(w)for anyw∈Σ∗, where /uni27E6A/uni27E7is the semantics
+ofAover strings. For any string w, we denote by wrthe reverse string. We say that a class
+of functions Fisclosed under reverse [2] if for every f∈Fthere exists a function fr∈F
+such thatfr(wr)=f(w)for allw∈Σ∗.
+Variables, expressions, and substitutions. Fix a semiring S=(S,⊕,⊙,0,1)and a set of
+variables Xdisjoint from S. We denote by Expr(X)the set of all syntactical expressions that
+can be deﬁned with X, constants in S, and the binary operations ⊕,⊙. For any expression
+e∈Expr(X)we denote by Var(e)the set of variables in e. We call an expression e∈Expr(X)
+aground expression ifVar(e)=/uni2205. For any ground expression we deﬁne /uni27E6e/uni27E7∈Sto be the
+evaluation of ewith respect to S.
+Asubstitution overXis deﬁned as a mapping σ∶X→Expr(X). We denote the set
+of all substitutions over XbySubs(X). Aground substitution σis a substitution where
+the expression σ(x)is ground for every x∈X. Any substitution σcan be extended to a
+mapping ˆσ∶Expr(X)→Expr(X)such that, for every e∈Expr(X),ˆσ(e)is the resulting
+expression e[σ]of substituting each x∈Var(e)by the expression σ(x). For example, if
+σ(x)=2xandσ(y)=3y, ande=x+y, then ˆσ(e)=2x+3y. Using the extension ˆσ, we
+can deﬁne the composition substitution σ1○σ2of two substitutions σ1andσ2such that
+σ1○σ2(x)=ˆσ1(σ2(x))for eachx∈X.
+A valuation is deﬁned as a substitution of the form ν∶X→S. We denote the set of
+all valuations over XbyVal(X). Clearly, any valuation νcomposed with a substitution σ
+deﬁnes a ground substitution, since Var(ν○σ(x))=/uni2205for allx∈X.
+In this paper, we say that two expressions e1ande2are equal (denoted by e1=e2) if
+they are equal up to evaluation equivalence, that is, /uni27E6ν○e1/uni27E7=/uni27E6ν○e2/uni27E7for every valuation
+ν∈Val(X). Similarly, we say that two substitutions σ1andσ2are equal (denoted by σ1=σ2)
+ifσ1(x)=σ2(x)for everyx∈X.
+Cost register automata. A cost register automaton (CRA) over a semiring S[2] is a tuple
+A=(Q,Σ,X,δ,q 0,ν0,µ)whereQis a set of states, Σis the input alphabet, Xis a set of
+variables (we also call them registers), δ∶Q×Σ→Q×Subs(X)is the transition function,
+q0is the initial state, ν0∶X→Sis the initial valuation, and µ∶Q→Expr(X)is the ﬁnal
+STACS 2016
+
+--- Page 4 ---
+53:4 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+•x,y∶=0
+max{x,y}ax∶=0
+y∶=max{x,y}
+bx∶=x+1
+y∶=yx,y,z∶=0
+z+max{x,y}#x,y∶=0
+z∶=z+max{x,y}
+ax∶=x+1
+by∶=y+1
+A1 A2
+Figure 1 Examples of copyless cost-register automata.
+output function. A conﬁguration of Ais a tuple (q,ν)whereq∈Qandν∈Val(X)represents
+the current values in the variables of A. Given a string w=a1...an∈Σ∗, the run of Aover
+wis a sequence of conﬁgurations: (q0,ν0)a1/leftrightline→(q1,ν1)a2/leftrightline→...an/leftrightline→(qn,νn)such that, for every
+1≤i≤n,δ(qi−1,ai)=(qi,σi)andνi(x)=/uni27E6νi−1○σi(x)/uni27E7for eachx∈X. The output of Aover
+w, denoted by /uni27E6A/uni27E7(w), is/uni27E6νn○µ(qn)/uni27E7.
+The run of Aoverwcan be equally deﬁned in terms of ground expressions rather than
+values. A ground conﬁguration of Ais a tuple (q,ς)whereq∈Qandς∈Subs(X)is a ground
+substitution. Given a string w=a1...an∈Σ∗, the ground run of Aoverwis a sequence of
+ground conﬁgurations: (q0,ς0)a1/leftrightline→...an/leftrightline→(qn,ςn)such that for 1≤i≤n,δ(qi−1,ai)=(qi,σi),
+ς0=ν0andςi(x)=ςi−1○σi(x)for eachx∈X. We denote the output ground expression of A
+over a string wby/divides.alt0A/divides.alt0(w)=ςn○µ(qn). Notice that, in contrast to ordinary runs, ground runs
+keep ground expressions as partial values of the run. It is easy to see that /uni27E6A/uni27E7(w)=/uni27E6/divides.alt0A/divides.alt0(w)/uni27E7.
+We deﬁne the transitive closure of the transition function δ∗∶Q×Σ∗→Q×Subs(X),
+by induction over the word-length. Formally, δ∗(q,/epsilon1)=(q,id)where/epsilon1is the empty word
+andid(x)=xfor allx∈X; andδ∗(q1,w⋅a)=(q3,σ○σ′), whenever δ∗(q1,w)=(q2,σ)and
+δ(q2,a)=(q3,σ′). For a CRA Awe deﬁne the set Subs(A)of all substitutions in Asuch
+thatσ∈Subs(A)if, and only if, δ∗(p,w)=(q,σ)for somep,q∈Qandw∈Σ∗.
+Copyless restriction and copyless CRA. We say that an expression e∈Expr(X)iscopyless
+ifeuses every variable from Xat most once. For example, x⋅(y+z)is copyless but x⋅y+x⋅z
+is not copyless (because xis mentioned twice). Notice that the copyless restriction is a
+syntactical constraint over expressions. Furthermore, we say that a substitution σiscopyless
+if for every x∈Xthe expression σ(x)is copyless and Var(σ(x))∩Var(σ(y))=/uni2205for every
+pair of diﬀerent registers x,y∈X. Copyless substitutions, similar to copyless expressions, are
+restricted in such a way that each variable is used at most once in the whole substitution.
+A CRA Ais called copyless if for every transition δ(q1,a)=(q2,σ)the substitution σis
+copyless; and for every state q∈Qthe expression µ(q)is copyless, where µis the output
+function of A. In other words, every time Aupdates registers or outputs a value, each
+register can be used only once. It is straightforward that if Ais copyless then all substitutions
+σ∈Subs(A)are also copyless. In the following, we give an example of a copyless CRA.
+IExample 1. LetSbe the max-plus semiring N−∞(max,+)andΣ={a,b}. Consider the
+functionf1that for a given string w∈Σ∗computes the longest substring of b’s. This can be
+easily deﬁned by the CRA A1in Figure 1. The CRA A1stores in the x-register the length
+of the last suﬃx of b’s and in the y-register the length of the longest substring of b’s seen so
+far. One can easily check that A1is a copyless CRA. Indeed, each substitution is copyless
+and the ﬁnal output expression max{x,y}is copyless as well.
+IExample 2. LetSbe the max-plus semiring N−∞(max,+)andΣ={a,b,#}. Consider
+the function f2such that, for any w∈Σ∗of the form w0#w1#...#wnwithwi∈{a,b}∗, it
+
+--- Page 5 ---
+F. Mazowiecki and C. Riveros 53:5
+q1 q2
+B1ax∶=x+1
+y∶=ybx∶=y+1
+y∶=x
+bx∶=y
+y∶=x+1ax∶=x
+y∶=y+1idx⇄y
+B2ax∶=x+1aaaa
+y∶=ybx∶=x
+y∶=y+1
+bx∶=x
+y∶=y+1ax∶=x+1
+y∶=y
+Figure 2 Examples of copyless cost-register automata regarding normal form.
+computes the maximum number of a’s orb’s for each substring wi(i.e.max{/divides.alt0wi/divides.alt0a,/divides.alt0wi/divides.alt0b}) and
+then it sums these values over all substrings wi, that is,f2(w)=∑n
+i=0max{/divides.alt0wi/divides.alt0a,/divides.alt0wi/divides.alt0b}. One
+can check that the copyless CRA A2in Figure 1 computes f2. The copyless CRA A2follows
+similar ideas to A1: the registers xandycount the number of a’s andb’s, respectively, in
+the longest suﬃx without #and the register zstores the partial output without considering
+the last suﬃx of a’s andb’s.
+In the diagram of A2, we omit an assignment if a register is not updated (i.e. it keeps its
+previous value). For example, for the a-transition we omit the assignments y∶=yandz∶=z
+for the sake of presentation of the CRA. One should keep in mind these assignments because
+of the copyless restriction.
+Trim assumption. For technical reasons, in this paper we assume that our ﬁnite automata
+and cost register automata are always trim, namely, all their states are reachable from some
+initial states (i.e., they are accessible) and they can reach some ﬁnal state (i.e., they are
+co-accessible). It is worth noticing that verifying if a state is accessible or co-accessible is
+reduced to a reachability test in the transition graph [ 15] and this can be done in NLogSpace .
+Thus, we can assume without lost of generality that all our automata are trimmed.
+3 Structural Properties of Copyless CRA
+Fix a copyless CRA A=(Q,Σ,X,δ,q 0,ν0,µ). In this section we analyze the structure of A
+and develop some machinery that will be useful in Section 4. These results help to understand
+the internal structure of copyless CRA.
+Normal form. LetAbe a copyless CRA and let /uni2AAFbe a predeﬁned linear order over X.
+We say that σ∈Subs(A)is in normal form with respect to /uni2AAFifx/uni2AAFyfor allx∈Xand
+ally∈Var(σ(x)). In other words, all variables mentioned in σ(x)are greater or equal to
+xwith respect to /uni2AAF. Furthermore, we write that Ais innormal form with respect to /uni2AAFif
+everyσ∈Subs(A)is in normal form with respect to /uni2AAF. For example, the copyless CRA in
+Example 1 is in normal form with respect to the order y/uni2AAFx. Throughout the paper we
+assume that every set of registers Xis given with a linear order /uni2AAFX. Instead of writing that
+Aorσ∈Subs(A)are in normal form with respect to /uni2AAFXwe write in short that Ais in
+normal form, and that σis in normal form.
+IExample 3. Consider the set of registers X={x,y}with the order x/uni2AAFy. The copyless
+CRAB1in Figure 2 is not in normal form, because of the b-transitions. On the other hand,
+the copyless CRA B2is in normal form. For both automata we omit the initial states, initial
+valuations and ﬁnal output functions because they are not relevant for the discussion.
+In the previous example, the automaton B1uses the registers xandyto count the
+number ofa’s andb’s. However, depending on the current state both registers have either
+STACS 2016
+
+--- Page 6 ---
+53:6 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+the number of a’s or the number of b’s. It is clear that one would like to avoid this type
+of behavior in a theoretical analysis. Intuitively, one register should always contain the
+number ofa’s and the other register the number of b’s. One can clearly transform B1to an
+automaton in normal form by exchanging the use of xandyin the transitions and encoding
+this permutation between registers in the states. This is precisely what the automaton B2
+does. In the following result, we generalize this idea for all copyless CRA.
+IProposition 4. For every copyless CRA Athere exists a copyless CRA in normal form
+A′with the same set of registers such that they output the same ground expressions for all
+words and thus recognize the same function. The number of states in A′can be bounded
+exponentially in the size of the automaton A.
+Proof (sketch). For a copyless CRA A=(Q,Σ,X,δ,q 0,ν0,µ), we deﬁne the set of states for
+A′byQ′=Q×{ρ/divides.alt0ρis a permutation of the set X}. Letδ(q,a)=(p,σ)be a transition.
+The idea is to ﬁnd a permutation ρsuch that the new substitution σ′(x)=σ(ρ(x))is a
+substitution in normal form. Such a permutation always exists because Asatisﬁes the
+copyless restriction. Intuitively, the substitutions σ′andσstore the same values in the
+registers, but the corresponding values might be in diﬀerent registers. To enable A′to ﬁnd
+the proper value of every register, we store the permutation ρin the state p(i.e., the one
+deﬁned by the substitution σ) and update the transition of Aaccordingly. J
+Stable registers and reset substitutions. Let now Abe a copyless CRA in normal form.
+During a run of Athe content of its registers ﬂows from higher to lower registers with
+respect to the total order /uni2AAF. This does not necessarily mean that the content of all registers
+eventually reaches the /uni2AAF-minimum register. For example, if all substitutions in Aare of the
+formσ(x)=x⊕kfor somek∈S, then each register will store just its own content during the
+whole run. Intuitively, in this example each register is “stable” with respect to the content
+ﬂow of A, since each register never passes its value to lower registers. This idea motivates
+the notion of stable registers which are essential to understand the behaviour and output of
+copyless CRA. Let σ∈Subs(A)be a copyless substitution in normal form. We say that a
+registerxisσ-stable(or stable on σ) ifx∈Var(σ(x)). More general, we write that a register
+xisstableinAifxisσ-stable for all substitutions σ∈Subs(A).
+Stable registers play a crucial role in the behavior of copyless CRA. We show that they
+are the only registers whose value always depends on the whole word. Namely, we can always
+“reset” the value of non-stable registers to a constant. For instance, the automaton A1in
+Example 1 resets the register xto 0 each time the symbol ais read. On the other side,
+the register yis stable and it cannot be reset to a constant. In fact its value only grows or
+remains the same during the run of A1.
+We formalize this idea of reseting the content of registers as follows: a substitution
+σ∈Subs(A)is aresetsubstitution if Var(σ(x))=/uni2205for all nonσ-stable registers x. We say
+that a substitution σ∈Subs(A)is anA-reset substitution ifVar(σ(x))=/uni2205for all non-stable
+registers in A.
+In the next result, we say that a copyless CRA is strongly connected if all states are
+mutually reachable in the transition graph of A.
+IProposition 5. LetAbe a copyless and strongly connected CRA in normal form. Then
+for allq,q′∈Qthere exists wq,q′∈Σ∗and a substitution σsuch thatδ∗(q,wq,q′)=(q′,σ)and
+σis anA-reset substitution. Furthermore, there exists wq,q′containing all letters in Σ.
+The strongly connected restriction is a technical assumption to be sure that the result holds
+for every pair of states. Of course, the result also holds if we restrict to the strongly connected
+
+--- Page 7 ---
+F. Mazowiecki and C. Riveros 53:7
+components of A. For instance in Example 1 it suﬃces to take the word w=agiven that
+the substitution deﬁned by the a-transition is an A-reset substitution.
+Growing rate of stable registers in a cycle. The behavior of cycles in a computation
+model is always important; most of the decidability results can be derived from a good
+understanding of its cyclic behavior. Here, we study how the content of stables registers
+behaves through cycles. We say that a word w∈Σ∗is a cycle over a state q∈QinAif
+δ∗(q,w)=(q,σ)for some substitution σ. Of course, the iteration of a cycle w(i.e.wnfor
+anyn≥1) is also a cycle over qand it satisﬁes δ∗(q,wn)=(q,σn)for anyn. The next result
+shows that by iterating a cycle one can always “reset” the content of non σ-stable registers.
+ILemma 6. LetAbe in normal form and σ∈Subs(A)a copyless substitution in normal
+form. There exists N≥0such thatσNis a reset substitution.
+In the next proposition, we study the growing behavior of stable registers when a reset
+substitution is iterated. This will be useful to understand the behavior of copyless CRA
+inside their cycles. For this result we need an additional assumption that automata do not
+use0in their expressions. Moreover the expressions in our semirings that do not use 0
+do not evaluate to 0. This is a technical assumption to avoid having 0in the registers of
+CRA. Notice that the arctic-semiring N−∞(max,+)satisﬁes 0=−∞and that the functions
+we deﬁned in Section 4 do not output −∞. Also in N−∞(max,+)expressions deﬁned with
+max,+andNdo not evaluate to −∞. Thus this assumption does not inﬂuence the results in
+Section 4.
+IProposition 7. LetAbe in normal form, σ∈Subs(A)a reset substitution and xaσ-stable
+register. Then there exist c,d∈Swithc≠0such that for every i≥0we have:
+σi+1(x)=(ci⊙σ(x))⊕/parenleft.alt1d⊙i−1
+/uni2295.big.disp
+j=0cj/parenright.alt1.
+In particular, for the semiring N−∞(max,+)(i.e.⊙=+and⊕=max) one can check that
+this is equivalent to σi+1(x)=max{i⋅c+σ(x),(i−1)⋅c+d}, which shows that, intuitively,
+theσ-stable registers grow linearly when the substitution σis cycling. For instance, consider
+the copyless CRA in Example 1 and let σbe the substitution deﬁned by the b-transition.
+One can easily check that the register xisσ-stable since σ(x)=x+1. Furthermore,
+σi+1(x)=x+i+1, which is as in Proposition 7 (take c=1,d=0). This is precisely the
+expected behaviour of the copyless CRA on a long sequence of b’s.
+4 Inexpressibility of Copyless CRA
+In this section, we use the techniques discussed previously to show a function that is not
+deﬁnable by any copyless CRA. This function can be deﬁned by a weighted automaton, which
+will prove that copyless CRA are less expressive than weighted automata. Interestingly, the
+“reverse” of this function is deﬁnable by copyless CRA. From this, we will conclude that
+copyless CRA are not closed under reverse.
+Consider the function fBgiven by the copyless CRA BoverΣ={a,b,#}andN−∞(max,+)
+in Figure 3. To understand fB, let us deﬁne the output of Bformally. For any w∈Σ∗, letk
+be the number of #-symbols in w. Furthermore, for 0<i<kletniandmibe the number of
+a’s andb’s, respectively, between the i-th and (i+1)-th occurrence of #inw. Additionally,
+letn0,m0,nk,mkbe the numbers of a’s andb’s before and after the ﬁrst and last #inw.
+STACS 2016
+
+--- Page 8 ---
+53:8 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+x,y∶=0ax∶=x+1
+y∶=y
+#x∶=max{x,y}
+y∶=0
+bx∶=x
+y∶=y+1max{x,y}
+Figure 3 CRA B.
+By the deﬁnition of Bin Figure 3, one can easily check that fBis deﬁned by fB(/epsilon1)=0, for
+the empty word /epsilon1, and
+fB(w)= max
+j∈{−1,0,...,k }/uni23A7/uni23AA/uni23AA/uni23A8/uni23AA/uni23AA/uni23A9mj+k
+/summation.disp
+i=j+1ni/uni23AB/uni23AA/uni23AA/uni23AC/uni23AA/uni23AA/uni23AD(1)
+forw≠/epsilon1, wherem−1=0. From the above deﬁnition, one can also give a formal deﬁnition
+offR
+B, the reverse function of fB, which is given by reversing the role of niandmjin (1).
+Formally, one can easily check that fR
+Bis deﬁned by fR
+B(/epsilon1)=0, and
+fR
+B(w)= max
+j∈{0,...,k,k+1}/braceleft.alt4j−1
+/summation.disp
+i=0ni+mj/braceright.alt4, (2)
+forw≠/epsilon1, wheremk+1=0. The following theorem is the main result of this section.
+ITheorem 8. The function fR
+Bis not recognizable by any copyless CRA.
+Proof (sketch). By contradiction, suppose that A=(Q,Σ,X,δ,q 0,ν0,µ)is a copyless CRA
+in normal form with respect to /uni2AAF, which recognizes (2). To prove Theorem 8, we analyze the
+content of the registers after reading the word w0⋅w(j,s), where
+w(j,s)=(wa⋅(ana⋅j)⋅w′
+a)s⋅wb⋅(bnb⋅j2)⋅w′
+b⋅wa⋅(ana⋅j)⋅w′
+a.
+forj,s∈N. To understand the construction of w(j,s), consider the following diagram, which
+is a fragment of A.
+qa q qb anaw′
+a
+wawb
+w′
+bbnb
+First, the preﬁx w0is used to reach the connected component of Ato make the Proposition 5
+work andqis the state that Areaches after reading w0. By a standard automata argument,
+one can ﬁnd a state qasuch that for some number nathe wordanais a cycle over qa. Similarly
+there is a state qband a number nbsuch thatbnbis a cycle over qb. The words waandwb
+go fromqto the states qaandqb, respectively, and the words w′
+aandw′
+bgo back to q. To
+analyze the run of Aonw(j,s)we need only the component above.
+The next step is to study the asymptotic growing of fR
+Boverw0⋅w(j,s)in terms of j
+ands. For this, the most important fragments of w(j,s)are the subwords ana⋅jandbnb⋅j2.
+To omit technical diﬃculties we do not discuss further here the remaining parts of w(j,s).
+In a nutshell, the words wa,wb,w′
+a, andw′
+bare the reset words discussed in Proposition 5.
+Recall that the size of these words does not depend on jandsand they contain all symbols
+inΣ, in particular #.
+
+--- Page 9 ---
+F. Mazowiecki and C. Riveros 53:9
+We can estimate the output of fR
+Boverw0⋅w(j,s)in terms of jandsby using (2). Given
+that the subwords ana⋅jandbnb⋅j2are separated by #(by Proposition 5), we conclude that
+the last sequence of a’s is not included in the sum. This is because the maximum in (2) is
+achieved when mjcontains the subword bnb⋅j2and thus the last sequence of a’s will not be
+included in the ﬁnal sum. Then one can prove that the value of the output of fR
+Boverw(j,s)
+is equal to
+fR
+B(w)=nb⋅j2+s⋅na⋅j+O(1).
+There are some a’s andb’s in the remaining parts of w(j,s)andw0that contribute to the
+output, but these are constant terms that can be hidden in O(1).
+By Lemma 6 we can take nabig enough such that if δ∗(qa,ana)=(qa,σa)then the
+substitution σais a reset substitution. Let xbe a stable register. By Proposition 7 we can
+approximate the expressions σj+1
+a(x)forjbig enough. In the semiring N−∞(max,+)the
+content ofxwhen reading this loop can be estimated by
+σj+1
+a(x)=max{j⋅cx+σa(x)+O(1), j⋅cx+O(1)}
+for some constant cx. Intuitively, this means that for jbig enough after reading ana⋅jthe
+content of every stable register xis growing linearly to jor the content of xbecomes linear
+inj. Similarly we can estimate the content of stable registers after reading bj2. The word
+w(j,s)ends withw′
+a, which resets the content of all non-stable registers to a constant, thus
+we can estimate their content with O(1).
+Consider now jas a variable and sas a ﬁxed parameter in w(j,s). By the previous
+analysis the contents of the stable registers after reading w(j,s)are quadratic functions in
+j, where the coeﬃcient of jcomes from the growth of registers when reading the subwords
+ana⋅j. We show that in every register either the coeﬃcient of jis small compared to s⋅na, or
+linear in (s+1)⋅na. In both cases the output function cannot combine the registers to get a
+polynomial with s⋅naas a coeﬃcient of j. Finally, for any Awe can ﬁx the parameter sto
+be big enough comparing to the number of registers. J
+From Theorem 8 we immediately get the following corollary.
+ICorollary 9. There exists a semiring Ssuch that the class of functions recognizable by
+copyless register automata over Sis not closed under reverse.
+In [13] it is shown that copyless CRA are contained in weighted automata (WA). The
+previous results delimit the expressiveness of copyless CRA: they are strictly less expressive
+than WA. It is easy to deﬁne fR
+Bby a polynomial ambiguous weighted automaton (i.e. a
+subclass of WA where the numbers of accepting runs is bounded by a polynomial function),
+which shows that copyless CRA is a strict subclass of weighted automata. Furthermore,
+in [2] Alur et al. introduced the class of regular cost functions deﬁned in terms of streaming
+string-to-tree transducers (see [ 2] for more details). This class contained copyless CRA but it
+was left open whether this inclusion is strict or not. Since the class of regular cost functions
+is closed under reverse operation, Corollary 9 proves that copyless CRA are strictly contained
+in the class of regular cost functions.
+ICorollary 10. The class of functions deﬁned by copyless CRA is strictly contained in the
+class of functions deﬁned by weighted automata and in the class of regular cost functions.
+A natural question is whether the class of functions deﬁned by copyless CRA is strictly
+contained in the class of functions deﬁned by polynomial ambiguous weighted automata. We
+STACS 2016
+
+--- Page 10 ---
+53:10 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+conjecture that copyless CRA can express functions that are not expressible by polynomial
+ambiguous automata. A candidate function is the copyless CRA A2in Example 2 for which
+it seems that one needs exponentially many runs in order to be computed by a weighted
+automaton.
+5 Bounded Alternation Copyless CRA
+Given that copyless CRA are not closed under reverse operation we look for a robust subclass
+of copyless CRA. The proof of Theorem 8 suggests that the alternation between semiring
+operations is the reason why copyless CRA cannot replicate the behavior of the CRA Bin
+backward mode: Bcan sum the number of a- andb-symbols to maximize each time that a
+#-symbol is read, but it cannot do the same alternation of operations when the word is read
+in the other direction. This fact inspires the deﬁnition of bounded alternation copyless CRA,
+a strict subclass of copyless CRA where the output is restricted to expressions with bounded
+alternation. This class was proposed in [ 13] and characterized in terms of the so-called
+Maximal Partition logic . In this section, we show that bounded alternation copyless CRA
+has also good closure properties; this class is closed under unambiguous non-determinism,
+regular look-ahead and, moreover, under reverse.
+Thealternation ofe∈Expr(X)is deﬁned as the maximum number of switches between ⊕
+and⊙operations over all branches of the parse-tree of e. Formally, let ⊗∈{⊕,⊙}and¯⊗be
+the dual operation of ⊗inS. We deﬁne the set of expressions Expr⊗
+0(X)with 0-alternation
+byExpr⊗
+0=X∪S. For any N≥1, we deﬁne the set of expressions Expr⊗
+N(X)as the
+⊗-closure of Expr¯⊗
+N−1(X), namely, Expr⊗
+N(X)is the minimal set of expressions that contains
+Expr¯⊗
+N−1(X)and satisﬁes that e1⊗e2∈Expr⊗
+N(X)whenevere1,e2∈Expr⊗
+N(X). We deﬁne
+ExprN(X)=Expr⊕
+N(X)∪Expr⊙
+N(X), namely, the set of all expressions with alternation
+bounded by N.
+We say that a copyless CRA Ahasbounded alternation if the number of alternations
+of all ground expressions output by Ais uniformly bounded by a constant, that is, there
+existsNsuch that /divides.alt0A/divides.alt0(w)∈ExprN(X)for everyw∈Σ∗. A copyless CRA Ais called a
+bounded alternation copyless CRA (BAC) if Ahas bounded alternation. All the examples of
+copyless CRA presented in Section 2 have bounded alternation. For example, one can easily
+check that the alternation of the copyless CRA in Example 1 is bounded by 2.
+The alternation of any expression can be easily derived just by counting what is the
+maximum number of alternation between ⊕and⊙. However, it is not directly clear how
+to check if a copyless CRA has bounded alternation from its deﬁnition. We show that this
+semantical property can be veriﬁed in NLogSpace in the size of a copyless CRA.
+IProposition 11. The problem of deciding whether a copyless CRA has bounded alternation
+can be computed in NLogSpace . Furthermore, if a copyless CRA has bounded alternation,
+the alternation is bounded by /divides.alt0Q/divides.alt0⋅max{alt(σ) /divides.alt0∃.p,q∈Q. δ(q,a)=(p,σ)}where alt(σ)is
+the alternation of σ.
+Closure under unambiguous non-determinism. We ﬁrst extend the model of bounded
+alternation copyless CRA with non-determinism. The class CRA was designed as a determ-
+inistic model in contrast to weighted automata, where non-determinism plays a crucial role.
+Thus, we restrict non-determinism to be unambiguous, namely, we allow many runs over a
+word but at most one accepting run, which deﬁnes the output. Formally, a non-deterministic
+CRA is a tuple A=(Q,Σ,X,∆,I0,V0,F,µ)whereQ,Σ,X, andµare deﬁned as before,
+∆⊆Q×Σ×Q×Subs(X)is a ﬁnite transition relation, I0⊆Qis a set of initial states,
+
+--- Page 11 ---
+F. Mazowiecki and C. Riveros 53:11
+V0∶I0→Val(X)assigns an initial valuation for each initial state, and Fis the set of ﬁnal
+states. Additionally, we assume that for every q,q′∈Qanda∈Σthere exists at most one
+σ∈Subs(X)such that (q,a,q′,σ)∈∆. Given a string w=a1...an∈Σ∗, a run of Aover
+wis a sequence of conﬁgurations: (q0,ν0)a1/leftrightline→(q1,ν1)a2/leftrightline→...an/leftrightline→(qn,νn)such thatq0∈I0,
+ν0=V0(q0), and for 1≤i≤n,(qi−1,ai,qi,σi)∈∆andνi(x)=/uni27E6νi−1○σi(x)/uni27E7for eachx∈X.
+Furthermore, a run of Aoverwis an accepting run if qn∈F. We say that Ais unambiguous
+if for every w∈Σ∗there exists exactly one accepting run of Aoverw. The output of Aover
+wis deﬁned as /uni27E6A/uni27E7(w)=/uni27E6νn○µ(qn)/uni27E7where(qn,νn)is the ﬁnal conﬁguration of the only
+accepting run of Aoverw. The deﬁnitions of unambiguous copyless CRA and unambiguous
+BAC are straightforward restrictions of this deﬁnition.
+We do not know whether for each unambiguous copyless CRA there is an equivalent
+deterministic copyless CRA. However, this is true when we assume bounded alternation.
+ITheorem 12. LetA=(Q,Σ,X,δ,I 0,V0,F,µ)be an unambiguous BAC whose alternation
+is bounded by N. There exists a deterministic BAC A′that computes the same function as
+A, that is, /uni27E6A/uni27E7(w)=/uni27E6A′/uni27E7(w)for everyw∈Σ∗. Furthermore, the number of states of A′is
+of size 2O(/divides.alt0Q/divides.alt03⋅/divides.alt0X/divides.alt05⋅N2)and the number of registers in A′is of size O(/divides.alt0Q/divides.alt0⋅/divides.alt0X/divides.alt02⋅N).
+Proof (sketch). The construction goes by storing in A′the tree of A-runs over the input.
+Of course, if we would keep all possible runs, then the set of states of A′would be inﬁnite.
+A well-known property of unambiguous CRA is that, for each preﬁx, there is at most /divides.alt0Q/divides.alt0
+possible runs and, furthermore, the last state of each run is diﬀerent. Thus, A′can keep a
+tree structure in the states representing the runs where each branch represents a run and the
+number of branches is bounded by /divides.alt0Q/divides.alt0.
+Unfortunately, we cannot do the same trick by naively keeping copies of the registers for
+eachA-run (recall that A′must be copyless). To overcome this problem, A′will do partial
+evaluation of the runs and postpone the use of common registers whenever it is possible by
+exploiting the copyless restriction and bounded alternation of A. The full construction is in
+the appendix, available online. J
+Closure under regular look-ahead. Our next extension of the CRA model is based on
+regular look-ahead, namely, transitions that can check regular properties over the input.
+Regular look-ahead has been extensively studied for ﬁnite automata [ 9,10] and has been
+stated as a key property of a model for computing non-boolean functions [3, 2]. Let REG Σ
+be the set of all regular languages over Σ. A CRA with regular look-ahead (CRA-RLA) is
+a tuple A=(Q,Σ,X,∆,q0,ν0,µ)whereQ,Σ,X,q0,ν0, andµare deﬁned as before and
+∆∶Q×REG Σ⇀Q×Subs(X)is a partial transition function. Given a string w=a1...an∈Σ∗,
+the run of Aoverwis a sequence of conﬁgurations: (q0,ν0)L1/leftrightline→(q1,ν1)L2/leftrightline→...Ln/leftrightline→(qn,νn)
+such that for 1≤i≤n,∆(qi−1,Li)=(qi,σi),ai...an∈Liandνi(x)=/uni27E6νi−1○σi(x)/uni27E7for
+eachx∈X. The output of Aoverwis deﬁned as usual, i.e. /uni27E6A/uni27E7(w)=/uni27E6νn○µ(qn)/uni27E7.
+To keep determinism, we also restrict ∆as follows: for a ﬁxed state qlet∆(q,L1)=
+(q1,σ1),∆(q,L2)=(q2,σ2),..., ∆(q,Lk)=(qk,σk)be all transitions with qin the ﬁrst
+coordinate and L1,...,L k∈REG Σ. Then the languages L1,...,L kare pairwise disjoint (i.e.
+Li∩Lj=/uni2205). Note that Ais always deterministic, i.e. after reading the remaining suﬃx the
+automaton is forced to take at most one available transition. The restrictions to copyless
+and bounded alternation CRA-RLA are deﬁned as expected.
+Like for unambiguous copyless CRA, we do not know if extending copyless CRA with
+regular look-ahead results in a more expressive model. Assuming bounded alternation we
+prove that the resulting class of functions is the same.
+STACS 2016
+
+--- Page 12 ---
+53:12 CopylessCost-RegisterAutomata: Structure,Expressiveness,andClosureProperties
+ITheorem 13. For every BAC Awith regular look-ahead there exists a BAC A′without reg-
+ular look-ahead that computes the same function, that is, /uni27E6A/uni27E7(w)=/uni27E6A′/uni27E7(w)for everyw∈Σ∗.
+Furthermore, the number of states and the number of registers of A′is double-exponential
+and polynomial, respectively, in the size of A.
+Proof (sketch). The proof goes by constructing an unambiguous BAC A′′that guesses the
+sequence of transitions ∆(p,L)=(q,σ)and checks later that Lis satisﬁed over the suﬃx. If
+Lis given by a ﬁnite deterministic automaton R, this check can be done unambiguously by
+keeping the current state of each Rand removing repeated runs. By Theorem 12, we know
+thatA′′can be converted into an equivalent deterministic BAC A′. J
+Closure under reverse. We ﬁnish this section proving that, in contrast to copyless CRA
+(see Section 4), BAC are closed under reverse. Recall that a subclass Cof CRA is closed under
+reverse if for every A∈Cthere exists A′∈Csuch that /uni27E6A/uni27E7(w)=/uni27E6A′/uni27E7(wr)for everyw∈Σ∗.
+ITheorem 14. For every BAC Athere exists a BAC A′that computes the reverse function
+ofA, that is, /uni27E6A/uni27E7(w)=/uni27E6A′/uni27E7(wr)for everyw∈Σ∗. Furthermore, the number of states is
+double-exponential and the number of registers is polynomial in the size of A.
+We conclude this section by stressing the robustness of bounded alternation copyless
+CRA: they are closed under unambiguous non-determinism, regular look-ahead, and reverse
+operation. Notice that all the structural properties studied in Section 3 also apply to this
+class, in particular, the results regarding normal form and stable registers.
+6 Conclusions and Future Work
+In this paper, we studied structural properties, expressiveness and closure properties of
+copyless CRA. In particular, we showed that the class of functions recognized by copyless
+CRA are not closed under reverse. To recover the closure properties of CRA, we proposed the
+subclass of bounded alternation copyless CRA (BAC). We prove that BAC are closed under
+unambiguous non-determinism, regular look-ahead, and reverse. For general copyless CRA,
+we do not know whether this class is closed under unambiguous non-determinism or regular
+look-ahead. A positive answer would be surprising, since unambiguous automata are often
+trivially closed under the reverse operation (e.g. ﬁnite automata or weighted automata).
+To study whether a subclass of CRA is closed under reverse, one could approach the
+problem in a more general way. A natural extension of BAC is to enhance the model with the
+ability of moving in both directions. Our results do not give a straightforward argument that
+BAC is closed under two-way extension, but we believe that this could be shown by exploiting
+the copyless restriction and bounded alternation similar as in the proof of Theorem 13.
+The most important task for future work is to study the decidability properties of
+copyless CRA or BAC. The classical questions for computational models, like boundedness
+or equivalence of two automata, remain unanswered. We hope that the machinery developed
+in Section 3 is a ﬁrst step towards answering these questions.
+Acknowledgments. We thank the anonymous referees for their helpful comments. The ﬁrst
+authorwaspartiallysupportedbyPoland’sNationalScienceCentergrant2013/09/B/ST6/01575.
+The last author was supported by CONICYT + PAI / Concurso Nacional Apoyo al Retorno
+de Investigadores/as desde el extranjero – Convocatoria 2013 + 821320001 and by the
+Millenium Nucleus Center for Semantic Web Research under grant NC120004.
+
+--- Page 13 ---
+F. Mazowiecki and C. Riveros 53:13
+References
+1Shaull Almagor, Udi Boker, and Orna Kupferman. What’s decidable about weighted auto-
+mata? In ATVA, pages 482–491, 2011. doi:10.1007/978-3-642-24372-1_37 .
+2Rajeev Alur, Loris D’Antoni, Jyotirmoy Deshmukh, Mukund Raghothaman, and Yifei
+Yuan. Regularfunctionsandcostregisterautomata. In LICS,pages13–22.IEEEComputer
+Society, 2013.
+3Rajeev Alur and Loris D’Antoni. Streaming tree transducers. In Automata, Languages,
+and Programming , pages 42–53. Springer, 2012.
+4Rajeev Alur and Mukund Raghothaman. Decision problems for additive regular functions.
+InAutomata, Languages, and Programming , pages 37–48. Springer, 2013.
+5J. Richard Buchi. Weak second-order arithmetic and ﬁnite automata. Mathematical Logic
+Quarterly , 6(1-6):66–92, 1960.
+6Karel Culik II and Jarkko Kari. Image compression using weighted ﬁnite automata. In
+Mathematical Foundations of Computer Science 1993 , pages 392–402. Springer, 1993.
+7Manfred Droste and Paul Gastin. Weighted automata and weighted logics. Theor. Comput.
+Sci., 380(1-2):69–86, 2007.
+8Manfred Droste, Werner Kuich, and Heiko Vogler. Handbook of Weighted Automata .
+Springer, 1st edition, 2009.
+9JoostEngelfriet. Top-downtreetransducerswithregularlook-ahead. Mathematical Systems
+Theory, 10(1):289–303, 1976.
+10Joost Engelfriet and Sebastian Maneth. Macro tree transducers, attribute grammars, and
+mso deﬁnable tree translations. Information and Computation , 154(1):34–91, 1999.
+11Stephan Kreutzer and Cristian Riveros. Quantitative monadic second-order logic. In LICS,
+pages 113–122. IEEE Computer Society, 2013.
+12Daniel Krob. The equality problem for rational series with multiplicities in the tropical
+semiring is undecidable. In ICALP, pages 101–112, 1992. doi:10.1007/3-540-55719-9_
+67.
+13FilipMazowieckiandCristianRiveros. MaximalPartitionLogic: TowardsaLogicalCharac-
+terization of Copyless Cost Register Automata. In Stephan Kreutzer, editor, 24th EACSL
+Annual Conference on Computer Science Logic (CSL 2015) , volume 41 of Leibniz Inter-
+national Proceedings in Informatics (LIPIcs) , pages 144–159, Dagstuhl, Germany, 2015.
+Schloss Dagstuhl–Leibniz-Zentrum fuer Informatik. doi:10.4230/LIPIcs.CSL.2015.144 .
+14Mehryar Mohri. Finite-state transducers in language and speech processing. Computational
+Linguistics , 23(2):269–311, 1997.
+15Christos H. Papadimitriou. Computational complexity . Addison-Wesley, 1993.
+16M. O. Rabin and D. Scott. Finite automata and their decision problems. IBM J. Res. Dev. ,
+3(2):114–125, April 1959. doi:10.1147/rd.32.0114 .
+17M. P. Schützenberger. On the deﬁnition of a family of automata. Information and Control ,
+4:245–270, 1961.
+STACS 2016

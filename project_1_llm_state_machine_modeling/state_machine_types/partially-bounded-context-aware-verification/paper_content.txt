@@ -1,0 +1,788 @@
+--- Page 1 ---
+Partially Bounded Context-Aware Verication
+Luka Le Roux and Ciprian Teodorov
+Lab-STICC, MOCS, CNRS UMR 6285, ENSTA Bretagne, France
+Abstract. Model-checking enables the formal verication of software
+systems. Powerful and automated, this technique suers, however, from
+the state-space explosion problem because of the exponential growth in
+the number of states with respect to the number of interacting compo-
+nents. To address this problem, the Context-aware Verication (CaV)
+approach decomposes the verication problem using environment-based
+guides. This approach improves the scalability but it requires an acyclic
+specication of the verication guides, which are dicult to specify with-
+out losing completeness.
+In this paper, we present a new verication strategy that generalises CaV
+while ensuring the decomposability of the state-space. The approach re-
+lies on a language for the specication of the arbitrary guides, which
+relaxes the acyclicity requirement, and on a partially-bounded verica-
+tion procedure.
+The eectiveness of our approach is showcased through a case-study from
+the aerospace domain, which shows that the scalability is maintained
+while easing the conception of the verication guides.
+1 Introduction
+Since its introduction in the early 1980s, model-checking [23, 11] provides an au-
+tomated formal approach for the verication of complex requirements of hard-
+ware and software systems. This technique relies on the exhaustive analysis of all
+states in the system to check if it correctly implements the specications, usually
+expressed using temporal logics. However, because of the internal complexity of
+the studied systems, model-checking is often challenged with an unmanageable
+large state-space, a problem known as the state-space explosion problem [8, 21].
+Numerous techniques [28, 9, 7, 31, 1, 12] have been proposed to reduce the impact
+of this problem eectively pushing the inherent limits of model-checking further
+and further.
+Amongst these techniques, the Context-aware Verication (CaV) approach
+[12, 14, 16] proposes to separately capture the open system and its environment.
+From the specications, the rst step of CaV is to formally capture the open
+system and its contexts (environment and property). Each context and the open
+system are the inputs to a verication task. From there, if one or several tasks
+do not scale, CaV oers dierent automated context-driven techniques for fur-
+ther problem decomposition [13] and for ecient memory management during
+reachability [26].
+
+--- Page 2 ---
+2 Luka Le Roux and Ciprian Teodorov
+This approach was applied to realistic case studies from the medical [5], auto-
+motive [25], and aerospace [15, 24] domains with very promising results. However,
+the CaV approach imposes an acyclicity constraint on the verication contexts,
+which limits expressiveness and renders the approach dicult to use in practice.
+This limitation impacts the verication engineers who need to manually extract
+and validate an acyclic model from the environment model. In many cases, the
+environment behaviours are inherently cyclic and require a verbose and error-
+prone manual unrolling up to an arbitrarily-chosen depth. Furthermore, when
+an acyclic model is available, the designer needs to prove its completeness with
+respects to the complete environment model, problem which is not addressed in
+the CaV literature.
+In this paper, we address these problems through a new verication strategy
+that generalises CaV. Most notably it enables the specication of cyclic inter-
+action scenarios and uses the closed system as its entry point. The approach is
+based on an eXtended Guide Description Language (xGDL) and on a partially-
+bounded verication strategy. The later automatically unrolls these cyclic veri-
+cation guides (previously referred as context1) to an arbitrary depth. Through
+this approach the verication engineer is relieved of two tedious tasks: a)ex-
+tracting the acyclic interaction scenarios from a previously dened environment
+model, and b)proving the completeness of the extracted scenarios with respect
+to the full environment model. Moreover, this approach explicitly exposes the
+unrolling depth of the verication guides as a sucient completeness criteria
+for the verication. Showing that this bound is sucient for completeness may
+be simpler than proving that the length of all paths is sucient. The core of
+any model-checking strategy, the reachability analysis, up to the reachability
+diameter of the system, is necessary for the verication of safety and bounded-
+liveness properties. In general, our approach aims at the verication of arbitrary
+properties, however, in the context of this paper we focus on the reachability
+analysis.
+The approach is validated on an aircraft Landing Gear System (LGS), intro-
+duced in [6]. Through this case-study we emphasis: a)the usage of xGDL for
+modelling verication guides, used for closing the system for verication, and for
+guiding the reachability procedure; b)a state-space decomposition procedure
+based on the syntactic rewriting of the verication guides, and; c)some reach-
+ability results, obtained through the complementarity of our partially-bounded
+reachability analysis in conjunction with the CaV state-space decomposition
+strategies.
+Section 2 introduces the related work focusing on the CaV approach and
+its similarities to Bounded Model Checking (BMC). Section 3 describes our
+main contribution, the semantics of the guide description language, the partially-
+bounded verication procedure and discusses the completeness conditions. Sec-
+tion 4 presents LGS system and the associated xGDL model along with the ob-
+1Contexts and guides: CaV uses the open system (no environment) and a context
+as an entry point. The generalisation presented in this paper uses the closed system
+instead and restrict its environment through a [verication] guide .
+
+--- Page 3 ---
+Partially Bounded Context-Aware Verication 3
+tained results. Section 5 concludes this study introducing some future research
+directions.
+2 Background & Related Work
+Model checking is a technique that relies on building a nite model of a system of
+interest, and checking that a desired property, typically specied as a temporal
+logic formula, holds for that model. Since the introduction of model-checking in
+the early 1980s [23], several model-checker tools have been developed to help the
+verication of concurrent systems [18, 2, 31].
+However, while model-checking provides an automated rigorous framework
+for formal system validation and verication, and has successfully been applied
+on industrial systems it suers from the state-space explosion problem. This is
+due to the exponential growth of the number of reacheable states with respect
+to the number of interacting components. To enable the verication of ever
+larger systems, numerous research eorts are focused on reducing the impact of
+the state-space explosion problem. Some of these approaches use ecient data-
+structures such as BDD [7] for achieving compact state-space representation.
+Other approaches prune the state-space using techniques such as partial-order
+reduction [17, 22, 28] and symmetry reduction [9] that exploit ne-grain transi-
+tion interleaving symmetries and global system symmetries respectively.
+Complementary to these, are techniques based on the specication of environ-
+ments relevant to the studied system [20, 30, 27, 24]. These approaches propose
+tools that generate environments, based either on assumptions on the system
+and its interactions with the environment [27, 20], or on the properties that need
+to be veried [30]. Amongst these, the Context-aware Verication (CaV) pro-
+vides a structured approach for capturing the verication problem through a
+number of independent verication contexts (referred simply as contexts in the
+following), which explicitly represent the restricted model behaviours along with
+the requirements to be veried. The model is decomposed in two components:
+the system-under-study and the environment. While the system specication is
+viewed as a black-box that never changes during the verication, the environ-
+ment model is decomposed in multiple acyclic interaction scenarios , expressed
+with the Context Denition Language (CDL). The verication contexts are cre-
+ated by associating to each interaction scenario the relevant properties. The
+verication process iteratively composes these contexts with the system to ver-
+ify the associated properties. The CaV approach imposes a formal, methodical
+decomposition and classication of large requirements sets, a rst step in over-
+coming the state-space explosion problem. To guarantee the exhaustiveness of
+the analysis, the verication should be accompanied by a completeness proof
+showing that all behaviours unrolled by the guide are sucient.
+CaV relies on CDL formalism to specify the verication guides separately
+from the system. The core concept of the CDL language is the context , which
+associates the requirements to be veried to a verication guide (an acyclic
+component communicating asynchronously with the system). The interaction of
+
+--- Page 4 ---
+4 Luka Le Roux and Ciprian Teodorov
+the system with the environment is specied through a number of interaction
+scenarios. The interleaving of these interaction scenarios generates a transition
+system representing all the bounded behaviours of the environment, which can
+be fed as input to model-checkers. Moreover, CDL enables the specication of
+requirements about the systems behaviour as properties that are veried by the
+OBP Observation Engine. These properties expressed through property-pattern
+denitions [14] are based on events (e.g. variable x changed), predicates, and
+synchronous observers.
+Techniques such as bounded model checking [10] (BMC) exploit the observa-
+tion that in many practical settings the property verication can be done with
+only a bounded reachability analysis. Hence, in the absence of a full-coverage
+proof, these approaches cannot guarantee the absence of errors, but only their
+presence. The usage of explicit acyclic behaviors, and the CaV approach can
+be considered as the explicit-state equivalent of symbolic BMC. Moreover, as
+opposed to BMC, the usage of acyclic behaviors oers more exibility for spec-
+ifying the "bounds" of the analysis, and the context can be seen as a high-level
+skeleton which drives the analysis through a complex state-space partition.
+The xGDL language, introduced in this study focuses on the specication of
+the verication guides. This study generalizes the CaV approach by enabling the
+specication of cyclic verication guides, which releases the need of extracting
+acyclic models from the environment. Moreover, as opposed to the guide speci-
+cation in the CDL language, the xGDL specications are semantically decoupled
+from the system. During verication, the xGDL specications are synchronously
+composed with the system through a labeling function.
+By enabling the denition of acyclic verication guides, this study improves
+the applicability of the CaV approach. Prior to the verication step the veri-
+cation guides are unrolled to a predened bound, similarly to BMC. The main
+dierence stems however in the scope of the bound. For BMC the bound is global
+over the system and its environment, in our approach the bound is partial, ap-
+plying only to the verication guide.
+3 A language for context guided reachability: xGDL
+The approach proposed in this paper supposes a closed transition system as an
+entry point. By denition, a closed system includes behaviours from both the
+verication target and its environment. This ensures compatibility with a wide
+range of verication techniques with the same entry point, independently of the
+formalism used for property specication.
+In addition, our approach requires a labelling function (a total and determin-
+istic relation) over the closed system transitions with the co-domain in A[fg,
+whereAis the set of observable actions involving the environment (referred later
+asinteractions ) and where denotes the lack thereof.
+AxGDL specication denes a language over Aor a subset of A. The syn-
+chronous composition of the closed system and a xGDL specication thus re-
+
+--- Page 5 ---
+Partially Bounded Context-Aware Verication 5
+stricts the sequences of possible interactions to those accepted by the specied
+language.
+Section 3.1 provides the abstract syntax of xGDL , section 3.2 provides its
+operational semantics through inference rules, section 3.3 explicitly denes the
+compilation of a xGDL specication to a verication guide (a deterministic -
+nite automaton, DFA), section 3.4 details how a verication guide and the closed
+transition system to be veried are synchronously composed.
+3.1 xGDL Abstract Syntax
+AxGDL verication guide denes a language of interactions. Those are drawn
+from a nite alphabet A. The syntax of xGDL is given by the following BNF-style
+grammar:
+?jajC;CjCCjCkCj
+C::=C?jC+jC jCfi;jg j
+fi;jgof[C1;:::;Cn]
+Cranges over the set Eof terms of the xGDL language, aranges over the
+alphabetAof observable interactions, and i;j2Nwithij.
+According to the previous grammar, an xGDL specication is one of the
+following: {?, the empty term; {a, an observable interaction; {C;C, a sequen-
+tial composition of two terms; {CC, a non-deterministic choice between two
+terms; {CkC, a parallel composition, by unrestricted interleaving of two terms;
+{C?, an optional term {C+, an unbounded replication of a term, with at least
+one occurrence; {C, an unbounded replication of a term, with potentially 0
+occurrences; {Cfi;jg, a bounded replication of the a term with at least ioc-
+currences and at most j;{fi;jgof[C1;:::;Cn], possible permutations of length
+at leastito at most jamong a set of terms.
+3.2 xGDL Operational semantics
+xGDL operational semantics is dened via inference rules. The notation Ca !C0
+denotes a tuple ( C;a;C0)2EfA[gE, whereAis the alphabet of interactions
+(observable actions initiated by the closed system's environment), denotes the
+lack thereof andEis the set of all possible terms. If Ca !C0witha6=, thenC
+can be translated into C0upon executing the interaction a. IfC !C0, thenC
+andC0can be said to be semantically equivalent.
+a2A+
+aa !?[atom]a2A+
+a;Ca !C[seq 1]C1a !C0
+1^C16=a
+C1;C2a !C0
+1;C2[seq 2]
+C1C2 !C1[alt 1]
+C1C2 !C2[alt 2]C1a1!C0
+1
+C1kC2a1!C0
+1kC2[par 1]
+C2a2!C0
+2
+C1kC2a2!C1kC0
+2[par 2]
+?kC !C[par 3]
+Ck? !C[par 4]
+
+--- Page 6 ---
+6 Luka Le Roux and Ciprian Teodorov
+Atom, sequence, alternative and parallelism If the term is a single interaction
+a, it is executed and it results in the empty term ?(aa !? , ruleatom ).
+If the term is a sequence of the form a;C, the interaction aisexecuted and
+it results in the term C(a;Ca !C, ruleseq1). If the term is a sequence of the
+formC1;C2such thatC1is not a single interaction and such that 9(a;C0
+1)2
+fA[gE; C 1a !C0
+1, then the interaction aisexecuted and it results in the
+termC0
+1;C2(C1;C2a !C0
+1;C2, ruleseq2).
+If the term is a non-deterministic choice of the form C1C2, it can either
+result inC1(C1C2 !C1, rulealt1) orC2(C1C2 !C2, rulealt2). In both
+cases, no interaction is executed .
+Lastly, if the term is a parallel composition of the form C1kC2with
+9(a1;C0
+1)2fA[gE; C 1a1!C0
+1and9(a2;C0
+2)2fA[gE; C 2a2!C0
+2, it
+can either result in C0
+1kC2(C1kC2a1!C0
+1kC2, rulepar 1) orC1kC0
+2(C1kC2a2!
+C1kC0
+2, rulepar 2) by executing the corresponding interaction. If C1=?or
+C2=?, it results in the leftover term (rules par 3andpar 4).
+C? !?C[opt]
+C !(C;C)?[star]
+C+ !C;C[plus]0< ij
+Cfi; jg !C;Cfi1; j1g[rep 1]
+i= 0^j >0
+Cfi; jg !(C;Cf0; j1g)?[rep 2]i=j= 0
+Cfi; jg !?[rep 3]
+Replications If the term is an optional term of the form C?, it is semantically
+equivalent to?C, meaning it can either result in ?orC(C? !?C, rule
+opt).
+If the term is an unbounded replication of the form C, it is semantically
+equivalent to ( C;C)? (recursive denition), meaning it results either in ?or
+C;C(C !(C;C)?, rulestar).
+If the term is an unbounded replication with at least one occurrence
+of the form C+, it is semantically equivalent to C;C(C+ !C;C, rule plus).
+Thebounded replication Cfi;jgis dened by the rules rep 1,rep 2and
+rep 3. The rst applies as long as i >0, decrements both iandjand ensures
+at leastioccurrences of C. The second applies for i= 0^j >0, decrements j
+and ensures at most joccurrences of C. The last one applies for i=j= 0 and
+results in?(termination).
+0< ijn^8k;1kn
+fi; jgof[C1; :::; Cn] !Ck;fi1; j1gof[C1; :::; Ck1; Ck+1; :::; Cn][perm 1]
+0 = i < jn^8k;1kn
+fi; jgof[C1; :::; Cn] !(Ck;f0; j1gof[C1; :::; Ck1; Ck+1; :::; Cn])?[perm 2]
+0 =i=j
+fi; jgof[C1; :::; Cn] !?[perm 3]
+fi; jgof[] !?[perm 4]
+
+--- Page 7 ---
+Partially Bounded Context-Aware Verication 7
+Permutations The permutation operator, as dened by the above rules, repre-
+sents the set of possible sequences made of at most one occurrence of each of
+the terms from the provided set [ C1;:::;Cn] of sizeitoj(unlessn<i orn<j ,
+as the size can not exceed n). The notation [ C1;:::;Ck1;Ck+1;:::;Cn] (as found
+in ruleperm 2) stands for the set [ C1;:::;Cn] minus the term Ckwithikj.
+Rulesperm 3andperm 4ensure termination in cases where j= 0 and where the
+set of terms to choose from is empty, respectively.
+Prex closed semantics Dened this way, xGDL syntax and semantics match
+those of regular expressions extended with parallelism and permutations. How-
+ever, a xGDL specication denes the language of all possible sequences of
+interactions. All prexes of a term accepted by a xGDL specication (including
+?) are also members of this language. Thus, unlike regular expressions, xGDL
+semantics is prex closed.
+3.3 xGDL compilation
+Fig. 1. The xGDL compilation ow.
+AxGDL specication denes a language over the set of possible interactions
+A. To ease subsequent manipulations (such as the composition with the closed
+system as dened section 3.4), a xGDL specication is compiled to a practical
+verication guide, a deterministic nite automaton (DFA).
+The compilation ow, presented in Fig. 1, starts with a xGDL specication.
+By applying the semantic rules dened section 3.2 the specication is straight-
+forwardly converted to a non-deterministic nite automaton (NFA). The result-
+ing NFA is then converted to a DFA. For this purpose, transitions carrying no
+interactions ( ) are considered as -transitions and are thus removed.
+Lastly, this DFA is minimised. The result represents the compiled verication
+guide. The equivalence between the initial xGDL specication and the compiled
+verication guide follows directly from well known results in the automaton the-
+ory.
+3.4 xGDL guide and closed system composition
+Given a closed transition system S, a set of interactions A, a labelling function
+LoverA[fgand a xGDL verication guide Gspecied over A, the following
+denes the result their composition.
+
+--- Page 8 ---
+8 Luka Le Roux and Ciprian Teodorov
+First, some additional notations are introduced:
+{GSdenotes the resulting transition system;
+{G0,S0andG00S0denote the initial states set of G,SandGS;
+{(g;s) denotes a composite state;
+{sa !s0denotes the existence of a transition such that L(s!s0) =a.
+Intuitively GandSare seen as transition systems labelled over A[fg(LTS).
+GSis the result of their synchronous composition with stuttering steps and
+Aas the vocabulary of synchronous behaviours.
+The guide LTS Gcan be obtained through interpretation of a xGDL expres-
+sion as described by the operational semantics (see section 3.2). However, in the
+following, the DFA obtained after compilation (see section 3.3) is considered in-
+stead. Both are equivalent for this section purpose, but the later being a minimal
+representation (least possible amount of states) it leads to better exploration re-
+sults (smaller state space). It also ensures no -transitions in G, which eases our
+denitions.
+The system LTS Sis obtained by labelling each and every transition tSfrom
+the system under study with L(tS)2A[fg. A system transition labelled by
+a2Acarries the execution of the corresponding interaction. A system transition
+labelled by denotes an internal step free of interactions.
+The composition GSis also a LTS and, as already stated, is obtained by a
+synchronous composition (over A) with stuttering steps ( ). The following rules
+dene its initial states and transitions:
+- Initial states: ( g0;s0)2G00S0,g02G0^s02S0;
+- Stuttering steps: ( g;s) !(g0;s0),g=g0^s !s0;
+- Synchronisations: a6=, (g;s)a !(g0;s0),ga !g0^sa !s0.
+Dened as such, GandSmutually constrain one another through their com-
+position. The existence, in the resulting system, of a transition labelled by a6=
+from a state ( g;s) implies the existence of transitions labelled by afrom bothg
+ands.
+However, most often in practical cases, all states from Sare complete over
+A. Meaning, for all a2Aand allsa system state, there is a transition from
+sand labelled by a(possibly modulo some stutters). This is due to Adenoting
+possible interactions with the systems that can be expected at any time. In these
+cases,Sdoes not constrain GinGS.
+Neutral guide GivenS,AandL, it is always possible to build a neutral guide 1
+such thatS= 1S(where = denotes a strong bi-simulation).
+This can be proven by construction of 1 as the guide with one initial state
+fg0gand, for all a2A,g0a !g0. This particular guide follows directly from the
+xGDL expression ( a0a1:::an1)withA=fa0;a1; ::: ;an1g.
+
+--- Page 9 ---
+Partially Bounded Context-Aware Verication 9
+Subset of interactions It is important to note that, unless otherwise specied, the
+absence of references to an interaction within an xGDL specication prohibits
+that interaction from happening .
+In cases where the xGDL specication is intended to be dened over a subset
+A0Aof interactions, L(the labelling function) has to be ltered so that it
+doesn't label transitions by ignored interactions (in AnA0).
+LetL0be this ltered labelling function with A0[fgas its co-domain, for
+alltS(transitions in S):
+-L(tS)2A0[fg )L0(tS) =L(tS); ( inside A0[fg)
+-L(tS)2AnA0)L0(tS) = ( outsideA0[fg)
+In other words, interaction labels in AnA0are interpreted as for the purpose
+of the composition and thus system transitions labelled by those are allowed to
+stutter ( to move independently from the guide ).
+3.5 Partially Bounded Verication
+Using a cyclic verication guide for closing the system is equivalent to the
+traditional model-checking process, in which the system is closed with an arbi-
+trary environment. The context-aware verication approach showed that model-
+checking problems can be easily decomposed using acyclic verication guides to
+signicantly improve the scalability of model checking. However, CaV is limited
+by the acylicity of the verication guides, which are dicult to extract and prove
+complete. Bounded model checking on the other hand, is more general and can
+be applied directly to model-checking problems. However in practice it is more
+often used as test procedure due to the diculty of proving the completeness
+of the analysis. Based on the xGDL language, in this section, we propose a
+partially-bounded verication procedure.
+Fig. 2. Partially bounded verication ow
+The approach, shown in Fig. 2, is similar to bounded model checking, with the
+particularity that only the verication guide is bounded. The compiled xGDL
+guide is unrolled to a predened bound , through this unrolling a directed-acyclic
+graph (DAG) is obtained satisfying the CaV acyclity requirement. This DAG
+guide is then associated to a specication to obtain a CaV verication context.
+The model-checking procedure then analyses this verication context in conjunc-
+tion with the system (system in the gure). Since the DAG guide is acyclic, both
+the recursive state-space decomposition and the PastFree[ze] algorithms used by
+the Context-aware Verication approach, can be applied [26].
+
+--- Page 10 ---
+10 Luka Le Roux and Ciprian Teodorov
+It should be noted that, in Fig. 2, the verication guide is unrolled prior
+to the verication step. This prior unrolling can be seen as the automatic ex-
+traction of an acyclic verication guide from an arbitrary environment. This
+extraction step, required by the CaV approach, was previously implicitly done
+by the designer during the manual specication of the acyclic verication guide.
+Partially Bounded Verication and Completeness This methodology is gener-
+ally not complete, in the sense that the unrolling of a system along a bounded in-
+teraction scenario potentially implies that some states remain undiscovered (e.g.
+the states unravelled by a longer scenario). This imposes virtually the same limi-
+tation as the bounded model-checking procedures [10]. Namely, that the analysis
+should be accompanied by a completeness proof showing that the bound bguide
+chosen for the interaction scenario enables the unrolling of its composition with
+the system to a depth at least equal to the Completeness Threshold C. More-
+over, given a cyclic environment and an arbitrary system, Cis an upper bound
+onbguide. Hence, if the Completeness Threshold of the composition is known it
+is sucient, but not necessary, to unroll the cyclic environment model to that
+depth to achieve completeness.
+For the verication of safety properties the completeness threshold is given by
+the reachability diameter rd(the minimum number of steps required for reaching
+all reachable states) [19].
+This partially bounded verication procedure eectively generalises the CaV
+approach to arbitrary systems. Based on this new approach, currently we inves-
+tigate the possibility to automatically compute the minimal bguide that guaran-
+tees that the composition of the interaction scenario with the system reaches
+the Completeness Threshold, which provides the necessary conditions for the
+completeness proof.
+4 Case-Study: the Landing Gear System
+This section showcases xGDL on a realistic case-study from the aerospace
+domain. In the process, we show that it is well suited for iterative state-space
+decomposition during model-checking.
+The landing gear system ( LGS ) specication [6] includes three gears, each
+made of several physical parts. These are specied with (continuous) timed con-
+straints, sensors and possible failures. Retraction and extension sequences can
+be initiated, interrupted and inverted at any time. This system raises a number
+of interesting issues during verication, some of which have already been subject
+to studies via model-checking [29, 4, 15, 24, 26].
+The focus, here, is not to illustrate how the system can be translated into an
+executable model. Rather, given that the executable model is already provided,
+and that the analysis does not scale, this study shows why a language like xGDL
+is needed and how it can be used within a verication activity requiring several
+iterations.
+
+--- Page 11 ---
+Partially Bounded Context-Aware Verication 11
+Section 4.1 provides an overview of the LGS executable model. Section 4.2
+illustrates the denition of the xGDL verication guide and how it can be de-
+composed, eventually bounded, to further push the limits of the verication.
+4.1 LGS Executable Model
+TheLGS model is composed of the system-under-study along with the capa-
+bilities of its environment, both implemented using timed automatons in Fiacre
+language [3].
+System-under-study TheLGS manages the extension and retraction of a the
+landing gears. The physical part includes three landing boxes to the front, the
+left, and the right of the plane. A landing box contains the gear itself as well as a
+door and hydraulic cylinders. The digital part is responsible of monitoring those
+physical components through sensors. If an anomaly is detected, this information
+is forwarded to the cockpit through visual indicators.
+A more detailed description of this case study can be found in [6]. The Fiacre
+implementation of the physical and software parts matches the one proposed and
+studied via the CaV approach [24, 26].
+Analog Switch General Electro-Valve
+Opened Closed Opened Closed
+f11 f12 f21 f22
+Door Electro-Valves Gear Electro-Valves
+Extension Retraction Extension Retraction
+Opened Closed Opened Closed Opened Closed Opened Closed
+f31 f32 f41 f42 f51 f52 f61 f62
+Front Left Right Front Left Right
+Door Gear
+f7f8f9 f10f11f12
+Table 1. Possible failures and labels
+Environment capabilities and system closure The pilot can interact with the
+system through a handle. Switching its position induces handle events, which
+enable the retraction (or extension) sequence.
+In addition, a failure may occur at any time. Table 1 lists the possible fail-
+ures and labels them for future references. Couples ( fn1; fn2) are exclusive, for
+example a door may not be blocked in two dierent positions.
+The environment is modelled as one single state automaton in Fiacre. Each of
+its transitions models a capability, meaning one for the handling of the lever and
+one per possible failure. This automaton closes the system with its environment
+capabilities and is later referred as the system closure automaton .
+
+--- Page 12 ---
+12 Luka Le Roux and Ciprian Teodorov
+Assumptions and Restrictions The analysis is performed under the following
+assumptions: a)the software modules are assumed failure-free. b)the sensors,
+and the interconnect wires are assumed failure-free. c)the failures are assumed
+permanent, such that if an equipment becomes blocked it remains blocked for-
+ever.
+Scaling of the analysis The resulting state space is much too large2for explicit
+model-checking to scale as is. To address this issue, one can use the fact that at
+most three failures may happen in one execution . If the verication holds for all
+the valid subsets of three failures, then it holds for the initial problem as well
+[15]. Taking into account exclusive failures, there is a total of 720 valid subsets
+and, thus, that many verication tasks.
+This can be achieved by various means. Each task can have its own model
+of the system with dierent, restricted closure automatons. Parameters can be
+added to the system and so on. However, these approaches raise new issues re-
+garding the production, soundness, maintainability and further analysis of the
+various verication tasks. Next section, addresses these issues using the xGDL
+formalism for the specication of verication guides, which facilitates the decom-
+position of the state-space while providing the basis for proving its completeness.
+Moreover, when coupled with the partially-bounded verication procedure, the
+acyclicity requirement is met, enabling the use of the CaV -specic algorithms.
+4.2 xGDL verication guides
+Specifying the verication guide. To apply our approach, an interaction
+alphabet and a labelling function have to be dened over the executable model
+introduced in the previous section.
+Interaction Alphabet For this case study, the nite set of interactions consid-
+ered are inferred from the environment capabilities as described section 4.1. As
+such:
+A=fhandle; f 11; f12; :::; f 61; f62; f7; :::; f 12g
+Labelling function A transition from a system state to another involves zero or
+one Fiacre transition from the single state automaton modelling the environment
+capabilities. If present, the labelling function returns the corresponding label. If
+absent it returns , denoting the absence of environment interaction.
+2If the system is restricted to failure-free behaviours, it unfolds 3E+5 states. If re-
+stricted to one specic failure, 128Gb of memory is not enough [24, 26] (potentially
+1E+9 states). For the considered scope (three dierent failures), those gures hint
+for a state space several orders of magnitude higher than 1E+10.
+
+--- Page 13 ---
+Partially Bounded Context-Aware Verication 13
+xGDL guide expressions With the labelling function and its range being now
+dened, it is possible to write the xGDL expressions. The following introduces
+some useful examples:
+name xGDL
+- Handles: Gpilot =handle
+- One exclusive failure: 1 n6; Fn=fn1fn2
+- One non-exclusive failure: 7 n12; Fn= fn
+- At most three failures: Fall=f0;3gof[F1; :::; F 12]
+- Considered scope: Gscope =GpilotkFall
+Gpilotis a sequence of any number of handle interactions. The composition
+of this guide with the system, as dened in section 3.4, induces an analysis
+restricted to the failure free behaviours (since the failures are not included).
+Fnmatches one failure injection. For n6, it references a couple of exclusive
+failures in an alternative so that only one or the other may happen.
+Fallis a sequence of zero to three failures. The permutation operator is used
+to ensure uniqueness (a given failure cannot happen twice).
+Gscope is the parallel composition of Gpilot andFall.GscopeScovers
+all the possible behaviours minus those outside the specication scope [6] (i.e.
+at most three unique failures and excludes impossible combinations). In other
+words,Gscope is not strictly neutral to the composition as it is limited to one
+of each failure and no more than three dierent ones. However, it precisely and
+exhaustively captures the system closure required by the specication.
+Splitting the analysis. With the xGDL expressions introduced above,
+GscopeSdenes the entire state space, target of the verication. As men-
+tioned toward the end of section 4.1, its size is prohibitive for the analysis and
+needs to be split into smaller, specialised verication tasks.
+For this purpose, xGDL can be used to express those through specialised
+guides. Each of the 720 subsets of three dierent failures ffi; fj; fkg(with
+fi6=fj6=fk) lead to specic xGDL guides:
+handle kf 0;3gof[fi; fj; fk]
+Non intrusive. Using this approach, the system executable model ( S) is an
+invariant of all the verication tasks , including the initial one ( GscopeS).
+This approach does not require custom environment closures nor the modica-
+tion (parameterization) of the system model.
+Thus, one can focus on the languages recognised by the various xGDL
+expressions to provide a soundness proof of these new verication tasks.
+To prove that the language of the initial guide is equal to the union of the lan-
+guages of the guides generated after the splitting process is enough for safety
+requirements (reachability). For the LGS case study, this is expressed through
+the theorem 1 and its proof.
+
+--- Page 14 ---
+14 Luka Le Roux and Ciprian Teodorov
+Theorem 1. language (Gscope) =[719
+id=0language (G3
+id)
+WhereG3
+id=handle kf 0;3gof F3
+idwithF3
+0toF3
+719the720valid subsets
+of three failures.
+Proof. By successive rewriting of the equality right hand size:
+0:[719
+id=0language (G3
+id)
+1:language (G3
+0:::G3
+719)
+2:language ( (handle kf 0;3gof F3
+0):::(handle kf 0;3gof F3
+719) )
+3:language ( handle k(f0;3gof F3
+0:::f0;3gof F3
+719) )
+4:language ( handle kf 0;3gof Fall )
+5:language (Gscope)
+Step 0 to 1: the union of xGDL expressions languages is equal to the language of an
+alternative over those expressions. Step 1 to 2: unfolding of all the G3
+i. Step 2 to 3: the
+parallel operator is distributive over the alternative (i.e. ( AkB)(AkC) = Ak(BC))
+Step 3 to 4: the alternative over the length three permutations of F3
+idsubsets is equal
+toFall(both strictly recognise all the valid, length three permutations). Step 4 to 5:
+per denition of Gscope.QED.
+Further renements and bounding the verication. Model-checking of any
+of the 720 guides with three specic failures still did not scale. xGDL oers the pos-
+sibility to further rene the verication guides and to partially bound the verication
+tasks in the guide specications.
+Failure f11f12f21f22f31f32f41f41f51f52f61f62f7; f8; f9f10; f11; f12
+Bound 161618172020182020X18X 20 20
+Table 2. Unrolling bounds required for completeness
+Similarly to the guide with up to three failures, a guide including exactly one failure
+(handle kf 1;1gof[F1; :::; F 12]) can be split into 18 guides:
+G1
+i=handle kfi
+Bounding those 18 verication tasks (as shown in section 3.5) arbitrarily to 30
+interactions allows the analysis to successfully terminate for 16 of these. To prove
+completeness, an option is to perform an analysis of the induced clusters of states, as
+discussed in [26]. In this case, a cyclic behaviour is detected after 16 to 20 interactions
+depending on the considered failure. Table 2 shows, for each failure, the bound required
+for completeness inferred from this post-mortem analysis.
+For failures f52andf62(extension and retraction gear electro-valves blocked in closed
+position), further renement is still needed. Since G1
+ihas exactly one interaction on
+the right hand side of the parallel operator, it is equivalent to the sequence:
+G1
+i=handle;fi;handle
+
+--- Page 15 ---
+Partially Bounded Context-Aware Verication 15
+Additionally, for handle, bounding the analysis and inferring the bound required
+for completeness shows 7 handles are enough to consider before the eventual failure.
+This can be captured as:
+G1
+i,handlef0;7g;fi;handle
+This last form can then be decomposed again in 16 dierent guides of the form
+handlefn; ng;fi;handlewith 0n7 and fi2 ff52; f62g. For both failures,
+the analysis bounded to 30 interactions scales for 0 n4 but would still require
+further renement for n >4.
+The approach proposed in this study allows the use complementary analy-
+sis techniques on the same executable model and its properties. From this perspective,
+typically several directions are possible, such as: 1. further abstracting the model for
+symbolic model-checking; 2. exploit symmetry reduction or partial-order reduction.
+Producing the various verication tasks is done without altering the formal spec-
+ication of the initial challenge. Moreover, xGDL enables to dispatch the verication
+tasks to dierent, complementary tools.
+5 Conclusion and Perspectives
+This paper presented a guide description language along with a partially-bounded
+context-aware verication procedure. Through the xGDL specications the acyclicity
+requirement imposed by the CaV methodology is lifted, which bridges the gap between
+the environment model and the verication guides. These cyclic verication guides
+are unrolled to a predened depth before their composition with the system, which
+enables the use of the CaV state-space decomposition algorithms. The approach was
+illustrated on a landing gear system case study. The system/environment interactions
+where formally captured using one xGDL guide. Relying on this guide, the verication
+problem was decomposed in 720 sub-problems. This decomposition is accompanied by
+a coverage proof realised by rewriting of the guide structure. Most of the one-failure
+cases (16 out of 18) where discharged using the partially-bounded verication pro-
+cedure, which used in conjunction with the PastFree algorithm of CaV provided the
+completeness proof, by bi-simulation on the clusters induced by the guide. The two fail-
+ing guides, were further rewritten and decomposed (structurally), and the new form
+was partially-bounded (syntactically) using the completeness threshold of the failure
+free analysis. Currently, we are investigating an online verication procedure, which
+unrolls the guide during the verication while at the same time enabling the recursive
+state-space decomposition.
+
+--- Page 16 ---
+16 Luka Le Roux and Ciprian Teodorov
+References
+1. Barnat, J., Brim, L., Simecek, P.: Cluster-based i/o-ecient ltl model checking.
+In: Proceedings of the 2009 IEEE/ACM International Conference on Automated
+Software Engineering. pp. 635{639. ASE '09, IEEE Computer Society, Washington,
+DC, USA (2009). https://doi.org/10.1109/ASE.2009.32
+2. Bengtsson, J., Larsen, K., Larsson, F., Pettersson, P., Yi, W.: Uppaal | a tool
+suite for automatic verication of real-time systems. In: Alur, R., Henzinger, T.A.,
+Sontag, E.D. (eds.) Hybrid Systems III. pp. 232{243. Springer Berlin Heidelberg,
+Berlin, Heidelberg (1996). https://doi.org/10.1007/BFb0020949
+3. Berthomieu, B., Bodeveix, J.P., Farail, P., Filali, M., Garavel, H., Gaullet, P.,
+Lang, F., Vernadat, F.: Fiacre: an Intermediate Language for Model Verication
+in the Topcased Environment. In: European Congress on Embedded Real-Time
+Software (ERTS). SEE, Toulouse, France (Jan 2008), https://hal.inria.fr/inria-
+00262442
+4. Berthomieu, B., Dal Zilio, S., Fronc,  L.: Model-checking real-time properties of
+an aircraft landing gear system using acre. In: Boniol, F., Wiels, V., Ait Ameur,
+Y., Schewe, K.D. (eds.) ABZ 2014: The Landing Gear Case Study. pp. 110{125.
+Springer International Publishing, Cham (2014). https://doi.org/10.1007/978-3-
+319-07512-9 8
+5. Boniol, F., Dhaussy, P., Le Roux, L., Roger, J.C.: Model-Based Analysis. In: Em-
+bedded systems, Analysis and Modeling with SysML, UML and AADL, pp. 157{
+184. Wiley (May 2013), https://hal.archives-ouvertes.fr/hal-00843139
+6. Boniol, F., Wiels, V.: The landing gear system case study. In: Boniol, F.,
+Wiels, V., Ait Ameur, Y., Schewe, K.D. (eds.) ABZ 2014: The Landing
+Gear Case Study. pp. 1{18. Springer International Publishing, Cham (2014).
+https://doi.org/10.1007/978-3-319-07512-9 1
+7. Burch, J., Clarke, E., McMillan, K., Dill, D., Hwang, L.: Symbolic model check-
+ing: 1020states and beyond. Information and Computation 98(2), 142{170 (1992).
+https://doi.org/10.1016/0890-5401(92)90017-A
+8. Clarke, E.M., Emerson, E.A., Sistla, A.P.: Automatic verication of nite-state
+concurrent systems using temporal logic specications. ACM Trans. Program.
+Lang. Syst. 8(2), 244{263 (Apr 1986). https://doi.org/10.1145/5397.5399
+9. Clarke, E.M., Enders, R., Filkorn, T., Jha, S.: Exploiting symmetry in temporal
+logic model checking. Formal Methods in System Design 9(1), 77{104 (Aug 1996).
+https://doi.org/10.1007/BF00625969
+10. Clarke, E., Biere, A., Raimi, R., Zhu, Y.: Bounded model checking using sat-
+isability solving. Formal Methods in System Design 19(1), 7{34 (Jul 2001).
+https://doi.org/10.1023/A:1011276507260
+11. Clarke, E.M., Emerson, E.A.: Design and synthesis of synchronization skele-
+tons using branching time temporal logic. In: Kozen, D. (ed.) Logics of
+Programs. pp. 52{71. Springer Berlin Heidelberg, Berlin, Heidelberg (1982).
+https://doi.org/10.1007/BFb0025774
+12. Dhaussy, P., Boniol, F., Landel, E.: Using context descriptions and property de-
+nition patterns for software formal verication. In: Proceedings of the 2008 IEEE
+International Conference on Software Testing Verication and Validation Work-
+shop. pp. 89{96. ICSTW '08, IEEE Computer Society, Washington, DC, USA
+(2008). https://doi.org/10.1109/ICSTW.2008.52
+13. Dhaussy, P., Boniol, F., Roger, J.C., Le Roux, L.: Improving Model Checking with
+Context Modelling. Advances in Software Engineering 2012 , ID 547157, 13 pages
+(Oct 2012). https://doi.org/10.1155/2012/547157
+
+--- Page 17 ---
+Partially Bounded Context-Aware Verication 17
+14. Dhaussy, P., Pillain, P.Y., Cre, S., Raji, A., Le Traon, Y., Baudry, B.: Eval-
+uating context descriptions and property denition patterns for software formal
+validation. In: Sch urr, A., Selic, B. (eds.) Model Driven Engineering Languages
+and Systems. pp. 438{452. Springer Berlin Heidelberg, Berlin, Heidelberg (2009).
+https://doi.org/10.1007/978-3-642-04425-0 34
+15. Dhaussy, P., Teodorov, C.: Context-aware verication of a landing gear system. In:
+Boniol, F., Wiels, V., Ait Ameur, Y., Schewe, K.D. (eds.) ABZ 2014: The Land-
+ing Gear Case Study. pp. 52{65. Springer International Publishing, Cham (2014).
+https://doi.org/10.1007/978-3-319-07512-9 4
+16. Dumas, X., Dhaussy, P., Boniol, F., Bonnafous, E.: Application of partial-order
+methods for the verication of closed-loop sdl systems. In: Proceedings of the 2011
+ACM Symposium on Applied Computing. pp. 1666{1673. SAC '11, ACM, New
+York, NY, USA (2011). https://doi.org/10.1145/1982185.1982533
+17. Godefroid, P.: The Ulg partial-order package for SPIN. In: SPIN Workshop.
+Montr eal, Quebec (1995)
+18. Holzmann, G.J.: The model checker SPIN. IEEE Trans. Softw. Eng. 23(5), 279{295
+(May 1997). https://doi.org/10.1109/32.588521
+19. Kroening, D., Strichman, O.: Ecient computation of recurrence diameters. In:
+Zuck, L.D., Attie, P.C., Cortesi, A., Mukhopadhyay, S. (eds.) Verication, Model
+Checking, and Abstract Interpretation. pp. 298{309. Springer Berlin Heidelberg,
+Berlin, Heidelberg (2003). https://doi.org/10.1007/3-540-36384-X 24
+20. Parizek, P., Plasil, F.: Specication and generation of environment for model check-
+ing of software components. Electr. Notes Theor. Comput. Sci. 176(2), 143{154
+(2007). https://doi.org/10.1016/j.entcs.2006.02.036
+21. Park, S., Kwon, G.: Avoidance of state explosion using dependency analysis in
+model checking control ow model. In: Gavrilova, M.L., Gervasi, O., Kumar, V.,
+Tan, C.J.K., Taniar, D., Lagan a, A., Mun, Y., Choo, H. (eds.) Computational Sci-
+ence and Its Applications - ICCSA 2006. pp. 905{911. Springer Berlin Heidelberg,
+Berlin, Heidelberg (2006). https://doi.org/10.1007/11751649 9
+22. Peled, D.: Combining partial order reductions with on-the-y model-
+checking. Formal Methods in System Design 8(1), 39{64 (Jan 1996).
+https://doi.org/10.1007/BF00121262
+23. Queille, J.P., Sifakis, J.: Specication and verication of concurrent systems in CE-
+SAR. In: Dezani-Ciancaglini, M., Montanari, U. (eds.) International Symposium on
+Programming. pp. 337{351. Springer Berlin Heidelberg, Berlin, Heidelberg (1982).
+https://doi.org/10.1007/3-540-11494-7 22
+24. Teodorov, C., Dhaussy, P., Le Roux, L.: Environment-driven reachability for timed
+systems. International Journal on Software Tools for Technology Transfer 19(2),
+229{245 (Apr 2017). https://doi.org/10.1007/s10009-015-0401-2
+25. Teodorov, C., Le Roux, L., Dhaussy, P.: Context-aware verication of a cruise-
+control system. In: Ait Ameur, Y., Bellatreche, L., Papadopoulos, G.A. (eds.)
+Model and Data Engineering. pp. 53{64. Springer International Publishing, Cham
+(2014). https://doi.org/10.1007/978-3-319-11587-0 7
+26. Teodorov, C., Le Roux, L., Drey, Z., Dhaussy, P.: Past-free[ze] reachability anal-
+ysis: Reaching further with dag-directed exhaustive state-space analysis. Softw.
+Test. Verif. Reliab. 26(7), 516{542 (Nov 2016). https://doi.org/10.1002/stvr.1611
+27. Tkachuk, O., Dwyer, M.B.: Environment generation for validating event-driven
+software using model checking. IET Software 4(3), 194{209 (June 2010).
+https://doi.org/10.1049/iet-sen.2009.0017
+
+--- Page 18 ---
+18 Luka Le Roux and Ciprian Teodorov
+28. Valmari, A.: Stubborn sets for reduced state space generation. In: Rozenberg, G.
+(ed.) Advances in Petri Nets 1990. pp. 491{515. Springer Berlin Heidelberg, Berlin,
+Heidelberg (1991). https://doi.org/10.1007/3-540-53863-1 36
+29. Wiels, V., Ledinot, E., Belin, E., Dassault, M.: Experiences in using model check-
+ing to verify real time properties of a landing gear control system. In: Embedded
+Real-Time Systems (ERTS). Toulouse, France (Jan 2006)
+30. Yatake, K., Aoki, T.: Automatic generation of model checking scripts based on
+environment modeling. In: Model Checking Software - 17th International SPIN
+Workshop, Enschede, The Netherlands, September 27-29, 2010. Proceedings. pp.
+58{75 (2010). https://doi.org/10.1007/978-3-642-16164-3 5
+31. Yu, Y., Manolios, P., Lamport, L.: Model checking TLA+ specica-
+tions. In: Proceedings of the 10th IFIP WG 10.5 Advanced Research
+Working Conference on Correct Hardware Design and Verication Meth-
+ods. pp. 54{66. CHARME '99, Springer-Verlag, London, UK, UK (1999),
+http://dl.acm.org/citation.cfm?id=646704.702012

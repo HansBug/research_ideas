@@ -1,0 +1,310 @@
+--- Page 1 ---
+D-Finder: A Tool for Compositional Deadlock
+Detection and Veriﬁcation
+Saddek Bensalem, Marius Bozga, Thanh-Hung Nguyen, and Joseph Sifakis
+Verimag Laboratory, Universit´ e Joseph Fourier Grenoble, CNRS
+Abstract. D-Finder tool implements a compositional method for the
+veriﬁcation of component-based systems described in BIP language en-
+compassing multi-party interaction. For deadlock detection, D-Finder
+applies proof strategies to eliminate potential deadlocks by computing
+increasingly stronger invariants.
+1 Methodology
+Compositional veriﬁcation techniques are used to cope with state explosion in
+concurrent systems. The idea is to aply divide-and-conquer approaches to infer
+global properties of complex systems from properties of their components. Sepa-
+rate veriﬁcation of components limits state explosion. Nonetheless, components
+mutually interact in a system and their beh avior and properties are inter-related.
+This is a major diﬃculty in designing compositional techniques [1,2,3,4,5,6,7,8]).
+As explained in [9], compositional rules are in general of the form
+B1<Φ 1>, B 2<Φ 2>, C(Φ1,Φ2,Φ)
+B1/bardblB2<Φ>(1)
+That is, if two components with behaviors B1,B2meet individually properties
+Φ1,Φ2respectively, and C(Φ1,Φ2,Φ) is some condition taking into account the
+semantics of parallel composition operation and relating the individual properties
+with the global property, then the system B1/bardblB2resulting from the composition
+ofB1andB2will satisfy a global property Φ.
+In D-Finder, we implemented a novel approach for compositional veriﬁcation
+of invariants based on the following rule:
+{Bi<Φi>}i,Ψ∈II(/bardblγ{Bi}i,{Φi}i),(/logicalandtext
+iΦi)∧Ψ⇒Φ
+/bardblγ{Bi}i<Φ>(2)
+The rule allows to prove invariance of Φfor systems obtained by using a n-ary
+composition operation parame terized by a set of interactions γ.I tu s e sg l o b a l
+invariants which are the conjunction of individual invariants of components Φi
+and an interaction invariant Ψ. The latter expresses constraints on the global
+state space induced by interactions be tween components. It can be computed
+automatically from abstractions of the system to be veriﬁed. These are the com-
+position of ﬁnite state abstractions Bα
+iof the components Biwith respect to their
+A. Bouajjani and O. Maler (Eds.): CAV 2009, LNCS 5643, pp. 614–619, 2009.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2009
+
+--- Page 2 ---
+D-Finder: A Tool for Compositional Deadlock Detection and Veriﬁcation 615
+invariants Φi. They can be represented as a Petri net whose transitions corre-
+spond to interactions between components. Interaction invariants correspond to
+traps [10] of the Petri net and are computed symbolically as solutions of a set
+of boolean equations.
+Our method diﬀers from assume-guara ntee methods in that it avoids com-
+binatorial explosion of the decomposition and is directly applicable to systems
+with multiparty (not only binary) interactions. Furthermore, it needs only guar-
+antees for components. It replaces the search for adequate assumptions for each
+component by the use of interaction invariants. These can be computed auto-
+matically from given component invariants (guarantees). Interaction invariants
+correspond to a “ cooperation test ” in the terminology of [11] as they allow to
+eliminate product states which are not feasible by the semantics.
+1.1 Checking Deadlock-Freedom and Invariance Properties
+D-Finder provides a method for automated veriﬁcation of component-based sys-
+tems described in BIP (Behavior-Interaction-Priority) language [12]. In BIP, a
+system is the composition of a set of atomic components which are automata ex-
+tended with data and functions written in C. To provea global invariant Φfor a sys-
+temγ(B1,...,B n), obtained by composing a set of atomic components B1, ..., B n
+by using a set of interactions γ,w eu s et h er u l e( 2 )a b o v e ,w h e r e Bi<Φ i>
+means that Φiis an invariant of component BiandΨis an interaction invariant of
+γ(B1,...,B n) computed automatically from Φiandγ(B1,...,B n). A key issue in
+the application of this rule is ﬁnding component invariants Φi. If the components
+Biare ﬁnite state, then we can take Φ=Reach (Bi), the set of reachable state
+ofBi, or any upper approximation of Reach (Bi). If the components are inﬁnite
+state, Reach (Bi) is approximated using techniques presented in [13,14].
+–Checking Invariance Properties . We give a sketch of a semi-algorithm al-
+lowing to prove invariance of Φby iterative application of the rule (2). The
+semi-algorithm takes a system /angbracketleftγ(B1,...,B n),Init /angbracketrightand a predicate Φ.I t
+iteratively computes invariants of the form X=Ψ∧(/logicalandtextn
+i=1Φi)w h e r e Ψis an
+interaction invariant and Φian invariant of component Bi.I fXis not strong
+enough for proving that Φis an invariant ( X∧ ¬ Φ=false) then either a
+new iteration with stronger Φiis started or we stop. In this case, we cannot
+conclude about invariance of Φ.
+–Checking Deadlock-Freedom . Checking global deadlock-freedom of a sys-
+temγ(B1,...,B n) is a particular case of proving invariants - proving in-
+variance of the predicate ¬DIS,w h e r e DIS is the set of the states of
+γ(B1,...,B n) from which all interactions are disabled.
+1.2 Generating Component Invariants and Interaction Invariants
+D-Finder provides methods for computing component invariants, particulary
+useful for checking deadlock-freedom. It also provides a general method for com-
+puting interaction invariants for γ(B1,...,B n) from a given set of component
+invariants Φi.
+
+--- Page 3 ---
+616 S. Bensalem et al.
+–Computing Component Invariants. Invariants for atomic components are
+generated by simple forward analysis of their behavior. A key issue is eﬃcient
+computation of such invariants as the precise symbolic computation of reach-
+able states requires quantiﬁer elimination. An alternative to quantiﬁer elimi-
+nation is to compute over-approximations based on syntactic analysis of the
+predicates occuring in guards and actions. In this case, the obtained invariants
+may not be inductive. D-Finder uses diﬀerent strategies which allow to derive
+local assertions, that is, predicates a ttached to control locations and which
+are satisﬁed whenever the computation reaches the corresponding control lo-
+cation. A more detailed presentation, as well as the techniques implemented
+in D-Finder for generating component invariants are given in [15,16].
+–Computing Interaction Invariants. Interaction invariants express global
+synchronization constraints between atomic components. Their computation
+consists of the following steps. 1) For given component invariants Φiof the
+atomic components Bi, we compute a ﬁnite-state abstraction Bαi
+iofBiwhere
+αiis the abstraction induced by the elementary predicates occuring in Φi.
+This step is necessary only for components Biwhich are inﬁnite state. 2) The
+system γ(Bα1
+1,···,Bαnn) which is an abstraction of γ(B1,···,Bn), can be
+considered as a 1-safe Petri net. The s et of the traps of the Petri net deﬁnes
+a global invariant which we compute symbolically. 3) The concretization of
+this invariant gives an interaction invariant of the initial system.
+2 Tool Structure
+D-Finder consists of a set of modules interconnected as shown in Figure 1.
+It takes as input a BIP program and progressively ﬁnds and eliminates po-
+tential deadlocks. It basically works as follows. First, it constructs the predicate
+BIP model
+DIS
+YicesOmega
+Deadlock-freeDeadlocksgeneration
+Satisfiability
+false/negationslash= false-strengthen /negationslash=f a l s e - g i v eu pAbstraction and
+simulation confirmationDIS
+generation
+BIP DeadlockLocal
+verificationdeadlock-freeΦi
+Ψ
+/logicalandtextΦi∧Ψ∧DIS/logicalandtextΦi
+Ψgeneration
+Fig. 1. D-Finder tool
+
+--- Page 4 ---
+D-Finder: A Tool for Compositional Deadlock Detection and Veriﬁcation 617
+characterizing the set of deadlock states (DIS generation module). Second, it-
+eratively, it constructs in creasingly strong er local invariants of components ( Φi
+generation module). These invariants are used to compute ﬁner ﬁnite state ab-
+stractions and increasingly stronger global interaction invariants (Abstraction
+andΨgeneration module). Third, it veriﬁes deadlock-freedom by checking sat-
+isﬁabilty of ∧Φi∧Ψ∧DIS(satisﬁability module). If it succeeds, the system is
+proven deadlock-free; otherwise it may continue or gives up, according to the
+user’s choice.
+For doing all this, D-Finder is connected with several external tools. It uses
+Omega [17] for quantiﬁer elimination and Yices [18] for checking satisﬁability of
+predicates. It is also connected to the state space exploration tool of the BIP
+platform, for ﬁner analysis when the heuristic fails to prove deadlock-freedom.
+We provide non trivial examples showing the capabilities of D-Finder as well as
+the eﬃciency of the method.
+3 Experimentation and Concluding Remarks
+We provide experimental results for four examples. The ﬁrst example is Utopar, an
+industrial case study of the European Integrated project SPEEDS1about an au-
+tomated transportation system. A succinct description of Utopar can be found at
+http://www.combest.eu/home/?link=Application2 .The system is the composition
+of three types of components: autonomou s vehicles, called U-cars, a centralized
+Automatic Control System and Calling Units. The latter two types have (almost
+exclusively) discrete behavior. U-cars are equipped with a local controller, respon-
+sible for handling the U-cars sensors and performing various routing and driving
+computations depending on users’ requests. We analyzed a simpliﬁed version of
+Utopar by abstracting from data exchanged between components as well as from
+continuous dynamics of the cars. In this version, each U-Car is modeled by a com-
+ponent having 7 control locations and 6 integer variables. The Automatic Control
+System has 3 control locations and 2 integer variables. The Calling Units have 2
+control locations and no variables. In t he second example, we consider Readers-
+Writer systems in order to evaluate how the method scales up for components
+without data. The third example is Gas Station in order to compare with other
+compositional method assume-guarantee [19]. Finally, as a last example, we con-
+sider Dinning Philosophers which is a well-known classical example.
+The table below provides an overview of the experimental results obtained for
+these examples. In this table, nis the number of BIP components in the example,
+qis the total number of control locations, xb(resp. xi) is the total number of
+boolean (resp. integer) variables, DΦΨis the number of deadlock conﬁgurations
+remaining in ∧Φi∧Ψ∧DISandtis the total time for computing invariants
+and checking for satisﬁability of ∧Φi∧Ψ∧DIS. Detailed results are available
+athttp://www-verimag.imag.fr/˜ thnguyen/tool .
+The results presented by Cobleigh and his colleagues in [19] raise doubts
+about the usefulness of assume-guarantee reasoning techniques. They undertook
+1(http://www.speeds.eu.com/ )
+
+--- Page 5 ---
+618 S. Bensalem et al.
+example
+ n
+ q
+xb
+ xi
+DΦΨ
+ t
+Utopar System (40 U-Cars, 256 Calling Units)
+ 297
+ 795
+40
+242
+ 0
+3m46s
+Utopar System (60 U-Cars, 625 Calling Units)
+ 686
+1673
+60
+362
+ 0
+25m29s
+Readers-Writer (7000 readers)
+ 7002
+14006
+ 0
+1
+ 0
+17m27s
+Readers-Writer (10000 readers)
+ 10002
+ 20006
+ 0
+1
+ 0
+36m10s
+Gas station (100 pumps - 2000 customers)
+ 1101
+ 4302
+ 0
+0
+ 0
+14m06s
+Gas station (300 pumps - 3000 customers)
+ 3301
+12902
+ 0
+0
+ 0
+33m02s
+Philosophers (2000 Philos)
+ 4000
+10000
+ 0
+0
+ 3
+32m14s
+Philosophers (3001 Philos)
+ 6001
+15005
+ 0
+0
+ 1
+54m34s
+a study to determine if assume-guarantee reasoning provides an advantage over
+monolithic veriﬁcation. In this work, they considered all two-way decomposition
+for a set of systems and properties, using two diﬀerent veriﬁers, FLAVERS and
+LSTA. By increasing the number of repe ated tasks in the systems, they eval-
+uated the decompositions as they were scaled. They found that in only a few
+cases assume-guarantee reasoning can ve rify properties on larger systems than
+monolithic veriﬁcation can, and in these cases the systems that can be analyzed
+are only a few sizes larger.
+In our case, we also did some comparison with some well-known monolithic
+veriﬁcation tools such as NewSMV (NuSMV).All the experimentations are done
+on a Linux machine Intel Pentium 4 3.0 GHz and 1G Ram.
+The ﬁrst comparison between NuSmv and D-Finder is on Dinning Philosopher
+example. We increase the number of Ph ilosophers and compare the veriﬁcation
+time between these two tools (ﬁgure 2). In the ﬁgure 2, NuSmv runs out of
+memory at the size 150 while D-Finder can go much further until the size 3000.
+The second comparison between NuSmv and D-Finder is on Gas Station exam-
+ple. We consider a system with 3 pumps and increase the number of customers.
+The comparison of veriﬁcation time is in ﬁgure 3. In this ﬁgure, NuSmv runs
+Fig. 2. Dinning Philosopher
+ Fig. 3. Gas Station
+
+--- Page 6 ---
+D-Finder: A Tool for Compositional Deadlock Detection and Veriﬁcation 619
+out of memory at the size 180 (Customers) while D-Finder can go much further
+until the size 3000.
+References
+1. Alur, R., Henzinger, T.: Reactive modules. In: Proceedings of the 11th Annual
+Symposium on LICS, pp. 207–208. IEEE Computer Society Press, Los Alamitos
+(1996)
+2. Abadi, M., Lamport, L.: Conjoining speciﬁcations. Toplas 17(3), 507–534 (1995)
+3. Clarke, E., Long, D., McMillan, K.: Compositional model checking. In: Proceedings
+of the 4th Annual Symposium on LICS, pp. 353–362 (1989)
+4. Chandy, K., Misra, J.: Parallel program design: a foundation. Addison-Wesley Pub-
+lishing Company, Reading (1988)
+5. Grumberg, O., Long, D.E.: Model checking and modular veriﬁcation. ACM Trans-
+actions on Programming Languages and Systems 16(3), 843–871 (1994)
+6. McMillan, K.L.: A compositional rule for hardware design reﬁnement. In: Grum-
+berg, O. (ed.) CAV 1997. LNCS, vol. 1254, pp. 24–35. Springer, Heidelberg (1997)
+7. Pnueli, A.: In transition from global to modular temporal reasoning about pro-
+grams, pp. 123–144 (1985)
+8. Stark, E.W.: A proof technique for rely/guarantee properties. In: Maheshwari, S.N.
+(ed.) FSTTCS 1985. LNCS, vol. 206, pp. 369–391. Springer, Heidelberg (1985)
+9. Kupferman, O., Vardi, M.Y.: Modular model checking. In: de Roever, W.-P.,
+Langmaack, H., Pnueli, A. (eds.) COMPOS 1997. LNCS, vol. 1536, pp. 381–401.
+Springer, Heidelberg (1998)
+10. Peterson, J.: Petri Net theory and the modelling of systems. Prentice Hall, Engle-
+wood Cliﬀs (1981)
+11. Apt, K.R., Francez, N., de Roever, W.P.: A proof system for communicating se-
+quential processes. ACM Trans. Program. Lang. Syst. 2(3), 359–385 (1980)
+12. Basu, A., Bozga, M., Sifakis, J.: Modeling heterogeneous real-time components in
+bip. In: SEFM, pp. 3–12 (2006)
+13. Lakhnech, Y., Bensalem, S., Berezin, S., Owre, S.: Incremental veriﬁcation by
+abstraction. In: Margaria, T., Yi, W. (eds.) TACAS 2001. LNCS, vol. 2031, pp.
+98–112. Springer, Heidelberg (2001)
+14. Bradley, A.R., Manna, Z.: Checking safety by inductive generalization of coun-
+terexamples to induction . In: FMCAD, pp.173–180 (2007)
+15. Bensalem, S., Lakhnech, Y.: Automatic generation of invariants. FMSD 15(1), 75–
+92 (1999)
+16. Bensalem, S., Bozga, M., Sifakis, J., Nguyen, T.H.: Compositional veriﬁcation for
+component-based systems and application. In: Cha, S., Choi, J.-Y., Kim, M., Lee,
+I., Viswanathan, M. (eds.) ATVA 2008. LNCS, vol. 5311, pp. 64–79. Springer,
+Heidelberg (2008)
+17. Team, O.: The omega library. Version 1.1.0 (1996)
+18. Dutertre, B., de Moura, L.: A fast linear-arithmetic solver for DPLL(T). In: Ball,
+T., Jones, R.B. (eds.) CAV 2006. LNCS, vol. 4144, pp. 81–94. Springer, Heidelberg
+(2006)
+19. Cobleigh, J.M., Avrunin, G.S., Clarke, L.A.: Breaking up is hard to do: An evalu-
+ation of automated assume-guarantee reasoning. ACM TSEM 17(2) (2008)

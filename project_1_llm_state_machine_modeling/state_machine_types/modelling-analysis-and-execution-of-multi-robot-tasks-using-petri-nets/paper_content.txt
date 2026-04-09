@@ -1,0 +1,465 @@
+--- Page 1 ---
+Modelling, Analysis and Execution of Multi-Robot Tasks
+using Petri Nets
+(Short Paper)
+Hugo Costelha
+Inst. for Sys. and Robotics, IST, Lisboa, Portugal
+Polytech. Inst. of Leiria, ESTG, Leiria, Portugal
+hcostelha@isr.ist.utl.ptPedro Lima
+Institute for Systems and Robotics,
+Instituto Superior Técnico, Lisboa, Portugal
+pal@isr.ist.utl.pt
+ABSTRACT
+This pap er in tro duces P etri net (PN) based mo dels of co-
+op erativ e rob otic tasks, namely those in v olving the co ordi-
+nation of t w o or more rob ots, th us requiring the exc hange
+of sync hronisation messages, either using explicit (e.g., wire-
+less) or implicit (e.g., vision-based observ ation of teammates)
+comm unication. In the mo dels, PN places represen t primi-
+tiv e actions, subtasks and predicates set b y sensor readings
+and comm unicated messages. Ev en ts are asso ciated to PN
+transitions. The PN mo dels can b e used for task planning,
+plan execution and plan analysis. Dieren t PN views enable
+the analysis of dieren t prop erties. In this w ork w e fo cus on
+plan analysis, namely on prop erties suc h as b oundedness
+and liv eness, corresp onding to c hec king if resources usage is
+stable and plans ha v e no deadlo c ks, as w ell as on sto c hastic
+p erformance, concerning the plan success probabilit y . One
+no v el feature of our w ork is that the analysis consists of com-
+p osing sev eral small action PN mo dels with en vironmen t PN
+mo dels, leading to a closed lo op rob ot team/en vironmen t
+analysis metho dology . Examples of application to sim ulated
+rob otic so ccer scenarios are presen ted.
+Categories and Subject Descriptors
+I.2.9 [ Articial In telligence ]: Rob otics; D.2.2 [ Soft w are
+Engineering ]: Design T o ols and T ec hniques Petri nets
+General Terms
+Design, P erformance, V erication
+Keywords
+Multi-Rob ot Systems, P etri nets, Mo delling, Analysis
+1. INTRODUCTION
+F ormal task design metho ds for general rob otic tasks en-
+able a systematic approac h to mo delling, analysis and de-
+sign, scaling up to realistic applications, of formal prop er-
+ties, and design from sp ecications. Discrete ev en t systems
+[1] pro vide an appropriate framew ork for suc h goal. Sev-
+eral approac hes describ ed in the literature use nite sate
+Cite as: Modelling, Analysis and Execution of Multi-Robot Tasks using
+Petri Nets (Short Paper), Hugo Costelha and Pedro Lima, Pr o c. of 7th
+Int. Conf. on A utonomous A gents and Multiagent Systems
+(AAMAS 2008) , Padgham, Parkes, Müller and Parsons (eds.), May, 12-
+Copyright ©2008, International Foundation for Autonomous Agents and
+Multiagent Systems (www.ifaamas.org). All rights reserved.automata (FSA) to mo del rob ot b eha viors. Ho w ev er, fre-
+quen tly they do not tak e adv an tage of the formal prop erties
+asso ciated to suc h mo dels, using them only as a helpful de-
+sign to ol.
+Discrete ev en t mo dels are esp ecially relev an t to mo del
+team w ork, as comm unication signals exc hanged b y the in-
+v olv ed teammates often in v olv e sync hronization ev en ts and
+transition b et w een discrete states. This is particularly true
+for PNs. In PNs, the state information is distributed among
+a set of places whic h capture k ey conditions go v erning the
+system, and PNs ha v e increased mo dularit y for mo del-buil-
+ding. F urthermore, an automaton can alw a ys b e represen ted
+as a PN, but not all PNs can b e represen ted as nite-state
+automata, therefore the language expressiv e p o w er is greater
+for PNs than for FSA, enabling ric her b eha vior mo dels [1].
+PNs ha v e b een used b efore to mo del rob otic tasks [3, 4],
+b oth for manipulators and mobile rob ots, taking adv an tage
+of the mo dels to explore task analysis topics.
+W e ha v e in tro duced a PN based framew ork for mo delling,
+analysis and execution of PN tasks in [5]. In this pap er w e
+extend the prop osed framew ork with m ulti-rob ot co op era-
+tiv e task mo dels. Some additional building blo c ks that en-
+hance and mo dularize ev en further the task design pro cess
+of individual rob otic tasks are also describ ed. In the de-
+v elop ed framew ork, sensor information and ev en ts are seen,
+resp ectiv ely , as resources and transitions. The same can b e
+done regarding comm unication. Th us, m ulti-rob ot co op er-
+ativ e tasks are mo deled b y adding extra information to the
+individual task mo dels to accoun t for sync hronisation, either
+b y explicit or implicit comm unication. The closest w ork to
+ours can b e found in [6], ho w ev er the authors fo cus there on
+the design of the tasks for execution purp oses only , and do
+not p erform task analysis.
+The pap er starts b y in tro ducing PN mo dels and the basic
+building blo c ks of the framew ork in Section 2. Section 3
+details ho w individual tasks can b e mo delled, analysed and
+executed. Section 4 in tro duces the extensions needed for
+m ulti-rob ot tasks. Finally , Section 5 sho ws results obtained
+in a rob otic so ccer scenario, follo w ed b y the conclusions and
+future w ork in Section 6.
+2. PETRI NETS
+P etri nets are the base formalism used in this w ork. W e
+use b oth Mark ed Ordinary P etri nets (MOPNs) [1], wic h are
+suited for qualitativ e analysis, and Generalised Sto c hastic
+P etri nets (GSPNs) [7], suited for p erformance analysis.
+The GSPN marking is a semi-Mark o v pro cess with a dis-
+118716.,2008,Estoril,Portugal,pp.1187-1190.
+
+--- Page 2 ---
+crete state space giv en b y the reac habilit y graph of the net
+for an initial marking [7]. A Mark o v c hain can b e obtained
+from the marking pro cess, and the transition probabilit y
+matrix computed b y using the ring rates of the exp onen-
+tial timed transitions and the probabilities asso ciated with
+the random switc hes. This enables the use of to ols already
+a v ailable to analyse Mark o v c hains directly with the GSPN,
+instead of relying on e.g., Mon te Carlo sim ulation.
+W e rst dene some base construction mo dels to assist
+us on the design of the rob otic tasks, namely Macr o Plac es
+and Pr e dic ate Plac es [5]. Macro places are sp ecial places
+whic h allo w an hierarc hical view and use of PN mo dels.
+A macro place is actually a place holder for an en tire PN
+mo del, whic h can also con tain other macro places, th us in-
+tro ducing mo dels with unlimited depth. W e prop ose a de-
+nition of macro places based on c onne ction plac es , whic h can
+b e Input places, Output places, or b oth. These connection
+places dene where to connect incoming arcs (inputs) and
+outgoing arcs (outputs) when replacing a macro place b y its
+corresp onding PN mo del.
+A macro place, depicted as a dashed place, is used as a
+macro-mo del of a PN mo del, allo wing a PN mo del to replace,
+or b e replaced b y , a single place. This PN mo del m ust ha v e
+at least one input and one output places or, at least one
+input/output place, in order to b e replacable b y a macro
+place. Note that a place can b e b oth a connection place and
+a macro place. The term exp anding a macro place refers to
+replacing the macro place b y its corresp onding PN mo del.
+3. INDIVIDUAL ROBOTIC TASKS
+Under this framew ork, the rob otic task mo dels are organ-
+ised in la y ers with dieren t degrees of abstraction, whic h
+include an En vironmen t la y er (with PN-based mo dels of the
+rob ot en vironmen t), A ction Executor and Co ordination la y-
+ers (with PN-based rob ot action mo dels) and an Organisa-
+tion la y er (concerning PN-based role assignmen t and goal
+selection mo dels). The En vironmen t la y er mo dels are used
+solely for analysis purp oses. The other la y ers are directly
+related with what runs in the rob ot, eac h of them including
+sev eral (usually small) mo dels. Sp ecication of individual
+rob otic tasks is ac hiev ed b y designing the v arious mo dels
+separately and b y building a PN-based task plan whic h uses
+those mo dels, as detailed in [5].
+Analysis of individual rob ot tasks is done b y building a
+single PN mo delling the en tire task execution. The task plan
+macro places are expanded un til there are no macro places
+and then comp osed with the En vironmen t mo dels, consid-
+ering that all predicate places with the same lab el are the
+same, and all the other comp onen ts are dieren t, regardless
+of their lab el. The resulting PN is analysed using a v ailable
+PN analysis tec hniques. These can b e logical prop erties of
+the task execution, lik e deadlo c ks, conserv ation prop erties,
+liv elo c ks, etc., or based on Mark o v c hain analysis tec hniques
+for quan titativ e prop erties. Giv en that the marking graph
+of a GSPN is a semi-Mark o v pro cess, a Mark o v c hain re-
+sults from the original PN, whic h is analysed for quan tita-
+tiv e prop erties, suc h as mean time to reac h a giv en state,
+probabilit y of reac hing a giv en state, etc..
+4. MULTI-ROBOT TASKS
+The main dierence b et w een individual and co op erativ e
+m ulti-rob ot tasks, is that sync hronisation m ust o ccur amongthe rob ots during task execution. Sync hronisation o ccurs
+through the use of comm unication, either explicitly or im-
+plicitly . Explicit comm unication happ ens when a rob ot (the
+sender) sends a message directly to the other rob ot(s), usu-
+ally using ethernet or wireless comm unications. Implicit
+comm unication happ ens when a rob ot, or rob ots, (the re-
+ceiv ers) p erceiv e some situation regarding the sender rob ot.
+As suc h, in order to mo del m ulti-rob ot tasks with our PN-
+based framew ork, w e rst in tro duce comm unication mo dels.
+4.1 Communication Models
+The ma jor problem when using comm unication is the time
+information tak es to go from the sender to the receiv er,
+whic h, theoretically , can go from zero time to innite time
+(comm unication failure). T o mo del comm unication, w e con-
+sidered three dieren t comm unication mo dels, whic h co v er
+this time range. The base concept in these mo dels is that a
+rob ot has a predicate place with a giv en v alue and wishes to
+transmit that information to a teammate. The teammate,
+up on receiving the information, gets its predicate up dated
+to the same v alue as its teammate.
+The simplest comm unication mo del is presen ted in Fig.
+1a. Here the comm unication is considered instan taneous
+and alw a ys successful. Increasing the mo del complexit y b y
+adding a probabilistic arriv al time for the comm unication,
+results in the mo del depicted in Fig. 1b. In this case, com-
+m unications are still considered alw a ys successful. The full
+comm unication mo del, whic h adds the failure p ossibilit y to
+the previous mo del, is presen ted in Fig. 1c.
+sendMsg
+recvMsgSender
+Receiversuccess
+(a) Deterministic comm uni-
+cation mo del without fail-
+ures.
+sendMsg
+recvMsgSender
+Receiversuccess(b) Comm unication mo del
+with probabilistic time and
+without failures.
+sendMsg
+recvMsgSender
+Receiversuccessfailure
+(c) F ull comm unication
+mo del with probabilistic
+time and failures.
+sendMsg
+recvMsgSender
+Receiversuccesssfailure
+s
+r
+success(d) Separate view of the full
+comm unication mo del.
+Figure 1: Comm unication mo dels.
+Giv en the v arious comm unication mo dels, w e can c ho ose
+whic h one to use, according to the con text where the mo del
+is b eing applied and the prop ert y w e wish to analyse. Com-
+m unication mo dels are distributed as sho wn in Fig. 1d, th us
+the comm unication transitions include a tag to distinguish
+if the transition b elongs to the sender or the receiv er.
+4.2 Communication Actions
+In order to use the comm unication mo dels to mo del di-
+rect comm unication b et w een rob ots during a relational task,
+w e dene Comm unication A ctions, whic h will b e used to
+establish the required sync hronisation. F or eac h sending
+comm unication mo del there m ust b e a receiving comm u-
+nication action mo del. As an example, see the A ction Ex-
+ecutor lev el mo dels of actions sendReady2ReceiveBall and
+recvReady2ReceiveBall , for a rob otic so ccer scenario, in
+Fig. 2a and Fig. 2b resp ectiv ely .
+1188
+
+--- Page 3 ---
+sendReady2ReceiveBall
+¬SENT_READY2RECEIVEBALL SENT_READY2RECEIVEBALL
+s
+s
+failuresuccess
+ready2receiveBall
+init_ok
+IN_POSTURE Reset mechanisminit_reset(a) Action sendReady2-
+ReceiveBall .
+recvReady2ReceiveBall
+r
+HAS_BALLinit_oksuccess
+ready2receiveBall
+init_reset¬GOT_READY2RECEIVEBALL GOT_READY2RECEIVEBALL(b) A ction recvReady2Recei-
+veBall .
+Figure 2: Comm unication actions.
+These actions, b esides the sp ecications already dened
+for ordinary actions, include an output place (represen ted b y
+a b old circle) in addition to the usual input/output (dou-
+ble circle) place and a reset mec hanism. The additional
+place is required to distinguish the initial action selection
+(tok en in the double circled place) from signaling that the
+action is actually running (tok en in the b old circled place).
+This w a y , the send/receiv e predicates are reset to their ini-
+tial v alues (not sen t, not got) immediately up on initializa-
+tion. T w o init transitions are also required to distinguish
+the cases when the comm unication actions started with the
+send/receiv e predicates already set to their initial v alues or
+not.
+4.3 Task Plans
+With the in tro duction of the comm unication mo dels and
+comm unication actions, sp ecifying a m ulti-rob ot task is sim-
+ilar to the sp ecication of individual rob ot tasks. The ma jor
+dierence is that w e need to use comm unication actions to
+ensure that the subtasks running during a m ulti-rob ot task
+execution are sync hronised. F or no w w e are assuming that
+the c hoice of running a relational task w as already done, and
+fo cus on the m ulti-rob ot task execution analysis.
+4.4 Analysis
+The analysis of m ulti-rob ot tasks in this framew ork is
+similar to the individual rob ot tasks case, adding the in-
+tro duction of the comm unication mo dels and actions. The
+dierence relies on the need to prex all the place lab els
+iden tifying the rob ot they b elong to, and the expansion of
+the comm unication actions need an additional step.
+Although the action places are alw a ys considered dieren t
+places, regardless of their lab el, these are also prexed with
+the rob ot lab el, since dieren t rob ots can ha v e dieren t ac-
+tion mo dels. During the expansion of the macro places for
+analysis, all the comm unication actions are replaced b y their
+analysis v ersion instead of their original v ersion. If w e ha v e
+more than t w o rob ots, then a selection mec hanism m ust b e
+used to select to whic h rob ot, or rob ots, the message is to
+b e sen t. The user nev er needs to see the analysis v ersions of
+the actions, since these are used only in ternally for analysis,
+and are automatically created from their original v ersions.
+5. APPLICATION TO ROBOTIC SOCCER
+5.1 Setup
+Consider a pass example b et w een t w o rob ots, the kic k er
+and the receiv er. Giv en t w o subtasks, coordinatedKick ,
+for the kic k er, and coordinatedReceive , for the receiv er, at w o-rob ot P ass task plan corresp onds to a single coordina-
+tedPass relational task, whic h consists of running b oth sub-
+tasks in parallel, one in eac h rob ot. The k ey here is to mak e
+sure that b oth subtasks run sync hronously . W e assume that
+some higher lev el to ok the decision that the rob ots should
+commit with the co ordinated pass task, and will fo cus on
+the task execution analysis, k eeping the critical sections syn-
+c hronised.
+First w e dene a set of actions, needed for the pass rela-
+tional task: standBy , do nothing action; prepBall4Pass -
+the rob ot whic h has the ball, the kic k er, gets ready to pass
+the ball to the receiv er; sendReady2ReceiveBall - the re-
+ceiv er ac kno wledges that it is ready to receiv e the ball(Fig.
+2a); recvReady2ReceiveBall - w aits for a comm unication
+from the receiv er to kno w it is ready to receiv e the ball (Fig.
+2b); passBall - passes the ball to another rob ot. In this case
+w e considered a simple v ersion, where passes are only done
+from near the o wn goal to near the opp onen t goal; go2Re-
+ceivingPosture - the rob ot mo v es to a destination p osture,
+whic h is go o d for receiving the ball. In this case w e also
+considered a simpler v ersion, where the receiving p osture is
+near the opp onen t's goal; grabBall - the rob ot grabs the
+ball.
+Subtask coordinatedKick is obtained b y running actions
+prepBall4Pass and recvReady2ReceiveBall in parallel, fol-
+lo w ed b y passBall up on getting predicates READY2PASSBALL
+and GOT_READY2RECEIVEBALL to true. The coordinatedRe-
+ceive subtask is formed b y a sequence of actions, starting
+with go2ReceivingPosture , follo w ed b y sendReady2Receive-
+Ball when predicate IN_POSTURE gets true, follo w ed b y grab-
+Ball when SENT_READY2RECEIVEBALL gets true. The PN
+mo dels of b oth subtasks are sho wn in Fig. 3a and Fig. 3b.
+Regarding comm unication, the relev an t actions for the
+coordinatedPass relational task are recvReady2Receive-
+Ball and sendReady2ReceiveBall , the t w o comm unication
+actions detailed previously .
+prepBall4Pass READY2PASSBALL
+recvReady2ReceiveBallGOT_READY2RECEIVEBALLpassBall
+(a) coordinatedKick
+subtask mo del.
+go2Posture
+IN_POSTUREsendReady2Receive
+SENT_READY2RECEIVEgrabBall(b) coordinatedReceive
+subtask mo del.
+Figure 3: Individual pass substasks.
+5.2 Task Plan & Analysis
+W e consider a scenario where b oth rob ots are already set
+up for the execution of the pass, and analyse its execution.
+As suc h, w e place the kic k er rob ot near its o wn goal with
+the ball and the receiv er rob ot near the opp onen t goal. Both
+rob ots will start immediately in the coordinatedPass rela-
+tional task, th us resulting in the P ass task plan depicted
+in Fig. 4. Note that this is the team task plan, as the top
+and b ottom places represen t, resp ectiv ely , the kic k er and
+receiv er task plans.
+As said previously , the analysis of this task plan is p er-
+formed b y expanding its macro places, taking in to atten tion
+the comm unication mo dels, obtaining a single PN, whic h is
+analysed b oth for qualitativ e and quan titativ e prop erties.
+Note that the obtained PNs are supp osed not to b e seen
+b y the user, giv en that they are created automatically for
+analysis purp oses only .
+1189
+
+--- Page 4 ---
+KickerReceiverR1_coordinatedKick
+R2_coordinatedReceiveR1_TEAMMATE_HAS_BALL
+R1_standBy
+R2_standBy
+R2_HAS_BALLFigure 4: P ass task plan.
+T able 1: Plan success probabilit y vs transition rates.
+A ction Comm. Comm. Plan success
+# En v. success success failure probabilit y
+1 1 10 1 1 0.11
+2 1 10 1 10 0.04
+3 1 10 10 1 0.39
+4 1 10 10 10 0.23
+5 1 10 100 0.01 0.51
+6 1 10 10000 0.0001 0.51
+7 1 20 10000 0.0001 0.70
+5.3 Results
+Giv en the v arious mo dels of the actions and the analy-
+sis tec hniques describ ed earlier, w e obtained sev eral results
+concerning the exp ected plan success probabilit y using the
+TimeNET to ol [8]. W e started b y testing with a determin-
+istic en vironmen t, i.e., an en vironmen t without sto c hastic
+transitions. Giv en that the only actions whic h directly in-
+clude failures are the comm unication actions, the plan suc-
+cess probabilit y in this case dep ends only on the relation
+b et w een the t w o comm unication rates, success and failure.
+In that case, the plan success probabilit y is giv en b y
+PPlan success =comm success
+comm success +comm failure
+Using a probabilistic en vironmen t where it w as considered
+that the ball could mo v e uncon trolled and where losing the
+ball is also uncon trollable, w e ha v e a more realistic mo del.
+In this case w e exp erimen ted with dieren t rates for the
+En vironmen t sto c hastic transitions, for the A ctions success
+transitions and, for the comm unication success and comm u-
+nication failure transitions, obtaining the results in T able 1.
+In the table w e can see the inuence of the v arious rates in
+the plan success probabilit y . It clearly sho ws the exp ected
+result, i.e, the comm unication pla ys an imp ortan t role in the
+success of the plan. F urthermore, in suc h an en vironmen t,
+high success probabilities are alw a ys dicult to ac hiev e. Ex-
+p erimen t 4, 5 and 6 clearly sho w the inuence of increasing
+the prop ortion b et w een the success comm unication rate and
+the other rates. Lo oking at exp erimen t 5 and 6, w e see that,
+at some p oin t, increasing that prop ortion do es not y eld rel-
+ev an t impro v emen ts to the plan success probabilit y . In that
+case the other option is to impro v e the success of the other
+actions, as sho wn b y exp erimen t 7.
+Giv en that the plan is purely sequen tial, in terms of action
+execution w e alw a ys end in a deadlo c k. In the determinis-
+tic en vironmen t case the resulting PN has t w o deadlo c ks,
+corresp onding to the successful termination (b oth rob ots in
+the standBy action) and unsuccessful termination ( R1 in the
+coordinatedKick subtask and R2 in the coordinatedRecei-
+ve subtask) of the plan. In the probabilistic case, giv en that
+the ball k eeps mo ving around the eld, the previous situ-ations corresp ond to liv elo c ks. In that case, R2 will reac h
+standBy since the ball will ev en tually pass near it, if giv en
+enough time.
+6. CONCLUSIONS AND FUTURE WORK
+In this pap er, w e extended an earlier PN-based frame-
+w ork to mo del rob otic tasks in v olving m ultiple rob ots, b y
+in tro ducing comm unication mo dels and comm unication ac-
+tions, whic h allo w ed us to mo del and analyse the execution
+of m ulti-rob ot tasks.
+W e obtained results in a rob otic so ccer scenario whic h
+sho w the analysis p oten tial of the prop osed framew ork re-
+garding m ulti-rob ot tasks. In order to analyse more complex
+m ulti-rob ot tasks, with relational subtasks in terlea v ed with
+individual subtasks and more than t w o rob ots, one needs to
+incorp orate selection and commitmen t main tenance mec ha-
+nisms. These mec hanisms already exist in the literature [2]
+and w e are dev eloping a PN mo del whic h will incorp orate
+them in our mo del. When analysing the complete mo dels
+w e will also b e able to extract prop erties concerning the
+comm unication proto cols and commitmen t main tenance.
+7. ACKNOWLEDGEMENTS
+This w ork w as supp orted b y the P ortuguese F undação
+para a Ciência e T ecnologia under under gran t SFRH/BD/
+12707/2003 and ISR/IST pluriann ual funding through the
+POS_Conhecimen to Program that includes FEDER funds.
+8. REFERENCES
+[1] C. Cassandras, S. Lafortune. Intr o duction to Discr ete
+Event Systems , Klu w er A cademic Publishers, 1999.
+[2] Philip R. Cohen; Hector J. Lev esque, T e amwork ,
+Nous, v ol. 25, no. 4, pp. 487-512, 1991.
+[3] F. W ang et al, A Petri-Net Co or dination Mo del for an
+Intel ligent Mobile R ob ot , IEEE T ransactions on
+Rob otics and Automation, V ol. 9, No. 3, pp. 257-271,
+1993.
+[4] L. Mon tano, F. García, J. Villaro el, Using the Time
+Petri Net F ormalism for Sp e cic ation, V alidation, and
+Co de Gener ation in R ob ot-Contr ol Applic ations , The
+In ternational Journal of Rob otics Researc h, v ol. 19,
+no. 1, pp. 59-76, 2000.
+[5] H. Costelha, P . Lima, Mo del ling, A nalysis and
+Exe cution of R ob otic T asks using Petri Nets , Pro c. of
+IR OS 2007 - IEEE/RSJ In ternational Conference on
+In telligen t Rob ots and Systems, pp. 1449-1454, San
+Diego, CA, USA, 2007.
+[6] V. Ziparo, L. Io cc hi, Petri Net Plans , Pro c. of the
+F ourth In ternational W orkshop on Mo delling of
+Ob jects, Comp onen ts, and Agen ts, pp. 267-290,
+T urku, Finland, 2006.
+[7] N. Visw anadham, Y. Narahari, Performanc e
+Mo del ling of A utomate d Manufacturing Systems ,
+Pren tice Hall, 1992.
+[8] A. Zimmermann, A Softwar e T o ol for the
+Performability Evaluation with Sto chastic Petri Nets ,
+h ttp://p dv.cs.tu-b erlin.de/timenet/, 2001.
+1190

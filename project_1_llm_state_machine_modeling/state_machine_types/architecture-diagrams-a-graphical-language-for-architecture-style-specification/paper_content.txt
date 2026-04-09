@@ -1,0 +1,838 @@
+--- Page 1 ---
+M. Bartoletti, L. Henrio, S. Knight, and H. T. Vieira (Eds.):
+9th Interaction and Concurrency Experience (ICE 2016)
+EPTCS 223, 2016, pp. 83–97, doi:10.4204/EPTCS.223.6Architecture Diagrams: A Graphical Language for
+Architecture Style Speciﬁcation
+Anastasia Mavridou Eduard Baranov Simon Bliudze Joseph Sifakis
+´Ecole polytechnique f ´ed´erale de Lausanne, Station 14, 1015 Lausanne, Switzerland
+firstname.lastname@epfl.ch
+Architecture styles characterise families of architectures sharing common characteristics. We have
+recently proposed conﬁguration logics for architecture style speciﬁcation. In this paper, we study a
+graphical notation to enhance readability and easiness of expression. We study simple architecture
+diagrams and a more expressive extension, interval architecture diagrams. For each type of diagrams,
+we present its semantics, a set of necessary and sufﬁcient consistency conditions and a method that
+allows to characterise compositionally the speciﬁed architectures. We provide several examples il-
+lustrating the application of the results. We also present a polynomial-time algorithm for checking
+that a given architecture conforms to the architecture style speciﬁed by a diagram.
+1 Introduction
+Software architectures [25, 27] describe the high-level structure of a system in terms of components and
+component interactions. They depict generic coordination principles between types of components and
+can be considered as generic operators that take as argument a set of components to be coordinated and
+return a composite component that satisﬁes by construction a given characteristic property [2].
+Many languages have been proposed for architecture description, such as architecture description lan-
+guages (e.g. [21, 10]), coordination languages (e.g. [24, 1]) and conﬁguration languages (e.g. [28, 15]).
+All these works rely on the distinction between behaviour of individual components and their coordi-
+nation in the overall system organization. Informally, architectures are characterized by the structure of
+the interactions between a set of typed components. The structure is usually speciﬁed as a relation, e.g.
+connectors between component ports.
+Figure 1
+p1p2q1q2M1M2S1S2p1p2q1q2M1M2S1S2p1p2q1q2M1M2S1S2p1p2q1q2M1M2S1S2p1q1 + p2q2p1q2 + p2q1p1q1 + p1q2p2q1 + p2q2
+Figure 1: Master/Slave architectures.
+Architecture styles characterise not a single architecture but a family of architectures sharing common
+characteristics, such as the types of the involved components and the topology induced by their coordina-
+tion structure. Simple examples of architecture styles are Pipeline, Ring, Master/Slave, Pipes and Filters.
+For instance, Master/Slave architectures integrate two types of components, masters and slaves, such that
+each slave can interact only with one master. Fig. 1 depicts four Master/Slave architectures involving two
+master components M1,M2and two slave components S1,S2. Their communication ports are respectively
+
+--- Page 2 ---
+84 Architecture Diagrams
+Figure 2
+T1n1T2n2mp:dpmq:dqqpT3n3mr:drr
+Figure 2: An architecture diagram.
+Figure 3
+p1p2T3T1p3T1T1r1T2q1
+q2T2 Figure 3: An architecture.
+p1,p2andq1,q2. A Master/Slave architecture for two masters and two slaves can be represented as one
+among the following conﬁgurations, i.e. sets of connectors: fp1q1;p2q2g,fp1q2;p2q1g,fp1q1;p1q2g,
+fp2q1;p2q2g. A term piqjrepresents a connector between ports piandqj. The four architectures are
+depicted in Fig. 1. The Master/Slave architecture style denotes all the Master/Slave architectures for
+arbitrary numbers of masters and slaves.
+We have recently proposed conﬁguration logics [19] for the description of architecture styles. These
+are powerset extensions of interaction logics [3] used to describe architectures. In addition to the opera-
+tors of the extended logic, they have logical operators on sets of architectures. We have studied higher-
+order conﬁguration logics and shown that they are a powerful tool for architecture style speciﬁcation.
+Nonetheless, their richness in operators and concepts may make their use challenging.
+In this paper we explore a different avenue to architecture style speciﬁcation based on architecture
+diagrams . Architecture diagrams describe the structure of a system by showing the system’s component
+types and their attributes for coordination, as well as relationships among component types. Our notation
+allows the speciﬁcation of generic coordination mechanisms based on the concept of connector .
+Architecture diagrams were mainly developed for architecture style speciﬁcation in BIP [2], where
+connectors are deﬁned as n-ary synchronizations among component ports and do not carry any addi-
+tional behaviour. Nevertheless, our approach can be extended for architecture style speciﬁcation in other
+languages by explicitly associating the required behaviour to connectors.
+An architecture diagram consists of a set of component types , acardinality function and a set of
+connector motifs . Component types are characterised by sets of generic ports . The cardinality function
+associates each component type with its cardinality , i.e. number of instances. Fig. 2 shows an architecture
+diagram consisting of three component types T1,T2andT3with n1,n2andn3instances and generic ports
+p,qandr, respectively. Instantiated components have port instances p i,qj,rkfori;j;kbelonging to the
+intervals [1;n1],[1;n2],[1;n3], respectively.
+Connector motifs are non-empty sets of generic ports that must interact. Each generic port pin the
+connector motif has two constraints represented as a pair m:d. Multiplicity mis the number of port
+instances pithat are involved in each connector. Degree dspeciﬁes the number of connectors in which
+each port instance is involved. The architecture diagram of Fig. 2 has a single connector motif involving
+generic ports p,qandr.
+A connector motif deﬁnes a set of possible conﬁgurations, where a conﬁguration is a set of con-
+nectors. The meaning of an architecture diagram is a set of architectures that contain the union of all
+sub-conﬁgurations corresponding to each connector motif of the diagram. Fig. 3 shows the unique archi-
+tecture obtained from the diagram of Fig. 2 by taking n1=3,mp=1,dp=1;n2=2,mq=2,dq=3,
+n3=1,mr=1,dr=3. This is the result of composition of constraints for generic ports p,qandr. For
+p, we have three instances and as both the multiplicity and the degree are equal to 1, each instance pihas
+a single connector lead. For q, we have two instances and as the multiplicity is 2, we have connectors
+
+--- Page 3 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 85
+Figure 7T1n1T2n2mp:dpmq:dqqp
+Figure 4: A simple architecture diagram.
+involving q1andq2and their total number is equal to 3 to meet the degree constraint. For r, we have a
+single instance r1that has three connector leads to satisfy the degree constraint.
+We study a method that allows to characterise compositionally the set of conﬁgurations speciﬁed by
+a given connector motif if consistency conditions are met. It involves a two-step process. The ﬁrst step
+consists in characterising conﬁguration sets meeting the coordination constraints for each generic port p
+of the connector motif. In the second step, connectors from the sets obtained from step one are fused one
+by one, so that the multiplicities and the degrees of the ports are preserved, to generate the conﬁguration
+of the connector motif.
+We study two types of architecture diagrams: simple architecture diagrams andinterval architecture
+diagrams . In the former the cardinality, multiplicity and degree constraints are positive integers, while in
+the latter they can also be intervals. Interval diagrams are strictly more expressive than simple diagrams.
+For each type of diagrams we present 1) its syntax and semantics; 2) a set of consistency conditions; 3) a
+method that allows to characterise compositionally all conﬁgurations of a connector motif; 4) examples
+of architecture style speciﬁcation. Finally, we present a polynomial-time algorithm for checking that a
+given diagram conforms to the architecture style speciﬁed by a diagram.
+A complete presentation, with proofs and additional examples, of the results in this paper can be
+found in the technical report [20].
+The paper is structured as follows. Sects. 2 and 3 present simple and interval architecture diagrams,
+respectively. Sect. 4 presents an algorithm for checking conformance of diagrams. Sect. 5 discusses
+related work. Sect. 6 summarises the results and discusses possible directions for future work.
+2 Simple Architecture Diagrams
+2.1 Syntax and Semantics
+We focus on the speciﬁcation of generic coordination mechanisms based on the concept of connector.
+Therefore, the nature and the operational semantics of components are irrelevant. As in the previous sec-
+tion, we consider that a component interface is deﬁned by its set of ports, which are used for interaction
+with other components. Thus, a component type T has a set of generic ports T :P.
+Asimple architecture diagram hT;n;Ciconsists of: 1) a set of component types T=fT1;:::; Tkg;
+2) an associated cardinality function n:T!N, whereNis the set of natural numbers (to simplify
+the notation, we will abbreviate n(Ti)toni); 3) a set of connector motifs C=fG1;:::;Glgof the form
+G= (a;fmp:dpgp2a), where / 06=aSk
+i=1Ti:Pis a generic connector and mp;dp2N(with mp>0) are
+themultiplicity anddegree associated to generic port p2a.
+Fig. 4 shows the graphical representation of a simple architecture diagram with a connector motif.
+Anarchitecture is a pairhB;gi, where Bis a set of components and gis aconﬁguration , i.e. a set
+of connectors among the ports of components in B. We deﬁne a connector as a set of ports that must
+interact. For a component B2Band a component type T, we say that B is of type T if the ports of Bare
+in a bijective correspondence with the generic ports in T. Let B1;:::; Bnbe all the components of type
+TinB. For a generic port p2T:P, we denote the corresponding port instances by p1;:::; pnand its
+associated cardinality by np=n(T).
+
+--- Page 4 ---
+86 Architecture Diagrams
+Semantics 1. An architecturehB;giconforms to a diagramhT;n;Ciif, for each i2[1;k], the number
+of components of type TiinBis equal to niandgcan be partitioned into disjoint sets g1;:::;gl, such that,
+for each connector motif Gj= (a;fmp:dpgp2a)2Cand each p2a, 1) there are exactly mpinstances of
+pin each connector in gjand 2) each instance of pis involved in exactly dpconnectors in gj.
+We assume that, for any two connector motifs Gi= (a;fmi
+p:di
+pgp2a)(fori=1;2) with the same set of
+generic ports a, there exists p2a, such that m1
+p6=m2
+p. Without signiﬁcant impact on the expressiveness
+of the formalism, this assumption simpliﬁes semantics and analysis. Details are provided in [20].
+Multiplicity constrains the number of instances of the generic port that must participate in a con-
+nector, whereas degree constrains the number of connectors attached to any instance of the generic port.
+Consider the two diagrams and their conforming architectures shown in Figs. 5 and 6. They have the
+same set of component types and cardinalities. Nevertheless, their multiplicities and degrees differ, re-
+sulting in different architectures.
+In Fig. 5, the multiplicity of generic port pis 1 and the multiplicity of generic port qis 3, thus, any
+connector must involve one instance of pand all three instances of q. The degree of both generic ports is
+1, so each port instance is involved in exactly one connector. Thus, the diagram deﬁnes an architecture
+with one quaternary connector.
+In Fig. 6 the multiplicities of both generic ports pandqare 1. Thus, all connectors are binary and
+involve one instance of pand one instance of q. The degree of pis 3, thus three connectors are attached
+to each instance. Thus, the diagram deﬁnes an architecture with three binary connectors.
+Figure 8 T11T21:13:1qpdefines3p1q1q2q3
+Figure 5: 4-ary synchronisation.
+Figure 9 T11T21:31:1qpdefines3p1q1q2q3 Figure 6: Binary synchronisation.
+2.2 Consistency Conditions
+Notice that there exist diagrams that do not deﬁne any architecture. Let us consider the diagram shown in
+Fig. 4 with n1=3,mp=1,dp=1,n2=2,mq=1 and dq=1. Since the multiplicity is 1 for both generic
+ports pandq, a conforming architecture must include only binary connectors involving one instance of
+pand one instance of q. Since the degree of both pandqis 1, each port instance must be involved
+in exactly one connector. However, the cardinalities impose that there be three connectors attached to
+the instances of p, but only two connectors attached to the instances of q. Both requirements cannot be
+satisﬁed simultaneously and thus, no architecture can conform to this diagram.
+Consider a connector motif G= (a;fmp:dpgp2a)in a diagramhT;n;Ciand a generic port p2a,
+such that p2T:P, for some T2T. We denote sp=npdp=mpthematching factor of p .
+Aregular conﬁguration of p is a multiset of connectors, such that 1) each connector involves mp
+instances of pand no other ports and 2) each of the npinstances of port pis involved in exactly dp
+connectors. Notice the difference between a conﬁguration and a regular conﬁguration of p: the former
+deﬁnes a set of connectors, while the latter deﬁnes a multiset of sub-connectors involving only instances
+of generic port p. Considering the diagram in Fig. 2 and the architecture in Fig. 3 the only regular
+conﬁguration of ris the multisetfr1;r1;r1g. The three copies of the singleton sub-connector r1are then
+fused with sub-connectors piq1q2(i=1;2;3), resulting in a conﬁguration with three distinct connectors.
+Lemma 2.1. Each regular conﬁguration of a port p has exactly s pconnectors.
+
+--- Page 5 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 87
+Table 1: Vector representation of regular conﬁgurations.
+dp=1 dp=2 dp=3
+[100001 ][110011 ] [200002 ][111111 ] [120021 ] [210012 ] [300003 ]
+[010010 ][101101 ] [020020 ] [012210 ] [021120 ] [030030 ]
+[001100 ][011110 ] [002200 ] [102201 ] [201102 ] [003300 ]
+Prop. 2.2 provides the necessary and sufﬁcient conditions for a simple architecture diagram to be
+consistent, i.e. to have at least one conforming architecture. The multiplicity of a generic port must
+not exceed the number of component instances that contain this port. The matching factors of all ports
+participating in the same connector motif must be equal integers. Finally, since the number of distinct
+connectors of a connector motif is bounded and equal to Õq2anq
+mq
+, there must be enough connectors to
+build a conﬁguration. Since, by the semantics of diagrams, connector motifs correspond to disjoint sets
+of connectors, these conditions are applied separately to each connector motif.
+Proposition 2.2. A simple architecture diagram has a conforming architecture iff, for each connector
+motifG= (a;fmp:dpgp2a)and each p2a, we have: 1) m pnp; 2)8q2a;sp=sq2Nand 3) s p
+Õq2anq
+mq
+.
+2.3 Synthesis of Conﬁgurations
+The synthesis procedure for each connector motif has the following two steps: 1) we ﬁnd regular conﬁg-
+urations for each generic port; 2) we fuse these regular conﬁgurations generating global conﬁgurations
+speciﬁed by the connector motif.
+2.3.1 Regular Conﬁgurations of a Generic Port
+We start with an example illustrating the ﬁrst step of the synthesis procedure for a port p.
+Example 1. Consider a port pwith np=4 and mp=2. There are 6 connectors of multiplicity 2: p1p2,
+p1p3,p1p4,p2p3,p2p4,p3p4, which correspond to the set of edges of a complete graph with vertices
+p1,p2,p3,p4. The regular conﬁgurations of pfordp=1;2;3, where each edge appears at most once are
+shown in Fig. 7.
+Figure 11p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4Configuration set for d=1 (s=2)Configuration set for d=2 (s=4)Configuration set for d=3 (s=6)p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4p1p2p3p4Configuration set for d=1 (s=2)Configuration set for d=2 (s=4)p1p2p3p4Configuration set for d=3 (s=6)
+Figure 7: Regular conﬁgurations of pwith np=4,mp=2.
+We provide an equational characterisation of all the regular conﬁgurations (i.e. multisets of connec-
+tors) of a generic port p. Given np,mp,dp, for port instances p1;:::; pnp, we associate a column vector
+of non-negative integer variables X= [x1;:::; xw]Tto the setfaigi2[1;w]of different connectors, where
+w=np
+mp
+.
+Consider Ex. 1 and variables x1;:::; x6representing the number of occurrences in a regular conﬁgura-
+tion of the connectors p1p2;p1p3;p1p4;p2p3;p2p4;p3p4, respectively. All the regular conﬁgurations,
+fordp=1;2;3, represented as vectors of the form [x1;:::; x6]are listed in Table 1. Notice that vectors
+fordp>1 can be obtained as linear combinations of the vectors for dp=1.
+
+--- Page 6 ---
+88 Architecture Diagrams
+Forp, we deﬁne an npwincidence matrix G= [gi;j]npwwith gi;j=1 if pi2ajandgi;j=0
+otherwise. We have GX=D, where D= [dp;:::; dp](dprepeated nptimes). Any non-negative integer
+solution of this equation deﬁnes a regular conﬁguration of p. For Ex. 1, the equations are:
+8
+>>>><
+>>>>:x1+x2+x3=dp;
+x1+x4+x5=dp;
+x2+x4+x6=dp;
+x3+x5+x6=dp;which is equivalent to8
+>>>><
+>>>>:x1+x2+x3=dp;
+x3=x4;
+x2=x5;
+x1=x6:(1)
+Notice that the vectors of Table 1 are solutions of (1).
+2.3.2 Conﬁgurations of a Connector Motif
+LetG= (a;fmp:dpgp2a)be a connector motif such that all generic ports of a=fp1;:::; pvghave the
+same integer matching factor s. For each pj2a, letgj=faj
+igi2[1;s]be a regular conﬁguration of pj.
+For arbitrary permutations pjof[1;s], a setfa1
+i[Sv
+j=2aj
+pj(i)gi2[1;s]is a conﬁguration speciﬁed by the
+connector motif.
+In order to provide an equational characterisation of the connector motif, we consider, for each
+j2[1;v], a corresponding solution vector Xjof equations GjXj=Djcharacterising the regular conﬁg-
+urations of pj. We denote by wjthe dimension of the vector Xj.
+In order to characterise the conﬁgurations of connectors conforming to G, we consider, for each
+conﬁguration, the v-dimensional matrix E= [ei1;:::;iv]w1 wvof 0-1 variables, such that ei1;:::;iv=1 if
+the connector a1
+i1[[ av
+ivbelongs to the conﬁguration and 0 otherwise. By deﬁnition, the sum of all
+elements in Eis equal to s. Moreover, the following equations hold:
+8
+>>>><
+>>>>:x1
+i=Si2;i3:::;ivei;i2;:::;iv; fori2[1;w1],
+x2
+i=Si1;i3;:::;ivei1;i;:::;iv; fori2[1;w2],
+...
+xv
+i=Si1;i2;:::;iv1ei1;:::;iv1;i;fori2[1;wv].(2)
+For instance, for a ﬁxed i2[1;w1],ei;i2;:::;ivdescribe all connectors that contain a1
+i. The regular conﬁgura-
+tiong1is characterised by X1, enforcing that a1
+ibelongs to x1
+iconnectors. The set of linear equations (2),
+combined with the sets of linear equations GjXj=Dj, for j2[1;v], fully characterises the conﬁgurations
+ofGand can be used to synthesise architectures from architecture diagrams.
+Example 2. Consider a diagram
+fT1;T2g;n;fGg
+, where T1=fpg,T2=fqg,n(T1) =n(T2) =4 and
+G= (pq;f(mp:dp;mq:dq)g)with mp=2,mq=3. The corresponding equations GpX=Dp,GqY=Dq
+can be rewritten as
+(
+x1+x2+x3=dp;
+x3=x4;x2=x5;x1=x6;and(
+3y1=dq;
+y1=y2=y3=y4:(3)
+Together with the constraints xi=Sjei;jandyj=Siei;j, for E= [ei;j]64, equations (3) completely
+characterise all the conﬁgurations conforming to G.
+The same methodology can be used to synthesise conﬁgurations with additional constraints. To im-
+pose that some speciﬁc connectors must be included, whereas other speciﬁc connectors must be excluded
+
+--- Page 7 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 89
+E=0
+BBBBBB@y1 y2 y3 y4
+x1 1 e1;2e1;3e1;4
+x2e2;1e2;2e2;31
+x3e3;1e3;2e3;3e3;4
+x4e4;1e4;2e4;3e4;4
+x5e5;10 e5;3e5;4
+x6e6;1e6;2e6;3e6;41
+CCCCCCA
+Figure 8: Matrix Ewith ﬁxed values.E=0
+BBBBBB@XY1 1 1 1
+1 1 0 0 0
+1 0 0 0 1
+0 0 0 0 0
+0 0 0 0 0
+1 0 0 1 0
+1 0 1 0 01
+CCCCCCA
+Figure 9: Valuation of matrix E.
+from the conﬁgurations, the corresponding variables in the matrix Eare given ﬁxed values: 1 (resp. 0)
+if the connector must be included (resp. excluded) from the conﬁgurations. The rest of the synthesis
+procedure remains the same.
+Example 3. Let us consider the diagram shown in Fig. 4 with n1=4,mp=2,dp=2,n2=4,mq=3
+anddq=3. We want to synthesise the conﬁgurations of this diagram with the following additional
+constraints: connectors p1p2q1q2q3andp1p3q2q3q4must be included, whereas connector p2p4q1q2q4
+must be excluded.
+First, we compute the vectors XandYthat represent the regular conﬁgurations of generic ports p
+andq, respectively. Variables x1;:::; x6represent the number of occurrences in a conﬁguration of the
+connectors p1p2,p1p3,p1p4,p2p3,p2p4,p3p4, respectively. Variables y1;:::; y4represent the number
+of occurrences in a conﬁguration of the connectors q1q2q3,q1q2q4,q1q3q4,q2q3q4, respectively.
+Vector Xcan take one of the following values for dp=2:[110011 ],[101101 ],[011110 ],[200002 ],
+[020020 ]or[002200 ](Ex. 1). Regular conﬁgurations of qare characterised by the equations 3 y1=dand
+y1=y2=y3=y4(Ex. 2). For d=3 there is a single solution Y= [1111].
+We now consider the matrix E, where we ﬁx e1;1=e2;4=1 and e5;2=0 to impose the additional
+synthesis constraints as shown in Fig. 8. Since, for all i2[1;6], we have xi=Sjei;jand, for all j2[1;4],
+we have yj=Siei;j, we can deduce that the only possible valuation for X,YandEis the one shown in
+Fig. 9 corresponding to conﬁguration fp1p2q1q2q3;p1p3q2q3q4;p2p4q1q3q4;p3p4q1q2q4g:
+2.4 Architecture Style Speciﬁcation Examples
+Example 4. The Star architecture style consists of a single center component of type T1=fpgandn2
+components of type T2=fqg. The central component is connected to every other component by a binary
+connector and there are no other connectors. The diagram in Fig. 10 graphically describes this style.
+Figure 13
+definesp1q1q2
+T21:n21:1qT1pcenter
+n2qn2n2…1
+Figure 10: Star architecture style.
+Example 5. We now consider the multi-star extension of the Star architecture style, with ncenter com-
+ponents of type T1, each connected to dcomponents of type T2by binary connectors. As in Ex. 4, there
+are no other connectors. The diagram of Fig. 11 graphically describes this architecture style.
+
+--- Page 8 ---
+90 Architecture Diagrams
+definesT21:d1:1qT1np
+centernd.dd…n
+p1q2
+…q1qd
+pn
+…q(n-1)d+1q
+q(n-1)d+2nd.
+Figure 11: Multi-star architecture style.
+3 Interval Architecture Diagrams
+To enhance the expressiveness of diagrams we introduce interval architecture diagrams where the cardi-
+nalities, multiplicities and degrees can be intervals. With simple architecture diagrams we cannot express
+properties such as “component instances of type T are optional” . Let us consider the example of Fig. 1
+that shows four Master/Slave architectures involving two masters and two slaves. In this example, one
+of the masters might be optional, i.e. it might not interact with any slaves. In the ﬁrst two architectures
+of Fig. 1 each master interacts with one slave, however, in the last two architectures one master interacts
+with both slaves while the other master does interacts with no slaves. In other words, the degree of m
+varies from 0 to 2 and cannot be represented by an integer.
+3.1 Syntax and Semantics
+Aninterval architecture diagram hT;n;Ciconsists of: 1) a set of component types T=fT1;:::; Tkg;
+2) acardinality function n:T!N2, associating, to each Ti2T, an interval n(Ti) = [ nl
+i;nu
+i]N(thus,
+nl
+inu
+i); 3) a set of connector motifs C=fG1;:::;Glgof the form G=
+a;fty[ml
+p;mu
+p]:ty[dl
+p;du
+p]gp2a
+;
+where / 06=aSk
+i=1Ti:Pis a generic connector and ty[ml
+p;mu
+p];ty[dl
+p;du
+p], with [ml
+p;mu
+p];[dl
+p;du
+p]Nnon-
+empty intervals and ty2fmc;scg(mcmeans “multiple choice”, whereas scmeans “single choice”), are,
+respectively, multiplicity anddegree constraints associated to p2a,
+Semantics 2. An architecturehB;giconforms to an interval architecture diagram hT;n;Ciif, for each
+i2[1;k], the number of components of type TiinBlies in [nl
+i;nu
+i]andgcan be partitioned into disjoint
+setsg1;:::;gl, such that for each connector motif Gj=
+a;fty[ml
+p;mu
+p]:ty[dl
+p;du
+p]gp2a
+2Cand each
+p2a: 1) there are mp2[ml
+p;mu
+p]instances of pin each connector in gj; in case of a single choice
+interval the number of instances of pis equal in all connectors in gj; 2) each instance of pis involved in
+dp2[dl
+p;du
+p]connectors in gj; in case of a single choice interval, the number of connectors involving an
+instance of pis the same for all instances of p.
+In other words, each generic port phas an associated pair of intervals deﬁning its multiplicity and
+degree. The interval attributes specify whether these constraints are uniformly applied or not. We write
+sc[x;y](single choice) to mean that the same multiplicity or degree is applied to each port instance of
+p. We write mc[x;y](multiple choice) to mean that different multiplicities or degrees can be applied to
+different port instances of p, provided they lie in the interval.
+We assume that, for any two connector motifs Gi= (a;fty[ml
+p;mu
+p]i:ty[dl
+p;du
+p]igp2a)fori2f1;2g;
+with the same set of generic ports a, there exists p2asuch that [ml
+p;mu
+p]1\[ml
+p;mu
+p]2=/ 0. Similarly
+to simple architecture diagrams, without signiﬁcant impact on the expressiveness of the formalism, this
+assumption greatly simpliﬁes semantics and analysis.
+Example 6. The diagram in Fig. 12 deﬁnes the set of architectures shown in Fig. 1. Notice that the degree
+of generic port pis the multiple choice interval [0;2], since one master component may be connected to
+
+--- Page 9 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 91
+Figure 15M2S1:mc[0,2]1:1qp
+2
+Figure 12: Architecture diagram for architectures in Fig. 1.
+two slaves, while the other master may have no connections. For the sake of simplicity, we represent
+intervals [x;x],mc[x;x]andsc[x;x]asx.
+Proposition 3.1. Interval architecture diagrams are strictly more expressive than simple architecture
+diagrams.
+3.2 Consistency Conditions
+Similarly to simple diagrams, there are interval diagrams that do not deﬁne any architectures. Prop. 3.2
+provides the necessary and sufﬁcient conditions for the consistency of interval diagrams. A connector
+cannot contain more port instances than there exist in the system. Thus, the lower bound of multiplicity
+should not exceed the maximal number of instances of the associated component type. For all generic
+ports of a connector motif, there should exist a common matching factor that does not exceed the max-
+imum number of different connectors between these ports. These conditions are a generalisation of
+Prop. 2.2.
+To simplify the presentation we use the following notion of choice function. Let ITandIbe the
+sets of, respectively, typed intervals and intervals, as in the deﬁnition of interval diagrams above. A
+function g:IT!Iis achoice function if it satisﬁes the following constraints:
+g(ty[x;y]) =(
+[x;y];ifty=mc,
+[z;z];for some z2[x;y], ifty=sc.
+Proposition 3.2. An interval architecture diagram hT;n;Ciis consistent iff, for each T 2T, there
+exists a cardinality n i2[nl
+i;nu
+i]and, for each connector motif (a;fMp:Dpgp2a)2Cand each p2a,
+there exist choice functions gm
+p;gd
+p, such that, for [ml
+p;mu
+p] =gm
+p(Mp)and[dl
+p;du
+p] =gd
+p(Dp)hold:
+1. ml
+pnp, for all p2a, (where n p=nifor p2Ti:P),
+2. U\T
+p2asp6=/ 0, where U =
+1;Õp2aåmu
+p
+m=mlpnp
+m
+, and
+sp=8
+><
+>:hnpdl
+p
+mup;npdu
+p
+mlpi
+\N;if ml
+p>0;
+hnpdl
+p
+mup;¥
+\N; if ml
+p=0:
+3.3 Synthesis of Conﬁgurations
+The equational characterisation in Sect. 2.3 can be generalised, using systems of inequalities with some
+additional variables, to interval architecture diagrams. Below, we show how to characterise the conﬁgu-
+rations induced by ninstances of a generic port pwith the associated degree interval ty[dl
+p;du
+p].
+For a given multiplicity m, let X= [x1;:::; xw]Tbe the column vector of integer variables, corre-
+sponding to the set faigi2[1;w](with w=np
+mp
+) of connectors of multiplicity m, involving port instances
+p1;:::; pn. Let Gbe the incidence matrix G= [gi;j]nwwith gi;j=1 ifpi2ajandgi;j=0 otherwise.
+
+--- Page 10 ---
+92 Architecture Diagrams
+Figure 16Mn1S1:sc[1,n2]1:mc[0,1]qp
+n2definesp1q2SSMq1p2q3
+SSMq4Sq5
+Figure 13: Master/Slave architecture style and conforming architecture.
+The conﬁgurations induced by the ninstances of pare characterised by the equation GX=D, where
+D= [d1;:::; dn]Tand the additional (in)equalities:
+d1==dn=danddl
+pddu
+p;forty=sc;
+dl
+pd1du
+p;:::; dl
+pdndu
+p; forty=mc:(4)
+Example 7. As in Ex. 1, consider a generic port pandnp=4,mp=2. For the degree interval sc[1;3], the
+corresponding constraints are 1 d3,x1+x2+x3=d,x4=x3,x5=x2,x6=x1. For the degree interval
+mc[1;3]the corresponding constraints are 1 di3, for i2[1;4],x1+x2+x3=d1,x1+x4+x5=d2,
+x2+x4+x6=d3,x3+x5+x6=d4.
+Suppose that the multiplicity of pin the motif is given by an interval ty[ml
+p;mu
+p]. Contrary to the
+degree, multiplicity does not appear explicitly as a variable in the constraints. Instead, it inﬂuences
+the number and nature of elements in both the matrix Gand vector X. Therefore, for single choice
+(i.e. ty=sc), the conﬁgurations induced by ninstances of pare characterised by the disjunction of
+the instantiations of the system of equalities combining GmXm=Dwith (4), for m2[ml
+p;mu
+p]. For
+multiple choice (i.e. ty=mc), all the conﬁgurations are characterised by the system combining (4) with
+åm2[mlp;mup](GmXm) =D:
+Notice that the above modiﬁcations for interval-deﬁned multiplicity are orthogonal to those in (4),
+accommodating for interval-deﬁned degree. Similarly to the single-choice case for multiplicity, for
+interval-deﬁned cardinality, the conﬁgurations are characterised by taking the disjunction of the char-
+acterisations for all values n2[nl;nu]. Based on the above characterisation for the conﬁgurations of
+one generic port, global conﬁgurations can be characterised by systems of linear constraints in the same
+manner as for simple architecture diagrams.
+3.4 Architecture Style Speciﬁcation Examples
+Example 8. The diagram of Fig. 13 describes a particular Master/Slave architecture style and a con-
+forming architecture for n1=2 and n2=5.
+We require that each slave interact with at most one master and that each master be connected to the
+same number of slaves. Multiplicities of both generic ports pandqare equal to 1, allowing only binary
+connectors between a master and a slave. The single choice degree of generic port pensures that all port
+instances are connected to the same number of connectors which is a number in [1;n2]. The multiple
+choice degree of generic port qensures that all port instances are connected to at most one master.
+Example 9. The diagram in the left of Fig. 14 describes the Repository architecture style involving a
+single instance of a component of type R and an arbitrary number n2of data-accessor components of type
+A. We require that all connectors involve the Rcomponent. In the right of Fig. 14, we show conforming
+architectures for n2=3.
+Example 10. The Map-Reduce architecture style [6] allows processing large data-sets, such as those
+found in search engines and social networking sites. Fig. 15 graphically describes the Map-Reduce
+architecture style. A conforming architecture for n1=3 and n2=2 is shown in Fig. 16.
+
+--- Page 11 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 93
+R1A1:mc[1,n2]mc[1,n2]:1qpn2definesorp1q1q2q3RAAAp1q1q2q3or …RAAA
+Figure 14: Repository architecture style and conforming architectures.
+1:mc[0,n1]1:mc[0,1]
+1:mc[0,n1]1:1
+1:11:mc[n1,n1*n2]1:mc[0,n1] 1:mc[1,n2] 1:1
+1:n2
+outRWn2
+inoutMWn1
+inLFSn1
+writereadGFS1
+writereadMaster1
+MctrlRctrl
+Figure 15: Map Reduce architecture style.
+out1RW
+in1GFS
+write1read1Master
+Mctrl1Rctrl1read1write1read1LFS
+write2read2LFS
+write3read3LFS
+out2MW
+in2
+out2RW
+in2out3MW
+in3out1MW
+in1
+ Figure 16: Map Reduce architecture.
+A large dataset is split into smaller datasets and stored in the global ﬁlesystem ( GFS ). The Master
+is responsible for coordinating and distributing the smaller datasets from the GFS to each of the map
+workers ( MW). The port inof each MW is connected to the Mcontrol andread ports of the Master
+and the GFS , respectively. Each MW processes the datasets and writes the result to its dedicated local
+ﬁlesystem ( LFS) through a binary connector between their outandwrite ports. The connector is binary
+since no MW is allowed to read the output of another MW. Each reduce worker ( RW) reads the results
+from multiple LFS as instructed by the Master . To this end, the inport of each RWis connected to the
+Rcontrol andread ports of the Master and some LFS, respectively. Each RWcombines the results and
+writes them back to the GFS through a binary connector between their outandwrite ports.
+4 Checking Conformance
+Algorithm 1 with polynomial-time complexity checks whether an architecture hB;giconforms to a
+simple diagramhT;n;Ci. It can be easily extended for interval diagrams as shown in [20].
+Algorithm 1 checks the validity of the following three statements: 1) the number of components of
+each type Tis equal to n(T); 2) there exists a partition of gintog1;:::;glsuch that each gicorresponds to
+a different connector-motif Gi2Cof the diagram; 3) for each connector motif Giand its corresponding
+gi, the number of times each port instance participates in gisatisﬁes the degree constraints. The three
+statements correspond to functions VerifyCardinality, VerifyMultiplicity and VerifyDegree, respectively.
+If all statements are valid the algorithm returns true, i.e. the architecture conforms to the diagram.
+In particular, function VerifyCardinality takes as input the architecture diagram hT;n;Ciand the set
+of components Bof the architecture hB;gi. It counts the number of components for each component
+type inBand it returns true if for each component type Tof the diagram its cardinality matches the
+corresponding number of components in B. Otherwise it returns false and algorithm 1 terminates.
+Function VerifyMultiplicity takes as input the conﬁguration gof the architecture hB;giand the set
+
+--- Page 12 ---
+94 Architecture Diagrams
+Algorithm 1: VerifyArchitecture
+Data : ArchitecturehB;gi, diagramhT;n;Ci
+Result : Returns true if the architecture satisﬁes the diagram
+hT;n;Ci. Otherwise returns f alse .
+if not VerifyCardinality( B,hT;n;Ci)then
+return f alse ;
+Sg VerifyMultiplicity( g,C);
+ifSg=/ 0then
+return f alse ;
+forG2Cdo
+ifnot VerifyDegree( Sg[G];G)then
+return f alse ;
+return true;Function VerifyCardinality( B,hT;n;Ci)
+Data : Set of components B, diagramhT;n;Ci
+Result : Returns true if the number of components of each
+type inBis equal to corresponding cardinality of the
+diagram. Otherwise, it returns f alse .
+/* Map with key: type, value: number of
+instances */
+countTypes fg ;
+forBi2Bdo
+countTypes [typeo f (Bi)]++ ;
+forTi2Tdo
+ifcountTypes [T]6=n[T]then
+return f alse ;
+return true;
+of connector motifs Cof the architecture diagram hB;gi. The function checks whether there exists a
+partition of gsuch that each sub-conﬁguration giofgcorresponds to a distinct connector motif CiofC,
+i.e. each connector kingiconforms to the multiplicity constraints of Ci. If such a partition exists the
+function returns it. Otherwise, it returns / 0 and algorithm 1 terminates.
+Function VerifyDegree takes a connector motif GofCand its corresponding sub-conﬁguration of
+gassigned by VerifyMultiplicity. For each port instance in the sub-conﬁguration it checks whether
+the number of times the port participates in different connectors is equal to the corresponding degree
+constraint of the connector motif. If the check fails, algorithm 1 terminates.
+Algorithm 1 uses a number of auxiliary functions. Function generic(p) takes a port instance and
+returns the corresponding generic port. Function typeof(B) returns the component type of component
+B. Operation map[key]++ increases the value associated with the keyby one if the keyis in the map,
+otherwise it adds a new keywith value 1.
+5 Related Work
+A plethora of approaches exist for architecture speciﬁcation. Patterns [5, 9] are commonly used for
+specifying architectures in practical applications. The speciﬁcation of architectures is usually done in
+a graphical way using general purpose graphical tools. Such speciﬁcations are easy to produce but the
+meaning of the design may not be clear since the graphical conventions lack formal semantics and thus,
+are not amenable to formal analysis.
+A number of Architecture Description Languages (ADLs) have been developed for architecture spec-
+iﬁcation [21, 29, 23]. Nevertheless, according to [18], architectural languages used in practice mostly
+originate from industrial development instead of academic research. Practitioners insist on using UML
+even though it lacks formal semantics. ADLs with formal semantics require the use of formal languages
+which are considered as difﬁcult for practitioners to master [18]. To address this issue, we propose ar-
+chitecture diagrams that combine the beneﬁts of graphical languages and rigorous formal semantics. By
+relying on the minimal set of notions, we emphasize the conceptual clarity of our approach.
+Architecture diagrams were developed to accommodate architecture speciﬁcation in BIP [2], wherein
+connectors are n-ary relations among ports and do not carry any additional behaviour. This strict separa-
+tion of computation from coordination allows reasoning about the coordination constraints structurally
+and independently from the behaviour of coordinating components. However, our approach can be ex-
+tended to describe architecture styles in other coordination languages by explicitly associating the re-
+
+--- Page 13 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 95
+quired behaviour to connector motifs. In particular, this can be applied to specify connector patterns
+in Reo [1], by associating multiplicity and degree to source and sink nodes of connectors. The main
+difﬁculty is to correctly instantiate the behaviour depending on the number of ends in the connector.
+Function VerifyMultiplicity( g,C)
+Data : Conﬁguration g, set of connector motifs C
+Result : Returns a partition Pgofginto connectors that satisfy
+the multiplicity constraint. If no partition exists, it
+returns / 0.
+// Map with key: G, value: sub-configuration
+partition fg
+forG2Cdo
+partition [G]  / 0;
+// Map with key: generic port, value: number
+of port instances in connector
+fork2gdo
+portscount fg forpi2kdo
+portscount [generic (p)]++ ;
+x  f alse ;
+forG= (a;fmp:dpgp2a)2Cdo
+ifa=keys(portscount )then
+y true;
+forp2ado
+ifportscount [p]6=mpthen
+y  f alse ;
+break ;
+ifythen
+partition [G]  partition [G][k;
+x true;
+break ;
+ifx=f alse then
+return / 0;
+return partition;
+Function VerifyDegree( gi,G)
+Data : Conﬁguration gi, connector motif G
+Result : Returns true if the degree requirements are satisﬁed.
+Otherwise, it returns false.
+// Map with key: port, value: number of
+connectors
+degrees fg
+fork2gido
+forpi2kdo
+degrees [pi]++ ;
+forpi2keys(degrees )do
+ifdegrees [pi]6=dgeneric (pi)then
+return f alse ;
+return true;Alloy [12] has been used for architecture style
+speciﬁcation, in the ACME [13] and Darwin [7]
+ADLs. The connectivity primitives in [13, 7] are
+binary predicates and cannot tightly characterize
+coordination structures involving multiparty inter-
+action. To specify an n-ary interaction, these ap-
+proaches require an additional entity connected by
+nbinary links with the interacting ports. Since the
+behaviour of such entities is not part of the archi-
+tecture style, it is impossible to distinguish, e.g.
+between an n-ary synchronisation and a sequence
+ofnbinary ones.
+Architecture diagrams consist of component
+types and connector motifs, respectively compara-
+ble to UML components and associations [11, 22].
+One important difference between connector mo-
+tifs and UML associations is that the latter can-
+not specify interactions that involve two or more
+instances of the same component type [22]. In
+UML, the term “multiplicity” is used to deﬁne
+both 1) the number of instances of a UML compo-
+nent and 2) the number of UML links connected
+to a UML component. In architecture diagrams,
+we call these, respectively, “cardinality” and “de-
+gree”. We use the term “multiplicity” to denote
+the number of components of the same class that
+can be connected by the same connector. The dis-
+tinction between multiplicity and degree is key for
+allowing n-ary connectors involving several in-
+stances of the same component type.
+A large body of literature, originating in [8,
+17], studies the use of graph grammars and trans-
+formations [26] to deﬁne software architectures.
+Although this work focuses mainly on dynamic
+reconﬁguration of architectures, e.g. [4, 14, 16],
+graph grammars can be used to deﬁne architecture
+styles: a style admits all the conﬁgurations that
+can be derived by its deﬁning grammar. The use
+of context-free grammars allows inductive deﬁni-
+tions and reasoning about architectures. The downside is that such deﬁnitions require additional non-
+terminal symbols to represent variable size structures, e.g. list of all slaves in a Master/Slave architec-
+ture. We take a different approach, whereby all constraints appear directly in the architecture diagram for
+which we provide denotational semantics. The rationale is the following: we assume that the reasoning is
+
+--- Page 14 ---
+96 Architecture Diagrams
+carried out by an “expert”, who deﬁnes the architectural style, whereas the “user” only needs the minimal
+information in order to select and instantiate it. Thus, structural information, e.g. necessary information
+for an inductive proof that the style imposes a certain property, does not appear in the diagram, but only
+the entities that form the target system.
+6 Conclusion and Future Work
+We studied architecture diagrams, a graphical language rooted in well-deﬁned semantics for the descrip-
+tion of architecture styles. We studied two classes of diagrams. Simple architecture diagrams express
+uniform degree and multiplicity constraints. They are easy to interpret and use but have limited expres-
+sive power. Interval architecture diagrams allow heterogeneity of multiplicity and degree and thus, are
+strictly more expressive. Architecture diagrams provide powerful and ﬂexible means for graphical speci-
+ﬁcation of architectures with n-ary connectors. Using architecture diagrams instead of purely logic-based
+speciﬁcations confers the advantages of graphical formalisms.
+In an ongoing project partially ﬁnanced by the European Space Agency, we are using architecture
+diagrams to describe architectures in the case studies of the project. We are currently working on extend-
+ing the current notation with arithmetic constraints and implementing the synthesis procedure described
+in this paper with the JaCoP1constraint solver. In the future, we plan to extend connector motifs with
+data ﬂow information and study the expressive power of architecture diagrams.
+References
+[1] Farhad Arbab (2004): Reo: A channel-based coordination model for component composition .Mathematical
+Structures in Computer Science 14(3), pp. 329–366, doi:10.1017/S0960129504004153.
+[2] Paul Attie, Eduard Baranov, Simon Bliudze, Mohamad Jaber & Joseph Sifakis (2015): A General Framework
+for Architecture Composability .Formal Aspects of Computing , pp. 1–25, doi:10.1007/s00165-015-0349-8.
+[3] Simon Bliudze & Joseph Sifakis (2008): The Algebra of Connectors — Structuring Interaction in BIP .IEEE
+Transactions on Computers 57(10), pp. 1315–1330, doi:10.1109/TC.2008.26.
+[4] Roberto Bruni, Alberto Lluch-Lafuente, Ugo Montanari & Emilio Tuosto (2008): Style-Based architectural
+reconﬁgurations .Bulletin of the EATCS 94, pp. 161–180.
+[5] Robert Daigneau (2011): Service design patterns: Fundamental design solutions for SOAP/WSDL and restful
+Web Services . Addison-Wesley.
+[6] Jeffrey Dean & Sanjay Ghemawat (2008): MapReduce: Simpliﬁed Data Processing on Large Clusters .Com-
+mun. ACM 51(1), pp. 107–113, doi:10.1145/1327452.1327492.
+[7] Ioannis Georgiadis, Jeff Magee & Jeff Kramer (2002): Self-organising software architectures for dis-
+tributed systems . In: Proceedings of the ﬁrst workshop on Self-healing systems , ACM, pp. 33–38,
+doi:10.1145/582128.582135.
+[8] Dan Hirsch, Paola Inverardi & Ugo Montanari (1999): Modeling software architectures and styles with graph
+grammars and constraint solving . In Patrick Donohoe, editor: Software Architecture ,IFIP 12, Springer, pp.
+127–143, doi:10.1007/978-0-387-35563-4 8.
+[9] Gregor Hohpe & Bobby Woolf (2003): Enterprise integration patterns: designing, building, and deploying
+messaging solutions . Addison-Wesley Longman Publishing Co., Inc., Boston, MA, USA.
+[10] ISO/IEC/IEEE 42010 (2011): Systems and software engineering — Architecture description .
+[11] James Ivers, Paul Clements, David Garlan, Robert Nord, Bradley Schmerl & Jaime R Silva (2004): Docu-
+menting component and connector views with UML 2.0 . Technical Report, DTIC Document.
+1http://jacop.osolpro.com/
+
+--- Page 15 ---
+A. Mavridou, E. Baranov, S. Bliudze & J. Sifakis 97
+[12] Daniel Jackson (2002): Alloy: A Lightweight Object Modelling Notation .ACM Trans. Softw. Eng. Methodol.
+11(2), pp. 256–290, doi:10.1145/505145.505149.
+[13] Jung Soo Kim & David Garlan (2010): Analyzing architectural styles .Journal of Systems and Software
+83(7), pp. 1216–1235, doi:10.1016/j.jss.2010.01.049.
+[14] Christian Koehler, Alexander Lazovik & Farhad Arbab (2008): Connector rewriting with high-
+level replacement systems .Electronic Notes in Theoretical Computer Science 194(4), pp. 77–92,
+doi:10.1016/j.entcs.2008.03.100.
+[15] Jeff Kramer (1990): Conﬁguration programming — A framework for the development of distributable sys-
+tems. In: CompEuro’90. Proceedings of the 1990 IEEE International Conference on Computer Systems and
+Software Engineering , IEEE, pp. 374–384.
+[16] Christian Krause, Ziyan Maraikar, Alexander Lazovik & Farhad Arbab (2011): Modeling dynamic re-
+conﬁgurations in Reo using high-level replacement systems .Sci. of Comp. Prog. 76(1), pp. 23–36,
+doi:10.1016/j.scico.2009.10.006.
+[17] Daniel Le M ´etayer (1998): Describing software architecture styles using graph grammars .IEEE Transac-
+tions on Software Engineering 24(7), pp. 521–533, doi:10.1109/32.708567.
+[18] Ivano Malavolta, Patricia Lago, Henry Muccini, Patrizio Pelliccione & Anthony Tang (2013): What industry
+needs from architectural languages: A survey .Software Engineering, IEEE Transactions on 39(6), pp. 869–
+891, doi:10.1109/TSE.2012.74.
+[19] Anastasia Mavridou, Eduard Baranov, Simon Bliudze & Joseph Sifakis (2015): Conﬁguration Logics: Mod-
+elling Architecture Styles . In: Formal Aspects of Component Software - 12th International Conference, FACS
+2015, Niter ´oi, Brazil , pp. 256–274, doi:10.1007/978-3-319-28934-2 14.
+[20] Anastasia Mavridou, Eduard Baranov, Simon Bliudze & Joseph Sifakis (2016): Architecture Diagrams —
+A Graphical Language for Architecture Style Speciﬁcation . Technical Report 215210, EPFL. Available at:
+http://infoscience.epfl.ch/record/215210 .
+[21] Nenad Medvidovic & Richard N Taylor (2000): A classiﬁcation and comparison framework for soft-
+ware architecture description languages .Software Engineering, IEEE Transactions on 26(1), pp. 70–93,
+doi:10.1109/32.825767.
+[22] OMG Uniﬁed Modeling Language (OMG UML) speciﬁcation, Version 2.5 .http://www.omg.org/spec/
+UML/2.5/ . (Accessed on 17/03/2016).
+[23] Mert Ozkaya & Christos Kloukinas (2013): Are we there yet? Analyzing architecture description lan-
+guages for formal analysis, usability, and realizability . In: Software Engineering and Advanced Applications
+(SEAA), 2013 39th EUROMICRO Conference on , IEEE, pp. 177–184, doi:10.1109/SEAA.2013.34.
+[24] George A. Papadopoulos & Farhad Arbab (1998): Coordination Models and Languages .Advances in Com-
+puters 46, doi:10.1016/S0065-2458(08)60208-9.
+[25] Dewayne E Perry & Alexander L Wolf (1992): Foundations for the study of software architecture .ACM
+SIGSOFT Software Engineering Notes 17(4), pp. 40–52, doi:10.1145/141874.141884.
+[26] Grzegorz Rozenberg, editor (1997): Handbook of graph grammars and computing by graph transformation .
+World Scientiﬁc.
+[27] Mary Shaw & David Garlan (1996): Software architecture: perspectives on an emerging discipline . 1,
+Prentice Hall Englewood Cliffs.
+[28] Michel Wermelinger, Ant ´onia Lopes & Jos ´e Luiz Fiadeiro (2001): A graph based architec-
+tural (re)conﬁguration language .ACM SIGSOFT Software Engineering Notes 26(5), pp. 21–32,
+doi:10.1145/503209.503213.
+[29] Eoin Woods & Rich Hilliard (2005): Architecture description languages in practice session report . In: Pro-
+ceedings of the 5th Working IEEE/IFIP Conference on Software Architecture (WICSA’05) , IEEE Computer
+Society, pp. 243–246, doi:10.1109/WICSA.2005.15.

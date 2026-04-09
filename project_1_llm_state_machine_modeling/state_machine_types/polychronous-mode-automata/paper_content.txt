@@ -1,0 +1,1018 @@
+--- Page 1 ---
+HAL Id: hal-00541469
+https://hal.science/hal-00541469v1
+Submitted on 30 Nov 2010
+HAL is a multi-disciplinary open access archive
+for the deposit and dissemination of scientific re-
+search documents, whether they are published or not.
+The documents may come from teaching and research
+institutions in France or abroad, or from public or pri-
+vate research centers.L’archive ouverte pluridisciplinaire HAL , est des-
+tinée au dépôt et à la diffusion de documents scien-
+tifiques de niveau recherche, publiés ou non, émanant
+des établissements d’enseignement et de recherche
+français ou étrangers, des laboratoires publics ou
+privés.
+HAL Authorization
+Polychronous mode automata
+Jean-Pierre Talpin, Christian Brunette, Thierry Gautier, Abdoulaye Gamatié
+To cite this version:
+Jean-Pierre Talpin, Christian Brunette, Thierry Gautier, Abdoulaye Gamatié. Polychronous mode automata.
+EMSOFT ’06, Oct 2006, Seoul, South Korea. pp.83-92, ⟨10.1145/1176887.1176900⟩. ⟨hal-00541469⟩
+
+--- Page 2 ---
+Polychronous modeautomata
+Jean-Pierre Talpin
+IRISA/INRIA-Rennes
+Campus de Beaulieu
+F-35042Rennes,France
+Jean-Pierre.Talpin@irisa.frChristianBrunette
+IRISA/INRIA-Rennes
+Campus de Beaulieu
+F-35042Rennes,France
+Christian.Brunette@irisa.fr
+ThierryGautier
+IRISA/INRIA-Rennes
+Campus de Beaulieu
+F-35042Rennes,France
+Thierry.Gautier@irisa.frAbdoulayeGamati ´e
+INRIAFuturs
+6b Av.Pierreet Marie Curie
+59260 Lezennes,France
+Abdoulaye.Gamatie@liﬂ.fr
+ABSTRACT
+Among related synchronous programming principles, the mo-
+del of computation of the Polychrony workbench stands
+out by its capability to give high-level description of systems
+where each component owns a local activation clock (such
+as, typically, distributed real-time systems or systems on a
+chip). In order to bring the modeling capability of Poly-
+chrony to the context of a model-driven engineering toolset
+for embedded system design, we deﬁne a diagramic notation
+composed of mode automata and data-ﬂow equations on top
+of the multi-clocked synchronous model of computation sup-
+ported by the Polychrony workbench. We demonstrate
+the agility of this paradigm by considering the example of an
+integrated modular avionics application. Our presentation
+features the formalization and use of model transformation
+techniques of the Gmeenvironment to embed the extension
+ofPolychrony ’s meta-model with mode automata.
+CategoriesandSubject Descriptors
+D.3 [Programming Languages ]: Formal Deﬁnition and
+Theory
+General Terms
+Design, Languages, Theory
+1. INTRODUCTION
+Inspired by concepts and practices borrowed from digi-
+tal circuit design and automatic control, the synchronous
+hypothesis has been proposed in the late ’80s to facilitate
+the speciﬁcation and analysis of control-dominated systems.
+Nowadays, synchronous languages are commonly used in the
+Permission to make digital or hard copies of all or part of this work for
+personal or classroom use is granted without fee provided that copies are
+not made or distributed for proﬁt or commercial advantage and that copies
+bearthisnoticeandthefullcitationontheﬁrstpage. Tocopyotherwise,to
+republish,topostonserversortoredistributetolists,requirespriorspeciﬁc
+permissionand/ora fee.
+EMSOFT'06, October22–25, 2006, Seoul,Korea.
+Copyright2006 ACM 1-59593-XXX-X/06/0010 ... $5.00.European industry, especially in avionics, to rapidly proto-
+type, simulate, verify embedded software applications.
+In this spirit, synchronous data-ﬂow programming lan-
+guages, such as Lustre [11], Lucid Synchrone [9] and Sig-
+nal[15], implement a model of computation in which time
+is abstracted by symbolic synchronization and scheduling
+relations to facilitate behavioral reasoning and functional
+correctness veriﬁcation. While block diagrammatic model-
+ing concepts are best suited for data-ﬂow dominated ap-
+plications, control-dominated processes may sometimes be
+preferably modeled using imperative formalisms, such as Es-
+terel [3], Statecharts [12], or SyncCharts [1].
+1.1 Designmethodology
+In the particular case of the Polychrony workbench, on
+which Signal is based, time is represented by partially or-
+dered synchronization and scheduling relations, to provide
+an additional capability to model high-level abstractions of
+system paced by multiple clocks: globally asynchronous sys-
+tems. This gives the opportunity to seamlessly model het-
+erogeneous and complex distributed embedded systems at
+a high level of abstraction, while reasoning within a simple
+and formally deﬁned mathematical model.
+InPolychrony , design proceeds in a compositional and
+reﬁnement-based manner. It ﬁrst consists of considering a
+weakly timed data-ﬂow model of the system under consider-
+ation. Then, partial timing relations are provided to grad-
+ually reﬁne the synchronization and scheduling structure of
+the application.
+Finally, the correctness of reﬁned speciﬁcation is checked
+with respect to initial requirement speciﬁcations. That way,
+Signal favors the progressive design of systems that are cor-
+rect by construction using well-deﬁned model transforma-
+tions that preserve the intended semantics of early require-
+ment speciﬁcations and that provide a functionally correct
+deployment on the target architecture.
+1.2 Model-driven designframework
+Taking advantage of recent works extending Polychrony
+with a meta-model, Signal-Meta [6], in the model-driven
+engineering framework of Gme(Generic modeling environ-
+ment [14]), we position our problem as extending the meta-
+model on which Signal is based with an inherited meta-
+
+--- Page 3 ---
+Figure 1: A Mimad model of On ﬂight.
+(a) Computation part ( ImaAspect )
+ (b) Control part ( ImaProcessControl )
+Figure 2: The Position indicator process.
+model of multi-clocked mode automata to ﬁnally demon-
+strate how the latter can be translated into the former by
+operating a model transformation. We put an emphasis on
+simplicity both for the speciﬁcation (one third of a page,
+Fig. 4) and for the formalization (ﬁve rules, Section 5.3)
+of mode automata. The framework of mode automata pre-
+sented in this article was speciﬁed and implemented in the
+matter of one month, thanks to the facilities oﬀered by the
+Gmeenvironment. It is currently being ported to Eclipse [5].
+1.3 A modelingparadigm
+The modeling of integrated modular avionics (IMA) archi-
+tectures are a typical case in which both the polychronous
+model of computation and the need for mixed data-ﬂow and
+control-ﬂow formalisms (as oﬀered by mode automata) are
+particularly well-suited.
+As an example, consider the following diagram, Fig. 1,
+from the Signal-Meta environment1. It represents a simple
+avionic application within Gme. Its main function consists
+of computing the current position of an airplane and its fuel
+level and reporting that information. It is decomposed into
+three processes:
+•Position indicator produces information about the
+current position of the aircraft.
+•Fuelindicator produces information about the level
+of kerosene in the aircraft.
+1Signal-Meta is the model-driven front-end of Poly-
+chrony designed with Gme•Parameter refresher refreshes the parameters used
+by other processes.
+To illustrate the use of mode automata at the process-
+level of this application, we focus on Position indicator ,
+Fig. 2(a)-2(b). It is composed of two main aspects: the
+ImaAspect includes the computational part and the ImaPro-
+cessControl contains the control ﬂow part. The computa-
+tional part (see Fig. 2(a)) consists of a data-ﬂow graph. It
+contains Blocks of data-ﬂow equations.
+The control-ﬂow part is best described in an imperative
+manner by a mode automaton, shown in Fig. 2(b). Each
+time the partition is active, the current state of the automa-
+ton indicates which of the Blocks in the computational part
+is executed. From the above descriptions, a corresponding
+Signal program is automatically generated allowing one to
+use the functionalities of Polychrony to formally analyze,
+transform and verify the application model.
+1.4 Overview
+The scope of this article is to present the deﬁnition of
+polychronous mode automata within the model-driven engi-
+neering framework Signal-Meta. It consists of an extension
+of the synchronous data-ﬂow formalism Signal with multi-
+clocked mode automata. To this end, the remainder of this
+paper is organized as follows.
+Section 2 ﬁrsts presents related works. Section 3 gives
+an informal presentation of the Signal formalism and of
+its extension. Section 4 outlines the meta-model of Signal ,
+deﬁnes its extension with mode automata and outlines the
+
+--- Page 4 ---
+use of Gmeto deﬁne the transformation of mode automata
+intoSignal . Section 5 formalizes the model transformation
+by considering the intermediate representation of Signal .
+Section 6 provides operational semantics of mode automata
+framework. Concluding remarks are given in Section 7.
+2. RELATEDWORKS
+The hierarchical combination of heterogeneous program-
+ming models is a notion whose introduction dates back to
+early models and formalisms for the speciﬁcation of hybrid
+discrete/continuous systems.
+The most common example is Matlab [18], which supports
+the Stateﬂow notation to describe modes in event-driven and
+continuous systems. Similarly, Ptolemy [7] allows for the hi-
+erarchical and modular speciﬁcation of ﬁnite state machines
+hosting heterogeneous models of computation. Worth notic-
+ing is Hyscharts [2], which integrates discrete and continu-
+ous modeling capabilities within the same model-driven en-
+gineering framework.
+In the same vein, mode automata were originally pro-
+posed by Maraninchi et al. [16] to gathering advantages of
+declarative and imperative approaches to synchronous pro-
+gramming and extend the functionality-oriented data-ﬂow
+paradigm of Lustre with the capability to model transition
+systems easily and provide an additional imperative ﬂavor.
+Similar variants and extensions of the same approach to mix
+multiple programming paradigms or heterogeneous models
+of computation [7, 8] have been proposed until recently, the
+latest advance being the combination of stream functions
+with automata [10]. Nowadays, commercial toolsets such as
+the Esterel Studio’s Scade or Matlab/Simulink’s Stateﬂow
+are largely inspired by similar concepts.
+In previous work, the introduction of preemption mecha-
+nism in the multi-clocked data-ﬂow formalism Signal was
+previously studied by Rutten et al. [21]. This was done by
+associating data-ﬂow processes with symbolic activation pe-
+riods. However, no attempt has been made to extend mode
+automata with the capability to model multi-clocked sys-
+tems, which is the aim of this article.
+The main advantage of the multi-clocked approach over
+previous installments of mode automata principles lies in
+the capabilities gained for rapid prototyping: not only may
+functionalities and components be abstracted with multi-
+clocked speciﬁcations but mode describing early control re-
+quirements may then allow rapid prototyping of the system,
+while oﬀering automated program transformation and code
+generation facilities to synthesis the foreseen implementa-
+tion in a correct-by-construction manner.
+3. POLYCHRONY
+We position the problem by considering partially synchro-
+nized (or polychronous) speciﬁcations using the data-ﬂow
+formalism Signal [15].
+3.1 Polychronousdata-ﬂow equations
+ASignal process consists of the simultaneous composi-
+tion of equations on signals. A signal consists of an inﬁnite
+ﬂow of values that is discretely sampled according to the
+pace of its clock, noted ˆ x. An equation partially relates sig-
+nals with respect to an abstract timing model. Signal de-
+ﬁnes the following primitive constructs:
+•A functional equation x = f(y,z) deﬁnes an arith-metic or boolean relation fbetween its operands y,z
+and the result x.
+•A delay equation x = y pre v initially deﬁnes the sig-
+nalxby the value vand then by the value of the sig-
+nalyfrom the previous execution of the equation. In
+a delay equation, the signals xandyare assumed to
+be synchronous, i.e. either simultaneously present or
+simultaneously absent at all times.
+•A sampling x = y when z deﬁnesxbyywhenzis true
+and both yandzare present. In a sampling equation,
+the output signal xis present iﬀ both input signals y
+andzare present and zholds the value true.
+•A merge x = y default z deﬁnesxbyywhenyis
+present and by zotherwise. In a merge equation, the
+output signal is present iﬀ either of the input signals
+yorzis present.
+•The synchronous composition (| P | Q |) of the pro-
+cessesPandQconsists of simultaneously considering a
+solution of the equations in PandQat any time.
+•The equation P / x restricts the lexical scope of a sig-
+nalxto a process P.
+3.2 Mode automata
+To express mode automata, we consider an extension of
+Signal which comprises the following base syntactic ele-
+ments. initsspeciﬁes the initial state (mode) of an au-
+tomaton a.s:passociates the behavior pwith the mode s.
+e⇒s→tgives the clock e(or guard) of the next transition,
+from mode sto mode t, while e⇒s։timmediately tran-
+sits from mode sto mode tupon the condition e(most likely
+a condition on input signals such as an alarm). The support
+of both weak preemption, noted e⇒s→t, and strong
+preemption, noted e⇒s։t, greatly enhance modeling ca-
+pabilities to facilitate design. Synchronous composition of
+automata is noted a| |b.
+a, b::=inits|(s:p)|(e⇒s→t)|(e⇒s։t)|a| |b
+3.3 Exampleof a crossbarswitch
+To support the presentation of our modeling techniques,
+we consider the example of a simple crossbar switch. Its
+interface is composed of two input data signals y1andy2
+and a reset input signal r.
+r
+/d36/d36/d72/d72/d72/d72/d72 y1
+/d15/d15
+y2 /d47/d47switch/d47/d47
+/d15/d15x2
+x1
+Data signals are routed along the output data signals x1and
+x2depending upon the internal state sof the switch. The
+state is toggled using the reset signal by the functionality
+s=toggle (r). Data is routed along an output signal xfrom
+two possible input sources y1ory2depending on the value
+ofsby two instances of the functionality x=route(s, yi, yj)
+withi/\e}atio\slash=jandi, j∈ {1,2}.
+(x1, x2) =switch (y1, y2, r)def=0
+@s=toggle (r)
+| |x1=route(s, y1, y2)
+| |x2=route(s, y2, y1)1
+A/s
+
+--- Page 5 ---
+Figure 3: The Signal meta-model in GME.
+The subprocess toggle deﬁnes the state of the switch by
+the signal s. If the reset signal ris present and true, then
+the next state tis deﬁned by the negation of current state s
+and otherwise by s.
+s=toggle (r)def=
+(s=tpre true | |t=notswhenrdefault s)/t
+The subprocess routeselects which of the values of its input
+signals y1ory2to send along its output signals xi, i∈ {1,2}
+depending on the boolean signal s. Ifsis present and true,
+it chooses yiand else, if sis present and false, it chooses
+yj/\egatio\slash=i.
+Remember that Signal equations partially synchronize
+input and output signals. In the route process, this implies
+that none of the signals y1,y2andsare synchronized, and
+that the output signal xi, i∈ {1,2}is present iﬀ either of yi
+are present and strue or yj/\egatio\slash=iis present and sfalse.
+xi=route(s, yi, yj)def=
+xi= (yiwhens)default (yjwhen not s),∀0< i/\e}atio\slash=j≤2
+The switch is a typical example of speciﬁcation where an
+imperative automata-like structure is superimposed on a na-
+tive data-ﬂow structure gives a shorter and more intuitive
+description of the system’s behavior.
+The mode automaton of the switch consists of two states
+ﬂip and ﬂop, in which routing is performed from y1,2to
+either x1,2orx2,1depending on the current mode of the au-
+tomaton. The mode toggles from ﬂip to ﬂop, or conversely,
+when the event roccurs.
+(x1, x2) =switch (y1, y2, r)def=0
+BB@init ﬂip : (x1=y1| |x2=y2)
+| |ﬂop: (x1=y2| |x2=y1)
+| |r⇒ﬂip։ﬂop
+| |r⇒ﬂop։ﬂip1
+CCA4. A META-MODELING APPROACH
+To develop our meta-modeling approach, we have used the
+Gmeenvironment [14], Fig 3. Gmeis a conﬁgurable Uml-
+based toolkit that supports the creation of domain-speciﬁc
+modeling and program synthesis environments. Gme uses
+meta-models to describe modeling paradigms for speciﬁc
+domains. The modeling paradigm of a given application
+domain consists of the basic concepts that represent its in-
+tended meaning from a syntactic and relational viewpoint.
+4.1 The Signalmeta-model
+The deﬁnition of a meta-model in Gmeis realized using
+the MetaGME modeling paradigm. First, modeling paradigm
+concepts are described in an Umlclass diagram. To achieve
+it, MetaGME oﬀers some predeﬁned Uml-stereotypes [13],
+among which FCO, Atom, Model, and Connection. FCO
+(First Class Object) constitutes the basic stereotype in the
+sense that all the other stereotypes inherit from it. It is used
+for expressing abstract concepts. Atoms are elementary ob-
+jects that cannot include any sub-part. On the contrary,
+models may be composed of several FCOs.
+Containment and Inheritance relations are represented as
+inUml. All the other types of relations are speciﬁed through
+Connections. Some of these stereotypes are used in the class
+diagram represented in Fig. 4. For the Signal meta-model,
+called Signal-Meta [6], class diagrams describe all syntactic
+elements deﬁned in Signal v4 [4]. Among these concepts,
+there are an Atom for each Signal operator (e.g. numeric,
+clock relations, constraints), a Model for each Signal “con-
+tainer” (e.g. process declaration, module), and a Connection
+for each relation between Signal operators (e.g. deﬁnition,
+dependence).
+With these class diagrams, Gmeprovides a mean to ex-
+press the visibility of FCOs within a model through the no-
+tion of Aspect (i.e. one can decide which parts of the de-
+
+--- Page 6 ---
+Figure 4: Extension of the Signal meta-model with mode automata.
+scriptions are visible depending on their associated aspects).
+Moreover, it is possible to restrict the use of some FCOs
+(add/remove in/from a Model) to a speciﬁc Aspect, even if
+these FCOs are visible in other Aspects. Signal-Meta in-
+cludes two main Aspects: Computation part andClock and
+Dependence Relations . The ﬁrst one manages all data-ﬂow
+relations of the Model, and the second one, all clock relations
+between signals.
+Finally, OCL Constraints can be added to class diagrams
+in order to check some “parametric” properties on a model
+designed with this paradigm (e.g. the type of connections
+linked to an FCO according to the value of a FCO attribute).
+A parametric property depends on values given during the
+edition of a model. In Signal-Meta, OCL constraints check
+for example the validity of attribute values, such as the
+uniqueness of names inside a Model.
+4.2 Reﬁnementofthemeta-modelwithmodes
+To manage mode automata, we extend Signal-Meta with
+a new class diagram represented in Fig. 4. An Automaton is
+a Model composed of states, transitions, local signals, and
+StateObservers . As for classical Statecharts [12], or Sync-
+Charts [1], there are three kinds of states: AndState ,Au-
+tomaton , andState. The two former are Models composed
+of other states ( CompoundState ), whereas the latter is a
+terminal state describing Signal equations. An AndState
+consists of several states composed in parallel.
+AnAutomaton can be added to another Automaton as
+a state (to create hierarchical automata), or to one of the
+Signal-Meta Models (represented in the class diagram by the
+ModelsWithDataﬂow Model). Thus, mode automata can be
+composed of Signal programs or of sub-mode automata.
+This abstract concept represents Models including the two
+Aspects mentioned in the previous section and all operators
+described in Signal-Meta. State inherits from this Model to
+be able to describe Signal equations. Finally, the InitStateAtom is intended to be connected to the initial state of the
+Automaton .
+The automata transitions are represented as Connections
+in the meta-model. Two kinds of transitions are considered:
+StrongTransition , and WeakTransition .StrongTransition s
+are used to compute the current state of the Automaton
+(before entering the state), whereas WeakTransition s are
+used to compute the state for the next instant.
+More precisely, the guards of the WeakTransition s are
+evaluated to estimate the state for the next instant, and the
+guards of the StrongTransition s whose source is the state es-
+timated at the previous instant, are evaluated to determine
+the current state. However, note that for each Automaton ,
+at most one StrongTransition can be taken at each instant.
+To distinguish both kinds of transitions, a StrongTransition
+is denoted by light arrow in the graphical representation (see
+Fig. 5(a)), whereas WeakTransition is represented by a bold
+one.
+Contrarily to SyncCharts [1], in which as many transitions
+as possible can be taken, in our model, at most two transi-
+tions can be taken during one reaction: one StrongTransi-
+tionand/or one WeakTransition . It is also the case in [10].
+This guarantees that there is no inﬁnite loop when deter-
+mining the current state of an automaton. For example, the
+determination of the current state for the AtmAutomaton
+represented in Fig. 5(a) when the event r is emitted would
+be impossible if we allowed to take as many transitions as
+possible. Note also that the guard of a StrongTransition
+should not depend on signals deﬁned in the state connected
+to this transition.
+Both kinds of transitions link, inside an Automaton , a
+state to another one, or to the History Atom of one of the
+CompoundState sub-state of this Automaton . If the transi-
+tion taken to arrive at a CompoundState is connected to the
+state itself, this CompoundState is automatically reinitial-
+ized. This reinitialization corresponds, for an Automaton ,
+
+--- Page 7 ---
+(a) TheAtmAutomaton
+ (b)flipstate
+ (c)flopstate
+ (d) Synchronization of Atm
+Figure 5: Description of the AtmAutomaton inGme.
+to execute it from its initial state, and for an Andstate , to
+reinitialize all its sub-states. On the contrary, the Com-
+poundState retains its previous state if the transition is con-
+nected to its History .
+Each kind of transition has two attributes: Guard , in
+which the guard of the transition is expressed, and Tran-
+sitionPriority , in which an integer expresses the priority of
+this transition among all transitions of the same kind ( Weak-
+Transition orStrongTransition ) with the same source state.
+The smaller the value associated with the transition is, the
+higher the priority of the transition is. Thus, we can guar-
+antee the determinism of the automaton. An OCL con-
+straint checks that for each state, all outgoing WeakTransi-
+tions (resp. StrongTransition s) have diﬀerent priorities. A
+third kind of Connection ( InitialTransition ) has been added
+to link the InitState of anAutomaton to any state that cor-
+responds to the initial one. There can be only one such
+Connection in an Automaton .
+To observe the state of an automaton, we add a StateOb-
+server Atom, which allows to call a process having the cur-
+rent state of the automaton as input signal. The name of
+this process is provided through the attribute ProcessName .
+If this attribute is not deﬁned, the current state is written on
+the standard output. Basically, the clock of an automaton
+depends on the clocks of the signals used in all its transitions
+and states. Alternatively, the clock of an automaton can be
+explicitly speciﬁed. In the meta-model, this is expressed by
+the inheritance of Automaton fromConstraintInput .
+4.3 Modelingof the crossbarswitch
+We illustrate the use of the mode automata extension in
+the example of the switch. Fig. 5(a) represents the modeling
+of the mode automaton of the switch in Gme.Atmcontains
+two terminal states ( flipandflop).StrongTransitions are
+guarded by the value of the event r, as labeled on the middle
+of transitions. The 0 indicates the transition priority (it can
+be omitted here). The content of flip(resp.flop) state
+is represented in Fig. 5(b) (resp. 5(c)). In these ﬁgures,
+dotted arrows correspond to partial deﬁnitions in Signal .
+x1,x2,y1,y2are references to signals from an upper Model.
+The upper Model is that of the switch , andAtmand all
+the signals it uses are declared there. In this Model, y1,y2,
+andrare input signals, and x1andx2are output signals.
+In Fig. 5(d), the clock of Atmis ﬁxed to the union of the
+clocks of y1,y2, andr. The clocks of x1andx2have to
+be speciﬁed explicitly because they are deﬁned using partial
+deﬁnitions: a MinClock operator is used to deﬁne the clock
+ofx1andx2as the union of clocks of their partial deﬁnitions.
+TheDATATYPEparameter is used to associate a generic type
+with input and output signals.4.4 Implementation in Gme
+Gmeoﬀers diﬀerent means to extend its environment with
+tools, such as the MetaGME Interpreter , which, like a
+compiler, checks the correctness of the meta-model, gener-
+ates the paradigm ﬁle, and registers it into Gme. This ﬁle
+is then used by Gme to conﬁgure its environment for the
+newly deﬁned paradigm.
+In a similar way as the MetaGME Interpreter, we have de-
+veloped a Gme Interpreter to analyze Signal-Meta Models
+and produce the corresponding Signal programs. We ex-
+tend this Interpreter to produce the Signal equations corre-
+sponding to mode automata descriptions. The code in Fig.
+6 is that generated by the Interpreter for the switch example
+speciﬁed in Fig. 5 (note that in the concrete Signal syn-
+tax:y$ init v is the real notation for y pre v ;x^=ystands
+for ˆx= ˆy;^+designates the union of clocks; x::=... and
+x:=... represent respectively a partial deﬁnition and a com-
+plete deﬁnition of x). The transformation works as follows.
+For each automaton:
+•One enumeration type is built (line 21). Each value of
+the enumeration is the name of a state (the uniqueness
+of names is checked).
+•Four signals of this type are created. They corre-
+spond to the current state ( currentState ), the previ-
+ous state ( previousState ), the next state ( nextState )
+of the Automaton (lines 22-23) and its previous value
+(zNextState ).
+•an event is created for each transition of the Automa-
+ton(line 20). For a WeakTransition (resp. Strong-
+Transition ), this event is present when its guard is
+trueand when the currentState (resp.zNextState )
+is equal to the source state of the transition. In this
+example, we have only StrongTransition s (lines 5-6).
+•If the Automaton contains CompoundState s (it is not
+the case in our example), then two boolean signals are
+added:history , andnextHistory . They are trueif
+theStrongTransition (resp. WeakTransition ) taken to
+determine the currentState (resp.nextState ) is con-
+nected to the History Atom of the destination Com-
+poundState .
+•ThepreviousState andzNextState are deﬁned re-
+spectively by the last value of currentState (line 12)
+andnextState (line 13).
+•To deﬁne the nextState (line 8) (resp. currentState
+(lines 9-11)), the destinations of all WeakTransition s
+(resp. StrongTransition s) are conditioned by the event
+of the corresponding transition. The default values
+
+--- Page 8 ---
+1. process Switch =
+2. { type DATA_TYPE; }
+3. ( ? DATA_TYPE y1,y2; event r; ! DATA_TYPE x1, x2; )
+4. (| min_clock(x2) | min_clock(x1)
+5. | %Atm%(| __ST_0_flop_To_flip := when (r) when (_Atm_0_zNextState = #flop)
+6. | __ST_1_flip_To_flop := when (r) when (_Atm_0_zNextState = #flip)
+7. | _Atm_0_currentState ^= (y1 ^+ y2 ^+ r)
+8. | _Atm_0_nextState := _Atm_0_currentState
+9. | _Atm_0_currentState := #flip when __ST_0_flop_To_flip
+10. default #flop when __ST_1_flip_To_flop
+11. default _Atm_0_zNextState
+12. | _Atm_0_previousState := _Atm_0_currentState$ init #flip
+13. | _Atm_0_zNextState := _Atm_0_nextState$ init #flip
+14. | case _Atm_0_currentState in
+15. {#flop}: (| x2 ::= y1 | x1 ::= y2 |)
+16. {#flip}: (| x2 ::= y2 | x1 ::= y1 |)
+17. end
+18. |)
+19. where
+20. event __ST_0_flop_To_flip, __ST_1_flip_To_flop;
+21. type _Atm_0_type = enum(flop, flip);
+22. _Atm_0_type _Atm_0_currentState, _Atm_0_previousState;
+23. _Atm_0_type _Atm_0_nextState, _Atm_0_zNextState;
+24. end
+25. |); % process Switch
+Figure 6: The code generated from the switch model by the Signal Interpreter
+of thenextState and the currentState are respec-
+tively the currentState and thezNextState . If the
+Automaton is a sub-state of another one, the cur-
+rentState is deﬁned by the initial state of this Au-
+tomaton if thehistory signal of the upper level Au-
+tomaton is false. In our example, there is no Weak-
+Transition , thusnextState is always deﬁned by the
+currentState . Note that the order of the transitions
+is not important, except for states with several out-
+going transitions. In this case, transitions are ordered
+according to their priority.
+•Mode changes are expressed according to the value of
+currentState (lines 14-17).
+In a given Automaton , the clock of currentState is syn-
+chronized to that of nextState . Nonetheless, it may be
+deﬁned by that of another Automaton . At the top-level, the
+clock ofcurrentState is synchronized (line 7) only if there
+is some explicit synchronization in the Model, such as the
+Connection to Atmon the right of Fig. 5(d). For AndState s,
+the Interpreter has just to compose the equations of all sub-
+states. Finally, for States, equations are produced as for any
+Signal-Meta Model [6].
+5. FORMALIZATION
+We use the Polychrony workbench to perform formal
+veriﬁcation (model checking and controller synthesis are pro-
+vided with the Sigali tool [17]) and sequential and distributed
+code generation (in C, C++ or Java) starting from mod-
+els with mode automata. Taking advantage of the meta-
+modeling framework provided by Gme, we deﬁne the nec-
+essary generation of Signal code from the meta-model for
+mode automata.
+5.1 Anintermediaterepresentation
+The data-ﬂow synchronous formalism Signal supports an
+intermediate representation of multi-clocked speciﬁcationsthat exposes control and data-ﬂow properties for the pur-
+pose of analysis and transformation. In this structure, noted
+G, a node gis a data-ﬂow relation that partially deﬁnes a
+clock or a signal. A signal node c⇒x=f(y, z) partially
+deﬁnes xbyf(y, z) at the clock c. A clock node ˆ x=e
+deﬁnes a relation between two particular signals or events
+called clocks.
+G, H ::=g|(G| |H)|G/x (graph)
+g, h ::= ˆx=e|c⇒x=f(y, z) (nodes)
+A clock cexpresses a discrete sample of time by a set of
+instants. It deﬁnes the condition upon which (or the time at
+which) a data-ﬂow relation is executed. The clock ˆ xmeans
+that the signal xis present (its value is available). The
+clocks [ x] and [ ¬x] mean that xis present and is true (resp.
+false). A clock expression eis a boolean expression and 0 is
+the clock that means never (or the empty set of instant).
+c::= ˆx|[x]|[¬x] (clock)
+e::= 0 |c|e1\e2,|e1∨e2|e1∧e2(expression)
+The decomposition of a process into the synchronous com-
+position of clock and signal nodes is deﬁned by induction
+on the structure of p. Each equation is decomposed into
+a data-ﬂow function and is guarded by a condition, that is
+usually the clock ˆ xof the output signal.
+G[ [x=yprev] ]def= (ˆ x⇒x=yprev)| |(ˆx= ˆy)
+G[ [x=ywhen z] ]def= (ˆ x⇒x=y)| |(ˆx= ˆy∧[z])
+G[ [x=ydefault z] ]def= (ˆ y⇒x=y)
+| |(ˆz\ˆy⇒x=z)
+| |(ˆx= ˆy∨ˆz)
+G[ [p| |q] ]def= G[ [p] ]| | G[ [q] ]
+G[ [p/x] ]def= G[ [p] ]/x
+5.2 Application to the crossbarswitch
+Let us construct the graph of the crossbar switch. It can
+modularly be deﬁned by one instance of the toggle function-
+
+--- Page 9 ---
+ality and two instances of the router. Each functionality is
+decomposed into a set of guarded data-ﬂow relations: its sig-
+nal nodes, and its speciﬁc timing model, expressed by clock
+nodes.
+G[ [switch ] ]def= ( G[ [toggle ] ]| | G[ [route 1] ]| | G[ [route 2] ])/st
+G[ [toggle ] ]def= (ˆ s⇒s=tpre true )
+| |([r]⇒t=nots)
+| |(ˆt\r⇒t=s)| |(ˆt= ˆs)
+G[ [route i] ]def= ([ s]⇒xi=yi)
+| |([¬s]⇒xi=yj) 0 < i/\e}atio\slash=j≤2
+5.3 Compilationof mode automata
+The compilation of a mode automaton into multi-clocked
+data-ﬂow equations consists of its structural translation into
+partial equations modeling guarded commands and of the
+addition of the necessary synchronization relations described
+by clock equations. The top level rule C[ [a] ] deﬁnes the cur-
+rent state of a, represented by a signal x(its next value
+being synchronously carried by the x′).
+The clock of the mode automaton is hence ˆ x. It is syn-
+chronized to the clock expression ex, the activity clock of
+the automaton: if at least one signal ydeﬁned by the au-
+tomaton has an active clock ˆ y, the automaton is activated
+to compute it and to possibly perform some transition.
+The rule Cx[ [inits0] ] deﬁnes xinitially by the initial state
+sand then by the previous value of the next state x′unless
+one of the conditions cof strongly preemptive transitions
+prevails. The rule Cx[ [c⇒s→t] ] deﬁnes the next state x′
+bytif the current state sisxand the condition cholds.
+The rule Cx[ [c⇒s։t] ] deﬁnes the current state xbyt
+when the condition cholds upon entering state s(i.e. when
+the previous value of the next state x′iss). The rule
+Cx[ [s:p] ] deﬁnes a mode sby guarding the process pwith
+the condition [ x=s]. The condition [ x=s] can equally be
+regarded as the clock [ y] where the signal yis deﬁned by the
+equation y=eq(x, s).
+C[ [a] ]def= (Cx[ [a] ]| |(ˆx= ˆx′)| |(ˆx=ex))/x, x′
+withexdef=W
+y∈defs( a)ˆy
+Cx[ [inits0] ]def= ˆx\fx⇒x=x′pres0
+withfxdef=W
+(c⇒s։p)∈ac
+Cx[ [c⇒s→t] ]def= [x=s]∧c⇒x′=t
+Cx[ [s:p] ]def= [x=s]⇒ G[ [p] ]
+Cx[ [c⇒s։t] ]def= [( x′pres0) =s]∧c⇒x=t
+Cx[ [a| |b] ]def=Cx[ [a] ]| | Cx[ [b] ]
+The notation [ x=s]⇒Gconditions G, the behavior of
+an automaton in the mode s, by the condition [ x=s]. It
+can be decomposed into a set of core Signal equations by
+application of the following translation rules:
+c⇒(G| |H)def= (c⇒G)| |(c⇒H)
+c⇒(ˆx=e)def= (c∧ˆx) = (c∧e)
+c⇒(G/x)def= (c⇒G)/x, x /\e}atio\slash∈vars(c)
+c⇒(d⇒x=f(y1..n))def= (c∧d)⇒x=f(y1..n)
+6. SEMANTICSOFMODE AUTOMATA
+We complete the formalization of our extension to the
+Signal meta-model by the deﬁnition of the operational se-mantics of polychronous automata. It starts with the expo-
+sition of a micro-step automata theory and continues with
+the speciﬁcation of the micro-step automata admitted by
+polychronous modes.
+6.1 Micro-step automata
+We ﬁrst consider the theory of synchronous micro-step
+automata proposed by Potop et al. [19]. As already demon-
+strated for Signal in [22], this framework accurately renders
+concurrency and causality for synchronous (multi-clocked)
+speciﬁcations.
+Micro-step automata communicate through signals x∈X.
+Thelabels l∈LXgenerated by the set of names Xare
+represented by a partial map of domain from a set of signals
+Xnoted vars( l) to a set of values V⊥=V∪ {⊥} . The label
+⊥denotes the absence of communication during a transition
+of the automaton. We write supp( l) ={x∈X|l(x)/\e}atio\slash=⊥}
+for the support of a label land⊥Xfor the empty support.
+We write l′≤liﬀ there exists l′′disjoint from l′and such
+thatl=l′∪l′′.
+Anautomaton A= (s0, S, X, →) is deﬁned by an initial
+state s0, a ﬁnite set of states Snoted sorx=v, labels LX
+and by a transition relation →onS×LX×S. The product
+A1⊗A2ofAi= (s0
+i, Si, Xi,→i) for 0 < i≤2 is deﬁned by
+((s0
+1, s0
+2), S1×S2, X1∪X2,→) where ( s1, s2)→l(s′
+1, s′
+2) iﬀ
+si→l|Xis′
+ifor 0< i≤2 and l|Xithe projection of lonXi.
+An automaton A= (s0, S, X, →) isconcurrent iﬀs→⊥s
+for all s∈Sand if s→ls′andl′≤lthen there exists
+s′′∈Ssuch that s→l′s′′ands′′→l\l′s′.
+Asynchronous automaton A= (s0, S, X, c, →), of clock
+c∈X, consists of a concurrent automaton ( s0, S, X, →) s.t.
+1. ifs→lsthenl=corc/\e}atio\slash∈l: a clock transition always
+happens alone.
+2. ifs0→cs0ands→cs′then s′→cs′: a clock
+transition can stutter.
+3. ifsi−1→lisi,∀i∈]0, n] and li/\e}atio\slash=cfori < n and
+ln=c, then vars( li)∩vars(lj) =∅for all 0 < i/\e}atio\slash=j <
+n: a reaction is composed of transitions on disjoint
+supports.
+The composition of automata is deﬁned by synchronized
+product and synchronous communication using 1-place syn-
+chronous FIFO buﬀers. The synchronous FIFO of clock c
+and channel xis noted s fifo(x, c). It serializes the emission
+event ! x=vfollowed by the receipt event ? x=vwithin the
+same transition (the clock tick coccurs afterwards).
+sfifo(x, c)def=0
+@s0,{s0..2},{?x,!x, c}, c, s0 c/d57/d57!x=v/d47/d47s1?x=v/d47/d47s2
+c/d95/d951
+A
+LetAi= (s0
+i, Si, Xi, ci,→i)i=1,2be two synchronous au-
+tomata and ca clock and write A[c2/c1] for the substitution
+ofc1byc2inA. The synchronous composition A1| |cA2
+is deﬁned by the product of A1,A2, and a series of syn-
+chronous FIFO buﬀers s fifo(x, c) that are all synchronized
+on the same clock c.
+A1| |cA2def= (A1[c/c1])⊗(A2[c/c2])⊗O
+x∈(vars( X1)∩vars( X2))sfifo(x, c)
+
+--- Page 10 ---
+A[ [a] ]def=0
+@sa, Sa[
+(s:p)∈aSp,vars(a), τ,[
+(s:p)∈a0
+@Tp[s/sp](c⇒s→t)∈a[
+u∈ﬁnal(Tp)\sp““
+Tu,r
+c∪rτ− →t”
+/r”(c⇒s։t)∈a[
+u∈init(Tp)\spTu,t
+c1
+A1
+A
+Figure 7: Semantics of a mode automaton
+6.2 Micro-step semantics of Signal
+Micro-step automata provide a simple and expressive op-
+erational framework to formalize the semantics of multi-
+clocked speciﬁcations.
+Clocks
+A clock expression ecorresponds to a transition system Ts,t
+e
+fromstotwhich evaluates the presence of signals in accor-
+dance to e.
+Ts,t
+cdef=“
+slc− →t”
+Ts,t
+c∨ddef=`
+Ts,t
+c∧d∪Ts,t
+c∪Ts,t
+d´Ts,t
+c∧ddef=0
+BBB@s′
+ld
+/d34/d34/d70/d70/d70/d70
+slc/d59/d59/d120/d120/d120/d120
+ld/d35/d35/d70/d70/d70/d70lcld/d47/d47t
+t′lc/d60/d60/d120/d120/d120/d1201
+CCCA/s′t′
+We write lcfor the label lthat corresponds to the clock c
+and canonically denote vxthe generic value of the signal x
+:lˆx=def(?x=vx),lx=def(?x= 1) and l¬x=def(?x= 0)
+Relations
+A synchronization relation ˆ x=eaccepts the events ˆ xand
+ein any order, or none of them, and then performs a clock
+transition c. Hence, the conditions expressed by ˆ xande
+need to occur at the same time.
+A[ [ˆx=e] ]def=0
+@s,{s, t},{c, x} ∪vars(e), c,“
+tc− →s”vx∈V[
+vy∈V|y∈vars( e)Ts,t
+ˆx∧e1
+A
+Equations
+A partial equation c⇒x=f(y) synchronizes xwith the
+value of f(y) at the clock c. But xmay also be present when
+either coryis absent. Therefore, the automaton requires
+xto be emitted with the value f(vy) only after the events
+yandchave occurred. If at least one of either coryis
+present, then xmay or may not be present with some value
+ucomputed by another partial equation. The semantics
+(combinatorially) generalizes to the case of c⇒x=f(y1..n)
+withn≥0.
+A[ [c⇒x=f(y)] ]def=
+s0,{s0..1, s2..4
+vy|vy∈V},{x, y} ∪vars(d), τ,Svz∈V|z∈vars( c)
+vx,vy∈V0
+BBBBBBBBB@s1
+τ
+/d125/d125/d123/d123/d123/d123/d123/d123/d123?y=vy
+/d34/d34/d68/d68/d68/d68/d68/d68/d68?x=vx
+/d15/d15
+s0τ
+/d44/d44
+?x=vx/d50/d50lc/d78/d78
+?y=vy
+/d16/d16lc?y=vy/d47/d47s3
+vy!x=f(vy)/d47/d47s4
+vyτ/d47/d47s0
+s2
+vyτ/d96/d96/d65/d65/d65/d65/d65/d65 lc/d61/d61/d123/d123/d123/d123/d123/d123
+?x=vx/d79/d791
+CCCCCCCCCA
+Structuringconstructs
+Composition p| |qand restriction p/xare deﬁned by struc-
+tural induction starting from the previous axioms with
+A[ [p| |q] ]def=A[ [p] ]| |cA[ [q] ]A[ [p/x] ]def= (A[ [p] ])/xExample 1.Consider the transition system for the switch
+process (the notation yjxistands for two steps ◦ →?yj=v
+◦ →!xi=v◦). The switch automaton consists of two mir-
+rored structures that allow for concurrently receiving y1and
+y2and transmitting them along x1orx2according to the
+mode s1ors2, toggled using the signal r.
+0
+BBBBBBBB@◦
+c/d118/d118y2x1
+/d31/d31◦
+c/d40/d40y2x2
+/d127/d127
+s1 c/d56/d56y1x2/d54/d54
+y2x1/d40/d40y1x2y2x1/d42/d42◦
+c/d106/d106r/d39/d39◦c/d42/d42
+r/d103/d103 s2 c/d102/d102y1x1/d104/d104
+y2x2/d118/d118y1x1y2x2 /d106/d106
+◦c/d104/d104
+y1x2/d63/d63
+◦c/d54/d54
+y1x1/d95/d951
+CCCCCCCCA
+6.3 Operationalsemantics of mode automata
+The operational semantics of a mode automaton is de-
+scribed using one equation, Fig. 7, to deﬁne the micro-step
+automaton A[ [a] ] corresponding to the mode declaration a.
+To this end, a mode automaton ais considered as a set of
+synchronously composed modes and transitions. Hence, we
+write ( s:p)∈aand (c⇒s→t)∈afor the modes and
+transitions it contains.
+The semantics of a mode automaton aconsists of a tran-
+sition system that is the union of the transition systems of
+all modes ( s:p)∈a. The transition system of a mode
+(s:p) consists of Tp(that of the process p) where sp(the
+initial state) is substituted by s(the mode state). For all
+mode transitions c⇒s→t∈a, the transition system is
+completed with the transitions from the ﬁnal states uofTp
+to the mode state t.
+We write init(T) and ﬁnal(T) ={t|t→τs∈T}for the
+initial and ﬁnal states of T(the sources and sinks of clock
+transitions τinT) and Sa={s|(s:p)∈a}for the states of
+a. As usual, sadenotes the initial state of aand, referring
+to automaton A[ [p] ] of a process p,spits initial state, Spits
+states, Xpits variables and Tpits transition system.
+Example 2.In the case of the switch, this amounts to
+superimposing two transitions of condition rto the transition
+systems of the ﬂip and ﬂop modes.
+Tswitch = 
+Tﬂip◦r/d43/d43◦Tﬂop
+r/d107/d107!
+7. CONCLUSIONS
+We have presented a model of multi-clocked mode au-
+tomata deﬁned by extending the meta-model of the syn-
+chronous data-ﬂow speciﬁcation formalism Signal in the
+toolGme. A salient feature of our presentation is the sim-
+plicity incurred by the separation of concerns between data-
+ﬂow (that expresses structure) and control-ﬂow (that ex-
+presses a timing model) that is characteristic to the design
+methodology of Signal .
+
+--- Page 11 ---
+From a user point of view, this simplicity translates into
+the ease of hierarchically and modularly combining data-
+ﬂow blocks and imperative modes and signiﬁcantly acceler-
+ates speciﬁcation by making its structure closer to design
+intuitions. an example is the 28 lines long encoding of state
+transitions in the crossbar switch, Fig 6, as opposed to its
+4 lines speciﬁcation, end of Section 3. The same remark
+applies and scales to the more realistic on-ﬂight example,
+Fig 2(b), by simplifying the speciﬁcation of the mode tran-
+sitions using implicit states.
+While the speciﬁcation of mode automata in related works
+requires a primary address on the semantics and on compi-
+lation of control, the use of Signal as a foundation allows
+to transfer this speciﬁc issue to its analysis and code gen-
+eration engine Polychrony . Furthermore, it exposes the
+semantics and transformation of mode automata in a much
+simpler way by making use of clearly separated concerns ex-
+pressed by guarded commands (data-ﬂow relations) and by
+clock equations (control-ﬂow relations).
+8. REFERENCES
+[1] C. Andr´ e. Representation and analysis of reactive
+behaviors: a synchronous approach. In Computational
+Engineering in Systems Applications. IEEE, 1996.
+[2] K. Bender, M. Broy, I. Peter, A. Pretschner, T.
+Stauner. Model-based development of hybrid systems:
+speciﬁcation, simulation, test case generation. In
+Modelling, Analysis, and Design of Hybrid Systems .
+Lectures notes in computer science, 279. Springer, 2002
+[3] G. Berry and G. Gonthier. The Esterel synchronous
+programming language: design, semantics,
+implementation. Science of Computer Programming, v.
+19(2). Elsevier, 1992.
+[4] L. Besnard, T. Gautier, and P. Le Guernic. Signal V4:
+reference manual. http://www.irisa.fr/espresso/
+Polychrony/doc/document/V4 def.pdf
+[5] J. B´ ezivin, C. Brunette, R. Chevrel, F. Jouault, and
+I. Kurtev Bridging the Generic Modeling Environment
+(Gme) and the Eclipse Modeling Framework (EMF)
+4th Workshop on Best Practices for Model Driven
+Software Development, OOPSLA, San Diego, 2005.
+[6] C. Brunette, J.-P. Talpin, L. Besnard, and T. Gautier.
+Modeling multi-clocked data-ﬂow programs in the
+Generic Modeling Environment. Synchronous
+Languages, Applications, and Programming (SLAP’06).
+Elsevier, 2006.
+[7] J. T. Buck, S. Ha, E. A. Lee and
+D. G. Messerschmitt. Ptolemy: A Framework for
+Simulating and Prototyping Heterogeneous Systems. In
+International Journal of Computer Simulation, special
+issue on Simulation Software Development. v. 4, pp.
+155-182. Ablex, 1994.
+[8] X. Liu, J. Liu, J. Eker, and E. A. Lee. Heterogeneous
+Modeling and Design of Control Systems. In
+Software-Enabled Control: Information Technology for
+Dynamical Systems. IEEE Press, 2002.
+[9] J.-L. Cola¸ co, A. Girault, G. Hamon, and M.
+Pouzet. Towards a higher-order synchronous dataﬂow
+language. In Embedded Software Conference, Springer
+Verlag lectures notes in computer science, 2004.
+[10] J.-L. Cola¸ co, B. Pagano, and M. Pouzet. A
+conservative extension of synchronous data-ﬂow withstate machines. In Embedded Software
+Conference. ACM Press, 2005.
+[11] N. Halbwachs, P. Caspi, P. Raymond, and
+D. Pilaud. The synchronous dataﬂow programming
+language Lustre . IEEE, vol.79(9), pages
+1305-1320. Septembre, 1991.
+[12] D. Harel. Statecharts: a visual approach to complex
+systems. Science of Computer Programming. Elsevier,
+1987.
+[13] ISIS, Vanderbilt Uni. GmeUser Man.
+www.isis.vanderbilt.edu/Projects/gme .
+[14] A. Ledeczi, M. Maroti, A. Bakay, G. Karsai,
+J. Garrett, C. Thomason, G. Nordstrom, J. Sprinkle,
+and P. Volgyesi. The Generic Modeling Environment.
+Workshop on Intelligent Signal Processing . IEEE, May
+2001.
+[15] P. Le Guernic, J.-P. Talpin, and J.-C. Le
+Lann. Polychrony for system design. Journal of
+Circuits, Systems and Computers . World Scientiﬁc,
+2003.
+[16] F. Maraninchi, and Y. R´ emond. Mode-automata: a
+new domain-speciﬁc construct for the development of
+safe critical systems. Science of Computer
+Programming, v. 46(3). Elsevier, 2003.
+[17] H. Marchand, E. Rutten, M. Le Borgne, M. Samaan.
+Formal veriﬁcation of programs speciﬁed with SIGNAL
+: application to a power transformer station controller.
+Science of Computer Programming, v. 41(1). Elsevier,
+2001.
+[18] The Mathworks. Matlab’s Simulink and
+Stateﬂow. http://www.mathworks.com
+[19] D. Potop-Butucaru and
+B. Caillaud. Correct-by-construction asynchronous
+implementation of modular synchronous
+speciﬁcation. In Application of Concurrency to System
+Design . IEEE Press, 2005.
+[20] D. Potop, and B. Caillaud. Correct-by-construction
+asynchronous implementation of modular synchronous
+speciﬁcations. In Applications of Concurrency to
+System Design. IEEE Press, 2005.
+[21] E. Rutten, F. Martinez. Signal GTI: implementing
+task preemption and time intervals in the synchronous
+data ﬂow language Signal. In Euromicro Workshop on
+Real-Time Systems. IEEE Press, 1995.
+[22] J.-P. Talpin, D. Potop-Butucaru, J. Ouy,
+B. Caillaud. From multi-clocked synchronous processes
+to latency-insensitive modules. International
+Conference on Embedded Software. ACM Press, 2005.
+[23] Vernadat, F., Percebois, C., Farail, P., Vingerhoeds,
+R., Rossignol, A., Talpin, J.-P., and Chemouil, D. The
+Topcased project - a toolkit in open-source for critical
+application and system development. International
+Space System Engineering Conference - Data Systems
+in Aerospace. Eurospace, 2006.

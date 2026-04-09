@@ -1,0 +1,169 @@
+--- Page 1 ---
+Design and Veriﬁcation of Speed-Independent
+Circuits with Arbitration in W ORKCRAFT
+Danil Sokolov†, Victor Khomenko†, Alex Yakovlev†, David Lloyd‡
+{danil.sokolov, victor.khomenko, alex.yakovlev}@ncl.a c.uk; david.lloyd@diasemi.com
+†Newcastle University, UK;‡Dialog Semiconductor, UK
+I. I NTRODUCTION
+The traditional design methods for speed-independent (SI)
+circuits [1] require their behaviour to be output-persiste nt.
+A common source of non-persistence is arbitration [2] that
+leads to a choice between output signals. It is the designer’ s
+responsibility to remove such non-persistent behaviour be fore
+proceeding to synthesis, usually by manually factoring the
+arbitration out into the environment, where the choice is
+implemented using a mutex element [3]. There are several
+problems with this approach:
+•Signiﬁcant manual effort factoring out the mutex and
+inserting it after synthesis.
+•There is no guarantee that the signals the designer thinks
+can be implemented by a mutex actually follow the
+arbitration protocol.
+•Factoring out converts mutex grants into inputs, so veri-
+ﬁcation of output-persistence would miss a situation when
+a mutex grant is disabled due to premature withdrawal of
+corresponding request (this applies to veriﬁcation of both ,
+the original speciﬁcation and the circuit implementation) .
+In this paper we demonstrate how these problems were solved
+by integrating automatic mutex insertion into the SI synthe sis
+ﬂow implemented in W ORKCRAFT (https://workcraft.org/).
+II. D ESIGN FLOW
+WORKCRAFT takes a circuit speciﬁcation in form of a
+Signal Transition Graph (STG) [4]. Choices involving outpu ts
+are considered violations of output-persistence by defaul t, so
+the user must tag choice places meant to be implemented by
+mutexes. For example, place mein Fig. 1a is tagged as a
+mutex place (visualised by an outline circle). Otherwise th e
+user designs the STG in a natural way, with mutex grants being
+output or internal signals (as opposed to them being inputs a s
+prescribed by the traditional factoring-out technique).
+By looking at the vicinity of a mutex place the tool
+can automatically determine the request/grant pairs of the
+corresponding mutex (let us denote them as r1/g1andr2/g2).
+During the output-persistence check, the choice between g1
+andg2(as in Fig. 1a) is not considered to be a violation.
+However, disabling of a grant by premature withdrawal of the
+corresponding request (as in Fig. 1b) will still be caught.
+The tool then needs to verify that these signals follow
+the arbitration protocol and the grants g1,g2can indeed be
+implemented by a mutex with requests r1,r2. Both, “late(a) Persistence of g1andg2is
+guaranteed by mutex.(b) Non-persistent g1because of un-
+stable r1.
+Figure 1: STGs with mutex places.
+release” (grants are mutually exclusive) and “early releas e”
+(a grant can be issued before the other grant is reset, as
+long as its request is withdrawn) versions of the arbitratio n
+protocol are allowed. (Naturally, the mutex implements the
+“late release” protocol as its grants are mutually exclusiv e;
+the “early release” protocol can be obtained by buffering
+the mutex outputs.) W ORKCRAFT veriﬁes this property by
+checking that the following constraints are satisﬁed in eve ry
+reachable state (the next-state value of a signal is denoted by
+a dash):
+r1·g2=⇒g1′r2·g1=⇒g2′
+r1=⇒g1′ r2=⇒g2′
+r2·g2=⇒g1′r1·g1=⇒g2′
+Note that value of g1’is implied by these constraints unless
+r1·r2·g2– the condition reﬂecting the ﬂexibility of choosing
+between the “early release” and “late release” protocols (a nd
+symmetrically for g2’).
+Interestingly, these constraints do not imply that the crit ical
+sections are mutually exclusive. That is, adding r1·g1·r2·g2
+to the above constraints will not lead to a contradiction,
+and will simply imply g1′·g2′and maintain the invariant
+(r1·g1)·(r2·g2)(mutual exclusion of critical sections) once
+it is satisﬁed. However, W ORKCRAFT still adds an extra
+constraint (r1·g1)·(r2·g2)to check the mutual exclusion
+at the initial state – the rationale is that the mutex cannot b e
+initialised in a state with both grants high, and the violati on
+of this constraint in the initial state is very suspicious in any
+case.
+After the STG speciﬁcation has been veriﬁed, the circuit
+is derived by automatically factoring out arbitration into the
+environment, synthesising the remaining part of the contro ller
+using P ETRIFY [5] or MPS AT[6] backends, and automatically
+adding mutexes to the result.
+
+--- Page 2 ---
+Figure 2: Top-level schematic for of extended delay control ler.
+To verify the resulting circuit with mutexes one has to be
+careful when composing it with the environment: It is possib le
+to introduce false deadlocks due to inconsistent selection of
+branches associated with the choice modelled by a mutex
+place. Hence, mutex grants have to be exposed as outputs
+before the composition – this is done automatically behind
+the scenes.
+III. C ASE STUDY
+As a case study consider a two-mode delay element whose
+top-level schematic is shown in Fig. 2. It delays the req/ack
+handshake and operates in either normal orextended mode. In
+the normal mode ackis delayed by DELAY , and in the exten-
+ded mode, which is activated once a rising transition of ext
+input is detected, this delay is extended by EXTRA_DELAY .
+This circuit is used in the asynchronous multiphase buck con -
+verter [8] where the extinput is non-persistent and therefore
+its rising edge is detected using a WAIT01 element from the
+family of asynchronous arbitration primitives [7].
+The central part of this delay element is its extended delay
+control (EDC) – its design using W ORKCRAFT is illustrated
+by the screenshot in Fig. 3. The STG speciﬁcation of the
+EDC is shown at the top of the screenshot. In the initial
+state it arbitrates between ri+andext+ . Ifri+wins then
+the asymmetric delay element on the rd/adhandshake is
+exercised. If ext+ wins then the controller continues to wait
+forri+, but exercises a delay element on re/aeinterface ﬁrst.
+Note that we rely on the mutex fairness (choice between
+rd+ andint+): after int-the transition rd+ is enabled and is
+guaranteed to ﬁre, and the timer on the rd/adinterface will
+be exercised. Hence, the delay is DELAY (if ri+wins) or
+DELAY+EXTRA_DELAY (if ext+ wins).
+In a conventional SI synthesis ﬂow the designer would
+need to manually factor out the mutex into the environment,
+explicitly inserting mutex requests as output signals and m utex
+grants as input signals, which is an error-prone process. In the
+proposed design ﬂow, however, it is sufﬁcient to tag the choi ce
+place meas a mutex place. The tool would then automatically
+identify the mutex requests ( riandext) and grants ( rdand
+int), and formally verify that these signals follow the mutex
+protocol.
+Moreover, an SI circuit with a mutex that implements this
+STG speciﬁcation is automatically derived by factoring out the
+mutex into the environment, synthesising the remaining par t
+of the speciﬁcation using the standard SI backends (P ETRIFY
+or MPS AT), and adding a mutex to the result. The circuit is
+then formally veriﬁed to be deadlock-free, conformant to th e
+environment, and output-persistent (mutex grants are trea ted
+Figure 3: Design of extended delay control in W ORKCRAFT .
+specially – they are allowed to disable each other, but there
+must be no hazards due to premature withdrawal of a request).
+IV. C ONCLUSIONS
+In this paper we presented an automated ﬂow for the design
+and veriﬁcation of SI circuits with arbitration, where a mut ex
+interface can be identiﬁed for a pair of non-persistent sign als.
+Implementability of this pair of signals by a mutex is then
+formally veriﬁed. Veriﬁcation of the resultant circuit is a lso
+automated and takes into account the non-persistent nature
+of mutex grants. The proposed ﬂow is illustrated using an
+interesting example of a two-modes delay element.
+ACKNOWLEDGEMENTS
+This research was supported by Dialog Semiconductor and
+EPSRC grant EP/L025507/1 (A4A).
+REFERENCES
+[1] D. Muller, W. Bartky: “A theory of asynchronous circuits” , Proc. Int.
+Symp. of the Theory of Switching, pp. 204–243, 1959.
+[2] D. Kinniment: “Synchronization and Arbitration in Digital Systems” ,
+Wiley Publishing, 2008.
+[3] J. Cortadella et al: “Designing asynchronous circuits from behavioural
+speciﬁcations with internal conﬂicts”, ASYNC, pp. 106–115, 1994.
+[4] T.-A. Chu: “Synthesis of self-timed VLSI circuits from graph-theoret ic
+speciﬁcations” , PhD thesis, MIT, 1987.
+[5] J. Cortadella et al: “Petrify: a tool for manipulating concurrent speciﬁca-
+tions and synthesis of asynchronous controllers” , IEICE Transactions on
+Information and Systems, vol. E80-D(3), pp. 315–325, 1997.
+[6] V . Khomenko, M. Koutny, A. Yakovlev: “Logic synthesis for asynchron-
+ous circuits based on STG unfoldings and incremental SAT” , Fundamenta
+Informaticae, vol. 70(1-2), pp. 49–73, 2006.
+[7] A. Mokhov et al: “Asynchronous Arbitration Primitives for New Gener-
+ation of Circuits and Systems” , NGCAS, 2017.
+[8] D. Sokolov et al: “Beneﬁts of asynchronous control for analog electron-
+ics: multiphase buck case study” , DATE, 2017.

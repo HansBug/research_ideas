@@ -1,0 +1,476 @@
+--- Page 1 ---
+Hierarchical State Machines
+Mihalis Yannakakis
+Bell Laboratories
+600 Mountain Avenue
+Murray Hill, NJ 07974
+Abstract. Hierarchical state machines are nite state machines whose
+states themselves can be other state machines. Hierarchy is a useful con-
+struct in many modeling formalisms and tools for software design, requi-rements and testing. We summarize recent work on hierarchical state ma-chines with or without concurrency. We discuss issues of expressivenessand succinctness, the complexity of basic operations (such as emptiness,equivalence etc.), and algorithmic problems in the analysis of hierarchicalmachines to check for their properties.
+1 Introduction
+Finite state machines constitute one of the most fundamental modeling mecha-
+nisms in Computer Science. They have been widely used to model systems in awide variety of areas, including sequential circuits, event-driven software, com-munication protocols and many others. In its most basic form, a nite statemachine consists of a directed graph whose nodes represent system states andedges correspond to system transitions. When equipped with an input (and/oroutput) alphabet, FSM’s become language recognizers dening the regular lan-guages (or transducers). A rich theory of FSM’s had been developed since the50’s regarding their expressive power, their operations and the analysis of theirproperties.
+In practice, several extensions are useful to enhance the expressive power and
+to describe more complex systems more eciently. Two popular extensions thatare fairly well understood are the addition of variables to form so-called extended
+nite state machines , and the addition of concurrency (communication) to form
+communicating nite state machines . A third useful extension that has been
+less well studied is the addition of a hierachical (nesting) capability, to formhierarchical state machines , i.e., machines whose nodes can be ordinary states
+or superstates which are FSM’s themselves. This is a very useful construct tostructure and represent large systems.
+The notion of hierarchical FSMs was popularized by the introduction of Sta-
+techarts [Har87], and exists in many related specication formalisms such as
+Modecharts [JM87] and Rsml [LHHR94]. It is a central component of va-
+rious object-oriented software development methodologies developed in recentyears, such as Omt [RBPE91], Room [SGW94], and the Unied Modeling Lan-
+guage ( Uml [BJR97]). This capability is commonly available also in commer-
+cial computer-aided software engineering tools that are coming out, such as
+J. van Leeuwen et al. (Eds.): IFIP TCS 2000, LNCS 1872, pp. 315{330, 2000.
+c/circlecopyrtSpringer-Verlag Berlin Heidelberg 2000
+
+--- Page 2 ---
+316 M. Yannakakis
+Statemate (by i-Logix), ObjecTime Developer (by ObjecTime), and Ra-
+tionalRose (by Rational) (the last two are now combined into RationalRose-
+RealTime).
+The nesting capability is useful also in formalisms and tools for the require-
+ments and testing phases of the software development cycle. On the requirements
+side, it is used to specify scenarios (or use cases [Jac92]) in a structured man-
+ner. For instance, the new ITU standard Z.120 (MSC’96) for message sequencecharts [RGG96] formalizes scenarios of distributed systems in terms of hierar-chical graphs built from basic MSC’s. The Lucent uBET toolset for behavioral
+requirements engineering uses a similar formalism and models requirements byhierarchical message sequence charts ( uBET stands for Lucent Behavioral En-
+gineering Toolset and is based on the MSC/POGA prototype tools [AHP96,HPR97]).
+On the testing side, FSMs are used often to model systems for the purpose of
+test generation, and again the nesting capability is useful to model large systems.For example, Teradyne’s commercial tool TestMaster [Apf95] is based on an
+extended hierarchical FSM model, i.e. it employs hierarchy and variables (butnot concurrency).
+In this paper we will summarize recent work on the impact of adding hierar-
+chy to FSM, when added alone or in conjunction with concurrency. Most of theresults come from the papers [AY98,AKY99,AY99] to which we refer for moredetails. In Section 2 we discuss hierarchical state machines: their expressive po-wer and succinctness as compared to ordinary FSM’s, the eect of nondetermi-nism vs. determinism in this context, the complexity of basic operations such aschecking for emptiness, universality, equivalence etc, and the model checking ofproperties on hierarchical state machines. In Section 3 we discuss the eect ofcombining concurrency with hierarchy and address similar questions. In Section4 we discuss hierarchical message sequence charts. In Section 5 we commentbrieﬂy on issues of testing, and we conclude in Section 6.
+2 Hierarchical FSMs
+There are many variants in denitions of nite state machines, depending onwhether one views them as language acceptors/generators (automata), or ma-chines that react with their environment and produce output (eg. Mealy andMoore machines, I/O automata), or logical models (Kripke structures) etc. Forconcreteness, let’s settle with the automata denition. An ordinary basic nite
+state machine Mconsists of a nite set Qof states, an initial (or entry) state
+q
+0, a set of nal (or exit states) F, a nite input alphabet , and a set Eof
+transitions, EQQ. Finite state machines are usually drawn as direc-
+ted graphs with the states as nodes and the transitions as edges labeled by theinputs. The language L(M) accepted by Mis the set of strings over that label
+paths from the initial state to a nal state.
+Hierarchical machines (HSM) are nite state machines whose states are them-
+selves other basic FSM’s or previously dened hierarchical machines. For sim-
+
+--- Page 3 ---
+Hierarchical State Machines 317
+plicity we just give the formal denition for the single entry-single exit case.
+Formally, HSM’s are dened inductively as follows. In the base case, a basicFSM is a hierarchical machine. Inductively, suppose that Mis a set of HSM’s.
+IfNis a FSM with set of states Qandis a labeling function :Q7! M that
+associates each state q2Qwith a HSM in Mthen the triple ( N;M;)i sa
+HSM.
+A hierarchical machine Hrepresents in a compact notation a corresponding
+ordinary FSM flat(H), the ﬂattened version of H. The ﬂat FSM can be con-
+structed inductively as follows. In the base case, flat(H)=H. For the inductive
+step, if H=(N;M;), then replace in the FSM Neach state qby a copy of the
+ﬂat version flat((q)) of its corresponding machine; note: if several states map
+to the same machine of Mthen we replace them by distinct copies of the ﬂat
+machines with distinct states. Transitions of Ncoming into state qare directed
+to the entry state of the copy of flat((q)) and transitions of Ncoming out of
+qare now coming out of the exit state of flat((q)). If the entry state of Nis
+q
+0and the exit state is qf, then the entry state of flat(H) is the entry state of
+flat((q0)) and the exit state of flat(H) is the exit state of flat((qf)).
+The denition of hierachical machines for the multiple entry - multiple exit
+case is similar, except that one has to specify in this case the set of entry andexit states, and to specify for every transition ( q; a; q
+0) of the top level FSM N
+in addition an associated exit state of (q) and an entry state of (q0). We omit
+here the formalization.
+An HSM Hcan be represented by a rooted DAG, whose leaves are basic
+FSM’s and each internal node uhas an associated FSM Muand a mapping u
+from the states of Muto the children of u. The size of the (representation of
+the) HSM His the sum of the sizes (numbers of states and transitions) of all
+the machines Muat the nodes of the DAG.
+Note that the same machine Mjmay be used by many other machines Mi
+and by many of their states. This reuse permits exponential succinctness ascompared to the ﬂattened machine. Consider for example the HSM depicted inFigure 1, over a unary alphabet =fag. At each level, each M
+ihas two states
+that are mapped to the machine Mi−1at the previous level. The size of the HSM
+in this example is O(n). However, the ﬂattened machine in this case is simply
+a path of length 2n−1. Thus, the machine is a counter that accepts just one
+string, the string of length 2n−1.
+2.1 Expressibility
+Hierarchical state machines are essentially pushdown machines with a pushdown
+stack that is bounded by the input. They capture of course the same languagesas ordinary FSM (regular languages), they gain only in succinctness. If a HSMHis dened by a DAG Dofrmachines fM
+ig, each with at most nstates,
+and if the nesting depth is m(i.e. the maximum length of a path in the DAG),
+then the ﬂattened FSM has at most O(nm) states: every state of flat(H) can
+be represented as a tuple ( q1;q2; :::qt),tm, of states of the given machines
+Mi, where q1is a state of the top-level machine, q2is a state of (q1), and so
+
+--- Page 4 ---
+318 M. Yannakakis
+a
+1n-1n
+Ma
+aM
+M
+Fig. 1. An exponential counter
+forth, i.e. every other state qjof the tuple is a state of the machine to which the
+previous state qj−1of the tuple is mapped. Thus, hierarchical machines can be
+translated to ordinary FSM’s at an exponential cost. This is in general inherent.
+We can consider the impact of hierarchy on the relation between determinism
+and nondeterminism. Recall that a FSM is deterministic if for every state qand
+every input symbol athere is at most one transition out of qlabeled a.W es a y
+that a HSM is deterministic if its ﬂat FSM is deterministic.
+In the case of ordinary FSM’s there is of course an exponential gap in suc-
+cinctness between deterministic and nondeterministic FSM’s. For hierarchical
+machines the gap becomes doubly exponential. That is, there are (nondeter-ministic) HSM’s of size nsuch that the smallest equivalent deterministic HSM
+has size doubly exponential in n. An example of such a family of languages is
+the set L
+nof strings wof length 2 2nsuch that there is an index ifor which
+wi=wi+2n. A nondeterministic HSM of linear size can guess i, record wi, count
+2nas in Figure 1, and check that wi=wi+2n. On the other hand, deterministic
+HSM’s need doubly exponential size for this language [AKY99].
+Of course, the gap between nondeterministic HSM’s and deterministic HMS
+or even basic FSM’s is no worse than doubly exponential: one exponential sucesto translate from HSM to nondeterministic basic FSM, and another exponentialto deterministic FSM.
+Comparing deterministic hierarchical machines with nondeterministic basic
+FSM’s, there is an exponential gap in both directions. That is, one the one hand,there is a family of languages that is accepted by linear size nondeterministic
+
+--- Page 5 ---
+Hierarchical State Machines 319
+FSM’s but needs exponential size for deterministic HSM’s; one such language is
+the set of strings wof length 2 nsuch that wi=wi+nfor some i. On the other
+hand, there is a language that can be accepted by a linear size deterministicHSM but needs exponential size for nondeterministic FSM’s; one such languageis the set of strings of the form w#w
+R, i.e. the second half wRis the reverse of
+the rst half wof the input string.
+2.2 Operations
+Usual operations of interest for a state machine and its language Lare emptiness
+(isL=;?), universality (is L=), and complementation (construct a machine
+that accepts the complement). For pairs of state machines M1,M2, operations
+of interest include intersection (is L(M1)\L(M2)=;?, and compute a machine
+that accepts the intersection), and comparison of the two machines: equivalence
+(isL(M1)=L(M2)?) and containment or inclusion (is L(M1)L(M2)?) We
+discuss the complexity of these operations for hierarchical machines.
+Emptiness. This is equivalent to a reachability problem in the ﬂattened ma-
+chine: can the initial state reach a nal state? This problem can be solved inlinear time in the size of the HSM by a simple dynamic programming search algo-rithm. In the case of ﬂat FSM’s the problem is in NL (nondeterministic logspace).In the case of hierarchical machines, the problem becomes P-complete.
+Universality. As in the case of basic FSM’s, this is a harder problem. As is
+well-known, for basic FSM’s universality is PSPACE-complete. Hierarchy costsan additional exponential in this case: universality for HSM’s is EXPSPACE-complete. Note that universality is emptiness for the complement, and emptin-ess is easy (hence complementation is hard). For deterministic HSM’s we cancomplement them easily, and hence we can solve universality in linear time.
+Intersection. For basic FSM’s intersection is a polynomial operation. This
+holds also for intersection of a HSM with a FSM: that is, given a HSM Hand
+a (basic) FSM M, we can dene their product, which is another HSM H
+0such
+thatL(H0)=L(H)\L(M). The size of H0is bounded by jHjjMj2; basically,
+the product involves at worst pairing every machine in the representation of H
+with a copy of Minitialized at each state of M. However there is no such simple
+product construction for two HSM’s: determining whether the intersection of thelanguages of two HSM’s is empty turns out to be PSPACE-complete.
+Equivalence and Inclusion. Since universality is EXPSPACE-hard, it follows
+that equivalence and containment are at least as hard. Indeed they are both inEXPSPACE, by ﬂattening and complementing one of the machines, and formingthe product with the other machine. In the case of deterministic HSM’s (forwhich universality as well as complementation is easy), inclusion turns out to bePSPACE-complete. As for equivalence of deterministic HSM’s, it can be done inPSPACE but the precise complexity is open.
+
+--- Page 6 ---
+320 M. Yannakakis
+2.3 Verication
+A hierarchical state machine His considered now as modeling a system. The
+model checking problem asks whether a given system model satises a given pro-
+perty P. The model checking problem has been studied for a variety of classes
+of properties, and there are several software tools to automatically perform theverication for nite state systems (eg. SPIN [Hol97], COSPAN [Kur94], SMV[McM93]). Typically, properties are dened either using automata, or some formof logic (linear time or branching time). Usually models are nite state struc-tures that have labelled nodes instead of edges; specically, there is a nite setof propositions, and the nodes (states) are labelled by the propositions satis-ed at the state. We dened above hierarchical machines using edge labels (toconform with language generation), but one can equally well dene them usingnode labels; there is not a signicant dierence between edge-labelled and node-labelled machines. We say that the hierarchical machine Hsatises a property
+Pifflat(H) does.
+The simplest kind of property is a state invariant, i.e., the property that
+starting from the initial state, the system stays within a specied subset ofstates. This amounts to a simple reachability problem and can be solved inlinear time in the size of the HSM. So-called ‘safety’ properties that depend onnite computations can be also reduced to a reachability problem.
+A much richer class of properties is the class of linear time properties ex-
+pressed by linear temporal logic (LTL) [Pnu77] or by Buchi automata. Theseare properties on the innite computations of the system (i.e. paths of the statemachine). The model satises a given property if all of its paths starting fromthe initial state satisfy the property. A Buchi automaton Ais like a usual nite
+string automaton (i.e. a basic FSM); the only dierence is that its language isdened to be a set of innite strings, namely the strings that label innite paths(starting from the initial state) which go innitely often through one of the ac-cepting states. We will not dene LTL here, but suce it to say that every LTLformula can be translated to an equivalent Buchi automaton Aof size O(2
+jj)
+[VW86]; and in the automata theoretic approach (and in tools like SPIN) this isthe way that LTL properties are checked, i.e. by conversion to automata. Thisdoes not hurt the complexity, because the exponential dependence on the sizeof the formula is unavoidable (but formulas are typically quite small, so this istolerable). It is more convenient to use a Buchi automaton to specify the bad
+computations, those that signify an error, rather than the correct computations.Then the model checking problem for a model Mamounts to the question of no-
+nemptiness of the intersection L(M)\L(A), where the model Mis now viewed
+as generating a set of innite strings.
+The core algorithmic problem in this case is not just reachability, but the
+following Cycle Detection problem : Given a directed graph (a basic FSM) with
+an initial node and a set of specied ‘special’ nodes, can the initial node reach acycle that contains one of the special nodes? The model checking problem for aﬂat FSM Mand a Buchi automaton Ais reduced to this cycle detection problem,
+by simply taking the product of MandAand letting the special nodes be those
+
+--- Page 7 ---
+Hierarchical State Machines 321
+that correspond to accepting nodes of A. The cycle detection problem can be
+solved in linear time, either by computing the strongly connected components
+of the graph, or by an alternative \nested depth-rst search" algorithm that isuseful for on-the-ﬂy verication [CVWY92].
+The model checking problem for hierarchical machines Hcan be similarly
+reduced to the cycle detection problem for HSM’s: As we mentioned earlier, wecan form the product of the HSM Hwith the automaton A, which is another
+HSM H
+0. Then HandAhave a nonempty intersection i flat(H0) has a reach-
+able cycle that contains a special node. Finding strong components of flat(H0)
+is not convenient (there is too many of them), but the cycle detection problemcan still be solved in linear time in the size of H
+0by suitable adaptation of the
+nested depth rst search algorithm, see [AY98]. This yields an algorithm for mo-del checking of an HSM Hwith a Buchi automaton Athat is linear in the size
+of the HSM and quadratic in the size of A(usually the system is much larger
+than the property, so the dependence on the system size is the more criticalmeasure). Thus, we can verify a herarchical machine without ﬂattening it, i.e.,there is essentially no penalty for the exponential succinctness of hierarchy inthis case.
+The other major brand of temporal logic is branching temporal logic. In the
+case of basic FSM’s, checking a model Mfor a formula in branching time logic
+CTL is easier than LTL: it can be done in time O(jMjjj), i.e. linear in both
+the size of the model and the specication. In the case of hierarchical systems,if we ﬂatten the hierarchical machine and apply the pure FSM algorithm, thecomplexity of the algorithm will be exponential in the size of the hierarchicalmodel and linear in the size of the formula jj. Typically, formulas are small
+and models are large, so this is not a good trade o. There is an alternativebetter algorithm, which makes the trade o in the other way, and has complexityexponential in the size of the formula. The dependence on the model size isaected by the number dof exit nodes allowed in the nested machines. Namely,
+the model checking problem for a HSM Hand a CTL formula can be solved
+in time O(jHj2
+jjd), and also in polynomial space. Thus, in general we can again
+avoid ﬂattening the HSM. In the single exit case, the time complexity is linearin the size of the HSM, though in the multiple exit case it grows exponentiallywith the number of exit states. These dependencies are probably inherent: In thesingle-exit case, if the formula is part of the input then the problem is PSPACE-complete, so the complexity presumably has to be exponential in either the modelsize or the formula size, and of course we are better o having the exponentialdependence on the formula rather than the model. In the multiple exit case, thereis a xed formula for which the problem is PSPACE-complete (so the model sizehas to enter exponentially somehow). We summarize in the table of Figure 2the complexity of the various analysis problems in the checking of properties forHSM’s, as compared to FSM’s.
+
+--- Page 8 ---
+322 M. Yannakakis
+Ordinary FSM’s Hierarchical FSM’s
+Reachability O(jMj) O(jMj)
+Automata-checking O(jMjjAj) O(jMjjAj2)
+Ltlmodel checking O(jMj2jj) O(jMj4jj)
+Ctl model checking O(jMjjj) O(jMj2jjd)
+Fig. 2. Summary of FSM and HSM model checking
+3 Concurrency and Hierarchy
+Aconcurrent (or communicating) hierarchical state machine , CHM, combines
+concurrency and hierarchy in an arbitrarily nested manner. We dene it formally
+here for the single entry -single exit case; the denition for the multiple entry/exitcase is similar.
+A CHM is dened again inductively. In the base case, every ordinary FSM is
+a CHM. For the induction step, a CHM His either a hierarchical combination
+of previously dened CHM’s exactly as before, or it is a concurrent (parallel)combination M
+1kM2kk Mk.
+The ﬂat basic FSM, flat(H) is dened again inductively. It is the same
+as before in the basis case and in the case of a hierarchical combination. Inthe concurrent combination, flat(H) is the product of the FSM’s flat(M
+i),
+dened as follows. Assume that flat(Mi) has set of states Qi, alphabet i,
+initial state qi
+0, nal state qi
+f, and transition relation Ei. Then the state space of
+HisQ1 Qk, the alphabet is 1[[ k, the initial state is ( q1
+0;;qk
+0),
+the nal state is ( q1
+f;;qk
+f), and the transition relation has a transition labelled
+afrom state ( u1;;uk) to state ( v1;;vk) if every component machine Mi,
+whose alphabet icontains the symbol a, has a transition from uitovilabelled
+a. The language L(H)o faC H M His the language of its corresponding FSM
+flat(H).
+A concurrent hierarchical machine Hcan be represented by a rooted DAG
+(directed acyclic graph) corresponding to the way it is built from basic FSM’s.The leaves are basic FSM’s and each internal node is either labelled by theconcurrent combinator k, or corresponds to a hierarchical combination and is
+labelled by a machine Nand a mapping from the states of Nto the children
+of the node. Since kis an associative operator, we can assume that the children
+ofknodes are not themselves knodes (otherwise we can combine them). The
+size of the CHM Mis the size of its DAG representation and all the machines in
+it. Two important parameters for a CHM is the depth mof the DAG (length of
+the longest path) and the width wwhich is the maximum number of components
+of a concurrent node of the DAG (i.e. node labelled k).
+3.1 Expressiveness
+Concurrent hierarchical state machines still dene of course only regular langu-
+ages. If a CHM Hhas width wand depth m, and every FSM in its denition
+
+--- Page 9 ---
+Hierarchical State Machines 323
+hasnstates, then flat(H) has O(nwm) states, that is, ﬂattening causes now in
+general a double exponential blow up.
+This is in general unavoidable. In fact concurrency adds two exponentials
+even compared to hierarchical state machines: There is a family of languages
+that can be recognized by linear size CHM’s but which require HSM’s (andhence also basic FSM’s) of double exponential size. Furthermore, there is a tripleexponential gap in the worst case between CHM’s and deterministic hierarchicalstate machines (and hence also deterministic FSM’s). An example of such alanguage family is L=fw
+0#w1##wkjjwij=2nfor each iandwi=wjfor
+some i; jg.
+The following gure summarizes the expressibility relationships between the
+dierent kinds of machines.
+1exp1exp2exp
+CHM1exp2exp
+1exp
+Det FSM3exp
+1expFSM Det HSMHSM
+Fig. 3. Summary of succinctness relations
+3.2 Operations
+Emptiness (Reachability) . This cannot be done eciently any more. Even for
+a simple concurrent combination (intersection) of basic deterministic FSM’s we
+know that the problem is PSPACE-complete [Koz77], and we saw in the previoussection that the same is true for the concurrent combination of just two HSM’s.Mixing concurrency with hierarchy adds another exponential: The reachability(and emptiness) problem for CHM’s is EXPSPACE-complete.
+There are two exponential contributions to this complexity, one due to con-
+currency and one due to hierarchy. For certain classes of machines, we can avoidone of the exponentials, reducing the complexity to ‘only’ PSPACE. For exam-ple, one case is when all the concurrency is at the top. That is, we have a setof concurrent interacting components, where each component is represented bya hierarchical state machine. Reachability is in this case in PSPACE (and is ofcourse PSPACE-complete). Another case is when the hierarchical constructionat a level does not expose the internals of the submachines to higher levels.Note that in the concurrent composition the alphabets of the components arecritical. Informally, call a CHM H\well-structured" if the hierarchical nesting
+always hides the alphabet of the nested machines as far as further concurrent
+
+--- Page 10 ---
+324 M. Yannakakis
+Emptiness Intersection Universality Inclusion Equivalence
+FSM NL NL Pspace Pspace Pspace
+Det FSM NL NL NL NL NL
+HSM P Pspace Expspace Expspace Expspace
+Det HSM P Pspace P Pspace 2Pspace
+CHM Expspace Expspace 2Expspace 2Expspace 2Expspace
+Fig. 4. Summary of complexity of operations
+combinations with other machines are concerned, that is, in every concurrent
+combination M1k  k Mtin the denition of H(where Miare without loss
+of generality hierachical nodes), only the alphabets of the top level componentsM
+ienter in the composition; i.e., the alphabet of the nested submachines are
+hidden. Then reachability can be solved in PSPACE and in time O(knw), where
+kis the number of operators (internal nodes of the DAG), wis the width, and
+nis the maximum number of nodes of a FSM in the denition of H.
+Universality. The universality problem turns out to be again harder, and is
+as bad as it can get: It is complete for double exponential space.
+Intersection. The intersection of two CHM’s H1;H2is itself another CHM
+H1kH2. Emptiness can be done in EXPSPACE (and is complete).
+Equivalence, Inclusion. Since universality is hard, the same is true of equi-
+valence and inclusion, which are also complete for double exponential space.
+Finally, model checking for a CHM and a Buchi automaton is, as in the case
+of simple reachability, complete for exponential space (with respect to the size ofthe model), i.e., if we nest arbitrarily concurrency and hierarchy we have to payin general for both the concurrency and the hierarchy. It is worth noting howe-ver, that these lower bound constructions that give this pessimistic complexity,take advantage of the fact that one can dene succinctly (because of the reuse)systems with exponentially many parallel components; this may be unrealisticfor signicant sizes, and hence the lower bounds may be unduly pessimistic.
+The table of Figure 4 summarizes the complexity results of basic operations
+for the dierent kinds of machines.
+4 Hierarchical Message Sequence Charts
+These represent the extreme case where all the concurrency is at the bottomof the hierarchy. A basic message sequence chart (MSC) represents the partial
+order of the message exchanges in a concurrent execution of a set of processes,see Figure 5. The vertical lines represent the processes, time proceeds downvertically for each process, and the arrows represent the messages. Send andreceive events are labelled from some alphabet (for example, the messages
+sent or received, or any other labels). An MSC Mrepresents a set of linear
+executions, namely all the linearizations of the partial order, and thus it has acorresponding nite language L(M), the strings that label these linearizations.
+
+--- Page 11 ---
+Hierarchical State Machines 325
+b aR Q P
+cb
+c ddc
+Fig. 5. A basic message sequence chart
+Using simple MSC’s as basic building blocks, one can combine them in a
+hierarchical fashion, the same way as with hierarchical state machines. We give
+for simplicity the denition for the single entry - single exit case (which canbe extended to the multiple entries and exits). An MSC-graph is a directed
+graph, with a distinguished initial (entry) node and a nal (exit) node, alongwith a mapping that associates with every node a basic MSC (labelled from
+an alphabet ). More generally, we can dene inductively a hierarchical MSC
+graph (HMSC) to be a hierarchical combination of previously dened HMSC’s.An HMSC can be represented by a rooted DAG, where each leaf is labelled by abasic MSC’s, and each internal node uis labelled by a graph G
+uand a mapping
+ufrom the nodes of Guto the children of u. A hierachical MSC Hcan be of
+course ﬂattened to a simple MSC-graph flat(H) (at an exponential blow up),
+the same way that a hierarchical machine is ﬂattened to an FSM.
+The executions of a system modeled by an MSC-graph (or HMSC) correspond
+to the paths of the graph starting at the initial node. There are two interpreta-tions for the concatenation of the MSC’s of the dierent nodes along the path.In the synchronous interpretation, the concatenation of two nodes u; vis viewed
+as consisting of executing all actions of the MSC of ufollowed by the actions of
+the MSC of v; that is, when executing a path, every node represents a block of
+activity that completes before going on to the next block. In the asynchronousinterpretation, the MSC’s of the nodes along the path are pasted together, sepa-rately process by process, i.e. by identifying for each process the end of its linein one node with the beginning of its line in the next node, thus forming a longMSC spanning all the actions of all the nodes. The synchronous concatenation isprobably closer to the way system engineers and designers think when they drawHMSC’s partitioning the activities into blocks. The asynchronous interpretationis however closer to what one would get if one was to implement directly theHMSC, i.e. without any other coordination or constraints than what is depictedexplicitly in the HMSC.
+
+--- Page 12 ---
+326 M. Yannakakis
+For each of the interpretations, we can dene the language of an HMSC, by
+considering all the paths starting at the initial node and taking the labelings
+of all the corresponding linear executions. (We can either dene a language ofnite strings, if we require that the paths terminate at a nal node, or dene alanguage of potentially innite strings).
+In the synchronous interpretation, the language of an HMSC His regular.
+A hierarchical state machine H
+0can be constructed from Hby replacing in the
+representation of the HMSC each basic MSC (ie. leaf of the DAG) by a FSMthat recognizes the language of the MSC. Then L(H)=L(H
+0). This is a very
+benign and convenient case, because we can use directly the results for hierarchi-cal state machines; it means in particular that the graphs and the hierarchy ofthe HMSC’s do not add anything to the complexity of problems like reachability,model checking etc. beyond what’s in the simple basic MSC’s. If an individualbasic MSC is a ‘large’ one, then the translation to an automaton, as well asanswering basic questions about the MSC can be expensive because of the con-currency. Namely, if an MSC Mhaskprocesses with levents in each process,
+then the equivalent FSM can have l
+kstates, and in fact answering a simple que-
+stion such as, ‘does a given string xbelong to L(M)’ is NP-complete. However,
+in many cases in hierarchical MSC’s most of the size of the HMSC is in the usecase graph; the individual MSC’s are not large and the number of processes isoften small (for example in telephony, processes correspond to entities such asoriginating and terminating switches and users).
+The hierarchy does not introduce any additional complications beyond the
+basic MSC’s under the synchronous interpretation. Thus, for example reachabi-lity, or membership, or the model checking problem for a hierarchical HMSC H
+of size nand a Buchi automaton Aof size ais still \only" NP-complete, and can
+be solved in time O(a
+2nlk), where kandlare as above the number of processes
+and number of events per process in a basic MSC. Thus, hierarchical MSC’s canbe analyzed under the synchronous interpretation without paying a penalty forthe hierarchy, and if the basic MSC’s are small or do not have too much con-currency (which is often the case) then the complexity is low. Furthermore, forproperties that are linearization-independent (i.e., if the property is such that onelinearization of an ordinary MSC satises the property i any other one does),then the HMSC Hcan be checked in linear time in its size: substitute each basic
+MSC in the denition of Hby an automaton (just a path) that accepts just one
+linearization (instead of all of them); the resulting hierarchical machine satisesthe property i the given hierarchical MSC does (for linearization-independentproperties, there is no dierence between synchronous and asynchronous inter-pretation as far as satisfaction of the properties is concerned, so this holds alsofor the asynchronous case).
+In the asynchronous interpretation, the language of an HMSC is in general
+not regular, and in fact model checking an MSC-graph for a property given by aBuchi automaton is undecidable. There is a syntactic condition that ensures thatthe language is regular, and which leads to decidability. Given a set Sof basic
+MSC’s, we can construct a corresponding communication graph CG(S) among
+
+--- Page 13 ---
+Hierarchical State Machines 327
+the processes: this is a directed graph with the processes as nodes and with an
+arcPi!Pjif process Pisends a message to process Pjin some MSC of S. Given
+an MSC-graph G(respectively, a hierarchical HMCS H) we say that it is boun-
+dedif for every cycle KofG(resp. of flat(H)) that is reachable from the initial
+state, the corresponding communication graph CG(K) consists of one strongly
+connected component and possibly some isolated nodes. If an HMCS is boundedthen its language is regular [AY99]. Conversely, it is shown in [HMNT00] thatevery regular MSC language that is denable by an MSG graph (or equivalently,is nitely generated) then it can be dened by a bounded MSC graph. Boun-dedness of an HMSC can be determined without ﬂattening the hierarchy in timeO(nl2
+k) where nis the size of the HMSC, kis the number of processes and lis the
+number of events per process in a basic MSC (this mild exponential dependenceonkis unavoidable, as the boundedness problem is coNP-complete). We can
+analyze algorithmically bounded HMSC’s by constructing an equivalent FSM.The complexity is higher in this case: model checking a Buchi automaton pro-perty is PSPACE-complete for bounded MSC graphs and EXPSPACE-completefor HMSC’s (the problem is hard even for a xed property, a xed number ofprocesses k, and xed number of events lper basic MSC).
+5 Testing
+In testing, we have a design model M(eg., a nite state machine) and the
+actual system S(the implementation under test) and we wish to generate a
+suitable set of test cases based on the model, which will be applied to the systemSto test its correctness, i.e., whether it conforms with the model. There is
+extensive theoretical and practical work on test generation for FSM’s, see forinstance [LY96] for a survey. There is a variety of testing criteria that can beused depending on the extent of testing that can be aorded; it can range fromchecking sequences that provide certain guarrantees on the relation between M
+andS(usually at a rather high cost), to a more commonly applied simpler set
+of coverage criteria, such as covering all the states and transitions of the model.
+Suppose that we have a hierarchical nite state machine model and let’s
+consider the most common criterion of ‘transition coverage’, i.e. nding a set oftest sequences (paths from the initial state) that cover all the transitions. Thereare two interpretations of this requirement: in the rst interpretation we seek tocover all transitions of Mand its nested submachines in all possible contexts, i.e.
+if a submachine is reused several times, we want to cover all its transitions in allthe uses; this is equivalent to covering all the transitions of the ﬂattened machineflat(M). A covering test set can be computed in time polynomial in the size of
+the ﬂat FSM using ﬂow techniques to minimize the number of test sequencesand the total length of the tests. Such an algorithm has been implemented inLucent’s uBET toolset; after ﬂattening the hierarchical MSC graph, an optimaltest set is generated, and for each test path, the basic MSC’s of the nodes alongthe path are combined to form a test scenario in the form of an MSC.
+
+--- Page 14 ---
+328 M. Yannakakis
+An alternative (and more economical) interpretation of the transition cover-
+age requirement is to cover each transition of the hierarchical state machine and
+each nested submachine at least once overall, i.e., if a submachine is used severaltimes, we only need to cover each transition in only one occurrence (and dierenttransitions could be covered in dierent copies). One justication for this couldbe for example if the same implementation of the submachine is used in thedierent copies, in which case testing a transition in one instance suggests thatit will likely work properly in the other instances as well (although that is notnecessarily guarranteed). Of course, the number of tests needed under this wea-ker requirement is generally much smaller than the full coverage requirement;for example, the number of test cases needed is certainly bounded by the sizeof the hierarchical machine, as opposed to the potentially exponentially largersize of the ﬂattened machine. Computing an optimal (minimum cardinality) testset for the weaker coverage is much harder than for simple FSM’s. For example,even in the 2-level case the problem is at least as hard as Set Cover (hence itis hard to compute or to approximate the smallest test set within a constantfactor).
+Generally, very little systematic work has been done on test generation for
+hierarchical state machines.
+6 Conclusions
+Hierarchy is a useful construct in enhancing the expressive power of nite statemachines and facilitating the modeling of large systems. We summarized recentwork on the theory of hierarchical nite state machines and related specicationmechanisms (HMSC’s). We discussed the eect of concurrency and nondetermi-nism, the classication of their expressive power, and the complexity of variousalgorithmic problems. The picture that emerged is rather comprehensive. Onespecic problem that remains open is the equivalence of deterministic HSM’s.More broadly, we did not touch on the interaction with variables (extendedHSM’s). Also, as we mentioned more work remains to be done on the testing ofhierarchical FSM’s.
+Another issue concerns design problems, such as the structuring and modu-
+larization of the behavioral aspects of systems, to form a suitable hierarchicalmodel. For example, suppose that we have a legacy system which we want tocapture formally in a requirement model like uBET. We have available or cangenerate a large number of executions of the system to obtain a library of MSCscenarios. How do we go from this collection of MSC’s to a more higher level,structured view of the system, in the form of a hierarchical use case graph builtfrom basic MSC’s?
+Similarly, suppose that we have a test model of a system in the form of a
+large FSM; for example, we produced recently automatically such a model for alarge Lucent enterprise switch from the test platform in use for the testing of theswitch [EY00]; the FSM model has hundreds of thousands of states. The modelcan be used for targeted test generation to meet a variety of criteria. However, the
+
+--- Page 15 ---
+Hierarchical State Machines 329
+machine is obviously too large for a person to look at, or to manipulate directly,
+for example to modify as the system evolves, to add new features etc. Canwe structure such an FSM and obtain an equivalent (hopefully much smaller)hierarchical FSM? There is an elegant classical decomposition theory of FSM’s[HS66] which may be useful in this context.
+References
+[AHP96] R. Alur, G.J. Holzmann, and D. Peled. An analyzer for message sequence
+charts. Software Concepts and Tools , 17(2):70{77, 1996.
+[AKY99] R. Alur, S. Kannan, and M. Yannakakis. Communicating hierarchical state
+machines. Proc. 26th Intl. Coll. on Automata, Languages and Programming , 1999.
+[AY98] R. Alur, and M. Yannakakis. Model checking of hierarchical state machines.
+InProc. Sixth Symp. on Foundations of Software Engineering , pp. 175{188. 1998.
+[AY99] R. Alur, and M. Yannakakis. Model checking of message sequence charts. In
+Proc. 10th CONCUR , Springer Verlag, 1999.
+[Apf95] L. Apfelbaum. Automated functional test genera-
+tion. In Proc. IEEE Autotestcon Conference , 1995. See also,
+www.teradyne.com/prods/sst/product center/t main.html.
+[BVW94] O. Bernholtz, M.Y. Vardi, and P. Wolper. An automata-theoretic approach
+to branching-time model checking. In Computer Aided Verication, Proc. 6th Int.
+Conference , LNCS 818, pages 142{155, 1994.
+[BJR97] G. Booch, I. Jacobson, and J. Rumbaugh. Unied Modeling Language User
+Guide. Addison Wesley, 1997.
+[BEM97] A. Bouajjani, J. Esparza, and O. Maler. Reachability analysis of pushdown
+automata: Application to model checking. Proc. CONCUR’97 , LNCS 1243, 1997.
+[BS92] O. Burkart and B. Steen. Model checking for context-free processes. Proc.
+CONCUR’92 , LNCS 630, pp. 123-137, 1992.
+[CE81] E.M. Clarke and E.A. Emerson. Design and synthesis of synchronization skele-
+tons using branching time temporal logic. In Proc. Workshop on Logic of Programs ,
+LNCS 131, pages 52{71. Springer-Verlag, 1981.
+[CVWY92] C. Courcoubetis, M.Y. Vardi, P. Wolper, and M. Yannakakis. Memory
+ecient algorithms for the verication of temporal properties. Formal Methods in
+System Design , 1:275{288, 1992.
+[DH94] D. Drusinsky and D. Harel. On the power of bounded concurrency I: nite
+automata. JACM 41(3), 1994.
+[EY00] K. Etessami, and M. Yannakakis. From rule-based to automata-based testing.
+submitted, 2000.
+[Har87] D. Harel. Statecharts: A visual formalism for complex systems. Science of
+Computer Programming , 8:231{274, 1987.
+[HMNT00] J. G. Henriksen, M. Mukund, K. Narayan Kumar, P. S. Thiagarajan. On
+message sequence graphs and nitely generated regular MSC languages. 27th Intl.
+Coll. on Automata, Languages and Programming , 2000.
+[Hol97] G.J. Holzmann. The model checker SPIN. IEEE Trans. on Software Enginee-
+ring, 23(5):279{295, 1997.
+[HPR97] G.J. Holzmann, D. A. Peled, M. H. Redberg. Design tools for requirements
+engineering. Bell Labs Technical Journal , 2(1):86{95, 1997.
+[HS66] J. Hartmanis and R. E. Stearns. Algebraic Structure Theory of Sequential
+Machines , Prentice-Hall, 1966.
+
+--- Page 16 ---
+330 M. Yannakakis
+[HU79] J. E. Hopcroft and J. D. Ullman. Introduction to automata theory, languages
+and computation . Addison-Wesley, 1979.
+[Jac92] I. Jacobson. Object-oriented software engineering: a use case driven approach .
+Addison-Wesley, 1992.
+[JM87] F. Jahanian and A.K. Mok. A graph-theoretic approach for timing analysis
+and its implementation. IEEE Trans. on Computers , C-36(8):961{975, 1987.
+[Koz77] D. Kozen. Lower bounds for natural proof systems. Proc. 18th Annual IEEE
+Symp. on Foundations of Computer Science , pp. 254-266, 1977.
+[Kur94] R.P. Kurshan. Computer-aided verication of coordinating p rocesses: the
+automata-theoretic approach . Princeton University Press, 1994.
+[LHHR94] N.G. Leveson, M. Heimdahl, H. Hildreth, and J.D. Reese. Requirements
+specication for process control systems. IEEE Trans. on Software Engineering ,
+20(9), 1994.
+[LY96] D. Lee and M. Yannakakis. Principles and Methods of Testing Finite State
+Machine s - A Survey. Procee dings of the IEEE , 84 (8), pp. 1090-1126, 1996.
+[McM93] K. McMillan. Symbolic model checking: An approach to the sate explosion
+problem. Kluwer Academic, 1993.
+[MSC96] ITU-T Recommendation Z.120. Message Sequence Chart (MSC) . 1996.
+[Pnu77] A. Pnueli. The temporal logic of programs. In Proc. of the 18th IEEE Sym-
+posium on Foundations of Computer Science , pages 46{77, 1977.
+[QS82] J.P. Queille and J. Sifakis. Specication and verication of concurrent programs
+in CESAR. Proc. of the 5th Intl. Symp. on Programming , LNCS 137, pp. 195{220,
+1982.
+[RBPE91] J. Rumbaugh, M. Blaha, W. Premerlani, F. Eddy, W. Lorensen. Object-
+oriented modeling and design . Prentice-Hall, 1991.
+[RGG96] E. Rudolph, J. Grabowski, P. Graubmann. Tutorial on Message Sequence
+Charts (MSC’96). FORTE/PSTV’96 , 1996.
+[SGW94] B. Selic, G. Gullekson, and P. T. Ward. Real-time object oriented modeling
+and design . J. Wiley, 1994.
+[VW86] M.Y. Vardi and P. Wolper. An automata-theoretic approach to automatic
+program verication. Proc. of the First IEEE Symp. on Logic in Computer Science ,
+pp. 332{344, 1986.

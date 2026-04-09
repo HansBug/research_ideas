@@ -1,0 +1,844 @@
+--- Page 1 ---
+Revisiting Local Time Semantics for Networks of
+Timed Automata
+R. Govind
+Chennai Mathematical Institute, India
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR 5800, F-33400, Talence, France
+govindr@cmi.ac.in
+Frédéric Herbreteau
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR 5800, F-33400, Talence, France
+fh@labri.fr
+B. Srivathsan
+Chennai Mathematical Institute, India
+sri@cmi.ac.in
+Igor Walukiewicz
+Univ. Bordeaux, CNRS, Bordeaux INP, LaBRI, UMR 5800, F-33400, Talence, France
+igw@labri.fr
+Abstract
+We investigate a zone based approach for the reachability problem in timed automata. The challenge
+is to alleviate the size explosion of the search space when considering networks of timed automata
+working in parallel. In the timed setting this explosion is particularly visible as even diﬀerent
+interleavings of local actions of processes may lead to diﬀerent zones. Salah et al.in 2006 have
+shown that the union of all these diﬀerent zones is also a zone. This observation was used in an
+algorithm which from time to time detects and aggregates these zones into a single zone.
+We show that such aggregated zones can be calculated more eﬃciently using the local time
+semantics and the related notion of local zones proposed by Bengtsson et al.in 1998. Next, we point
+out a ﬂaw in the existing method to ensure termination of the local zone graph computation. We ﬁx
+this with a new algorithm that builds the local zone graph and uses abstraction techniques over
+(standard) zones for termination. We evaluate our algorithm on standard examples. On various
+examples, we observe an order of magnitude decrease in the search space. On the other examples,
+the algorithm performs like the standard zone algorithm.
+2012 ACM Subject Classiﬁcation Theory of computation →Veriﬁcation by model checking
+Keywords and phrases Timed automata, veriﬁcation, local-time semantics, abstraction
+Digital Object Identiﬁer 10.4230/LIPIcs.CONCUR.2019.16
+Related Version A full version of this paper is available at [ 10],http://arxiv.org/abs/1907.02296 .
+Funding Work supported by UMI 2000 ReLaX, ANR project TickTac, and project IoTTTA –
+CEFIPRA Indo-French program in ICST – DST/CNRS ref. 2016-01. Author B. Srivathsan is
+partially funded by grants from Infosys Foundation, India and Tata Consultancy Services, India.
+1 Introduction
+Timed automata [ 1] are a popular model for real-time systems. They extend ﬁnite state
+automata with real valued variables called clocks. Constraints on clock values can be used as
+guards for transitions, and clocks can be reset to zero during transitions. Often, it is more
+natural to use a network of timed automata which operate concurrently and synchronize on
+joint actions. We study the reachability problem for networks of timed automata: given a
+state of the timed automaton network, is there a run from the initial state to the given state.
+©R. Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz;
+licensed under Creative Commons License CC-BY
+30th International Conference on Concurrency Theory (CONCUR 2019).
+Editors: Wan Fokkink and Rob van Glabbeek; Article No.16; pp.16:1–16:15
+Leibniz International Proceedings in Informatics
+Schloss Dagstuhl – Leibniz-Zentrum für Informatik, Dagstuhl Publishing, Germany
+
+--- Page 2 ---
+16:2 Revisiting Local Time Semantics for Networks of Timed Automata
+p0
+p1q0
+q1a
+{x}b
+{y}
+A1 A2t≥0
+/tildewidex=/tildewidey= 0
+t≥/tildewidex
+/tildewidex≥/tildewidey= 0t≥/tildewidey
+/tildewidey≥/tildewidex= 0
+t≥/tildewidey
+/tildewidey≥/tildewidex≥0t≥/tildewidex
+/tildewidex≥/tildewidey≥0a b
+b at1≥/tildewidex= 0
+t2≥/tildewidey= 0
+t1≥/tildewidex≥0
+t2≥/tildewidey= 0t1≥/tildewidex= 0
+t2≥/tildewidey≥0
+t1≥/tildewidex≥0
+t2≥/tildewidey≥0a b
+b a
+Network /angbracketleftA1, A2/angbracketright Global zone graph Local zone graph
+Figure 1 Illustration of commutativity in the local zone graph.
+A widely used technique to solve the reachability problem constructs a zone graph [7]
+whose nodes are (state, zone) pairs consisting of a state of the automaton and a zone
+representing a set of clock valuations [ 8]. This graph may not be ﬁnite, so in order to
+guarantee termination of an exploration algorithm, various sound and complete abstraction
+techniques are used [7, 2, 12, 9].
+Dealing with automata operating in parallel poses the usual state-space explosion problem
+arising due to diﬀerent interleavings. Consider an example of a network with two processes
+in Figure 1. Actions aandbare local to each process. Variables x,yare clocks and{x}
+denotes that clock xis reset in transition a. The (global) zone graph maintains the set of
+conﬁgurations reached after each sequence of actions. Although aandbare local actions,
+there is an intrinsic dependence between the two processes happening due to time. Hence,
+the zone reached after executing sequence abcontains conﬁgurations where xis reset before
+yand the zone after bacontains conﬁgurations where yis reset before x. So the sequences
+abandbalead to diﬀerent zones. The number of diﬀerent interleavings of sequences of local
+actions increases exponentially when their length grows, or when more processes get involved.
+Every interleaving can potentially lead to a diﬀerent zone.
+Salah et al. [ 17] have shown a surprising property that the unionof all zones reached
+by the interleavings of a sequence of actions is also a zone. We call it an aggregated zone .
+Their argument is based on the fact that for a given sequence one can write a zone-like
+constraint deﬁning all the runs on the interleavings of the sequence. Then the aggregated
+zone is obtained simply by projecting this big constraint on relevant components. This
+approach requires to work with sets of constraints whose size grows with the length of a
+sequence. This is both ineﬃcient and limited to ﬁnite sequences. They use this observation
+in an algorithm where, when all the interleavings of a sequence σhave been explored, the
+resulting zones are aggregated to a single zone and further exploration is restricted to this
+aggregated zone. This requires detecting from time to time whether aggregation can happen.
+This is an obstacle in using aggregated zones in eﬃcient reachability-checking algorithms.
+Another limitation of this approach is that it works only for acyclic automata.
+Another approach by Bengtsson et al. [ 4] involves making time local to each process. This
+local time approach is based on a very elegant idea: make time in every process progress
+independently, and synchronize local times of processes when they need to perform a common
+action. In consequence, the semantics has the desired property: two actions whose process
+domains are disjoint are commutative. In the example above, depending on the local time in
+processesA1andA2, the sequence abmay result, on a global time scale, in aoccurring before
+b, as well as boccurring before a. As a result, the set of valuations reached after abdoes not
+remember the order in which aandboccurred. Thus, sequences abandbalead to the same
+set of conﬁgurations: those obtained after doing aandbconcurrently. Similar to standard
+zones, we now have local zones and a local zone graph having (state, local zone) pairs. Due
+
+--- Page 3 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:3
+to the above argument, the local zone graph has a nice property – if a run σfrom an initial
+zone reaches a local zone, then all the runs equivalent to σlead to the same local zone.
+Local zone graphs are therefore ideal for handling interleavings. However, substantially more
+involved abstraction techniques are needed for local zones to make the local zone graph ﬁnite.
+Asubsumption relation between local zones was deﬁned in [ 4] but no algorithm was proposed
+and there was no eﬀective way to use local time semantics. Later Minea [ 15] proposed a
+widening operator on local zones to construct ﬁnite local zone graphs.
+Summary of results in the paper:
+We show that the aggregated zone of interleavings of σin the standard zone graph is
+obtained by synchronizing valuations in the local zone obtained after σ(Theorem 18).
+Hence computing the local zone graph gives a more direct and eﬃcient algorithm than
+Salah et al. to compute aggregated zones. Moreover, this algorithm is not restricted to
+acyclic timed automata.
+We point out a ﬂaw in the abstraction procedure of Minea to get a ﬁnite local zone graph
+(Section 5).
+We propose a diﬀerent algorithm to get a ﬁnite local zone graph. This gives a new
+reachability algorithm for networks of timed automata, which works with local zones
+but uses subsumption on standard zones (Deﬁnition 19 and Theorem 20). Instead
+of subsumptions between local zones, we use subsumptions between the synchronized
+valuationsinsidetheselocalzones. Thishelpsustoexploitthe(well-studied)subsumptions
+over standard zones [ 7,2,12,9]. Moreover, this subsumption is much more aggressive
+than the standard one since, thanks to local-time semantics, the (aggregated) zone used
+in the subsumption represents all the valuations reachable not only by the execution that
+we are exploring but also by all the executions equivalent to it.
+We report on experiments performed with a prototype implementation of the algorithm
+(Table 1). The algorithm performs surprisingly well on some examples, and it is never
+worse than the standard zone graph algorithm.
+Related work. The basis of this work is local-time semantics and local zones developed by
+Bengtsson et. al. [ 4]. The authors have left open how to use this semantics to eﬀectively
+compute the local zone graph since no eﬃcient procedure was provided to ensure its ﬁniteness.
+To that purpose, Minea [ 16,15] has proposed a subsumption operation on local zones, and
+an algorithm using this operation. Unfortunately, as we exhibit here, the algorithm has a
+ﬂaw that is not evident to repair. Lugiez et. al. [ 14] also use local time but their method is
+diﬀerent. They use constraints to check if local clocks of an execution can be synchronized
+suﬃciently to obtain a standard run.
+Aggregated zones are crucial to obtain an eﬃcient veriﬁcation procedure for networks of
+timed automata. Coming to the same state with diﬀerent zones inﬂicts a huge blowup in the
+zone graph, since the same paths are explored independently from each of these zones. This
+has also been observed in the context of multi-threaded program veriﬁcation in [ 18]. Solving
+this problem in the context of program analysis requires to over approximate the aggregated
+state. Fortunately, in the context of timed automata, the result of aggregating these zones in
+still a zone [ 17]. Eﬃcient computation of aggregated zones is thus an important advance in
+timed automata veriﬁcation as demonstrated by our experimental results in Section 6. A full
+version of this paper is available at [10].
+CONCUR 2019
+
+--- Page 4 ---
+16:4 Revisiting Local Time Semantics for Networks of Timed Automata
+2 Networks of timed automata
+We start by deﬁning networks of timed automata and two semantics for them: a global-time
+semantics (the usual one) and a local-time semantics (introduced in [ 4]). Then, we recall the
+fact that they are equivalent, and state some interesting properties of local-time semantics
+w.r.t. concurrency that were observed in [ 4]. Let Ndenote the set of natural numbers and
+R≥0the set of non-negative reals. Let Xbe a ﬁnite set of variables called clocks. Letφ(X)
+denote a set of clock constraints generated by the following grammar: φ:=x∼c|φ∧φ
+wherex∈X,c∈N, and∼∈{<,≤,=,≥,>}.
+IDeﬁnition 1 (Network of timed automata) .A network of timed automata with kprocesses,
+is ak-tuple of timed automata A1,...,Ak. Each process Ap=/angbracketleftQp,Σp,Xp,qinit
+p,Tp/angbracketrighthas a
+ﬁnite set of states Qp, a ﬁnite alphabet of actions Σp, a ﬁnite set of clocks Xp, an initial
+stateqinit
+p, and transitions Tp⊆Σp×Qp×φ(Xp)×2Xp×Qp. We require that the sets of
+states, and the sets of clocks are pairwise disjoint: Qp1∩Qp2=∅, andXp1∩Xp2=∅for
+p1/negationslash=p2. We write Procfor the set of all processes.
+A network is a parallel composition of timed automata. Its semantics is that of the timed
+automaton obtained as the “synchronized product” of the processes. For an action b, a
+b-transition of a process pis an element of Tpwithbin the ﬁrst component. Synchronization
+happens on two levels: (i) via time that advances the same way in all the processes, and (ii)
+via common actions, for example if b∈Σ1∩Σ2, then processes 1and2need to synchronize
+by doing a b-transition. We deﬁne the domain of an action b:dom(b) ={p:b∈Σp}as the
+set of processes that must synchronize to do b. We will use some abbreviations: Q= Πk
+p=1Qp,
+Σ =/uniontextk
+p=1ΣpandX=/uniontextk
+p=1Xp.
+The semantics of a network is governed by the value of clocks at each instant. We choose
+to represent these values using oﬀsets as this allows a uniform presentation of the global-time
+semantics below and the local-time semantics in Section 2.1. For every clock x, we introduce
+an oﬀset variable /tildewidex. The value of /tildewidexis the time-stamp at which xwas last reset. In addition,
+we consider a variable twhich tracks the global time: essentially tis a clock that is never
+reset. We now make this notion precise. Let /tildewideXp={/tildewidex|x∈Xp}and/tildewideX=/uniontextk
+p=1/tildewideXp. Aglobal
+valuationvis a function v:/tildewideX∪{t}/mapsto→R≥0such thatv(t)≥v(/tildewidex)for all variables /tildewidex. In this
+representation, the value of clock xcorresponds to v(t)−v(/tildewidex), denotedv(x)1.
+Recall that oﬀset variable /tildewidexstores the last time-stamp at which clock xhas been reset.
+Hence, a delay in oﬀset representation increases the value of reference clock tand leaves oﬀset
+variables /tildewidexunchanged. Formally: for δ∈R≥0, we denote by v+δthe valuation deﬁned by:
+(v+δ)(t) =v(t) +δand(v+δ)(/tildewidex) =v(/tildewidex)for all/tildewidex. Similarly, resetting the clocks in R⊆X,
+yields a global valuation [R]vdeﬁned by: ([R]v)(t) =v(t), and ([R]v)(/tildewidex)isv(t)ifx∈R, and
+v(/tildewidex)otherwise. Given a global valuation vand a clock constraint g, we writev|=gif every
+constraint in gholds after replacing xwith its value v(x) =v(t)−v(/tildewidex).
+A conﬁguration of the network is a pair (q,v)whereq∈Qis a global state, and vis a
+global valuation. We will write q(p)to refer to the p-th component of the state q.
+IDeﬁnition 2 (Global-time semantics) .The semantics of a network Nis given by a transition
+system whose states are conﬁgurations (q,v). The initial conﬁguration is (qinit,vinit)where
+qinit(p) =qinit
+pis the tuple of initial states, and vinit(y) = 0fory∈/tildewideX∪{t}.
+1Usually, semantics of timed automata is described using valuations of the form v. Here, we have chosen
+vwhich uses oﬀsets since it extends naturally to the local-time setting. Translations between these two
+kinds of valuations is straightforward, as shown.
+
+--- Page 5 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:5
+There are two kinds of transitions, which we call steps: global delay, and action steps. A
+global delay by the amount δ∈R≥0gives a step (q,v)δ= =⇒st(q,v+δ). Anaction step on
+actionbgives (q,v)b= =⇒st(q/prime,v/prime)if there is a set of b-transitions{(qp,gp,Rp,q/prime
+p)}p∈dom(b)of
+the respective processes such that:
+processes from dom(b)change states: qp=q(p),q/prime
+p=q/prime(p), forp∈dom(b), and
+q(p) =q/prime(p)forp/negationslash∈dom(b);
+all the guards are satisﬁed: vgp, forp∈dom(b);
+all resets are performed: v/prime= [/uniontext
+p∈dom(b)Rp]v;
+Arun of an automaton from a conﬁguration (q0,v0)is a sequence of steps starting in
+(q0,v0). For a sequence u=b1...bnof actions, we write (q0,v0)u= =⇒(qn,v/prime
+n)if there is a run
+(q0,v0)δ0= =⇒st(q0,v/prime
+0)b1= =⇒st(q1,v1)δ1= =⇒st(q1,v/prime
+1)...bn= =⇒st(qn,vn)δn= =⇒st(qn,v/prime
+n)
+for some delays δ0,...,δn∈R≥0.
+IDeﬁnition 3 (Reachability problem) .Thereachability problem is to decide, given a network
+Nand a state q, whether there is a run reaching q; or in other words, whether there exists a
+sequence of transitions usuch that (qinit,vinit)u= =⇒(q,v)for some valuation v.
+The reachability problem for networks of timed automata is Pspace-complete [1].
+2.1 Local-time semantics
+The deﬁnition of a network of automata suggests an independence relation between actions:
+a pair of actions with disjoint domains (i.e. involving distinct processes) should commute.
+We say that two sequences of actions are equivalent , writtenu∼wif one can be obtained
+from the other by repeatedly permuting adjacent actions with disjoint domains.
+ILemma 4. For two equivalent sequences u∼w: if there are two runs (q,v)u= =⇒(qu,vu),
+and(q,v)w= =⇒(qw,vw)thenqu=qw.
+Observe that in the above lemma we cannot assert that vu=vw. Even further, the
+existence of (q,v)u= =⇒(qu,vu)does not imply that a run from (q,v)onwis feasible. This
+happens due to global time delays, i.e., delays that involve all the processes. For example,
+consider actions aandbon disjoint processes with ahaving guard x≤1andbhaving guard
+y≥2. Then from the initial valuation one can execute abbut notba.
+One solution to get commutativity between actions with disjoint domains is to consider
+local-time semantics [ 4]. In this semantics, time elapses independently in every process, and
+time elapse is synchronized before executing a synchronized action. This way, two actions
+with disjoint domains become commutative. In the example from the previous paragraph,
+while the process executing belapses 2time units, the other process is allowed to not elapse
+time at all and hence babecomes possible. Moreover, for the reachability problem, local-time
+semantics is equivalent to the standard one.
+In the local-time semantics, we replace the clock twhich was tracking the global time,
+with individual reference clocks tpfor each process Apwhich track the local time of each
+process. We set /tildewideX/prime
+p=/tildewideXp∪{tp}and/tildewideX/prime=/uniontext
+p/tildewideX/prime
+p. Alocal valuation vis a valuation over the
+set of clocks /tildewideX/primesuch that v(tp)≥v(/tildewidex)for all processes p∈Procand all clocks /tildewidex∈/tildewideXp. This
+restriction captures the intuition that tpis a reference clock for process p, and it is never
+reset. In this setting, the value v(tp)−v(/tildewidex)of clockxis deﬁned relative to the reference
+clocktpof processpthat ownsx, i.e.x∈Xp. We will use the notation vfor local valuations
+to distinguish from global valuations v.
+CONCUR 2019
+
+--- Page 6 ---
+16:6 Revisiting Local Time Semantics for Networks of Timed Automata
+We introduce a new operation of local time elapse. For a process p∈Procandδ∈R≥0,
+operation v+pδaddsδtov(tp), the value of the reference clock tpof processp, and leaves
+the other variables unchanged. Formally, (v+pδ)(tp) = v(tp) +δand(v+pδ)(y) = v(y)for
+ally∈/tildewideX/prime\{tp}. A local valuation vsatisﬁes a clock constraint g, denoted v|=gif every
+constraint in gholds after replacing xby its value v(tp)−v(/tildewidex)wherepis the process such
+thatx∈Xp. We denote by [R]vthe valuation obtained after resetting the clocks in R⊆X
+and deﬁned by: ([R]v)(tp) = v(tp)for every reference clock tp,([R]v)(/tildewidex) = v(/tildewidex)ifx/negationslash∈R, and
+([R]v)(/tildewidex) = v(tp)ifx∈Randpis the process such that x∈Xp.
+IDeﬁnition 5 (Local steps of a timed automata network) .There are two kinds of local steps
+in a networkN:local delay , andlocal action . A local delay δ∈R≥0in processp∈Procis
+a step (q,v)p,δ− −→st(q,v+pδ). For an action b, we have a step (q,v)b− −→st(q/prime,v/prime)if there is
+a set ofb-transitions of respective processes {(qp,gp,Rp,q/prime
+p)}p∈dom(b)such that:
+qp=q(p),q/prime
+p=q/prime(p), forp∈dom(b), andq(p) =q/prime(p)forp/negationslash∈dom(b);
+start times are synchronized: v(tp1) = v(tp2), for every p1,p2∈dom(b);
+guards are satisﬁed: vgp, for every p∈dom(b);
+resets are performed: v/prime= [/uniontext
+p∈dom(b)Rp]v;
+The main diﬀerence with respect to global semantics is the presence of local time delay.
+As a result, every process can be in a diﬀerent local time as emphasized by the reference
+clocks in each process. In consequence, in local action steps we require that when processes
+do a common action their local times should be the same. Of course a standard delay
+δon all processes can be simulated by a sequence of delays on every process separately,
+as1,δ− −→st···k,δ− −→st. For a sequence of local delays ∆ = (p1,δ1)...(pn,δn)we will write
+(q,v)∆− −→st(q,v/prime)to mean (q,v)p1,δ1−−−→st(q,v1)p2,δ2−−−→st···(pn,δn)−−−−−→st(q,v/prime).
+IDeﬁnition 6 (Local run) .Alocal run from a conﬁguration (q0,v0)is a sequence of local
+steps. For a sequence of actions u=b1...bn, we write (q0,v0)u− −→(qn,v/prime
+n)if for some
+sequences of local delays ∆0,..., ∆nthere is a local run
+(q0,v0)∆0− −→st(q0,v/prime
+0)b1− −→st(q1,v1)∆1− −→st···bn− −→st(qn,vn)∆n−−→st(qn,v/prime
+n)
+Observe that a run may start and end with a sequence of delays. In the next section we
+will make a link between local and global runs. For this we will ﬁrst examine independence
+properties of local runs which are much better than for global runs (cf. Lemma 4).
+ILemma 7 (Independence) .Suppose dom(a)∩dom(b) =∅. If (q,v)ab− −→ (q/prime,v/prime)then
+(q,v)ba− −→(q/prime,v/prime). If(q,v)a− −→(qa,va)and(q,v)b− −→(qb,vb)then (q,v)ab− −→(qab,vab)for
+someqaband vab.
+Recall that two sequences of actions are equivalent, written u∼wif one can be obtained
+from the other by repeatedly permuting adjacent actions with disjoint domains. Directly
+from the previous lemma we obtain.
+ILemma 8. If(q0,v0)u− −→(qn,vn)andu∼wthen (q0,v0)w− −→(qn,vn).
+With local-time semantics two equivalent sequences not only reach the same state qn,
+but also the same local valuation vn(in contrast with Lemma 4 for global-time semantics).
+
+--- Page 7 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:7
+2.2 Comparing local and global runs
+We have presented two semantics for networks of timed automata: global-time and local-time.
+Local runs have more freedom as time can elapse independently in every process. Yet, with
+respect to state reachability the two concepts turn out to be equivalent.
+IDeﬁnition 9. A local valuation vissynchronized if for every pair of processes p1,p2, the
+values of their reference clocks are equal: v(tp1) = v(tp2).
+For a synchronized local valuation v, let global (v)be the global valuation vsuch that
+v(/tildewidex) = v(/tildewidex)andv(t) = v(t1) =···=v(tk). Conversely, to every global valuation v, we
+associate the synchronized local valuation local(v) = vwhere v(/tildewidex) =v(/tildewidex)and v(tp) =v(t)
+for every reference clock tp.
+ILemma 10. If(q,v)u− −→(q/prime,v/prime)is a local run where vand v/primeare synchronized local valu-
+ations, there exists a global run (q,global (v))w= =⇒(q/prime,global (v/prime))for somew∼u. Conversely,
+if(q,v)u= =⇒(q/prime,v/prime)is a global run, then there is a local run (q,local(v))u− −→(q/prime,local(v/prime)).
+The reachability problem with respect to local semantics is deﬁned as before: qis
+reachable if there is a local run (qinit,vinit)u− −→(q,v)for some vwhere vinit=local(vinit). By
+adding some local delays at the end of the run we can always assume that vis synchronized.
+Lemma 10 thus implies that the reachability problem in local semantics is equivalent to the
+standard one in global semantics.
+3 Zone graphs
+We introduce zones, a standard approach for solving reachability in timed automata. Zones
+are sets of valuations that can be represented eﬃciently using simple constraints.
+Let us ﬁx a network Nof timed automata with kprocesses. Recall that each process
+phas a set of clocks Xpand corresponding oﬀset variables /tildewideXp. The set of clocks in Nis
+X=/uniontextk
+i=1Xp. Similarly, the set of oﬀset variables in Nis/tildewideX=/uniontextk
+i=1/tildewideXp.
+3.1 Standard zone-based algorithm for reachability
+Recall that in the global-time semantics, Nhas a reference clock t. Aglobal zone is a set
+of global valuations described by a conjunction of constraints of the form y1−y2/triangleleftcwhere
+y1,y2∈/tildewideX∪{t},/triangleleft∈{<,≤}andc∈Z. Since global valuations need to satisfy v(/tildewidex)≤v(t)
+for every oﬀset variable /tildewidex∈/tildewideX, a global zone satisﬁes /tildewidex≤tfor every /tildewidex∈/tildewideX.
+Letgbe a guard and Ra set of clocks. We deﬁne the following operations on zones:
+Zg={v|v|=g}is the set of global valuations satisfying g,[R]Z:={[R]v|v∈Z}and− →Z:={v|∃v/prime∈Z,∃δ∈R≥0s. t.v=v/prime+δ}. From [4],Zg,[R]Zand− →Zare all zones. We
+say that a zone is time-elapsed ifZ=− →Z.
+The semantics of a network of timed automata can be described in terms of global zones.
+For an action b, consider a set of b-transitions of respective processes {(qp,gp,Rp,q/prime
+p)}p∈dom(b).
+LetR=/uniontext
+p∈dom(b)Rp, andg=/logicalandtext
+p∈dom(b)gp. Then we have a transition (q,Z)b= =⇒(q/prime,Z/prime)
+whereZ/prime=−−−−−−−−→[R](Z∩Zg)provided that q(p) =qp,q/prime(p) =q/prime
+pifp∈dom(b), andq/prime(p) =q(p)
+otherwise, and Z/primeis not empty. We write =⇒for the union over allb= =⇒.
+Theglobal zone graph ZG(N)of a timed automaton network Nis a transition system
+whose nodes are of the form (q,Z)whereq∈QandZis a time-elapsed global zone. The
+transition relation is given by =⇒. The initial node is (qinit,Zinit)whereqinitis the tuple of
+CONCUR 2019
+
+--- Page 8 ---
+16:8 Revisiting Local Time Semantics for Networks of Timed Automata
+initial states and Zinit=−−−−→
+{vinit}wherevinitis the initial global valuation. The zone graph
+ZG(N)is known to be sound and complete with respect to reachability. This means that a
+stateqis reachable by a run of Niﬀ a node (q,Z)for some non-empty Zis reachable from
+(qinit,Zinit)in the zone graph. As zone graphs may be inﬁnite, an abstraction operator is
+used to obtain a ﬁnite quotient.
+Anabstraction operator a:P(RX
+≥0)→P(RX
+≥0)[2] is a function from sets of valuations
+to sets of valuations such that W⊆a(W)and a(a(W)) = a(W). Simulation relations
+between valuations are a convenient way to construct abstraction operators that are correct
+for reachability. A time-abstract simulation is a relation between valuations that depends on
+a given networkN. We say that v1can be simulated by v2, denotedv14v2if for every state
+qofN, and every delay-action step (q,v1)δ1= =⇒b= =⇒(q/prime,v/prime
+1)there is a delay δ2∈R≥0such that
+(q,v2)δ2= =⇒b= =⇒(q/prime,v/prime
+2)andv/prime
+14v/prime
+2. The simulation relation can be lifted to global zones: we
+say thatZis simulated by Z/prime, written as Z4Z/primeif for allv∈Zthere exists a v/prime∈Z/primesuch
+thatv4v/prime. An abstraction abased on4is deﬁned as a(W) ={v|∃v/prime∈Wwithv4v/prime}.
+The abstraction ais ﬁnite if its range is ﬁnite. Given two nodes (q,Z)and(q/prime,Z/prime)ofZG(N),
+(q,Z)issubsumed by(q/prime,Z/prime), denoted (q,Z)/subsetsqequala(q/prime,Z/prime), ifq=q/primeandZ⊆a(Z/prime).
+IRemark 11. Our deﬁnition of zones slightly diﬀers from the standard deﬁnition in the
+literature (e.g. [ 5]) since we use oﬀset variables to represent clock valuations. Yet, ﬁnite
+time-abstract simulations from the literature [ 2,12] can be adapted to our settings as a
+simulation over standard valuations vcan be expressed as a simulation over global valuations
+vsince for every clock x,v(x) =v(t)−v(/tildewidex), and zones over valuations vcan be translated
+to zones over standard valuations v.
+A ﬁnite abstraction aallows to construct a ﬁnite global zone graph with subsumption
+for a network of timed automata N. The construction starts from the initial node of
+ZG(N). Using, say, a breadth-ﬁrst-search (BFS), for every constructed node we examine
+all its successors in ZG(N), and keep only those that are maximal w.r.t. to /subsetsqequalarelation.
+Computing such a zone graph with subsumption gives an algorithm for the reachability
+problem. However, the global zone graph, and hence the algorithm above, are sensitive to
+the combinatorial explosion arising from parallel composition. Global time makes any two
+actions potentially dependent – the same is still true on the level of zones. Zone graphs based
+on the local-time semantics, as presented next, solve this problem.
+3.2 Local zone graphs
+The goal of this section is to introduce a concept similar to global zones and global zone
+graphs for local-time semantics. Recall that in the local-time semantics, each process phas a
+reference clock tp.
+Alocal zone is a zone over local valuations: a set of local valuations deﬁned by constraints
+y1−y2/triangleleftcwherey1,y2∈/tildewideX∪{t1,...tk}. Recall that a local valuation vneeds to satisfy:
+v(/tildewidex)≤v(tp)for every process pand every /tildewidex∈/tildewideXp. This means that a local zone satisﬁes
+/tildewidex≤tpfor every process pand every /tildewidex∈/tildewideXp. We will use Z, eventually with subscripts, to
+range over local zones, and distinguish from global zones Z. Local zones are closed under all
+basic operations involved in a local step of a network of timed automata, namely: local time
+elapse, intersection with a guard, and reset of clocks [4]. That is, for every local zone Z:
+the set local-elapse( Z) ={v+1δ1+2···+kδk|v∈Z, δ1,...,δk∈R≥0}is a local zone.
+for every guard gthe set Zg={v|vg}is a local zone.
+for every set of clocks R⊆X, the set [R]Z={[R]v|v∈Z}is a local zone.
+Local zones can be implemented using DBMs. Hence, they can be computed and stored as
+eﬃciently as standard zones.
+
+--- Page 9 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:9
+The operations of local time elapse, guard intersection, and reset, enable us to describe
+a local step (q,Z)b− −→(q/prime,Z/prime)on the level of local zones. This is done in the same way
+as for global zones. Observe that a local step is indexed only by an action, as the time is
+taken care of by the local time elapse operation. Formally, for an action bconsider a set
+ofb-transitions{(qp,gp,Rp,q/prime
+p)}p∈dom(b)of respective processes. Then we have a transition
+(q,Z)b= =⇒(q/prime,Z/prime)for Z/prime=local-elapse ([R](Z∩Zg∩Zsync))where Zg=/intersectiontext
+p∈dom(b)Zgp,
+Zsync={v|v(tp1) = v(tp2)forp1,p2∈dom(b)}andR= [/uniontext
+p∈dom(b)Rp]. Intuitively, Z/primeis
+the set of valuations obtained through reset and then local-time elapse, from valuations in Z
+that satisfy the guard and such that the processes involved in action bare synchronised. We
+extendb− −→to(q,Z)u− −→(q/prime,Z/prime)for a sequence of actions uin the obvious way.
+Using local zones, we construct a local zone graph and show that it is sound and complete
+for reachability testing. The only missing step is to verify the pre/post properties of runs on
+local zones. We say a local zone is time-elapsed ifZ= local-elapse( Z).
+ILemma 12 (Pre and post properties of runs on local zones) .Letube a sequence of actions.
+If(q,v)u− −→(q/prime,v/prime)and v∈Zfor some time-elapsed local zone Zthen (q,Z)u− −→(q/prime,Z/prime)
+and v/prime∈Z/primefor some local zone Z/prime.
+If(q,Z)u− −→(q/prime,Z/prime)and v/prime∈Z/primethen (q,v)u− −→(q/prime,v/prime), for some v∈Z.
+IDeﬁnition 13 (Local zone graph) .For a network of timed automata Nthelocal zone
+graphofN, denoted LZG(N), is a transition system whose nodes are of the form (q,Z)
+where Zis a time elapsed local zone, and whose transitions are steps (q,Z)b− −→(q/prime,Z/prime). The
+initial node (qinit,Zinit)consists of the initial state qinitof the network and the local zone
+Zinit= local-elapse({vinit}).
+Directly from Lemma 12 we obtain the main property of local zone graphs stated in [4].
+This allows us to use local zone graphs for reachability testing.
+ITheorem 14. For a given network of timed automata N, there is a run of the network
+reaching a state qiﬀ for some non-empty local zone Z, node (q,Z)is reachable in LZG(N)
+from its initial node.
+Notice that LZG(N)may still be inﬁnite and it cannot be used directly for reachability
+checking. The solution in Remark 11 does not apply to local zones due to the multiple
+reference clocks. This problem will be addressed in Section 5. We ﬁrst focus on important
+properties of the local-time zone graph w.r.t. concurrency.
+4 Why are local zone graphs better than global zone graphs?
+The important feature about local zone graphs, as noticed in [ 4], is that two transitions on
+actions with disjoint domains commute (see Figure 1).
+ILemma 15 (Commutativity on local zones [ 4]).Suppose dom(a)∩dom(b) =∅. If(q,Z)ab− −→
+(q/prime,Z/prime)then (q,Z)ba− −→(q/prime,Z/prime).
+From the above lemma, we get the following property.
+ICorollary 16. If(q,Z)u− −→(q/prime,Z/prime)andu∼w, then (q,Z)w− −→(q/prime,Z/prime)
+Thus starting from a local zone, all equivalent interleavings of a sequence of actions u
+end up in the same local zone. This is in stark contrast to the global zone graph, where each
+interleaving results in a possibly diﬀerent global zone. Let
+MZ(q,Z,u ) ={v/prime|∃v∈Z,∃w, w∼uand(q,v)w= =⇒(q/prime,v/prime)}
+CONCUR 2019
+
+--- Page 10 ---
+16:10 Revisiting Local Time Semantics for Networks of Timed Automata
+denote the union of all these global zones. Salah et al. [ 17] have shown that, surprisingly,
+MZ(q,Z,u )is always a global zone. We call it aggregated zone , and the notation MZis in
+the memory of Oded Maler. In the same work, this observation was extended to an algorithm
+foracyclic timed automata that from time to time merged zones reached by equivalent paths
+to a single global zone. We prove below that this aggregated zone can, in fact, be obtained
+directly in the local zone graph: the aggregated (global) zone is exactly the set of synchronized
+valuations obtained after executing uin the local zone semantics. Here we need some notation:
+letZbe a global zone and Za local zone; deﬁne sync(Z) ={v∈Z|vis synchronized};
+local(Z) ={local(v)|v∈Z}and global (sync( Z)) ={global (v)|v∈sync( Z)}.
+ILemma 17. For every global zone Zand local zone Z:sync(Z)and local(Z)are local zones
+and global (sync( Z))is a global zone.
+Proof. sync(Z)is the local zone Z∧/logicalandtext
+i,j(ti=tj);local(Z)is the local zone obtained
+by replacing twith some tiin each constraint, and adding the constraints/logicalandtext
+i,j(ti=tj);
+global (sync( Z))is obtained by replacing each tiwithtin each constraint of Z.J
+ITheorem 18. Consider a state q, a sequence of actions uand a time elapsed global
+zoneZ. Consider the local zone Z=local-elapse (local(Z)). If(q,Z)u− −→(q/prime,Z/prime), we have
+MZ(q,Z,u ) = global (sync( Z/prime)), otherwise MZ(q,Z,u ) =∅.
+Proof.Pickv/prime∈MZ(q,Z,u ). There exists w∼u,v∈Zand a global run (q,v)w= =⇒(q/prime,v/prime).
+From Lemma 10, there exists a local run (q,local(v))w− −→ (q/prime,local(v/prime)). By assump-
+tion, local(v)∈Z. Hence from the pre property of local zones (Lemma 12), there ex-
+ists(q,Z)w− −→ (q/prime,Zw)such that local(v/prime)∈Zw. As local(v/prime)is synchronized, we get
+local(v/prime)∈sync(Zw). But, by Corollary 16, Zw=Z/prime. This proves local(v/prime)∈sync(Z/prime)and
+hencev/prime∈global (sync( Z/prime)).
+For the other direction take v/prime∈global (sync(Z/prime)). As (q,Z)u− −→(q/prime,Z/prime), by post property
+of local zones (Lemma 12) there is a local run (q,vu)u− −→(q/prime,local(v/prime))for some vu∈Z.
+Since vu∈Z, it is obtained by a local time elapse from some v∈local(Z). Hence vis
+synchronized and global (v)∈Z. From Lemma 10 we get that for some w∼uthere is a
+global run (q,global (v))w= =⇒(q/prime,v/prime). Hencev/prime∈MZ(q,Z,u ). J
+Theorem 18 gives an eﬃcient way to compute aggregated zones: it is suﬃcient to compute
+local zone graphs. Computing local zone graphs is not more diﬃcult than computing global
+zone graphs. But, surprisingly, the combinatorial explosion due to interleaving does not
+occur in local zone graphs, thanks to the theorem above. Hence, this gives an incentive to
+work with local zone graphs instead of global zone graphs.
+This contrasts with the aggregation algorithm in [ 17] which requires to store all the
+paths to a global zone and detect situations where zones can be merged, that is, when
+all the equivalent permutations have been visited. Another important limitation of the
+algorithm in [ 17] is that it can only be applied to acyclic zone graphs. If local zone graphs
+can be computed for general timed automata (which contain cycles), we can get to use the
+aggregation feature for all networks (and not only acyclic ones). To do this, there is still a
+major problem left: local zone graphs could be inﬁnite when the automata contain cycles.
+5 Making local zone graphs ﬁnite
+The standard approach to make a global zone graph ﬁnite is to use a subsumption operation
+between global zones [ 2,12]. Such a subsumption operation is usually based on a ﬁnite
+index simulation between (global) valuations parameterized by certain maximum constants
+
+--- Page 11 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:11
+occurring in guards. We ﬁrst discuss technical problems that arise when we lift these
+simulations to local valuations. In the paper introducing local time semantics and local
+zone graphs [ 4] a notion of a catch-up equivalence between local valuations is deﬁned. This
+equivalence is a ﬁnite index simulation. So one could, in theory, construct a ﬁnite local zone
+graph using catch-up subsumption as a ﬁnite abstraction. Unfortunately, the question of
+eﬀective algorithms for catch-up subsumption was left open in [ 4], and, to the best of our
+knowledge, there is no eﬃcient procedure for catch-up subsumption.
+Another ﬁnite abstraction of the local zone graph was proposed by Minea [ 15,16]. We
+however believe that Minea’s approach carries a ﬂaw, and a diﬀerent idea is needed to get
+ﬁniteness. Minea’s approach is founded on an equivalence between local valuations in the
+lines of the region equivalence [ 1]. Letcmaxbe the maximum constant appearing among
+the guards of a timed automata network. Two local valuations v1and v2are said to be
+equivalent, written as v1/similarequalregv2if for all variables α,β∈/tildewideX∪{t1,...,tk}(note that all
+reference clocks are included):
+either⌊v1(α)−v1(β)⌋=⌊v2(α)−v2(β)⌋,
+or⌊v1(α)−v1(β)⌋>cmaxand⌊v2(α)−v2(β)⌋>cmax,
+or⌊v1(α)−v1(β)⌋<−cmaxand⌊v2(α)−v2(β)⌋<−cmax.
+It is claimed (in Proposition 6 of [ 15]) that this equivalence is preserved over local time
+elapse: for every process p, and forδ≥0there exists δ/prime≥0such that v1+pδ/similarequalregv2+pδ/prime.
+However, this is not true, as we now exhibit a counter-example. Consider 2processes with
+clocksX1={x},X2={y}. This gives /tildewideX={/tildewidex,/tildewidey}andT={t1,t2}. Letcmax= 3. Deﬁne
+local valuations v1:/tildewidex= 0,t1= 0,/tildewidey= 0,t2= 4and v2:/tildewidex= 0,t1= 0,/tildewidey= 0,t2= 5.
+Note that the diﬀerences in v1are either 0,4or−4and the corresponding diﬀerences
+inv2are0,5or−5. Hence by deﬁnition, v1/similarequalregv2. Consider valuation v1+12obtained
+from v1by local delay of 2units in component 1, that is v1+12 :/tildewidex= 0,t1= 2,/tildewidey= 0,t2= 4
+Observe that in v1+12, the diﬀerence t1−/tildewidex= 2andt2−t1= 2which are both smaller
+thancmax. We claim there is no local delay δ/primesuch that v1+12/similarequalregv2+1δ/prime. Valuation
+v2+1δ/primeis given by /tildewidex= 0,t1=δ/prime,/tildewidey= 0,t2= 5. If v1+12/similarequalregv2+1δ/prime, we needδ/prime= 2(due
+to diﬀerence t1−/tildewidex) and 5−δ/prime= 2(due to diﬀerence t2−t1). This is not possible.
+The main problem is that the above equivalence “forgets” actual values when the diﬀerence
+between reference clocks is above cmax. Even if this diﬀerence is bigger than the maximum
+constant, local delays can bring them within the constant cmax. Such a situation does not
+arise in the global semantics, as there is a single reference clock.
+In [15] a widening operator on local zones based on /similarequalregis used for ﬁniteness: given a
+canonical representation of a zone Z, themaximized zone with respect to cmaxis obtained by
+changing every constraint y1−y2/triangleleftctoy1−y2<∞ifc>c max, and toy1−y2<−cmaxif
+c<−cmax. In the local zone graph construction, each local zone is maximized and inclusion
+between maximized zones is used for termination. Figure 2 gives an example of a network
+/angbracketleftA1,A2/angbracketrightwhere the maximized local zone graph is unsound. This is shown by making use of
+the valuations v1and v2above. We also add an extra clock zin component A2for convenience.
+Note thatcmax= 3. Although clock ydoes not appear in A2, one can assume that there are
+other transitions from q0that deal with y(we avoid illustrating these transitions explicitly).
+In the discussion below, v1,v2are valuations restricted to /tildewidex,/tildewidey,t1andt2. In order to reach
+the statep2, the synchronization action cneeds to be taken: transition sequence a1crequires
+cto be taken at global time 4, and transition sequence b1b2crequirescat global time 5.
+Hencecis not enabled in the network. This is witnessed by cnot being enabled in the
+local zone graph (middle picture). Valuation v2is present in the zone reached after b1b2.
+CONCUR 2019
+
+--- Page 12 ---
+16:12 Revisiting Local Time Semantics for Networks of Timed Automata
+p0
+p1
+p2q0
+q1
+q2
+q3a1
+cb1
+b2
+cx= 2
+{x}
+x= 2z= 2
+{z}
+z= 3
+{z}/tildewidex=/tildewidey=/tildewidez
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidey=/tildewidez
+/tildewidex−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez/tildewidex=/tildewidey
+/tildewidez−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidex−/tildewidey= 2
+/tildewidez−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez/tildewidex=/tildewidey
+/tildewidez−/tildewidey= 5
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidex−/tildewidey= 2
+/tildewidez−/tildewidey= 5
+t1≥/tildewidex, t2≥/tildewidez/angbracketleftp0,q0/angbracketright
+/angbracketleftp1,q0/angbracketright /angbracketleftp0,q1/angbracketright
+/angbracketleftp1,q1/angbracketright /angbracketleftp0,q2/angbracketright
+/angbracketleftp1,q2/angbracketrighta1b1
+b1a1b2
+b2a1/tildewidex=/tildewidey=/tildewidez
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidey=/tildewidez
+/tildewidex−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez/tildewidex=/tildewidey
+/tildewidez−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidex−/tildewidey= 2
+/tildewidez−/tildewidey= 2
+t1≥/tildewidex, t2≥/tildewidez/tildewidex=/tildewidey
+/tildewidez−/tildewidey= 3
+t1≥/tildewidex, t2≥/tildewidez
+/tildewidex−/tildewidey= 2
+/tildewidez−/tildewidey= 3
+t1≥/tildewidex, t2≥/tildewidez/tildewidex−/tildewidey= 2,/tildewidez−/tildewidey= 3
+t1−/tildewidex≥2
+t2−/tildewidey≥3, t2≥/tildewidez/angbracketleftp0,q0/angbracketright
+/angbracketleftp1,q0/angbracketright /angbracketleftp0,q1/angbracketright
+/angbracketleftp1,q1/angbracketright /angbracketleftp0,q2/angbracketright
+/angbracketleftp1,q2/angbracketright /angbracketleftp2,q3/angbracketrighta1b1
+b1a1b2
+b2a1
+c
+Figure 2 Left:network /angbracketleftA1, A2/angbracketright;Middle: local zone graph; Right:maximized local zone graph
+of [15]. State (p2, q3)is not reachable in local zone graph, but becomes reachable after maximization.
+The maximized local zone graph is shown on the right. Zones where maximization makes a
+diﬀerence are shaded gray. In particular, the zone b1b2on maximization adds valuation v1,
+from which a1cis enabled, giving a zone in the maximized local zone graph with state p2.
+5.1 Synchronized valuations for subsumption
+A ﬁnite abstraction of the diﬀerences between reference clocks constitutes the main challenge
+in obtaining a ﬁnite local zone graph. We propose a diﬀerent solution which bypasses the
+need to worry about such diﬀerences: restrict to synchronized valuations for subsumption .
+Subsumptions over global zones are well studied [ 1,2,12]. Taking an oﬀ-the-shelf ﬁnite
+abstraction aand a subsumption /subsetsqequalabetween global zones, we want to do the following: given
+twolocalzones Z1and Z2weperformasubsumptiontest global (sync(Z1))/subsetsqequalaglobal (sync(Z2)).
+By ﬁniteness of the abstraction, we will get only ﬁnitely many local zones Zwith incomparable
+global (sync(Z)). In order to do this, we need the crucial fact that global (sync(Z))is a zone
+(shown in Lemma 17). Given two conﬁgurations s:= (q,Z)ands/prime:= (q/prime,Z/prime)of the local zone
+graph, we write s/subsetsqequala
+syncs/primeifq=q/primeand global (sync( Z))/subsetsqequalaglobal (sync( Z/prime)).
+IDeﬁnition 19 (Local sync graph) .Letabe a ﬁnite abstraction over global zones. A local
+sync graph Gof a network of timed automata Nbased on a, is a tree and a subgraph of
+LZG(N)satisfying the following conditions:
+C0every node of Gis labeled either coveredoruncovered ;
+C1the initial node of LZG(N)belongs toGand is labeled uncovered;
+C2every node is reachable from the initial node;
+C3for every uncovered node s, all its successor transitions sa− −→s/primeoccurring in LZG(N)
+should be present in G;
+C4for every covered node s∈Gthere is an uncovered node s/prime∈Gsuch thats/subsetsqequala
+syncs/prime. A
+covered node has no successors.
+The above deﬁnition essentially translates to this algorithm: explore the local zone graph
+say in a BFS fashion, and subsume (cover) using /subsetsqequala
+sync(similar to algorithm for global
+zone graph as described in page 8). Local sync graphs are not unique, since the ﬁnal graph
+depends on the order of exploration. Every local sync graph based on a ﬁnite abstraction
+ais ﬁnite. Theorem 20 below states that local sync graphs are sound and complete for
+reachability, and this algorithm is correct.
+
+--- Page 13 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:13
+ITheorem 20 (Soundness and completeness of local sync graphs) .A stateqis reachable in
+a network of timed automata Niﬀ a node (q,Z), with Znon-empty, is reachable from the
+initial node in a local sync graph for N.
+Proof.If(q,Z)is reachable in a local sync graph then it is trivially reachable in the local
+zone graph and the (backward) implication follows from soundness of local zone graphs
+(Theorem 14). For the other direction which proves completeness of local sync graphs, let
+us take a global run: (qinit,vinit)δ1,b1= = =⇒(q1,v1)···δn,bn= = = =⇒(qn,vn). Take a local sync graph
+G, based on abstraction acoming from a simulation 4. By induction on i, for every (qi,vi)
+we will ﬁnd an uncovered node (qi,Zi)ofG, and a synchronized local valuation vi∈Zi
+such thatvi4global (vi). This proves completeness, since every reachable (qi,vi)will have a
+representative node in the local sync graph.
+The induction base is immediate, so let us look at the induction step. Consider the
+global step (qi,vi)δi,bi= = =⇒(qi+1,vi+1). Sincevi4global (vi), there is a delay δ/prime
+isuch that
+(qi,global (vi))δ/prime
+i,bi= = =⇒(qi+1,v/prime
+i+1)andvi+14v/prime
+i+1. As the global delay δ/prime
+ican be thought of a
+sequence of local delays, we have local run (qi,vi)bi− −→(qi+1,v/prime
+i+1), where v/prime
+i+1=local(v/prime
+i+1).
+Note that v/prime
+i+1is synchronized and vi+14global (v/prime
+i+1). From the pre-property of local
+zones (Lemma 12) there exists a transition (qi,Zi)bi− −→(qi+1,Z/prime
+i+1)with v/prime
+i+1∈Z/prime
+i+1, in fact,
+v/prime
+i+1∈sync(Z/prime
+i+1). If(qi+1,Z/prime
+i+1)is uncovered, take v/prime
+i+1forvi+1and Z/prime
+i+1forZi+1(needed
+by the induction step). Otherwise, from condition C4, there is an uncovered node (qi+1,Z/prime/prime
+i+1)
+such that global (sync(Z/prime
+i+1))4global (sync(Z/prime/prime
+i+1)). This gives v/prime/prime
+i+1∈sync(Z/prime/prime
+i+1)such that
+global (v/prime
+i+1)4global (v/prime/prime
+i+1). Now take v/prime/prime
+i+1forvi+1and Z/prime/prime
+i+1forZi+1. J
+6 Experiments
+We have implemented the construction of local sync graphs in our prototype TChecker [ 11]
+and compared it with two implementations of the usual global zone graph method: TChecker
+and UPPAAL [ 13,3], the state-of-the-art veriﬁcation tool for timed automata. The three
+implementations use a breadth-ﬁrst search with subsumption, and the /subsetsqequala
+syncsubsumption in
+the case of local sync graph. Table 1 presents results of our experiments on standard models
+from the literature (except “Parallel” that is a model we have introduced).
+Local sync graphs yield no gain on 3 standard examples (which are not given in Table 1):
+“CSMA/CD”, “FDDI” and “Fischer”. In these models, the three algorithms visit and store
+the same number of nodes. The reason is that for “CSMA/CD” and “FDDI”, replacing each
+local zone Zin the local zone graph by its set of synchronized valuations sync(Z)yields
+exactly the zone graph. In the third model, “Fischer”, every control state appears at most
+once in the global zone graph. So there is no hope to achieve any gain with our technique.
+This is due to the fact that doing aborbaresults in two diﬀerent control states in the
+automaton. So “Fischer” is out of the scope of our technique.
+In contrast, we observe signiﬁcant improvements on other standard models (Table 1).
+Observe that due to subsumption, the order in which nodes are visited impacts the total
+number of visited nodes. UPPAAL and our prototype TChecker (Global ZG column) may
+not visit the same number of nodes despite the fact that they implement the same algorithm.
+In our prototype we use the same order of exploration for Global ZG and Local ZG. “CorSSO”
+and “Critical region” are standard examples from the literature. “Dining Philosophers”
+is a modiﬁcation of the classical problem where a philosopher releases her left fork if she
+cannot take her right fork within a ﬁxed amount of time [ 14]. “Parallel” is a model we have
+introduced, where concurrent processes compete to access a resource in mutual exclusion.
+CONCUR 2019
+
+--- Page 14 ---
+16:14 Revisiting Local Time Semantics for Networks of Timed Automata
+Table 1Experimental results obtained by running UPPAAL and our prototype TChecker (Global
+ZG and Local ZG) on a MacBook Pro 2013 with 4 2.4GHz Intel Core i5 and 16 GB of memory. The
+timeout is 90 seconds. For each model we report the number of concurrent processes.
+Models UPPAAL Global ZG Local ZG
+(# processes) visited stored sec.visited stored sec.visited stored sec.
+CorSSO 3 64378 61948 1.4864378 61948 1.41 1962 1962 0.05
+CorSSO 4 timeout timeout 23784 23784 0.69
+CorSSO 5 timeout timeout 281982 281982 16.71
+Critical reg. 4 78049 53697 1.4575804 53697 2.2744490 28400 2.40
+Critical reg. 5 timeout timeout 709908 389614 75.55
+Dining Phi. 7 38179 38179 34.61 38179 38179 7.28 2627 2627 0.32
+Dining Phi. 8 timeout timeout 8090 8090 1.65
+Dining Phi. 9 timeout timeout 24914 24914 7.10
+Dining Phi. 10 timeout timeout 76725 76725 30.20
+Parallel 6 11743 11743 4.8211743 11743 1.09 256 2560.02
+Parallel 7 timeout timeout 576 5760.04
+Parallel 8 timeout timeout 1280 1280 0.11
+We observe an order of magnitude gains for most of these four models. The reason is that
+in most states when two processes can perform actions aandb, doingaborbaleads to
+the same control-state of the automaton. Hence, a diﬀerence between abandba(if any) is
+encoded in distinct zones ZabandZbaobtained along these two paths in the global zone
+graph. In contrast, the two paths result in the same zone Z(containing both ZabandZba)
+in the local sync graph. In consequence, our approach that combines the local zone graph
+and abstraction using synchronized zones is very eﬃcient in this situation.
+7 Conclusions
+We have revisited local-time semantics of timed automata and local zone graphs. We have
+discovered a very useful fact that local zones calculate aggregated zones: global zones that
+are unions of all the zones obtained by equivalent executions [ 17]. We have used this fact as a
+theoretical foundation for an algorithm constructing local zone graphs and using subsumption
+on aggregated zones at the same time.
+We have shown that, unfortunately, subsumption operations on local zones proposed in
+the literature do not work. We have proposed a new subsumption for local zone graphs based
+on standard abstractions for timed automata, applied on synchronized zones. The restriction
+to synchronized zones is crucial as standard abstractions cannot handle multiple reference
+clocks. A direction for future work is to ﬁnd abstractions for local zones.
+Our algorithm is the ﬁrst eﬃcient implementation of local time zone graphs and aggregated
+zones. Experimental results show an order of magnitude gain with respect to state-of-the-art
+algorithms on several standard examples.
+As future work, we plan to develop partial-order techniques taking advantage of the high
+level of commutativity in local zone graphs. Existing methods are not directly applicable in
+the timed setting. In particular, contrary to expectations, actions with disjoint domains may
+not be independent (in a partial order sense) in a local zone graph [ 15]. Thus, it will be very
+interesting to understand the structure of local zone graphs better. A recent partial-order
+method proposed for timed-arc Petri nets [ 6] gives a hope that such obstacles can be overcome.
+For timed networks with cycles, the interplay of partial-order and subsumption adds another
+level of diﬃculty.
+
+--- Page 15 ---
+R. Govind, F. Herbreteau, B. Srivathsan, and I. Walukiewicz 16:15
+References
+1Rajeev Alur and David L. Dill. A Theory of Timed Automata. Theoretical Computer Science ,
+126:183–235, 1994.
+2Gerd Behrmann, Patricia Bouyer, Kim G. Larsen, and Radek Pelánek. Lower and Upper
+Bounds in Zone-Based Abstractions of Timed Automata. International Journal on Software
+Tools for Technology Transfer , 8(3):204–215, 2006.
+3Gerd Behrmann, Alexandre David, Kim Guldstrand Larsen, John Hakansson, Paul Pettersson,
+Wang Yi, and Martijn Hendriks. UPPAAL 4.0. In QEST, pages 125–126. IEEE Computer
+Society, 2006.
+4Johan Bengtsson, Bengt Jonsson, Johan Lilius, and Wang Yi. Partial Order Reductions for
+Timed Systems. In CONCUR , volume 1466 of Lecture Notes in Computer Science , pages
+485–500, 1998.
+5Johan Bengtsson and Wang Yi. Timed Automata: Semantics, Algorithms and Tools. In
+ACPN 2003 , volume 3098 of Lecture Notes in Computer Science , pages 87–124. Springer, 2003.
+6Frederik M. Bønneland, Peter Gjøl Jensen, Kim Guldstrand Larsen, Marco Muñiz, and Jirí
+Srba. Start Pruning When Time Gets Urgent: Partial Order Reduction for Timed Systems.
+InCAV, volume 10981 of Lecture Notes in Computer Science , pages 527–546. Springer, 2018.
+7Conrado Daws and Stavros Tripakis. Model Checking of Real-Time Reachability Properties
+Using Abstractions. In TACAS, volume 1384 of Lecture Notes in Computer Science , pages
+313–329. Springer, 1998.
+8D. L. Dill. Timing Assumptions and Veriﬁcation of Finite-state Concurrent Systems. In
+Proceedings of the International Workshop on Automatic Veriﬁcation Methods for Finite State
+Systems, pages 197–212, 1990.
+9Paul Gastin, Sayan Mukherjee, and B. Srivathsan. Fast algorithms for handling diagonal
+constraints in timed automata. CoRR, abs/1904.08590, 2019. arXiv:1904.08590 .
+10R Govind, Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Revisiting local time
+semantics for networks of timed automata. CoRR, abs/1907.02296, 2019. arXiv:1907.02296 .
+11F. Herbreteau and G. Point. TChecker. https://github.com/fredher/tchecker , v0.2 - April
+2019.
+12Frédéric Herbreteau, B. Srivathsan, and Igor Walukiewicz. Better Abstractions for Timed
+Automata. In LICS, pages 375–384. IEEE Computer Society, 2012.
+13Kim Guldstrand Larsen, Paul Pettersson, and Wang Yi. UPPAAL in a nutshell. STTT,
+1(1-2):134–152, 1997.
+14Denis Lugiez, Peter Niebert, and Sarah Zennou. A partial order semantics approach to the
+clock explosion problem of timed automata. Theor. Comput. Sci. , 345(1):27–59, 2005.
+15Marius Minea. Partial Order Reduction for Model Checking of Timed Automata. In CONCUR ,
+volume 1664 of Lecture Notes in Computer Science , pages 431–446. Springer, 1999.
+16Marius Minea. Partial Order Reduction for Veriﬁcation of Timed Systems . PhD thesis, School
+of Computer Science, Carnegie Mellon University Pittsburgh, PA 15213, 1999.
+17Ramzi Ben Salah, Marius Bozga, and Oded Maler. On Interleaving in Timed Automata. In
+CONCUR , volume 4137 of Lecture Notes in Computer Science , pages 465–476. Springer, 2006.
+18Marcelo Sousa, César Rodríguez, Vijay D’Silva, and Daniel Kroening. Abstract Interpretation
+with Unfoldings. In CAV, pages 197–216, 2017.
+CONCUR 2019

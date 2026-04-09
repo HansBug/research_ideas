@@ -1,0 +1,388 @@
+--- Page 1 ---
+THETA : a Framework for
+Abstraction Reﬁnement-Based Model Checking
+Tam´as T ´othy,´Akos Hajduyz, Andr ´as V ¨or¨osyz, Zolt ´an Micskeiyand Istv ´an Majziky
+yBudapest University of Technology and Economics,
+Department of Measurement and Information Systems
+zMTA-BME Lend ¨ulet Cyber-Physical Systems Research Group
+Email: ftotht, hajdua, vori, micskeiz, majzik g@mit.bme.hu
+Abstract —In this paper, we present T HETA , a conﬁgurable
+model checking framework. The goal of the framework is to
+support the design, execution and evaluation of abstraction
+reﬁnement-based reachability analysis algorithms for models
+of different formalisms. It enables the deﬁnition of input for-
+malisms, abstract domains, model interpreters, and strategies
+for abstraction and reﬁnement. Currently it contains front-end
+support for transition systems, control ﬂow automata and timed
+automata. The built-in abstract domains include predicates,
+explicit values, zones and their combinations, along with various
+reﬁnement strategies implemented for each. The conﬁgurability
+of the framework allows the integration of several abstraction and
+reﬁnement methods, this way supporting the evaluation of their
+advantages and shortcomings. We demonstrate the applicability
+of the framework by use cases for the safety checking of PLC,
+hardware, C programs and timed automata models.
+I. I NTRODUCTION
+Nowadays there are several model checking tools imple-
+menting algorithms for different formalisms. Most tools focus
+on a speciﬁc algorithm and formalism to solve a particular
+veriﬁcation task efﬁciently. However, as new tasks emerge,
+more generic tools are also needed since the appropriate
+formalism and algorithm are usually not known initially.
+THETA1is a generic, modular and conﬁgurable model
+checking framework, aiming to support the development and
+evaluation of abstraction reﬁnement-based algorithms for the
+reachability analysis of different formalisms. The main distin-
+guishing characteristic of T HETA is its architecture that allows
+the combination of various abstract domains, interpreters, and
+strategies for abstraction and reﬁnement, applied to models of
+various formalisms with higher level language front-ends.
+THETA primarily aims to support researchers by providing
+a framework where new components and combinations can
+easily be implemented, evaluated and compared. Concrete
+tools were also built for the veriﬁcation of transition systems,
+control ﬂow automata and timed automata, combining different
+abstract domains (including predicates, explicit values and
+zones) and reﬁnement strategies (including interpolation and
+unsat cores). Measurement results show strong dependency on
+the models and analysis components, motivating the need for
+a conﬁgurable framework. Furthermore, we also used T HETA
+This work was partially supported by Gedeon Richter’s Talentum Foun-
+dation (Gy ¨omr˝oi´ut 19-21, 1103 Budapest, Hungary).
+1http://theta.inf.mit.bme.hufor education at our university, where students implemented
+model checkers using components from the framework.
+Related tools. Abstraction reﬁnement is a widely used
+approach for model checking software. Several tools, e.g.
+SLAM [1], B LAST [2] and S ATABS[3] are based on pred-
+icate abstraction. Lazy abstraction tools like I MPACT [4] and
+WOLVERINE [5] use Craig interpolation to compute abstrac-
+tions over the predicate domain without expensive post-image
+computation. Some tools apply abstraction reﬁnement over
+domains other than predicates: the tool D AGGER [6] supports
+reﬁnement for octagon and polyhedra domains, and the algo-
+rithm V INTA [7] applies abstraction reﬁnement over intervals.
+Frameworks CPA CHECKER [8] and U FO[9] support conﬁg-
+urability by the deﬁnition of abstract domains, post operators
+and reﬁnement strategies, but only targeting software models.
+The LTS MIN tool supports various formalisms through its
+Partitioned Next-State Interface (PINS) [10]. However, its
+main focus is on symbolic and parallel model checking algo-
+rithms. Our T HETA framework aims to combine the concept of
+conﬁgurability with formalism independence: the core analysis
+algorithms can be implemented independently of the input
+formalisms, and relevant combinations of them can be selected
+to verify models of several input formalisms.
+In this paper we focus on the architecture of T HETA
+(Section II) and the use cases demonstrating the efﬁcient use
+of the tools that are derived from the framework (Section III).
+II. A RCHITECTURE AND IMPLEMENTATION
+Figure 1 shows the architecture of T HETA . The main parts
+of the framework are the formalism and language front-ends,
+the analysis back-end and the SMT solver interface.
+A. Formalisms and language front-ends
+One goal of the T HETA framework is to enable the analysis
+of several formalisms. Formalisms are usually low level, math-
+ematical representations based on ﬁrst order logic expressions
+and graph like structures. Each formalism supports higher level
+languages that can be mapped to that particular formalism
+by a language front-end (consisting of a speciﬁc parser and
+possibly reductions for simpliﬁcation of the model). Currently,
+transition systems, control ﬂow automata and timed automata
+are the supported formalisms with front-ends for higher level
+languages as AIGER, PLC, C programs and U PPAAL XTA
+
+--- Page 2 ---
+Fig. 1. Architecture of the T HETA framework.
+models. Section III describes instantiations of the framework
+for each of these formalisms.
+B. Analysis back-end
+The analysis back-end consists of three main parts: the
+abstract domain, the interpreter and the abstraction reﬁnement
+loop for reachability analysis, with the interpreter being depen-
+dent on the formalisms. The basis of the analysis is an abstract
+domain with a set of abstract states , its bottom element and a
+partial order over the states. The accuracy of a given analysis
+is represented by an element of a set of precisions. Moreover,
+the formalism for which the analysis is performed deﬁnes a set
+of actions. Given a precision, an interpreter deﬁnes an abstract
+operational semantics over the abstract domain and set of
+actions. The abstract initial states are given by an init function .
+For an action, the abstract successors of a state are computed
+by a transfer function . An action function determines for an
+abstract state a set of actions that are enabled from that state.
+The reachability analysis is performed by the abstraction
+reﬁnement loop . As usual for lazy abstraction methods [4], its
+central data structure is an abstract reachability tree (ART),
+with nodes annotated with abstract states that represent over-
+approximations of reachable states along a given path, and
+edges annotated with actions. The ART is manipulated by
+the two main components of the loop. Using an interpreter,
+theabstractor constructs the ART w.r.t the current precision
+and an abstraction strategy, i.e. when to expand a node or
+cover it by an other node. If no target (i.e., unsafe) nodes
+are encountered, the constructed ART serves as an evidence
+for the safety of the input model. Otherwise, given a targetnode, the reﬁner is invoked to analyze the abstract path for
+feasibility. If the path is feasible, it is a counterexample to
+safety. Otherwise, the reﬁner carries out its reﬁnement strategy
+to ensure that the analysis can continue without encountering
+the same spurious counterexample again (reﬁnement progress).
+This can typically be achieved by pruning nodes and com-
+puting a new analysis precision (overapproximation-driven
+approach), or by uncovering nodes and strengthening labels
+(underapproximation-driven approach), both of which includes
+partial deconstruction of the ART.
+Currently, built-in domains in T HETA include predicates,
+explicit values, zones and their combinations. There are also
+interpreters provided for transition systems, control ﬂow au-
+tomata and timed automata. A default abstractor implementa-
+tion is built-in that relies on the domain and the interpreter,
+also parameterizable with a search strategy. Interpolation and
+unsat core-based reﬁnement strategies are provided for for-
+malisms that are described with ﬁrst order logic expressions.
+C. SMT solver interface
+The framework provides a general SMT solver interface that
+supports incremental solving, unsat cores, and the generation
+of binary and sequence interpolants. The solver interface can
+be used by the analysis components. Typically, the partial order
+over states and the transfer function are implemented in terms
+of queries to an SMT solver. A reﬁner component may use
+the interface to check feasibility of an abstract path and to
+generate interpolants or unsat cores for abstraction reﬁnement.
+Currently, the interface is implemented by the SMT solver
+Z3 [11], but it can easily be extended with new solvers.
+
+--- Page 3 ---
+D. Extending and instantiating the framework
+The framework can easily be extended with new formalisms
+and analyses. As an example, suppose that one wants to add
+support for the reachability checking of Petri nets [12]. First,
+the formalism has to be implemented, which is a collection
+of simple classes representing places, transitions and arcs of
+Petri nets. A possible language front-end could be the standard
+PNML format for Petri nets.
+In order to perform reachability checking, the analysis back-
+end has to be extended as well. Petri nets can be described with
+ﬁrst order logic formulas, for example by representing places
+(marked with tokens) with integer variables and transitions as
+FOL expressions adding/subtracting from places. Therefore,
+some abstract domains (such as predicates and explicit values)
+along with abstraction and reﬁnement strategies (such as inter-
+polation) work out of the box if the interpreter is implemented.
+An action of a Petri net can be implemented as the expression
+describing a transition and the action function as the collection
+of all transitions. The init and transfer functions also work out
+of the box for the abstract domains mentioned before.
+Instantiating an executable tool from the framework (see
+examples in Section III) is also straightforward. A (command
+line or GUI) application has to be written that takes the
+parameters (path of the input model, domain, abstraction and
+reﬁnement strategies, etc.), parses the input model using the
+language front-ends and instantiates and runs the analysis.
+III. U SE CASES
+A.THETA for transition systems
+The tool T HETA -STS is an instantiation of the T HETA
+framework for reachability analysis of (symbolic) transition
+systems, based on an earlier, preliminary version [13]. As input
+language, the tool supports the AIGER format (also used in
+the Hardware Model Checking Competition [14]) and an in-
+termediate language for describing PLC models [15]. The tool
+relies on the built-in predicate and explicit value domains and
+reﬁnement strategies based on binary interpolation, sequence
+interpolation and formulas from unsat cores. Some additional
+utilities are also implemented, for example inferring the initial
+precision and simplifying the input system.
+Figure 2 (from [16]) shows a heatmap of the execution
+time of 20 analysis conﬁgurations on 12 hardware (hw)
+and 6 PLC models. White squares correspond to a timeout.
+Conﬁgurations are abbreviated with the ﬁrst letter of the
+domain (predicate, explicit), the reﬁnement strategy (binary
+interpolation, sequence interpolation, unsat cores), the initial
+precision (empty, property-based) and the exploration strategy
+(DFS, BFS). The heatmap shows that no single conﬁguration
+can verify all models and the execution time is very diverse,
+motivating the need for a conﬁgurable framework.
+B.THETA for control ﬂow automata
+The tool T HETA -CFA is an instantiation of the T HETA
+framework for the reachability analysis of control ﬂow au-
+tomata. As input language, the tool supports a subset of
+C, enhanced by various size reduction techniques such as
+EBEBEBEDEBPBEBPDESEBESEDESPBESPDEUEBEUEDEUPBEUPDPBEBPBEDPBPBPBPDPSEBPSEDPSPBPSPD
+hw1
+hw2
+hw3
+hw5
+hw4
+hw6
+hw7
+hw8
+hw9
+hw10
+hw11
+hw12
+plc1
+plc2
+plc3
+plc4
+plc5
+plc6
+ModelConfiguration
+345T (ms, log10)Fig. 2. Heatmap of execution time for transition systems (millisec., log. scale)
+compiler optimizations and program slicing methods [17]. This
+tool uses the same built-in abstract domains and reﬁnement
+strategies as the T HETA -STStool, only the interpreter differs.
+Figure 3 (from [17]) presents a heatmap of the veriﬁcation
+time of 16 analysis conﬁgurations on 9 models from SV-
+COMP [18], selected from those categories that are currently
+supported by our C frontend. Conﬁgurations are abbreviated
+with the ﬁrst letter of the slicing method (none, backward,
+value, thin), the compiler optimizations (true, false) and the
+exploration strategy (DFS, BFS). Similarly to transition sys-
+tems, different conﬁgurations are more suitable for different
+input models.
+VTDVTBVFDVFBTTDTTBTFDTFBBTDBTBBFDBFBNTDNTBNFDNFB
+eca/1.c
+eca/2.c
+eca/3.c
+eca/4.c
+locks/1.c
+locks/2.c
+locks/3.c
+ssh/1.c
+ssh/2.c
+ModelConfiguration
+ 306090120T (s)
+Fig. 3. Heatmap of execution time for C programs (in seconds)
+C.THETA for timed automata
+The tool T HETA -XTA is an instantiation of the T HETA
+framework for reachability checking of timed automata. As
+input language, the tool supports a subset of the U PPAAL
+
+--- Page 4 ---
+4.x XTA format2. The tool implements two lazy abstrac-
+tion algorithms based on zone abstraction: a variant of
+ha4LU;disabled i[19], a non-convex lazy abstraction algo-
+rithm based on LU-bounds, and an algorithm based on
+interpolation for zones [20] with two different reﬁnement
+strategies ( BIN and SEQ). Table I (from [20]) presents some
+measurement results for the tool. Column time is the total
+execution time in ms, and passed is the number of expanded
+nodes in the ART. Models come from the P ATbenchmarks3.
+TABLE I
+COMPARISON OF ALGORITHMS FOR TIMED AUTOMATA IN THETA -XTA
+Modela4LU BIN SEQ
+time passed time passed time passed
+Critical 3 1.8 4923 1.6 3213 1.6 3157
+Critical 4 65.0 130779 78.2 83686 75.2 78252
+CSMA 9 6.6 30476 7.3 30476 7.9 30476
+CSMA 10 21.3 78605 21.0 78605 22.8 78605
+CSMA 11 61.4 198670 58.9 198670 63.8 198670
+CSMA 12 167.2 493583 168.7 493583 179.1 493583
+FDDI 50 1.4 402 2.0 402 2.0 402
+FDDI 70 2.9 562 3.5 562 3.7 562
+FDDI 90 5.9 722 6.8 722 7.1 722
+FDDI 120 12.9 962 15.0 962 15.4 962
+Fischer 7 1.9 7737 2.8 7737 2.8 7737
+Fischer 8 5.1 25080 7.7 25080 8.7 25080
+Fischer 9 21.3 81035 29.0 81035 32.4 81035
+Fischer 10 94.4 260998 133.2 260998 149.7 260998
+Lynch 7 2.6 9977 3.6 9977 4.0 9977
+Lynch 8 7.7 30200 12.2 30200 13.9 30200
+Lynch 9 32.8 92555 45.2 92555 54.2 92555
+As can be seen from the data, in general, the a4LU-based
+algorithm performs better in terms of execution time, but the
+interpolation based algorithms might construct a signiﬁcantly
+smaller ART, thus easy conﬁgurability of the tool pays off.
+IV. C ONCLUSIONS
+In this paper we introduced T HETA , a conﬁgurable model
+checking framework for abstraction reﬁnement-based reach-
+ability analysis for different formalisms. We described the
+architecture that helps to implement, evaluate and combine
+various algorithms in a modular way for different formalisms.
+We also demonstrated the applicability of the framework by
+use cases for the veriﬁcation of hardware, PLC, software
+and timed automata models. Results of the evaluation with
+conﬁguring and combining different analysis modules support
+the need for a generic framework, such as T HETA .
+Future work. At the moment the framework focuses on
+ﬂexibility rather than performance (hence it is not yet intended
+to be competitive with highly optimized implementations). We
+are currently extending both the supported formalisms and
+the algorithms. We are working on supporting a wider set
+of elements in the C programming language and on deﬁning
+hierarchical statecharts in T HETA along with an interpreter. We
+are also working on increasing the number of input models
+in our experiments in order to reach stronger conclusions.
+This would also allow us to address the problem of selecting
+2See the web help on http://www.uppaal.org for a language reference
+3http://www.comp.nus.edu.sg/ pat/bddlib/timedexp.htmlthe most suitable conﬁguration for a given veriﬁcation task.
+Moreover, we also plan to experiment with novel, state-of-the-
+art algorithms, e.g., abstractions over data variables for timed
+automata.
+REFERENCES
+[1] T. Ball and S. K. Rajamani, “The S LAM toolkit,” in Computer Aided
+Veriﬁcation , ser. LNCS, vol. 2102. Springer, 2001, pp. 260–264.
+[2] D. Beyer, T. A. Henzinger, R. Jhala, and R. Majumdar, “The software
+model checker B LAST ,”International Journal on Software Tools for
+Technology Transfer , vol. 9, no. 5, pp. 505–525, 2007.
+[3] E. Clarke, D. Kroening, N. Sharygina, and K. Yorav, “S ATABS: Sat-
+based predicate abstraction for ansi-c,” in Tools and Algorithms for the
+Construction and Analysis of Systems , ser. LNCS, vol. 3440. Springer,
+2005, pp. 570–574.
+[4] K. L. McMillan, “Lazy abstraction with interpolants,” in Computer
+Aided Veriﬁcation , ser. LNCS, vol. 4144. Springer, 2006, pp. 123–
+136.
+[5] D. Kroening and G. Weissenbacher, “Interpolation-based software veri-
+ﬁcation with W OLVERINE ,” in Computer Aided Veriﬁcation , ser. LNCS,
+vol. 6806. Springer, 2011, pp. 573–578.
+[6] B. S. Gulavani, S. Chakraborty, A. V . Nori, and S. K. Rajamani,
+“Automatically reﬁning abstract interpretations,” in Tools and Algorithms
+for the Construction and Analysis of Systems , ser. LNCS, vol. 4963.
+Springer, 2008, pp. 443–458.
+[7] A. Albarghouthi, A. Gurﬁnkel, and M. Chechik, “Craig interpretation,”
+inStatic Analysis , ser. LNCS, vol. 7460. Springer, 2012, pp. 300–316.
+[8] D. Beyer and M. E. Keremoglu, “CPA CHECKER : A tool for conﬁgurable
+software veriﬁcation,” in Computer Aided Veriﬁcation , ser. LNCS, vol.
+6806. Springer, 2011, pp. 184–190.
+[9] A. Albarghouthi, Y . Li, A. Gurﬁnkel, and M. Chechik, “U FO: A frame-
+work for abstraction- and interpolation-based software veriﬁcation,” in
+Computer Aided Veriﬁcation , ser. LNCS, vol. 7358. Springer, 2012,
+pp. 672–678.
+[10] G. Kant, A. Laarman, J. Meijer, J. van de Pol, S. Blom, and T. van Dijk,
+“LTS MIN:: High-performance language-independent model checking,”
+inTools and Algorithms for the Construction and Analysis of Systems ,
+ser. LNCS, vol. 9035. Springer, 2015, pp. 692–707.
+[11] L. de Moura and N. Bjørner, “Z3: An efﬁcient smt solver,” in Tools and
+Algorithms for the Construction and Analysis of Systems , ser. LNCS,
+vol. 4963. Springer, 2008, pp. 337–340.
+[12] T. Murata, “Petri nets: Properties, analysis and applications,” Proceed-
+ings of the IEEE , vol. 77, no. 4, pp. 541–580, 1989.
+[13] ´A. Hajdu, T. T ´oth, A. V ¨or¨os, and I. Majzik, “A conﬁgurable CEGAR
+framework with interpolation-based reﬁnements,” in Formal Techniques
+for Distributed Objects, Components, and Systems , ser. LNCS, vol. 9688.
+Springer, 2016, pp. 158–174.
+[14] G. Cabodi, C. Loiacono, M. Palena, P. Pasini, D. Patti, S. Quer, D. Ven-
+draminetto, A. Biere, K. Heljanko, and J. Baumgartner, “Hardware
+model checking competition 2014: An analysis and comparison of
+solvers and benchmarks,” Journal on Satisﬁability, Boolean Modeling
+and Computation , vol. 9, pp. 135–172, 2016.
+[15] B. Fern ´andez Adiego, D. Darvas, E. Blanco Vi ˜nuela, J.-C. Tournier,
+S. Bliudze, J. O. Blech, and V . M. Gonz ´alez Su ´arez, “Applying model
+checking to industrial-sized PLC programs,” IEEE Transactions on
+Industrial Informatics , vol. 11, no. 6, pp. 1400–1410, 2015.
+[16] A. Hajdu and Z. Micskei, “Exploratory analysis of the performance of
+a conﬁgurable CEGAR framework,” in Proceedings of the 24th PhD
+Mini-Symposium . BUTE DMIS, 2017, pp. 34–37.
+[17] G. Sallai, A. Hajdu, T. T ´oth, and Z. Micskei, “Towards evaluating size
+reduction techniques for software model checking,” in Veriﬁcation and
+Program Transformation , ser. EPTCS. Open Publishing Association,
+2017, (Accepted).
+[18] D. Beyer, “Reliable and reproducible competition results with
+BenchExec and witnesses (report on SV-COMP 2016),” in Tools and
+Algorithms for the Construction and Analysis of Systems , ser. LNCS.
+Springer, 2016, vol. 9636, pp. 887–904.
+[19] F. Herbreteau, B. Srivathsan, and I. Walukiewicz, “Lazy abstractions for
+timed automata,” in Computer Aided Veriﬁcation , ser. LNCS, vol. 8044.
+Springer, 2013, pp. 990–1005.
+[20] T. T ´oth and I. Majzik, “Lazy reachability checking for timed automata
+using interpolants,” in Formal Modeling and Analysis of Timed Systems ,
+ser. LNCS, vol. 10419. Springer, 2017, (Accepted).

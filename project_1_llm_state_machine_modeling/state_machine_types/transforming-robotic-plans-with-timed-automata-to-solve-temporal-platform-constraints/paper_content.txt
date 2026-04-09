@@ -1,0 +1,771 @@
+--- Page 1 ---
+Transforming Robotic Plans with Timed Automata
+to Solve Temporal Platform Constraints
+Tarik Viehmann ,Till Hofmann and Gerhard Lakemeyer
+Knowledge-Based Systems Group, RWTH Aachen University, Germany
+fviehmann, hofmann, lakemeyerg@kbsg.rwth-aachen.de
+Abstract
+Task planning for mobile robots typically uses an
+abstract planning domain that ignores the low-level
+details of the speciﬁc robot platform. Therefore,
+executing a plan on an actual robot often requires
+additional steps to deal with the speciﬁcs of the
+robot platform. Such a platform can be modeled
+with timed automata and a set of temporal con-
+straints that need to be satisﬁed during execution.
+In this paper, we describe how to transform an ab-
+stract plan into a platform-speciﬁc action sequence
+that satisﬁes all platform constraints. The transfor-
+mation procedure ﬁrst transforms the plan into a
+timed automaton, which is then combined with the
+platform automata while removing all transitions
+that violate any constraint. We then apply reach-
+ability analysis on the resulting automaton. From
+any solution trace one can obtain the abstract plan
+extended by additional platform actions such that
+all platform constraints are satisﬁed. We describe
+the transformation procedure in detail and provide
+an evaluation in two real-world robotics scenarios.
+1 Introduction
+When using planners to solve robotic tasks, a programmer
+has to model the domain of interest. However, it is often
+problematic to specify the behavior of a robot based on high-
+level domain features alone, as lower-level components may
+impose constraints on the executability of high-level actions.
+As an example, we consider a simple robot that can move
+around, and pick up as well as put down objects. For high-
+level reasoning purposes, it may sufﬁce to only consider the
+actions put, pick, and goto. When actually operating on
+the robot, additional details need to be taken care of, e.g.,
+the perception unit needs to be enabled when picking an ob-
+ject. As the camera needs some time to initialize, it needs to
+be enabled a few seconds before it is used. When moving,
+the robot should disable its perception unit to save computa-
+tional resources. In this scenario, the perception control can-
+not be handled within low-level implementations easily with-
+out either wasting time at each pick (turning it on when the
+robot decides to pick, then wait until it is ready) or wasting
+resources (turning it on when it is unnecessary). The essentialproblem here is that the perception handling is dependent on
+the context determined by the high-level reasoner.
+These low-level constraints could be considered directly by
+the high-level planner. However, this would considerably in-
+crease the domain size and thus impair planner performance.
+Also, it goes against separation of concerns, as the high-level
+planning domain directly incorporates low-level platform de-
+tails. Thus, a separation of high-level reasoning and robot-
+speciﬁc actions is desirable [Hofmann et al., 2018 ].
+In this paper, we instead propose a plan transformation
+based on timed automaton (TA) reachability analysis. We
+model each robot platform component as a TA and deﬁne
+constraints on the platform model using a subset of Metric
+Temporal Logic (MTL). The MTL constraints connect the
+high-level plan with the robot platform, e.g., by requiring that
+the camera is turned on two seconds before the robot performs
+the action pick. Given a high-level plan, we ﬁrst construct a
+TA that represents the plan. Next, we extend the constructed
+TA by replacing each state by a copy of the platform model,
+while removing any edges that violate a constraint. By apply-
+ing reachability analysis on the constructed TA, we obtain a
+sequence of high-level and low-level actions along with exe-
+cution times that satisfy all constraints.
+In the remainder of this paper, we ﬁrst summarize related
+work, before we address some core design decisions of our
+proposed transformation. Then, we summarize the formal-
+ism of MTL and TAs, before we describe how to encode the
+problem as a reachability task on TAs. We evaluate our ap-
+proach on logistics robots as well as on a domestic service
+robot, before we conclude.
+2 Related Work
+Task and motion planning (TAMP) combines high-level task
+planning with low-level motion planning, e.g., with an in-
+terface between task and motion planner to effectively com-
+bine off-the-shelf planners [Srivastava et al., 2014 ], by ex-
+tending the FF heuristics for geometric reasoning [Garrett
+et al., 2015 ], or by using constraint programming to guide
+the high-level search with geometric [Gravot et al., 2005;
+Dantam et al., 2016 ]and temporal constraints [Erdem et al.,
+2011 ]. In contrast to our proposed approach, TAMP never ex-
+tends but instead constrains the high-level plan. Additionally,
+the lower level in our approach differs from TAMP; while
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2083
+
+--- Page 2 ---
+TAMP focuses on motion planning, our low-level compo-
+nents are symbolic representations of arbitrary platform com-
+ponents not restricted to manipulation. In a similar fashion,
+Erdem et al. [2016 ]integrate general feasibility checks into
+an ASP-based planner, either by checking constraints directly
+during search, or by constraining the planner afterwards if
+a feasibility check is violated. Alternatively, external pred-
+icates can be directly embedded into PDDL-based planners
+[Hertle et al., 2012; Dornhege et al., 2012 ], ASP-based plan-
+ners[Erdem et al., 2012 ], and other reasoners such as CC ALC
+[Aker et al., 2011 ]. There, a low-level component sets the
+value of a symbolic atom used by the task planner, which
+allows to integrate platform components, but does not al-
+low for temporal constraints. RMPL [Kim et al., 2001 ]ex-
+tends simple temporal networks into temporal plan networks
+to use a temporal planner to resolve temporal constraints. In
+contrast to the proposed approach, constraints in RMPL ex-
+press relations between actions of the plan and do not pro-
+vide an abstraction of the underlying platform. Konecn `yet
+al.[2014 ]use temporal constraints for execution monitoring,
+but do not use the constraints to augment the original plan.
+Hofmann and Lakemeyer [2018 ]formulate metric temporal
+constraints on G OLOG programs and describe a transforma-
+tion procedure based on MTL synthesis [Hofmann and Lake-
+meyer, 2020 ], but do not provide an implementation.
+Concerning planning via model checking [Cimatti et al.,
+1997; Giunchiglia and Traverso, 2000 ], Li et al. [2012 ]
+compare the performance of different model checking tools
+against planning tools, showing that some model checkers
+can compete with planners. Panek et al. [2006a ]obtain an
+order schedule for a lacquer production plant from reacha-
+bility analysis on TAs extended by weights and communica-
+tion across different TAs with the tool TaOpt [Panek et al.,
+2006b ]. Largou ¨etet al. [2016 ]combine two TA extensions
+to perform planning in an extension of the transport domain
+from the International Planning Competition (IPC). They also
+apply reachability analysis to compute plans. Ziegert and
+Wehrheim [2013 ]decouple time-critical software component
+management from a top-level graph transformation frame-
+work to guarantee exclusive access to resources.
+3 Plan Transformation: Assumptions
+Our goal is to decouple the platform speciﬁcs from the ab-
+stract reasoning. To narrow down this broad objective, we
+postulate core assumptions that form the base of the proce-
+dure this paper presents. Constraints required by the operat-
+ing platform should be modeled separately from the abstract
+reasoning domain. Those constraints are satisﬁed only af-
+ter a high-level course of action is determined. This is done
+by means of a plan transformation that adds platform actions
+to the existing abstract plan. It speciﬁcally does not remove
+or re-order existing plan actions to avoid tampering with the
+feasibility of the initial plan. For the same reason, control-
+ling platform speciﬁcs must not alter the high-level reasoning
+states, hence the platform domain and planning domain are
+disjoint. This enables us to treat the operation of platforms
+as a process that runs in parallel to the execution of domain
+actions. It also allows us to treat the plan actions as atomicpropositions in MTL. In particular, we do not need to know
+about the preconditions and effects of the plan actions, be-
+cause plan actions do not affect platform actions (and vice
+versa). Instead, the dependencies that the transformation en-
+sures may be fully captured in terms of temporal relations
+between the domain actions and the platform states. The re-
+sponsibility of the proposed transformation is therefore to de-
+termine an executable plan together with execution start times
+for each action, based on the temporal restrictions propagated
+by the reasoner, the control restrictions induced by the mod-
+els, and the temporal constraints expressing relations between
+high-level and low-level actions. For simplicity, we assume
+that the robot platform is modeled with a single TA. If mul-
+tiple TAs are modeled, they can be combined by a product
+construction [Alur and Dill, 1994 ].
+4 Foundations
+We brieﬂy summarize suitable formalisms, namely MTL and
+timed automata, to model temporal dependencies.
+4.1 Metric Temporal Logic (MTL)
+MTL [Koymans, 1990 ]extends Linear Time Logic (LTL)
+with timing constraints on the Until modality. One commonly
+used semantics for MTL is a pointwise semantics [Henzinger,
+1998 ], in which formulas are interpreted over timed words.
+Deﬁnition 1 (Timed Words). A timed word over a ﬁnite
+set of atomic propositions is a ﬁnite or inﬁnite sequence
+(0;0) (1;1):::, whereiandi2R0such that
+the sequence (i)is monotonically non-decreasing and non-
+Zeno. The set of timed words over is denoted as T.
+Deﬁnition 2 (Formulas of MTL). Given a set of atomic
+propositions, the formulas of MTL are built as follows:
+::=j :j^jUI
+We use the abbreviations XI:= (?UI)(next ),
+FI:= (>UI)(future) and GI:=:FI:(globally).
+We may omit the interval IifI= [0;1).
+Deﬁnition 3 (Pointwise semantics of MTL). Given a timed
+word= (0;0) (1;1):::over alphabet and an MTL
+formula,;ij=is deﬁned as follows:
+1.;ij=piffp2i2.;ij=:iff;i6j=
+3.;ij=1^2iff;ij=1and;ij=2
+4.;ij=1UI2iff there exists jsuch that
+(1)i < j <jj, (2);jj=2, (3)ji2I, (4) and
+;kj=1for allkwithi<k<j .
+Following [Henzinger, 1998 ], we use the strict semantics
+for the Until modality, which can be translated into the non-
+strict semantics [Ouaknine and Worrell, 2005 ].
+4.2 Timed Automata
+Timed automata [Alur and Dill, 1994 ]extend ﬁnite automata
+by a notion of continuous time. We adopt the deﬁnition of
+Bengtsson and Yi [2004 ].
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2084
+
+--- Page 3 ---
+off
+warm-up
+cw<4running
+cr30true
+boot
+fcwg
+cw>2no-op
+fcrgcr<30shut-off
+fcr;cwg
+cr= 30
+no-op
+fcr;cwg
+Figure 1: TAAcamto model a simple perception unit.
+Deﬁnition 4. Atimed automaton (TA) is a tupleA=
+(L;l 0;E;I )over a ﬁnite set of clocks Cand a ﬁnite alphabet
+E, whereLis a ﬁnite set of locations (also called states);
+l02Lis a starting location; I:L!(C)is the invariant of
+each location; and EL(C)E2CLis the set of
+transitions. (C)denotes the set of clock constraints (also
+called guards), deﬁned by ::=xopcjcopxj^, where
+x2Cis a clock, op2f<;;=;;>gandc2Qis a con-
+stant. Instead of (li;g;a;r;lj)2E, we writelig;a;r!lj2E
+and callrthe set of resets orupdates.
+TAs model behavior depending on continuous time with
+the help of clocks. The current value of clocks is expressed
+viaClock assignments :C!R0, initially all clocks start
+at value 0, then they advance continuously and at the same
+rate. At any given time, a TA Ais in a conﬁguration hli;ii,
+which is valid only if the clock values given through isatisfy
+the constraint I(li). A conﬁguration can be changed by either
+lettingdtime elapse while not changing li, or by taking a tran-
+sitione=lig;a;r!lj2E. Transition emay only be taken
+ifisatisﬁesgand takingechanges all values of clocks in r
+to0. This induces an inﬁnite transition system T(A)where
+the set of states are all possible conﬁgurations and the tran-
+sitions are formed by either delaying for dseconds or taking
+transitionse2E. A path in T(A)is called a timed trace and
+deﬁnes a runonAthrough the labels on the used transitions.
+Each run induces a timed word (0;0) (1;1):::2T
+E,
+establishing a connection between MTL and TAs.
+Thereachability problem on a TA can be stated as follows:
+Given a starting conﬁguration hl;iand a destination state l0
+along with a target clock constraint ', ﬁnd a path from hl;i
+to a conﬁgurationhl0;0iwhere0satisﬁes'. The problem is
+PSPACE-complete and thus decidable [Alur and Dill, 1994 ].
+5 Platform Constraints
+As motivated above, we are given a plan P=ha1;:::;ani
+and a TAAMwith labeled states, as shown in Figure 1. The
+planPdescribes some agent behavior, while the TA AM
+models the speciﬁc robot platform. The edge labels of the
+platform components describe low-level actions that the robot
+can take, e.g., shut-off. The set of plan actions P, the
+low-level actions Eand the state labels Lare assumed to
+be pairwise disjoint. For a timed word we consider it to de-
+scribe a transformed plan, if for each i2:ji\Pj1,
+ji\Ejji\Lj= 1and0\P=;. Hence, in , the
+platform is always in exactly one state, at most one action is
+executed, and the ﬁrst entry contains no action. We connect
+the planPand the platform TA AMby three kinds of tempo-ral constraints formulated in MTL over  = P[E[L.
+5.1 Requiring Certain Platform Actions
+Let us start with constraints postulating how Mhas to be
+controlled during P. Letidenote a disjunction over a subset
+ofPandia disjunction over a subset of L.
+uc(B; 1;2) := G
+(1^X(2_(:1U2)))
+(1^:2)UI1(2^:2)UI2:::(n^:2)UIn2
+whereB:=hh1;I1i;:::;hn;Inii. A so-called until-chain
+constraint ucstates that whenever an action a1matching1
+is followed by a2matching2, without further occurrences
+of1or2in between, then between such a matching pair
+of domain actions a1anda2the platform has to sequentially
+remain in the states speciﬁed through the iinBfor a time
+span given through the intervals Ii.
+Satisfying uc(B; 1;2), given a plan P =
+ha1;:::;ani, equates to grounding a timed word
+(fa1g; 1):::(fang;n)while also extending it by ad-
+ditional platform actions. Consider the TA from Fig-
+ure 1,e:= uc(hrunning; [0;1)i;spick; epick)
+and a planhspick; epicki consisting of a dura-
+tive pick action represented by a start and end action.
+Let:= (fspickg; 1)(fepickg; 2)for some
+1;22Q+. It holds that j= (spick^X(epick_
+(:spickUe pick))) . Hence, the constraint erequires
+(running^:epick) Uepick. Assuming Acamis in
+stateoff prior toP, we could adapt to satisfye:
+0:=(foffg; 0)(fboot; warm-upg; 0)(frunningg; 3)
+(frunning; spickg; 3)(fepickg; 3)
+5.2 Temporal Constraints on Plan Actions
+Furthermore, we may also impose temporal constraints on
+the actions in the abstract plan, e.g., the duration between
+two plan actions. For this, we deﬁne two macros IsDomAct
+andPlanOrder(i), where IsDomAct :=W
+a2Paholds iff the
+current action is a plan action, and PlanOrder(i)holds iff
+the current action is the i-th action in the plan. Given the
+total number of plan actions n, it can be deﬁned as follows:
+PlanOr der
+(i) :=8
+>><
+>>:IsDomAct^:FIsDomAct ifi=n
+IsDomAct^FPlanOrder(i+ 1)
+^:FPlanOrder(i) ifi<n
+? else
+Formulas
+to constrain the time interval Iin which the i-th
+plan action starts can be simply given as follows:
+abs(i;I) :=FIPlanOrder(i)
+We may also require a certain amount of time passing be-
+tween plan actions by specifying the time interval Iin be-
+tween thei-th andj-th plan action, with j >i :
+rel(i;j;I ) := F
+PlanOrder(i)^FIPlanOrder(j)
+Continuing with the example from above, we can adapt 0to
+satisfy a constraint rel(1;2;[15;20]) (requiring a time inter-
+val[15;20]between action 1 and action 2) by adapting the
+grounded times in 0:
+00:=(foffg; 0)(fboot; warm-upg; 0)(frunningg; 3)
+(frunning; spickg; 3)(fepickg; 18)
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2085
+
+--- Page 4 ---
+Agent Reasoner Executor
+Abstract PlanExecutable
+Plan
+Platform Models
+Connective ConstraintsEncoder
+Model CheckerDecoder
+Plan Transformation Platform DesignerAgent Programmer
+Figure 2: Steps to transform abstract plans into executable ones
+based on low-level platform speciﬁcs.
+Listing 1: Transformation Procedure
+1AP:=encode_plan(P;C abs[Crel)
+2Abase:=add_platform_ta(A P;AM)
+3Aenc:=encode_platform_control(A base;Cuc):
+4 For2Cuc:
+5 For (aj;aj0)in get_activations(;P )
+6Abase:=enforce_uc(A base;aj;aj0;)
+7 returnAbase
+8enforce_uc(A curr;aj;aj0;uc(h1;I1i:::hn;In;1;2)):
+9Acontext :=get_sub_ta(A curr;aj;aj0)
+10 Foriinf1;:::;ng:
+11Si:=copy(A context )
+12Si:=restrict(A curr,i,Ii)
+13Atemp:=combine(S 1;:::;Sn;I1;:::;In1)
+14 return replace(A context;Atemp;S1;Sn;In)
+6 Transformation
+Our proposed plan transformation can be summarized as fol-
+lows: (1) Construct a single TA encoding the satisfaction
+of constraints during the plan as a reachability problem to
+a designated goal state (2) Find a symbolic representation of
+traces reaching that state using a model checker (3) Decode
+an actual trace from a symbolic one with grounded execu-
+tion times. An overview of the procedure is shown in Figure
+2. Here we focus on the encoding step, which is the core of
+our approach. The goal of the encoding step is to construct
+one TAAencwith a state fin, such that every run reach-
+ingfin corresponds to a timed word satisfying the given
+constraints (of the form uc;abs andrel) whithin the plan
+P=ha1;:::;aki. Listing 1 gives an overview over the
+necessary steps encode plan, addplatform taand
+encode platform control to constructAenc.
+ConsiderPe=hsgoto; egoto; spick; epicki , a
+plan consisting of start and end actions for the durative ac-
+tionsgoto andpick, together with constraints:
+1:=rel(1;2;[30;45))2:=rel(2;3;[0;0]))
+3:=rel(3;4;[15;20])
+4:=uc(hhoff; [0;1]i;h>;[0;4]ii;sgoto; egoto)
+5:=uc(hhrunning; [0;1]ii;spick; epick)
+The constraints 1;2and3provide the duration of goto
+andpick and enforce that pick follows without any pause
+aftergoto ﬁnishes;4states that during a goto action the
+camera should be turned off until the last 4 seconds of its ex-
+ecution, where it may become necessary to boot the camera
+for a subsequent pick action, which per 5requires a run-
+ning camera for the whole duration. We denote the sets of
+constraints of the respective types by Cuc;CabsandCrel.startlsgoto
+xrel<45legoto
+xrel0lspick
+xrel20lepick fintruesgoto
+fxrelgxrel30
+egoto
+fxrelgtruespick
+fxrelgxrel15
+epick
+fxrelgtrue-
+;
+Figure 3: Encoding plan PeandCabs[Crel.
+6.1 Plan Constraint Encoding
+The procedure encode plan constructs a TAAPwith des-
+ignated states a0:=start andan+1 :=fin such that
+traces from start tofin induce execution time groundings
+ofPrespectingCabs[Crel. The construction is depicted in
+Figure 3 for our running example. Initially, the plan actions
+are translated into states as follows:
+AP:=(LP;start;E P;IP;XP)
+LP:=flaja2Pg[fstart; fing
+EP:=flai>;aj;;!lai+1j0ikg
+IP(l) :=>for alll2LP
+A fresh clock xabsis introduced to encode Cabsas follows:
+Letlb(x;I) :=xa, ifI= [a;b)orI= [a;b]and
+lb(x;I) :=x > a otherwise. Let ub(x;I)be deﬁned analo-
+gously for upper bounds. For each abs(k;Ik)2Cabs, we add
+ub(xabs;Ik)as invariant to lk1. Similarly, the lower bound
+ofIkis added as guard lb(xabs;Ik)on the transition reaching
+lk. Trivial bounds xabs0andxabs<1are omitted.
+Lastly, for each rel(k;k0;I)2Crela new clock xk;k0is
+added that is reset on the incoming transition of lak. Then,
+a clock constraint encoding the lower bound of Iis added
+to the guard on the incoming transition of lak0and the upper
+bound is added as invariant on all states li,ki<k0. This
+step may be optimized by re-using a clock for different con-
+straints when possible, e.g., a single clock xrelcan encode
+all constraints of the form rel(k;k+ 1;I).
+The induced directed graph of the resulting TA APis
+a simple line and time elapsing in state lakcorresponds
+to the time elapsing since starting ak(and before starting
+ak+1). The constructed TA indeed encodes the possible ac-
+tion groundings to the plan that satisfy Cabs[Crel:
+Theorem 1. = (;;0)(fa1g; 1)(fa2g; 2);:::; (fang;n)
+is a timed word satisfying Cabs[Creliff there exists a valid
+timed traceonAPfromstart tofin that induces .
+6.2 Platform Encoding
+We proceed by incorporating the platform TA into the con-
+struction. Listing 1 Line 2 creates a TA Abase based onAP
+such that runs to fin inAbase also include arbitrary control
+according toAM.Abase consists ofk+ 1fresh copiesAak
+ofAM(witha0:=start). For each state l2LPnfin, we
+add its invariant I(l)to each state in the corresponding copy
+Al. For each transition e=lg;a;r!l02EP, we add tran-
+sitions from each state sinAlto the corresponding copy s0
+inAl0(or to fin, ifl0=fin):sg;a;r!s0. Figure 4 shows
+such a constructed TA Abase schematically for our Peand
+Acam, leaving out all annotations on states and transitions.
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2086
+
+--- Page 5 ---
+fin
+Figure 4: Combining Platform and plan. The activation scope of 4
+is marked. :off :warm-up :running
+Theorem 2. Every valid timed trace onAbase from its
+initial state to fin induces a timed word that satisﬁes
+Cabs[Creland the sequence of platform actions within 
+induce a valid run in AM.
+6.3 Platform Constraint Encoding
+Finally, we encode the until-chain constraints Cuc(Listing 1
+Line 3). By iteratively considering for each 2Cucall cor-
+responding scopes aj;aj0within the plan, the procedure en-
+codes the platform controlling constraints. Hence the routine
+enforce ucrestricts the traces reaching fin between the
+start ofajanaj0to remain in states of AMas speciﬁed in .
+Consider4=uc(B4;sgoto; egoto) withB4:=
+hhoff; [0;1]i;h>;[0;4]ii. It states that whenever sgoto
+is followed by egoto without occurrences of sgoto or
+egoto in between, then starting at this sgoto action, the
+platform has to be off for some time, followed by arbitrary
+actions for at most four seconds until the matching egoto
+starts. In other words, while driving, the camera has to be off
+unless the destination is reached within the next four seconds.
+We need to modify each copy AaiinAbase that covers
+the relevant time frame to satisfy the constraint 4. EachAai
+models platform actions in the time frame between two sub-
+sequent plan actions. In Line 9, we construct a sub-automaton
+Acontext that contains all states that might be visited between
+ajanda0
+j, which is shown in Figure 4. An until-chain i
+deﬁnesnsets of states speciﬁed by ithat have to be subse-
+quently visited, which we can enforce by creating ncopiesSi
+ofAcontext (Line 11). Each Siis subsequently restricted fur-
+ther (Line 12) to reﬂect the speciﬁcation of i: First, all states
+not matching iare deleted. Then all those states within Si
+are removed that can never be visited while satisfying idue
+to time conﬂicts imposed by the other constraints.
+Since4describes platform control only between the ﬁrst
+and second plan action in Pe, we end up with two copies
+S1;S2of the initial copy Asgoto. After restricting the pos-
+sible states, we consider the temporal constraints of , which
+are given by the intervals Ii. With a fresh clock xand by
+adding state invariants ub(x;Ii)to each state of Si, the up-
+per bound of Iican be enforced if xis set to 0 when entering
+Si. This is done in the next subroutine combine (Line 13),
+where a single TA is formed out of S1;:::;Snby connect-
+ing statess2LSiwiths02LSi+1as follows: Either sand
+s0are copies of the same state in Acontext , then a transi-
+tionsgi;copy;fxg! s0is added, where gi=lb(x;Ii+1)
+(copy transitions), or there exists a transition scg;a;r!s0
+c
+inAMandsis a copy of sc,s0is a copy of s0
+c, then
+sg^gi;a;r[fxg! s0is added (successor transitions).
+Lastly, the resulting TA Atemp replaces the sub-automaton
+Acontext withinAcurr (Line 14). This can be achieved byfxgfxgx4
+x4x4
+fxgfygfin
+Figure 5: The full encoding of the ongoing example, only annota-
+tions related to the encoding of Cucare shown, trivial constraints
+such asx0andx<1are omitted.
+iterating over all transitions sg;a;r!s0ofAcurr with either
+sinAcontext ands0not inAcontext (incoming transitions)
+or vice versa (outgoing transitions). Any incoming transition
+withs0matching1gets the respective copy within S1as
+new destination and xis added tor. Any outgoing transition
+withsmatchingngets the respective copy within Snas new
+source and lb(x;In)is added tog. All other incoming and
+outgoing transitions are deleted.
+Applying this construction to our example yields a TA as
+shown in Figure 5. When all activations of each 2Cucare
+encoded, our encoding stops with a TA Aenc. The correctness
+of our encoding is covered by Theorem 3.
+Theorem 3. There exists a timed word based onPaug-
+mented by control of AMthat satisﬁes Cabs[Crel[Cuciff
+there exists a run on Aencfromstart tofin.
+7 Evaluation
+Using our implementation taptenc1(timed automata-
+based plan transformation encoding procedure), together
+with the CLI verifyta of the UPPAAL model checking
+suite [Bengtsson et al., 1996 ], we conducted two experiments
+on an Intel i7-8565U 1:8 GHz processor with 16 GB memory.
+UPPAAL does not return concrete timed traces when answer-
+ing reachability queries, but yields a symbolic trace which
+represents possibly inﬁnitely many concrete traces. Consid-
+ering difference bound matrices as symbolic representation
+formalism (such as used by UPPAAL), Bøgsted Poulsen and
+van Vliet [2010 ]describe how to retrieve the fastest concrete
+trace out of a given symbolic one. We adopt that approach in
+our tool to cover the full transformation procedure.
+First, we consider a scenario from the RoboCup Lo-
+gistics League (RCLL) [Niemueller et al., 2013 ]. In the
+RCLL, robots have to move workpieces between machines
+and instruct those machines to assemble a product. We
+apply the transformation to possible production sequences
+of varying length in a simpliﬁed RCLL setting. The do-
+main consists of the actions goto(m,m’), pick(o,m),
+get-from-shelf(o,m), put(o,m), and pay(o,m). The
+robot platform is modeled via three different timed automata.
+Aperc offers control over the perception to activate a camera
+when necessary, trigger object detection to validate grasping
+attempts as well as providing images to human supervisors
+during those attempts. Acalib manages the occasional need
+to calibrate an axis-driven gripper. Depending on the situ-
+ation, a calibration may be undesirable, e.g., to avoid axis
+movement when holding something. Lastly, Acomm(m)al-
+lows to send instructions to a machine mto modify a product.
+1https://github.com/TarikViehmann/taptenc
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2087
+
+--- Page 6 ---
+Time (s)
+Platform TA trans load ta reach tracer # states
+perc 0.32 0.11 0.08 0.03 655
+calib 0.07 0.04 0.03 0.01 271
+comm 0.02 0.01 0.01 0.01 69
+perc +calib 0.63 0.85 0.58 0.14 2660
++ 1xcomm 1.2 2.4 1.6 0.26 4566
++ 2xcomm 2.0 4.0 2.5 0.38 5645
++ 3xcomm 4.2 8.7 4.9 0.63 8600
++ 4xcomm 13.5 18.1 9.0 1.1 13883
+Table 1: Average execution times of ﬁve runs on plans of length 50.
+trans: building the encoding and decoding, load ta: required
+preprocessing step of verifyta, reach: reachability analysis,
+tracer: computation of a concrete trace.
+Time (s) # states
+Plan
+length perc calibperc
++calib perc calibperc
++calib
+50 .6 .1 2.1 662 269 2574
+100 2.0 .5 7.7 1325 527 5513
+150 4.9 .1 15.5 1978 769 8297
+300 19.2 2.9 53.1 3953 1538 16476
+Table 2: Average total transformation time and encoding size of ﬁve
+runs on plans with varying lengths.
+As a ﬁrst experiment, we consider plans of length 50with
+a varying number of platform TAs (including multiple in-
+stances ofAcomfor different machines), as shown in Table 1.
+We can see that our approach is suitable to be used in typi-
+cal robotics applications, given a limited number of platform
+components. The size of the encoded TAs is a major factor
+considering both the time spent by verifyta to load the
+TA and by taptenc to produce the encoding. Interestingly,
+the model checking task is not the limiting factor in the con-
+ducted tests, which we assume is due to the guidance that the
+explicit encoding gives to the underlying task. As a second
+experiment, we examined how the transformation scales as
+the plan length increases, as shown in Table 2. The results
+show that the presented approach is able to transform plans
+with150domain actions in reasonable time.
+Lastly, we evaluated our approach in a domestic service
+robot scenario based on [Hofmann et al., 2016 ]. The robot
+is tasked to clean up a table full of cups. Clean cups have to
+be placed on a shelf, dirty ones belong in a dishwasher. In
+the domain, the robot must (a) align to the furniture properly
+before picking up a cup, (b) scan surfaces before picking up
+or putting down a cup, (c) back off an object before mov-
+ing away from it. We modiﬁed the domain to be suitable for
+temporal planning and considered scenarios with a varying
+number of cups on the table. We built a simpliﬁed domain
+without the special requirements (a)-(c) and decoupled them
+in a separate platform TA. Our plan transformation procedure
+then inserts platform actions to compute a feasible solution.
+We used TFD [Eyerich et al., 2009 ]for planning both on the
+full and the simpliﬁed domain and conﬁgured it to stop when
+the ﬁrst plan was found. The plans obtained from the simple
+ 0.001 0.01 0.1 1 10 100 1000
+ 0  2  4  6  8  10  12  14  16Time (s)
+Number of cupsTFD (w/ platform actions)
+TFD (w/o platform actions)
+Platform transformation
+TFD (w/o platform actions) + platform transformationFigure 6: Planning with platform-speciﬁc actions versus planning
+on the simpliﬁed household domain followed by a transformation to
+include platform actions. Planning time was limited to 300s.
+domain were then used as input for taptenc. The results
+are summarized in Figure 6. From those we conclude that
+decoupling of platform constraints helped to reduce the over-
+all runtime on complex problem instances signiﬁcantly, while
+causing minor computational overhead on small tasks.
+8 Conclusion
+We developed a procedure to transform an abstract plan into
+an executable action sequence that considers all platform
+speciﬁcs that were ignored in the abstract domain. Such an
+abstract plan may be determined by a planner or by any other
+reasoning system that produces action sequences. Having
+platform components decoupled from the high-level domain
+allows to adapt low-level speciﬁcs without changing the high-
+level reasoner, as different concerns are clearly separated. It
+also simpliﬁes the high-level domain, which may improve
+the reasoner’s performance. We represent platform compo-
+nents as timed automata (TAs) and express the connection
+between such automata models and the abstract domain with
+constraints from a subset of Metric Temporal Logic (MTL).
+The proposed transformation ﬁrst combines the abstract plan
+and the platform components into a single TA and then ap-
+plies reachability analysis to determine an execution trace.
+We evaluated the approach on real-world scenarios from the
+RoboCup Logistics League and from a domestic service robot
+setting. Both scenarios showed that our approach is able to
+transform an abstract plan in reasonable time, even when
+dealing with large problems. The proposed approach also
+outperforms an alternative approach, where the platform de-
+tails are directly encoded into the planning problem.
+Acknowledgements
+This work is funded by the Deutsche Forschungsgemein-
+schaft (DFG, German Research Foundation) under grants
+GL-747/23-1, GRK 2236/1, and under Germany’s Excellence
+Strategy – EXC-2023 Internet of Production – 390621612.
+This work is partially supported by the EU ICT-48 2020
+project TAILOR (No. 952215).
+We thank Stefan Schupp for an insightful initial discussion
+on timed automata modelling.
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2088
+
+--- Page 7 ---
+References
+[Aker et al., 2011 ]Erdi Aker, Ahmetcan Erdogan, Esra Erdem, and
+V olkan Patoglu. Causal reasoning for planning and coordina-
+tion of multiple housekeeping robots. In Logic Programming and
+Nonmonotonic Reasoning, 2011.
+[Alur and Dill, 1994 ]Rajeev Alur and David L. Dill. A theory of
+timed automata. Theoretical Computer Science, 126(2), 1994.
+[Bengtsson and Yi, 2004 ]Johan Bengtsson and Wang Yi. Timed
+Automata: Semantics, Algorithms and Tools. In Lectures on
+Concurrency and Petri Nets: Advances in Petri Nets. Springer,
+2004.
+[Bengtsson et al., 1996 ]Johan Bengtsson, Kim Larsen, Fredrik
+Larsson, Paul Pettersson, and Wang Yi. UPPAAL — a tool suite
+for automatic veriﬁcation of real-time systems. In Hybrid Sys-
+tems III, 1996.
+[Bøgsted Poulsen and van Vliet, 2010 ]Danny Bøgsted Poulsen
+and Jonas van Vliet. Concrete Delays for Symbolic Traces.
+Master’s thesis, Aalborg University, 2010.
+[Cimatti et al., 1997 ]Alessandro Cimatti, Enrico Giunchiglia,
+Fausto Giunchiglia, and Paolo Traverso. Planning via model
+checking: A decision procedure for AR. In Recent Advances
+in AI Planning, 1997.
+[Dantam et al., 2016 ]Neil T. Dantam, Zachary K. Kingston,
+Swarat Chaudhuri, and Lydia E. Kavraki. Incremental task and
+motion planning: A constraint-based approach. In Robotics: Sci-
+ence and Systems XII, 2016.
+[Dornhege et al., 2012 ]Christian Dornhege, Patrick Eyerich,
+Thomas Keller, Sebastian Tr ¨ug, Michael Brenner, and Bernhard
+Nebel. Semantic attachments for domain-independent planning
+systems. In Towards Service Robots for Everyday Environments:
+Recent Advances in Designing Service Robots for Complex Tasks
+in Everyday Environments. Springer, 2012.
+[Erdem et al., 2011 ]E. Erdem, K. Haspalamutgil, C. Palaz,
+V . Patoglu, and T. Uras. Combining high-level causal reason-
+ing with low-level geometric reasoning and motion planning for
+robotic manipulation. In Proc. of ICRA, 2011.
+[Erdem et al., 2012 ]Esra Erdem, Erdi Aker, and V olkan Patoglu.
+Answer set programming for collaborative housekeeping
+robotics: Representation, reasoning, and execution. Intelligent
+Service Robotics, 5(4), 2012.
+[Erdem et al., 2016 ]Esra Erdem, V olkan Patoglu, and Peter
+Sch¨uller. A systematic analysis of levels of integration between
+high-level task planning and low-level feasibility checks. AI
+Communications, 29(2), 2016.
+[Eyerich et al., 2009 ]Patrick Eyerich, Robert Mattm ¨uller, and
+Gabriele R ¨oger. Using the context-enhanced additive heuristic
+for temporal and numeric planning. In Proc. of ICAPS, 2009.
+[Garrett et al., 2015 ]Caelan Garrett, Tom ´as Lozano-P ´erez, and
+Leslie Kaelbling. FFRob: An efﬁcient heuristic for task and mo-
+tion planning. In Algorithmic Foundations of Robotics XI: Se-
+lected Contributions of the 11th International Workshop on the
+Algorithmic Foundations of Robotics. Springer, 2015.
+[Giunchiglia and Traverso, 2000 ]Fausto Giunchiglia and Paolo
+Traverso. Planning as Model Checking. In Recent Advances in
+AI Planning, 2000.
+[Gravot et al., 2005 ]Fabien Gravot, Stephane Cambon, and Rachid
+Alami. aSyMov: A Planner That Deals with Intricate Symbolic
+and Geometric Problems. In Proc. of ISRR, 2005.[Henzinger, 1998 ]Thomas A. Henzinger. It’s about time: Real-
+time logics reviewed. In Proc. of CONCUR. Springer, 1998.
+[Hertle et al., 2012 ]Andreas Hertle, Christian Dornhege, Thomas
+Keller, and Bernhard Nebel. Planning with semantic attachments:
+An object-oriented view. In Proc. of ECAI, 2012.
+[Hofmann and Lakemeyer, 2018 ]Till Hofmann and Gerhard Lake-
+meyer. A Logic for Specifying Metric Temporal Constraints for
+Golog Programs. In Proc. of CogRob, 2018.
+[Hofmann and Lakemeyer, 2020 ]Till Hofmann and Gerhard Lake-
+meyer. Controller synthesis for Golog programs over ﬁnite do-
+mains with metric temporal constraints. Poster at KR, 2020.
+[Hofmann et al., 2016 ]Till Hofmann, Tim Niemueller, Jens
+Claßen, and Gerhard Lakemeyer. Continual Planning in Golog.
+InProc. of AAAI, 2016.
+[Hofmann et al., 2018 ]Till Hofmann, Victor Matar ´e, Stefan Schif-
+fer, Alexander Ferrein, and Gerhard Lakemeyer. Constraint-
+Based Online Transformation of Abstract Plans into Executable
+Robot Actions. In AAAI Spring Symposium: SIRLE, 2018.
+[Kim et al., 2001 ]Phil Kim, Brian C Williams, and Mark Abram-
+son. Executing reactive, model-based programs through graph-
+based temporal planning. In Proc. of IJCAI, 2001.
+[Konecn `yet al., 2014 ]S. Konecn `y, Sebastian Stock, Federico Pec-
+ora, and Alessandro Safﬁotti. Planning domain + execution se-
+mantics: A way towards robust execution. In AAAI Spring Sym-
+posium on Qualitative Representations for Robots, 2014.
+[Koymans, 1990 ]Ron Koymans. Specifying real-time properties
+with metric temporal logic. Real-Time Systems, 2(4), 1990.
+[Largou ¨etet al., 2016 ]Christine Largou ¨et, Omar Krichen, and Yu-
+long Zhao. Temporal Planning with extended Timed Automata.
+InProc. of ICTAI, 2016.
+[Liet al., 2012 ]Y . Li, J. Sun, J. S. Dong, Y . Liu, and J. Sun. Plan-
+ning as Model Checking Tasks. In Proc. of SEW, 2012.
+[Niemueller et al., 2013 ]Tim Niemueller, Daniel Ewert, Sebastian
+Reuter, Alexander Ferrein, Sabina Jeschke, and Gerhard Lake-
+meyer. RoboCup Logistics League Sponsored by Festo: A Com-
+petitive Factory Automation Testbed. In RoboCup Symposium,
+2013.
+[Ouaknine and Worrell, 2005 ]J. Ouaknine and J. Worrell. On the
+decidability of metric temporal logic. In Proc. of LICS, 2005.
+[Panek et al., 2006a ]Sebastian Panek, Sebastian Engell, and Olaf
+Stursberg. Scheduling and planning with timed automata. In
+Computer Aided Chemical Engineering, volume 21. Elsevier,
+2006.
+[Panek et al., 2006b ]Sebastian Panek, Olaf Stursberg, and Sebas-
+tian Engell. Efﬁcient synthesis of production schedules by opti-
+mization of timed automata. Control Engineering Practice, 14,
+2006.
+[Srivastava et al., 2014 ]S. Srivastava, E. Fang, L. Riano, R. Chit-
+nis, S. Russell, and P. Abbeel. Combined task and motion plan-
+ning through an extensible planner-independent interface layer.
+InProc. of ICRA, 2014.
+[Ziegert and Wehrheim, 2013 ]Steffen Ziegert and Heike
+Wehrheim. Temporal reconﬁguration plans for self-adaptive
+systems. In Software Engineering, 2013.
+Proceedings of the Thirtieth International Joint Conference on Artiﬁcial Intelligence (IJCAI-21)
+2089

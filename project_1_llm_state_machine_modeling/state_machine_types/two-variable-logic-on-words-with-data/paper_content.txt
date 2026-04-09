@@ -1,0 +1,1060 @@
+--- Page 1 ---
+Two-Variable Logic on Words with Data∗
+Mikołaj Boja ´nczyk
+Warsaw UniversityAnca Muscholl
+LIAFA, Paris VIIThomas Schwentick
+Dortmund UniversityLuc Segouﬁn
+INRIA, Paris XIClaire David
+LIAFA, Paris VII
+Abstract—In adata word each position carries a
+label from a ﬁnite alphabet and a data value from
+someinﬁnitedomain.Thesemodelshavebeenalready
+considered in the realm of semistructured data, timed
+automata and extended temporal logics.
+It is shown that satisﬁability for the two-variable
+ﬁrst-order logic FO2(∼,<,+1)is decidable over ﬁnite
+and over inﬁnite data words, where ∼is a binary
+predicate testing the data value equality and +1,<
+are the usual successor and order predicates. The
+complexity of the problem is at least as hard as Petri
+net reachability. Several extensions of the logic are
+considered, some remain decidable while some are
+undecidable.
+I. INTRODUCTION
+Finding decidable logics for models that handle
+data values is an important problem in several
+areas that need algorithmic procedures for prop-
+erty validation. Examples can be found in both
+program veriﬁcation and database management. In
+this paper we reconsider a data model that was
+investigated both in veriﬁcation (related to timed
+languages [1] and extended temporal logics [4])
+and in XML reasoning [16]. As in these papers,
+data values are modeled by an inﬁnite alphabet,
+consisting of a ﬁnite and an inﬁnite part. The logic
+canaddresstheﬁnitepartdirectly,whiletheinﬁnite
+part can only be tested for equality. As a ﬁrst step,
+this paper considers simple models: words, both
+ﬁnite and inﬁnite.
+Our main result is that the satisﬁability prob-
+lem for two variable ﬁrst-order logic extended by
+equality tests for data values – FO2(∼,<,+1)for
+short – is decidable over word models. When more
+variables are permitted, or when a linear order on
+the data values is available, or when more than
+two equivalence relations are present, the logic
+becomes undecidable.
+Following [1], a data word is a ﬁnite sequence
+of positions having each a label over some ﬁnite
+alphabet together with a data value over some
+inﬁnite alphabet. The logic admits the equality
+testx∼y, which is satisﬁed if both positions
+carry the same data value. Moreover, there are two
+∗Work supported by the French-German cooperation pro-
+gramme PROCOPE, the EU-TMR network GAMES and Polish
+MNII grant 4 T11C 042 25navigational predicates on strings: the linear order
+<and the successor relation +1. (With only two
+variables, the successor +1cannot be deﬁned in
+terms of the order <.) As usual we also have a
+unary predicate corresponding to each letter of the
+ﬁnite alphabet.
+Perhaps surprisingly, we show that the satisﬁa-
+bility problem for FO2(∼,<,+1)is closely related
+to the well known problem of reachability for
+Petri nets. More precisely we show that languages
+formed by the projection onto the ﬁnite alphabet
+of word models deﬁnable by an FO2(∼,<,+1)
+sentence are recognized by multicounter automata
+(which are equivalent to Petri nets [7]). The con-
+verse is also true, modulo an erasing inverse mor-
+phism. Moreover, the correspondences are effec-
+tive. We give a 2E XPTIMEreduction of satisﬁa-
+bility for FO2(∼,<,+1)to emptiness for multi-
+counter automata which is known to be decidable
+[11], [14]. For the opposite direction we provide a
+PTIMEreduction from emptiness for multicounter
+automata to satisﬁability for FO2(∼,<,+1). Since
+there is no known elementary upper bound for
+emptiness for multicounter automata (see e.g. [5]),
+ﬁnding the exact complexity of satisﬁability for
+FO2(∼,<,+1)formulas is a hard question.
+The decidability of FO2(∼,<,+1)immediately
+implies the decidability of EMSO2(∼,<,+1).
+Here EMSO2stands for the closure of FO2under
+existential quantiﬁcation of sets of nodes. Without
+data values, EMSO2(+1)has the same expressive
+power as MSO. In this sense the decidability of
+EMSO2(∼,<,+1)can be seen as an extension of
+the classical decidability result of monadic second-
+order logic over strings.
+We also show that the satisﬁability problem
+forFO2(∼,<,+1)remains decidable over data ω-
+words. In this case we no longer recognize the
+string projection of deﬁnable languages but we
+show that, again using emptiness of multicounter
+automata,itisdecidablewhetheran FO2(∼,<,+1)
+formula is satisﬁed in a data ω-word whose string
+projection is ultimately periodic.
+We then show that our decision procedure works
+even when the logic is extended by predicates /moo1
+and+2,+3, ... Here /moo1is a binary predicate,
+
+--- Page 2 ---
+which relates two positions if they have the same
+data value, but all positions between them have a
+different data value. The +kbinary predicate, on
+the other hand, generalizes the successor predicate
++1to thekth successor.
+The paper is organized as follows. The main
+result – a decision procedure for satisﬁability of
+FO2(∼,<,+1)– is presented in Section III. In the
+proof, a concept of data automaton is introduced.
+There are two steps: ﬁrst we show in Section IV
+that each language deﬁnable in FO2(∼,<,+1)can
+be recognized by a data automaton; then we show
+in Section V how emptiness for data automata
+can be decided using multicounter automata. The
+reduction from reachability of multicounter au-
+tomata to satisﬁability of FO2(∼,<,+1)is shown
+in Section VI. In Section VII, we extend the main
+decidability result: ﬁrst by adding new predicates,
+second by considering ω-words. In Section VIII,
+we show that the logic becomes undecidable when:
+a) three variables are allowed (even without the
+order<); or b) a linear order on data values is
+included. Finally, we conclude with a discussion
+of the results. Because of space limitation some
+proofs are missing and are available only in the
+full version of this paper.
+Related work. Automata on ﬁnite strings of
+data values (without labels) were introduced in
+[18], [9]. They used registers to store data values
+and data values could be compared wrt. equality.
+In [16] register automata and pebble automata
+over such words were studied. Several versions
+of these automata (one-way/two-way, determin-
+istic/nondeterministic/alternating) were compared.
+Most of the results were negative however, i.e.,
+most models are undecidable. Register automata
+have been also considered by Bouyer et al. [1] in
+the context of timed languages. However, the au-
+tomata considered therein have a limited expressive
+power and cannot test data equality on arbitrary
+two positions (they are one-way automata). In
+particular the string projection of any language rec-
+ognized by their automata is regular. As mentioned
+above, this is not the case for the logic considered
+in this paper.
+In [4] an extension of LTL was given which
+can manipulate data values using a freezeop-
+erator. Their decidable fragment is incompara-
+ble to FO2(∼,<,+1)as it can only process the
+word left-to-right, but can express properties that
+FO2(∼,<,+1)cannot.
+Restricting ﬁrst-order logic to its two-variable
+fragment is a classical idea when looking for
+decidability [8]. Over graphs or over any relationalstructures, ﬁrst-order logic is undecidable, while
+its two-variable fragment is decidable [15]. This
+does not imply anything on the decidability of
+FO2(∼,<,+1), since the equivalence relation, the
+successor relation and the order <cannot be ax-
+iomatized with only two variables. A recent paper
+generalized the result of [15] in the presence of
+one or two equivalence relations [10]. Again this
+does not apply to our context as we also have the
+order and the successor relation. However [10] also
+showed that FO2withthreeequivalence relations,
+without any other structure, is undecidable. This
+implies immediately that we cannot extend the
+decidability result to data words with more than
+two data parts.
+In the context of XML reasoning we considered
+FO2(∼,+1)over unranked ordered data trees [2]
+and showed the decidability of the satisﬁability
+question. In this context, the predicate +1stands
+for two successor predicates, one for the vertical
+axis and one for the horizontal one. As data words
+are special cases of data trees, this implies the
+decidability of FO2(∼,+1)over words. The com-
+plexity for data trees is in 3NE XPTIMEbut it be-
+comes 2NE XPTIMEwhen restricted to data words.
+This should be contrasted with the complexity of
+satisﬁability of FO2(∼,<,+1)which is not known
+to be elementary.
+On strings over a ﬁnite alphabet (without data
+values), the FO2(<,+1)fragment of ﬁrst-order
+logic is very well understood. A characterization in
+terms of temporal logic says that it is equivalent to
+LTL restricted to the unary operators F,G,Xand
+their past counterparts [6]. In terms of automata,
+FO2(<)is equivalent to partially-ordered, two-
+way deterministic ﬁnite automata [17], while in
+terms of algebra the logic corresponds to the semi-
+group variety DA [19]. The satisﬁability question
+is NEXPTIME-complete in [6] (using an arbitrary
+number of unary predicates).
+II. PRELIMINARIES
+LetΣbe a ﬁnite alphabet of labelsandDan
+inﬁnite set of data values . Adata word w=
+w1···wnis a ﬁnite sequence over Σ×D, i.e.,
+eachwiis of the form (ai,di)withai∈Σand
+di∈D.Adatalanguage isasetofdatawords,for
+some Σ. The idea is that the alphabet Σis accessed
+directly, while data values can only be tested for
+equality.Thisamountstoconsideringwordsover Σ
+endowed with an equivalence relation on the set of
+positions. The string str (w) =a1···anis called
+thestring projection ofA. Themarked string
+projection mstr(w) = (a1,b1)···(an,bn)∈(Σ×
+2
+
+--- Page 3 ---
+{0,1})∗ofwadds a new coordinate, where bi= 1
+on all positions iwith the same data value as
+i−1. For a language of data words L, we write
+str(L)for{str(w)|w∈L}and mstr (L)for
+{mstr(w)|w∈L}.
+Aclassis a maximal set of positions in a
+data word with the same data value. For a class
+with positions i1<···< i ktheclass string
+isai1···aikand the marked class string is
+(ai1,bi1)···(aik,bik), with thebias above.
+Data words can be seen as models for ﬁrst-order
+logic, where the carrier of the model is the set of
+positions in the word. Let FO(∼,<,+1)be ﬁrst-
+order logic with the following atomic predicates:
+x∼y,x<y,x=y+ 1, and a predicate a(x)for
+everya∈Σ. The interpretation of a(x)is that the
+label in position xisa. The order<and successor
++1are interpreted in the usual way. Two positions
+satisfyx∼yif they have the same data value. We
+writeL(ϕ)for the set of data words that satisfy
+the formula ϕ. A formula satisﬁed by some data
+word issatisﬁable .
+We write FOkfor formulas using at most k
+variables. Note that the following examples use 2
+variables only.
+Example: We present here a formula ϕsuch that
+str(L(ϕ))is exactly the set of all words over {a,b}
+that contain the same number of a’s andb’s.
+•The formula ϕasays alla’s are in different
+classes:
+ϕa=∀x∀y(x/negationslash=y∧a(x)∧a(y))→x/negationslash∼y .
+Similarly we deﬁne ϕb.
+•The formula ψa,bsays each class with an a
+also contains a b:
+ψa,b=∀x∃y/parenleftbig
+a(x)→(b(y)∧x∼y)/parenrightbig
+.
+Similarly we deﬁne ψb,a.
+•Hence, in a data word satisfying ϕ=ϕa∧
+ϕb∧ψa,b∧ψb,athe numbers of aandb-labeled
+positions are equal.
+This can be easily extended to describe data words
+with an equal number of a’s,b’s andc’s, hence a
+language with a non-context-free string projection.
+Example: Fora∈Σthe formula below is satisﬁed
+precisely by the ﬁrst awhich has an ain a different
+classonitsleft,i.e.,theﬁrst ainthesecond a-class.
+a(x)∧ ∃y(y<x ∧a(y)∧x/notsimilary)∧
+∀y(y<x ∧a(y))→
+[x/notsimilary∧ ∀x/parenleftbig
+(x<y ∧a(x) )→x∼y/parenrightbig
+]
+Note how in this example the variable xis reused.III. DECIDABILITY OF FO2(∼,<,+1)
+The main result of this paper is:
+Theorem 1 Satisﬁability of FO2(∼,<,+1)over
+data word models is decidable.
+ThebasicideaoftheproofofTheorem1istocom-
+pute for each formula ϕa multicounter automaton
+that recognizes str (L(ϕ)). As an intermediate step,
+we use a new type of ﬁnite automaton that works
+over data words, called a data automaton (these
+will be deﬁned in Section IV). Theorem 1 follows
+immediately from the following three statements.
+Proposition 2 Every language deﬁnable in
+FO2(∼,<,+1)is recognized by an effectively
+obtained data automaton.
+Proposition 3 From each data automaton we can
+compute a multicounter automaton recognizing the
+string projection of its recognized language.
+Theorem 4 [11], [14] Emptiness of multicounter
+automata is decidable.
+Proposition 2 is shown in Section IV, and Propo-
+sition 3 is shown in Section V. Regarding com-
+plexity, satisﬁability of a FO2(∼,<,+1)formula
+is reduced in 2E XPTIMEto the emptiness of a
+multicounterautomatonofdoublyexponentialsize.
+IV. DATA AUTOMATA
+In this section we deﬁne data automata1, a
+means to deﬁne data languages, and show that they
+can recognize all languages of data words deﬁnable
+inFO2(∼,<,+1).
+Adata automaton D= (A,B)consists of
+•a nondeterministic letter-to-letter string trans-
+ducer A(thebase automaton ) with input
+alphabet Σ× {0,1}, for some Σand some
+output alphabet Γ(letter-to-letter means that
+each transition reads and writes exactly one
+symbol), and
+•a nondeterministic string automaton B(the
+class automaton ) with input alphabet Γ.
+A data word w=w1···wn∈(Σ×D)∗is
+accepted by Dif there is an accepting run of A
+on the marked string projection of w, yielding an
+output string b1···bn, such that, for each class
+{x1,...,x k} ⊆ { 1,...,n },x1<···< x k, the
+class automaton accepts bx1,...,b xk.
+1Our data automata differ from what is called data automaton
+in [1], which are essentially 1-way automata with one register.
+3
+
+--- Page 4 ---
+As an example, consider the property: “ whas
+at least two classes with an a”. The data au-
+tomaton for this property works as follows. The
+base automaton nondeterministically chooses two
+positions with an aand outputs 1 on each of them
+and 0 everywhere else. If there are no such two
+positionsitrejects.Theclassautomatonchecksthat
+each class contains at most one 1, thus verifying
+that the two positions were chosen from different
+classes. We call below renaming a letter-to-letter
+morphism, that is a morphism deﬁned as h: Σ→
+Σ/prime, where Σ,Σ/primeare alphabets.
+Lemma 5 Languagesrecognizedbydataautomata
+are closed under union, intersection, and renaming.
+Proof.Closure under union and intersection is
+obtained using the usual product construction. Clo-
+sure under renaming is obtained using the non-
+determinism of the base automaton. /square
+The same cannot be said about negation. Indeed,
+if we were to have effective closure under negation,
+thenalldatalanguagesdeﬁned bymonadicsecond-
+order logic could be effectively translated into
+data automata, as we show that data automata
+recognize all of EMSO2(∼,<,+1). This would be
+a contradiction, since we show that emptiness of
+data automata is decidable, while satisﬁability is
+undecidable for monadic second-order logic [16]
+(even for ﬁrst-order logic, see Proposition 20).
+The following lemma presents a family of data
+languages recognizable by data automata which
+will be used later in the proof.
+Lemma 6 For any given regular language L⊆
+(Σ× {0,1})∗, there is a data automaton accepting
+all data strings w, for which each marked class
+string belongs to L.
+Proof.Thebaseautomatonjustcopiesitsinput Σ×
+{0,1}and the class automaton checks membership
+inL. /square
+One can also verify if somemarked class string
+belongs toL: for each position i, the base automa-
+ton nondeterministically chooses to either output
+the input symbol aior a special symbol ⊥. It
+accepts, if it outputs at least one non- ⊥symbol.
+The class automaton accepts the language L∪ ⊥∗.
+A. Reduction to data automata
+ThegoalofthissectionistoproveProposition2,
+i.e. to transform a formula of FO2(∼,<,+1)into
+anequivalentdataautomatonofdoublyexponential
+size. The transformation is done in two steps, ﬁrstwe rewrite the given formula into “intermediate
+normal form”, and then we show that the normal
+form can be recognized by data automata. Each
+step gives an exponential blowup.
+In the ﬁrst step, we transform FO2(∼,<,+1)
+formulas into an intermediate normal form (we
+denote as typebelow any conjunction of unary
+predicates or their negations):
+Deﬁnition 7 A formula is said to be in in-
+termediate normal form if it is of the form
+∃R1···Rm(θ1∧ ··· ∧θn), where ∃R1···Rm
+quantiﬁes over unary predicates (sets of positions)
+and eachθiis of one of the following kinds:
+(1)∀x∀y/bracketleftbig
+ρ(x,y)∧α(x)∧β(y)∧δ(x,y)/bracketrightbig
+→
+γ(x,y)
+(2)∀x∃y α (x)→/bracketleftbig
+β(y)∧δ(x,y)∧/epsilon1(x,y)/bracketrightbig
+(3)∀x∀y ψ
+where
+•αandβare types,
+•ρ(x,y) = (x/negationslash=y+ 1∧y/negationslash=x+ 1∧x/negationslash=y),
+•δ(x,y)isx∼yorx/negationslash∼y,
+•γ(x,y)isx<y,x>y, orff, and
+•/epsilon1(x,y)isx+ 1< y,x+ 1 =y,x=y,
+x=y+ 1orx>y + 1,
+•ψis a quantiﬁer free formula in DNF that
+doesn’t use ∼.
+Here,x+ 1<yis an abbreviation for x<y ∧x+
+1/negationslash=y.
+Formally speaking, a formula in intermediate
+normal form is a normal form of EMSO2(∼,<
+,+1), the extension of FO2(∼,<,+1)by existen-
+tial monadic second-order predicates quantiﬁcation
+in front of FO2(∼,<,+1)formulas. Note that as
+far as satisﬁability is concerned FO2(∼,<,+1)and
+EMSO2(∼,<,+1)are equivalent.
+Lemma 8 Every formula of FO2(∼,<,+1)can be
+effectively transformed into an equivalent formula
+in intermediate normal form of exponential size,
+with exponentially many unary predicates Ri.
+Proof.The overall idea is classical: we reduce the
+quantiﬁer depth to 2, then we add unary pred-
+icates that color certain distinguished positions,
+resp. classes containing distinguished positions.
+These additional colors are then used to simplify
+the formulas.
+The formal proof proceeds in three steps.
+Step 1:Scott normal form
+The ﬁrst step is classical for two variable logics
+(see e.g. [8]). It says that each FO2(∼,<,+1)
+4
+
+--- Page 5 ---
+formulaϕis equivalentwith respect tosatisﬁability
+to a (linear size) formula ϕ/primeinScott Normal Form ,
+∀x∀y χ∧/logicalanddisplay
+i∀x∃y χi,
+whereχand eachχiare quantiﬁer-free. The sig-
+nature ofϕ/primeis an extension of the signature of ϕ
+by (linearly many) unary predicates. Furthermore,
+a data word satisﬁes ϕif and only if it can be
+extended by additional predicates to a word satis-
+fyingϕ/prime. The additional unary predicates are the
+relationsRiwhich are existentially quantiﬁed by
+the formula. The additional predicates state which
+subformulas are satisﬁed at a given position.
+Hence,ϕis equivalent to a formula of the form
+∃R1···∃Rm/parenleftbig
+∀x∀y χ∧/logicalanddisplay
+i∀x∃y χi/parenrightbig
+.
+Step 2:Dealing with ∀x∀y χ.
+In the second step we show that the formula
+∀x∀y χcan be replaced by a formula
+∃R1···∃Rm/logicalanddisplay
+iθi∧/logicalanddisplay
+i=1,2,3∀x∃y ξi
+where theξiare again quantiﬁer-free and each θi
+is of the form (1) (from Deﬁnition 7). Moreover,
+the number of θiis exponential.
+To this end, we ﬁrst rewrite ∀x∀y χinto the
+following form:
+∀x∀y/parenleftbig
+y=x+ 1→ψy=x+1(x,y)
+∧x=y+ 1→ψx=y+1(x,y)
+∧x=y→ψx=y(x,y)
+∧ρ(x,y)→ψρ(x,y)/parenrightbig
+where theψformulas are quantiﬁer-free and use
+only∼,<and the unary predicates. They have the
+same size as χ. Over the (linearly ordered) models
+considered in this paper this is logically equivalent
+to:
+∀x∀y/parenleftbig
+ρ(x,y)→ψρ(x,y)/parenrightbig
+∧ ∀x∃y/parenleftbig
+¬Rlast(x)→(y=x+ 1∧ψy=x+1)/parenrightbig
+∧ ∀x∃y/parenleftbig
+¬Rﬁrst(x)→(x=y+ 1∧ψx=y+1)/parenrightbig
+∧ ∀x∃y/parenleftbig
+(x=y∧ψx=y)/parenrightbig
+Here, we assume that RﬁrstandRlastare two
+extra predicates marking the ﬁrst and last position
+of the word, respectively. They can easily be en-
+forced by a formula of the form (3). The last three
+conjuncts give rise to ξ1,ξ2,ξ3and we are left with
+the ﬁrst conjunct ∀x∀y/parenleftbig
+ρ(x,y)→ψρ(x,y)/parenrightbig
+. We
+turnψρinto CNF (with an exponential blow-up)
+and rewrite it as
+/logicalanddisplay
+α,β(α(x)∧β(y))→ψ(x,y)whereα,βare types occurring in ψρ, and
+ψ(x,y)is a quantiﬁer-free formula using only <
+and∼. Finally, we rewrite the formula ψ(x,y)into
+the form:
+ψ(x,y) = (x∼y→γ1(x,y))∧(x/notsimilary→γ2(x,y))
+whereγ1(x,y)andγ2(x,y)arex < y,x > y,ff
+ortt.
+Step 3:Dealing with/logicalanddisplay
+i∀x∃y χi.
+In the last step, we show that each formula
+∀x∃yχcan be rewritten into an equivalent formula
+∃R/prime
+1···∃R/prime
+n/logicalandtext
+iθiwithθiof type (2) or (3) in Def-
+inition 7. Moreover, the size of θiand the number
+nof additional predicates are both polynomial.
+First,χcan be written as a disjunction (of
+exponential size)
+/logicalordisplay
+j/parenleftbig
+αj(x)→βj(y)∧δj(x,y)∧/epsilon1j(x,y)/parenrightbig
+,
+where theαj,βj,δj,/epsilon1jare of corresponding forms
+as in (2). It only remains to eliminate the dis-
+junction. To this end, we add for each conjunct
+aboveanewunarypredicate Rχ,jwiththeintended
+meaning that Rχ,jholds at a position xif there is
+aysuch thatαj(x)∧βj(y)∧δj(x,y)∧/epsilon1j(x,y)
+holds. Formally, we rewrite each ∀x∃y χas
+∃Rχ,1Rχ,2···(∀x/logicalortext
+iRχ,i(x))∧/logicalandtext
+j∀x∃y/parenleftbig
+αj(x)∧Rχ,j(x)→
+(βj(y)∧δj(x,y)∧/epsilon1j(x,y))/parenrightbig
+.
+Byputtingtogethertheobtainedformulasweget
+a formula in intermediate normal form. /square
+We are now ready for the second step, where
+the intermediate normal form is transformed into
+a data automaton, thus completing the proof of
+Proposition2.Sincedataautomataareclosedunder
+renaming and intersection, it sufﬁces to consider
+just the conjuncts θin Deﬁnition 7. Note that the
+Cartesian product gives an exponential blowup.
+Lemma 9 Every conjunct θof a formula in inter-
+mediate normal form can be recognized by a data
+automaton with constantly many states.
+Proof.The formula θmay be in one of the three
+forms (1), (2) or (3) from Deﬁnition 7. The case
+of formula of the form (3) is no problem as it can
+easily be checked using the base automaton. We
+consider ﬁrst the case of (1):
+∀x∀y/bracketleftbig
+(ρ(x,y)∧α(x)∧β(y)∧δ(x,y))→
+γ(x,y)/bracketrightbig
+5
+
+--- Page 6 ---
+The proof uses the data automaton for mark-
+ing a ﬁxed number of classes, say kfor some
+constantk. We explain this technique ﬁrst.
+The base automaton uses the output alphabet
+Γk={⊥,(1,1),..., (k,1),(1,0),..., (k,0)}. It
+guesses, for each position ian output symbol bi∈
+Γk. It makes sure that, for each j, at most once
+the symbol (j,1)is chosen. The class automa-
+ton accepts then all strings of the form ⊥∗and
+(l,1)(l,0)∗, for somel. In this way, it is ensured
+that, for each class, always the output symbol ⊥is
+chosen or the ﬁrst output symbol is (l,1)and all
+others are (l,0), for somel. As each (j,1)is used
+at most once, it can not happen that two classes
+share the same (j,0)(and (j,1)) symbols. Thus,
+the base automaton can assume, for each position,
+to which of the ≤kclasses it belongs.
+It remains to perform a case analysis on the
+formulasδ,γand/epsilon1.
+In the case where δ(x,y)isx∼ythe formula θ
+gives a regular condition that must be satisﬁed by
+each class. Thanks to Lemma 6, we can use that
+class automaton to verify θ.
+Ifδ(x,y)isx/negationslash∼ythere are three subcases.
+•γ(x,y) =ffmeans that the data string may
+not have an α- and aβ-position which are not
+adjacent (or identical) and in different classes.
+It is easy to see that the formula evaluates to
+false if both αandβappear in the string and
+there are at least 4 classes with an αor at
+least 4 classes with a β.
+Thus, it is sufﬁcient that the base automaton
+selects (at most) 6 classes, using the technique
+explained above, and tests that (a) neither α
+norβoccur outside these 6 classes and (b)
+within the 6 classes θholds.
+•γ(x,y) =x<y. In this case only two classes
+are involved.
+Let Lst αbe thepositionof the rightmost α
+in the string and Llst αbe the position of the
+rightmostαthat is in a different class than
+Lstα. Using this notation, θholds if and only
+ifw(a) has noβup to position Llst α−2;
+and (b) theβ-positions between Llst α−1and
+Lstα−2are in the same class as Lst α.
+Thus, the base automaton simply guesses the
+two classes containing Lst αand Llst αand
+tests that (a) and (b) hold.
+•The case where γ(x,y)isx>yis analogous.
+It remains to consider formulas θof type (2):
+∀x∃y α (x)→/bracketleftbig
+β(y)∧δ(x,y)∧/epsilon1(x,y)/bracketrightbig
+As before, the difﬁcult case is when δ(x,y)isx/negationslash∼
+y. If/epsilon1(x,y)is one ofx+ 1 =y,x=y,x=y+1thenθcan be veriﬁed by the base automaton.
+Otherwise/epsilon1(x,y)isx+ 1<yorx>y + 1. We
+describe the case of x+ 1< y, the other being
+analogous.
+In this case, θexpresses that each α-position
+needs aβ-position in a different class to its right
+(but not as its right neighbor). Since every α-
+position before Llst β−2is guaranteed to have such
+aβ-witnessinadifferentclass,itsufﬁcestorequire
+the following properties: a) from position Lst β−1
+on, the data word contains no α; and b) all α’s
+between Llst β−1and Lst β−2are not in the same
+class as Lst β. This involves checking 2 classes and
+can be handled analogously as the cases above.
+As for the size, it is easy to check that the
+base and class automata have a number of states
+bounded by a constant. The number of transitions
+is bounded by the number of types (if we allow
+also type negations in the transitions, the number
+of transitions is also bounded by a constant). /square
+We would like to note that the converse of
+Proposition 2 does not hold. There are two rea-
+sons for this. First, a data automaton can verify
+arbitrary regular properties of classes, which can-
+not be done with ﬁrst-order logic. For instance,
+noFO2(∼,<,+1)formula captures the language:
+“each class is of even length”. This problem can
+be solved by adding a preﬁx of monadic second-
+orderexistentialquantiﬁcation.However,evenwith
+such a preﬁx, it is difﬁcult to write a formula
+that describes accepting runs of data automata.
+The problem is that describing runs of the class
+automata requires comparing successive positions
+in the same class, which need not be successive po-
+sitions in the word. That is why we consider a new
+predicate /moo1, called the class successor , which is
+true for two successive positions in a same class of
+the data word. The following result easily follows
+from Proposition 2 and the obvious extension of
+its proof to include EMSO2(∼,<,+1,/moo1):
+Proposition 10 A language is recognized
+by a data automaton iff it is deﬁnable in
+EMSO2(∼,<,+1,/moo1).
+Proof.It is easy to extend the proof of Proposition
+2 to the logic EMSO2(∼,<,+1,/moo1). The other
+direction follows immediately from the classical
+simulation of automata in EMSO2(+1). /square
+By translating a formula into a data automaton
+and then back again into a formula, we can obtain a
+certain normal form for EMSO2(∼,<,+1,/moo1). In
+6
+
+--- Page 7 ---
+the normal form, the formulas verify the correct-
+nessoftransitionsinanacceptingrun.Inparticular,
+the order<is not used.
+Remark: Using the same idea of the proof of
+Proposition 2 one could show the following nor-
+mal form for EMSO2(∼,<,+1). Each formula
+ofEMSO2(∼,<,+1)is equivalent to one where
+theFOpart is a Boolean combination of simple
+formulas of the form (where αandβare types):
+(a)θis does not use ∼(i.e., an FO2(<,+1)
+formula).
+(b) Each class contains at most one occurrence
+ofα.
+(c) Ineachclass,alloccurrencesof αoccurstrictly
+before all occurrences of β.
+(d) In each class with at least one occurrence of
+α, there must be a β, too.
+(e) Ifxis not in the same class at its successor
+then it is of type α.
+V. RECOGNIZING THE PROJECTION BY
+MULTICOUNTER AUTOMATA
+Inthissection,weshowthatthestringprojection
+of a language recognized by a data automaton can
+be recognized by a multicounter automaton.
+We ﬁrst introduce multicounter automata. An /epsilon1-
+freemulticounter automaton is a ﬁnite automa-
+ton extended by a ﬁnite set C={1,...,n }
+of counters. It can be described as a tuple
+(Q,Σ,C,δ,q I,F).Thesetofstates Q,ﬁnitealpha-
+betΣ, initial state qI∈Qand ﬁnal states F⊆Q
+are as in a usual ﬁnite automaton. The transition
+relationδis more involved – it is a ﬁnite subset of
+Q×Σ×(dec∗(i)inc∗(i))i∈C×Q.
+The idea is that in each step, the automaton
+can change its state and modify the counters, by
+incrementing or decrementing them, according to
+the current state and the current letter on the input.
+In a step, the automaton can apply to each counter
+i∈Ca sequence of decrements, followed by
+a sequence of increments. Whenever it tries to
+decrement a counter of value zero the computation
+stops. Besides this, the transition of a multicounter
+automaton does not depend on the value of the
+counters. In particular, it cannot test whether a
+counter is exactly zero. Nevertheless, by decre-
+menting a counter ktimes and incrementing it
+again afterward it can test whether the value of
+that counter is at least k.
+Aconﬁguration of such an automaton is a tuple
+c= (q,(ci)i∈C)∈Q×Nn, whereqis the
+current state and ciis the value of the counter i. Atransition
+(q,a,(decki(i)incli(i))i∈C,q/prime)∈δ
+can be applied if the current state is q, the current
+letter isaand for every counter i∈C, the value
+ciis at leastki. The successor conﬁguration is
+d= (q/prime,(c(i)−ki+li)i∈C).Arunoveraword wis
+a sequence of conﬁgurations that is consistent with
+the transition function δ. The acceptance condition
+is given by a subset Rof the counters Cand the
+ﬁnal states. A run is accepting if it starts in the
+stateqIwith all counters empty and ends in a
+conﬁguration where all counters in Rare empty
+and the state is ﬁnal.
+Thekeyideainthereductionfromdataautomata
+to multicounter automata, is that acceptance can be
+expressed using the Shufﬂe (L)operation deﬁned
+below.
+Deﬁnition 11 A wordv∈(Σ× {0,1})∗is a
+marked shufﬂe ofnwordsu1,...,u nif its po-
+sitions can be colored with ncolors so that we
+have:
+1) for every i, the positions colored with color i
+– read from left to right – give the word ui,
+2) a position of vis labeled by a symbol from
+Σ× {1}iff its predecessor position has the
+same color (neighborhood condition).
+We write Shufﬂe (L)for the set of marked shufﬂes
+of words from a language L⊆Σ∗.
+Proposition 12 LetD= (A,B)be a data automa-
+ton. The string projection str (L(D))is recognized
+by a multicounter automaton of size O(|A||B| ).
+Proof.By deﬁnition of data automata, a word
+v= (a1,m1)···(an,mn)∈(Σ× {0,1})∗
+belongstothemarkedstringprojectionmstr (L(D))
+if and only if it there is an accepting run of the
+base automaton on vwith output b1···bnsuch
+that(b1,m1)···(bn,mn)is a marked shufﬂe of
+the language accepted by the class automaton.
+We will show in Proposition 13 that the set of
+such words (b1,m1)···(bn,mn)is recognized by
+a multicounter automaton Mof same size as B.
+Thus, it is sufﬁcient to compose Mwith a non-
+deterministic transducer which, on input a1···an,
+outputs a string (a1,m1)···(an,mn), where each
+mi∈ {0,1}is guessed independently, and which
+simulates A. We obtain a multicounter automa-
+ton which on input a1···anconstructs a string
+(a1,m1)···(an,mn)which is read by Aand
+whose output in turn is the input for M. /square
+7
+
+--- Page 8 ---
+Thus it remains to prove the following propo-
+sition which is an adaptation of Lemma (IV.6)
+in [7], where the result is shown for the usual
+shufﬂe operation (i.e., without marking explicitly
+the positions where the coloring changes).
+Proposition 13 IfL⊆Σ∗is regular then
+Shufﬂe (L)is recognized by a multicounter au-
+tomaton of size bounded by the size of an NFA
+recognizing L.
+VI. LOWER BOUNDS
+In this section we show that satisﬁability for
+FO2(∼,<,+1)is at least as hard as non-emptiness
+of multicounter automata. The best lower bound
+known for the latter problem is E XPSPACE[12]
+and no elementary upper bound is known.
+Theorem 14 Emptiness of multicounter automata
+can be reduced in PTIMEto the satisﬁability prob-
+lem of FO2(∼,<,+1).
+Proof sketch. Without loss of generality we as-
+sume that the multicounter has a one-letter input
+alphabet, no states (also known as vector addition
+system) and it accepts when allcounters are empty.
+This can be done by adding one counter per states.
+Given a multicounter automaton A, we construct a
+FO2(∼,<,+1)formula whose models are exactly
+(the encodings of) the accepting runs of the au-
+tomaton.
+LetC={1,...,n }be the counters of the
+automaton, and let δbe its transition relation.
+We deﬁne Σto beD1,I1,...,D n,In, and $.
+An occurrence of Di(Ii) codes a decrement (an
+increment) of counter i. The idea is to use data
+values to make sure that each decrement matches
+a previous increment. We encode a transition t=
+(dec(i)kiinc(i)li)i∈C∈δby a data word enc (t) =
+Dk1
+1Il1
+1···DknnIlnn$where each occurrence of Ii
+have a new data value while each occurrence of
+Dihas the data value of the matching increment
+of the counter.
+We can now check in FO2(∼,<,+1)that the
+string projection belongs to {enc(t)|t∈δ}∗.
+This is expressible in FO2(<,+1)by a formula
+whose size is polynomial in δ. Then we enforce by
+anFO2(∼,<,+1)formula that each class string is
+either $orIkDkfor somek.
+/square
+VII. D ECIDABLE EXTENSIONS
+A. More successors
+It is often useful to be able to express in the
+logic the existence of a given pattern in the string,e.g.theexistenceoftwopositions xandysuchthat
+xandyare in the same class and the substring
+betweenxandyisabc. This does not seem
+to be expressible in FO2(∼,<,+1). This kind of
+property becomes immediately expressible in the
+presence of the predicates +kfor anyk∈N,
+wherex=y+khas the obvious meaning.
+We denote by FO2(∼,<,+ω)the logic extending
+FO2(∼,<,+1)with all predicates +k. It turns out
+thatthisdoesnotaffectthedecidabilityofthelogic.
+The proof follows the lines of the of the proof for
+FO2(∼,<,+1)and will appear in the full version
+of the paper.
+Theorem 15 Satisﬁability of FO2(∼,<,+ω)is
+decidable.
+B. Inﬁnite words
+Another extension which is useful in the context
+of veriﬁcation is the case of data ω-words, i.e.,
+inﬁnite length data strings. In this section we show
+the following result.
+Theorem 16 It is decidable whether a sentence of
+FO2(∼,<,+1)has a dataω-word model.
+The proof is along very similar lines as that of
+Theorem 1 but slightly departs as it does not reason
+about the string projection str (L(ϕ)). Instead, the
+basic idea is to show that each satisﬁable formula
+ϕ∈FO2(∼,<,+1)has asimplemodel of a given
+shape and that it is decidable whether a formula
+has a simple model. A data ω-wordxis called
+simpleif mstr (x)is of the form u·vωfor some
+ﬁnite words uandvover Σ.
+As an intermediate step we use data ω-automata
+which are deﬁned in analogy to data automata.
+We only mention the differences here. A data
+ω-automaton (A,Bf,Bi)consists of (1) a base
+automaton Awhich is a B ¨uchi letter-to-letter
+transducer with output over some alphabet Γ, (2)
+aﬁnitary class automaton Bfwhich is a ﬁnite
+string automaton over Γand 3) an inﬁnitary class
+automaton Bi, which is another B ¨uchi automaton
+over Γ. A dataω-wordwis accepted if the base
+automaton has an accepting run over the marked
+string projection of wwith output b1b2···such
+that for every ﬁnite class i1<···<ik,bi1···bik
+is accepted by Bf; similarly, for every inﬁnite class
+i1< i2<···, theω-stringbi1bi2···is accepted
+byBi.
+Theorem 16 follows immediately from the fol-
+lowing propositions.
+8
+
+--- Page 9 ---
+Proposition 17 Every data ω-language deﬁnable
+inFO2(∼,<,+1)is recognized by some data ω-
+automaton.
+Proof sketch. The proof follows exactly the lines
+of the proof of Proposition 2. Actually, the re-
+duction to intermediate normal form is literally
+identical, as the proof of Lemma 8 does not assume
+ﬁniteness. For the transformation of the intermedi-
+atenormalformintoadata ω-automaton,itsufﬁces
+again to consider just the conjuncts θsince data
+ω-automata are closed under renaming, union and
+intersection.
+Thus,itonlyremainstoshowthateveryconjunct
+θof a formula in intermediate normal form can be
+recognized by a data ω-automaton.
+This statement can be shown by a similar case
+analysis as in the proof of Lemma 9. /square
+Proposition 18 If a dataω-automaton accepts any
+ω-string it also accepts some simple ω-string.
+Proof sketch. Letwbe a (data) ω-string ac-
+cepted by a data ω-automaton (A,Bf,Bi). Let
+r= (rA,rBf,rBi)be an accepting run for wthat
+we view as functions from position to states. We
+callapositionin wwhichisinadifferentclassthan
+its successor a border position . Ifwcontains only
+ﬁnitely many border positions we can ﬁnd uandv
+analogously as for classical (non-data) ω-automata.
+We only have to make sure that ucontains all
+border positions. We thus assume in the following
+that there are inﬁnitely many border positions in
+w.
+A classcoverlaps a positionxifccontains
+positionsy < xandz > x. We say the class is
+q-openatxifrBiorrBfassigns the state qto the
+last position of coccurring before x. For a border
+positionxofw, and for each state q, letmqdenote
+the number of q-open classes of woverlapping x.
+The construction of uandvis based on the fact
+that there exist two border positions x < x/primeofw
+such that:
+(1)rA(x) =rA(x/prime)andrA(y)∈F, for somey,
+x<y ≤x/prime.
+(2) For each q∈ B fand eachq-open classcofw
+overlapping xthere is a position x<y c≤x/prime
+ofcwithrA(yc)accepting for Bf.
+(3) For each q∈ B iand eachq-open class cofw
+overlapping xthere is a position yc,x<y c≤
+x/primewithrB(yc)accepting for Bi.
+(4) for each q,mq(x) =mq(x/prime) = 0or0<
+mq(x)≤mq(x/prime).Letwuandwvbe the data subwords of wfrom
+positions 1 to xand fromx+ 1tox/prime, respectively.
+Letu=mstr((wu))andv=mstr((wv)). The
+proof is completed by showing how to choose the
+data values for uvωin order to get the desired data
+ω-word. /square
+Proposition 19 It is decidable whether a data ω-
+automaton accepts some simple ω-string.
+Proof sketch. Weconstructamulticounterautoma-
+ton which tests, for a string uvwhether it can be
+marked and extended by data values and a (partial)
+run such that conditions (1) - (4) above are satisﬁed
+withxthe last position of uandx/primethe last position
+ofv. If this automaton accepts some string uvwe
+can conclude that uvωis the string projection of an
+ω-stringacceptedby E.Otherwise,itcanbeshown
+thatEaccepts no data string at all, in particular it
+accepts no simple string. /square
+VIII. U NDECIDABLE EXTENSIONS
+In this section we show that many immediate
+extensions yields undecidability. In the context of
+XML, nodes in the document may have several
+differentattributeswhichareaccessedviathequery
+languages. Equality tests between node attributes
+could be simulated using several equivalence rela-
+tions. For instance checking that the nodes xand
+yagree on attribute acould be written as x∼ay.
+However, very recently Kiero ´nski and Otto [10]
+showed that two-variable logic with 3 equivalence
+relations and some unary relations is undecidable.
+Extendingthemodelbyallowingmorevariables,
+even three, also gives undecidability.
+Proposition 20 Satisﬁability of FO3(∼,+1)is
+undecidable.
+Note that this implies the undecidability of
+FO3(∼,<), since the relation +1is deﬁnable from
+<if three variables are allowed.
+Proof sketch. We reduce Post’s Correspondence
+Problem (PCP) to the satisﬁability of FO3(∼,+1).
+An instance of PCP consists of a ﬁnite number of
+pairs (ui,vi)of words from Σ∗and the question is
+whether there exists a non-empty, ﬁnite sequence
+of indexes i0,...,i nsuch thatui0ui1···uin=
+vi0vi1···vin.
+Given an instance Iof PCP, let Σ/prime= Σ∪Σbe
+the alphabet consisting of two disjoint copies of Σ.
+Consider a solution i0,...,i nsuch thatw=
+ui0ui1···uin=vi0vi1···vin. We encode wby a
+data word ˆw∈(Σ/prime×D)∗satisfying the following:
+9
+
+--- Page 10 ---
+•The string projection str ( ˆw)is
+ui0vi0···uinvin. In particular, the sequence
+of letters from Σiswand the sequence of
+letters from Σisw.
+•Each data value appears exactly twice, once
+associated with a letter of Σand once asso-
+ciated with the same letter in Σ. Moreover, if
+a data value of ˆwoccurs at position iwithin
+wthen its second occurrence must be at the
+same position iwithinw.
+It is possible to construct a formula ϕof
+FO3(∼,+1)such thatwis a solution of Iiffˆwis
+a model ofϕ. /square
+Another possible extension is to suppose that
+there is a linear order on the data values and
+to include in the logic an extra binary predicate
+≺such thatx≺yif the data value of xis
+smaller than the one of y. Unfortunately this yields
+undecidability even for FO2.
+Proposition 21 Satisﬁability of FO2(∼,≺,+1,<)
+is undecidable.
+IX. DISCUSSION
+We have shown that satisﬁability of
+FO2(∼,<,+1)over data words is decidable.
+Actually we have shown that the stronger logic
+EMSO2(∼,<,+1,/moo1)is decidable over such
+models.
+In the absence of data values, FO2(+1,<)has
+several equivalent characterizations, for instance it
+corresponds to the fragment of LTL that uses only
+unary temporal predicates. Still in the absence of
+data values, EMSO2(+1,<)has the same expres-
+sive power as MSO. In a sense the decidability of
+EMSO2(∼,<,+1)can be seen as an extension of
+classical decidability result of MSO over strings.
+An interesting side result is the connection be-
+tween FO2(∼,<,+1)and multicounter automata
+(and therefore Petri nets). Indeed, if we project
+out the data values, the languages deﬁned by
+FO2(∼,<,+1)formulas are recognized by multi-
+counter automata. The converse is also true modulo
+an erasing inverse morphism. It would be interest-
+ingtounderstandbetterthe connection between the
+two formalisms. Because of the connection with
+Petri nets pinpointing the complexity of satisﬁabil-
+ity is likely to be difﬁcult.
+Our reduction from the decidability of
+FO2(∼,<,+1)to emptiness multicounter
+automata, is 2NE XPTIME. We do not know
+whether this is optimal or not.When only one of the two predicates +1and
+<is present we can show that the decision prob-
+lem is elementary. It is NE XPTIME-complete for
+FO2(∼,<)and in 2NE XPTIMEforFO2(∼,+1).
+In [2] we studied in more details the logic FO2(∼
+,+1)and proved that it is decidable over un-
+ranked ordered trees. We inferred from this result
+manyinterestingconsequencesforXMLreasoning.
+Whether FO2(∼,<,+1)is decidable over trees is
+still an open question which was shown in [2]
+to be at least as hard as checking emptiness of
+multicounter automata over trees (stated as an open
+question in [3]).
+REFERENCES
+[1] P. Bouyer, A. Petit and D. Th ´erien. An algebraic approach
+to data languages and timed languages. Inf. Comput. ,
+182(2): 137-162 (2003).
+[2] M. Boja ´nczyk, C. David, A. Muscholl, T. Schwentick,
+and L. Segouﬁn. Two-Variable Logic on Data Trees and
+XML Reasoning. To appear in PODS’06.
+[3] P. de Groote, B. Guillaume, and S. Salvati. Vector
+Addition Tree Automata. In LICS’04, pp. 64-73, 2004.
+[4] S. Demri, R. Lazic, D. Nowak. On the Freeze Quantiﬁer
+in Constraint LTL: Decidability and Complexity. In
+TIME’05, 2005.
+[5] J. Esparza and M. Nielsen. Decidability Issues for Petri
+Nets - a survey. Elektronische Informationsverarbeitung
+und Kybernetik , 30(3): 143-160 (1994).
+[6] K. Etessami, M.Y. Vardi, and Th. Wilke. First-Order
+Logic with Two Variables and Unary Temporal Logic. Inf.
+Comput., 179(2): 279-295 (2002).
+[7] J. L. Gischer. Shufﬂe Languages, Petri Nets, and Context-
+Sensitive Grammars. Commun. ACM , 24(9):597-605
+(1981).
+[8] E. Gr ¨adel and M. Otto. On Logics with Two Variables.
+Theor. Comp. Sci. , 224:73-113 (1999).
+[9] M. Kaminski and N. Francez. Finite memory automata.
+Theor. Comp. Sci. , 134(2):329-363 (1994).
+[10] E. Kiero ´nski and M. Otto. Small Substructures and De-
+cidability Issues for First-Order Logic with Two Variables.
+Preprint. 2005.
+[11] S.R. Kosaraju. Decidability of reachability in vector
+addition systems. In STOC’84 , pp. 267-281. 1984.
+[12] R.J.Lipton. Thereachabilityproblemrequiresexponential
+space. Dep. of Comp.Sci., Research report 62, Yale
+University, 1976.
+[13] M. Marx. First order paths in ordered trees. In ICDT’05,
+2005.
+[14] E. Mayr. An algorithm for the general Petri net reacha-
+bility problem. SIAM J. of Comp. , 13:441-459 (1984).
+[15] M. Mortimer. On languages with two variables. Zeitschr.
+f. math. Logik u. Grundlagen d. Math. , 21(1975), pp. 135-
+140.
+[16] F. Neven, Th. Schwentick, and V. Vianu. Finite state
+machines for strings over inﬁnite alphabets. ACM Trans.
+Comput. Log. , 15(3): 403-435 (2004).
+[17] Th. Schwentick, D. Th ´erien, and H. Vollmer. Partially-
+Ordered Two-Way Automata: A New Characterization of
+DA. In Developments in Language Theory (DLT’01) ,
+pp. 239-250, 2001.
+[18] Y. Shemesh, N. Francez. Finite-State Uniﬁcation Au-
+tomata and Relational Languages In Inf. Comput. , 114(2):
+192-213 (1994)
+[19] D.Th ´erienandTh.Wilke. OverWords,TwoVariablesAre
+as Powerful as One Quantiﬁer Alternation. In STOC’98 ,
+pp. 234-240, 1998.
+10

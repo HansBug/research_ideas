@@ -1,0 +1,1161 @@
+--- Page 1 ---
+LogicalMethods inComputer Science
+Vol. 4(4:7) 2008, pp.1–21
+www.lmcs-online.orgSubmitted May 24,2007
+Published Nov. 11,2008
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗
+KOUSHA ETESSAMIaAND MIHALIS YANNAKAKISb
+aLFCS, School of Informatics, University of Edinburgh, UK
+e-mail address : kousha@inf.ed.ac.uk
+bDepartment of Computer Science, Columbia University, USA
+e-mail address : mihalis@cs.columbia.edu
+Abstract. We study Recursive Concurrent Stochastic Games (RCSGs), ex tending our
+recent analysis of recursive simple stochastic games to a co ncurrent setting where the
+two players choose moves simultaneously and independently at each state. For multi-exit
+games, our earlier work already showed undecidability for b asic questions like termination,
+thus we focus on the important case of single-exit RCSGs (1-R CSGs).
+We ﬁrst characterize the value of a 1-RCSG termination game a s the least ﬁxed point so-
+lution of a system of nonlinear minimax functional equation s, and use it to show PSPACE
+decidability for the quantitative termination problem. We then give a strategy improve-
+ment technique, which we use to show that player 1 (maximizer ) hasǫ-optimal randomized
+Stackless & Memoryless (r-SM) strategies for all ǫ >0, while player 2 (minimizer) has op-
+timal r-SM strategies. Thus, such games are r-SM-determine d. These results mirror and
+generalize in a strong sense the randomized memoryless dete rminacy results for ﬁnite sto-
+chastic games, and extend the classic Hoﬀman-Karp strategy improvement approach from
+the ﬁnite to an inﬁnite state setting. The proofs in our inﬁni te-state setting are very dif-
+ferent however, relying on subtle analytic properties of ce rtain power series that arise from
+studying 1-RCSGs.
+We show that our upper bounds, even for qualitative (probabi lity 1) termination, can
+not be improved, even to NP, without a major breakthrough, by giving two reductions: ﬁrst
+a P-time reduction from the long-standing square-root sum p roblem to the quantitative
+termination decision problem for ﬁnite concurrent stochastic games, and then a P-time
+reduction from the latter problem to the qualitative termin ation problem for 1-RCSGs.
+1.Introduction
+In recent work we have studied Recursive Markov Decision Pro cesses (RMDPs) and turn-
+based Recursive Simple Stochastic Games (RSSGs) ([16, 17]) , providing a number of strong
+upper and lower bounds for their analysis. These deﬁne inﬁni te-state (perfect informa-
+tion) stochastic games that extend Recursive Markov Chains (RMCs) ([14, 15]) with non-
+probabilistic actions controlled by players. Here we exten d our study to Recursive Concur-
+rent Stochastic Games (RCSGs), where the two players choose moves simultaneously and
+1998 ACM Subject Classiﬁcation: G.3, F.2, F.1.1.
+Key words and phrases: Recursive Markov chains, stochastic games, computational complexity.
+∗A preliminary version of this paper appeared in the Proceedings of the 33rd International Colloquium on
+Automata, Languages and Programming (ICALP’06).
+LOGICALMETHODS/D0INCOMPUTER SCIENCE DOI:10.2168/LMCS-4(4:7)2008c/circlecopyrtK. EtessamiandM. Yannakakis
+CC/circlecopyrtCreativeCommons
+
+--- Page 2 ---
+2 K. ETESSAMI AND M. YANNAKAKIS
+independently at each state, unlike RSSGs where only one pla yer can move at each state.
+RCSGs deﬁne a class of inﬁnite-state zero-sum (imperfect in formation) stochastic games
+that can naturally model probabilistic procedural program s and other systems involving
+both recursive and probabilistic behavior, as well as concu rrent interactions between the
+system and the environment. Informally, all such recursive models consist of a ﬁnite col-
+lection of ﬁnite state component models (of the same type) th at can call each other in a
+potentially recursive manner. For RMDPs and RSSGs with mult iple exits (terminating
+states), our earlier work already showed that basic questio ns such as almost sure termina-
+tion (i.e. does player 1 have a strategy that ensures termina tion with probability 1) are
+already undecidable; on the other hand, we gave strong upper bounds for the important
+special case of single-exit RMDPs and RSSGs (called 1-RMDPs and 1-RSSGs).
+Our focus in this paper is thus on single-exit Recursive Conc urrent Stochastic Games
+(1-RCSGs for short). These models correspond to a concurren t game version of multi-type
+Branching Processes andStochastic Context-Free Grammars , both of which are important
+and extensively studied stochastic processes with many app lications including in population
+genetics, nuclear chain reactions, computational biology , and natural language processing
+(see, e.g., [21, 23, 24] and other references in [14, 16]). It is very natural to consider
+game extensions to these stochastic models. Branching proc esses model the growth of a
+population of entities of distinct types. In each generatio n each entity of a given type gives
+rise, according to a probability distribution, to a multi-s et of entities of distinct types. A
+branching process can be mapped to a 1-exit Recursive Markov Chain (1-RMC) such that
+the probability of eventual extinction of a species is equal to the probability of termination
+in the 1-RMC. Modeling the process in a context where externa l agents can inﬂuence the
+evolution to bias it towards extinction or towards survival leads naturally to a game. A
+1-RCSG models the process where the evolution of some types i s aﬀected by the concurrent
+actions of external favorable and unfavorable agents (forc es).
+In [16], we showed that for the turned-based 1-RSSG terminat ion game, where the
+goal of player 1 (respectively, player 2) is to maximize (res p. minimize) the probability
+of termination starting at a given vertex (in the empty calli ng context), we can decide
+in PSPACE whether the value of the game is ≥pfor a given probability p, and we can
+approximate this value (which can be irrational) to within g iven precision with the same
+complexity. We also showed that both players have optimal deterministic Stackless and
+Memoryless (SM) strategies in the 1-RSSG termination game; these are st rategies that
+depend neither on the history of the game nor on the call stack at the current state. Thus
+from each vertex belonging to the player, such a strategy det erministically picks one of the
+outgoing transitions.
+Already for ﬁnite-state concurrent stochastic games (CSGs ), even under the simple
+termination objective, the situation is rather diﬀerent. M emoryless strategies do suﬃce
+for both players, but randomization of strategies is necess ary, meaning we can’t hope for
+deterministic ǫ-optimal strategies for either player. Moreover, player 1 ( the maximizer)
+can only attain ǫ-optimal strategies, for ǫ >0, whereas player 2 (the minimizer) does have
+optimal randomized memoryless strategies (see, e.g., [19, 12]). Another important result for
+ﬁnite CSGs is the classic Hoﬀman-Karp [22] strategy improve ment method, which provides,
+via simple local improvements, a sequence of randomized mem oryless strategies which yield
+payoﬀs that converge to the value of the game.
+Here we generalize all these results to the inﬁnite-state se tting of 1-RCSG termination
+games. We ﬁrst characterize values of the 1-RCSG terminatio n game as the least ﬁxed
+
+--- Page 3 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗3
+point solution of a system of nonlinear minimax functional e quations. We use this to show
+PSPACE decidability for the qualitative termination problem (is the value of the game
+= 1?) and the quantitative termination problem (is the value of the game ≥r(or≤r, etc.),
+for given rational r), as well as PSPACE algorithms for approximating the termin ation
+probabilities of 1-RCSGs to within a given number of bits of p recision, via results for the
+existential theory of reals. (The simpler “qualitative pro blem” of deciding whether the game
+value is = 0 only depends on the transition structure of the 1- RCSG and not on the speciﬁc
+probabilities. For this problem we give a polynomial time al gorithm.)
+We then proceed to our technically most involved result, a st rategy improvement tech-
+nique for 1-RCSG termination games. We use this to show that i n these games player 1
+(maximizer) has ǫ-optimal randomized-Stackless & Memoryless (r-SM for shor t) strategies,
+whereas player 2 (minimizer) has optimal r-SM strategies. T hus, such games are r-SM-
+determined. These results mirror and generalize in a very st rong sense the randomized
+memoryless determinacy results known for ﬁnite stochastic games. Our technique extends
+Hoﬀman-Karp’s strategy improvement method for ﬁnite CSGs t o an inﬁnite state setting.
+However, the proofs in our inﬁnite-state setting are very di ﬀerent. We rely on subtle analytic
+properties of certain power series that arise from studying 1-RCSGs.
+Note that our PSPACE upper bounds for the quantitative termi nation problem for
+1-RCSGs can not be improved to NP without a major breakthroug h, since already for 1-
+RMCs we showed in [14] that the quantitative termination pro blem is at least as hard as
+the square-root sum problem (see [14]). In fact, here we show that even the qualitative
+termination problem for 1-RCSGs, where the problem is to decide whether the value of
+the game is exactly 1, is already as hard as the square-root su m problem, and moreover,
+so is the quantitative termination decision problem for ﬁnite CSGs. We do this via two
+reductions: we give a P-time reduction from the square-root sum problem to the quantitative
+termination decision problem for ﬁnite CSGs, and a P-time reduction from the quantitative
+ﬁnite CSG termination problem to the qualitative 1-RCSG ter mination problem.
+It is known ([6]) that for ﬁnite concurrent games, probabili stic nodes do not add any
+power to these games, because the stochastic nature of the ga mes can in fact be simulated
+by concurrency alone. The same is true for 1-RCSGs. Speciﬁca lly, given a ﬁnite CSG (or 1-
+RCSG), G, there is a P-time reduction to a ﬁnite concurrent game (or 1- RCG, respectively)
+F(G), without any probabilistic vertices, such that the value o f the game Gis exactly the
+same as the value of the game F(G). We will provide a proof of this in Section 2 for
+completeness.
+Related work. Stochastic games go back to Shapley [28], who considered ﬁni te concurrent
+stochastic games with (discounted) rewards. See, e.g., [19 ] for a recent book on stochastic
+games. Turn-based “simple” ﬁnite stochastic games were stu died by Condon [10]. As men-
+tioned, we studied RMDPs and (turn-based) RSSGs and their qu antitative and qualitative
+termination problems in [16, 17]. In [17] we showed that the q ualitative termination problem
+for both maximizing and minimizing 1-RMDPs is in P, and for 1- RSSGs is in NP ∩coNP.
+Our earlier work [14, 15] developed theory and algorithms fo r Recursive Markov Chains
+(RMCs), and [13, 3] have studied probabilistic Pushdown Sys tems which are essentially
+equivalent to RMCs.
+Finite-state concurrent stochastic games have been studie d extensively in recent CS
+literature (see, e.g., [7, 12, 11]). In particular, the pape rs [8] and [7] have studied, for
+ﬁnite CSGs, the approximate reachability problem and approximate parity game problem,
+
+--- Page 4 ---
+4 K. ETESSAMI AND M. YANNAKAKIS
+respectively. In those papers, it was claimed that these app roximation problems are in
+NP∩coNP. Actually there was a minor problem with the way the resu lts on approximation
+were phrased in [8, 7], as pointed out in the conference versi on of this paper [18], but this is
+a relatively unimportant point compared to the ﬂaw we shall n ow discuss. There is in fact a
+serious ﬂaw in a key proof of [8]. The ﬂaw relates to the use of a result from [19] which shows
+that for discounted stochastic games the value function is L ipschitz continuous with respect
+to the coeﬃcients that deﬁne the game as well as the discount β. Importantly, the Lipschitz
+constant in this result from [19] depends on the discount β(it is inversely proportional
+to 1−β). This fact was unfortunately overlooked in [8] and, at a cru cial point in their
+proofs, the Lipschitz constant was assumed to be a ﬁxed const ant that does not depend
+onβ. This ﬂaw unfortunately aﬀects several results in [8]. It al so aﬀects the results of [7],
+since the later paper uses the reachability results of [8]. A s a consequence of this error, the
+best upper bound which currently follows from the results in [8, 12, 7] is a PSPACE upper
+bound for the decision and approximation problems for the va lue of ﬁnite-state concurrent
+stochastic reachability games as well as for ﬁnite-state co ncurrent stochastic parity games.
+(See the erratum note for [8] on K. Chatterjee’s web page [9], as well as his Ph.D. thesis.) It
+is entirely plausible that these results can be repaired and that approximating the value of
+ﬁnite-state concurrent reachability games to within a give n additive error ǫ >0 can in the
+future be shown to be in NP ∩coNP, but the ﬂaw in the proof given in [8] is fundamental
+and does not appear to be easy to ﬁx.
+On the other hand, for the quantitative decision problem for ﬁnite CSGs (as opposed to
+the approximation problem), and even the qualitative decis ion problem for 1-RCSGs, the
+situation is diﬀerent. We show here that the quantitative de cision problem for ﬁnite CSGs,
+as well as the qualitative decision problem for 1-RCSGs, are both as hard as the square-root
+sum problem, for which containment even in NP is a long standi ng open problem. Thus our
+PSPACE upper bounds here, even for the qualitative terminat ion problem for 1-RCSGs, can
+not be improved to NP without a major breakthrough. Unlike fo r 1-RCSGs, the qualitative
+termination problem for ﬁnite CSGs is known to be decidable i n P-time ([11]). We note
+that in recent work Allender et. al. [1] have shown that the sq uare-root sum problem is in
+(the 4th level of) the “Counting Hierarchy” CH, which is insi de PSPACE, but it remains a
+major open problem to bring this complexity down to NP.
+The rest of the paper is organized as follows. In Section 2 we p resent the RCSG model,
+deﬁne the problems that we will study, and give some basic pro perties. In Section 3 we
+give a system of equations that characterizes the desired pr obabilities, and use them to
+show that the problems are in PSPACE. In Section 4 we prove the existence of optimal
+randomized stackless and memoryless strategies, and we pre sent a strategy improvement
+method. Finally in Section 5 we present reductions from the s quare root sum problem to
+the quantitative termination problem for ﬁnite CSGs, and fr om the latter to the qualitative
+problem for Recursive CSGs.
+2.Basics
+We have two players, Player 1 and Player 2. Let Γ 1and Γ 2be ﬁnite sets constitut-
+ing the move alphabet of players 1 and 2, respectively. Formally, a Recursive Concur-
+rent Stochastic Game (RCSG) is a tuple A= (A1,... ,A k), where each component Ai=
+(Ni,Bi,Yi,En i,Exi,pli,δi) consists of:
+(1) A ﬁnite set Niofnodes, with a distinguished subset Eniofentry nodes and a (disjoint)
+subset Exiofexitnodes.
+
+--- Page 5 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗5
+11
+L,LL,RR,R 1
+1/21/4
+1/21/2
+1/4
+L,L
+L,RR,L
+1f
+u1
+u2u3u5s tb2:f
+u4b1:f
+Figure 1: Example (1-exit) RCSG
+(2) A ﬁnite set Biofboxes, and a mapping Yi:Bi/ma√sto→ {1,... ,k }that assigns to every box
+(the index of) a component. To each box b∈Bi, we associate a set of call ports ,Callb=
+{(b,en)|en∈EnY(b)}, and a set of return ports ,Return b={(b,ex)|ex∈ExY(b)}.
+LetCalli=∪b∈BiCallb,Returni=∪b∈BiReturn b, and let Qi=Ni∪Calli∪Returni
+be the set of all nodes, call ports and return ports; we refer t o these as the vertices of
+component Ai.
+(3) A mapping pli:Qi/ma√sto→ {0,play}that assigns to every vertex ua type describing how
+the next transition is chosen: if pli(u) = 0 it is chosen probabilistically and if pli(u) =
+playit is determined by moves of the two players. Vertices u∈(Exi∪Calli) have no
+outgoing transitions; for them we let pli(u) = 0.
+(4) A transition relation δi⊆(Qi×(R∪(Γ1×Γ2))×Qi), where for each tuple ( u,x,v )∈δi,
+the source u∈(Ni\Exi)∪Returni, the destination v∈(Ni\Eni)∪Calli, where if
+pl(u) = 0 then xis a real number pu,v∈[0,1] (the transition probability), and if pl(u) =
+playthenx= (γ1,γ2)∈Γ1×Γ2. We assume that each vertex u∈Qihas associated
+with it a set Γu
+1⊆Γ1and a set Γu
+2⊆Γ2, which constitute player 1 and 2’s legal moves at
+vertex u. Thus, if ( u,x,v )∈δiandx= (γ1,γ2) then ( γ1,γ2)∈Γu
+1×Γu
+2. Additionally,
+for each vertex uand each x∈Γu
+1×Γu
+2, we assume there is exactly one transition of the
+form ( u,x,v ) inδi. Furthermore they must satisfy the consistency property: f or every
+u∈pl−1(0),/summationtext
+{v′|(u,pu,v′,v′)∈δi}pu,v′= 1, unless uis a call port or exit node, neither of
+which have outgoing transitions, in which case by default/summationtext
+v′pu,v′= 0.
+We use the symbols ( N,B,Q,δ, etc.) without a subscript, to denote the union over all
+components. Thus, eg. N=∪k
+i=1Niis the set of all nodes of A,δ=∪k
+i=1δithe set of all
+transitions, Q=∪k
+i=1Qithe set of all vertices, etc. The set Qof vertices is partitioned
+into the sets Qplay=pl−1(play) and Qprob=pl−1(0) of play and probabilistic vertices
+respectively.
+For computational purposes we assume that the transition pr obabilities pu,vare rational,
+given in the input as the ratio of two integers written in bina ry. The sizeof a RCSG is the
+space (in number of bits) needed to specify it fully, i.e., th e nodes, boxes, and transitions
+of all components, including the probabilities of all the tr ansitions.
+
+--- Page 6 ---
+6 K. ETESSAMI AND M. YANNAKAKIS
+Example 1. An example picture of a (1-exit) RCSG is depicted in Figure 1. This RCSG
+has one component, f, which has nodes {s,t,u 1,u2,u3,u4,u5}. It has one entry node, s, and
+one exit node, t. It also has two boxes, {b1,b2}, both of which map to the only component,
+f. All nodes in this RCSG are probabilistic (black nodes) exce pt for nodes u1andu4which
+are player nodes (white nodes). The move alphabet for both pl ayers is {L,R}(for, say,
+“left” and “right”). At node u1both players have both moves enabled. At node u4, player
+1 has only Lenabled, and player 2 has both LandRenabled.
+An RCSG Adeﬁnes a global denumerable stochastic game MA= (V,∆,pl) as follows.
+The global states V⊆B∗×QofMAare pairs of the form /a\}bracketle{tβ,u/a\}bracketri}ht, where β∈B∗is a (possibly
+empty) sequence of boxes and u∈Qis avertex ofA. More precisely, the states V⊆B∗×Q
+and transitions ∆ are deﬁned inductively as follows:
+(1)/a\}bracketle{tǫ,u/a\}bracketri}ht ∈V, foru∈Q(ǫdenotes the empty string.)
+(2) If /a\}bracketle{tβ,u/a\}bracketri}ht ∈Vand (u,x,v )∈δ, then /a\}bracketle{tβ,v/a\}bracketri}ht ∈Vand ( /a\}bracketle{tβ,u/a\}bracketri}ht,x,/a\}bracketle{tβ,v/a\}bracketri}ht)∈∆.
+(3) If /a\}bracketle{tβ,(b,en)/a\}bracketri}ht ∈V, with ( b,en)∈Callb, then /a\}bracketle{tβb,en /a\}bracketri}ht ∈Vand ( /a\}bracketle{tβ,(b,en)/a\}bracketri}ht,1,/a\}bracketle{tβb,en /a\}bracketri}ht)∈
+∆.
+(4) If /a\}bracketle{tβb,ex /a\}bracketri}ht ∈V, and ( b,ex)∈Return b, then /a\}bracketle{tβ,(b,ex)/a\}bracketri}ht ∈Vand (/a\}bracketle{tβb,ex /a\}bracketri}ht,1,/a\}bracketle{tβ,(b,ex)/a\}bracketri}ht)∈
+∆.
+Item 1 corresponds to the possible initial states, item 2 cor responds to control staying
+within a component, item 3 is when a new component is entered v ia a box, item 4 is when
+control exits a box and returns to the calling component. The mapping pl:V/ma√sto→ {0,play}
+is given by pl(/a\}bracketle{tβ,u/a\}bracketri}ht) =pl(u). The set of vertices Vis partitioned into Vprob,Vplay, where
+Vprob=pl−1(0) and Vplay=pl−1(play).
+We consider MAwith various initial states of the form /a\}bracketle{tǫ,u/a\}bracketri}ht, denoting this by Mu
+A.
+Some states of MAareterminating states and have no outgoing transitions. These are
+states /a\}bracketle{tǫ,ex/a\}bracketri}ht, where exis an exit node. If we wish to view MAas a non-terminating
+CSG, we can consider the terminating states as absorbing sta tes of MA, with a self-loop of
+probability 1.
+An RCSG where |Γ2|= 1 (i.e., where player 2 has only one action) is called a maxi-
+mizing Recursive Markov Decision Process (RMDP); likewise, when |Γ1|= 1 the RCSG is
+a minimizing RMDP. An RSSG where |Γ1|=|Γ2|= 1 is essentially a Recursive Markov
+Chain ([14, 15]).
+Our goal is to answer termination questions for RCSGs of the f orm:“Does player 1
+have a strategy to force the game to terminate (i.e., reach no de/a\}bracketle{tǫ,ex/a\}bracketri}ht), starting at /a\}bracketle{tǫ,u/a\}bracketri}ht,
+with probability ≥p, regardless of how player 2 plays?” .
+First, some deﬁnitions: a strategy σfor player i,i∈ {1,2}, is a function σ:V∗Vplay/ma√sto→
+D(Γi), where D(Γi) denotes the set of probability distributions on the ﬁnite s et of moves Γ i.
+In other words, given a history ws∈V∗Vplay, and a strategy σfor, say, player 1, σ(ws)(γ)
+deﬁnes the probability with which player 1 will play move γ. Moreover, we require that
+the function σhas the property that for any global state s=/a\}bracketle{tβ,u/a\}bracketri}ht, withpl(u) =play,
+σ(ws)∈ D(Γu
+i). In other words, the distribution has support only over eli gible moves at
+vertex u.
+Let Ψ idenote the set of all strategies for player i. Given a history ws∈V∗Vplayof
+play so far, and given a strategy σ∈Ψ1for player 1, and a strategy τ∈Ψ2for player 2, the
+strategies determine a distribution on the next move of play to a new global state, namely,
+the transition ( s,(γ1,γ2),s′)∈∆ has probability σ(ws)(γ1)∗τ(ws)(γ2). This way, given
+
+--- Page 7 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗7
+a start node u, a strategy σ∈Ψ1, and a strategy τ∈Ψ2, we deﬁne a new Markov chain
+(with initial state u)Mu,σ,τ
+A= (S,∆′). The states S ⊆ /a\}bracketle{t ǫ,u/a\}bracketri}htV∗ofMu,σ,τ
+Aare non-empty
+sequences of states of MA, which must begin with /a\}bracketle{tǫ,u/a\}bracketri}ht. Inductively, if ws∈ S, then: (0)
+ifs∈Vproband (s,ps,s′,s′)∈∆ then wss′∈ Sand (ws,p s,s′,wss′)∈∆′; (1) if s∈Vplay,
+where ( s,(γ1,γ2),s′)∈∆, then if σ(ws)(γ1)>0 and τ(ws)(γ2)>0 then wss′∈ Sand
+(ws,p,wss′)∈∆′, where p=σ(ws)(γ1)∗τ(ws)(γ2).
+Given initial vertex u, and ﬁnal exit exin the same component, and given strategies
+σ∈Ψ1andτ∈Ψ2, fork≥0, letqk,σ,τ
+(u,ex)be the probability that, in Mu,σ,τ
+A, starting at initial
+state /a\}bracketle{tǫ,u/a\}bracketri}ht, we will reach a state w/a\}bracketle{tǫ,ex/a\}bracketri}htin at most k“steps” (i.e., where |w| ≤k). Let
+q∗,σ,τ
+(u,ex)= lim k→∞qk,σ,τ
+(u,ex)be the probability of ever terminating at ex, i.e., reaching /a\}bracketle{tǫ,ex/a\}bracketri}ht.
+(Note, the limit exists: it is a monotonically non-decreasi ng sequence bounded by 1). Let
+qk
+(u,ex)= supσ∈Ψ1infτ∈Ψ2qk,σ,τ
+(u,ex)and let q∗
+(u,ex)= supσ∈Ψ1infτ∈Ψ2q∗,σ,τ
+(u,ex). For a strategy
+σ∈Ψ1, letqk,σ
+(u,ex)= inf τ∈Ψ2qk,σ,τ
+(u,ex), and let q∗,σ
+(u,ex)= inf τ∈Ψ2q∗,σ,τ
+(u,ex). Lastly, given a strategy
+τ∈Ψ2, letqk,·,τ
+(u,ex)= supσ∈Ψ1qk,σ,τ
+(u,ex), and let q∗,·,τ
+(u,ex)= supσ∈Ψ1q∗,σ,τ
+(u,ex).
+From, general determinacy results (e.g., “Blackwell deter minacy” [26] which applies to
+all Borel two-player zero-sum stochastic games with counta ble state spaces; see also [25]) it
+follows that the games MAaredetermined , meaning:
+supσ∈Ψ1infτ∈Ψ2q∗,σ,τ
+(u,ex)= inf τ∈Ψ2supσ∈Ψ1q∗,σ,τ
+(u,ex).
+We call a strategy σfor either player a (randomized) Stackless and Memoryless (r-SM)
+strategy if it neither depends on the history of the game, nor on the current call stack. In
+other words, a r-SM strategy σfor player iis given by a function σ:Qplay/ma√sto→ D(Γi), which
+maps each play vertex uof the RCSG to a probability distribution σ(u)∈ D(Γu
+i) on the
+moves available to player iat vertex u.
+We are interested in the following computational problems.
+(1) The qualitative termination problem: Is q∗
+(u,ex)= 1?
+(2) The quantitative termination (decision) problem:
+given r∈[0,1], isq∗
+(u,ex)≥r? Isq∗
+(u,ex)≤r?
+Theapproximate version: approximate q∗
+(u,ex)to within desired precision.
+Obviously, the qualitative termination problem is a specia l case of the quantitative problem,
+setting r= 1. As mentioned, for multi-exit RCSGs these are all undecid able. Thus we focus
+onsingle-exit RCSGs ( 1-RCSGs ), where every component has one exit. Since for 1-RCSGs
+it is always clear which exit we wish to terminate at starting at vertex u(there is only one
+exit in u’s component), we abbreviate q∗
+(u,ex),q∗,σ
+(u,ex), etc., as q∗
+u,q∗,σ
+u, etc., and we likewise
+abbreviate other subscripts.
+A diﬀerent “qualitative” problem is to ask whether q∗
+u= 0? As we will show in Propo-
+sition 3.5, this is an easy problem: deciding whether q∗
+u= 0 for a vertex uin a 1-RCSG can
+be done in polynomial time, and only depends on the transitio n structure of the 1-RCSG,
+not on the speciﬁc probabilities.
+As mentioned in the introduction, it is known that for concur rent stochastic games,
+probabilistic nodes do not add any power, and can in eﬀect be “ simulated” by concurrent
+nodes alone (this fact was communicated to us by K. Chatterje e [6]). The same fact is true
+for 1-RCSGs. Speciﬁcally, the following holds:
+Proposition 2.1. There is a P-time reduction F, which, given a ﬁnite CSG (or a 1-
+RCSG), G, computes a ﬁnite concurrent game (or 1-RCG, respectively) F(G), without any
+
+--- Page 8 ---
+8 K. ETESSAMI AND M. YANNAKAKIS
+probabilistic vertices, such that the value of the game Gis exactly the same as the value of
+the game F(G).
+Proof. First, suppose for now that in Gall probabilistic transitions have probability 1 /2.
+In other words, suppose that for a probabilistic vertex s∈pl−1(0) (which is not an exit or
+a call port) in an 1-RCSG, we have two transitions ( s,1/2,t)∈δand (s,1/2,t′)∈δ. In the
+new game F(G), change sto a play vertex, i.e., let pl(s) =play, and let Γs
+1= Γs
+2={a,b},
+and replace the probabilistic transitions out of swith the following 4 transitions: ( s,(a,b),t),
+(s,(b,a),t), (s,(a,a),t′) and ( s,(b,b),t′). Do this for all probabilistic vertices in G, thus
+obtaining F(G) which contains no probabilistic vertices.
+Now, consider any strategy σfor player 1 in the original game G, and a strategy σ′in
+the new game F(G) that is consistent with σ, i.e. for each history ending at an original play
+vertex σ′has the same distribution as σ(and for the other histories ending at probabilistic
+vertices it has an arbitrary distribution). For any strateg yτfor player 2 in the game G,
+consider the strategy, F(τ), for player 2 in F(G), which is deﬁned as follows: whenever the
+play reaches a probabilistic vertex sofG(in any context and with any history) F(τ) plays
+aandbwith 1/2 probability each. At all non-probabilistic vertic es ofG,F(τ) plays exactly
+asτ(and it may use the history, etc.). This way, no matter what pl ayer 1 does, whenever
+play reaches the vertex s(in any context) the play will move from stotand to t′with
+probability 1 /2 each. Thus for any vertex u, the value q⋆,σ,τ
+uin the game Gis the same
+as the value q∗,σ′,F(τ)
+u in the game F(G). So the optimal payoﬀ value for player 1 in the
+game starting at any vertex uis not greater in F(G) than in G. A completely symmetric
+argument shows that for player 2 the optimal payoﬀ value star ting at uis not greater in
+F(G) than in G. Thus, the value of the game starting at uis the same in both games.
+We can now generalize this to arbitrary rational probabilit ies on transitions, instead of
+just probability 1 /2, by using a basic trick to encode arbitrary ﬁnite probabili ty distributions
+using a polynomial-sized ﬁnite Markov chain all of whose tra nsitions have probability 1 /2.
+Namely, suppose ugoes to v1with probability p/qand to v2with probability 1 −p/q, where
+p,qare integers with kbits (we can write both as k-bit numbers, by adding leading 0’s to p
+if necessary so that it has length exactly k, same as q). Flip (at most) kcoins. View this as
+generating a kbit binary number. If the number that comes out is < p(i.e. 0 ,... ,p −1),
+then go to v1, if between pandq(i.e.,p,... ,q −1) then go to v2, if≥qgo back to the
+start, u. A naive way to do this would require exponentially many stat es ink. But we only
+need at most 2 kstates to encode this if we don’t necessarily ﬂip all kcoins but rather do
+the transition to v1,v2oru, as soon as the outcome is clear from the coin ﬂips. That is,
+if the sequence αformed by the initial sequence of coin ﬂips so far diﬀers from both the
+preﬁxes p′,q′ofpandqof the same length, then we do the transition: if α < p′transition
+tov1, ifp′< α < q′transition to v2, and if α > q′then transition to u. Thus, we only need
+to remember the number jof coins ﬂipped so far, and if jis greater than the length of the
+common preﬁx of pandqthen we need to remember also whether the coin ﬂips so far agre e
+withpor with q.
+Clearly, a simple generalization of this argument works for generating arbitrary ﬁnite
+rational probability distributions p1/q,p2/q,... ,p r/q, such that/summationtextr
+i=1(pi/q) = 1. If qis a
+k-bit integer, then the number of new states needed is at most rk, i.e. linear in the encoding
+length of the rationals p1/q,... ,p r/q.
+
+--- Page 9 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗9
+3.Nonlinear minimax equations for 1-RCSGs
+In ([16]) we deﬁned a monotone system SAof nonlinear min- &-max equations for 1-RSSGs
+(i.e. the case of simple games), and showed that its least ﬁxed point solution yields the
+desired probabilities q∗
+u. Here we generalize these to nonlinear minimax systems for c on-
+current games, 1-RCSGs. Let us use a variable xufor each unknown q∗
+u, and let xbe the
+vector of all xu,u∈Q. The system SAhas one equation of the form xu=Pu(x) for each
+vertex u. Suppose that uis in component Aiwith (unique) exit ex. There are 4 cases based
+on the “ Type” ofu.
+(1)u∈Type 1:u=ex. In this case: xu= 1.
+(2)u∈Type rand:pl(u) = 0 and u∈(Ni\ {ex})∪Returni. Then the equation is xu=/summationtext
+{v|(u,pu,v,v)∈δ}pu,vxv.(Ifuhas no outgoing transitions, this equation is by deﬁnition
+xu= 0.)
+(3)u∈Type call:u= (b,en) is a call port. The equation is x(b,en)=xen·x(b,ex′), where
+ex′∈ExY(b)is the unique exit of AY(b).
+(4)u∈Typeplay. Then the equation is xu= Val( Au(x)), where the right-hand side is
+deﬁned as follows. Given a value vector x, and a play vertex u, consider the zero-
+sum matrix game given by matrix Au(x), whose rows are indexed by player 1’s moves
+Γu
+1from node u, and whose columns are indexed by player 2’s moves Γu
+2. The payoﬀ
+to player 1 under the pair of deterministic moves γ1∈Γu
+1, and γ2∈Γu
+2, is given by
+(Au(x))γ1,γ2:=xv, where ( u,(γ1,γ2),v)∈δ. Let Val( Au(x)) be the value of this zero-
+sum matrix game. By von Neumann’s minimax theorem, the value and optimal mixed
+strategies exist, and they can be obtained by solving a Linea r Program with coeﬃcients
+given by the xi’s.
+In vector notation, we denote the system SAbyx=P(x). Given 1-exit RCSG A, we can
+easily construct this system. Note that the operator P:Rn
+≥0/ma√sto→Rn
+≥0ismonotone : for
+x,y∈Rn
+≥0, ifx≤ythenP(x)≤P(y). This follows because for two game matrices Aand
+Bof the same dimensions, if A≤B(i.e.,Ai,j≤Bi,jfor all iandj), then Val( A)≤Val(B).
+Note that by deﬁnition of Au(x), for x≤y,Au(x)≤Au(y).
+Example 3.1. We now construct the system of nonlinear minimax functional equations,
+x=P(x), associated with the 1-RCSG we encountered in Figure 1 (see Example 1). We
+shall need one variable for every vertex of that 1-RCSG, to represent the value of the
+termination game starting at that vertex, and we will need on e equation for each such
+variable. Thus, the variables we need are xs,xt,xu1,... ,x u5,x(b1,s),x(b1,t),x(b2,s),x(b2,t).
+The equations are as follows:
+xt= 1
+xs= (1/2)x(b1,s)+ (1/4)xt+ (1/4)xu1
+xu5=xu5
+xu2=x(b2,s)
+xu3= (1/2)xu2+ (1/2)xt
+x(b1,s)=xsx(b1,t)x(b1,t)=x(b2,s)
+x(b2,s)=xsx(b2,t)
+x(b2,t)=xt
+xu1= Val/parenleftbigg/bracketleftbigg
+xu2xu3
+xu4xu5/bracketrightbigg/parenrightbigg
+xu4= Val/parenleftbig/bracketleftbigx(b2,s)xt/bracketrightbig/parenrightbig
+We now identify a particular solution to x=P(x), called the Least Fixed Point (LFP)
+solution, which gives precisely the termination game value s. Deﬁne P1(x) =P(x), and
+
+--- Page 10 ---
+10 K. ETESSAMI AND M. YANNAKAKIS
+deﬁne Pk(x) =P(Pk−1(x)), for k >1. Let q∗∈Rndenote the n-vector q∗
+u,u∈Q(using
+the same indexing as used for x). For k≥0, letqkdenote, similarly, the n-vector qk
+u,u∈Q.
+Theorem 3.2. Letx=P(x)be the system SAassociated with 1-RCSG A. Then q∗=
+P(q∗), and for all q′∈Rn
+≥0, ifq′=P(q′), then q∗≤q′(i.e.,q∗is the Least Fixed Point , of
+P:Rn
+≥0/ma√sto→Rn
+≥0). Moreover, limk→∞Pk(0)↑q∗, i.e., the “value iteration” sequence Pk(0)
+converges monotonically to the LFP, q∗.
+Proof. We ﬁrst prove that q∗=P(q∗). Suppose q∗/\e}atio\slash=P(q∗). The equations for vertices
+uof types Type 1,Type rand, and Type callcan be used to deﬁne precisely the values q∗
+uin
+terms of other values q∗
+v. Thus, the only possibility is that q∗
+u/\e}atio\slash=Pu(q∗) for some vertex u
+ofTypeplay. In other words, q∗
+u/\e}atio\slash= Val( Au(q∗)).
+Suppose q∗
+u<Val(Au(q∗)). To see that this can’t happen, we construct a strategy σfor
+player 1 that achieves better. At node u, let player 1’s strategy σplay in one step its optimal
+randomized minimax strategy in the game Au(q∗) (which exists according to the minimax
+theorem). Choose ǫ >0 such that ǫ <Val(Au(q∗))−q∗
+u. After the ﬁrst step, at any vertex v
+player 1’s strategy σwill play in such a way that achieves a value ≥q∗
+v−ǫ(i.e, an ǫ-optimal
+strategy in the rest of the game, which must exist because the game is determined). Let
+εbe an n-vector every entry of which is ǫ. Now, the matrix game Au(q∗−ε) is just an
+additive translation of the matrix game Au(q∗), and thus it has precisely the same ǫ-optimal
+strategies as the matrix game Au(q∗), and moreover Val( Au(q∗−ε)) = Val( Au(q∗))−ǫ.
+Thus, by playing strategy σ, player 1 guarantees a value which is ≥Val(Au(q∗−ε)) =
+Val(Au(q∗))−ǫ > q∗
+u, which is a contradiction. Thus q∗
+u≥Val(Au(q∗)).
+A completely analogous argument works for player 2, and show s that q∗
+u≤Val(Au(q∗)).
+Thus q∗
+u= Val( Au(q∗)), and hence q∗=P(q∗).
+Next, we prove that if q′is any vector such that q′=P(q′), then q∗≤q′. Let τ′be
+the randomized stackless and memoryless strategy for playe r 2 that always picks, at any
+state /a\}bracketle{tβ,u/a\}bracketri}ht, for play vertex u∈Qplay, a mixed 1-step strategy which is an optimal strategy
+in the matrix game Au(q′). (Again, the existence of such a strategy is guaranteed by t he
+minimax theorem.)
+Lemma 3.3. For all strategies σ∈Ψ1of player 1, and for all k≥0,qk,σ,τ′≤q′.
+Proof. By induction. The base case q0,σ,τ′≤q′is trivial.
+(1)Type 1. Ifu=exis an exit, then for all k≥0, clearly qk,σ,τ′
+ex=q′
+ex= 1.
+(2)Type rand. Let σ′be the strategy deﬁned by σ′(β) =σ(/a\}bracketle{tǫ,u/a\}bracketri}htβ) for all β∈V∗. Then,
+qk+1,σ,τ′
+u =/summationdisplay
+vpu,vqk,σ′,τ′
+v ≤/summationdisplay
+vpu,vq′
+v=q′
+u.
+(3)Type call. In this case, u= (b,en)∈Callb, and qk+1,σ,τ′
+u ≤supρqk,ρ,τ′
+en ·supρqk,ρ,τ′
+(b,ex′),
+where ex′∈ExY(b)is the unique exit node of AY(b). Now, by the inductive assumption,
+qk,ρ,τ′≤q′for all ρ. Moreover, since q′=P(q′),q′
+u=q′
+en·q′
+(b,ex′). Hence, using these
+inequalities and substituting, we get
+qk+1,σ,τ′
+u ≤q′
+enq′
+(b,ex′)=q′
+u.
+(4)Type play: In this case, starting at /a\}bracketle{tǫ,u/a\}bracketri}ht, whatever player 1’s strategy σis, it has the
+property that qk+1,σ,τ′
+u ≤Val(Au(qk,σ′,τ′)). By the inductive hypothesis qk,σ′,τ′
+v ≤q′
+v, so
+we are done by induction and by the monotonicity of Val( Au(x)).
+
+--- Page 11 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗11
+Now, by the lemma, q∗,σ,τ′= lim k→∞qk,σ,τ′≤q′. This holds for any strategy σ∈Ψ1.
+Therefore, supσ∈Ψ1q∗,σ,τ′
+u ≤q′
+u, for every vertex u. Thus, by the determinacy of RCSG
+games, we have established that q∗
+u= inf τ∈Ψ2supσ∈Ψ1q∗,σ,τ
+u≤q′
+u, for all vertices u. In other
+words, q∗≤q′. The fact that lim k→∞Pk(0)↑q∗follows from a simple Tarski-Knaster
+argument.
+Example 2. For the system of equations x=P(x) given in Example 3.1, associated with
+the 1-RCSG given in Example 1, fairly easy calculations usin g the equations show that
+the Least Fixed Point of the system (and thus the game values, starting at the diﬀerent
+vertices) is as follows: q∗
+t=q∗
+(b2,t)= 1;q∗
+u5= 0;q∗
+s=q∗
+u1=q∗
+u2=q∗
+u4=q∗
+(b1,t)=q∗
+(b2,s)= 0.5;
+q∗
+u3= 0.75; and q∗
+(b1,s)= 0.25.
+In this case the values turn out to be rational and are simple t o compute, but in general
+the values may be irrational and diﬃcult to compute, and even if they are rational they
+may require exponentially many bits to represent (in standa rd notation, e.g., via reduced
+numerator and denominator given in binary) in terms of the si ze of the input 1-RCSG or
+equation system.
+Furthermore, in this game there are pure optimal (stackless and memoryless) strategies
+for both players. Speciﬁcally, the strategy for player 1 (ma ximizer) that always plays L
+from nodes u1is optimal, and the strategy for player 2 that always player L from nodes u1
+andu4is optimal. In general for 1-RCSGs, we show randomized stack less and memoryless
+ǫ-optimal and optimal strategies do exist for players 1 and 2, respectively. However, for
+player 1 only ǫ-optimal strategies may exist, and although optimal strate gies do exist for
+player 2 they may require randomization using irrational pr obabilities. This is the case even
+for ﬁnite-state concurrent games.
+We can use the system of equations to establish the following upper bound for computing
+the value of a 1-RCSG termination game:
+Theorem 3.4. The qualitative and quantitative termination problems for 1-exit RCSGs can
+be solved in PSPACE. That is, given a 1-exit RCSG A, vertex uand a rational probability
+p, there is a PSPACE algorithm to decide whether q∗
+u≤p(orq∗≥p, orq∗< p, etc.).
+The running time is O(|A|O(n))where nis the number of variables in x=P(x). We can
+also approximate the vector q∗of values to within a speciﬁed number of bits iof precision
+(igiven in unary), in PSPACE and in time O(i|A|O(n)).
+Proof. Using the system x=P(x), we can express the condition q∗
+u≤cby a sentence in
+the existential theory of the reals as follows:
+∃x1,... ,x nn/logicalanddisplay
+i=1(xi=Pi(x1,... ,x n))∧n/logicalanddisplay
+i=1(xi≥0)∧(xu≤c)
+Note that the sentence is true, i.e. there exists a vector xthat satisﬁes the constraints of
+the above sentence if and only if the least ﬁxed point q∗satisﬁes them. The constraints
+xi=Pi(x1,... ,x n) for vertices iof type 1, 2, and 3 (exit, probabilistic vertex and call port)
+are clearly polynomial equations, as they should be in a sent ence of the existential theory
+of the reals. We only need to show how to express equations of t he form xv= Val( Av(x))
+in the existential theory of reals. We can then appeal to well known results for deciding
+that theory ([5, 27]). But this is a standard fact in game theo ry (see, e.g., [2, 19, 12] where
+it is used for ﬁnite CSGs). The minimax theorem and its LP enco ding allow the predicate
+
+--- Page 12 ---
+12 K. ETESSAMI AND M. YANNAKAKIS
+“y= Val( Av(x))” to be expressed as an existential formula ϕ(y,x) in the theory of reals
+with free variables yandx1,... ,x n, such that for every x∈Rn, there exists a unique y(the
+game value) satisfying ϕ(y,x). Speciﬁcally, the formula includes, besides the free vari ables
+x,y, existentially quantiﬁed variables zγ1,γ1∈Γv
+1, and wγ2,γ2∈Γv
+2for the probabilities
+of the moves of the two players, and the conjunction of the fol lowing constraints (recall
+that each entry Au(γ1,γ2) of the matrix Auis a variable xvwhere vis the vertex such that
+(u,(γ1,γ2),v)∈δ)
+zγ1≥0 for all γ1∈Γv
+1;/summationtext
+γ1∈Γv
+1zγ1= 1;
+wγ2≥0 for all γ2∈Γv
+2;/summationtext
+γ2∈Γv
+2wγ2= 1;/summationtext
+γ1∈Γv
+1Au(γ1,γ2)zγ1≥yfor all γ2∈Γv
+2;/summationtext
+γ2∈Γv
+2Au(γ1,γ2)wγ2≤yfor all γ1∈Γv
+1.
+To approximate the vector of game values within given precis ion we can do binary search
+using queries of the form q∗
+u≤cfor all vertices u.
+Determining the vertices ufor which the value q∗
+uis 0, is easier and can be done in
+polynomial time, as in the case of the turn-based 1-RSSGs [17 ].
+Proposition 3.5. Given a 1-RCSG we can compute in polynomial time the set Zof vertices
+usuch that q∗
+u= 0. This set Zdepends only on the structure of the given 1-RCSG and not
+on the actual values of the transition probabilities.
+Proof. From the system of ﬁxed point equations we have the following : (1) all exit nodes
+are not in Z; (2) a probabilistic node uis inZif and only if all its (immediate) successors
+vare in Z; (3) the call port u= (b,en) of a box bis inZif and only if the entry node en
+of the corresponding component Y(b) is in Zor the return port ( b,ex) is in Z; (4) a play
+nodeuis inZif and only if Player 2 has a move γ2∈Γu
+2such that for all moves γ1∈Γu
+1
+of Player 1, the next node v, i.e. the (unique) node vsuch that ( u,(γ1,γ2),v)∈δ, is in Z.
+Only the last case of a play node uneeds an explanation. If Player 2 has such a move
+γ2, then clearly the corresponding column of the game matrix Au(q∗) has all the entries
+0, and the value of the game (i.e., q∗
+u) is 0. Conversely, if every column of Au(q∗) has a
+nonzero entry, then the value of the game with this matrix is p ositive because for example
+Player 1 can give equal probability to all his moves. Thus, in eﬀect, as far as computing
+the vertices with zero value is concerned, we can ﬁx the strat egy of Player 1 at each play
+vertex to play at all times all legal moves with equal probabi lity to get a 1-RMDP; a vertex
+has nonzero value in the given 1-RCSG iﬀ it has nonzero value i n the 1-RMDP.
+The algorithm to compute the set Zof vertices with 0 value is similar to the case of
+1-RSSGs [17]. Initialize ZtoQ\Ex, the set of non-exit vertices. Repeat the following until
+there is no change:
+•If there is a probabilistic node u∈Zthat has a successor not in Z, then remove ufrom
+Z.
+•If there is a call port u= (b,en)∈Zsuch that both the entry node enof the corresponding
+component Y(b) and the return port ( b,ex) of the box are not in Z, then remove ufrom
+Z.
+•If there is a play node u∈Zsuch that for every move γ2∈Γu
+2of Player 2 there is a move
+γ1∈Γu
+1of Player 1 such that the next node vfromuunder ( γ1,γ2) is not in Z, then
+remove ufromZ.
+There are at most niterations and at the end Zis the set of vertices usuch that q∗
+u= 0.
+
+--- Page 13 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗13
+4.Strategy improvement and randomized-SM-determinacy
+The proof of Theorem 1 implies the following:
+Corollary 4.1. In every 1-RCSG termination game, player 2 (the minimizer) h as an op-
+timal r-SM strategy.
+Proof. Consider the strategy τ′in the proof of Theorem 3.2, chosen not for just any ﬁxed
+pointq′, but for q∗itself. That strategy is r-SM and is optimal.
+Player 1 does not have optimal r-SM strategies, not even in ﬁn ite concurrent stochastic
+games (see, e.g., [19, 12]). We next establish that it does ha ve ﬁnite r-SM ǫ-optimal strate-
+gies, meaning that it has, for every ǫ >0, a r-SM strategy that guarantees a value of at
+leastq∗
+u−ǫ, starting from every vertex uin the termination game. We say that a game is
+r-SM-determined if, letting Ψ′
+1and Ψ′
+2denote the set of r-SM strategies for players 1 and
+2, respectively, we have supσ∈Ψ′
+1infτ∈Ψ′
+2q∗,σ,τ
+u= inf τ∈Ψ′
+2supσ∈Ψ′
+1q∗,σ,τ
+u.
+Theorem 4.2.
+(1)(Strategy Improvement) Starting at any r-SM strategy σ0for player 1, via local strat-
+egy improvement steps at individual vertices, we can derive a series of r-SM strategies
+σ0,σ1,σ2,..., such that for all ǫ >0, there exists i≥0such that for all j≥i,σjis an
+ǫ-optimal strategy for player 1 starting at any vertex, i.e., q∗,σju≥q∗
+u−ǫfor all vertices
+u.
+Each strategy improvement step involves solving the quanti tative termination problem
+for a corresponding 1-RMDP. Thus, for classes where this pro blem is known to be in
+P-time (such as linearly-recursive 1-RMDPs, [16]), strategy improvement steps can be
+carried out in polynomial time.
+(2)Player 1 has ǫ-optimal r-SM strategies, for all ǫ >0, in 1-RCSG termination games.
+(3)1-RCSG termination games are r-SM-determined.
+Proof. Note that (2.) follows immediately from (1.), and (3.) follo ws because by Corollary
+4.1, player 2 has an optimal r-SM strategy and thus
+supσ∈Ψ′
+1infτ∈Ψ′
+2q∗,σ,τ
+u= inf τ∈Ψ′
+2supσ∈Ψ′
+1q∗,σ,τ
+u.
+Letσbe any r-SM strategy for player 1. Consider q∗,σ. First, let us note that if q∗,σ=
+P(q∗,σ) then q∗,σ=q∗. This is so because, by Theorem 3.2, q∗≤q∗,σ, and on the other hand,
+σis just one strategy for player 1, and for every vertex u,q∗
+u= supσ′∈Ψ1infτ∈Ψ2q∗,σ′,τ
+u ≥
+infτ∈Ψ2q∗,σ,τ
+u=q∗,σ
+u.
+Next we claim that, for all vertices u/\e}atio\slash∈Typeplay,q∗,σ
+usatisﬁes its equation in x=P(x).
+In other words, q∗,σ
+u=Pu(q∗,σ). To see this, note that for vertices u/\e}atio\slash∈Typeplay, no choice
+of either player is involved, thus the equation holds by deﬁn ition of q∗,σ. Thus, the only
+equations that may fail are those for u∈Type play, of the form xu= Val( Au(x)). We need
+the following.
+Lemma 4.3. For any r-SM strategy σfor player 1, and for any u∈Type play,q∗,σ
+u≤
+Val(Au(q∗,σ)).
+Proof. We are claiming that q∗,σ
+u= inf τ∈Ψ2q∗,σ,τ
+u≤Val(Au(q∗,σ)). The inequality follows
+because a strategy for player 2 can in the ﬁrst step starting a t vertex uplay its optimal
+strategy in the matrix game Au(q∗,σ), and thereafter, depending on which vertex vis the
+immediate successor of uin the play, the strategy can play “optimally” to force at mos t the
+value q∗,σ
+v.
+
+--- Page 14 ---
+14 K. ETESSAMI AND M. YANNAKAKIS
+Now, suppose that for some u∈Type play,q∗,σ
+u/\e}atio\slash=V al(Au(q∗,σ)). Thus by the lemma
+q∗,σ
+u< V al (Au(q∗,σ)). Consider a revised r-SM strategy for player 1, σ′, which is identical
+toσ, except that locally at vertex uthe strategy is changed so that σ′(u) =p∗,u,σ, where
+p∗,u,σ∈ D(Γu
+1) is an optimal mixed minimax strategy for player 1 in the matr ix game
+Au(q∗,σ). We will show that switching from σtoσ′will improve player 1’s payoﬀ at vertex
+u, and will not reduce its payoﬀ at any other vertex.
+Consider a parameterized 1-RCSG, A(t), which is identical to A, except that uis a
+randomizing vertex, all edges out of vertex uare removed, and replaced by a single edge
+labeled by probability variable tto the exit of the same component, and an edge with
+remaining probability 1 −tto a dead vertex. Fixing the value tdetermines an 1-RCSG,
+A(t). Note that if we restrict the r-SM strategies σorσ′to all vertices other than u,
+then they both deﬁne the same r-SM strategy for the 1-RCSG A(t). For each vertex z
+and strategy τof player 2, deﬁne q∗,σ,τ,t
+z to be the probability of eventually terminating
+starting from /a\}bracketle{tǫ,z/a\}bracketri}htin the Markov chain Mz,σ,τ
+A(t). Let fz(t) = inf τ∈Ψ2q∗,σ,τ,t
+z. Recall that
+σ′(u) =p∗,u,σ∈ D(Γu
+1) deﬁnes a probability distribution on the actions availabl e to player 1
+at vertex u. Thus p∗,u,σ(γ1) is the probability of action γ1∈Γ1. Let γ2∈Γ2be any action
+of player 2 for the 1-step zero-sum game with game matrix Au(q∗,σ). Let w(γ1,γ2) denote
+the vertex such that ( u,(γ1,γ2),w(γ1,γ2))∈δ. Let hγ2(t) =/summationtext
+γ1∈Γ1p∗,u,σ(γ1)fw(γ1,γ2)(t).
+Lemma 4.4. Fix the vertex u. Letϕ:R/ma√sto→Rbe any function ϕ∈ {fz|z∈Q} ∪ {hγ|γ∈
+Γu
+2}. The following properties hold:
+(1)Ifϕ(t)> tat some point t∈[0,1], then ϕ(t′)> t′for all 0≤t′< t.
+(2)Ifϕ(t)< tat some point t∈[0,1], then ϕ(t′)< t′for all 1> t′> t.
+Proof. First, we prove this for ϕ=fz, for some vertex z.
+Note that, once player 1 picks a r-SM strategy, a 1-RCSG becom es a 1-RMDP. By a
+result of [16], player 2 has an optimal deterministic SM resp onse strategy. Furthermore,
+there is such a strategy that is optimal regardless of the sta rting vertex. Thus, for any value
+oft, player 2 has an optimal deterministic SM strategy τt, such that for any start vertex z,
+we have τt= arg min τ∈Ψ2q∗,σ,τ,t
+z. Let g(z,τ)(t) =q∗,σ,τ,t
+z, and let dΨ2be the (ﬁnite) set of
+deterministic SM strategies of player 2. Then fz(t) = min τ∈dΨ2gz,τ(t). Now, note that the
+function gz,τ(t) is the probability of reaching an exit in an RMC starting fro m a particular
+vertex. Thus, by [14], gz,τ(t) = (lim k→∞Rk(0))zfor a polynomial system x=R(x) with
+non-negative coeﬃcients, but with the additional feature t hat the variable tappears as
+one of the coeﬃcients. Since this limit can be described by a p ower series in the variable
+twith non-negative coeﬃcients, gz,τ(t) has the following properties: it is a continuous,
+diﬀerentiable, and non-decreasing function of t∈[0,1], with continuous and non-decreasing
+derivative, g′
+z,τ(t), and since the limit deﬁnes probabilities we also know that fort∈[0,1],
+gz,τ(t)∈[0,1]. Thus gz,τ(0)≥0 and gz,τ(1)≤1.
+Hence, since g′
+z,τ(t) is non-decreasing, if for some t∈[0,1],gz,τ(t)> t, then for all
+t′< t,gz,τ(t′)> t′. To see this, note that if gz,τ(t)> tandg′
+z,τ(t)≥1, then for all t′′> t,
+gz,τ(t′′)> t′′, which contradicts the fact that gz,τ(1) = 1. Thus g′
+z,τ(t)<1, and since g′
+z,τ
+is non-decreasing, it follows that g′
+z,τ(t′)<1 for all t′≤t. Since gz,τ(t)> t, we also have
+gz,τ(t′)> t′for all t′< t.
+Similarly, if gz,τ(t)< tfor some t, then gz,τ(t′′)< t′′for all t′′∈[t,1). To see this, note
+that if for some t′′> t,t′′<1,gz,τ(t′′) =t′′, then since g′
+z,τis non-decreasing and gz,τ(t)< t,
+it must be the case that g′
+z,τ(t′′)>1. But then gz,τ(1)>1, which is a contradiction.
+
+--- Page 15 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗15
+It follows that fz(t) has the same properties, namely: if fz(t)> tat some point t∈[0,1]
+thengz,τ(t)> tfor all τ, and hence for all t′< tand for all τ∈dΨ2,gz,τ(t′)> t′, and thus
+fz(t′)> t′for all t′∈[0,t]. On the other hand, if fz(t)< tatt∈[0,1], then there must
+be some τ′∈dΨ2such that gz,τ′(t)< t. Hence gz,τ′(t′′)< t′′, for all t′′∈[t,1), and hence
+fz(t′′)< t′′for all t′′∈[t,1).
+Next we prove the lemma for every ϕ=hγ, where γ∈Γu
+2. For every value of t, there is
+one SM strategy τtof player 2 (depending only on t) that minimizes simultaneously gz,τ(t)
+for all nodes z. Sohγ(t) = min τrγ,τ(t), where rγ,τ(t) =/summationtext
+γ1∈Γ1p∗,u,σ(γ1)gw(γ1,γ),τ(t) is a
+convex combination (i.e., a “weighted average”) of some gfunctions at the same point t.
+The function rγ,τ(for any subscript ) inherits the same properties as the g’s: continuous,
+diﬀerentiable, non-decreasing, with continuous non-decr easing derivatives, and rγ,τtakes
+value between 0 and 1. As we argued for the gfunctions, in the same way it follows that
+rγ,τhas properties 1 and 2. Also, as we argued for f’s based on the g’s, it follows that h’s
+also have the same properties, based on the r’s.
+Now let t1=q∗,σ
+u, and let t2= Val( Au(q∗,σ)). By assumption, t2> t1. Observe
+thatfz(t1) =q∗,σ
+zfor every vertex z. Thus, hγ2(t1) =/summationtext
+γ1∈Γ1p∗,u,σ(γ1)fw(γ1,γ2)(t1) =/summationtext
+γ1p∗,u,σ(γ1)q∗,σ
+w(γ1,γ2). But since, by deﬁnition, p∗,u,σis an optimal strategy for player 1
+in the matrix game Au(q∗,σ), it must be the case that for every γ2∈Γu
+2,hγ2(t1)≥t2, for
+otherwise player 2 could play a strategy against p∗,u,σwhich would force a payoﬀ lower than
+the value of the game. Thus hγ2(t1)≥t2> t1, for all γ2. This implies that hγ2(t)> tfor all
+t < t 1by Lemma 2, and for all t1≤t < t 2, because hγ2is non-decreasing. Thus, hγ2(t)> t
+for all t < t 2.
+Lett3=q∗,σ′
+u. Let τ′be an optimal global strategy for player 2 against σ′; by [16],
+we may assume τ′is a deterministic SM strategy. Let γ′be player 2’s action in τ′at node
+u. Then the value of any node zunder the pair of strategies σ′andτ′isfz(t3), and thus
+since hγ′(t3) is a weighted average of fz(t3)’s for some set of z’s, we have hγ′(t3) =t3.
+Thus, by the previous paragraph, it must be that t3≥t2, and we know t2> t1. Thus,
+t3=q∗,σ′
+u≥Val(Au(q∗,σ))> t1=q∗,σ
+u. We have shown:
+Lemma 4.5. q∗,σ′
+u≥Val(Au(q∗,σ))> q∗,σ
+u.
+Note that since t3> t1, andfzis non-decreasing, we have fz(t3)≥fz(t1) for all vertices
+z. But then q∗,σ′
+z=fz(t3)≥fz(t1) =q∗,σ
+zfor all z. Thus, q∗,σ′≥q∗,σ, with strict inequality
+atu, i.e., q∗,σ′
+u> q∗,σ
+u. Thus, we have established that such a “strategy improvemen t” step
+does yield a strictly better payoﬀ for player 1.
+Suppose we conduct this “strategy improvement” step repeat edly, starting at an arbi-
+trary initial r-SM strategy σ0, as long as we can. This leads to a (possibly inﬁnite) sequenc e
+of r-SM strategies σ0,σ1,σ2,.... Suppose moreover, that during these improvement steps
+we always “prioritize” among vertices at which to improve so that, among all those vertices
+u∈Type playwhich can be improved, i.e., such that q∗,σiu<Val(Au(q∗,σi)), we choose the
+vertex which has not been improved for the longest number of s teps (or one that has never
+been improved yet). This insures that, inﬁnitely often, at e very vertex at which the local
+strategy can be improved, it eventually is improved.
+Under this strategy improvement regime, we show that lim i→∞q∗,σi=q∗, and thus, for
+allǫ >0, there exists a suﬃciently large i≥0 such that σiis anǫ-optimal r-SM strategy for
+player 1. Note that after every strategy improvement step, i, which improves at a vertex
+u, by Lemma 4.5 we will have q∗,σi+1u ≥Val(Au(q∗,σi)). Since our prioritization assures
+
+--- Page 16 ---
+16 K. ETESSAMI AND M. YANNAKAKIS
+that every vertex that can be improved at any step iwill be improved eventually, for all
+i≥0 there exists k≥0 such that q∗,σi≤P(q∗,σi)≤q∗,σi+k. In fact, there is a uniform
+bound on k, namely k≤ |Q|, the number of vertices. This “sandwiching” property allow s
+us to conclude that, in the limit, this sequence reaches a ﬁxe d point of x=P(x). Note
+that since q∗,σi≤q∗,σi+1for all i, and since q∗,σi≤q∗, we know that the limit lim i→∞q∗,σi
+exists. Letting this limit be q′, we have q′≤q∗. Finally, we have q′=P(q′), because
+letting igo to inﬁnity in all three parts of the “sandwiching” inequal ities above, we get
+q′≤limi→∞P(q∗,σi)≤q′. But note that lim i→∞P(q∗,σi) =P(q′), because the mapping
+P(x) is continuous on Rn
+≥0. Thus q′is a ﬁxed point of x=P(x), and q′≤q∗. But since q∗
+is the leastﬁxed point of x=P(x), we have q′=q∗.
+We have so far not addressed the complexity of computing or ap proximating the ( ǫ-)
+optimal strategies for the two players in 1-RCSG terminatio n games. Of course, in general,
+player 1 (maximizer) need not have any optimal strategies, s o it only makes sense to speak
+about computing ǫ-optimal strategies for it. Moreover, the optimal strategi es for player 2
+may require randomization that is given by irrational proba bility distributions over moves,
+and thus we can not compute them exactly, so again we must be co ntent to approximate
+them or answer decision questions about them. It is not hard t o see however, by examining
+the proofs of our theorems, that such decision questions can be answered using queries to
+the existential theory of reals, and are thus also in PSPACE.
+5.Lower bounds
+Recall the square-root sum problem (e.g., from [20, 14]): given ( a1,... ,a n)∈Nnandk∈N,
+decide whether/summationtextn
+i=1√ai≥k.
+Theorem 5.1. There is a P-time reduction from the square-root sum problem to the quan-
+titative termination (decision) problem for ﬁnite CSGs.
+Proof. Given positive integers ( a1,... ,a n)∈Nn, andk∈N, we would like to check whether/summationtextn
+i=1√ai≥k. We can clearly assume that ai>1 for all i. We will reduce this problem to
+the problem of deciding whether for a given ﬁnite CSG, starti ng at a given node, the value
+of the termination game is greater than a given rational valu e.
+Given a positive integer a >1, we will construct a ﬁnite CSG, call it gadget G(a), with
+the property that for a certain node uinG(a) the value of the termination game starting
+atuisd+e√a, where dandeare rationals that depend on a, with e >0, and such that
+we can compute dandeeﬃciently, in polynomial time, given a.
+If we can construct such gadgets, then we can do the reduction as follows. Given
+(a1,... ,a n)∈Nn, with ai>1 for all i, and given k∈N, make copies of the gadgets G(a1),
+.. .,G(an). In each gadget G(ai) we have a node uiwhose termination value is di+ei√ai,
+where diandei>0 are rationals that depend on aiand can be computed eﬃciently from
+ai. Create a new node sand add transitions from sto the nodes ui,i= 1... ,n, with
+probabilities pi=E/ei, respectively, where E= 1/(/summationtextn
+i=11
+ei). It is easy to check that the
+value of termination starting at sisD+E/summationtextn
+i=1√ai, where D=/summationtextn
+i=1pidi. Note that D
+andEare rational values that we can compute eﬃciently given the ai’s, so to solve the
+square root sum problem, i.e., decide whether/summationtextn
+i=1√ai≥k, we can ask whether the value
+of the termination game starting at node sis≥D+Ek.
+Now we show how to construct the gadget G(a) given a positive integer a.G(a) has a
+play node u, the target node t, dead node z, and probabilistic nodes v1,v2. Nodes zandt
+
+--- Page 17 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗17
+are absorbing. At ueach player has two moves {1,2}. If they play 1 ,1 then ugoes to v1, if
+they play 2 ,2 then ugoes to v2, if they play 1 ,2 or 2 ,1 then ugoes to z.
+Note that we can write aasa=m2−lwhere mis a small-size rational ( mis approx-
+imately√a) and l <1 is also a small-size rational, and such that we can compute b oth
+mandleﬃciently given a. To see this note that, ﬁrst, given awe can easily approximate√afrom above to within an additive error at most 1 /(2a) in polynomial time, using stan-
+dard methods for approximating square roots. In other words , given integer a >1, we can
+eﬃciently compute a rational number msuch that 0 ≤m−√a≤1/(2a). We then have
+m2≤(√a+ 1/(2a))2
+=a+ 1/√a+ 1/(4a2)
+Since 1 /√a+ 1/(4a2)<1, we can let l=m2−a.
+Having computed mandl, letc2=l/4,g=m−1−c2, andc1=gc3, where 0 < c3<1
+is a small-sized rational value such that c3<1/2g. From node v1we move with probability
+c1tot, with probability c2tou, and with the remaining probability to z. From node v2we
+go with probability c3totand 1 −c3toz. It is not hard to check that these are legitimate
+probabilities.
+Letxbe the value at u. We have x= Val( A), where the 2 ×2 matrix Afor the one-shot
+zero-sum matrix game at uhasA1,1=c1+c2x,A2,2=c3, and A1,2=A2,1= 0. Note that
+A1,1>0 and A2,2>0. If the optimal strategy of player 1 at uis to play 1 with probability
+pand 2 with probability 1 −p, then by basic facts about zero-sum matrix games we must
+have 0 < p < 1 and x=p(c1+c2x) = (1 −p)c3. Sop=c3/(c1+c2x+c3), and substituting
+this expression for pin the equality x=p(c1+c2x), we have:
+c2x2+ (gc3+c3−c2c3)x−g(c3)2= 0
+So,
+x=−(gc3+c3−c2c3) +/radicalbig
+(gc3+c3−c2c3)2+ 4gc2(c3)2
+2c2
+Note that we must choose the root with + sign to get a positive v alue.
+The discriminant can be written as ( c3)2[(g+1−c2)2+4gc2]. The term ( c3)2will come
+out from under the square root, as c3, so we care only about the expression in the brackets,
+which is
+(g+ 1−c2)2+ 4gc2= (g+ 1)2+ (c2)2−2gc2−2c2+ 4gc2
+= (g+ 1)2+ (c2)2+ 2gc2+ 2c2−4c2
+= (g+ 1 + c2)2−4c2
+=m2−l
+=a
+Sox=d+e√a, where d=−(gc3+c3−c2c3)/2c2ande=c3/2c2.
+Theorem 5.2. There is a P-time reduction from the quantitative terminati on (decision)
+problem for ﬁnite CSGs to the qualitative termination probl em for 1-RCSGs.
+Proof. Consider the 1-RMC depicted in Figure 2. We assume p1+p2= 1. As shown in
+([14], Theorem 3), in this 1-RMC the probability of terminat ion starting at /a\}bracketle{tǫ,en/a\}bracketri}htis = 1 if
+and only if p2≥1/2.
+
+--- Page 18 ---
+18 K. ETESSAMI AND M. YANNAKAKIS
+11 p1
+p2A1
+b1:A1 b2:A1
+en ex
+Figure 2: 1-RMC A′
+Now, given a ﬁnite CSG, G, and a vertex uofG, do the following: ﬁrst “clean up” G
+by removing all nodes where the min player (player 2) has a str ategy to achieve probability
+0. We can do this in polynomial time as follows. Note that the o nly way player 2 can force
+a probability 0 of termination is if it has a strategy τsuch that, for all strategies σof player
+1, there is no path in the resulting Markov chain from the star t vertex uto the terminal
+node. But this can only happen if, ignoring probabilities, p layer 2 can play in such a way
+as to avoid the terminal vertex. This can be checked easily in polynomial time.
+The revised CSG will have two designated terminal nodes, the old terminal node, labeled
+“1”, and another terminal node labeled “0”. From every node vofType randin the revised
+CSG which does not carry full probability on its outedges, we direct all the “residual”
+probability to “0”, i.e., we add an edge from vto “0” with probability pv,“0”= 1−/summationtext
+wpv,w,
+where the sum is over all remaining nodes wis the CSG.
+Letǫ >0 be a value that is strictly less than the least probability, over all vertices,
+under any strategy for player 2, of reaching the terminal nod e. Obviously such an ǫ >0
+exists in the revised CSG, because by Corollary 4.1 (special ized to the case of ﬁnite CSGs)
+player 2 has an optimal randomized S&M strategy. Fixing that strategy τ, player 1 can
+force termination from vertex uwith positive probability q∗,·,τ
+u. We take ǫ= (min uq∗,·,τ
+u)/2.
+(We do not need to compute ǫ; we only need its existence for the correctness proof of the
+reduction.)
+In the resulting ﬁnite CSG, we know that if player 1 plays ǫ-optimally (which it can do
+with randomized S&M strategies), and player 2 plays arbitra rily, there is no bottom SCC
+in the resulting ﬁnite Markov chain other than the two design ated terminating nodes “0”
+and “1”. In other words, all the probability exits the system , as long as the maximizing
+player plays ǫ-optimally.
+Now, take the remaining ﬁnite CSG, call it G′. Just put a copy of G′at the entry of
+the component A1of the 1-RMC in Figure 2, identifying the entry enwith the initial node,
+u, ofG′. Take every transition that is directed into the terminal no de “1” of G, and instead
+direct it to the exit exof the component A1. Next, take every edge that is directed into the
+terminal “0” node and direct it to the ﬁrst call port, ( b1,en) of the left box b1. Both boxes
+map to the unique component A1. Call this 1-RCSG A.
+We now claim that the value q∗
+u≥1/2 in the ﬁnite CSG G′for terminating at the
+terminal “1” iﬀ the value q∗
+u= 1 for terminating in the resulting 1-RCSG, A. The reason
+is clear: after cleaning up the CSG, we know that under an ǫ-optimal strategy for the
+maximizer for reaching “1”, all the probability exits G′either at “1” or at “0”. We also
+know that the supremum value that the maximizing player can a ttain will have value 1 iﬀ
+the supremum probability it can attain for going directly to the exit of the component in
+
+--- Page 19 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗19
+Ais≥1/2, but this is precisely the supremum probability that maxim izer can attain for
+going to “1” in G′.
+Lastly, note that the fact that the quantitative probabilit y was taken to be 1 /2 for the
+ﬁnite CSG is without loss of generality. Given a ﬁnite CSG Gand a rational probability p,
+0< p < 1, it is easy to eﬃciently construct another ﬁnite CSG G′such that the termination
+probability for Gis≥piﬀ the termination probability for G′is≥1/2.
+6.Conclusions
+We have studied Recursive Concurrent Stochastic Games (RCS Gs), and we have shown
+that for 1-exit RCSGs with the termination objective we can d ecide both quantitative and
+qualitative problems associated with computing their valu es in PSPACE, using decision
+procedures for the existential theory of reals, whereas any substantial improvement (even
+to NP) of this complexity, even for their qualitative proble m, would resolve a long standing
+open problem in exact numerical computation, namely the squ are-root sum problem. Fur-
+thermore, we have shown that the quantitative decision prob lem for ﬁnite-state concurrent
+stochastic games is also at least as hard as the square-root s um problem.
+An important open question is whether approximation of the g ame values, to within a
+desired additive error ǫ >0, for both ﬁnite-state concurrent games and for 1-RCSGs, ca n be
+done more eﬃciently. Our lower bounds (with respect to squar e-root sum) do not address
+the approximation question, and it still remains open wheth er (a suitably formulated gap
+decision problem associated with) approximating the value of even ﬁnite-state CSGs, to
+within a given additive error ǫ >0, is in NP.
+In [16], we showed that model checking linear-time ( ω-regular or LTL) properties for
+1-RMDPs (and thus also for 1-RSSGs) is undecidable, and that even the qualitative or
+approximate versions of such linear-time model checking qu estions remains undecidable.
+Speciﬁcally, for any ǫ >0, given as input a 1-RMDP and an LTL property, ϕ, it is unde-
+cidable to determine whether the optimal probability with w hich the controller can force
+(using its strategy) the executions of the 1-RMDP to satisfy ϕ, is probability 1, or is at
+most probability ǫ, even when we are guaranteed that the input satisﬁes one of th ese two
+cases. Of course these undecidability results extend to the more general 1-RCSGs.
+On the other hand, building on our polynomial time algorithm s for the qualitative
+termination problem for 1-RMDPs in [17], Br´ azdil et. al. [4 ] showed decidability (in P-
+time) for the qualitative problem of deciding whether there exists a strategy under which
+a given target vertex (which may not be an exit) of a 1-RMDP is r eached in anycalling
+context (i.e., under any call stack) almost surely (i.e., wi th probability 1). They then used
+this decidability result to show that the qualititive model checking problem for 1-RMDPs
+against a qualitative fragment of the branching time probab ilistic temporal logic PCTL is
+decidable.
+In the setting of 1-RCSGs (and even 1-RSSGs), it remains an op en problem whether
+the qualitative problem of reachability of a vertex (in any c alling context) is decidable.
+Moreover, it should be noted that even for 1-RMDPs, the probl em of deciding whether the
+value of the reachability game is 1 is not known to be decidable. Thi s is because although
+the result of [4] shows that it is decidable whether there exi sts a strategy that achieves
+probability 1 for reaching a desired vertex, there may not ex ist any optimal strategy for
+
+--- Page 20 ---
+20 K. ETESSAMI AND M. YANNAKAKIS
+this reachability problem, in other words the value may be 1 b ut it may only be attained
+as the supremum value achieved over all strategies.
+Acknowledgement We thank Krishnendu Chatterjee for helpful discussions cla rifying
+several results about ﬁnite CSGs obtained by himself and oth ers. This work was partially
+supported by NSF grants CCF-04-30946 and CCF-0728736.
+References
+[1] E. Allender, P. B¨ urgisser, J. Kjeldgaard-Pedersen, an d P. B. Miltersen. On the complexity of numerical
+analysis. In 21st IEEE Computational Complexity Conference , 2006.
+[2] T. Bewley and E. Kohlberg. The asymptotic theory of stoch astic games. Math. Oper. Res. , 1(3):197–208,
+1976.
+[3] T. Br´ azdil, A. Kuˇ cera, and O. Straˇ zovsk´ y. Decidabil ity of temporal properties of probabilistic pushdown
+automata. In Proc. of STACS’05 , 2005.
+[4] T. Br´ azdil, V. Broˇ zek, V. Forejt, and A. Kuˇ cera. Reach ability in Recursive Markov Decision Processes.
+InProc of CONCUR’06 , 2006.
+[5] J. Canny. Some algebraic and geometric computations in P SPACE. In Proc. of 20th ACM STOC , pages
+460–467, 1988.
+[6] K. Chatterjee, Personal communication.
+[7] K. Chatterjee, L. de Alfaro, and T. Henzinger. The comple xity of quantitative concurrent parity games.
+InProc. of SODA’06 , 2006.
+[8] K. Chatterjee, R. Majumdar, and M. Jurdzinski. On Nash eq uilibria in stochastic games. In CSL’04 ,
+volume LNCS 3210, pages 26–40, 2004.
+[9] K. Chatterjee, Erratum note for [8], 2007.
+http://www.eecs.berkeley.edu/ c krish/publications/errata-csl04.pdf
+[10] A. Condon. The complexity of stochastic games. Inf. & Comp. , 96(2):203–224, 1992.
+[11] L. de Alfaro, T. A. Henzinger, and O. Kupferman. Concurr ent reachability games. In Proc. of FOCS’98 ,
+pages 564–575, 1998.
+[12] L. de Alfaro and R. Majumdar. Quantitative solution of o mega-regular games. J. Comput. Syst. Sci. ,
+68(2):374–397, 2004.
+[13] J. Esparza, A. Kuˇ cera, and R. Mayr. Model checking prob abilistic pushdown automata. In Proc. of 19th
+IEEE LICS’04 , 2004.
+[14] K. Etessami and M. Yannakakis. Recursive Markov chains , stochastic grammars, and monotone systems
+of nonlinear equations. In Proc. of 22nd STACS’05 . Springer, 2005.
+[15] K. Etessami and M. Yannakakis. Algorithmic veriﬁcatio n of recursive probabilistic state machines. In
+Proc. 11th TACAS , vol. 3440 of LNCS, 2005.
+[16] K. Etessami and M. Yannakakis. Recursive Markov decisi on processes and recursive stochastic games.
+InProc. of 32nd Int. Coll. on Automata, Languages, and Program ming (ICALP’05) , 2005.
+[17] K. Etessami and M. Yannakakis. Eﬃcient qualitative ana lysis of classes of recursive Markov decision
+processes and simple stochastic games. In Proc. of 23rd STACS’06 . Springer, 2006.
+[18] K. Etessami and M. Yannakakis. Recursive concurrent st ochastic games. In Proc. of 33rd Int. Coll. on
+Automata, Languages, and Programming (ICALP’06) , 2006.
+[19] J. Filar and K. Vrieze. Competitive Markov Decision Processes . Springer, 1997.
+[20] M. R. Garey, R. L. Graham, and D. S. Johnson. Some NP-comp lete geometric problems. In 8th ACM
+STOC , pages 10–22, 1976.
+[21] T. E. Harris. The Theory of Branching Processes . Springer-Verlag, 1963.
+[22] A. J. Hoﬀman and R. M. Karp. On nonterminating stochasti c games. Management Sci. , 12:359–370,
+1966.
+[23] P. Jagers. Branching Processes with Biological Applications . Wiley, 1975.
+[24] M. Kimmel and D. E. Axelrod. Branching processes in biology . Springer, 2002.
+[25] A. Maitra and W. Sudderth. Finitely additive stochasti c games with Borel measurable payoﬀs. Internat.
+J. Game Theory , 27(2):257–267, 1998.
+[26] D. A. Martin. Determinacy of Blackwell games. J. Symb. Logic , 63(4):1565–1581, 1998.
+
+--- Page 21 ---
+RECURSIVE CONCURRENT STOCHASTIC GAMES∗21
+[27] J. Renegar. On the computational complexity and geomet ry of the ﬁrst-order theory of the reals, parts
+I-III.J. Symb. Comp. , 13(3):255–352, 1992.
+[28] L.S. Shapley. Stochastic games. Proc. Nat. Acad. Sci. , 39:1095–1100, 1953.
+This work is licensed under the Creative Commons Attributio n-NoDerivs License. To view
+a copy of this license, visit /CW/D8/D8/D4/BM/BB/BB/D6/CT/CP/D8/CX/DA/CT /D3 /D1/D1 /D3/D2 /D7/BA /D3/D6/CV /BB/D0 /CX /CT/D2 /D7/CT /D7/BB/CQ /DD/B9 /D2/CS /BB/BE /BA/BC /BB or send a
+lettertoCreativeCommons, 559NathanAbbottWay,Stanford ,California94305,USA.

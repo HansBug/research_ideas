@@ -1,0 +1,621 @@
+--- Page 1 ---
+Automated Analysis of an Audio Control 
+Protocol* 
+Pei-Hsin Ho and Howard Wong-Toi 
+Computer Science Department, Cornell University, Ithaca, NY 14853 
+(holhowaxd)@cs.cornell.edu 
+Abstract. We show how HYTECH, a symbolic model checker for linear hy- 
+brid systems, can be used to analyze an audio control protocol. This proto- 
+col [BPV94] was first verified by Bosscher et al. without computer support. In 
+this paper, we demonstrate that algorithmic methods can not only verify the 
+protocol, but can also automatically synthesize the bound on the maximum 
+clock drift, and suggest design modification for a more robust protocol. We 
+believe the techniques we used--finite state encodings, automata transfor- 
+mations, strengthening of specifications- provide insight to the practictioner 
+interested in modeling and analyzing similar real-world applications. 
+1 Introduction 
+Motivated by the desire to verify real-life reactive systems, Bosscher et al. [BPV94] 
+met with engineers at Phifips, Netherlands, and developed a formal description of 
+an audio control protocol. The protocol uses timing-based Manchester encoding to 
+transmit arbitrary length bit sequences between a single sender and receiver whose 
+clocks are subject to a bounded error. Their modeling used an extension to timed 
+I/O automata [LV92], and enabled them to verify its correctness using proof rules. 
+Furthermore, they show that for correct operation, 1/17 is a tight bound on the error 
+tolerance on the sender's and receiver's clocks. Their analysis is entirely mathematical 
+and does not use computer support. They remark that it would be interesting to see 
+how other methods, particularly algorithmic techniques, could handle their example. 
+Successful automated analysis. We accept their proposal, and demonstrate that 
+HYTECH [AHH93], a symbolic model checker for linear hybrid systems, can not only 
+verify the protocol's correctness for Philip's tolerance specification of 1/20, but can also 
+automatically synthesize the critical bound of 1/17. Indeed HVTECH even suggests 
+a revision in the protocol to enable wider clock drifts of 1/15. This case study is 
+particularly interesting because it is not immediately clear how to use an automatic 
+tool to analyze this protocol. We show how arbitrary length data streams can be 
+finitely encoded using linear hybrid automata [ACHH93]. The verification analysis not 
+only establishes the correctness of the hybrid automaton, but also justifies our finite 
+encoding of the infinite data streams. 
+Synthesizing the critical bound is more delicate, and requires a number of steps. 
+It involves introducing a parameter for the clock drift, applying two transformations 
+to the automata, and adding locations to justify the synthesized bound is necessary as 
+well as sufficient. 
+* This research was supported in part by the NSF under grant CCR-9200794, by the 
+USAFOSR under contract F49620-93-1-0056, and by DARPA under grant NAG2- 
+892. 
+
+
+--- Page 2 ---
+382 
+This study provides evidence that model checkers can give more than a simple 
+answer to the verification problem. We believe they can be used as powerful tools to 
+verify properties i and to provide non-obvious parametric information that can guide 
+system design. We first provide an overview of the more interesting steps taken in our 
+analysis. 
+Arbitrary length input sequences. The first apparent difficulty is that correct- 
+ness should be ascertained for arbitrary length transmission sequences, not just all 
+bit streams up to some fixed finite length. However the algorithmic nature of model 
+checking does not allow for storing unbounded input and output sequences. Instead 
+we nondeterministically generate the input sequence on-the-fly. Rather than adding 
+bits to the receiver's copy of the message, they are immediately checked against the 
+input bits. In this way, we need only store that part of the sequence that has been 
+generated thus far, but not yet acknowledged by the receiver. Indeed we find that at 
+most 3 unacknowledged bits need be stored. 
+Bosscher et al. also prove the timeliness of the receiver's output as a function of 
+the length of the message. Again, a straightforward encoding of this property in hybrid 
+automata seems impossible because it depends on comparing the time of the output 
+with an arbitrarily large timing constant dependent on the length of the message. 
+We obviate this dit~culty by proving instead a stronger property that can be checked 
+without the need to track an arbitrarily large timer. 
+Synthesizing error tolerances. Automatic parametric analysis is introduced in 
+[CH78], and applied to the analysis of real-time and hybrid systems in [AHH93, AHV93, 
+HH95]. In order to synthesize a parameter for a system's behavior we introduce a new 
+variable, a parameter, whose value remains unchanged. HYTECH can then detect for 
+which values of the parameter error traces are present, in this study, we must synthesize 
+the permissible rates at which the clocks progress. However immediate introduction of 
+a variable into rates of the clocks is impossible, since clock variables in linear hybrid 
+automata must have constants as bounds on their rates (otherwise their behavior is non- 
+linear). To overcome this, we must transform the automaton by translating all skewed 
+clocks into perfect clocks with rate 1 with the information on variable rates transfered 
+into the timing constraints on transitions and location invariants [OSY94, WT94]. A 
+second difficulty arises: the resulting system would still be non-linear, having timing 
+constraints with variables in the denominators. We apply a further clock transformation 
+that eliminates this problem. 
+There is one further complication: without prior knowledge of the error tolerance, 
+it is impossible to know how many additional input bits may be unacknowledged at any 
+time. Thus if we assume only k unacknowledged bits need be stored, we may encounter 
+two sorts of errors: the tolerance is too large and bits are incorrectly received, or the 
+large tolerance allows a trace with more than k unacknowledged bits. By separately 
+analyzing these two errors , we find that all parameter values giving errors of the second 
+type also give correctness errors, and thus the tolerance we infer is both necessary and 
+sufficient for correctness. 
+Improved protocol. By analyzing the exact circumstances under which errors arise, 
+we can infer from HYTECH'S output that a wider error tolerance is permitted if we alter 
+the receiver's protocol to delay slightly longer before finalizing its bit stream. 
+Related work. This paper is the first to apply automated parametric analysis to 
+the audio control protocol. Previous applications of automatic methods performed ver- 
+ification only, using either different models or more limited descriptions, In his thesis, 
+
+
+--- Page 3 ---
+383 
+Fig. 1. Timing diagram for Manchester encoding of 10011 
+Wong-Toi [WT94] verified correctness and timing properties by applying his real-time 
+system verification tool to the timed automaton obtained by transforming a linear hy- 
+brid system model. In [HH95], HYTECH is used to verify the correctness of the audio 
+control protocol with inputs up to a fixed length only. 
+2 Audio control protocol 
+We describe the timing-based communication protocol using Manchester encoding, 
+as presented by Bosscher et al. [BPV94]. The protocol forms a part of a real audio 
+control protocol under development by Philips. Bits are encoded based on timing delays 
+between signals, and the rates of both the sender's and receiver's clocks vary within a 
+given tolerance. 
+Bit streams are communicated using Manchester encoding. See Figure 1 for the 
+encoding of 10011. The voltage on the communication bus is either high or low. A 0 
+bit is sent as a Down signal from high voltage to low, and a 1 bit as an Up signal from 
+low to high. The time line is divided into equal length time slots, and the signals are 
+sent in the middle of each time slot. In order to send a repeated bit, there must be an 
+intermediate change in voltage, and this occurs at the edge of the time slot as shown 
+in the diagram for the last two bits. 
+The audio control protocol has the following complications [BPV94], partly due to 
+the fact that there is a 4-5% tolerance in the clock rates of the sending and receiving 
+components: 
+1. The receiver does not know when the first time slot begins, although it does know 
+the agreed upon width of the slots. The sender and receiver synchronize the start 
+of transmission by requiring a low voltage whenever no bits are being sent, and 
+starting all bit streams with a 1. 
+2. The receiver is not explicitly told the length of the message being sent. It must 
+infer the bit stream is complete after a suitable lapse in receiving bits. 
+3. Drops in voltage are not instantaneous, and cannot be reliably detected. Therefore, 
+the receiver must decode the message based solely on upgoing signals. Because the 
+downgoing edge of a final 0 bit is not seen, this creates ambiguity between messages 
+ending in 10 and in 1. This problem is solved by restricting bit streams to be either 
+odd in length, or ending in 00. 
+The sender and receiver have the same clock error tolerance. The receiver interprets 
+the Up signals by rounding the times they are received to the nearest time it expects 
+them to be sent, i.e. to the slot edges or to the middle of a time slot, whichever is 
+closer. We verify for arbitrary length bit streams that the receiver correctly receives all 
+bits, and realizes the bit stream has finished in a timely fashion. 
+3 Analysis by hybrid automata 
+Our system modeling language is linear hybrid automata. Informally, a linear hybrid 
+automaton [ACHH93] consists of a finite set X of real-valued variables and a labeled 
+
+
+--- Page 4 ---
+384 
+multigraph (V, E). The edges E represent discrete system actions and are labeled with 
+nondeterministic guarded assignments to X. The vertices V represent different control 
+modes and are labeled with constraints on the slopes of X. The state of the automaton 
+changes either through instantaneous system actions or, while time elapses, through 
+continuous activities. 
+Linear hybrid automata 
+A linear term over a set X of real-valued variables is a finite linear combination of vari- 
+ables with integer coefficients. A linear inequality over a set X is a nonstrict inequality 
+between linear terms over X. A linear hybrid automaton A consists of the following 
+components: 
+Data variables A finite ordered set X --- {xl,x2,..., xn} of real-valued data vari- 
+ables. A data state is a point (al,a2,...,an) in the n-dimensional space ~n, or 
+equivalently, a function that maps each variable xi to its value ai. A convex data 
+region is a convex polyhedron in ]~n; and a data region is a finite collection of 
+convex data regions. A convex data predicate is a finite conjunction of linear in- 
+equalities; and a data predicate is a finite disjunction of convex data predicates. 
+Each (convex) data predicate ~ defines, then, a (convex) data region [~] _C ~n 
+such that s 9 ~r iff ~[X := s] is true. We often write s 9 ~ for s 9 [r 
+Control locations A finite set V of vertices called control locations. A state (v, s) 
+of the hybrid automaton A consists of a control location v 9 V and a data 
+state s 9 ]~n. A region U~v{(v, s~)} is a collection of data regions S~ C_ ~, one 
+for each control location v 9 V. A state predicate is a collection Uvev{(V, ~v)} 
+of data predicates r one for each control location v 9 V. Each state predicate 
+-- Uvev{(V, r defines, then, the region [~] - Uvev((% [~v])}. A location 
+predicate is a state predicate in which each data predicate ~ is either true or 
+false. When writing state predicates, we use the location counter 1, which ranges 
+over the set V of control locations. The location constraint 1 = v denotes the state 
+predicate {(v, true)} O U~,r {(v',false)}. 
+Initial condition A state predicate ~0 called the initial condition. 
+Location invariants A labeling function inv that assigns to each control location 
+v 9 V a convex data predicate inv(v), the invariant of v. The control of A may 
+reside in the location v only while the invariant inv(v) is true, so the invariants 
+enforce progress in the system. 
+Continuous activities A labeling function dif that assigns to each control location 
+v 9 V and each data variable zi 9 X a rate interval dif(v, xi) = [l=, uz], where 
+l= and u= are finite integer constants with l= < u~. The rate interval dif(v, xi) = 
+[l~, u~], specifies that the rates of change of the data variable zi may vary within 
+the interval [l=, u=], while automaton control resides in location v. 
+For 8 > 0, we define the time-step relation, ~, such that (v, s)~(v', s') if and 
+only if v = v' and there is a function p: [0, 8] --* ~'~ such that (1) f(0) = s, (2) 
+f(6) = s', (3) for all t 9 [0, g], p(t) e ~inv(v)], and (4) for all time t 9 (0, 6) and 
+for each data variable x~, dp~(t)/dt 9 dif(v, z~), where p~(t) denotes the value of 
+variable xi in the data state p(t). 
+Transitions A finite multiset E of edges called transitions. Each transition (v, v') 
+identifies a source location v 9 V and a target location v' 9 V. 
+Discrete actions A labeling function act that assigns to each transition e 9 E a 
+guarded command act(e) = ~ --* a, where the guard ~ is a convex data predicate, 
+and (r = {xi := [hi, t2i] [ zi 9 Y C X} is a set of assignments, where tli and t2i are 
+
+
+--- Page 5 ---
+385 
+linear terms. In the graphical representation, we write xi := ti for zi := [ti, ti], and 
+we omit the guard true. A data state s maps a linear term t to the real value s(t) 
+of the term t interpreted in the data state s. An assignment xi := [%i, t2i] indicates 
+that the value of the variable zi in data state s is changed nondeterministically to 
+any real number in [s(hi), s(t2i)]. 
+Let (v, s) be a state such that s E [[inv(v)]], and let (v, v') be a transition with the 
+guarded command ~ --* a. If the data state s E [[~], and all intervals [s(hi), s(t~d] 
+are non-empty, then the control of A can proceed from location v to location v', 
+with the data state s nondeterministically changed to a data state s' E [inv(v')]] 
+such that s'(xi) E [s(hi),s(t2i)] if zi := [tti,t2d is in a, and s'(z d = s(z d, 
+otherwise. 
+We define the transition-step relation, ~, such that (v, s)~(v', s') if and only if 
+the state (v', s') can be reached from the state (v, s) by taking transition e. 
+Synchronization labels A finite set L of s~.lnchronization labels and a labehng func- 
+tion s!/n that assigns to each transition e E E a synchronization label from L. 
+The synchronization labels are used to define the parallel composition of hybrid 
+automata. 
+A hybrid automaton is simple if all the data predicates in the initial conditions, invari- 
+ants and guards are of the form z < c or z >__ c and all the assignments are of the form 
+z := [c, d] for some integer constants c and d. 
+Parallel composition 
+A hybrid system typically consists of several components that operate concurrently and 
+communicate with each other. We describe each component as a linear hybrid automa- 
+ton. The component automata coordinate through shared variables, and to facilitate 
+message-type coordination, we also use synchronization labels on the transitions. The 
+hnear hybrid automaton that models the entire system is then constructed from the 
+component automata using a product operation. 
+Let At = ( X, , V~ , ~ 0, invl , di] , , Et , act,, Lt , syn, ) and A2 = (X2, V2 , ~ 0, inv2 , dif 2, 
+E2, act2, L2, syn2) be two linear hybrid automata. Then in the product A, x A~ of At 
+and A~, two transitions et and e~ from the two component automata A1 and A2 are 
+interleaved, unless synl(el ) = syn2(e2 ). If synl(el ) = syn~(e2), transitions et and 
+e2 are synchronized, and cause the simultaneous traversal of component transitions. 
+Formally, the product A1  A2 of A, and A2 is the linear hybrid automaton A = 
+( X ~ U X2 , V~  112, ~o ~ ^ ~o ~ , inv , di] , E, act, L t U L2 , syn ) : 
+- Each location (v, v') in V~  V2 has the invariant inv(v, v') = inv~ (v) A inv2(v'). For 
+each variable x E X~ -X2, dif((v, v'), x) = dif, (v, z); for each variable x E X2 -Xt, 
+dif((v, v'), a:) = dif~(v', ~c). For each shared variable ~c e X~ N X2, dif((v, v'), z) = 
+dill (v, ~) N dif2(v', z). 
+- E contains the transition e = ((vt, v2), (v~, v~)) iff 
+0) el = (~,~I) e ~, v~ = ,~, and syn~(e~) r Z~; or 
+(2) e~ = (~,, ~) e E~, ~, = ~I, and s~n2(e2) r Z,; or 
+(3) el = (v~,v~) ~ E~, ez = (v~,v~) ~ E~, and syn~(et) = syn2(e2 ). 
+Suppose that ach(el) = r --' a~, and act~(e~) = r ~ a~. In case (1), syn(e) = 
+synt(e~ ) and act(e) = actt(e~); in case (2), syn(e) = syria(e2) and act(e) = 
+act~(e~); and in case (3), s~tn(e) = s~ln~(e~) = s~n2(e2) and act(e) = ~ A ~2 
+trl O tr~ if no variable is assigned to two syntactically different terms in al U a2, 
+and act(e) = .false ~ ~ otherwise. 
+
+
+--- Page 6 ---
+386 
+Trajectories and reachability 
+At any time instant, the state of a hybrid automaton specifies a control location and 
+the values of all variables. The state can change in two ways: (1) by an instantaneous 
+transition that may change both the control location and the values of variables, or 
+(2) by a time delay that changes only the values of variables in a continuous manner 
+according to the rate interval of the current control location. A trajectory r of A is a 
+finite sequence 
+(v0,s0)-~ (vl,sl) -~ (,~,s~) ..... (~,s,) 
+of control locations v~ E V, and data states si E ~n such that: (1) (vO,so) C ~0]], 
+(2) for all 0 _< i < k, there exists 7ri E ~>_0UL such that (vi,si) ~.A, (vi+l,si+l), where 
+]~>0 denotes the set of nonnegative reals. The final state of r is (vk, sk). We write T(A) 
+for the set of trajectories of A. The reachable region R(A) of A is the set of final states 
+of trajectories of A. 
+Reachability analysis using HYTECH 
+The teachability problem (A, r for a hybrid automaton A and a state predicate !3 
+asks if the region R(A) N [13]] is empty; that is, if there is a trajectory in T(A) whose 
+final state is in [13]]. If [13]] represents the set of "unsafe" states specified by a safety 
+property, then this safety property can be verified by reachability analysis. We say that 
+the teachability problem has answer yes, if R(A) N [13]] -- O; and no, otherwise. 
+HYTECH (The Cornell Hybrid Technology Tool) ~ is a symbolic model checker for 
+linear hybrid systems [AHH93]. State sets (regions) are represented symbolically, as 
+polyhedra. The existing version is limited to teachability analysis. The core of HYTECH 
+is a semidecision procedure, which may not terminate on all inputs. The current stable 
+version consists of a main control program in MATHEMATICA which calls C++ subrou- 
+tines that make use of Halbwachs' polyhedron manipulation library [Hal93, HRP94]. 
+The tool is undergoing reimplementation entirely in C/C++. 
+Given a teachability problem (A, 13), HYTECH returns the state predicate that char- 
+acterizes the region R(A)n [13]], which provides the necessary and sufficient condition on 
+the parameters under which the answer to teachability problem (A, 13) is yes. However 
+the returned state predicate may be too complex to infer the condition on the param- 
+eters. We implemented additional features in HYTEOH to simplify it by existentially 
+quantifying out information on locations and control variables. 
+4 Verification of the audio control protocol 
+System description 
+The system to be verified is modeled as the composition of the four processes modeled 
+as the hybrid automata depicted in Figures 2 - 5. The input bit stream is nondetermin- 
+istically generated on-the-fly by the input process. The sender transmits timely Down 
+and Up signals. The receiver recognizes only the Up signals. Instead of adding bits to 
+its own copy of the message, the receiver has its output bits directly acknowledged by 
+the output process. To achieve this, we need only record the sequence of bits thus far 
+sent as input to the sender, but not yet acknowledged as being received. This informa- 
+tion is encoded in the variables leng and c: leng stores the number of unacknowledged 
+2 The current Mathematica version of HYTECH, including tactics, is available 
+by anonymous ftp from ftp.cs.corneU.edu, directory pub/tah/HyTech (see also 
+http: / /www'cs'c~176176 tah/hytech'html)" 
+
+
+--- Page 7 ---
+387 
+bits, and c represents their binary encoding. This enables us to model the transmission 
+of arbitrary length bit sequences. We assume that only 3 bits need be stored at any 
+time, and later see how HYTECH justifies this assumption. 
+The operation of each process is briefly described below. The constant Q denotes 
+1/4 the length of the time slot. 
+Sender The sender automaton in Figure 2 generates Manchester encoded signals by 
+rea~ling the value of the next bit, and then determining the time for the next voltage 
+change. The locations in which it is delaying until the right time to change voltage 
+are transhiyhl,e, translowo, transhigho, and translowl. The locations translowo and 
+transhighl,,, with invariant z < 2Q, correspond to waiting to send a signal at the 
+end of the time slot, whereas the other two are for sending Up and Down signals 
+in the middle of time slots. After sending a signal in the middle of a time slot, the 
+process issues int and ino commands. These events are synchronized with the input 
+process, and correspond to consuming an input bit with the appropriate value from 
+the input stream, and causing a new bit value to be chosen. The reading signals 
+head1, heado, and head~ correspond merely to checking the value of the next bit, 
+and are used to decide whether it is necessary to make an intermediate change 
+in voltage at the end of the time slot. For each location v in this automaton, 
+dil(v, z) = [1 - e, 1 + el. 
+Input The input process in Figure 3 nondeterministically generates valid bit sequences 
+which are either odd in length or end in two trailing 0 bits. This is achieved through 
+the use of an auxiliary variable k which denotes the parity of the length of the bit 
+sequence created so far. Each time the sender consumes a bit, the value of the 
+next bit is chosen. At this point, the process may also terminate the sequence 
+by entering the locations endevenoo or stop. The values of c and leng are also 
+updated appropriately. This process also provides the sender read-access of the 
+next bit value through the head1, heado, and heade signals. For each location 
+air(v, c) = all(v, k) = dif(v, leng) = [0,0]. 
+Receiver The receiver automaton in Figure 4 decodes its incoming Up signals by 
+rounding its local time for when it received the signal to the nearest possible time 
+it expects a signal. If no signal is received in due time (within 7Q if the last received 
+bit was a 0, and 9Q otherwise), the sequence is interpreted as being complete. It 
+also uses an auxiliary variable to record the parity of the received sequence, since 
+the finalization of the bit stream involves adding a trailing 0 unless the input 
+sequence is odd and the last received bit is 1. Whenever an Up signal is received 
+the component attempts to emit an output for values it believes were sent. This 
+output must synchronize with the output-acknowledgement process, which checks 
+the attempted output value with the leading bit of the currently unacknowledged 
+input. For each location v in the receiver automaton, dif(v, V) = [1 - e, 1 + e] and 
+dif(v, m) = [0, 0]. 
+Output-acknowledgement The role of the output automaton in Figure 5 is to mon- 
+itor attempts by the receiver to output bits. It looks at the number of currently 
+unacknowledged bits, and their binary encoding to infer whether the leading bit 
+is a 0, 1, or non-existent (in the case of no remaining bits). Whenever bits are 
+correctly acknowledged, the values of c and leng are updated. 
+We note that HYTECH's limitation to closed intervals for timing constraints forces us 
+to model slightly inaccurately the strict inequalities of the original protocol [BPV94]. 
+
+
+--- Page 8 ---
+388 
+Specification 
+Correct reception of bits. Our paradigm for specifying correctness is teachability 
+analysis, in which we label certain states as violating. The system is correct if no 
+violating states are reachable. 
+Correctness of the received bit stream is verified by comparing each output bit with 
+the value of the currently unacknowledged bits. If a bit cannot be correctly matched 
+with the input bits, the receiver enters an error location. We also verify the entire bit 
+stream is received by adding a transition from the receiver's out location to the error 
+location conditional on any input bits remaining unmatched. Thus the violating states 
+are specified as l[receiver] = error. 
+Time-bounded output. Bosscher et al. prove the receiver's output occurs within 
+a certain time bound dependent on the length of the message, namely within (4m + 
+5)Q/(1 - e) where m is the length of the bit stream. Direct encoding of this property in 
+hybrid automata would involve tracking the exact length of the bit stream in a separate 
+variable. However, this would lead to a nonterminating reachability analysis where the 
+value of m increases arbitrarily. We avoid this problem by proving instead a stronger 
+property that can be checked without the need to record the message length. We use 
+an additional timer that is reset every time a new input bit is generated. If there are 
+m input bits, then the timer may only be reset m times. If the value of the timer is no 
+more than 4Q/(1 - e) every time it is reset except for the last time when it may reach 
+9Q/(1 - e) in the input's idle location, the total accumulated time does not exceed 
+(4(m - 1) + 9)Q/(1 - e) = (4,~ + 5)Q/(1 - e). 
+One technicality remains: the current version of HYTECH allows only nonstrict 
+inequalities in its constraints, so we cannot directly specify violation states with ex- 
+pressions such as z > 4Q/(1 - e). We overcome this by specifying instead a violation if 
+z >_ 4Q/(1 - e), and then visually inspecting HYTECH's output to check that the only 
+possible violations in this location occur at z = 4Q[(1 - e). 
+Analysis 
+We verify the protocol using Philip's error tolerance of 1/20. We arbitrarily choose a 
+value of 1 for Q, since the protocol's correctness is independent of its value. HYTECrl 
+successfully discovers that the violating states are not reachable. Notice that this jus- 
+tifies our assumption that at most three unacknowledged bits need be stored, since 
+the output process flags errors whenever there are four or more bits unacknowledged. 
+The correctness of the transmitted sequence is verified in 4.9 hours. The verification 
+of the timing property also takes 4.9 hours 3. All performance data in this paper was 
+measured on a Sun 670MP workstation. 
+5 Synthesis 
+We show how algorithmic techniques can automatically discover the critical 1/17 error 
+tolerance. 
+Methodology 
+To synthesize the permissible clock drifts under which the protocol is correct, the first 
+natural step would be to add to the product automaton A a new parameter e for the 
+s Preliminary results from our new implementation show marked improvement, with 
+the correctness of bits verified in 48 seconds and the timing property in 61 seconds. 
+
+
+--- Page 9 ---
+389 
+error tolerance. The rates of change of each clock would now vary between [1 - e, 1 + e] 
+instead of the fixed bounds [19/20, 21/20]. However the resulting automaton is no 
+longer a linear hybrid automaton. Linear hybrid automata restrict the rates of change 
+to be bounded by constants in order to guarantee reachable regions are describable 
+by linear inequalities. We overcome this problem by considering c as a constant and 
+applying two transformations which are trace-preserving for every non-zero constant 
+value of ~. 
+Recall that our modeling of the system allows two kinds of errors: correctness er- 
+rors due to faulty reception of bit values, and modeling "errors" due to our assumption 
+of an a priori bound on the number of unacknowledged bits. By analyzing these two 
+categories of errors separately, ~[YTEcH shows that any parameter values causing mod- 
+eling errors also cause correctness errors, so that the bound is indeed necessary and 
+sufficient. 
+The synthesis procedure starts from the automaton A, and is summarized as follows: 
+1. introducing a syntactic constant ~ for the clock drift, yielding A(r 
+2. transforming A(e) into A'(~), by moving the constant from the rates into con- 
+straints, 
+3. transforming A'(r into A"(e), by making constraints linear in the constant, 
+4. interpreting the constant c as a parameter ranging over all values for the constant, 
+5. synthesizing the bound of 1/17, and, 
+6. checking 1/17 is both necessary and sufficient. 
+Clock transformations 
+We assume the symbolic constant e has been introduced into the rate intervals of both 
+the sender's and receiver's clocks. Let A(r denote the resulting automaton for each 
+particular value of r E ~4. The foliowing two transformations are applied to each A(c). 
+Transformation I: eliminating parameterized slopes. We first move the 
+constant r from the slopes of the clock variables into constraints on the clocks' values. 
+The automaton transformation, for constant bounded slopes, was reported in [OSY94]. 
+It applies to automata where there are no constraints explicitly enforced on the relative 
+differences between variables. 
+The clock transformation K applied to a simple hybrid automaton A yields the 
+simple hybrid automaton K(A) where each variable z is replaced by the primed variable 
+z' with the rate interval [1, 1]. For simplicity we assume that for each variable v the 
+rate intervals are fixed throughout tl~e automaton as [lv, t%], with all bounds strictly 
+positive. The locations and transitions of K(A) as the same as those of A. The clock 
+transformation K replaces (1) the atomic data predicates of the form z < c (z > c) in 
+the initial condition, invariants, and guards by the data predicate z' < c/l= (z' > c/~=), 
+and (2) the assignments of the form 9 := [c, d] by the assignments z' := [c/u=, d/l=]. 
+For example, in our automata from Figures 2 and 4, atomic data predicates of the 
+form 3Q < z < 5Q are replaced by 3Q/(1 + e) < z' < 5Q[(1 - e), and z = 2Q by 
+20/(1 + ~) < z' < 2Q/(1 - c), provided, ~ {-1, ]}. 
+The clock transformation K is sound but not complete for teachability problems 
+of simple hybrid automata. Fortunately, our automata fall into the subclass of lin- 
+ear hybrid automata known as the reset skewed clock automata (RSCA) introduced 
+in [WT94]. It is proven there that for RSCAA and location predicates ~b, the teacha- 
+bility problems (If(A), ~b) and (A, ~b) have the same answer. 
+4 Technically we need to extend our definition of automata to admit real-valued con- 
+stants. Details are omitted. 
+
+
+--- Page 10 ---
+390 
+Definition 1. A reset skewed clock automaton (RSCA) is a simple linear hybrid au- 
+tomaton whose constraints satisfy the following properties: 
+- all slopes of variables are positive, 
+- the values of two variables (clocks) are never compared in any constraints, 
+- all the assignments set variables to [0, 0], and 
+- along any path in the automaton structure, there are never two constraints on a 
+variable value without there being an intervening reset of the variable to a fixed 
+value, except that an upper bound constraint may occur as long as it is preceded 
+by a looser upper bound constraint since the last reset. 
+Theorem 2. [WTg~] I] A is a reset skewed clock automata and ~ is a location predi- 
+cate, then the reachabiIity problems ( K ( A ), r ) and ( A, r have the same answer. 
+The sender automaton is then first converted into a RSCA before applying K, while 
+the receiver automaton is already a RSCA and can have the transformation applied 
+directly. 
+Transformation II: eliminating non-linear constraints. The resulting au- 
+tomaton K(A(e)) has non-linear constraints where e appears in the denominator. We 
+eliminate these sources of non-linearity by applying a clock-transformation that mul- 
+tiplies every timing constant by (1 - e)(1 q- e). This operation corresponds to changing 
+the time scale by a constant factor. We denote the transformation by value c as T~. 
+Theorem 3. If A is a hybrid automaton and ~b is a location predicate, then for any 
+non-zero c, the reachability problems ( Tr ( A ) , ~b ) and (A,r have the same answer. 
+Therefore, given a RSCA A, a constant e such that e ~ {-1,1} and a location predi- 
+cate ~b, the reachability problems (T(~_,)(I+,)(K(A(e))), ~) and (A,r have the same 
+answer. The automata for the sender and receiver after these two transformations are 
+shown in Figures 6 and 7. 
+Monitoring overflow 
+The final remaining difficulty has to do with modeling the system under uncertainty of 
+the value of the parameter e. Recall that our finite state modeling assumed that there 
+could be at most 3 unacknowledged bits in the system. This assumption was shown 
+true for the fixed parameter e = 1[20. However, for wider tolerances it may be possible 
+for the number of unacknowledged bits to grow arbitrarily large as the sender may 
+process bits much faster than the receiver. 
+These "errors" should be separated from errors in faulty reception, since they are 
+due to modeling simplifications only, and may not correspond to truly faulty systems. 
+We therefore create a new location in the receiver to catch all instances where the 
+number of unacknowledged bits exceeds 3. 
+Analysis 
+HYTECH provides the synthesized bound by showing that correctness errors occur 
+whenever 1/17 < e < 1 and the finiteness assumption is only violated if 1/15 < e < 1. 
+Therefore the bound of 1/17 is both necessary and sufficient for correctness. Total 
+computation time was 27.9 hours 5. 
+s The new implementation being developed takes 14 minutes. 
+
+
+--- Page 11 ---
+391 
+6 Improved design: a more tolerant receiver 
+With the help of HYTEcH we are able to modify slightly the receiver's protocol to 
+enable a wider clock drift. A casual perusal of HYTECH's detailed output of the reach- 
+able violating states showed that the critical bound of 1/17 is not reached in many 
+situations. Since the absolute clock drifts are maximal when the docks are compared 
+to large values, we suspected the bound to be generated by the receiver's final output 
+of the message at time 9Q after its last received Up signal. We reran HYTECH with 
+all premature termination errors caught in a separate location. HYTECH's output then 
+shows that such termination errors occur when 1/17 < e < 1, other correctness errors 
+occur only when 1/15 < e < 1, and modeling errors occur when 1/15 < e < 1. Thus 
+the bound of 1/17 is only necessary for generating errors when the receiver believes the 
+message is terminated before acknowledging all bits. We therefore altered the receiver 
+to wait longer before assuming transmission was over. When it delays until loQ in- 
+stead of 9Q out of its location last_is_l, the error tolerance should be widened to 1/15. 
+HYTEcH verified this in 27.5 hours s. 
+7 Conclusions 
+Our analysis demonstrates some techniques that may well prove useful in examining 
+other systems: for example, the use of finite state modeling assumptions which are jus- 
+tiffed by the verifier itself, the transformations on constants to enable rate information 
+to be synthesized, and the separation of errors to gain greater insight into the protocol. 
+It would be interesting to see whether there are better choices of timing constants 
+in the sender and receiver that would allow even greater clock drifts. Also, there may 
+be better protocols that do not rely on Manchester encoding. It may be possible to use 
+HYTECI-I to help synthesize these. 
+Acknowledgements. We thank Peter Kopke for a careful reading, and Prof. Thomas 
+A. Henzinger for helpful comments. 
+References 
+[ACHH93] 
+[AHH93] 
+[AHVg3] 
+[BPV94] R. Alur, C. Courcoubetis, T.A. Henzinger, and P.-H. Ho. Hybrid automata: 
+an algorithmic approach to the specification and verification of hybrid sys- 
+tems. In R.L. Grossman, A. Nerode, A.P. Ravn, and H. Rischel, editors, 
+Hybrid Systems, Lecture Notes in Computer Science 736, pages 209-229. 
+Springer-Verlag, 1993. 
+R. Alur, T.A. Henzinger, and P.-H. go. Automatic symbolic verification of 
+embedded systems. In Proceedings of the 14th Annual Real-time Systems 
+Symposium, pages 2-11. IEEE Computer Society Press, 1993. 
+R. Ainr, T.A. Henzinger, and M.Y. Vardi. Parametric real-time reasoning. 
+In Proceedings of the 25th Annual Symposium on Theory of Computing, 
+pages 592-601. ACM Press, 1993. 
+D. Bosscher, I. Polak, and F. Vaandrager. Verification of an audio-control 
+protocol. In H. Langmaack, W.-P. de Roever, and 3. Vytopil, editors, 
+FTRTFT 94: Formal Techniques in Real-time and Fault-tolerant Systems, 
+Lecture Notes in Computer Science 863, pages 170-192. Springer-Verlag, 
+1994. 
+The new implementation being developed takes 23 minutes. 
+
+
+--- Page 12 ---
+392 
+[CHTS] 
+[Hal93] 
+[HH95] 
+I:HRP94] 
+[LV92] 
+[osY9~ 
+[WT9~ P. Cousot and N. Halbwachs. Automatic discovery of linear restraints 
+among variables of a program. In Proceedinga of the Fifth Annual Sym- 
+posium on Principles of Programming Languages. ACM Press, 1978. 
+N. Halbwachs. Delay analysis in synchronous programs. In 
+C. Courcoubetis, editor, CAV 93: Computer-aided Verification, Lecture 
+Notes in Computer Science 697, pages 333-346. Springer-Verlag, 1993. 
+T.A. Henzinger and P.-H. tto. HYTEcH: The Cornell Hybrid Technology 
+Tool. To appear, 1995. 
+N. Halbwachs, P. Raymond, and Y.-E. Proy. Verification of finear hybrid 
+systems by means of convex approximation. In Proceedings of the First 
+Static Analysis Symposium, 1994. 
+N.A. Lynch and F. Vaandrager. Action transducers and timed automata. 
+In R.3. Cleaveland, editor, CONCUR 92: Theories of Concurrency, Lecture 
+Notes in Computer Science 630, pages 436-455. Springer-Verlag, 1992. 
+A. Olivero, 3. Sifalds, and S. Yovine. Using abstractions for the verification 
+of linear hybrid systems. In D.L. Dill, editor, CAV 94: Computer-aided 
+Verification, Lecture Notes in Computer Science 818, pages 81-94. Springer- 
+Verlag, 1994. 
+Howard Wong-Toi. Symbolic Approximations for Verifying Real- Time Sys- 
+tems. PhD thesis, Department of Computer Science, Stanford University, 
+CA, December 1994. 
+/k::"2... :..:: %: ,9 
+...<7) ......L) _..7< ,) head_O~~nS~ ---- 4Q ~ x :---- 0 input..O~= 2Q ~he~d"O 
+Fig. 2. The sender automaton 
+
+
+--- Page 13 ---
+393 
+k := k ~l,c~---- 2c+ I~ ~"~k := k ~l,c:= 2c 
+len~ := leng + 1/'mputl ~ k :: k  1, c := 2r [ inputo~leu$ := leug + 1 
+[ hr I he~d.Js-1 ] k := k * I, r :----- 2c + I ( he~d-is_O ]headoJ 
+\ ~x /~ leng := leng + 1 \ / / 
+o:= ~,k := o,,p ,. ~ %::L: leng := i I I~. nputl k = o ~ ~np~g + 1 
+A ell 
+Fig. 3. The input automaton 
+I 1t = 9Q ^ odd(m) ~ y := 0 / Is*st ~sl 
+I I\":1 ~ ..40_<,_<,0- ~o~--. "~o<~<,,~--.- 9 - o - - .---o 7-= o'- .- ~. 
+I l  Z_o 
+II I ",r_-o ":~/ ~L\ I I ]output..neq_l .. / l\ \ 
+/'out~ L S-;sO'~output..q-O ,: 7Q' f .r< 
+\ oot,.t_~ \ / .... -- =,~,.._ 
+~- leng > 1 \ ~ / ~q_O 
+Fig. 4. The receiver automaton 
+( OUt pu~..neq_l 
+Ileng 1 ^ r 
+Ar 
+| leng 3 ^ c 
+k leng )_ 4 
+( output 1 
+( |eng = 1 A c = 1 ~ c := O,ler~g :~ ~eng -- 1 
+[ leng ---- 2 A c > 2 ~ c := c-- 2,1eng := leng -- I 
+I.. |eng ---- 3 A c ~ 4 ~ c := c -- 4, |er~g :---- |eng -- 1 
+-- 
+"~-- ]. f ] leng=2Ac>2 
+,,~ v I~ leng > 4 -- 
+]outputo 
+/ ( leng = 1 A c = 0 ~ leng := len 9 -- 1 
+| |eng = 2 h c < 1 ~ |eng := |eng -- 1 
+I,, leng = 3 A c ~ 3 ~ leng := lertg -- 1 
+Fig. 5. The output automaton 
+
+
+--- Page 14 ---
+394 
+(4-4<)Q <s <(4 + 4e)Q - = := 0 
+~r~ ~ [ ri,~-I ~-2~)Q<=<(~ .... o} 
+q ~ 2 / headA (2 -- 2e)Q ~ x ~ (2 -F 2eJqxx. / l 
+.... t~ I,.-=._~E~ _ -'')~ <=<`~+,''~ A-..,o.~ 
+Fig. 6. The transformed sender automaton 
+(~ -.9_,!.? < y < (9 + 9~)q ^ .... (m) -- ~ := 0 
+Fig. 7. The transformed receiver automaton 
+

@@ -1,0 +1,171 @@
+--- Page 1 ---
+Simulation and Statistical Model Checking
+for Modestly Nondeterministic Models⋆
+Jonathan Bogdoll, Arnd Hartmanns, and Holger Hermanns
+Saarland University – Computer Science, Saarbr¨ ucken, Germ any
+Abstract. Modest is a high-level compositional modelling language for
+stochastic timed systems with a formal semantics in terms of s tochastic
+timed automata. The analysis of Modest models is supported by the
+Modest Toolset , which includes the discrete-event simulator modes.
+modeshandles arbitrary deterministic models as well as models th at in-
+clude nondeterminism due to concurrency through the use of m ethods
+inspired by partial order reduction. In this paper, we prese nt version
+1.4 ofmodes, which includes several enhancements compared to previ-
+ous prototypical versions, such as support for recursive dat a structures,
+interactive simulation and statistical model checking.
+1 Introduction
+Modest [6] is a high-level compositional modelling language based on a formal
+semantics in terms of stochastic timed automata (STA) that p rovides an expres-
+sive syntax with features such as recursive processes, user -deﬁned functions and
+exception handling. STA are a rich semantic model that inclu des nondeterminis-
+tic and discrete probabilistic choices as in probabilistic automata (PA, [9]), hard
+real-time behaviour as in timed automata (TA, [1]) as well as stochastic sam-
+pling and delays according to arbitrary probability distri butions. In fact, many
+well-known models, such as Markov chains, PA or TA are specia l cases of STA,
+and most are easy to identify on the syntactic level in Modest .
+The analysis of models speciﬁed in Modest is supported by the Modest
+Toolset , available at www.modestchecker.net , which provides several tools
+for model-checking diﬀerent subsets of Modest /STA as well as a discrete-event
+simulator, modes, that supports almost the entire Modest language. The tools
+are integrated into a graphical modelling and analysis envi ronment. This paper
+focuses on modes, which was released in a prototypical version in the ﬁrst hal f
+of 2011 [5], and has been signiﬁcantly extended since.
+The focus of modesis to allow simulation of nondeterministic models in a
+sound way. While most discrete-event simulators rely on hid den schedulers to
+resolve nondeterministic choices, which may inﬂuence the r esults in unexpected
+ways [8], modesuses methods inspired by partial order reduction [2] to deci de,
+⋆This work has been supported by the DFG as part of SFB/TR 14 AVA CS and by
+the DFG/NWO bilateral research project ROCKS. It has received f unding from the
+EU FP7 programme as part of the MEALS project, grant agreemen t no295261.
+
+--- Page 2 ---
+on-the-ﬂy, whether any nondeterminism it encounters can be safely resolved in
+an arbitrary way, or whether doing so could skew the simulati on results.
+Since its original presentation, modeshas continually been improved and
+extended in order to make it more robust, applicable to more c ase studies,
+and more user-friendly. To aid with model debugging, a new in teractive sim-
+ulation mode has been added. Aside from the original case stu dies presented
+in [5]—Arcade [7] dependability evaluation models and the IEEE 802.3 bina ry
+exponential backoﬀ protocol— modeshas since been applied to the analysis of
+wireless sensor networks [3] and to network delay and queuei ng models as part
+of the Data Networks course taught at Saarland University in summer 2011. The
+unprejudiced use by ∼100 students has greatly improved the tool’s robustness.
+2 Language Enhancements
+Modest is a modelling language combining features from process alg ebra with
+convenient constructs from programming languages, with af ocus onsuccinctness
+and expressivity. The interested reader is invited to refer to [6] for details con-
+cerningthelanguagedesignandsetup.Toimprovetheusabil ityandapplicability
+ofmodes, we added four extensions that are fully supported by modes: Recursive
+data structures, user-deﬁned functions, binary and broadc ast synchronisation of
+actions and a new delaykeyword to succinctly specify stochastic delays.
+Data Structures and Functions. The original Modest language deﬁnition was
+abstract w.r.t. the handling of data. Consistent and expres sive means for data
+manipulation, however, are crucial to building complex, bu t readable models.
+Prior to the version presented in this paper, the only data ty pes supported by
+modeswere atomic types (like boolorreal), ﬁxed-size arrays thereof and C-like
+structs whose members had to be atomic types. We have replace d the latter with
+ML-like data types. For example,
+datatype list={realhd,listoptiontl};
+declares a linked list of real numbers. For an instance lof that type, l.hdac-
+cesses its head and l.tlaccesses its tail, which is a listoption, i.e. it can be
+noneor alist. To deﬁne operations on these types, but also to perform more
+complex computations, modessupports user-deﬁned functions; as an example,
+to compute the length of a list, one could use the following fu nctionlen:
+function len(listoptionl) =ifl==none then 0else1+len(l!.tl);
+These functions can be (mutually) recursive; however, if a f unction call on a
+simulation run does not terminate, neither will the run itse lf. User-deﬁned data
+types and functions have been used, for example, to model and simulate a net-
+work with queues that prioritise packets according to lengt h, using a sorted list.
+New Synchronisation Modes. Modest models are usually speciﬁed as the paral-
+lel composition of a set of concurrent processes, which then run asynchronously
+with the possibility of synchronising on certain action lab els. As part of an ef-
+fort to connect Modest toUppaal [4], we have extended Modest to support
+
+--- Page 3 ---
+CCS-style binary and Uppaal-style broadcast communication in addition to
+the previously available CSP-style multi-way synchronisa tion. These additions,
+which greatly simplify certain modelling scenarios and all ow more concise value
+passing via global variables (because the assignments of a s ender (a!{x := 7})
+are performed before the assignments of the receivers ( a?{y := x})), are fully
+supported by modes.
+A Shorthand for Stochastic Delays. Delays in a timed model can be speciﬁed
+using guards and deadlines; for example, if cis a clock, the Modest behaviour
+when(c≥2)urgent(c≥4)tauwill result in an edge labelled taubeing
+available for two time units starting when c≥2; as soon as creaches 4, this
+edge has to be taken. To specify stochastic delays, a value is ﬁrst sampled from
+some probability distribution and then used as above:
+{=c= 0, x=Exp(λ) =};when(c≥x)urgent(c≥x)tau
+causestauto be executed precisely after an amount of time that is expon entially
+distributed with rate λ. To improve readability and lower the initial learning
+curve for models using such stochastic or deterministic del ays, we have added a
+delayshorthand, so one can simply write delay(Exp(λ))tauinstead.
+3 Towards Statistical Model Checking
+When preparing the simulation of a model, two important deci sions that have to
+be made are when to terminate a single simulation run and how m any simulation
+runs to perform in order to obtain suﬃcient conﬁdence in the r esults computed.
+Termination Criteria for Runs. In previous versions, modescould be instructed
+to terminate a simulation run after a ﬁxed number of steps, af ter a certain
+amount of model time, or when a given predicate evaluates to truefor the ﬁrst
+time. When simulating to compute the value of some property, e.g. the expected
+time until a packet is transmitted, these criteria were prob lematic: A run would
+either be aborted prematurely, i.e. when the transmission w as not complete and
+the time was not yet known, or it would continue long after the packet had ar-
+rived, wasting simulation time. To avoid these situations, modesnow supports
+terminating simulation runs precisely at the moment when al l properties speci-
+ﬁed in the model can be decided.
+Beyond Fixed Batch Sizes. In order to perform a statistical evaluation for a
+model property, the results of a number of simulation runs ha ve to be collected.
+The accuracy of the result reported, e.g. speciﬁed by a stand ard deviation and a
+conﬁdence interval, depends on how rare the event is and how m any simulation
+runs were performed. Like many other simulators, previous v ersions of modes
+required the number of runs to be speciﬁed a priori. This had t he unfortunate
+consequence that either too many runs were performed for a fr equent event, or
+too few for a rare event—in which case another, larger batch of runs had to be
+performed, wasting the previous runs. modesversion 1.4 oﬀers two approaches
+to handle this problem:
+
+--- Page 4 ---
+Keepingthecurrentstatisticalevaluationbasedonconﬁde nceintervalswitha
+user-selected conﬁdence level (default 95%), the simulato r can now be instructed
+to keep generating new runs only until the conﬁdence interva l becomes smaller
+than a speciﬁed width (an absolute value or relative to the st andard deviation)
+forpropertiescomputingavalue(e.g.anexpectedvalueora probability),oruntil
+the one-sided conﬁdence limit conﬁrms or contradicts the bo und in a Boolean
+property (e.g. “is the expected time to reach a safe state bel owx?”).
+For Boolean properties comparing a probability to some boun d,modes1.4
+can also use sequential probability ratio testing [10], usi ng an indiﬀerence region
+andrisklevelsspeciﬁedbytheuser.Usageofthistestistyp icallycalled statistical
+model checking , which has the advantage of requiring only a very low number o f
+runs if the bound is far from the actual probability. For bett er usability, the risk
+levels are computed from the global conﬁdence level in a symm etric fashion by
+default, but may be adjusted if desired.
+4 Conclusion
+In this paper, we have presented modes1.4, a discrete-event simulator for the
+Modest language that still is, to our knowledge, the only simulatio n tool that
+can deal with (some class of) nondeterministic models in a so und way. Compared
+to previous releases, which we rather consider research pro totypes, version 1.4
+has seen signiﬁcant improvements in terms of ease of use, in p articular ease of
+modelling and support for statistical model checking, as we ll as in robustness.
+References
+1. Alur, R., Dill, D.L.: A theory of timed automata. Theoreti cal Computer Science
+126(2), 183–235 (1994)
+2. Baier, C., D’Argenio, P.R., Gr¨ oßer, M.: Partial order red uction for probabilistic
+branching time. Electr. Notes in Theor. Comput. Sci. 153(2) , 97–116 (2006)
+3. Bar´ o Graf, H., Hermanns, H., Kulshrestha, J., Peter, J., Vahl diek, A., Vasudevan,
+A.: A veriﬁed wireless safety critical hard real-time desig n. In: IEEE WoWMoM
+2011. IEEE
+4. Behrmann, G., David, A., Larsen, K.G.: A tutorial on uppaal. In: SFM-RT 2004.
+LNCS 3185:200–236. Springer
+5. Bogdoll, J., Ferrer Fioriti, L.M., Hartmanns, A., Hermann s, H.: Partial order meth-
+ods for statistical model checking and simulation. In: FMOODS/ FORTE 2011.
+LNCS 6722:59–74. Springer
+6. Bohnenkamp, H.C., D’Argenio, P.R., Hermanns, H., Katoen, J.P.: MoDeST: A
+compositional modeling formalism for hard and softly timed systems. IEEE Trans-
+actions on Software Engineering 32(10), 812–830 (2006)
+7. Boudali, H., Crouzen, P., Haverkort, B.R., Kuntz, M., Stoe linga, M.: Architectural
+dependability evaluation with Arcade. In: DSN 2008. pp. 512 –521. IEEE CS Press
+8. Hartmanns, A.: Model-checking and simulation for stochas tic timed systems. In:
+FMCO 2010. LNCS 6957:372–391. Springer
+9. Segala, R.: Modeling and Veriﬁcation of Randomized Distr ibuted Real-Time Sys-
+tems. Ph.D. thesis, MIT, Cambridge, MA, USA (1995)
+10. Wald, A.: Sequential analysis. Wiley, New York (1959)
