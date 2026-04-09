@@ -1,0 +1,917 @@
+--- Page 1 ---
+Finite state machine implementation  
+for left ventricle modeling and control
+Jacob M. King, Clint A. Bergeron and Charles E. Taylor* 
+Abstract 
+Background: Simulation of a left ventricle has become a critical facet of evaluating 
+therapies and operations that interact with cardiac performance. The ability to simulate 
+a wide range of possible conditions, changes in cardiac performance, and production of nuisances at transition points enables evaluation of precision medicine concepts that are designed to function through this spectrum. Ventricle models have historically been based on biomechanical analysis, with model architectures constituted of con-tinuous states and not conducive to deterministic processing. Producing a finite-state machine governance of a left ventricle model would enable a broad range of applica-tions: physiological controller development, experimental left ventricle control, and high throughput simulations of left ventricle function.
+Methods: A method for simulating left ventricular pressure-volume control utiliz-
+ing a preload, afterload, and contractility sensitive computational model is shown. 
+This approach uses a logic-based conditional finite state machine based on the four pressure-volume phases that describe left ventricular function. This was executed with a physical system hydraulic model using MathWorks’  Simulink
+® and Stateflow tools.
+Results: The approach developed is capable of simulating changes in preload, 
+afterload, and contractility in time based on a patient’s preload analysis. Six pressure–volume loop simulations are presented to include a base-line, preload change only, afterload change only, contractility change only, a clinical control, and heart failure with normal ejection fraction. All simulations produced an error of less than 1 mmHg and 1 mL of the absolute difference between the desired and simulated pressure and volume set points. The acceptable performance of the fixed-timestep architecture in the finite state machine allows for deployment to deterministic systems, such as experimental systems for validation.
+Conclusions: The proposed approach allows for personalized data, revealed through 
+an individualized clinical pressure–volume analysis, to be simulated in silico. The 
+computational model architecture enables this control structure to be executed on deterministic systems that govern experimental left ventricles. This provides a mock circulatory system with the ability to investigate the pathophysiology for a specific individual by replicating the exact pressure–volume relationship defined by their left ventricular functionality; as well as perform predictive analysis regarding changes in preload, afterload, and contractility in time.Open Access
+© The Author(s) 2019. This article is distributed under the terms of the Creative Commons Attribution 4.0 International License 
+(http://creat iveco mmons  .org/licen ses/by/4.0/), which permits unrestricted use, distribution, and reproduction in any medium, 
+provided you give appropriate credit to the original author(s) and the source, provide a link to the Creative Commons license, and indicate if changes were made. The Creative Commons Public Domain Dedication waiver (http://creat iveco mmons  .org/publi 
+cdoma in/zero/1.0/) applies to the data made available in this article, unless otherwise stated.RESEARCHKing  et al. BioMed Eng OnLine           (2019) 18:10  
+https://doi.org/10.1186/s12938-019-0628-3 BioMedical Engineering
+OnLin e
+*Correspondence:   
+c.taylor@louisiana.edu Department of Mechanical Engineering, University of Louisiana at Lafayette, 241 E. Lewis St. RM320, Lafayette, LA 70503, USA
+
+--- Page 2 ---
+Page 2 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+Keywords: Left ventricular pressure–volume relationship, PV loop, Mock circulatory 
+system, Cardiovascular lumped parameter modeling, Simulating cardiovascular 
+hemodynamics, Patient-specific and population modeling
+Introduction
+Every year since 1919, cardiovascular disease (CVD) accounted for more deaths than 
+any other major cause of death in the United States [1 ]. Based on data collected by the 
+National Health and Nutrition Examination Survey (NHANES), CVD was listed as the underlying cause of death in 30.8% of all deaths in 2014, accounting for approxi
+-
+mately 1 of every 3 deaths in the U.S., while CVD attributed to 53.8% of all deaths in 
+that year. Additionally, data accumulated from 2011 to 2014 revealed that approxi -
+mately 92.1 million American adults currently have one or more types of CVD and that by 2030, projections estimate that 43.9% of the U.S. population will have some 
+form of this disease.
+Research has revealed that CVD is a leading contributor to Congestive Heart Failure 
+(CHF) [2]. CHF is a medical condition that occurs when the heart is incapable of meet
+-
+ing the demands necessary for maintaining an adequate amount of blood flow to the body, resulting in ankle swelling, breathlessness, fatigue, and potentially death [2]. In 
+2012, the total cost for CHF alone was estimated to be $30.7 billion with 68% attributed 
+to direct medical costs. Furthermore, predictions indicate that by 2030, the total cost of CHF will increase almost 127% to an estimated $69.7 billion [1]. This prediction is based on data that revealed that one-third of the U.S. adult population has the predisposing 
+conditions for CHF. With research revealing that 50% of people who develop CHF will 
+die within 5 years of being diagnosed [1, 3], the need to evaluate treatments for this wid
+-
+ening patient population is of growing importance.
+One treatment alternative for patients with late-stage CHF is the use of a ventricular 
+assist device (VAD) to directly assist with the blood flow demands of the circulatory sys -
+tem [2]. Implantable VADs have proven their potential as a quickly implemented solu -
+tion for bridge to recovery, bridge to transplant, and destination therapy [4]. Given the severity of CHF, and the impending need for supplemental support from these cardiac assist devices, effective methods of identifying the recipient cardiovascular profile and 
+matching that to the operation of the VAD is critical to the success of the intervention.
+The effectiveness of CHF diagnosis and treatment therapy depends on an accurate 
+and early assessment of the underlying pathophysiology attributed to a specific type of 
+CVD, typically by means of analyzing ventricular functionality [2, 5, 6]. Clinical applica
+-
+tion of non-invasive cardiac imaging in the management of CHF patients with systolic and/or diastolic dysfunction has become the standard with the use of procedures such as echocardiography [7–10]. Echocardiography is a non-invasive ultrasound procedure 
+used to assess the heart’s structures and functionality, to include the left ventricular ejec
+-
+tion fraction  (LVEF), left ventricular end-diastolic volume  (LVEDV), and left ventricular 
+end-systolic volume  (LVESV). Three-dimensional echocardiography of adequate quality 
+has been shown to improve the quantification of left ventricular (LV) volumes and  LVEF, 
+as well as provide data with better accuracy when compared with values obtained from cardiac magnetic resonance imaging [2, 11]. At present, echocardiography has been 
+shown to be the most accessible technology capable of diagnosing diastolic dysfunction; 
+
+--- Page 3 ---
+Page 3 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+therefore, a comprehensive echocardiography examination incorporating all relevant 
+two-dimensional and Doppler data is recommended [2]. Doppler techniques allow for 
+the calculation of hemodynamic variations, such as stroke volume (SV) and cardiac out -
+put (CO), based on the velocity time integral through the LV outflow tract area.
+A left ventricular pressure–volume (LV-PV) analysis, employing hemodynamic prin -
+ciples, has effectively performed as a basis for understanding cardiac physiology and 
+pathophysiology for decades [12, 13]. A LV-PV analysis has been primarily restricted to 
+clinical investigations in a research environment; therefore, it has not been extensively 
+used due to the invasive nature of the procedure [14, 15]. A broader predictive applica -
+tion for detecting and simulating CHF is more easily attainable with the development of single-beat methodologies that only rely on data collected through non-invasive tech
+-
+niques. These techniques include echocardiographic measurements of the left ventric -
+ular volume (LVV), Doppler data, the peripheral estimates of left ventricular pressure (LVP), and the timing of the cardiac cycle [16–21].
+Utilizing data obtained non-invasively, population and patient-specific investiga
+-
+tions can be conducted by simulating the LV-PV relationship obtained through the PV analysis by means of a mock circulatory system (MCS) [22, 23]. An MCS is a mechani
+-
+cal representation of the human circulatory system, essential for in vitro evaluation of VADs, as well as other cardiac assist technologies [24–29]. An MCS effectively simulates 
+the circulatory system by replicating specific cardiovascular conditions, primarily pres
+-
+sure [mmHg] and flow rate [mL/s], in an integrated bench-top hydraulic circuit. Utiliz -
+ing these hydraulic cardiovascular simulators and data obtained through a clinical PV 
+analysis, the controls that govern the LV portion of the MCS could be driven to produce the PV relationship of: a CVD profile, specific population, or patient [30]. With research 
+revealing the increasing need for these medical devices [31], a comprehensive in vitro 
+analysis could be completed to assure a particular cardiac assist device treatment will be effective beforehand. The ability of an MCS to be able to replicate the exact PV relation
+-
+ship that defines the pathophysiology for a specific individual allows for a robust in vitro analysis to be completed, and a “patient specific diagnosis” created, ensuring a higher 
+standard of patient care [32, 33].
+The following is how this manuscript is presented. “Background ” section summaries 
+the principal theories governing the modeling of the PV relationship, its background in 
+simulating cardiovascular hemodynamics within an MCS, and how a PV loop control
+-
+ler should perform for subsequent in vitro testing. “Method” section presents the pro -
+posed methodology for developing LV-PV control functionality is presented and utilizes a logic-based conditional finite state machine (FSM) and a physical system modeling 
+approach, then the experimental results are presented in “Results” section. “Discus
+-
+sion” section concludes with a discussion regarding the results of this investigation, fol -
+lowed by “ Conclusion ” section which outlines the limitations of the approach and future 
+investigations.
+Background
+Pressure–volume relationship
+The efficacy of the PV relationship, often referred to as a PV loop, to describe and quan -
+tify the fundamental mechanical properties of the LV was first demonstrated in 1895 by 
+
+--- Page 4 ---
+Page 4 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+Otto Frank [34]. Frank represented the cardiac cycle of ventricular contraction as a loop 
+on a plane defined by ventricular pressure on the vertical axis and ventricular volume 
+on the horizontal. By late twentieth century, the PV analysis was considered the gold standard for assessing ventricular properties, primarily due to the researched conducted by Suga and Sagawa [35–37]. Yet, this approach has failed to become the clinical stand
+-
+ard for evaluating LV functionality due to the invasive nature of the procedure [14, 15]. 
+However, due to recent advances single-beat methodologies, the practical application for PV analysis is expanding [18–20]. Most recently are the efforts published in 2018 by Davidson et al. with regard to the development of a beat-by-beat method for estimat
+-
+ing the left ventricular PV relationship using inputs that are clinically accessible in an intensive care unit (ICU) setting and are supported by a brief echocardiograph evalua
+-
+tion [20].
+There has been extensive clinical and computational research into understanding the 
+PV relationship, which is presented in Fig.  1 [12, 21, 30, 38]. However, for the purpose 
+of repeatability within a MCS, the culmination of this knowledge can be summarized by simplifying the performance of the LV through three principal factors: preload, after
+-
+load, and contractility [24, 25]. These have significant implications on VAD performance 
+[39].
+A schematic of the LV pressure–volume loop in a normal heart is presented in Fig.  1a. 
+In Phase I, ventricular filling occurs with only a small increase in pressure and a large increase in volume, guided along the EDPVR curve. Phase I can additionally be divided in two sub-phases, rapid filling governed by elastance of the ventricle and atrial systole that brings the ventricle into optimal preload for contraction. Phase II constitutes the 
+first segment of systole called isovolumetric contraction. Phase III begins with the open
+-
+ing of the aortic valve; ejection initiates and LV volume falls as LV pressure continues 
+to increase. Phase III can be divided into two sub-phases: rapid ejection and reduced 
+ejection. Isovolumetric relaxation begins after the closure of the aortic valve constituting 
+Phase IV.
+Ventricular preload refers to the amount of passive tension or stretch exerted on the 
+ventricular walls (i.e. intraventricular pressure) just prior to the systolic contraction [14, 
+29]. This load determines the end-diastolic sarcomere length and thus the force of con -
+traction. Because the true sarcomere length is not easily measured clinically, preload 
+is typically measured by ventricular pressure and volume at the point immediately preceding isometric ventricular contraction. This correlation is described through the 
+end-systolic pressure–volume relationship (ESPVR); as well as through the end-dias
+-
+tolic pressure–volume relationship (EDPVR). The effects of increasing preload on the 
+PV relationship is displayed in Fig.  1b; reduced isovolumetric contraction period and 
+increased stroke volume.
+Afterload is defined as the forces opposing ventricular ejection [14]. Effective arte -
+rial elastance  (Ea) is a lumped measure of total arterial load that incorporates the mean 
+resistance with the pulsatile factors that vary directly with heart rate, systemic vascu -
+lar resistance, and relates inversely with total arterial compliance.  Ea is directly defined 
+as the ratio of left ventricular end-systolic pressure  (LVESP) to SV. In practice, another 
+measure of afterload is the  LVESP at the moment ventricular pressure begins to decrease 
+
+--- Page 5 ---
+Page 5 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+to less than systemic arterial pressure. The effects of increasing afterload are presented 
+in Fig. 1c; increase in peak systolic pressure and decrease in stroke volume.
+A acceptable clinical index of contractility that is independent of preload and afterload 
+has not been completely defined [29]. In non-pathological conditions, contractility is best described by the pressure–volume point when the aortic valve closes. Contractility is typically measured by the slope of the ESPVR line, known as  E
+es, which is calculated 
+as /Delta1P
+/Delta1V [38]. An additional index of contractility is dP/dtmax which is the derivative of the 
+maximum rate of ventricular pressure rise during the isovolumetric period. The effects 
+of increasing contractility on the PV relationship is revealed in Fig.  1d; revealing the abil -
+ity for the stroke volume to accommodate with increasing peak systolic pressure.
+For a given ventricular state, there is not just a single Frank-Starling curve, rather there 
+is a set or family of curves [29]. Each curve is determined by the driving conditions of 
+preload, afterload, and inotropic state (contractility) of the heart. While deviations in venous return can cause a ventricle to move along a single Frank-Starling curve, changes 
+Fig. 1 Left Ventricular Pressure–Volume Relationship (Stouffer [30]). a Schematic of LV pressure–volume loop 
+in a normal heart. In Phase I, preceding the opening of the mitral valve, ventricular filling occurs with only a 
+small increase in pressure and a large increase in volume, guided along the EDPVR curve. Phase II constitutes the first segment of systole called isovolumetric contraction. Phase III begins with the opening of the aortic valve; ejection initiates and LV volume falls as LV pressure continues to increase. Isovolumetric relaxation begins after the closure of the aortic valve constituting Phase IV. b Effects of increasing preload on a LV-PV loop with afterload and contractility remaining constant. Loop 2 has an increased preload compared to loop 1 by rolling the arterial elastance  (E
+a) line parallel while keeping the slope  (Ea) constant, resulting in an 
+increase in SV. c Effects of increasing afterload on a LV-PV loop with preload and contractility held constant. This consists of increasing the slope of the  E
+a line. d Effects of increasing contractility on a LV-PV loop with 
+preload and afterload remaining constant. This consists of increasing the slope  (Ees) of the ESPVR line. Note 
+that in b, c, and d, loop 2 represents the increase in the respective principle factor, i.e. preload, afterload, and contractility, when compared to loop 1
+
+--- Page 6 ---
+Page 6 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+in the driving conditions can cause the PV relationship of the heart to shift to a different 
+Frank-Starling curve. This allows clinicians to diagnose the pathophysiological state of a 
+dysfunctional heart by analyzing the PV relationship of a patient.
+Additionally, it provides the ability to simulate diseased states: heart failure [14], 
+valvular disease [29], or specific cardiovascular dysfunction seen in pediatric heart failure [40].
+Pressure–volume loop computational modeling
+Comprehensive computationally modeling of the LV-PV relationship has been effec -
+tively reported since the mid-1980s, following the extensive work completed by Suga and Sagawa [34– 36]. In 1986, Burkhoff and Sagawa first developed a comprehen
+-
+sive analytical model for predicting ventricular efficiency utilizing Windkessel mod -
+eling techniques and an understanding of the PV relationship principles previously developed by Suga and Sagawa. With the advancement and routine use of innova
+-
+tive technologies in the early twenty-first century (e.g. conductance catheter, echo -
+cardiography), there was a significant increase in research efforts to determine the potential clinical applications [12– 15], improving predictive strategies [16– 19], and 
+refining computational models [41– 43].
+An elastance-based control of an electrical circuit analogue of a closed circulatory 
+system with VAD assistance was developed in 2009 by Yu et al. [42]. Their state-feed
+-
+back controller was designed to drive a voice coil actuator to track a reference vol -
+ume, and consequently generate the desired ventricular pressure by means of position and velocity feedbacks. The controller was tested in silico by modifying the load con
+-
+ditions as well as contractility to produce an accurate preload response of the system. The MCS analogue and controller architecture was able to reproduce human circu
+-
+latory functionality ranging from healthy to unhealthy conditions. Additionally, the MCS control system developed was able to simulate the cardiac functionality during VAD support.
+In 2007, Colacino et al. developed a pneumatically-driven mock left ventricle as well 
+as a native left ventricle model and connected each model to a numerical analogue of a closed circulatory system comprised of systemic circulation, a left atrium, and inlet/
+outlet ventricular valves [43]. The purpose of their research was to investigate the dif
+-
+ference between preload and afterload sensitivity of a pneumatic ventricle, when used 
+as a fluid actuator in a MCS, when compared to elastance-based ventricle compu -
+tational model. Their research concluded that the elastance-based model performed more realistically when reproducing specific cardiovascular scenarios and that many 
+MCS designs could be considered inadequate, if careful consideration is not made to 
+the pumping action of the ventricle. Subsequent in vitro testing utilizing this control approach successfully reproduced an elastance mechanism of a natural ventricle by mimicking preload and afterload sensitivity [25]. Preload was modified by means of manually changing the fluid content of the closed loop hydraulic circuit, while after
+-
+load was varied by increasing or decreasing the systemic arterial resistance within a modified Windkessel model.
+
+--- Page 7 ---
+Page 7 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+Recent advancements in contractility‑based control
+An MCS simulates the circulatory system by accurately and precisely replicating spe -
+cific cardiovascular hemodynamic variables, mainly the respective pressure (mmHg) 
+and flow rate (mL/s) for key circulatory constituents, in an integrated bench-top 
+hydraulic circuit [23]. While this human circulatory system model is not an all-inclu -
+sive replacement for an in vivo analysis of a cardiac assist device’s design, it is an effec -
+tive method of evaluating fundamental design decisions beforehand by determining its influence on a patient’s circulatory hemodynamics in a safe and controlled envi
+-
+ronment. Published research efforts typically either involve the development of the system [22, 25, 26, 44–46] or the dissemination of the results of a particular in vitro 
+investigation [27, 28].
+In 2017, Wang et al. was able to replicate the PV relationship with controllable ESPVR 
+and EDPRV curves on a personalized MCS based on an elastance function for use in the evaluation of VADs [21]. The numerical elastance models were scaled to change the slopes of the ESPVR and EDPVR curves to simulate systolic and diastolic dysfunc
+-
+tion. The results of their investigation produced experimental PV loops that are con -
+sistent with the respective theoretical loop; however, their model only includes a means of controlling preload and contractility with no afterload control. Their model assumes afterload remains constant regardless of preload changes; due to the Frank-Starling 
+mechanism, the ventricle reached the same  LV
+ESV despite an increase in  LVEDV and 
+preload.
+Jansen-Park et al., 2015, determined the interactive effects between a simulated patient 
+with VAD assistance on an auto-regulated MCS which includes a means of producing 
+the Frank-Starling response and baroreflex [24]. In their study, a preload sensitive MCS was developed to investigate the interaction between the left ventricle and a VAD. Their 
+design was able to simulate the physiological PV relationship for different conditions of 
+preload, afterload, ventricular contractility, and heart rate. The Frank-Starling mecha
+-
+nism (preload sensitivity) was modeled by regulating the stroke volume based on the measured mean diastolic left atrial pressure, afterload was controlled by modifying sys
+-
+temic vascular resistance by means of an electrically controlled proportional valve, and contractility was changed depending on the end diastolic volume. The effects of con
+-
+tractility, afterload, and heart rate on stroke volume were implemented by means of two interpolating three-dimensional look-up tables based on experimental data for each state of the system. The structure of their MCS was based on the design developed by 
+Timms et al. [27]. The results of their investigation revealed a high correlation to pub
+-
+lished clinical literature.
+In 2011, Gregory et al. was able to replicate a non-linear Frank-Starling response in a 
+MCS by modifying preload by means of opening a hydraulic valve attached to the sys -
+temic venous chamber [44]. Their research was able to successfully alter left and right 
+ventricular contractility by changing preload to simulate the conditions of mild and severe biventricular heart failure. The EDV offset and a sensitivity gain were manually 
+adjusted through trial and error to produce an appropriate degree of contractility with a 
+fixed ventricular preload. The shape of the ESPVR curve was then modified by decreas
+-
+ing MCS volume until the ventricular volumes approached zero. These efforts, validated 
+
+--- Page 8 ---
+Page 8 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+using published literature, improved a previously established MCS design developed by 
+Timms et al. [28].
+These control architectures were primarily hardware determined, rather than soft -
+ware-driven. In some cases, reproducibility is inhibited due to the tuning of hemody -
+namic conditions by manually adjusting parameters until a desired response is achieved. 
+Utilizing a conditional logic-based conditional finite state machine (FSM) and physical 
+system modeling control approach, a software-driven controller could be developed to 
+respond to explicitly-defined preload, afterload, and contractility events. This would enable the regulation of the PV relationship within an MCS’s LV section, without the limitation of dedicated hardware.
+Logic‑based finite state machine (FSM) and physical system modeling tools
+MathWorks’  Simulink® is a model based design tool utilized for multi-domain physical 
+system simulation and model-based design [47].  Simulink® provides a graphical user 
+interface, an assortment of solver options, and an extensive block library for accurately 
+modeling dynamic system performance.  Stateflow® is a toolbox found within  Simulink® 
+for constructing combinatorial and sequential decision-based control logic represented 
+in state machine and flow chart structure.  Stateflow® offers the ability to create graphi -
+cal and tabular representations, such as state transition diagrams and truth tables, which can be used to model how a system reacts to time-based conditions and events, as well as 
+an external signal. The Simscape
+™ toolbox, utilized within the  Simulink® environment, 
+provides the ability to create models of physical systems that integrate block diagrams 
+acknowledged by real-world physical connections. Dynamic models of complex systems, 
+such as those with hydraulic and pneumatic actuation, can be generated and controlled by assembling fundamental components into a schematic-based modeling diagram. An additional toolbox that was utilized in this approach was the Simscape Fluids
+™ toolbox 
+which provides component libraries for modeling and simulating fluid systems. The 
+block library for this toolbox includes all the necessary modules to create systems with a 
+variety of domain elements, such as hydraulic pumps, fluid reservoirs, valves, and pipes. The advantage of using these toolbox libraries is that the blocks are version controlled and conformal to regulatory processes that mandate tractable computational modeling 
+tools.
+Method
+Overview of methodology and model architecture
+A method for simulating LV-PV control functionality utilizing explicitly defined preload, afterload, and contractility is needed for cardiovascular intervention assessment. The 
+resulting solution must be capable of being compiled for hardware control of an MCS; deterministic processing compatible logic and architecture that would enable runtime set
+-
+point changes. The approach used was a logic-based conditional finite state machine (FSM) based on the four PV phases that describe left ventricular functionality developed with a 
+physical system hydraulic plant model using  Simulink
+®. The proposed aggregate model 
+consists of three subsystems to include: a preload/afterload/contractility-based setpoint 
+calculator (“PV loop critical point determination ” section), a FSM controller (“PV loop 
+modeling utilizing a state machine control architecture approach ” section), and a hydraulic 
+
+--- Page 9 ---
+Page 9 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+testing system (“Hydraulic testing model utilizing MathWorks’ Simulink® and SimscapeTM 
+toolbox ” section). The last subsystem acts as the simulated plant to evaluate the control 
+architecture that is formed by the first two subsystems. The proposed method allows for 
+multiple uses which include the simulation of parameter effects in time and the simulation 
+of personalized data, revealed through an individualized clinical PV analysis. This method provides the means to be simulated in silico and can be subsequently compiled for control of in vitro investigations. This provides an MCS with the ability to investigate the patho
+-
+physiology for a specific individual by replicating the exact PV relationship defined by their 
+left ventricular functionality; as well as perform predictive analysis regarding changes in 
+preload, afterload, and contractility with time. Of critical importance were the non-isovol -
+umetric state behavior: non-linear EDPVR curve, rate-limited ejection, and energy-driven model of contraction. This investigation was developed utilizing Matlab R2017b and a Dell T7500 Precision workstation with 8.0 gigabytes of RAM, a Dual Core Xeon E5606 proces
+-
+sor, and a Windows 7 64-bit operating system.
+PV loop critical point determination
+A preload, afterload, and contractility sensitive computational model was developed utiliz -
+ing  Simulink® for determining critical points for switching between PV loop states; the four 
+phases described in Fig.  1. These critical points are LV End-Systolic Pressure  (LVESP), LV 
+End-Systolic Volume  (LVESV), LV End-Diastolic Pressure  (LVEDP), LV End-Diastolic Volume 
+ (LVEDV), LV End-Isovolumetric Relaxation Pressure  (LVEIRP), LV End-Isovolumetric Relaxa -
+tion Volume  (LVEIRV), LV End-Isovolumetric Contraction Pressure  (LVEICP), and LV End-
+Isovolumetric Contraction Volume  (LVEICV). These can be resolved by the three equations 
+that describe ESPVR, EDPVR, and  Ea. ESPVR is typically described as a linear equation 
+with a positive slope  (Ees) and a negative or positive y-intercept, EDPVR can be defined 
+with a third-order polynomial, while  Ea is also linear and has a negative slope with a positive 
+y-intercept [13]. Eqs.  1, 2, and 3  define the system of equations used to produce the critical 
+points, where ESPVR, EDPVR, and  Ea are Eqs. 1 , 2, and 3  respectively.
+The point where Eqs.  1 and 3  intercept is  LVESV and  LVESP and solving produces Eqs.  4 
+and 5.
+Setting Eq. 3  equal to zero yields  LVEDV, producing Eq. 6 .(1) PA=a1VA+a0
+(2) PB=b3V3
+B+b2V2
+B+b1VB+b0
+(3) PC=c1VC+c0
+(4) LVESV=c0−a0
+a1−c1
+(5) LVESP=a1/parenleftbiggc0−a0
+a1−c1/parenrightbigg
++a0
+(6) LVEDV=−c0
+c1
+
+--- Page 10 ---
+Page 10 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+Substituting Eq. 6  into Eq. 2  produces  LVEDP.
+Due to isovolumetric relaxation,
+Thus, substituting Eq. 4 into Eq. 2 yields Eq. 8 for  LVEIRP.
+Lastly, due to isovolumetric contraction,  LVEICV equals  LVEDV. The final unknown vari -
+able value to complete the four-phase cycle is  LVEICP. This is resolved by utilizing an 
+offset value based on  LVESP.
+Figure  2 presents the computational model and example developed in Simulink™ 
+to reflect Eq.  4 through 9; utilized to find the critical points which define the initia -
+tion of each phase. Figure  2a reflects the system of equations in this example, capable 
+of being solved in real-time. Figure  2b presents a graph of these equations, with criti -
+cal points noted. For this example, based on data collected using DataThief on loop 1 
+of Fig.  1b: a1 = 2.9745, a0 = − 17.133, b3 = 2.6435E−5, b2 = − 4.0598E−3, b1 = 0.16687, 
+b0 = 8.5448, c1 = − 1.7504, and c0 = 185.02. The computational system produces 
+ LVEDP = 12.043 mmHg,  LVEDV = 105.71 mL,  LVESP = 110.13 mmHg,  LVESV = 42.785 mL, 
+ LVEIRP = 10.323  mmHg, and  LVEIRV = 42.785  mL. Using these parameters, LV Stroke 
+Volume  (LVSV) = 62.93  mL, LV Ejection Fraction  (LVEF) = 0.595, LV Stroke Work 
+ (LVSW) = 6929.9 mmHg*mL. These values are presented in Tables  1 and 2. These coef -
+ficient values can be interchanged with clinical values for individualized PV assessment, and can be controlled over time for determining the effects of ventricular functional shifts. Utilizing DataThief [48], an open-source program used to extract data from 
+images, these coefficients can be obtained from a plot of a patient’s left ventricular pres
+-
+sure–volume analysis of preload change.
+PV loop modeling utilizing a state machine control architecture approach
+Utilizing Simulink™  Stateflow®, a sequential decision-based control logic represented 
+in Mealy machine structure form was developed to control the transition between 
+LV-PV phases. A Mealy machine is appropriate because this application requires that the output values are determined by both its current state and the current input val
+-
+ues. A state transition diagram is presented in Fig.  3. The Variables in the block are 
+parameters that are held constant: Piston cross-sectional area (A), b3, b2, b1, b0, Iso -
+volumetric Rate, Isovolumetric Contraction Offset, Systolic Ejection Rate, and Sys -
+tolic Ejection Offset. The Inputs are parameters that can change with time and are (7) LVEDP=b3/parenleftbigg−c0
+c1/parenrightbigg3
++b2/parenleftbigg−c0
+c1/parenrightbigg2
++b1/parenleftbigg−c0
+c1/parenrightbigg
++b0
+(8) LVEIRV=LVESV
+(9) LVEIRP=b3/parenleftbiggc0−a0
+a1−c1/parenrightbigg3
++b2/parenleftbiggc0−a0
+a1−c1/parenrightbigg2
++b1/parenleftbiggc0−a0
+a1−c1/parenrightbigg
++b0
+(10) LVEICV=LVEDV
+(11) LVEICP=LVESP−oﬀset
+
+--- Page 11 ---
+Page 11 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+ LVESP,  LVESV,  LVEDV,  LVEIRP, time (t), simulated pressure (P), and simulated volume 
+(V). The Output is the output variables of the model, which is Force (F) applied to 
+the piston in Newtons, Cycle_Count, and Heart_Rate [bpm]. The organization of the 
+state transition diagram follows FSM convention: the single curved arrow donates the initial time-dependent conditions of the model, the oval shapes are the states of the model, the dotted hoop arrows denote the output of the state until a specific condi
+-
+tion is met, and the straight arrows are the transition direction once the condition annotated is satisfied. Time (t) is an input variable that discretely changes at the Fun
+-
+damental Sampling Time of the simulation, 1
+1024s . Correspondingly, the FSM operates 
+at a sampling rate of 1024 Hz. After every complete cycle, the output variables Cycle_Count and Heart_Rate are calculated. Heart rate is determined based on the Cycle_Time that is updated with the current time at the initiation of Phase 1 for every cycle. Isovolumetric Rate is defined as the rate of change in the output variable, F, during isovolumetric relaxation and contraction. For isovolumetric relaxation, this rate is 
+one-third the magnitude when compared to isovolumetric contraction. The Isovolu
+-
+metric Contraction Offset is defined as the value subtracted from the  LVEDV to start 
+Fig. 2 Computational model of example PV loop developed in Simulink™ to reflect Eqs. 4, 5, 6, 7, and 8, to 
+be utilized to find the critical points which define the initiation of phases 1, 2, and 4. a reflects the system 
+of equations in this example, capable of solving in real-time. b presents a graph of these equations with critical points annotated. The driving values can be interchanged with clinical values for individualized PV assessment, as well as can be controlled over time for determining the effects of preload, afterload, and contractility changes. These values are presented in Tables 1 and 2
+
+--- Page 12 ---
+Page 12 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+Table 1 Input parameters for all simulations presented
+Original Preload only Afterload only Contractility 
+onlyControl HFNEF
+Simulation 
+time [s]10 10 10 10 10 10
+Isovolumet -
+ric rate [N*sample/s]225 225 225 225 500 500
+Isovolumetric 
+Contraction 
+offset [mL]1 1 1 1 1 1
+Systolic ejec-
+tion rate 
+[N*sample/s]2 2 2 2 9 9
+Systolic ejection 
+offset [mmHg]7 7 7 7 20 20
+Resistance 0.03 0.03 0.03 0.03 0.05 0.045
+Fluid chamber 
+capacity [mL]517.15 517.15 517.15 517.15 517.15 517.15
+Preload pressure 
+[psi]0.01 0.01 0.01 0.01 0.01 0.01
+Pressure full 
+capacity [psi]10 10 10 10 6 6.6667
+Initial volume of 
+fluid [mL]110.13 110.13 110.13 110.13 210.667 210.48
+A1 [2.9745
+2.97452.72452.4745
+2.9745 2.9745 2.9745 2.2245 1.2407 0.99741
+1.97451.7245
+1.4745
+1.2245]
+A0 − 17.133 − 17.133 − 17.133 − 17.133 33.857 72.586
+B3 2.6435E−05 2.6435E−05 2.6435E−05 2.6435E−05 2.6928E−07 1.4046E−05
+B2 − 4.0598E−03 − 4.0598E−03 − 4.0598E−03 − 4.0598E−03 − 9.3013E−06 − 2.5351E−03
+B1 0.16687 0.16687 0.16687 0.16687 0.026968 0.15836
+B0 8.5448 8.5448 8.5448 8.5448 2.9515 − 0.010234
+C1 [− 1.7504 [− 1.1365 [− 1.4054
+− 1.7504 − 1.1365 − 1.4054
+− 1.60848 − 1.1365 − 1.4054
+− 1.7504 − 1.7504 − 1.46656 − 1.7504 − 1.1992 − 1.3994
+− 1.32464 − 1.2619 − 1.3934
+− 1.18272 − 1.3247 − 1.3874
+− 1.0408] − 1.3874 − 1.3814
+− 1.4501] − 1.3754]
+C0 [185.02 [185.02 [211.17 [235.76
+185.02 185.02 211.17 235.76
+190.02 170.02 211.17 235.76
+195.02 155.02 200.96 220.7
+185.02 200.02 140.02 185.02 190.75 205.63
+205.02 125.0 180.53 190.56
+210.02 110.02] 170.32 175.5
+215.02] 160.11] 160.43]
+
+--- Page 13 ---
+Page 13 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+the initialization of the Phase 2 state to compensate for the radius of curvature cre -
+ated due to transitioning from fill to eject, as well as the means by which end-diastolic 
+pressure and volume are clinically quantified. The Systolic Ejection Rate is defined as Table 2 Results for  all simulations presented. Note, error was  calculated as  the  absolute 
+value of the difference between the desired and simulated  LVESP,  LVESV,  LVEDP, and  LVEDV
+Original Preload only Afterload 
+onlyContractility only Control HFNEF
+LVESP ,i [mmHg] 110.13 110.13 110.13 110.13 126.4 140.32
+LVESV,i [mL] 42.785 42.785 42.785 42.785 74.589 67.91
+LVEDP ,i [mmHg] 12.043 12.043 12.043 12.043 9.3686 21.522
+LVEDV,i [mL] 105.71 105.71 105.71 105.71 185.81 167.75
+LVEIRP ,i [mmHg] 10.323 10.323 10.323 10.323 5.023 3.4517
+LVEIRV,i [mL] 42.785 42.785 42.785 42.785 74.589 67.91
+LVSV,i [mL] 62.93 62.93 62.93 62.93 111.22 99.84
+LVEF,i 0.595 0.595 0.595 0.595 0.599 0.595
+LVSW,i [mmHg*mL] 6929.9 6929.9 6929.9 6929.9 14058.3 14009.5
+Simulated  LVESP ,i [mmHg] 110.05 110.05 110.05 110.05 125.8 140.1
+Error  LVESP ,i [mmHg] 0.08 0.08 0.08 0.08 0.6 0.22
+Simulated  LVESV,i [mL] 42.82 42.82 42.82 42.82 73.97 67.19
+Error  LVESV,i [mL] 0.035 0.035 0.035 0.035 0.619 0.72
+Simulated  LVEDP ,i [mmHg] 12.71 12.71 12.71 12.71 9.87 22.23
+Error  LVEDP ,i [mmHg] 0.667 0.667 0.667 0.667 0.5014 0.708
+Simulated  LVEDV,i [mL] 106 106 106 106 185.8 168
+Error  LVEDV,i [mL] 0.29 0.29 0.29 0.29 0.01 0.25
+LVESP ,f [mmHg] 110.13 129.02 77.061 66.075 92.071 109.51
+LVESV,f [mL] 42.785 49.134 31.667 67.953 46.92 37.021
+LVEDP ,f [mmHg] 12.043 16.783 12.044 12.043 6.1782 6.2607
+LVEDV,f [mL] 105.71 122.84 105.71 105.702 110.41 116.64
+LVEIRP ,f [mmHg] 10.323 10.079 10.597 9.432 4.2242 3.0906
+LVEIRV,f [mL] 42.785 49.134 31.667 67.953 46.92 37.021
+LVSV,f [mL] 62.93 73.71 74.04 37.75 63.49 79.62
+LVEF,f 0.595 0.600 0.700 0.357 0.575 0.683
+LVSW,f [mmHg*mL] 6929.9 9509.5 5705.8 2494.3 5845.6 8719.1
+Simulated  LVESP ,f [mmHg] 109.9 128.7 77.84 66.74 92.73 109.9
+Error  LVESP ,f [mmHg] 0.23 0.32 0.779 0.665 0.659 0.39
+Simulated  LVESV,f [mL] 42.95 49.19 31.9 68.18 46.65 37.16
+Error  LVESV,f [mL] 0.165 0.056 0.233 0.227 0.27 0.139
+Simulated  LVEDP ,f [mmHg] 12.73 17.21 12.75 12.75 6.711 6.624
+Error  LVEDP ,f [mmHg] 0.687 0.427 0.706 0.707 0.5328 0.3633
+Simulated  LVEDV,f [mL] 106.1 123.3 106.2 106.2 110.6 116.7
+Error  LVEDV,f [mL] 0.39 0.46 0.49 0.498 0.19 0.06
+ΔLVSV [mL] 0.00 10.78 11.12 − 25.18 − 47.73 − 20.22
+ΔLVEF 0.000 0.005 0.105 − 0.238 − 0.024 0.087
+ΔLVSW [mmHg*mL] 0.0 2579.6 − 1224.1 − 4435.7 − 8212.7 − 5290.5
+Initial Heart Rate [bpm] 59.36 59.36 59.36 59.36 59.71 63.54
+Final Heart Rate [bpm] 59.94 54.52 43.73 79.69 89.43 70.7
+Mean Heart Rate [bpm] 59.9 57.62 49.28 65.04 73.7 65.36
+
+--- Page 14 ---
+Page 14 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+the rate of change in the output variable, F, during systolic ejection. Systolic Ejection 
+Offset is defined as the value subtracted from the  LVESP to start the initialization of 
+the Phase 3 state, establishing  LVEICP.
+Hydraulic testing model utilizing MathWorks’  Simulink® and Simscape™ toolbox
+A hydraulic testing model was developed for simulating hydraulic performance as pre -
+sented in Fig.  4. This system was designed to replicate the dynamics of a force-based pis -
+ton pump model that drives the pressure within a chamber between two opposing check valves. This constitutes similar conditions observed within the left ventricular portion of an MCS. The  Simulink
+® and Simscape™ block library provided all the necessary com -
+ponents needed to create a hydraulic testing platform capable of simulating this applica -
+tion. All modified parameter values are noted in the diagram, while any parameters not noted were left standard to the block’s original parameter values. Additionally, for any 
+element parameter denoted as ‘Variable’ , these values were not left constant for all simu
+-
+lations presented. The values utilized in each simulation, not explicitly declared in Fig.  4, 
+are displayed in Table 1.
+The hydraulic testing model is a one-input, four-output system. The input is the force 
+[N] applied to the piston and is regulated by means of the  Stateflow® control archi -
+tecture. The outputs are simulated left ventricular volume (LVV) [mL], simulated left ventricular pressure (LVP) [mmHg], simulated aortic pressure (AoP) [mmHg], and left 
+atrial pressure (LAP) [mmHg]. LVP and LVV are utilized by the  Stateflow
+® control logic 
+to govern state transitions while AoP and LAP are used for system fidelity and plotting purposes. The input force is applied to the Ideal Force Source block element which is 
+Fig. 3 State transition diagram of sequential decision-based control logic represented in Mealy machine 
+structure form was developed to control the transition between left ventricular PV phases. The Variables, 
+parameters that are held constant, are Piston cross-sectional area (A),  b3,  b2,  b1,  b0, Isovolumetric Contraction 
+Offset, Systolic Ejection Rate, and Systolic Ejection Offset. The Inputs, parameters that can change with time, are 
+LVESP , LVESV , LVEDV , LVEIRP , Time (t), Measured Pressure (P), and Measured Volume (V). The Output, the 
+output variable of the model, is Force (F) applied to the piston in Newtons. The single curved arrow donates the initial time-dependent conditions of the model. The oval shapes are the five states of the model. The dotted hoop arrow denotes the output of the state until a specific condition is met. The straight arrows are the transition direction once the condition annotated is satisfied. The sample rate is 1024 Hz
+
+--- Page 15 ---
+Page 15 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+then directed to an Ideal Translational Motion Sensor which converts an across vari -
+able measured between two mechanical translational nodes into a control signal pro -
+portional to position. The position signal is then converted into volume [mL] based on 
+a piston diameter of 2 inches, thus a cross-sectional area of π × 2.542 = 20.27 cm2. The 
+input force [N] is also applied to a Translational Hydro-Mechanical Converter which converts hydraulic energy into mechanical energy in the form of translational motion 
+of the converter output member. Two check valves (aortic and mitral), positioned in 
+opposing directions, regulate the fluid flow direction as seen in the left ventricular sec
+-
+tion of an MCS. A Constant Volume element is positioned between the two check valves to simulate a constant volume filling chamber. A Hydraulic Pressure Sensor is positioned between the opposing check valves to monitor LVP , then outputs the simulated values to 
+the  Stateflow
+® control logic.
+Upstream to the mitral valve is a Hydraulic Reference source block governed by the 
+EDPVR curve function with respect to simulated volume, LVV, and increased by an off -
+set of 2 mmHg to ensure proper flow through the mitral check valve. This establishes a 
+dynamic LAP , the initial pressure condition of the left heart. LAP is outputted from the 
+model here for plotting purposes. Downstream to the aortic valve is a Spring-Loaded 
+Accumulator block. This block element consists of a preloaded spring and a fluid cham -
+ber. As the fluid pressure at the inlet of the accumulator becomes greater than the pre -
+scribed preload pressure, fluid enters the accumulator and compresses the spring, creating stored hydraulic energy. A decrease in the fluid pressure causes the spring to 
+decompress and eject the stored fluid into the system. The spring motion is restricted by 
+a hard stop when the fluid volume becomes zero, as well as when the fluid volume is at the prescribed capacity of the fluid chamber. These settings are utilized to regulate the 
+Fig. 4 Presented is the hydraulic testing model developed utilizing  Simulink® and Simscape™. This system 
+was designed to replicate the dynamics of a force-based piston pump model that drives the pressure within 
+a chamber between two opposing check valves, conditions reflected within the left ventricular portion of an MCS. All block element parameter values that were modified are noted in the diagram, while any parameters not noted were left standard to the block’s original parameter values. Additionally, for any element parameter denoted as ‘Variable’ , these values were not left constant for all simulations presented. The hydraulic testing model is a one-input, four-output system. The input is the force [N] applied to the piston and is regulated by means of the  Stateflow
+® control architecture. The outputs are simulated LVV [mL], simulated LVP [mmHg], 
+simulated AoP [mmHg], and LAP [mmHg]
+
+--- Page 16 ---
+Page 16 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+compliance,/Delta1V
+/Delta1P , of the aorta. Immediately following is Hydraulic Pressure Sensor meas -
+uring AoP .
+Additionally, a needle valve was positioned downstream to the aortic valve to simulate 
+the resistance to flow contributed to the branching arteries of the aortic arch, as well as 
+provide the capability to simulate the effects of increasing and decreasing resistance with time. As was previously stated, all block element parameter values that were modified are noted in the diagram presented in Fig.  4, while any parameters not noted were left 
+standard to the block’s original parameter values. For any element parameter denoted as ‘Variable’ , these values were not left constant for all simulations presented. For each simulation, these values are displayed in Table 1.
+Results
+The computational model effectively executed the trials assessing the performance of the 
+FSM architecture. Solver settings and simulated fluid type were held constant through 
+the analysis. The results presented were produced with the MathWorks’ ode14x (fixed-step, extrapolation) using a fundamental sampling time of 
+1
+1024 s. This solver was chosen 
+to accelerate the simulations and ensure the resultant model is compatible with deter -
+ministic hardware systems. Validation of this solver was performed against a variable-step variable-order solver (ODE15 s) to ensure accuracy. The fluid selected is a glycerol/
+water mixture with a fluid density of 1107.1 kg/m
+3 and a kinematic viscosity of 3.3 cen -
+tistoke [49]. These characteristics equate to a fluid temperature of 25 °C or 77 °F.
+The input variables utilized for each presented simulation are displayed in Table  1, 
+while the results of each simulation are displayed in Table  2. All simulations were per -
+formed utilizing discrete changes, evenly incremented between the designated initial 
+and final  LVESP,  LVESV,  LVEDP, and  LVEDV over a 10 s total simulation time. Each discrete 
+variable is controlled by means of a Lookup Table element block that outputs the modi -
+fied variable value, dependent on the specific cycle count number. Note, any variable presented as a vector, changes with each cycle count, i.e. 
+[1, 2, 3, ···,n] where the nth 
+value represents the input variable value for the entirety of the corresponding cycle. If a simulation has more cycles than input vector elements, then the system continues with a 
+zero-order hold of the last value.
+The parameters for the Spring-Loaded Accumulator block were developed based on 
+a desired LVP response due to aortic compliance. The desired response consisted of 
+a physiological correct AoP waveform and a peak-to-peak AoP amplitude of approxi
+-
+mately 40  mmHg, corresponding to a normal range of 120/80. The baseline of this response was created at a heart rate of 60 bpm and a compliance of 1. This corresponded 
+to an Isovolumetric Rate of 225 N*sample/s, a Resistance value of 0.03, a Fluid Chamber 
+Capacity of 517.15 mmHg, a Preload Pressure of 0.01 psi, and a Pressure at Full Capac
+-
+ity of 10.01 psi. Given the relationship 1
+R∗C=I , where R is resistance, C is compliance, 
+and I is the Impedance, I was held constant for all simulations using I = 33.333. For the 
+simulations that required a heart rate beyond 60  bpm, the Isovolumetric Rate had to be consequently increased. Utilizing this relationship to sustain a peak-to-peak AoP amplitude of 40 mmHg, the Fluid Chamber Capacity and the Preload Pressure was held constant, while Resistance and Pressure at Full Capacity was modified to produce the 
+
+--- Page 17 ---
+Page 17 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+desired heart rate while sustaining aortic performance. Lastly, the Initial Volume of Fluid 
+for each simulation was calculated to create an initial LVP corresponding to  LVESP. This 
+was done to decrease the amount of initial cycles necessary to achieve simulation stabil -
+ity to 1. All values utilized for these parameters are presented in Table  1. Error was cal -
+culated as the absolute value of the difference between the desired and simulated  LVESP, 
+ LVESV,  LVEDP, and  LVEDV.
+A LV-PV loop; LVP , LAP , and AoP versus time; and volume versus time graphs for the 
+10 s total simulation time was presented for each simulation. Note, the driving force [N] produced by the FSM can be derived from the presented LVP and LVV plots by means of 
+Force [N]=Pressure [mmHg ]×/bracketleftBig
+1N
+cm2/75.00615mmHg/bracketrightBig
+×Piston area/bracketleftbig
+cm2/bracketrightbig
+ . 
+The piston cross-sectional area is π × 2.542 = 20.27  cm2. The piston position [cm]  
+can additionally be derived from the volume time plot by means of 
+Piston position [cm]=Volume/bracketleftbig
+cm3/bracketrightbig
+÷Piston area/bracketleftbig
+cm2/bracketrightbig
+.
+Computational model verification
+The LV-PV loop critical point computational model and FSM approach was effective at driving the hydraulic testing model to produce the characteristic LV-PV relationship as presented in Fig.  5. The computational model parameters are the same as those pre
+-
+sented in Fig.  2. As can be shown from the graph, with known ESPVR, EDPVR, and  Ea 
+curves, the computational model successfully provided the correct  LVESP,  LVESV,  LVEDP, 
+ LVEDV,  LVEIRP, and  LVEIRV transition points within the state transition logic to produce 
+the prescribed LV-PV relationship. Table  1 contains all input parameters and Table  2 pre -
+sents the results of all simulations performed. For each LV-PV loop graph, the initial LV end-systolic and end-diastolic datasets are denoted with circle points. Figure  5a displays 
+the LV-PV loop based on data collected using DataThief on loop 1 of Fig.  1b. The results 
+presented reveal an error between the desired and simulated end-systolic and end-dias
+-
+tolic transition points in the datasets of less than 1 mmHg and 1 mL, respectively.
+The system takes one cycle to initialize from a rest state before the control topology 
+functions consistently for the remainder of the simulation. Additionally, the isovolumet -
+ric and systolic offsets and rates, necessary to achieve this response are noted in Table  1. 
+Figure  5a also presents the LVP , LAP , and AoP versus time and volume versus time 
+graphs for the 10 s total simulation time. The reference force [N] produced by the FSM 
+as well as the piston position [cm] can be derived from these time graphs.Fig. 5 The outlined approach was effective at simulating the characteristic LV-PV relationship. Preload, 
+afterload, and contractility changes in time were simulated by means of manipulating the input variables 
+of the computational model via evenly-spaced discrete increments that change per cycle count. The LV-PV loop, pressure versus time, and volume versus time graphs are presented for each simulation. Displayed in a is the derived LV-PV loop, based on the computational model parameters determined using DataThief on loop 1 of Fig. 1b and presented in Fig. 2. The parameters for this LV-PV loop constitutes the initial conditions for the subsequent simulations. b presents the system correctly responding to a discrete change in preload. c reveals the correct afterload change response to the PV relationship. d displays the correct system response to contractility change. Each simulation was run for a total simulation time of 10 s and the system takes one cycle before it settles. The system functions consistently for every preceding cycle. The heart rate begins at approximately 60 bpm for each simulation. The reference force [N] produced by the FSM as well as the piston position [cm] can be derived from these time graphs(See figure on next page.)
+
+--- Page 18 ---
+Page 18 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+Preload, afterload, and contractility changes in time
+As presented in Fig.  5b–d, the outlined approach was effective at simulating preload, 
+afterload, and contractility changes in time by means of discretely manipulating the 
+
+
+--- Page 19 ---
+Page 19 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+computational model over time. The initial parameters of the computational model are 
+the same as those presented in Fig.  5a and presented in Table  1. Presented for each simu -
+lation is the LV-PV loop; LVP , LAP , and AoP versus time; and volume versus time graphs for the 10 s total simulation time.
+As shown in Fig.  5b, the system displays the correct preload change response to the 
+PV relationship as displayed in Fig.  1b. The  E
+a was initially defined by the equation 
+P=−1.7504 (V)+185.02  . The y-axis intercept was increased from 185.02 mmHg at a 
+rate of 5 mmHg per cycle, ending with a y-axis intercept of 215.02 mmHg for the last completed cycle. The results report an error of less than 1 mmHg and 1 mL for all tar
+-
+geted pressures and volumes.
+Presented in Fig.  5c, the system reveals the correct afterload change response 
+to the PV relationship as shown in Fig.  1c.  Ea is initially defined by the equation 
+P=−1.7504 (V)+185.02  . The y-axis intercept was decreased from 185.02 mmHg at a 
+rate of 15 mmHg per cycle, ending with a y-axis intercept of 110.02 mmHg for the last completed cycle. The slope of the  E
+a was decreased from − 1.7504 mmHg/mL conclud -
+ing with a slope of − 1.0408 mmHg/mL. This rate of change for the  Ea slope was derived 
+from the 15 mmHg per cycle y-axis rate of increase to achieve a consistent x-intercept, 
+as shown in Fig.  1c. The results indicate an error of less than 1 mmHg and 1 mL for all 
+targeted datasets.
+As presented in Fig.  5d, the system displays the correct contractility change response 
+to the PV relationship as revealed in Fig.  1d. The ESPVR curve is initially defined by 
+the equation P=2.9745 (V)−17.133  . The slope of the ESPVR curve was decreased from 
+2.9745 mmHg/mL, concluding with a slope of 1.2245 mmHg/mL for the last completed cycle. The results report an error of less than 1 mmHg and 1 mL for all targeted pres
+-
+sures and volumes.
+Clinical assessment of outlined approach
+Figure  6 displays the results of simulating Heart Failure with Normal Ejection Fraction 
+(HFNEF) and the Control developed by means of a preload reduction analysis con -
+ducted in 2008 by Westermann et al. [50] and presented in Fig.  1 of their investigation. 
+The ESPVR,  Ea, and EDPVR curve coefficients were developed utilizing DataThief to find 
+the associated LVESP ,  LVESV,  LVEDP, and  LVEDV for the initial and final loops, as well as 
+evaluate the EDPVR curve. These datasets were analyzed over a 10  s total simulation 
+time and for each simulation are the LV-PV loop; LVP , LAP , and AoP versus time; and 
+volume versus time graphs. Both simulations reflect a mean heart rate [bpm] within the range of mean values noted in the reference material. All parameter values are presented 
+in Table 1 and the results are in Table 2.
+The Control is presented in Fig.  6a. The ESPVR curve was found to be defined 
+by the equation 
+P=1.2407 (V)+33.857  and the EDPVR curve was found to be 
+P=2.6928E −7(V)3+−9.3013E −6(V)2+0.026968 (V)+2.9515  .  Ea is ini -
+tially defined by the equation P=−1.1365 (V)+211.17  and defined by the equation 
+P=−1.4501 (V)+160.11  for the final cycle. The slope and y-intercept of  Ea was divided 
+into evenly-spaced increments to constitute 4 intermediate discrete steps between the 
+initial and final cycle parameters. The results indicate an error of less than 1 mmHg and 
+1 mL for all targeted datasets.
+
+--- Page 20 ---
+Page 20 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+HFNEF is presented in Fig.  6b. The ESPVR curve was found to 
+be P=0.99741 (V)+72.586  and the EDPVR curve was found to be 
+P=1.4046E −5(V)3+−2.5351E −3(V)2+0.15836 (V)+−0.010234  .  Ea is ini -
+tially defined by the equation P=−1.4054 (V)+235.76  and defined by the equation 
+P=−1.3754 (V)+160.43  for the final cycle. The slope and y-intercept of  Ea was divided 
+into evenly-spaced increments to constitute 4 intermediate discrete steps between the 
+initial and final cycle parameters. The results produced an error of less than 1 mmHg 
+and 1 mL for all targeted datasets.
+Fig. 6 The outlined approach was effective at simulating Heart Failure with Normal Ejection Fraction (HFNEF) 
+and the Control developed by means of a preload reduction analysis conducted in 2008 by Westermann 
+et al. [50] and presented in Fig. 1 of their investigation. The ESPVR,  Ea, and EDPVR curve coefficients were 
+developed utilizing DataThief to find the associated  LVESP,  LVESV,  LVEDP, and  LVEDV for the initial and final loops, 
+as well as evaluate the EDPVR curve. These datasets were analyzed over a 10 s total simulation time and for each simulation is the LV-PV loop; LVP , LAP , and AoP versus time; and volume versus time graphs. a presents the Control where the slope and y-intercept of  E
+a was divided into evenly-spaced increments to constitute 4 
+intermediate discrete steps between the initial and final cycle parameters. HFNEF is presented in b. The slope and y-intercept of  E
+a was also divided into evenly-spaced increments to constitute 4 intermediate discrete 
+steps between the initial and final cycle parameters. For both simulations, the results produced an error of less than 1 mmHg and 1 mL for all targeted datasets and reflect a mean heart rate [bpm] within the range of mean values noted in the reference material. The reference force [N] produced by the FSM as well as the piston position [cm] can be derived from these time graphs
+
+--- Page 21 ---
+Page 21 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+Discussion
+A novel method for simulating LV-PV control functionality utilizing explicitly 
+defined preload, afterload, and contractility was delivered for cardiovascular inter -
+vention assessment. The proposed aggregate model consists of three subsystems which include a preload, afterload, and contractility sensitive computational setpoint 
+calculator (“PV loop critical point determination ” section), a FSM controller (“PV 
+loop modeling utilizing a state machine control architecture approach ” section), and 
+a hydraulic testing system (“Hydraulic testing model utilizing MathWorks’ Simulink
+® 
+and SimscapeTM toolbox ” section). The computation model provides pressure and 
+volume setpoints based on the coefficients revealed by best fit equations for ESPVR, 
+EDPVR, and  Ea. The acquired setpoints drive the FSM controller to perform the pre -
+scribed PV relationship. Then the hydraulic testing system, which reproduces condi -
+tions comparable to those found in a left heart MCS with cardiac piston actuation, 
+simulates the PV relationship defined by the inputs to the computational model.
+The resulting solution was capable of being compiled for hardware control in a 
+MCS through the architecture and solver type employed; deterministic processing 
+is achievable and runtime setpoint changes can be made.  Simulink® and its supple -
+mental product library was effective at developing reproducible clinical conditions, which would be determined through an individualized clinical PV analysis, simu
+-
+lated in silico for this work with ability to translate to future in vitro investigations. This provides an MCS with the capabilities to investigate the pathophysiology for 
+a specific individual, with or without VAD support, by reproducing the precise PV 
+relationship defined by their left ventricular functionality.
+In silico verification of the LV-PV loop critical point computational model, FSM 
+control architecture, and hydraulic testing system support this modeling approach 
+as an effective means of simulating the LV-PV relationship. In this work, a novel 
+method for simulating the characteristic EDPVR curve and LAP during diastolic fill
+-
+ing was presented. This approach proved to be an effective means of capturing the nuisances in those sections of the PV curve that are critical for diastolic operation of mechanical circulatory support systems and not found in prior computational mod
+-
+els [15, 41].
+As shown in Fig.  5a and Table  2, the computational model was able to create spe -
+cific points that the FSM was able to utilize as features governing the transition between LV-PV states, given a clinical preload analysis, similar to Fig.  1b. Addition
+-
+ally, the hydraulic testing model was able to produce a suitable degree of realism to be able to evaluate the feasibility of this methodology, producing realistic conditions 
+to include LAP and AoP . The delivered capabilities enable control of the PV relation
+-
+ship beyond that presented in prior work on elastance based control with respect to dynamic afterload response [21, 24] and software-oriented control [44].
+A key result of this investigation is a novel in silico method for simulating LV-PV 
+relationships based on an analysis of a patient’s ESPVR, EDPVR, and  E
+a curves. Dis -
+played in Fig.  6 is the characteristic LV-PV loop of two individuals presented in the 
+research conducted by Westermann et al. [50]. Simulated is Heart Failure with Nor -
+mal Ejection Fraction (HFNEF) and the Control developed by means of a preload 
+reduction analysis and quantified by means of data capture tools. Both simulations 
+
+--- Page 22 ---
+Page 22 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+reflect a mean heart rate [bpm] within the range of mean values described in the ref -
+erence material. This capability enables the utilization of the breadth of published PV 
+curves on various patient types in the literature; illustrating how the digitized data 
+from these graphs can be utilized with the computational model presented. Addi -
+tionally, this FSM model could be implemented in embedded physiological control 
+applications that are utilizing model predictive control and require a computationally 
+efficient left ventricular simulator.
+Conclusion
+The limitations of this approach are mainly the ideal hydraulic testing system and use of 
+anticipatory limits in transition points of the PV loop. If a force is exerted into this com -
+putational model of the hydraulic system, the system responds with the corresponding 
+pressure instantaneously within that sample period. There was no modeled delay or rise 
+time in the actuation components. This consideration is made in the FSM by increasing force incrementally instead of applying a constant desired force. Some parameters which define the hydraulic system, such as the parameters within the Spring-Loaded Accumula
+-
+tor are ideal assumptions based off a desired performance of the system. The focus of this work was on the control architecture that can be adjusted to a variety of hardware plat
+-
+forms through manipulation of the output signal magnitude and response characteristics. Additionally, pressure sensor feedback is ideal using this modeling approach. The sensor 
+sampling rate was set to 512 Hz and assumed an ideal sensor with low noise. Additionally, 
+a manual offset was made to the transition from diastolic filling to isovolumetric contrac
+-
+tion of the system; enabling a ramping from the transition of fill to eject. Moreover, an offset was utilized in the transition from isovolumetric contraction to ejection in order to allow the pressure to slowly increase to the desired  LV
+ESP during ejection.
+Future work includes a sensitivity analysis regarding resistance, compliance, and 
+force rates. This analysis will be useful in that it will quantify the exact limitations of the hydraulic testing system as well as the range of accuracy of the FSM approach. Isolated in  vitro testing of this approach will be conducted on a nested-loop hydraulic system before being incorporated into an MCS for investigating accurate cardiovascular hemo
+-
+dynamic considerations, such as the accuracy of pressure and flowrate sensor feedback. Additionally, what-if scenarios will be conducted on a MCS in order to create feasible 
+scenarios to which a patient may experience.
+This research will assist in producing an investigatory method and MCS control logic 
+that will advance the medical community by improving left ventricular in vitro analy
+-
+sis capabilities. The ability of an MCS to be able to replicate the exact PV relationship 
+that define the pathophysiology allows for a robust in  vitro analysis to be completed. 
+This ventricular model for ventricular function could also be coupled with aortic and left 
+atrium computational fluid dynamics (CFD) models that require inlet and outlet condi -
+tions manifested by the left ventricle. The FSM approach is computationally efficient due to the explicit computation, and simple transition logic, which is preferential when small time steps and high iteration solvers are being employed. It was this efficiency and port
+-
+ability in the outcome that has made this work impactful for a variety of investigative purposes.
+
+--- Page 23 ---
+Page 23 of 24
+ King et al. BioMed Eng OnLine           (2019) 18:10 
+Abbreviations
+AoP [mmHg]: aortic pressure; Ea: arterial elastance; CFD: computational fluid dynamics; CHF: Congestive Heart Failure; 
+CO: cardiac output; CVD: cardiovascular disease; EDPVR: end-diastolic pressure–volume relationship; ESPVR: end-systolic pressure–volume relationship; FSM: finite state machine; HFNEF: Heart Failure with Normal Ejection Fraction; LAP [mmHg]: left atrial pressure; LV: left ventricular; LVAD: left ventricular assist device; LV
+EF: left ventricular ejection fraction; 
+LVEDP [mmHg]: left ventricular end-diastolic pressure; LVEDV [mmHg]: left ventricular end-diastolic volume; LVEICP [mmHg]: 
+left ventricular end-isovolumetric contraction pressure; LVEICV [mmHg]: left ventricular end-isovolumetric contraction 
+volume; LVEIRP [mmHg]: left ventricular end-isovolumetric relaxation pressure; LVEIRV [mmHg]: left ventricular end-isovolu-
+metric relaxation volume; LVESP [mmHg]: left ventricular end-systolic pressure; LVESV [mmHg]: left ventricular end-systolic 
+volume; LVP [mmHg]: left ventricular pressure; LV-PV: left ventricular pressure–volume; LVSV [mL]: left ventricular stroke 
+volume; LVSW [mmHg*mL]: left ventricular stroke work; LVV [mL]: left ventricular volume; MCS: mock circulatory system; 
+PSM: patient-specific modeling; SV: stroke volume; VAD: ventricular assist device; V&V: verification and validation.
+Authors’ contributions
+JMK made substantial contributions to conception, design, analysis, and interpretation of data. CAB involved in drafting the manuscript or revising it critically for important intellectual content. CET made contributions to the conception of the program, interpretation of data, and revising the manuscript for important intellectual content. All authors read and approved the final manuscript.
+Acknowledgements
+Not applicable.
+Competing interests
+The authors declare that they have no competing interests.
+Availability of data and materials
+The datasets generated and/or analysed during the current study are available in the GitHub repository, https ://githu b.com/CAHLa borat  ory/PV_Loop/uploa d .
+Consent for publicationNot applicable.
+Ethics approval and consent to participate
+Not applicable.
+Funding
+Funding was provided by University endowment. This funding body did not play a role in the work presented. This research did not receive any specific grant from funding agencies in the public, commercial, or not-for-profit sect.
+Publisher’s Note
+Springer Nature remains neutral with regard to jurisdictional claims in published maps and institutional affiliations.
+Received: 1 December 2018   Accepted: 16 January 2019
+References
+ 1. Benjamin EJ, et al. Heart disease and stroke statistics—2017. Update: a report from the American Heart Association. Circulation. 2017;135(10):e146–603.
+ 2. Ponikowski P , et al. 2016 ESC Guidelines for the diagnosis and treatment of acute and chronic heart failure—the task force for the diagnosis and treatment of acute and chronic heart failure of the European Society of Cardiol-ogy (ESC)—developed with the special contribution of the Heart Failure Association (HFA) of the ESC. Eur Heart J. 2016;37(27):2129–200.
+ 3. Kochanek KD, Murphy SL, Xu J, et al. National vital statistics reports. Natl Vital Stat Rep. 2015;63(3):1–20.
+ 4. Mancini D, Colombo PC. Left ventricular assist devices: a rapidly evolving alternative to transplant. J Am Coll Cardiol. 2015;65(23):2542–55.
+ 5. Mueller C, et al. European Society of Cardiology-Acute Cardiovascular Care Association Position paper on acute heart failure: a call for interdisciplinary care. Eur Heart J Acute Cardiovasc Care. 2017;6(1):81–6.
+ 6. Yancy CW, et al. 2017 ACC/AHA/HFSA focused update of the 2013 ACCF/AHA Guideline for the Management of Heart Failure. J Am Coll Cardiol. 2017;70(6):776–803.
+ 7. Gimelli A, et al. Non-invasive cardiac imaging evaluation of patients with chronic systolic heart failure: a report from the European Association of Cardiovascular Imaging (EACVI). Eur Heart J. 2014;35(48):3417–25.
+ 8. Wake R, Fukuda S, Oe H, Abe Y, Yoshikawa J, Yoshiyam M. Echocardiographic evaluation of left ventricular diastolic function. In: Hot topics in echocardiography. Squeri A, ed. InTech; 2013.
+ 9. Nagueh SF, et al. Recommendations for the evaluation of left ventricular diastolic function by echocardiography. J Am Soc Echocardiogr. 2009;22(2):107–33.
+ 10. Jenkins C, Bricknell K, Hanekom L, Marwick TH. Reproducibility and accuracy of echocardiographic measure -
+ments of left ventricular parameters using real-time three-dimensional echocardiography. J Am Coll Cardiol. 2004;44(4):878–86.
+ 11. Lang RM, et al. EAE/ASE recommendations for image acquisition and display using three-dimensional echocardiog-raphy. Eur Heart J Cardiovasc Imaging. 2012;13(1):1–46.
+
+--- Page 24 ---
+Page 24 of 24 King et al. BioMed Eng OnLine           (2019) 18:10 
+ 12. Burkhoff D. Pressure–volume loops in clinical research. J Am Coll Cardiol. 2013;62(13):1173–6.
+ 13. Burkhoff D, Mirsky I, Suga H. Assessment of systolic and diastolic ventricular properties via pressure–volume analysis: 
+a guide for clinical, translational, and basic researchers. Am J Physiol Heart Circ Physiol. 2005;289(2):H501–12.
+ 14. Sorajja P , et al. SCAI/HFSA clinical expert consensus document on the use of invasive hemodynamics for the diagno -
+sis and management of cardiovascular disease: editorial. Catheter Cardiovasc Interv. 2017;89(7):E233–47.
+ 15. Green P , Kodali S, Leon MB, Maurer MS. Echocardiographic assessment of pressure volume relations in heart failure and valvular heart disease: using imaging to understand physiology. Minerva Cardioangiol. 2016;59(4):26.
+ 16. Spevack DM, Karl J, Yedlapati N, Goldberg Y, Garcia MJ. Echocardiographic left ventricular end-diastolic pressure volume loop estimate predicts survival in congestive heart failure. J Card Fail. 2013;19(4):251–9.
+ 17. Chen WW, Gao H, Luo XY, Hill NA. Study of cardiovascular function using a coupled left ventricle and systemic circulation model. J Biomech. 2016;49(12):2445–54.
+ 18. Klotz S, Hay I, Dickstein ML, Yi GH, Wang J, Maurer MS, Kass DA, Burkhoff D. Single-beat estimation of end-diastolic pressure–volume relationship: a novel method with potential for noninvasive application. Am J Physiol Heart Circ Physiol. 2006;291(1):H403–12.
+ 19. Inuzuka R, Kass DA, Senzaki H. Novel, single-beat approach for determining both end-systolic pressure–dimension relationship and preload recruitable stroke work. Open Heart. 2016;3(1):e000451.
+ 20. Davidson S, Pretty C, Kamoi S, Desaive T, Chase JG. Beat-by-beat estimation of the left ventricular pressure–volume loop under clinical conditions. Ann Biomed Eng. 2018;46(1):171–85.
+ 21. Chirinos JA. Ventricular–arterial coupling: invasive and non-invasive assessment. Artery Res. 2013;7(1):2–14.
+ 22. Wang Y, et al. Replication of pressure–volume loop with controllable ESPVR and EDPVR curves on a personalized mock circulatory loop based on elastance function. 2017. p. 1282–6.
+ 23. King JM, Bergeron CA, Taylor CE. Development of an adaptive pulmonary simulator for in vitro analysis of patient populations and patient-specific data. Comput Methods Programs Biomed. 2018;161:93–102.
+ 24. Lee J. Long-term mechanical circulatory support system reliability recommendation by the national clinical trial initiative subcommittee. ASAIO J. 2009;55(6):534–42.
+ 25. Jansen-Park SH, et al. Effects of interaction between ventricular assist device assistance and autoregulated mock circulation including frank-starling mechanism and baroreflex. Artif Organs. 2015;40(10):981–91.
+ 26. Colacino FM, Moscato F, Piedimonte F, Danieli G, Nicosia S, Arabia M. A modified elastance model to control mock ventricles in real-time: numerical and experimental validation. ASAIO J. 2008;54(6):563.
+ 27. YWu Y, Allaire P , Tao G, Liu Y. In vitro test of an adaptive flow controller for a continuous flow LVAD. In: Proceedings of the 2004 American Control Conference, 2004. vol. 2, 2004. p. 1647–8.
+ 28. Timms D, Hayne M, McNeil K, Galbraith A. A complete mock circulation loop for the evaluation of left, right, and biventricular assist devices. Artif Organs. 2005;29(7):564–72.
+ 29. Timms D, Gregory S, Greatrex NA, Pearcy MJ, Fraser JF, Steinseifer U. A compact mock circulation loop for the in vitro testing of cardiovascular devices. Artif Organs. 2011;35(4):384–91.
+ 30. Stouffer GA. Cardiovascular hemodynamics for the clinician. Malden: Blackwell Futura; 2008.
+ 31. Amador F, Gierszewski K, Li Y, MS A, Ross V, Zorzella K. Cardiac assist devices| market analysis| US| 2016. 2016.
+ 32. Neal ML, Kerckhoffs R. Current progress in patient-specific modeling. Brief Bioinform. 2010;11(1):111–26.
+ 33. Ricotta JJ, Pagan J, Xenos M, Alemu Y, Einav S, Bluestein D. Cardiovascular disease management: the need for better diagnostics. Med Biol Eng Comput. 2008;46(11):1059–68.
+ 34. Frank O. Zur Dynamik des Herzmuskels. Z Biol. 1895;32:370–447.
+ 35. Suga H, Sagawa K. Instantaneous pressure–volume relationships and their ratio in the excised, supported canine left ventricle. Circ Res. 1974;35(1):117–26.
+ 36. Sagawa K. The ventricular pressure–volume diagram revisited. Circ Res. 1978;43(5):677–87.
+ 37. Sagawa K. The end-systolic pressure–volume relation of the ventricle: definition, modifications and clinical use. Circulation. 1981;63(6):1223–7.
+ 38. Walley KR. Left ventricular function: time-varying elastance and left ventricular aortic coupling. Crit Care. 2016;20(1):270.
+ 39. Naiyanetr P , Moscato F, Vollkron M, Zimpfer D, Wieselthaler G, Schima H. Continuous assessment of cardiac func-tion during rotary blood pump support: a contractility index derived from pump flow. J Heart Lung Transplant. 2010;29(1):37–44.
+ 40. Cassidy SC. Pressure–volume relationships in pediatric systolic and diastolic heart failure. Prog Pediatr Cardiol. 2000;11(3):211–8.
+ 41. Green A, Drzewiecki G. Computational left ventricular heart failure model with patient specific inputs and outputs. 2015. p. 1–2.
+ 42. Yu YC, Gopalakrishnan S. Elastance control of a mock circulatory system for ventricular assist device test. 2009. p. 1009–14.
+ 43. Colacino F, Arabia M, Moscato F, Danieli G. Modeling, analysis, and validation of a pneumatically driven left ventricle for use in mock circulatory systems. Med Eng Phys. 2007;29(8):829–39.
+ 44. Gregory SD, Stevens M, Timms D, Pearcy M. Replication of the Frank-Starling response in a mock circulation loop. In: Engineering in Medicine and Biology Society, EMBC, 2011 annual international conference of the IEEE, 2011. p. 6825–8.
+ 45. Pantalos GM, Koenig SC, Gillars KJ, Giridharan GA, Ewert DL. Characterization of an adult mock circulation for testing cardiac support devices. ASAIO J. 2004;50(1):37–46.
+ 46. Zannoli R, Corazza I, Branzi A. Mechanical simulator of the cardiovascular system. Phys Med. 2009;25(2):94–100.
+ 47. Klee H, Allen R. Simulation of dynamic systems with MATLAB and Simulink. Boca Raton: CRC Press; 2007.
+ 48. Welcome to DataThief. http://www.datat hief.org/. Accessed 16 Oct 2013.
+ 49. Macris MD, et al. Development of an implantable ventricular assist system. Ann Thorac Surg. 1997;63(2):367–70.
+ 50. Westermann D, et al. Role of left ventricular stiffness in heart failure with normal ejection fraction. Circulation. 2008;117(16):2051–60.
