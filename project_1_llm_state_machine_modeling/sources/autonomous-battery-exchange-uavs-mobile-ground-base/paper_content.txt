@@ -1,0 +1,740 @@
+--- Page 1 ---
+Autonomous Battery Exchange of UA Vs with a Mobile Ground Base
+´Eamon Barrett, Mark Reiling, Seyedmohsen Mirhassani, Ren ´e Meijering, Jeroen Jager, Nicola Mimmo,
+Flavio Callegati, Lorenzo Marconi, Raffaella Carloni, and Stefano Stramigioli
+Abstract — This paper presents the autonomous battery ex-
+change operation for small scale UA Vs, using a mobile ground
+base that carries a robotic arm and a service station containing
+the battery exchange mechanism. The goal of this work is to
+demonstrate the means to increase the autonomy and persis-
+tence of robotic systems without requiring human intervention.
+The design and control of the system and its components
+are presented in detail, as well as the collaborative software
+framework used to plan and execute complex missions. Finally,
+the results of autonomous outdoor experiments are presented, in
+which the ground rover successfully localizes, retrieves, services,
+and deploys the landed UA V , proving its capacity to extend and
+enhance autonomous operations.
+I. I NTRODUCTION
+Autonomous robotic platforms are increasingly utilized to
+execute monitoring [1], inspection [2], search and rescue [3],
+or disaster response missions [4]. Just as their assignments
+are growing more numerous and complex, the autonomous
+capabilities of the robotic system handling these tasks need
+to evolve with them, to enable new applications and to relieve
+their human operators of menial or dangerous work.
+The work presented in this paper was conducted in the
+context of the European project SHERPA [3], in which a
+mixed ground and aerial robotic platform with high degree
+of autonomy supports human rescuers in search and rescue
+operations in hostile environments. This paper focuses on
+the autonomous battery exchange of small-scale quadrotor
+UA Vs, which enables them to carry out persistent missions
+without relying on human operators to recover or recharge
+This work was funded by the European Commission’s Seventh Frame-
+work Programme as part of the project SHERPA under grant no. 600958.
+E. Barrett was with the Department of Electrical Engineering, Mathemat-
+ics and Computer Science, University of Twente Enschede, The Netherlands.
+He is now with the Department of Advanced Robotics, (Fondazione) Istituto
+Italiano di Tecnologia, Genova, Italy. (e-mail: eamon.barrett@iit.it)
+M. Reiling and R. Meijering were with the Department of Electrical
+Engineering, Mathematics and Computer Science, University of Twente
+Enschede, The Netherlands. They are now with the Saxion University of
+Applied Sciences. (e-mail: {m.reiling, r.meijering }@saxion.nl)
+J. Jager was with the Department of Electrical Engineering, Mathematics
+and Computer Science, University of Twente, The Netherlands.
+S. Mirhassani, N. Mimmo, F. Callegati, and L. Marconi are with
+the Department of Electrical, Electronic and Information Engineer-
+ing “Guglielmo Marconi” (DEI), University of Bologna, Italy. (e-
+mail: {seyedmohs.mirhassani@unibo.it; nicola.mimmo2, ﬂavio.callegati2,
+lorenzo.marconi@unibo.it)
+R. Carloni was with the Department of Electrical Engineering, Mathemat-
+ics and Computer Science, University of Twente, The Netherlands. She is
+now with the Faculty of Science and Engineering, University of Groningen,
+The Netherlands. (e-mail: r.carloni@rug.nl)
+S. Stramigioli is with the Department of Electrical Engineering, Mathe-
+matics and Computer Science, University of Twente, The Netherlands and
+also with the Biomechatronics and Energy-Efﬁcient Robotics Lab, ITMO
+University, Saint Petersburg, Russia. (e-mail: s.stramigioli@utwente.nl)
+ArmRoverService
+station
+UAV
+Fig. 1: The SHERPA mobile ground base for autonomous battery exchange.
+them. In this scope, we propose a mobile service station,
+mounted on a ground rover and equipped with a robotic arm
+to retrieve the UA Vs, as shown in Figure 1.
+In the following we outline the state of the art and
+motivate the main design choices for providing the supportive
+infrastructure for the small scale UA Vs.
+1) Power Replenishment: The UA V’s energy supply can
+be replenished either by recharging or by exchanging the
+depleted batteries. Several design concepts for both recharg-
+ing and exchanging the batteries are in [5].
+Automated battery recharging stations are the most com-
+mon solution due to their lower complexity, but also show a
+lower vehicle utilization due to the long recharging time [6]–
+[8]. On the other hand, a battery exchange station needs a
+mechanism that can extract and replace the batteries from
+the UA V , as well as a storage mechanism to hold the
+spare batteries, but requires no additional time to charge
+the batteries before the UA V is operational again, which
+typically takes several times the ﬂight time. The UA V needs
+to be designed such that the battery is easily exchangeable
+but still mounted well enough to withstand the vibrations
+experienced in ﬂight and landing. Battery exchange stations,
+that combine rotating battery magazines with at least one
+linear actuator to move the battery containers from the UA V
+into the magazine and vice versa are presented in [9]–[11],
+while [12] uses linearly arranged battery bays.
+As analyzed in [5], recharging stations are more econom-
+ical for low coverage scenarios in terms of the provided
+coverage, i.e., how many UA Vs are operational at a given
+time, versus the total system cost. Nonetheless, we chose a
+battery exchange system to minimize the amount of UA Vs
+and service stations to be transported to the mission areas.
+2) Service Provision: To service the UA Vs in a dynamic2018 IEEE International Conference on Robotics and Automation (ICRA)
+May 21-25, 2018, Brisbane, Australia
+978-1-5386-3081-5/18/$31.00 ©2018 IEEE 699
+
+--- Page 2 ---
+mission with shifting areas of interest and, thus, to extend
+their operational radius, we chose a mobile ground base,
+as the strategical placement of stationary service stations
+across the operational environment [6], [13] is not a practical
+solution for search and rescue or emergency response oper-
+ations. In [7], [8] recharging stations have been mounted on
+commercial mobile ground vehicles, but these platforms were
+intended for laboratory environments. Instead, a tracked vehi-
+cle with robust outdoor navigation capabilities was developed
+for the SHERPA project (BlueBotics SA, Switzerland).
+3) UA V Retrieval: The service stations presented in the
+literature require the UA V to precisely and safely land on
+a landing pad on the station. Most of the time, however,
+the landing precision of the UA V is not sufﬁcient to engage
+the replenishment mechanism, also due to wind. This is
+especially the case for battery exchange mechanisms, where
+a close mechanical ﬁt is required. To overcome the alignment
+issue some of the proposed stations have passive guidance
+systems that function like funnels [5], [10], while others
+are equipped with active alignment systems, like small arms
+or wire mechanisms [11], [13] that position and secure the
+UA Vs during replenishment. However, many systems also
+still rely on external position sensing in order to land the
+UA V on the platform.
+While these systems alleviate the problem of retrieving the
+UA Vs, the landing operation is still delicate. The SHERPA
+mission requires that the robotic platform can reliably re-
+trieve the UA Vs without human involvement. Hence, we
+chose to mount a robotic arm on the ground rover, that is
+capable of robustly retrieving, docking, and deploying the
+UA Vs. In order to increase robustness during the manipula-
+tion and docking of the UA Vs, the arm is designed with a
+variable mechanical compliance.
+4) Software Framework: Complex missions involving a
+heterogeneous robotic team also necessitate a suited control
+and communications structure [14], [15]. A framework for
+the automatic speciﬁcation, generation, and execution of
+high-level collaborative mission plans has been presented in
+[16] as part of the SHERPA project, which is a more robust
+and ﬂexible solution than systems based on a central planning
+and scheduling algorithm [6], [17].
+The remainder of this paper is organized as follows.
+Section II outlines the software framework used by the agents
+of the system to plan and execute tasks, while Section III
+presents the design of these agents in detail. Experimental
+results on the autonomous battery exchange are presented in
+Section IV, and concluding remarks are drawn in Section V.
+II. C OLLABORA TIVE MISSION FRAMEWORK
+Complex collaborative tasks that would be difﬁcult or
+impossible to perform for individual agents require the
+cooperation and coordination of the participating agents. This
+section presents the distributed communication and control
+architecture, that enables a larger heterogeneous human-
+robot team to effectively work together in a robust and
+versatile manner, even under adverse operating conditions.
+The delegation framework and semantic structures developedDelegation
+ModuleDelegation
+Module
+Delegation
+Module
+Delegation
+ModuleDelegation
+ModuleDistributed
+Delegation
+Process
+Platform
+capabilitiesarm
+SBoxwasp
+roverMission
+Goal
+Mission
+require-
+ments
+Fig. 2: Overview of the distributed delegation process and of the agents for
+the autonomous battery exchange during the SHERPA mission. Each agent
+has a delegation module that mediates between mission requirements and
+platform capabilities. The human operator can request or approve mission
+goals, but the system is also able to request, plan and execute missions com-
+pletely autonomously without human supervision in a distributed delegation
+process, in which tasks are assigned to the most suited agents.
+for the SHERPA mission, as described in [16], are designed
+to enable a team of robotic agents to cooperate in planning
+and executing complex and hierarchical tasks in a dynamic
+mission environment. An overview of the delegation process
+and the agents and components involved in the battery
+exchange are shown in Figure 2.
+A generic task or mission goal, such as the exchange of
+the UA V’s battery, is expressed in the form of a goal request
+Task Speciﬁc Tree (TST), i.e. a hierarchically structured
+description of the task. The internal nodes of a TST represent
+control statements for the task’s execution, while leaf nodes
+represent domain speciﬁc functionalities. The transformation
+of a high-level request into a goal request TST takes place
+during the mission by dynamically instantiating generic TST
+templates.
+The involved agents interact through their delegation mod-
+ules, which contain a TST factory that can create TST
+nodes and link them to ancestors and descendants across
+agents, as well as a TST Executor Factory that provides
+platform speciﬁc functionalities for the execution of a task.
+The delegation module and interaction protocols are based
+on ROS, the Robot Operating System.
+In the ﬁrst phase of the delegation, a goal request TST is
+negotiated. When an agent requests a goal, the goal request
+TST is sent to its delegation module, where the distributed
+delegation process allocates each node of the tree to a
+suitable agent by means of an auction. The most suited bidder
+for a task is determined by solving the constraint problem
+belonging to a cost function, taking into account the mission
+requirements and platform capabilities.
+The result of a successful delegation is an expanded col-
+laborative plan TST, where all nodes have been allocated to
+the participating agents. This TST can then be executed in the
+second phase of the delegation. The autonomous execution of
+the battery exchange operation is described in Section IV -A
+as an example of such an expanded collaborative plan TST .
+700
+
+--- Page 3 ---
+Fig. 3: The small scale UA V - the SHERPA wasp - and one of the
+exchangeable batteries
+Mid-level
+controlHigh-level
+planningLow-level control
+&hardware
+Motors
+Flight
+Control
+Module
+CameraMotor
+Controller
+Sensor
+Suite
+Delegation
+Module
+Path
+Planner
+SHERPA
+World Model
+Fig. 4: System architecture of the SHERPA wasps .
+III. T HESHERPA S YSTEM
+In this section, the hardware and the control of the agents,
+i.e., the robots involved in the battery exchange, are described
+in detail. More speciﬁcally, the UA V ( wasp ), the SHERPA
+box ( SBox ) service station, the mobile ground rover , and the
+robotic arm are involved in the operation. In some cases the
+rover and arm can seen as a single agent for the higher-level
+planning, for instance when performing coordinated actions.
+They are then referred to as ground-rover-arm (GRA ).
+A. Small-Scale UA Vs - The SHERPA Wasps
+The role of the wasps , shown in Figure 3, is to gather
+data of the environment through cameras or other specialized
+sensors. Their high maneuverability and ability to hover over
+or follow targets makes them ideally suited for this task, even
+in otherwise inaccessible terrain. Due to their small size, low
+payload, and a ﬂight time of approximately 20 minutes they
+are dependent on support from a ground station.
+This reliance on a service station, and the requirement
+of a robust and efﬁcient battery exchange mechanism, has
+resulted in a highly integrated interdependent design of
+the wasps and the SBox (ASLA TECH, Italy). Rather than
+using a modular external battery carriage receptacle [9],
+[12], the battery bay is integrated into the structural frame
+of the wasps . This design leads to a stronger and lighter
+construction, while at the same time shielding the batteries
+and connectors from the environment. The battery carriage
+is made of a carbon ﬁber container that can slide in and
+out of the battery bays in the wasps and SBox . The UA V’s
+main body furthermore contains the ﬂight control module, a
+computer for high-level control, and a signal interface board,
+while the motor controllers are contained in the four arms
+holding the motors.
+Fig. 5: A partial section view of the SBox and docked wasps showing the
+battery exchange mechanism. The wasp (1) is locked to the SBox with the
+clamps (2) when the switch (3) is engaged. To remove the battery (9) from
+the wasp a ’tongue’ (5) engages the battery, which is pulled downwards into
+the battery magazine (8) when the linear actuator (4) moves the toolhead
+(6). To exchange the battery, the magazine is rotated by the actuator (7)
+which drives a Geneva mechanism. The battery exchange mechanism then
+places a charged battery into the wasp .
+Embedded
+ControllerDelegation
+Module
+Sequence
+PlannerMid-level
+controlHigh-level
+planningLow-level control
+&hardware
+Actuators
+SwitchesMotor
+Drivers
+Fig. 6: System architecture of the UA V service station and communications
+hub - the SHERPA box.
+As shown in Figure 4, the control of the wasps is organized
+in two main parts; a high-level planning module, and a mid-
+level ﬂight control module. The high-level planner interacts
+with the delegation framework and includes a navigation path
+planner, which translates requested tasks into waypoints of
+suitable trajectories. The mid-level ﬂight control is running
+on a real time operating system and interfaces the sensors and
+actuators. It runs stabilization algorithms that reject external
+disturbances such as wind, tracks the waypoints supplied by
+the path planner, arms and disarms the motors, and is capable
+of autonomous take-off and landing.
+B. Service Station - The SHERPA Box
+The SHERPA box is designed to function as the service
+station for docking and replenishing the wasps , as well as
+the computational and communications hub for the mission.
+The battery exchange mechanism itself consists of a linear
+actuator that slides the battery carriages from the UA V into
+a revolving battery magazine at the base of the SBox and
+vice versa. A sectional view of the SBox and the wasp
+is shown in Figure 5, displaying the components of the
+mechanism. Since the wasps do not have to land on the SBox,
+the battery exchange mechanism can be arranged vertically,
+which allows to service two wasps simultaneously.
+For docking the wasp on the SBox , the wasp is initially
+701
+
+--- Page 4 ---
+Motion
+PlannerDelegation
+Module
+Path
+Planner
+SHERPA
+World ModelActuators
+SLAMMid-level
+controlHigh-level
+planningLow-level control
+&hardware
+ELMOs
+Encoder
+IMU
+Lidar
+GPS
+Fig. 7: System architecture of the mobile base station (ground rover ).
+placed on two small guide rails, before it is moved into its
+ﬁnal docking position, guided by the rails and a short funnel.
+Once the wasp has been placed correctly, a switch registers
+that the wasp isdocked , and two small clamps lock it securely
+in place. A tongue then extends from the toolhead at the end
+of the linear actuator, and engages a notch in the battery
+carriage, in order to move it downwards into a free slot
+of the battery magazine. The battery slots of the magazine
+are aligned with the battery compartment of the wasp by
+means of a Geneva mechanism, which rotates the magazine
+in discrete steps ensuring proper alignment, after the tongue
+has disengaged the empty battery. When the charged battery
+has been aligned, it is engaged by the tongue, and placed into
+the battery bay of the wasp , where it securely engages the
+electrical connectors and locks into place. The replenished
+wasp is then ready to be released by the SBox and to continue
+its mission.
+As shown in Figure 6, the SBox has a hierarchal control
+structure. A high-level sequence planner and delegation
+module, which run on an Intel NUC, coordinate with the del-
+egation framework. They translate requests for the Arduino-
+based embedded controller that interfaces with the sensors
+and actuators of the SBox .
+C. Mobile Base - The Ground Rover
+A specially developed (BlueBotics, Switzerland) ground
+rover serves as mobile base for the SBox and the robotic arm .
+It is characterized by its high degree of autonomy, endurance,
+and payload capacity. The rover is driven by four actuated
+tracks, that are mounted on a passively conﬁgurable chassis.
+These tracks allows the rover to traverse rough, mountainous
+terrain at a top speed of 0.8 m/s. Its range of sensors include a
+tilting laser scanner (lidar), IMU and GPS systems, as well
+as encoders for the tracks. The system is designed to run
+autonomously for three to six hours, depending on the usage
+of actuators. The battery can be changed without shutting
+down the hardware. The rover is furthermore equipped with
+an Intel NUC computer, Wi-Fi interface and internal power
+electronics.
+Figure 7 shows the system architecture of the rover ,
+which is divided into high-level planning, mid-level control,
+and low-level control and hardware. The high-level control
+interacts with the delegation framework, and formulates
+requested tasks as navigation problems that are solved by
+the path planner. A mid-level motion planner resolves the
+planned path and coordinates the individual motor drivers.
+Goal localisation
+Offset vector
+Goal vector
+Goal trajectoryRoverWasp
+Fig. 8: Trajectory planning for the rover ’s approach phase through goal vec-
+tor summation and planning algorithm. The goal localization is performed
+when the rover detects the wasp and adds it to the map. Adding the offset
+vector to that position results in the desired goal vector of the rover with
+the correct distance and orientation to the wasp . Finally a collision free
+trajectory is generated.
+On the same level, a SLAM module combines data from
+the lidar, encoders, and IMU and provides a map of the
+environment with the rover’s position to the high level path
+planner. The actual execution of the trajectory, and control of
+the actuators, is performed by ELMO Whistle digital servo
+drives (Elmo Motion Control Ltd., Israel).
+During the battery exchange operation, the rover needs to
+plan and execute a trajectory that places the wasp within
+the workspace of the arm . It does so by using the map
+generated by the SLAM module, and the position of the
+wasp , provided by the arm and its end-effector camera. The
+GPS is not used for the precise localization of the wasp due
+to its limited accuracy. Using the relative body-inertial frame
+information provided by the SLAM algorithm, the wasp is
+localized in the map and its corresponding position is added
+to the map as an obstacle to ensure the safety of the systems.
+Figure 8 illustrates the summation of the position vectors that
+gives the rover’s desired goal position as a function of the
+initial positions and orientations of the rover and wasp . The
+collision free trajectory is generated with an A∗algorithm
+implemented using a 2D navigation stack in ROS, and is
+subsequently executed by the platform.
+D. UA V Retrieval - The Robotic Arm
+The ground rover is equipped with a robotic arm [18],
+in order to robustly deploy and recover the wasps , and thus
+to facilitate the autonomous servicing and battery exchange
+operation. Figure 9 shows the system architecture of the arm.
+The arm has 7 DOF and a reach of one meter, and is
+designed for a payload of 2 kg. To enable compliant and
+safe interaction with the wasps and SBox during grasping
+and docking, the arm is equipped with two variable stiffness
+mechanisms in the shoulder and wrist joints. The arm’s end-
+effector is a custom made gripper, that interlocks with an
+interface mounted on the wasp . As the arm is able to retrieve
+wasps without human assistance or requiring the wasps to
+perform precise and sensitive landing operations, it greatly
+extends the system’s robustness and autonomy.
+The high-level computational tasks are executed on an
+Intel NUC computer, while the low-level motor control is
+702
+
+--- Page 5 ---
+Motion
+Planner
+Collision
+DetectionDelegation
+Module
+State
+Machine
+Plan
+SceneJoint
+Control
+Stiffness
+T uning Actuators
+Encoder
+CameraGripper
+ControlGripper
+Kinematic
+Model
+VisionJoint
+ObserverGravity
+Comp.ObserverELMOsMid-level
+controlHigh-level
+planningLow-level control
+&hardware
+Fig. 9: System architecture of the arm.
+performed by ELMO Whistle digital servo drives.
+The arm’s high-level planner includes a delegation module
+that interacts with the other agents, and a hierarchical ﬁnite-
+state machine (HFSM) based on the ROS decision making
+package, where the states of the HFSM are triggered by
+executors and represent the leaf nodes of the TST, i.e. the
+speciﬁc implementation of tasks for the arm . When a task re-
+quires the arm to move to a certain Cartesian goal, a suitable
+joint space trajectory is generated using the rapidly-exploring
+random tree (RRT∗) algorithm implemented in MoveIt!. The
+mid-level joint controller then translates these trajectories to
+motor set-points and acts as supervisory controller.
+The arm’s observer combines data from the different
+sensors, including a Logitec c920 webcam mounted on the
+gripper, to obtain the state estimates. The vision-based local-
+ization of the wasps is also carried out by the arm observer.
+Markers placed on the wasp interface are detected using the
+ROS AR TRACK AL V AR wrapper. After its detection, a
+virtual wasp is placed in the plan scene of the arm, and its
+pose is published to other agents, such as the rover .
+IV . E XPERIMENTAL RESULTS
+This section presents the autonomous battery exchange
+procedure and experimental results. The experiments were
+performed outdoors. The individual components of the tasks
+were carried out by the system’s agents and coordinated by
+the delegation framework.
+A. Battery Exchange Operation
+The execution of a collaborative plan TST, i.e. the execu-
+tor, is the second phase of the delegation process presented
+in Section II. The battery exchange operation is a relatively
+simple expanded collaborative plan TST, which could also
+be generated without the auctioning process, if the role of
+every agent is clear from the start. Here it thus serves as
+an example illustrating the structure of such a TST, while
+the full potential of the planning and delegation framework
+used here comes into play in more complex multi-agent
+operations. When the battery replacement executor, shown
+in Figure 10, is requested, it is delegated to the GRA agent
+and expands into several nodes that are delegated to the arm ,
+wasp ,rover , and SBox agents.pick
+/armfind_wasp
+/arm
+disarm_wasp
+/wasp0
+lock_wasp
+/SBox
+switch_batt
+/SBox
+release_wasp
+/SBoxmove_to
+/rover
+dock
+/arm
+move_to
+/roverplace_wasp
+/armchange_batt
+/GRAdock_wasp
+/GRA
+deploy_wasp
+/GRA
+Fig. 10: The battery change executor (expanded collaborative plan TST)
+is delegated to the GRA agent. It expands into other executors, which are
+delegated to the arm ,wasp ,rover , and SBox agents. Internal nodes of the
+executor represent control statements, leaf nodes represent domain speciﬁc
+tasks. The different colors denote which agent the task is delegated to.
+The change batt executor is typically triggered by either
+the human operator, or fully autonomously by the UA V ,
+which will request the battery exchange after landing when
+its power is running low. After accepting the delegation,
+the GRA expands the executor and commands the arm
+to localize the UA V through the ﬁnd wasp executor. This
+executor triggers the arm to search for the UA V with its
+end-effector camera through coordinated motions of the arm
+and the rover , after which the location and pose of the
+UA V is published to the other agents. Next, the UA V is
+commanded to disarm its motors, and the GRA to dock the
+UA V . The dock wasp executor then in turn expands into the
+move to,pick , and dock executors, which command the rover
+to approach the UA V , and the arm to grasp and move the
+UA V into the docking positing on the SHERPA box. The
+following lock wasp ,switch batt , and release wasp executors
+are delegated to the SBox , and lock the UA V in the docking
+position, replace the depleted battery for a charged one, and
+release the UA V respectively. Finally the UA V is deployed
+again by placing it on the ground, and moving the GRA
+away from it, such that the UA V and GRA can continue their
+respective missions.
+B. Experimental Results
+When the GRA is delegated to exchange the landed UA V’s
+batteries, the arm determines its precise position relative
+to the rover. Figure 11 shows the detection of the UA V’s
+markers as described in Section III-D. The still image of
+the camera feed is overlaid with the detected location of the
+marker, and the virtual collision object of the plan scene.
+The virtual UA V is included the plan scene of the arm, as
+shown in Figure 12, and published.
+The rover then plans a collision-free trajectory, as outlined
+in Section III-C, and approaches the UA V , such that the UA V
+is located within the arm’s workspace and can easily be
+grasped. Figure 13 shows the rover and UA V locations in
+the map generated by the rover, and the rover’s trajectory.
+Figure 14 shows the arm docking and deploying the UA V
+as a sequence of still images. After approaching the UA V ,
+703
+
+--- Page 6 ---
+Fig. 11: The UA V is detected from the video feed of the arm’s camera by
+means of the markers placed on the interface. The position of the markers
+is denoted by the two circles, while the orientation is shown through the
+superimposed coordinate frames. The virtual model of the UA V (shown in
+green) is also overlaid onto the live video stream.
+Fig. 12: The virtual collision object of the UA V is placed in the plan scene
+of the arm once it is detected. The UA V’s position and orientation are also
+published to the other agents.
+the arm picks up, grasps, and docks it on the SHERPA
+box, where the UA V’s battery is exchanged according to
+Section III-B. The arm then places the UA V back on the
+ground and the rover moves away from the UA V so that
+it can continue its mission with a replenished battery. The
+tunable passive compliance of the arm has proven to be
+instrumental in the successful execution of the intricate
+interaction tasks. During grasping and docking of the UA V ,
+the arm’s compliance in the shoulder and wrist joints is
+controlled to make the operation more robust and reliable.
+Figure 15 gives an overview of the execution of the battery
+exchange by presenting key variables of the rover ,arm , and
+SBox over the course of the operation.
+V. C ONCLUSIONS
+This paper presented the autonomous replacement of the
+battery of a small-scale UA V , in the scope of a search
+and rescue mission. The replacement is carried out by a
+heterogeneous team of robotic agents that are capable of
+planning and executing complex missions and tasks. This
+is facilitated by a software framework that is capable of
+coordinating a large group of diverse agents.
+The successful battery exchange operation demonstrates
+these capabilities, and at the same time highlights how the
+endurance of small-scale UA Vs can effectively be extended.
+RoverTrees
+TrajectoryInitial Pose
+UAVGoal Pose
+Fig. 13: The map generated by the rover during the experiments. Free cells
+are shown in light gray, occupied cells in black, and unknown cells in
+dark gray. The small trees in the rover’s environment are clearly visible as
+obstacles. The map shows the initial pose of the rover and its goal pose, at an
+offset from the UA V position, as well as the generated trajectory connecting
+the two.
+By replenishing its power supply, the UA V’s ﬂight time is
+greatly extend, as well as its operational radius, which is
+further increased by the service station mobility. The auton-
+omy of the system is enhanced by the addition of a robotic
+arm to retrieve the UA Vs, minimizing the need for human
+intervention during the mission. The main contribution of
+this work is the combination of a mobile service station and
+robotic arm to retrieve the UA Vs.
+VI. A CKNOWKEDGMENTS
+The authors want to thank Andrea Sala and Dario
+Mengoli (ASLA TECH, Italy, http://www.aslatech.com) for
+the mechatronic development of the SHERPA box and
+SHERPA UA Vs, Pierre Lamon (BlueBotics SA, Switzerland,
+http://www.bluebotics.com) for the mechatronic development
+of the SHERPA rover, and Tommy Persson (Link ¨oping
+University, Sweden) for the support in the implementation
+of the delegation framework.
+REFERENCES
+[1] L. Merino, F. Caballero, J. R. Mart ´ınez-de Dios, I. Maza, and
+A. Ollero, “An unmanned aircraft system for automatic forest ﬁre
+monitoring and measurement,” Journal of Intelligent & Robotic
+Systems , vol. 65, no. 1, pp. 533–548, Jan 2012. [Online]. Available:
+https://doi.org/10.1007/s10846-011-9560-x
+[2] L. Marconi, F. Basile, G. Caprari, R. Carloni, P . Chiacchio,
+C. Hurzeler, V . Lippiello, R. Naldi, J. Nikolic, B. Siciliano, S. Strami-
+gioli, and E. Zwicker, “Aerial service robotics: The airobots perspec-
+tive,” in 2012 2nd International Conference on Applied Robotics for
+the Power Industry (CARPI) , Sept 2012, pp. 64–69.
+[3] L. Marconi et al. , “The SHERPA project: Smart collaboration between
+humans and ground-aerial robots for improving rescuing activities
+in alpine environments,” in Proceedings of the IEEE International
+Symposium on Safety, Security, and Rescue Robotics , 2012, pp. 1–4.
+[4] G.J.M. Kruijff et al., “Designing, developing, and deploying systems
+to support human-robot teams in disaster response,” Advanced
+Robotics , vol. 28, no. 23, pp. 1547–1570, 2014. [Online]. Available:
+http://dx.doi.org/10.1080/01691864.2014.985335
+704
+
+--- Page 7 ---
+(a) Scan and approach
+ (b) Grasp
+(c) Docking
+ (d) Battery exchange
+(e) Deploy
+ (f) Retreat
+Fig. 14: After the ground rover approaches the landed wasp (Figure 14a)
+the arm picks it up (Figure 14b) and docks it on the SHERPA box (Figure
+14c) where its battery is exchanged (Figure 14d). The arm then places it
+back on the ground (Figure 14e) and retreats away from the wasp (Figure
+14f).
+[5] F. P . Kemper, K. A. O. Suzuki, and J. R. Morrison, “UA V consum-
+able replenishment: design concepts for automated service stations,”
+Journal of Intelligent & Robotic Systems , vol. 61, no. 1, pp. 369–397,
+2011.
+[6] B. D. Song, J. Kim, J. Kim, H. Park, J. R. Morrison, and D. H.
+Shim, “Persistent UA V service: an improved scheduling formulation
+and prototypes of system components,” in International Conference
+on Unmanned Aircraft Systems , 2013, pp. 915–925.
+[7] D. R. Dale, “Automated ground maintenance and health management
+for autonomous unmanned aerial vehicles,” Master’s thesis, Depart-
+ment of Electrical Engineering and Computer Science, Massachusetts
+Institute of Technology, 2007.
+[8] Y . Mulgaonkar, “Automated recharging for persistence missions with
+multiple micro aerial vehicles,” Master’s thesis, Department of Me-
+chanical Engineering and Applied Mechanics, University of Pennsyl-
+vania, 2012.
+[9] N. K. Ure, G. Chowdhary, T. Toksoz, J. P . How, M. A. V avrina, and
+J. Vian, “An automated battery management system to enable persis-
+tent missions with multiple aerial vehicles,” IEEE/ASME Transactions
+on Mechatronics , vol. 20, no. 1, pp. 275–286, 2015.
+[10] K. A. Swieringa, C. B. Hanson, J. R. Richardson, J. D. White,
+Z. Hasan, E. Qian, and A. Girard, “Autonomous battery swapping
+system for small-scale helicopters,” in IEEE International Conference
+on Robotics and Automation , 2010, pp. 3335–3340.
+[11] K. A. O. Suzuki, P . Kemper Filho, and J. R. Morrison, “Automatic
+battery replacement system for uavs: Analysis and design,” Journal of
+Intelligent & Robotic Systems , vol. 65, no. 1, pp. 563–586, 2012.
+[12] K. Fujii, K. Higuchi, and J. Rekimoto, “Endless ﬂyer: A continuous
+ﬂying drone with automatic battery replacement,” in 2013 IEEE 10th
+International Conference on Ubiquitous Intelligence and Computing
+and 2013 IEEE 10th International Conference on Autonomic and
+Trusted Computing , Dec 2013, pp. 216–223.
+[13] R. Godzdanker, M. J. Rutherford, and K. P . V alavanis, “Islands:
+a self-leveling landing platform for autonomous miniature UA Vs,”
+inIEEE/ASME International Conference on Advanced Intelligent
+Mechatronics , 2011, pp. 170–175.
+[14] F. Bourgault, T. Furukawa, and H. F. Durrant-Whyte, “Decentralized0 50 100 150 200 250
+Time [s]0246Rover-UAV
+distance [m]
+(a) Distance between rover and wasp .
+0 50 100 150 200 250
+Time [s]-1-0.500.51End-effector position [m]x - position
+y - position
+z - position
+(b) End-effector position of the arm .
+160 165 170 175 180 185 190 195falsetrueUAV docked
+160 165 170 175 180 185 190 195falsetrueUAV locked
+160 165 170 175 180 185 190 195downupLinear actuator position
+160 165 170 175 180 185 190 195
+Time [s]1/82/8Battery container position
+(c) Status of the SBox .
+Fig. 15: Overview of the battery exchange operation through the status of
+the involved agents. Figure 15a shows the distance between the rover and
+wasp , as the rover approaches it during the execution of the dock wasp -
+executor, and moves away from the wasp along the trajectory generated
+by the rover’s path planner during the deploy wasp -executor. Figure 15b
+shows the end-effector position of the robotic arm . The arm moves ﬁrst
+into a scanning pose during ﬁnd wasp and the start of dock wasp , before
+it grasps and docks the wasp , and places it back on the ground during the
+deploy wasp executor. Figure 15c shows the status of the SBox . The SBox
+registers the wasp as docked when the arm successfully places the wasp
+on the SBox . The wasp is then locked by the docking clamps while the
+linear actuator moves the empty battery into the battery container, which
+then moves a charged battery into position that is inserted into the wasp by
+the linear actuator.
+bayesian negotiation for cooperative search,” in IEEE/RSJ Interna-
+tional Conference on Intelligent Robots and Systems , 2004, pp. 2681–
+2686.
+[15] J. Gancet, G. Hattenberger, R. Alami, and S. Lacroix, “Task planning
+and control for a multi-UA V system: architecture and algorithms,” in
+IEEE/RSJ International Conference on Intelligent Robots and Systems ,
+2005, pp. 1017–1022.
+[16] P . Doherty, J. Kvarnstr ¨om, P . Rudol, M. Wzorek, G. Conte, C. Berger,
+T. Hinzmann, and T. Stastny, “A collaborative framework for 3D
+mapping using unmanned aerial vehicles,” in Proceedings of the 19th
+International Conference on Principles and Practice of Multi-Agent
+Systems (PRIMA) , Phuket, Thailand, 2016, pp. 110–130.
+[17] J. Kim, B. D. Song, and J. R. Morrison, “On the scheduling of systems
+of UA Vs and fuel service stations for long-term mission fulﬁllment,”
+Journal of Intelligent & Robotic Systems , vol. 70, no. 1, pp. 347–359,
+2013.
+[18] E. Barrett, M. Reiling, G. Barbieri, M. Fumagalli, and R. Carloni,
+“Mechatronic design of a variable stiffness robotic arm,” in Proceed-
+ings of the IEEE/RSJ International Conference on Intelligent Robots
+and Systems , 2017.
+705
