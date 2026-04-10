@@ -1,0 +1,769 @@
+--- Page 1 ---
+Flight control of hybrid drones towards enabling
+parcel relay manoeuvres
+Bruno Neves1and Bruno Guerreiro1,2
+1DEEC and CTS/UNINOV A, NOV A School of Science and Technology, 2829-516 Caparica, Portugal.
+2Institute For Systems and Robotics, LARSyS, 1049-001, Lisbon, Portugal.
+E-mails: bms.neves@campus.fct.unl.pt and bj.guerreiro@fct.unl.pt
+Abstract —This work addresses the modeling and controlling
+process of a hybrid unmanned aerial vehicle (UA V), aimed for
+parcel delivery with relay maneuvers. Hybrid UA Vs bring signif-
+icant advantages to the drone industry and related applications,
+such as the capability of ﬂying in two ﬂight modes, rotary
+and ﬁxed-wing. Nonetheless, this versatility implies the added
+complexity both in modeling and controlling these vehicles. This
+work is based on a popular airframe, the Convergence tilt
+tri-rotor UA V , for which the overall system dynamics for all
+operation modes are deduced with plausible assumptions. The
+model is then validated by designing two separate controllers
+for the main ﬂight modes, rotary and ﬁxed-wing, capable of
+trajectory tracking in each mode. The control strategy makes use
+of a custom hybrid control allocation technique that differentiates
+the control in three parts: vertical, horizontal, and transitional
+ﬂight modes. Finally, a hybrid controller is proposed, using a
+ﬁnite state machine capable of handling logical events, with the
+aim to provide control logic to perform autonomous mid ﬂight
+transitions. The proposed control strategies are validated using
+Matlab.
+Index Terms —Hybrid UA V , UA V modeling, Transitional ﬂight,
+Control Allocation, Hybrid Control
+I. I NTRODUCTION
+WITH the recent developments being made in all the
+areas surrounding unmanned aerial vehicles (UA V), or
+drones, such as sensors, computing power, and automotive
+industry, a UA V is becoming more resourceful and useful
+for many situations in the most diverse areas. The inspira-
+tion for this thesis comes from that fuss and development
+around UA Vs to test and determine their capabilities in one
+of the most important industries, logistics, more precisely on
+parcel delivery techniques. Taking on that, this project was
+made to determine and test the capability and the possibility
+of creating a parcel delivering robust system, using one or
+multiple UA Vs. UA Vs can solve many problems and bring
+a lot of advantages to ease industries such as efﬁciency and
+automation. In short, the project seeks to understand and test
+all the possible advantages and disadvantages of bringing
+a hybrid UA V to the parcel delivering game. This creates
+new scientiﬁc challenges on trajectory planning, aggressive
+maneuvers, localization estimative, control techniques, hybrid
+control and so others. These indicated, that powerful systems
+This work was partially funded by FCT project REPLACE (PTDC/EEI-
+AUT/32107/2017) which includes Lisboa 2020 and PIDDAC funds,
+project CAPTURE (PTDC/EEI-AUT/1732/2020), and also projects CTS
+(UIDB/00066/2020) and LARSYS (UIDB/50009/2020).need to be created in order to take the full advantages of using
+this technology in a new context.s.
+A. Motivation & Objective
+In the scope of this project, we start with the knowledge
+gathered from previous works done on multi-rotors, being the
+most common a quadrotor. This work builds on the existing
+work and expands it to a solution of Hybrid drones also
+know as Vertical Take-Off and Landing (VTOL) vehicles. This
+type of UA V is getting more attention due to its advantages
+in endurance, efﬁciency, speed, manoeuvrability and modular
+approach over the more convectional drones [1]. For their use
+we need to devise strategies for modelling, design and control
+of hybrid drones to take full advantage of their capabilities.
+A hybrid drone main difference is that they contain two
+ﬂight modes, rotary-wing and ﬁxed-wing. While the ﬁxed-
+wing ﬂight mode extends its maneuverability, the rotary-wing
+ﬂight mode is used for more speed and propulsion efﬁciency
+being able to cover larger distances faster and using less
+energy when compared to a conventional multi-rotor drone,
+a workaround to the typical low ﬂight times. This work will
+focus on creating a operational controller for a hybrid drone
+for further testing. The main objective is the implementation
+of a non-linear hybrid control system on a Hybrid UA V .
+This work comes from the added complexity in the control
+of such type of UA V , unlike a quad-rotor, When less rotors are
+available, a mechanism normally controlled by a small servo
+motor is able to tilt two or three rotors independently, or in a
+joint motion(connected by a shaft), being this the reason tri-
+rotor UA Vs are able to perform rotation in the three axis and
+are able to ﬂy in different modes.
+To make it perform, transition between states need to be
+addressed. Works like [2] and [3] show us the separation of
+ﬂight modes, usually with two or three modes when added
+the transition mode. Despite this, the transitions between then
+don’t seem to get the necessary attention or some possibilities
+are ignored. The main contributions of this paper are the
+development of model and integrated nonlinear controller for
+both rotary and ﬁxed-wing modes of the Convergence hybrid
+drone, the a simple allocation method to obtaining the desired
+forces and moments from the available actuators for each of
+these modes, and the proposal of a hybrid controller for the
+overall system, which is validated through simulation.
+
+--- Page 2 ---
+The paper is organized as follows. Section II presents the
+model of the Convergence hybrid drone, Section III presents
+the nonlinear controllers for rotary and ﬁxed-wing modes,
+while Section IV deals with the control allocation problem
+for the rotary and ﬁxed-wing modes, but also for the transition
+mode. The overall hybrid controller is proposed in Section V
+and validated with simulation results in Section VI, while some
+concluding remarks and future work are offered in Section VII.
+II. M ODELING A HYBRID UAV
+For simpliﬁcations purposes the model will be presented in
+two parts, forces and moments. In each one we will start by the
+effects of the rotors forces and then to the aerodynamics forces
+that enable the type of vehicle to perform as a ﬁxed-wing. To
+develop the model some assumptions were made in order to
+make the process less complex, with minimal inﬂuence in most
+ﬂight conditions.
+The UA V will be considered a rigid body with a ﬁxed
+center of mass;
+Aerodynamic forces will only be generated by the rotor
+and wing;
+The fuselage drag forces are neglected;
+Wind will be neglected, so the groudspeed is equal to the
+airspeed on the body.
+A. Vehicle characteristics
+To know the capabilities of a hybrid tri-rotor with front tilt
+mechanism, we will take a look at all of the available actuators
+and control surfaces providing a simpliﬁed explanation of their
+main uses. The vehicle is composed of three rotors in a T
+conﬁguration, they provide all the necessary thrust. Note that
+in rotary-wing ﬂight the back rotor will be off. To make the
+mode transition possible, both front rotors have an independent
+servo motor that enables them to rotate in the ybody axis. And
+ﬁnally the elevons act as control surfaces to be used in ﬁxed
+wing mode to provide roll and pitch moments.
+Throughout this work, some geometric constants will be
+brought upon, that are relative to the geometry of the drone,
+mainly the position coordinates of the three rotors and tilt
+angles and deﬂection angles. They are all present in Figure 1
+where all the lengths are relative to the center of mass,
+represented by COM.
+Two coordinate systems will be used: W=fWx;Wy;Wzg
+representing the stationary world frame in order with the
+ENU(East-North-UP) convention, with Wzbeing perpen-
+dicular to the ground plane and pointing upward; B=
+fBx;By;Bzgrepresents the body frame attached to the tilt-
+rotor centre of mass with Bxbeing the forward direction and
+Bzperpendicular to the drone plane in the upward direction.
+The rotation between the world frame and body frame depend
+on the Euler angles such that, roll , pitchand yaw 
+represent the rotation in x,y,zaxis respectively, it will be
+donated by,WRB, or byRfor simplicity, a rotation matrix
+obtained from multiplying each rotation matrix Z-X-Yin this
+speciﬁc order.
+(a)
+(b)
+Fig. 1. Side view representing tilt mechanism (a) and top view (b) representing
+all actuators and Body axis
+The angular velocity of the body frame relatively to the
+world frame is denoted by !B= [p;q;r ]T, these values are
+the derivatives of roll , pitchand yawsuch that
+!B=2
+4c0 cs
+0 1s
+s0cc3
+52
+4_
+_
+_ 3
+5: (1)
+The tilt-rotor consists of three rotors capable of producing a
+lifting force in the positive Bzaxis. Two of these rotors can be
+rotated independently in the Byaxis and the produced angle
+is given by 1for rotor 1 and 2for rotor 2. Each motor is
+able to produce a force, Fi, with its angular speed !igiven
+by,Fi=kF!2
+i. BeingkFa system constant relative to the
+used motor model. The resulting force exerted on the body is
+expressed by
+FB
+i=h
+FBx
+iFBy
+iFBz
+iiT
+(2)
+FB
+i=
+Fisi0FiciT; i= 1;2 (3)
+FB
+3=0 0F3T: (4)
+For the aerodynamics forces two main relevant forces are
+exerted on the body of the UA V: the drag force, D, and
+the lift force L. These forces are dependent on a series
+of characteristics of the drone’s body shape, they can be
+simpliﬁed using a drag and lift coefﬁcients, CD;CL. Both of
+these coefﬁcients are dependent of the angle of attack(AoA),
+. [4] For relatively small roll and pitch angles, where is
+planed the drone to be within, the values can be simpliﬁed
+into two curves dependent on the AoA [5].
+CL=CL0+CL; CD=CD0+CDCLC2
+L (5)
+where,CL0;CL;CD0, are ﬁxed values representing lift and
+drag at zero values and the respectively curve slope, CDCL,
+
+--- Page 3 ---
+the induced drag derivative. From this, the simulated drag and
+lift forces can be calculated.
+D= qSCD; L= qSCL;q=1
+2V2
+a (6)
+beingthe air density and Vathe wind speed. This forces are
+applied to the COM like so,
+FB
+a=2
+4c0 s
+0 0 0
+s0c3
+52
+4 D
+0
+L3
+5: (7)
+Now we can obtain the net force expressed in the body frame,
+FB=3X
+i=1FB
+i+FB
+a (8)
+Each motor also produces two forms of moments exerted
+on the hub of each motor. The ﬁrst one is due to the propeller
+drag,MD;i, given by MD;i=kM!2
+i. The second form
+appears when a rotor is commanded to tilt, thus producing
+a small gyroscopic effect generating the moment MG;igiven
+byMG;i=Ii(_ i!i), whereIirepresents the propeller
+inertia and  i= [0 _i0]T. These values now need to be
+expressed relatively to the tri-rotor body rotation. For that a
+rotation matrix,BRP, converts from the rotor shaft rotation to
+the body frame like so
+BRP=2
+4ci0si
+0 1 0
+ si0ci3
+5: (9)
+The tri-rotor design of the drone will also have a moment
+effect relative to the position of the three rotors, that is
+obtained with the cross product of the force vector and the
+vector between the centre of mass and the propeller. With
+Pi= [Pi;xPi;yPi;z]being the rotor hub position relative to
+the body frame and hPthe distance between the hub and the
+rotor propeller. With this notation, we can present the position
+vector of each rotor propeller relative to the centre of mass,
+ri, expressed in the body frame B
+ri=Pi;x+hPsiPi;yPi;z+hPciT; i= 1;2(10)
+r3=P3;xP3;yP3;zT(11)
+For the aerodynamics induced moments we have the roll
+and pitch moments produced by the elevons.
+MB
+a= qSLe
+CrCp0T(12)
+whereLe=diag(Ey;Ex;Ez), is the position relatively to the
+center of mass of the elevons and Cr; Cpthe roll and pitch
+aerodynamic coefﬁcients dependent on the elevon deﬂection
+angle.
+The total torque matrix applied to the the center of mass is
+a sum of the aerodynamic torques and rotor torques expressed
+as
+MB=3X
+i=1BRP(MD;i+MG;i)+3X
+i=1(FB
+iri)+MB
+a:(13)B. System Dynamics
+Knowing the forces exerted on the drone’s body, by New-
+ton’s equations of motions, its possible to obtain the system
+dynamics containing the linear acceleration _and angular
+acceleration _!Bin the following equation:
+_p=
+_= gWz+1
+mRFB
+_!B=I 1( ^!BI!B+MB)
+_R=R^!B:(14)
+Wheregis the gravitational acceleration, mis the body
+mass,Ithe moment of inertia, and ^!Bis the skew matrix
+resulting from !B. The vehicle position is p= [px;py;pz]T
+and the velocity v= [vx;vy;vz]Tof the body frame described
+in the world frame. These equations describe the system state,
+with them it is possible to obtain the updated body states in
+each step from the controller inputs.
+III. C ONTROL DESIGN
+In this section, lays the implementation of the autopilot
+controller proposed in order to command the UA V in both
+ﬂight modes. The objective of such controller is to, knowing
+the statex,
+x= [pT;vT;!T
+B;vec(R)T] (15)
+of the vehicle, where the operator vec(:)denotes the vectoriza-
+tion of the argument matrix and the desired trajectory, output
+the desired thrust and torque components, u= [F;MB] =
+[ux;uy;uz;x;y;z]T, whereF=RFB, that will enable
+the UA V to follow the desired ﬂight path.
+Because of the major difference between control methods
+in the two main ﬂight modes of the UA V , two separate control
+algorithms with the same base approach yet with different
+outcomes were developed. One of them will focus on rotary-
+wing ﬂight mode as for the second, it will just be used when
+the vehicle is in ﬁxed-wing ﬂight mode. This solution discards,
+for now, the problem that will appear when the UA V is in
+a transition mode, later, on this work we will see that this
+problem can be overcome with a semi-hybrid control output
+involving both of these controllers.
+The proposed controller implementation will be based on
+the work [6], [7], it contains a trajectory tracking controller
+designed speciﬁcally for a quad-rotor UA V . The bases of the
+controller still apply for a tri-rotor UA V . With some alterations
+and different tuning it can be perfected for our case. As for
+the ﬁxed wing controller, a separate controller with further
+design modiﬁcation will be proposed in order to account for
+the special system dynamics in such ﬂight mode.
+A. Rotary-wing control law
+In the Rotary-wing ﬂight mode controller, the base design
+of the work [6] is kept almost intact. We calculate position
+and velocity errors based on a predeﬁned reference trajectory.
+
+--- Page 4 ---
+Adding a proportional gain, Kp; Kv, as positive gain matrices
+the desired force vector is calculated as
+Fdes= Kpep Kvev+mgzW+maref (16)
+withep=p prefandev=v vref. The ﬁrst input u1(thrust
+command), can be computed as a projection of the desired
+force vector into the body frame zBcoincident with the drone
+thrust vector
+uz=FdeszB: (17)
+After this the procedure is to calculate the desired rotation
+matrix as,
+Rdes= [xBdes;yBdes;zBdes]T; (18)
+And from there the desired angular velocity, wBdes. With
+both of this values the rotation error, eRand the angular
+velocity error, ewcan be calculated and multiplied by the last
+two gain matrices, KrandKw, rotational and angular gains
+respectively. Giving us ﬁnally the last thre outputs,
+MB
+des= [x;y;z]T= KreR K!e!: (19)
+withe!=!B !Bdes andeR=1
+2(RT
+desR RTRdes)_,
+being_the vee map operand(skew matrix inverse).
+B. Fixed-wing control
+For the Fixed-wing ﬂight mode, the controller needs to be
+redesigned to cope with the physical changes in the system.
+The main changes concerning the design of the controller are:
+Only the two front rotors are active and rotated 90,
+producing now a forward thrust force in the direction
+of the body axis xB;
+Resulting from the increased speed, aerodynamic forces
+such as lift and drag, now need to be accounted for;
+The yaw angle,  is now constrained with the direction of
+the trajectory of ﬂight and no longer given as a reference.
+This is due to the ﬂight dynamics of a ﬁxed wing, where
+yaw is directly correlated to the direction of movement
+minus minor drifts.
+The ﬁrst step remains the same, calculating the position
+errors, but now these are calculated in respective to the
+auxiliary frame A. The auxiliary frame corresponds to the
+world frame, W, with and added rotation in the zWaxis,
+so thatxAaxis direction is always in the same direction as
+the current body yaw angle. We deﬁne a Rotation matrix that
+transforms between the world frame and the auxiliary frame,
+WRA=2
+4cos sin 0
+ sin cos 0
+0 0 13
+5: (20)
+Now the desired force FA
+deswill be relative to the auxiliary
+frameA. As we have two more main forces acting on the body,
+drag and lift, the desired force FA
+deswill have to account for
+them. The desired force is now computed as
+FA
+des=WRT
+A[ Kpep Kvev+mgzW+maref] ARB(L+D)
+(21)With this, the thrust command can be obtained being, the
+projection of the desired force onto xBaxis, where the thrust
+force is directed, ux=FA
+desxB.
+For the attitude loop, the objective is once more obtain the
+desired rotation, Rdes. But now a different method needs to
+be developed in order to cope with the physical changes in
+the system. Firstly, as a ﬁxed wing generates the majority of
+the net force in the xBaxis, corresponding to the direction of
+thrust, meaning, its movement direction in normal conditions
+is close to the xBdirection(with a low angle of attack)(In other
+words, the aircraft moves roughly to where the nose points).
+We assume xBdesas the direction of FA
+des,
+xBdes=FA
+desFA
+des: (22)
+As we know, a ﬁxed wing aircraft achieves a change of
+direction in the xyplane with a roll moment, a rotation in the
+xBaxis. The roll rotation will be commanded by the direction
+ofyBdesso
+yBdes=[0;xBy;xBx]TxA
+k[0;xBy;xBx]TxAk(23)
+withxA= [1;0;0]TandxBdes= [xBx;xBy;xBz]T. Then
+zBdesbecomes
+zBdes=xBdesyBdes: (24)
+Finally, the only step left is bringing the calculated rotation to
+the world frame again by rotating it over the zWaxis.The
+required rotation is equal to the desired yaw angle,  des
+deﬁned as
+ des=8
+<
+: arccosvxp
+v2x+v2yvy0
+arccosvxp
+v2x+v2yvy>0(25)
+Note the yaw angle is relative to the XWaxis belonging to
+the interval 180< des180. Becoming
+WRBdes =2
+4c des s des 0
+s desc des 0
+0 0 13
+5[xBdes;yBdes;zBdes]:(26)
+From this point on, until the last three input commands, the
+same tri-rotor control laws apply, equation (21).
+It is important to note that this design assumes a reference
+trajectory that is inline with a ﬁxed-wing aircraft capabilities,
+and a more exotic trajectory may not have the desired per-
+formance. This leaves space for further development of an
+optimal trajectory generation, that is left for future work.
+IV. C ONTROL ALLOCATION
+To obtain a full ﬂedged control system one must obtain the
+desired actuator control signal. To do so a ﬁnal step, named
+control allocation, will transform the output of the controller
+designed in Section III, namely the force and moments values,
+to real actuator settings, mapping them so that the UA V will
+produce the desired force and torque. This process is known
+as control allocation.
+
+--- Page 5 ---
+The objective is to ﬁnd the effectiveness matrix, G, that
+solves the following equation
+uW=G 1u (27)
+beinguw, the actuator vector containing all actuator settings.
+In this case it contains 7 values, 3 rotor speeds , wi, two tilt
+anglesiand 2 elevons angles eanda
+uw=w2
+1w2
+2w2
+312eaT: (28)
+After the control allocation, in a STIL (Software-In-the-Loop)
+simulation, the end result is then mapped to PWM values and
+sent to the UA V controller unit. However, in the mathematical
+simulation, the actuator values are then mapped again to forces
+and torques via the equations presented in Section II and sent
+to the system dynamics loop.
+A. Effectiveness Matrices
+In the following sections, three different effectiveness matri-
+ces will be obtained for different ﬂight modes: tri-rotor, ﬁxed-
+wing and transition. Each one will use different actuators,
+being this a over actuated system, with 4DOF(Degrees Of
+freedom) to seven actuator inputs, although some of the
+actuators inputs are coupled. This gact enables the use of
+various control approaches, note that the ones shown on this
+work were tested and found to be ﬁt to the problem showing
+great overall performance.
+1) Rotary-wing: For this VTOL state, both elevons will
+be ignored since they provide low to none inﬂuence at the
+low speed this ﬂight mode is aimed for. Using only the three
+rotors will generate an under actuated system, so ﬁve inputs
+will be used: 3 rotors speeds and the tilt angles of the two front
+rotors. The following equations represent the output forces and
+torques connection to the input actuator settings
+8
+>>><
+>>>:Fz=kFw2
+1c1+kFw2
+2c2+kFw3
+x=r1ykFw2
+1c1+kMw2
+1s1+r2ykFw2
+2c2 kMw2
+2s2
+y=r1xkFw2
+1c1+r2xkFw2
+2c2+r3xkFw2
+2
+z=r1ykFw2
+1s1+kMw2
+1c1+r2ykFw2
+2s2 kMw2
+1c2+kMw2
+3
+(29)
+whererix=y represents the rotor distance to the center of mass
+inxandyaxis. Looking into the equation system, it’s obvious
+that it is nonlinear and if arranging the system to accommo-
+date the template in equation (27), the effectiveness matrix
+Gwould not be invertible. To overcome this problem, the
+system of equation was linearized trough ﬁrst order Taylor’s
+series expansion around a equilibrium point. The linearization
+process can be tedious and quite a stretch to enumerate so the
+end result, will not be presented here, for further reference see
+[8].
+For this setup, the equilibrium point used is relative to the
+actuator settings providing a stable hover ﬂight. Away from
+hover, the equilibrium point is updated every time step to
+the last output implying that the effectiveness matrix changes
+dynamically every time step. Although this method could
+result in jittering for changing the allocation matrix so fast,
+the results were found to be very good. In case it is necessary
+this process can be changed to only update the equilibriumpoint when the linearization error overcomes a constant value,
+saving computational power. To obtain the desired actuator
+settings one must then, invert the effectiveness matrix G, in
+this speciﬁc case using the Moore–Penrose. inverse
+2) Fixed Wing: The proposed allocation technique for the
+rotary-wing ﬂight mode ﬁxes three controller inputs namely,
+both tilt servo motors and the back rotor. They will not be
+used in this mode, this makes the control allocation behave
+like a conventional aircraft equipped with elevons. Now the
+velocities achieved are high enough to create lift and produce
+both roll and pitch moments with only the elevon action. Both
+rotors are tilted 90producing a constant force in the positive
+body axis,xBdirection. They are also able to produce yaw
+moment and consequently a unwanted minimal roll moment
+created by the propeller drag that is counteracted by the
+elevons. Using equation (13) and (8) it’s possible to arrive
+to the 4DOF equations and then arrive to the effectiveness
+matrixG,
+G=2
+664kFkF 0 0
+kM kM qSEyCr 0
+0 0 0  qSExCp
+r1ykF r2ykF 0 03
+775(30)
+Note that qcontains a system variable, airspeed, meaning that
+the effectiveness’s matrix will dynamical change over time. As
+it is a square matrix it can be easily inverted so the actuator
+settings are then obtained by solving the following equation.
+2
+664w2
+1
+w2
+2
+a
+e3
+775=G 12
+664Fx
+x
+y qSEx(Cp0+Cp)
+y3
+775(31)
+3) Transition: In this phase the main objective is to bring
+the tilt rotor angle to a ﬁxed position, 90for a ﬁxed-wing
+to rotary-wing ﬂight transition and 0for a rotary-wing to
+ﬁxed-wing ﬂight transition in the shortest time possible. When
+a transition is commanded, both tilt servo motors will have
+a ﬁxed desired angle, meaning that they will not serve as
+control actuators on this phase. Therefore, the remaining ﬁve
+actuators,w1;w2;w3a;andewill be responsible for the
+4DOF system. Another point to consider is the thrust input.
+On previous ﬂight modes thrust was orientated in the zB
+orxBdirection, as the rotor tilt angle will now constantly
+change, the direction of thrust follows the same direction.
+So for this allocation we assume the thrust input is already
+oriented in the actual direction of the tilt angle, =1+2
+2.
+The thrust force vector will be designated by ~Fzxso that, ~Fzx=ut; F= . With this, the effectiveness matrix can
+be deduced by combining both the tri-rotor and ﬁxed wing
+torque equations ending up with:
+G=2
+664kF kF kFc 0 0
+r1ykFc1+kMs1r1ykFc2 kMs2 0 qSEyCr 0
+r1xkFc1 r2xkFc2r3xkF 0 qSExCp
+r1ykFs1 kMc1r2ykFs2+kMs2kM 0 03
+775(32)
+
+--- Page 6 ---
+Applying the same process, inverting G, the actuator settings
+are calculated by solving equation (33).
+
+w2
+1w2
+2w2
+3aeT=G+h~FzxxyyiT
+(33)
+With this, all three matrices are deﬁned. In the next Section,
+they will be used in conjunction to the hybrid controller, to
+simulate the drone’s transitions on the mathematical model.
+V. H YBRID AUTOPILOT CONTROLLER
+The goal of this controller is to achieve seamless transition
+without human interference or by hard-coded trajectory way-
+points. The transition between ﬂight modes is the controller
+decision, taken based on both trajectory reference and system
+state. To achieve this one must develop a hybrid system capa-
+ble of transition between controllers developed in Section III.
+In our case, three different control schemes (rotary-wing,
+ﬁxed-wing, and transitional) will be joined in a single con-
+troller. To overtake this issue we use a ﬁnite state machine,
+FSM, to handle all discrete values and logical operations.
+The transition method is based on velocity, the idea is that
+depending on both the reference velocity and the actual
+velocity, the controller is able to adopt the most suitable ﬂight
+mode for the case and if needed, perform a transition. To
+Fig. 2. Proposed control method block diagram
+command transitions a mixing between the reference velocity
+magnitude and the actual airspeed will act as control variables
+for the FSM. The last variable is the determinant factor on
+deﬁning ﬂight modes, the rotor tilt angle, as we assume that
+a90angle corresponds to the rotary-wing ﬂight mode and
+an approximate angle of 0for the ﬁxed-wing ﬂight mode.
+In sum, the input control variables used for the design of the
+FSM are:
+kvrefk: Reference velocity magnitude.
+vair: The actual airspeed.
+ a: Rotor tilt angle.
+With these control variables, an algorithm was designed
+to commute between the three possible states, S1;S2;S3,
+representing each ﬂight mode, ﬁxed-wing, rotary-wing and
+transitional respectively.
+The event table presented in Table I shows all of the possible
+transitions of the FSM, using the three inputs available. The
+states represented in it are the possible transitions as also
+shown in Figure 2. With vvt;vht;vrt, ﬁxed-wing, rotary-wingTABLE I
+EVENT BASED FSM TABLE
+State-Transition table
+InputCurrent stateS1 S2 S3
+vref> vrt^vair> vvt S3 vref< vrt^vair< vht S3
+a=
+2S2
+a= 0 S1
+(a) Altitude
+ (b) Velocity
+(c) desired rotors angular speed
+ (d) desired elevator/aileron deﬂec-
+tion
+(e) tilt angle a
+Fig. 3. Positive transition simulation
+and reference velocities respectively, that can be adjusted to
+the designer needs.
+VI. S IMULATION
+In order to simulate the system, it was modulated in Mat-
+lab/Simulink with a closed-loop conﬁguration. Both model and
+system dynamics equations were reproduced in Matlab and
+populated with the Convergence tilt-rotor body speciﬁcations
+and custom gain matrices.
+The ﬁrst simulation procedure will test the performance of
+the hybrid controller on a positive transition, from ﬁxed-wing
+to rotary-wing ﬂight mode. The UA V will start at the origin,
+climb to a stable hover point and then gradually raises its
+velocity. Set-points will be used for the reference trajectory
+and then, we observe the UA V behavior when transitioning
+from VTOL to ﬁxed wing ﬂight. Note that the only human
+operator input is the pre-deﬁned reference trajectory the hybrid
+controller handle everything else.
+Figure 3 shows us, as expected at t= 15swhere the
+reference velocity exceeds the threshold value vrt, the UV A
+
+--- Page 7 ---
+0 5 10 15 20 25 30 35
+Time[s]02468101214161820Altitude[m]VTOL
+Transition
+Fixed Wing
+Altitude
+Reference(a) Altitude
+0 5 10 15 20 25 30 35
+Time[s]-202468101214Velocity[m/s]VTOL
+Transition
+Fixed Wing
+Velocity in x
+Reference (b) Velocity
+0 5 10 15 20 25 30 35
+Time[s]050010001500200025003000Rotor speedw1
+w2
+w3
+(c) desired rotors angular speed
+0 5 10 15 20 25 30 35
+Time[s]-50-40-30-20-1001020304050Deflection angle [degree]Elevator
+Aileron (d) desired elevator/aileron deﬂec-
+tion
+0 5 10 15 20 25 30 35
+Time[s]-40-30-20-10010203040Euler angles[degree]VTOL
+Transition
+Fixed Wing
+Yaw
+Pitch
+Roll
+(e) Euler angles
+Fig. 4. Negative transition simulation
+begins a transition to the rotary-wing ﬂight mode. Around
+t= 19sthe transition is completed, meaning that the rotor tilt
+angle ais ﬁxed at 90, which is conﬁrmed in Figure 3e. From
+there, the UA V is ﬂying steady in the rotary-wing ﬂight mode
+achieving the desired velocity of 12m=s. In this transition,
+the altitude error was kept between 0:5< epz<0:5m,
+achieving a maximum value of 0:47m, a relative low value
+when compared to the actual altitude this mode is designed
+to operate. Figure 3e show us the average tilt,1+2
+2, angle
+quickly rises to the forward position when the UA V start
+the transition. The remaining actuator settings are showed in
+Figure 3c.
+Proceeding with the simulation process, next a negative tran-
+sition was simulated with the UA V , starting in the rotary-wing
+ﬂight mode at a reference constant velocity. At t= 10seconds
+a negative step in the reference velocity occurs, bringing the
+reference value lower than the threshold value, vht. The UA V
+then is forced to reduce its speed and perform a transition to
+ﬁxed-wing ﬂight mode because of the major lift fore reduction
+due to the velocity decrees.
+This time, the transition although expected, induced a higher
+altitude drop, ﬁgure 4, achieving a minimum value of 1m
+below the reference altitude. This shows a struggle on the
+controller side when transiting to rotary-wing mode caused
+by two factors: the changing tilt angle and the lift forceoscillation, due to the velocity decrease (also the AoA changes
+rapidly). The thrust component will struggle due to high side
+drift, causing a higher altitude drop that is still relatively low.
+As for the UA V velocity, we can notice here a slower
+deceleration curve, being the wind resistance the only force
+acting on it in ﬁxed wing mode. And again, near the transition
+end,t= 15:7s, the oscillations become more noticeable. This
+can happen due to a side effect of the pitch angle readjusting.
+In rotary-wing ﬂight, mode the pitch tends to be a few degrees
+over thexyworld frame plane in order to raise the angle of
+attack. On the other hand in ﬁxed-wing ﬂight mode the pitch is
+below the reference level so the rotors generate force in the xW
+axis enabling the UA V to maintain its velocity. In this scenario
+the change occurs at a speed that the lift forces are still high
+enough to be noticeable, with the changing angle of attack the
+UA V becomes more unstable. A good solution for this would
+be to have dynamic rotation gains in the hybrid controller so
+that the UA V had lower torque forces near transitions than in
+normal conditions.
+VII. C ONCLUSION
+A model of a generalized tilt-rotor hybrid UA V was devel-
+oped in order to test a hybrid control technique with the goal
+of achieving automated and smooth ﬂight smooth transition.
+With the implementation of a control allocation technique
+designed for each ﬂight mode, the system was mathematically
+simulated in a closed-loop. The hybrid controller showed cable
+of performing transitions when necessary, being the only input
+a predeﬁned reference trajectory. Both transitions occurred
+smoothly with no oscillations and with a minimal drop in
+altitude.
+For future work, the controller is left ready to be imple-
+mented in a real scenario using the Convergence tilt rotor.
+Preferably using the PX4 framework alongside Pixhawk hard-
+ware. Also the controller can be further tested in a realistic
+environment using ROS+GAZEBO with the autopilot software
+in the loop (SITL).
+REFERENCES
+[1] A. S. Saeed, A. B. Younes, C. Cai, and G. Cai, “A survey of hybrid
+unmanned aerial vehicles,” Progress in Aerospace Sciences , vol. 98, pp.
+91–105, 2018.
+[2] X. Fang, Q. Lin, Y . Wang, and L. Zheng, “Control strategy design for the
+transitional mode of tiltrotor uav,” in IEEE 10th International Conference
+on Industrial Informatics . IEEE, 2012, pp. 248–253.
+[3] G. R. Flores-Colunga and R. Lozano-Leal, “A nonlinear control law
+for hover to level ﬂight for the quad tilt-rotor uav,” IFAC Proceedings
+Volumes , vol. 47, no. 3, pp. 11 055–11 059, 2014.
+[4] B. L. Stevens, F. L. Lewis, and E. N. Johnson, Aircraft control and
+simulation: dynamics, controls design, and autonomous systems . John
+Wiley & Sons, 2015.
+[5] W. Rigon Silva, A. da Silva, and H. Gr ¨undling, “Modelling, simulation
+and control of a ﬁxed-wing unmanned aerial vehicle (uav),” 12 2017.
+[6] D. W. Mellinger, “Trajectory generation and control for quadrotors,” 2012.
+[7] M. Marques, B. J. Guerreiro, R. Cunha, and C. Silvestre, “Trajectory plan-
+ning and control for drone replacement for multidrone cinematography,”
+IFAC-PapersOnLine , vol. 52, no. 12, pp. 334–339, 2019.
+[8] B. M. Neves, “Flight control of hybrid drones towards enabling
+parcel relay manoeuvres,” Master’s thesis, NOV A University of
+Lisbon, 2021. [Online]. Available: http://users.isr.ist.utl.pt/ bguer-
+reiro/students/2021 BNeves MSc Thesis.pdf
