@@ -1,0 +1,683 @@
+--- Page 1 ---
+Proactive Robot Control for Collaborative Manipulation Using Human
+Intent
+Zhanibek Rysbek, Siyu Li, Afagh Mehri Shervedani, Milo ˇsˇZefran
+Abstract — Collaborative manipulation task often requires
+negotiation using explicit or implicit communication. An im-
+portant example is determining where to move when the goal
+destination is not uniquely specified, and who should lead the
+motion. This work is motivated by the ability of humans to
+communicate the desired destination of motion through back-
+and-forth force exchanges. Inherent to these exchanges is also
+the ability to dynamically assign a role to each participant,
+either taking the initiative or deferring to the partner’s lead. In
+this paper, we propose a hierarchical robot control framework
+that emulates human behavior in communicating a motion
+destination to a human collaborator and in responding to their
+actions. At the top level, the controller consists of a set of finite-
+state machines corresponding to different levels of commitment
+of the robot to its desired goal configuration. The control
+architecture is loosely based on the human strategy observed
+in the human-human experiments, and the key component
+is a real-time intent recognizer that helps the robot respond
+to human actions. We describe the details of the control
+framework, and feature engineering and training process of the
+intent recognition. The proposed controller was implemented
+on a UR10e robot (Universal Robots) and evaluated through
+human studies. The experiments show that the robot correctly
+recognizes and responds to human input, communicates its
+intent clearly, and resolves conflict. We report success rates
+and draw comparisons with human-human experiments to
+demonstrate the effectiveness of the approach.
+I. I NTRODUCTION
+Robots that physically interact with humans are becoming
+increasingly available. However, to be useful in practice, such
+robots must be able to interact with humans in a transparent
+and predictable way that is similar to how humans interact
+with other humans. Multi-modality has been an impor-
+tant field of study in Human-Robot Interaction (HRI) [1],
+[2], [3], [4], [5]. A challenging task within physical HRI
+(pHRI) is collaborative manipulation, where dyads remain
+in physical contact throughout and are able to communicate
+haptically [6], [7], [8], [5].
+The specific aspect of the collaborative manipulation task
+studied in this work is the process through which the
+participants negotiate where to move, and how to move.
+The real-world scenario where such a negotiation takes place
+would be a sudden occurrence of an obstacle that requires the
+participants to change the direction of motion, with several
+options available; the participants need to agree on one.
+Another example would be moving a heavy pot to the table
+on which several locations for the pot are available; again,
+This work has been supported by the National Science Foundation grants
+IIS-1705058, CMMI-1762924, and CCF-2240532.
+All the authors are with the Robotics Laboratory, Department of Electrical
+and Computer Engineering, the University of Illinois Chicago, Chicago, IL
+60607, USA.the participants need to choose one. While such negotiations
+often involve several modalities, and in particular verbal
+communication, none of them except for force interaction
+is essential. Therefore, in this study, we specifically exclude
+other communication modalities and investigate how partic-
+ipants use force exchanges to reach a consensus.
+Collaborative manipulation has been studied extensively.
+A substantial body of work uses models of human reaching
+movements [9], [10] to control the interaction, often using
+rule-based intent recognition [11], [12], [13]. The main
+objective of such an approach is to assist the human by
+accelerating or decelerating the manipulated object in order
+to minimize the effort [12], [13]. A similar approach is to
+use machine learning techniques to predict a priori defined
+interaction states from haptic signals to integrate them for
+robot control [14], [15]. Recent work [16] proposes a robot
+controller that detects conflicts from the haptic signals and
+adapts the robot behavior until the interaction becomes
+collaborative.
+Another popular approach is to use programming by
+demonstration. Initially targeting point-to-point reaching
+movements [17], the approach has been later successfully
+adapted to pHRI applications [18], [19], [20]. While ex-
+hibiting good performance in learning low-level force and
+velocity characteristics of the task, the interaction with the
+human is not explicitly controlled and the robot has limited
+ability to respond to a large variety of human behaviors.
+An important aspect of implementing a controller for
+collaborative manipulation is the low-level control of the
+point of contact. The predominant approach in the literature
+for contact-rich tasks is based on impedance/admittance
+control [21]. Specifically for pHRI, [22], [23] designed
+impedance parameters to match human arm impedance. To
+adapt to different phases of interaction, impedance gain
+scheduling is a common practice [12], [24], [25], [16]. For
+human-humanoid collaborative object transportation, several
+efforts exist [26], [27] that focus on low-level humanoid
+control based on human-human experiments for balancing
+tasks, where equilibrium trajectory position is modulated in
+the admittance control.
+A crucial part of pHRI control is accurate intent recogni-
+tion. Most of the work is focused on inferring the intended
+goal based on the kinematic data for tasks that require
+positional coordination such as grasping, reaching motions
+and ball catching [28], [29], [30], [31]. Getting an accurate
+human intent from force data remains challenging since the
+force components are unpredictable due to task specifics. For
+example, in [3], stiff contact with the environment distortsarXiv:2311.02809v1  [cs.RO]  6 Nov 2023
+
+--- Page 2 ---
+̇"!"#RobotPID!,̇!#̇!500Hz$!"#+$$%='̈!&+)̇!&$$Admittance Control!!",̇$#!*+,500HzVelocity Control
+Intent Recognition"- 50HzHigh-Level ControlFollowerSoft GoalHard Goal!$%&,%'
+250Hz
+500Hz!!"Mid-Level Control
+$,̇$Fig. 1: Robot Control Architecture.
+the underlying intent, hence authors had to use additional
+sensors. In our case, the interaction forces are influenced by
+the grasping forces and walking patterns [32].
+In most of the existing work on collaborative manipu-
+lation, the robot follows the human lead. In contrast, our
+work focuses on enabling the robot to negotiate where to
+move, and who will lead the motion. The main contributions
+of the work are three-fold: (a) A high-level controller that
+allows the robot to communicate its intent and respond to
+human actions. The control architecture is motivated by our
+studies of human-human collaborative manipulation [32].
+(b) A real-time intent recognition module for robot control
+that uses novel force/kinematics features as described in [32].
+In contrast, in the related work [16], [6], the haptic channel
+was exclusively used to infer the interaction state rather
+than the human real-time intent. (c) A human study that
+validates the framework. The study shows that the framework
+achieves the stated goals where humans feel that the robot
+communicates intent, and appropriately responds to their
+action.
+II. A PPROACH
+In collaborative object relocation, there are three important
+variables to consider: goal location ,commitment , and what is
+known by each agent. The goal location is often dependent
+on the manipulated object. Without loss of generality, we
+consider generic goal locations gi∈SE(2), i= 1, . . . , n
+for a planar task. The commitment variable describes how
+strongly each agent wants to reach the goal. More committed
+agents tend to escalate the interaction forces while less
+committed agents may give up their goal and assume a
+follower role [8].
+In this work, we consider a scenario where each participant
+is independently assigned a goal (in our case n= 3) and the
+level of commitment ( hard,soft, ornone , meaning that the
+participant has no goal and needs to follow). A hard goal
+requires the subject to go to the assigned goal, convincing the
+partner to comply if necessary. A soft goal should be reached
+if possible, but if necessary it can be given up and the partner
+followed instead. Given this task, the robot needs to have
+three principal controllers: 1) Follower controller, 2) Soft
+goal controller, and 3) Hard goal controller. For a detailed
+description of the task and the human-human experiments
+see [32].III. C ONTROL ARCHITECTURE
+A. Architecture
+The proposed robot control architecture for the interac-
+tion task comprises three distinct layers, as illustrated in
+Fig. 1. The lower layer employs a Cartesian twist (velocity)
+controller operating at a frequency of 500Hz. The middle
+layer implements an admittance controller. The admittance
+controller provides compliance during the motion. This layer
+accepts the reference signal from the High-Level Controller
+(HLC). Finally, the HLC is a set of state machines responsi-
+ble for imitating human behavior according to roles outlined
+in Sec. II. Each state machine is triggered according to
+a predefined robot goal gRand responds to human intent
+feedback (Fig. 1).
+B. Admittance Control
+Middle-layer controller consists of an admittance control
+law with inertia and damping terms [21], [33]. We used a
+force-torque sensor mounted between the end-effector and
+the object to measure the force feedback FS
+R. The control
+equation in the discrete-time domain is:
+M¨x[k] +B˙x[k] =Fact[k] +FS
+R[k] (1)
+where MandBrepresent inertia and damping terms, ˙x[k],
+and¨x[k]are the twist and acceleration (in se(3)) and kis
+the time step. Assuming that ˙xk= ˙xk−1+ ∆T¨xkwhere
+∆Tis the control rate, the inverse dynamics solution for the
+admittance law is:
+¨xk= (M+ ∆TB)−1(Fact+FS
+R−B˙xk−1) (2)
+When implemented on the robot, a saturation block is added
+to keep the speed of the robot within safe limits.
+C. Robot Action Force
+The robot action force block Factin Fig. 1 accepts
+inputs specifying the desired force magnitude Frefand goal
+direction gi. In turn, it will interpolate and generate robot
+action force Factat 500Hz directed towards gi. To avoid
+sudden force change that might cause aggressive movements,
+and to be more ergonomic for the user, it is designed to
+reach the reference point within Ttransient time period. The
+value for Ttransient is chosen to be 0.2 seconds considering
+
+--- Page 3 ---
+1 2 3 4 5 6 7
+time [s]0510Force [N]Fact
+FrefFig. 2: Robot Force Reference Tracking Example.
+the human reaction time [34]. Moreover, Factis set to zero
+when the object reaches any of the goal sites. Robot action
+force is defined as follows:
+Fact[k] =Fact[k−1] +Fref−Fact[k−1]
+Ttransient∆T (3)
+Note that, Frefis confined to the safe limits [Fmin, Fmax]
+(seeclip(...)in Fig. 3), hence the magnitude of Facthas the
+same bounds. The dynamic response of FacttoFrefcan be
+seen in Fig. 2.
+D. High-Level Reasoning
+The high-level control module consists of three state
+machines corresponding to different types of robot goals as
+outlined in Sec. II. Each state machine runs at 50Hz.
+1) Known Common Goal (KCG): KCG is a basic behav-
+ior that is a sub-block of the Follower, Soft and Hard goal
+controllers. KCG is invoked when the two agents agree on a
+goal. The controller simply generates a static Freftowards
+giand stops when the target is achieved (Fig. 3(a)). Also,
+it stops at any other goal location in case a user decides to
+overpower the robot. Thus, it may terminate in two possible
+states: Nominal Termination and Forced Termination . It is
+worth noting that many sophisticated methods exist in lit-
+erature to provide additional comfort for the user [12], [11]
+when the goal location is known to both agents. So, this type
+of controller is beyond the scope of our work.
+2) Follower: This module builds on the KCG with an
+added human intent perception block as shown in Fig. 3(b).
+The human intent perception block accumulates the output of
+the intent recognizer, and when the timer threshold is met it
+switches to KCG by selecting the most likely goal. The timer
+threshold is designed to emulate the open-loop behavior of
+the human to have enough time to perceive the partner’s
+intent [10]. Note that the Follower controller does not require
+gRas an input. If the human intent is misinterpreted or if it
+changes after the first round of interaction, the KCG module
+still has the flexibility to finish with Forced Termination state.
+We note that [16] implemented a similar version of this
+controller but inferred the intended continuous goal location
+from force directions with a rule-based method.
+3) Hard Goal: An important contribution of this paper
+is the ability of the robot to take initiative and lead the
+interaction. In the hard goal mode, the robot prioritizes its
+own goal even though this creates a conflict. Inspired by
+observations from the human-human experiments [32], the
+following logic is implemented as described in Fig. 3(c).
+First, the robot initializes the action force in the direction of
+Fig. 3: State machines representing the HLC
+the robot’s goal. If a conflict is perceived via intent recog-
+nition at each control step ( gR̸=gH), then the magnitude
+ofFrefincreases, otherwise ( gR=gH) decreases. The rate
+of increase depends on the current speed towards robot goal
+gR.
+The stretch force Fstr=FH−FRis monitored for
+safety. If a human applies an excessive amount of force and
+overpowers the robot, the state machine transitions to the
+abort state, where the robot will gradually slow down and
+stop. We note that such situations occurred in human-human
+experiments. To resolve the conflict in this situation, humans
+either initiate a dialogue or use other nonverbal cues such as
+body language, and restart the interaction.
+4) Soft Goal: Another contribution of this work is a
+controller for soft goals. In this mode, the robot can take
+the initiative or defer to the human. As can be seen in
+Fig. 3(d), the soft goal has an additional subtask Attempt
+Human Goal (AHG) compared to the hard goal. AHG is
+triggered if the stretch force Fstrbecomes large (but not large
+enough for abort). This threshold parameter is denoted as
+FC. When triggering the AHG, the robot sets its goal to the
+perceived human intent and invokes the familiar agreement-
+disagreement cycle. However, if the robot misinterprets the
+
+--- Page 4 ---
+human goal and spends too much time in the disagreement
+state, the robot switches to the Follower mode, trying to
+re-interpret human intent. If the robot interprets the human
+intent correctly then the subtask terminates by transitioning
+to the KCG mode.
+E. Robot Force Sampling
+Since Frefis the key control variable, it is important
+to carefully initialize the magnitude of the robot’s force.
+Based on the predefined admittance gain, one can fine-tune
+the range of the robot force magnitude Fmag =∥Fref∥
+that will act in the spectrum from light to heavy. In this
+work, we chose to sample Fmag from three different regions:
+weak, medium, and strong. Each level is described by a
+normal distribution with means ( µ) uniformly spread out
+within [Fmin, Fmax]and a fixed standard deviation of σS=
+0.6N. At the HLC level, Frefis sampled based on the
+predefined levels above. In addition to that, each controller
+randomly samples the strength level before initializing Fref.
+For example, the hard goal controller is more likely to sample
+(µH) at a strong level than a soft goal controller ( µS).
+The KCG mode mostly samples from the weak level. This
+variability makes the robot’s behavior more human-like.
+F . Intent Recognition
+In this work, intent recognition serves both to detect
+conflict and to determine the human intended goal direction
+and is the key variable that governs state transitions in
+HLC. The intent recognition for the human-robot setting
+was informed by our previous work [32] that studied the
+human-human interaction. In this work, instead of window
+intervals, instantaneous values of power signals are used.
+In order to train the model, several trials of human-robot
+interaction were collected where the participant moved the
+object in different goal directions while the robot was in
+passive admittance control mode. Details of the training
+procedure are described in Sec. IV-B.
+IV. I MPLEMENTATION
+A. Hardware Setup
+We use a UR10e robot (Universal Robots), and a wooden
+tray with dimensions 61cm ×31cm×10cm and weight m=
+2.1kg. Three goal locations ( n= 3) were chosen to resemble
+human-human experiments in [32], with a 40◦separation
+angle and 0.5m away from the starting point to accommodate
+for the reachable workspace of the manipulator. The tray is
+equipped with two RFT60 force-torque sensors (Robotous),
+connecting both to an onboard Raspberry Pi and a battery on
+the back of the tray. The Raspberry Pi transmits the force-
+torque data to the main computer wirelessly at 200Hz. The
+force sensor mounted between the robot end-effector and
+the tray was used as feedback for admittance control. To
+simplify the implementation, a user-side force sensor was
+used for intent recognition although the user force could
+be calculated. To mitigate noise in the feedback system
+that causes a vibration in admittance control, the real-time
+Butterworth low-pass filter was implemented with a cutofffrequency of 5Hz. In order to reach the control rate of
+the robot, force-torque data was up-sampled to 600Hz for
+smooth admittance control. The Cartesian configuration of
+the manipulator and its velocity were also streamed at 500Hz.
+The Robot Operating System (ROS) was used to implement
+the proposed controller.
+Moreover, to synchronize the robot-human joint motion,
+three beeps are used. The first beep signaled to the human
+to grasp the object. The second beep was automatically
+triggered when the sensors detected that the human grasped
+the tray handle. The third beep was played when the object
+reached one of the goal locations.
+B. Intent Recognition Training
+Training data for the intent recognition consisted of 18
+trials (12 for training, 6 for testing) from two participants.
+In each trial, the participant attempted to move the tray
+in a single goal direction and the robot passively followed
+the human. The distribution of the goals was uniform. The
+intent recognition module uses only velocity, position, and
+force (human side) data. Further, goal-projected force, power,
+velocity, and raw stretch force ( Fstrin object frame) features
+are used. This is a subset of Feature Set 2 in [32]. The input
+to the classifier was a 13-dimensional feature vector sampled
+at 250Hz. In turn, classifier output was one of the 3 goal
+locations ( g1, g2, g3). The idle state (no human action) was
+determined by a simple threshold on the magnitude of FH.
+Prior to training, each trial was annotated for an action phase
+where a participant actively applied force to move the object
+to a desired location.
+−4−2 0 2 4 6 8
+LDA Component 1−3−2−1012LDA Component 2
+goal1
+goal2
+goal3
+Fig. 4: Visualization of LDA Classification.
+We chose the Linear Discriminant Analysis (LDA) classi-
+fication algorithm as our predictor [35]. Classification accu-
+racy was 93.47% for the test set. The separation of classes is
+shown in Fig. 4 for two principal components. Although the
+intent recognizer was trained for the passive mode controller,
+it demonstrated good generalization performance when the
+robot was actively applying force. Therefore, from the prac-
+tical point of view, there was no need to generate new data
+with different robot behaviors. Studying how generalizable
+the trained model is across different humans is the subject
+of future work.
+
+--- Page 5 ---
+Fig. 5: An example of hard-soft case where gR=g1and
+gH=g2. The blue vertical curve shows the instant of the
+first beep signal.
+V. H UMAN -ROBOT STUDY AND RESULTS
+To validate the proposed controller, a human-robot ex-
+periment, approved by the IRB, was designed. The task
+is to collaboratively carry the tray to one of the 3 goal
+locations. Communication is restricted only to the haptic
+modality. Before each trial, the human participant was given
+a goal configuration (location and commitment) as defined
+in Sec. II; similarly, a goal configuration was selected for
+the robot. Both, human and robot agents did not have access
+to each other’s goals. The experimental procedure replicates
+the human-human study in [32].
+The experiment involved 10 healthy subjects who were
+recruited from the University of Illinois Chicago campus.
+Each subject completed 24 trials, totaling 240 trials. The goal
+assignment for the human-robot dyad was drawn randomly
+but skewed so more soft vs. soft conflicting interactions
+occurred. Before engaging in the task, the subjects were
+given time to practice, adapt to the robot, and learn the
+goal types. This alleviates the learning effect. Following the
+experiment, the participants were asked to complete a survey
+for qualitative feedback.
+A. Controler Performance
+1) Follower Controller: The number of instances where
+the robot assumed a follower role in the experiment was 20.
+In 16 instances, the controller terminated at Normal Termi-
+nation (Fig. 3). This indicates that the intent recognition was
+correctly determining human input and transitioned to the
+KCG mode with a correctly recognized common goal. Out
+of 4 failed cases, 3 were due to humans mistakenly swapping
+the goal location. One instance failed because the force
+applied by the human subject was small; the intent recognizertends to fail when a human is not decisive. During all of
+the Follower controller instances, the human subject was
+assigned to different levels of commitment (9 Hard, 11 Soft)
+and actively applied force on the object. This demonstrates
+the generalizability and feasibility of the proposed intent-
+based feedback control scheme.
+2) Hard Goal Controller: In 90 trials, the robot was
+assigned a hard goal. In 78 instances (87%), the controller
+behaved as expected, and the tray was delivered to the
+robot’s intended goal site. In 8 instances (9%), the controller
+terminated due to the safety abort. Only in 4 instances (4.5%)
+did the robot fail to move the object to the intended goal
+site. There can be two reasons for such an outcome. An
+obvious possibility is that the participant failed to perceive
+the conflict. In fact, in the human-human experiment [32],
+human participants failed to perceive the hard goal intent
+of the partner in several instances. Another reason for a
+failure can be a small magnitude of Fref. In this case, human
+participants may perceive the robot as having a soft goal,
+hence the participant decides to apply more effort to bring
+it to her assigned goal site. As stated in Sec. III-E, Frefcan
+vary from trial to trial.
+An example run of a hard goal controller is given in
+Fig. 5. The robot was assigned to go to g1and the human
+tog2. From the human projected power, one can see that the
+human attempts to go to g2. The intent recognition correctly
+detects the conflict and the controller increases Fact. At
+around 2 seconds, the human partner decides to give up and
+follow the robot lead; the controller appropriately transitions
+to the agreement phase. Shortly after, the negotiated goal
+settles at g1, the controller transitions to the KCG mode
+and the interaction terminates at g1. Though not used by the
+controller, one can observe how the robot intent is reflected
+in the robot’s projected power.
+3) Soft Goal Controller: Out of 240 trials, the robot had
+a soft goal in 130 trials and 117 of those were successful
+(90%), meaning that: 1) the tray ended up at either the robot’s
+or human’s goal if the human had a soft goal too; 2) the tray
+ended up at the robot’s goal if the human had a follower
+role; 3) the tray ended up at the human’s goal if the human
+had a hard goal. In the remaining 5 instances, the controller
+stopped due to a safety abort ( ≈4%). In 2 instances ( ≈
+2%), participants failed to reach the hard goal because they
+mistakenly swapped the goal location. In the remaining 6
+instances ( ≈5%), the dyads misunderstood the intent of the
+partner in soft-softtrials. Again, such misunderstandings also
+occur in human-human interactions.
+We also report who prevailed in soft-softtrials (60 trials).
+In 34 trials (57%) the tray ended up at the robot’s goal and
+in 26 trials it ended up at the human’s goal. This indicates
+that the robot controller was able to both take the initiative
+and defer to the human partner.
+An example run of the soft goal controller is given in
+Fig. 6. In this particular case, the intended goal for the
+human participant was g3. In the human projected power
+curves, one can see clear intent towards g3, which is correctly
+captured by the intent recognizer. Also, note the magnitude
+
+--- Page 6 ---
+Fig. 6: An example of soft-soft case where gR=g1and
+gH=g3. The blue vertical curve shows the instant of the
+first beep signal.
+ofFstrthat shows the level of the interaction conflict. In
+the conflicting phase, the controller correctly increases the
+Factin a disagreement mode and switches to the agreement
+phase as soon as the human partner decides to give up at the
+instant when the power curve drops sharply in magnitude
+(blue curve, 2nd row, left). Since the Fstrvalue did not
+cross the FCthreshold, the robot did not give up on its
+intent. Finally, after a short agreement phase, the dyad
+follows the KCG mode and finishes the interaction. Video
+of the robot performance for all controllers is included in
+the supplemental material.
+4) Switching Frequency: A valid concern in machine
+learning-based feedback controllers is fast switching due
+to misclassification. Therefore, we report the frequency of
+switches in the agreement-disagreement cycle and their av-
+erage duration. In the hard goal controller (90 trials), the
+average duration spent in agreement and disagreement states
+were 1.37s and 1.44s, respectively. The average number of
+switches was 0.8. In other words, the hard goal controller
+made one transition in 8 out of 10 cases, and no transitions
+in the remaining 2 cases. Similarly, in the soft goal controller
+(130 trials), the average duration of agreement and disagree-
+ment states were 1.6s and 0.9s, respectively. The average
+switching rate was 0.7, which is less frequent compared
+to the hard goal controller. These results demonstrate the
+robustness of the proposed controller scheme against false
+transitions detected by the intent recognizer. Contributing
+factors to this are accurate tuning of timer thresholds (see
+Sec. III-D) and the precision of the intent recognizer.
+B. Survey Results
+In the follow-up survey, each participant was asked the
+following 5 questions: 1) How comfortable was the interac-tion? 2) How responsive was the robot? 3) Was the robot’s
+behavior predictable? 4) If you had to perform this task of
+moving an object with a partner over a longer period of
+time, would it be acceptable to have this robot as the partner?
+5) How similar was the robot’s behavior to human behavior?
+For the response, we used a 7-point Likert scale, with 7
+being the most positive response [36]. The average values of
+responses for the 10 participants are summarized in Tab. I.
+The results show that the participants very highly rated the
+interaction.
+Question # Q1 Q2 Q3 Q4 Q5
+Average 5.8 6.2 5.4 5.3 5.2
+TABLE I: Average responses in Likert scale for 10 partici-
+pants
+VI. C ONCLUSION
+The paper describes a hierarchical robot control framework
+that emulates human behavior in collaborative manipulation
+tasks. The framework is inspired by our study of human-
+human collaboration which showed how humans use force
+exchanges to reach a consensus on where to move, and who
+will take the lead role. At the top level, the proposed con-
+troller, inspired by these human strategies, consists of finite-
+state machines that represent different levels of commitment
+to a desired goal configuration. Key to our architecture is a
+real-time intent recognizer that enables the robot to respond
+to human actions effectively. We provide insights into the
+controller’s design, discuss the feature engineering process
+for the intent recognizer, and describe the recognizer training.
+The framework was implemented on a UR10e robot and
+evaluated through human studies. The experimental results
+demonstrate the robot’s ability to correctly recognize and re-
+spond to human input, effectively communicate its intent, and
+resolve conflicts. Success rates are reported, and comparisons
+with human-human experiments are made to illustrate the
+approach’s effectiveness in emulating human collaborative
+behavior in robot-human interactions. A qualitative evalua-
+tion of the controller by the human subjects shows that it
+was very favorably perceived.
+A natural extension of this work is to adapt the con-
+troller in a realistic setting, where human and robot can co-
+manipulate various objects with different destination distri-
+butions. This will require an environment-invariant version
+of the presented intent recognizer. Another interesting path
+to explore is to expand the modality with the addition of
+language and gesture in the high-level controller.
+REFERENCES
+[1] B. Abbasi, N. Monaikul, Z. Rysbek, B. D. Eugenio, and M. ˇZefran, “A
+Multimodal Human-Robot Interaction Manager for Assistive Robots,”
+in2019 IEEE/RSJ International Conference on Intelligent Robots and
+Systems (IROS) , Nov. 2019, pp. 6756–6762.
+[2] N. Monaikul, B. Abbasi, Z. Rysbek, B. Di Eugenio, and M. ˇZefran,
+“Role Switching in Task-Oriented Multimodal Human-Robot Collab-
+oration,” in 2020 29th IEEE International Conference on Robot and
+Human Interactive Communication (RO-MAN) , Aug. 2020, pp. 1150–
+1156.
+
+--- Page 7 ---
+[3] L. Peternel, N. Tsagarakis, and A. Ajoudani, “Towards multi-
+modal intention interfaces for human-robot co-manipulation,” in 2016
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS) , 2016, pp. 2663–2669.
+[4] A. M. Shervedani, S. Li, N. Monaikul, B. Abbasi, B. Di Eugenio,
+and M. ˇZefran, “An end-to-end human simulator for task-oriented
+multimodal human-robot collaboration,” in 2023 IEEE International
+Symposium on Robot and Human Interactive Communication , 2023.
+[Online]. Available: https://arxiv.org/abs/2304.00584
+[5] N. Gildert, A. G. Millard, A. Pomfret, and J. Timmis, “The Need
+for Combining Implicit and Explicit Communication in Cooperative
+Robotic Systems,” Frontiers in Robotics and AI , vol. 5, 2018.
+[6] R. Groten, D. Feth, H. Goshy, A. Peer, D. A. Kenny, and M. Buss,
+“Experimental analysis of dominance in haptic collaboration,” in RO-
+MAN 2009 - The 18th IEEE International Symposium on Robot and
+Human Interactive Communication , 2009, pp. 723–729.
+[7] A. M ¨ortl, M. Lawitzky, A. Kucukyilmaz, M. Sezgin, C. Basdogan, and
+S. Hirche, “The role of roles: Physical cooperation between humans
+and robots,” The International Journal of Robotics Research , vol. 31,
+no. 13, pp. 1656–1674, Nov. 2012.
+[8] Z. Rysbek, K. H. Oh, B. Abbasi, M. ˇZefran, and B. Di Eugenio, “Phys-
+ical action primitives for collaborative decision making in human-
+human manipulation,” in 2021 30th IEEE International Conference
+on Robot & Human Interactive Communication (RO-MAN) , 2021, pp.
+1319–1325.
+[9] T. Flash and N. Hogan, “The coordination of arm movements: an ex-
+perimentally confirmed mathematical model,” Journal of neuroscience ,
+vol. 5, no. 7, pp. 1688–1703, 1985.
+[10] M. Kawato, “Internal models for motor control and trajectory plan-
+ning,” Current Opinion in Neurobiology , vol. 9, no. 6, pp. 718–727,
+Dec. 1999.
+[11] E. Noohi, M. ˇZefran, and J. L. Patton, “A model for human–human
+collaborative object manipulation and its application to human–robot
+interaction,” IEEE transactions on robotics , vol. 32, no. 4, pp. 880–
+896, 2016.
+[12] Y . M. Hamad, Y . Aydin, and C. Basdogan, “Adaptive human force
+scaling via admittance control for physical human-robot interaction,”
+IEEE Transactions on Haptics , vol. 14, no. 4, pp. 750–761, 2021.
+[13] V . Duchaine and C. Gosselin, “Safe, stable and intuitive control
+for physical human-robot interaction,” in 2009 IEEE International
+Conference on Robotics and Automation . IEEE, 2009, pp. 3383–
+3388.
+[14] Z. Al-saadi, D. Sirintuna, A. Kucukyilmaz, and C. Basdogan, “A
+Novel Haptic Feature Set for the Classification of Interactive Motor
+Behaviors in Collaborative Object Transfer,” IEEE Transactions on
+Haptics , pp. 1–1, 2020.
+[15] C. E. Madan, A. Kucukyilmaz, T. M. Sezgin, and C. Basdogan,
+“Recognition of haptic interaction patterns in dyadic joint object
+manipulation,” IEEE Transactions on Haptics , vol. 8, no. 1, pp. 54–66,
+2015.
+[16] Z. Al-Saadi, Y . M. Hamad, Y . Aydin, A. Kucukyilmaz, and C. Bas-
+dogan, “Resolving Conflicts During Human-Robot Co-Manipulation,”
+inProceedings of the 2023 ACM/IEEE International Conference
+on Human-Robot Interaction , ser. HRI ’23. Stockholm Sweden:
+Association for Computing Machinery, Mar. 2023, pp. 243–251.
+[17] S. Schaal, Dynamic Movement Primitives -A Framework for Motor
+Control in Humans and Humanoid Robotics . Tokyo: Springer Tokyo,
+2006, pp. 261–280.
+[18] H. Ben Amor, G. Neumann, S. Kamthe, O. Kroemer, and J. Peters,
+“Interaction primitives for human-robot cooperation tasks,” in 2014
+IEEE International Conference on Robotics and Automation (ICRA) ,
+May 2014, pp. 2831–2837.
+[19] S. Calinon, P. Evrard, E. Gribovskaya, A. Billard, and A. Kheddar,
+“Learning collaborative manipulation tasks by demonstration using a
+haptic interface,” in International Conference on Advanced Robotics,
+2009. ICAR 2009 , Jun. 2009, pp. 1–6.
+[20] L. Rozo, D. Bruno, S. Calinon, and D. G. Caldwell, “Learning
+optimal controllers in human-robot cooperative transportation tasks
+with position and force constraints,” in 2015 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) , 2015, pp. 1024–
+1030.
+[21] N. Hogan, “Impedance control: An approach to manipulation,” in 1984
+American control conference . IEEE, 1984, pp. 304–313.
+[22] M. M. Rahman, R. Ikeura, and K. Mizutani, “Control characteristics of
+two humans in cooperative task,” in Smc 2000 conference proceedings.2000 ieee international conference on systems, man and cybernetics.
+’cybernetics evolving to systems, humans, organizations, and their
+complex interactions’ (cat. no.0 , vol. 2, 2000, pp. 1301–1306 vol.2.
+[23] K. Kosuge and N. Kazamura, “Control of a robot handling an object
+in cooperation with a human,” in Proceedings 6th IEEE Interna-
+tional Workshop on Robot and Human Communication. RO-MAN’97
+SENDAI , 1997, pp. 142–147.
+[24] H. A. Varol, F. Sup, and M. Goldfarb, “Multiclass real-time intent
+recognition of a powered lower limb prosthesis,” IEEE Transactions
+on Biomedical Engineering , vol. 57, no. 3, pp. 542–551, 2010.
+[25] M. Jacobson, P. Kantharaju, H. Jeong, J.-K. Ryu, J.-J. Park, H.-J.
+Chung, and M. Kim, “Foot contact forces can be used to personalize
+a wearable robot during human walking,” Scientific Reports , vol. 12,
+no. 1, p. 10947, Jun. 2022.
+[26] D. J. Agravante, A. Cherubini, A. Bussy, P. Gergondet, and A. Khed-
+dar, “Collaborative human-humanoid carrying using vision and haptic
+sensing,” in 2014 IEEE International Conference on Robotics and
+Automation (ICRA) , 2014, pp. 607–612.
+[27] A. Bussy, A. Kheddar, A. Crosnier, and F. Keith, “Human-humanoid
+haptic joint object transportation case study,” in 2012 IEEE/RSJ
+International Conference on Intelligent Robots and Systems , 2012, pp.
+3633–3638.
+[28] S. Jain and B. Argall, “Probabilistic Human Intent Recognition for
+Shared Autonomy in Assistive Robotics,” ACM Transactions on
+Human-Robot Interaction , vol. 9, no. 1, pp. 2:1–2:23, Dec. 2019.
+[29] Z. Wang, K. M ¨ulling, M. P. Deisenroth, H. Ben Amor, D. V ogt,
+B. Sch ¨olkopf, and J. Peters, “Probabilistic movement modeling for
+intention inference in human–robot interaction,” The International
+Journal of Robotics Research , vol. 32, no. 7, pp. 841–858, Jun. 2013.
+[30] K. Mojtahedi, B. Whitsell, P. Artemiadis, and M. Santello, “Commu-
+nication and Inference of Intended Movement Direction during Hu-
+man–Human Physical Interaction,” Frontiers in Neurorobotics , vol. 11,
+2017.
+[31] C. Schultz, S. Gaurav, M. Monfort, L. Zhang, and B. D. Ziebart,
+“Goal-predictive robotic teleoperation from noisy sensors,” in 2017
+IEEE International Conference on Robotics and Automation (ICRA) ,
+2017, pp. 5377–5383.
+[32] Z. Rysbek, K. H. Oh, and M. Zefran, “Recognizing intent in
+collaborative manipulation,” in 2023 ACM International Conference
+on Multimodal Interaction , 2023. [Online]. Available: https://arxiv.
+org/abs/2308.09177
+[33] A. Q. Keemink, H. van der Kooij, and A. H. Stienen, “Admittance con-
+trol for physical human–robot interaction,” The International Journal
+of Robotics Research , vol. 37, no. 11, pp. 1421–1444, 2018.
+[34] C. Murchison and H. Banister, A Handbook of General Experimental
+Psychology . Clark University Press, 1934. [Online]. Available:
+https://books.google.com/books?id=aEUczQEACAAJ
+[35] T. Hastie, R. Tibshirani, J. H. Friedman, and J. H. Friedman, The
+elements of statistical learning: data mining, inference, and prediction .
+Springer, 2009, vol. 2.
+[36] M. Schrum, M. Ghuy, E. Hedlund-botti, M. Natarajan, M. Johnson,
+and M. Gombolay, “Concerning Trends in Likert Scale Usage in
+Human-robot Interaction: Towards Improving Best Practices,” ACM
+Transactions on Human-Robot Interaction , vol. 12, no. 3, pp. 33:1–
+33:32, Apr. 2023.
