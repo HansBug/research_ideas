@@ -1,0 +1,1168 @@
+--- Page 1 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS 1
+Predictive Maneuver Planning for an Autonomous
+Vehicle in Public Highway Trafﬁc
+Qian Wang , Beshah Ayalew ,Member, IEEE , and Thomas Weiskircher
+Abstract — This paper outlines a predictive maneuver-planning
+method for autonomous vehicle navigating public highway trafﬁc.
+The method integrates discrete maneuvering decisions, i.e., laneand reference speed selection automata, with a model predictive
+control-based motion trajectory-planning scheme. A key notion is
+to apply a predictive reference speed pre-planning for each lane ateach time step of a selected prediction horizon. This is done basedon the predicted likely motion of the autonomous vehicle andother object vehicles subject to sensor noise and environmentaldisturbances. Then, an optimization problem is conﬁgured thatcomputes safe, sub-optimal plans for the trajectories of boththe motion states (and inputs) and maneuver references for theprediction horizon to accomplish maneuvers like lane keeping,lane change, or obstacle avoidance. While a ﬁrst formulation ofthe problem results in a mixed-integer nonlinear programmingproblem, it is shown that a relaxation can be adopted thatreduces the computational complexity to a low-order polynomialtime nonlinear program that can be solved more efﬁciently.Through simulation of a series of multi-lane highway scenariosand comparison with one-maneuver planning approach and anadaptive cruise control approach, the proposed predictive maneu-ver planning is illustrated to better accommodate the trafﬁcenvironment with feasible execution time. Also, the referencespeed pre-planning improves the optimality and the robustnessof the maneuver decision in trajectory planning without addingcomputational complexity to the optimization problem.
+Index Terms— Autonomous vehicle, predictive maneuver plan-
+ning, predictive trajectory planning, hybrid system modeling.
+I. I NTRODUCTION
+AUTONOMOUS driving is a promising technology for
+improving the safety, efﬁciency and environmental
+impact of on-road transportation systems. Despite the exis-tence of elegant algorithms [1] for route or global path
+planning from position A to B, the task of guiding an
+autonomous vehicle to rapidly and systematically accommo-
+date the plethora of changing constraints for local motion
+planning in public trafﬁc is a challenge problem. These
+constraints arise from tire/road friction conditions, avoiding
+Manuscript received June 28, 2017; revised February 8, 2018 and
+May 31, 2018; accepted June 5, 2018. The Associate Editor for this paper
+was H. Jula. (Corresponding author: Qian Wang.)
+Q. Wang is with Aptiv, Pittsburgh, PA 15238 USA (e-mail: qwang8@
+g.clemson.edu).
+B. Ayalew is with the Applied Dynamics and Control Group, Clemson
+University International Center for Automotive Research, Greenville, SC29607 USA (e-mail: beshah@clemson.edu).
+T. Weiskircher is with Daimler R&D, 71032 Böblingen, Germany.Color versions of one or more of the ﬁgures in this paper are available
+online at http://ieeexplore.ieee.org.
+Digital Object Identiﬁer 10.1109/TITS.2018.2848472stationary and moving obstacles, obeying the trafﬁc rules,
+signals and so on. One of the core problems is designing robustand computationally efﬁcient trajectory planning algorithms
+that can generate the appropriate vehicle maneuvers as well
+as the constituent motion trajectories while considering thedifferential vehicle dynamics of the controlled vehicle and the
+listed constraints in public trafﬁc with measurement noise and
+other uncertainties. Plenty of methods have been proposed to
+deal with this problem, as also summarized in [2] and [3].
+They roughly fall into three groups: sampling-based planningmethods, path-velocity decomposition methods and numerical
+optimization methods.
+Sampling-based planning methods are popular methods for
+trajectory guidance of robotic vehicles. The methods dis-cretize/sample the state space of the motion into a library of
+quantized motion primitives/lattices [4], obtained from numer-
+ically solving the steady state or transient vehicle dynamic
+motion models. As each primitive/lattice indicates a maneu-ver, the methods are also called maneuver-based planning
+methods [5]. Then, efﬁcient heuristics for deterministic or
+stochastic searching, such as the A
+∗algorithm [6] or RRT∗
+based algorithm [7], can be applied in real-time to construct
+a periodic planning law from the library, ensuring some
+robustness and safety in a disturbance environment. However,
+the completeness and optimality of these methods depend
+strongly on the resolution of the library. The complexity ofﬁnding the best trajectory increases with the resolution of the
+library. Also, the resulting non-continuous trajectory induces
+jerky, uncomfortable motions.
+Path-velocity decomposition m ethods decompose the plan-
+ning work into two sub-problems: local path planning and
+path-tracking. Graph-search based method like Dijkstra’s
+Algorithm [8] and A
+∗algorithm [9] or interpolating curves
+like clothoid curves [10], polynomial curves [11] and Bezier
+curves [12] are used in the local path planner design to
+generate the way points in the 2D conﬁguration space. Then,
+a closed-loop controller is applied to track the path while
+satisfying the constraints in work space. However, as the
+planned path is not often given as a function of time, collision-
+free motion is not guaranteed by following the path. Therefore,
+the robustness and safety of the decomposition methods highly
+depend on the quality of the path-tracking controller.
+On the other hand, the numerical optimization methods
+ﬁnd the best trajectory by solving constrained optimiza-tion problems. These methods can naturally handle multi-ple constraints and uncertainties but they suffer from the
+1524-9050 © 2018 IEEE. Personal u se is perm itted, but republication/redistri bution requires IEEE permission.
+See http://www.ieee.org/publications_standards/publications/rights/index.html for more information.
+
+--- Page 2 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+2 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+computational burden of optimizing the motion state over a
+future horizon from a current time step. Therefore, in prac-
+tical applications, these methods usually follow a receding
+horizon pattern with a limited horizon length in a schemealso known as model predictive control (MPC). These use
+fast real-time solvers [13], [14] to periodically solve the
+optimization problems, where only a ﬁrst section (step) ofthe input trajectory is executed and the process is repeated
+in receding prediction horizons. MPC, which initially was
+applied to modeling human-driver like control in various
+trafﬁc situations [15], it now appears in many works as a
+reactive planner for autonomous and semi-autonomous vehicle
+control [16]–[19]. To apply MPC for trajectory planning
+requires the knowledge of global route waypoints as references
+to follow. For the on-road scen ario, the centerline of each
+lane from the perception or map information [20], [21] can
+be used as the reference path. For off-road scenarios, this
+method can be incorporated in th e path tracking level the path-
+velocity decomposition methods [22]. In addition, speciﬁcterminal costs and constraints could be designed to circumventlimitations of robustness and stability that arise from the use
+of ﬁnite horizons [23], [24].
+In MPC-based trajectory planning, the expected states of
+the autonomously controlled vehicle (ACV or ego vehicle)and other object vehicles (OVs) are model-predicted for the
+duration of the prediction horizon based on the current mea-
+surements. This allows the ACV to assess the risk of having
+a collision with other OVs and then to determine a collision-free trajectory. Different models used for motion prediction
+of OVs are summarized in [25], including physics-based
+models, maneuver-based models, and interaction-aware mod-els. Physics-based models [26], [27] simply assume constant
+velocity or constant accelerations and thus they can only be
+used in motion prediction for a short-term (less than 1 second).
+Maneuver-based models [28], [29] predict the motion based on
+the estimation of maneuver int entions. Interaction-aware mod-
+els [30], [31] also consider the int er-dependencies between the
+individual vehicles’ maneuvers. The latter two models allowlonger-term prediction compared to physics-based models. Theinteraction-aware model is more reliable than maneuver-based
+models, but it’s also much-more computationally expensive,
+difﬁcult to fully characterize, and is not compatible for real-
+time risk assessment [25]. Maneuver-based models remain theviable options for real-time long-term motion prediction (morethan a second).
+The planning problem naturally involves uncertainties due
+to modeling errors, sensor imperfections, or environmentaldisturbances, as summarized in [32]. In prediction of the
+motion of the OVs for risk assessment, the uncertainties can be
+handled by either using robust reachability analysis [33]–[36](estimating the propagation of the uncertainty bounds) or using
+stochastic reachability analysis [37], [38] (estimating the prop-
+agation of the uncertainty distribution). In the reachability
+analysis case, the worst case of t he uncertainty is considered
+thus leading to a very conservative solution for the plan-
+ning problem. However, for stochastic reachability analysis,
+the reachable set as well as the risk of collision can be
+assessed by probabilities. If the state uncertainties are Gaussiandistributed, the stochastic reachability analysis can be imple-mented via ﬁltering techniques, e.g., Kalman ﬁlter (KF)
+series [39], [40] for motion prediction of one maneuver and
+Interactive Multi Model (IMM) KF or Switching KF [41]for different possible maneuvers. Therein, the computational
+process for solving for the collision-free trajectory of the ACV
+in the MPC with ﬁltering techniques is similar to applyingstochastic reachability analysis applied to ﬁnd a fail-safe
+trajectory [38].
+Also, due to the sub-optimality caused by the nonconvex
+conﬁguration space, an ACV with static or pre-conﬁgured
+optimization setups could get trapped at undesired local min-ima. Therefore in [42], a predictive control framework which
+can switch from a combination of r ule-based discrete maneu-
+ver decisions is applied. With these rule-based decisions,
+the planned trajectories can be forced out of undesired local
+minima. Later in [43], to improve the optimality of the maneu-
+ver decisions, the lane selection and the related desired speed
+selection on the lane, is integrated within the optimization
+problem. To transform the res ulting mixed-integer nonlinear
+programming problem (MINP) into a regular nonlinear pro-
+gramming (NLP) problem for real-time implementation, we
+proposed a relaxation method. However, in [43], only onemaneuver can be selected for the whole prediction horizon.
+Furthermore, in the limited work p resented there, measurement
+noise and other uncertainties were not considered in theproblem formulation.
+The present paper builds on the above with the follow-
+ing additional contributions: 1) The maneuver selection isextended from searching for one optimized maneuver for the
+entire prediction horizon to solving for an optimized sequence
+of maneuvers for the prediction horizon. Therein, a predictive
+reference speed assignment and adjustment strategy is pro-posed to pre-plan the longitudinal motion and to force the
+optimization solver “jump” out of undesired minima. 2) Here,
+we explicitly include uncertainties in the estimation and pre-diction of the states of the ACV and of the OVs as well as in
+determining the evolution of the tightened MPC constraints
+to explicitly accommodate uncertainties. 3) We include acomputational complexity analysis of the naive MINP formu-
+lation as well as of the proposed relaxation technique for the
+speciﬁc active set solver adopted. 4) We compare the perfor-
+mance of the proposed optimized maneuver sequence planning
+with the one optimized maneuver approach under extendedsimulations that covers several complex scenarios on a
+highway.
+The rest of the paper is organized as follows. Section II
+introduces the overall control framework. Section III describesthe vehicle model of the ACV and the OV subject to sens-
+ing uncertainty and ﬁltering techniques for state estimation
+and
+prediction. The hybrid system modeling of the vehicle
+maneuvers as well as the rule-based reference speed automatonare given in Section IV . Section V describes the formulation
+of MPC for maneuver and trajectory planning, the relaxation
+method proposed to transform the MINP to NLP and thereduction of the computational complexity due to the pro-
+posed relaxation. Simulations results and corresponding dis-
+cussions are included in Section VI to illustrate the workings
+
+--- Page 3 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 3
+Fig. 1. Hierachical control framework.
+of the proposed framework. Conclusions are offered in
+Section VII.
+II. C ONTROL FRAMEWORK
+Figure 1 shows a schematic of the proposed predictive
+maneuver planning and control framework for an autonomous
+road vehicle in a uncertained pub lic trafﬁc environment. At the
+top the assigner module integrates/fuses the information from
+the environment perception module (lane detection, trafﬁc
+sign and signals, object tracking... ), the navigator/path plan-
+ner module (route navigator for on-road situation and path
+planner for off-road situation), the vehicle dynamics sens-
+ing/estimation modules (planer and yaw motion of the ACV)
+and motion prediction module (both ACV and tracked OVs).
+Here, we assume the states of the ACV xaand OV xoare fully
+observed/estimated. The fused information will be provided
+to some pre-deﬁned ﬁnite state machines (FSMs)/maneuver
+automatons and then the decisions on conﬁgurations, e.g.,parameters ( p), references ( r), and constraints ( c), for the
+MPC formulation will be made and assigned to the predictivetrajectory guidance (PTG) module. Further description of these
+can be found in [19] and will be also brieﬂy mentioned in
+Section III.
+The maneuver automatons/FSMs designed and stored in
+the assigner module are scenario-based. Once the possiblemaneuvers for a scenario are captured, like cruising, following,leading and lane change for highway scenario [44] (see
+Figure 4), or going left/right/straight and stop for intersection
+scenario [45], the relevant FSM can be easily extended forthe same scenario or to other scenarios [46]. The candidate
+maneuvers in the FSMs are related to their own references,
+e.g. desired speed and lane. At each prediction interval of
+the MPC, the references are pre-selected according to the
+predicted motion of the ACV and the surrounding OVs viaﬁltering techniques. Then, the optimized maneuver sequence
+as well as the optimized relevant control output trajectory u
+for the whole horizon are solved simultaneously by the PTG
+Fig. 2. Particle motion description for the vehicle.
+system, according to the objective function and constraints tobe detailed later. When the maneuver planning is done, the ﬁrst
+interval of u, i.e., u
+0is sent to the lower-level controllers of the
+continuous vehicle dynamics for execution via the availablelower-level vehicle dynamics controllers (VDC). The lower-level controllers are responsible for manipulating the available
+actuators like electronic throttle, braking actuators or electric
+steering motors so as to track the desired longitudinal andlateral acceleration signals generated by the upper-level PTG
+system. The reader is referred to [19], [47] and other standard
+references for this topic.
+III. V
+EHICLE MODELS AND FILTERING DESIGN
+A. Particle Motion Based Vehicle Model
+The use of a 2D curvilinear particle motion model in
+the Frenet frame (see Figure 2) for vehicle motion descrip-
+tion in trajectory planning has been detailed in previous
+works [19], [48]. The reasons we adopted this model include:1) it is simple enough to use and implement for real-time
+computations, 2) it describes the kinematic planar motion
+of an object like a car well, 3) we can incorporate road
+curvature information directly in the model; thus, it is suitable
+for path tracking problems. For convenience, we shall present
+here the continuous time models of the state dynamics even
+if computations are ultimately to be done in discrete time
+form. Adding process uncertainties (random disturbances anduncertainties) and measurement noise, the nonlinear dynamic
+model describing the motion of the ACV can be written as:
+⎡
+⎢⎢⎢⎢⎢⎢⎣˙v
+t
+˙ψe
+˙s
+˙ye
+˙at
+¨ψp⎤
+⎥⎥⎥⎥⎥⎥⎦=⎡
+⎢⎢⎢⎢⎢⎢⎣a
+t
+˙ψp−vtcos(ψe)κ(s)/[1−yeκ(s)]
+vtcos(ψe)/[1−yeκ(s)]
+vtsin(ψe)
+−at/Tat
+[vtκ(s)−˙ψp]/T˙ψp⎤
+⎥⎥⎥⎥⎥⎥⎦
++⎡
+⎢⎢⎢⎢⎢⎢⎣00
+00
+00
+00
+1/T
+at 0
+01 /T˙ψp⎤
+⎥⎥⎥⎥⎥⎥⎦/bracketleftbigga
+t,d
+/Delta1˙ψp,d/bracketrightbigg
++⎡
+⎢⎢⎢⎢⎢⎢⎣00
+0000
+00
+1001⎤
+⎥⎥⎥⎥⎥⎥⎦/bracketleftbiggw
+at
+w/Delta1˙ψd/bracketrightbigg
+
+--- Page 4 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+4 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+⎡
+⎢⎢⎣ys
+yye
+yat
+y˙ψp⎤
+⎥⎥⎦=⎡
+⎢⎢⎣001000
+000100
+000010
+000001⎤
+⎥⎥⎦⎡
+⎢⎢⎢⎢⎢⎢⎣v
+t
+ψe
+s
+ye
+at
+˙ψp⎤
+⎥⎥⎥⎥⎥⎥⎦
++⎡
+⎢⎢⎣1000
+0100
+0010
+0001⎤
+⎥⎥⎦⎡
+⎢⎢⎣v
+s
+vye
+vat
+v˙ψp⎤
+⎥⎥⎦(1)
+where vt,atand˙ψpare, respectively, the absolute forward
+speed, forward acceleration and yaw rate of the vehicle. ψe,
+sand yeare, respectively, the angular alignment error, arc
+length and lateral position error of the vehicle with respect to
+the reference path coordinate. The reference path is deﬁned
+by its curvature κ(s)in terms of the arc length s.κ(s)can be
+captured by interpolating curves, e.g., polynomial curves bylane detection [20], [21] from perception module or from a
+path planning module [11]. In a ddition, assuming the (lower-
+level) closed-loop vehicle dynamics exhibits a ﬁrst-order lag
+behavior, the generation of a
+tand˙ψpcan be approximated by
+a ﬁrst-order dynamics system with additive Gaussian process
+noise w=[watw/Delta1˙ψd]. This process noise is used to model
+disturbances (e.g. wind, road, unmolded dynamics) affectingthe longitudinal and lateral dynamics of the ACV . T
+at,T˙ψpare the time-constants of the ﬁrst-order approximation ofthe longitudinal and lateral dynamics of the vehicle (maskedby available VDC). Here, the desired forward acceleration
+a
+t,dand the desired deviation from the reference yaw rate
+/Delta1˙ψp,dare treated as the ﬁnal inputs used to control the
+vehicle/particle along the reference path. The use of /Delta1˙ψp,d
+facilitates the computation of smooth inputs since known
+reference curvature information is already taken into account
+(see [19]). For the system outputs, we consider that the
+available measurements are positions s,ye(e.g., from GPS)
+and the inertial states at,˙ψp(e.g., from IMU) with assumed
+Gaussian sensor noise v=[vsvyevatv˙ψp]T.
+For an OV , its motion is also deﬁned in the Frenet frame
+as a particle. To consider its maneuver intention for better
+motion prediction, we assume each OV to follow closed-form
+dynamics that describe longitudinal motion like cruising at aspeciﬁc speed or speed change an d lateral motion like tacking
+a speciﬁc lane or lane change. One possible form is:
+⎡
+⎢⎢⎣˙s
+o
+˙vs
+t,o
+˙ye,o
+˙vs
+n,o⎤
+⎥⎥⎦=⎡
+⎢⎢⎢⎣01 0 0
+0−K
+s1
+1+Ks200
+00 0 1
+00 −Ky1−Ky2⎤
+⎥⎥⎥⎦⎡
+⎢⎢⎣s
+o
+vs
+t,o
+ye,o
+vs
+n,o⎤
+⎥⎥⎦
++⎡
+⎢⎢⎢⎣00
+K
+s1
+1+Ks20
+00
+0 Ky1⎤
+⎥⎥⎥⎦/bracketleftbiggvs
+t,o,ref
+ye,o,ref/bracketrightbigg+⎡
+⎢⎢⎢⎣00
+1
+1+Ks20
+00
+01⎤
+⎥⎥⎥⎦/bracketleftbiggw
+˙s,o
+wy,o/bracketrightbigg
+/bracketleftbiggyso
+yye,o/bracketrightbigg
+=/bracketleftbigg1000
+0010/bracketrightbigg⎡
+⎢⎢⎣so
+vs
+t,o
+ye,o
+vs
+n,o⎤
+⎥⎥⎦+/bracketleftbigg10
+01/bracketrightbigg/bracketleftbiggvs,o
+vy,o/bracketrightbigg
+(2)
+where, soandye,oare the arc length and lateral position error
+of the OV; vs
+t,oandvs
+n,oare the tangential speed and normal
+speed of the OV along its reference lane. Ks1andKs2are the
+proportional and integral gains of a controlled OV tracking
+the reference speed vs
+t,o,refwith assumed Gaussian process
+noise w˙s,o.Ky1and Ky2are the proportional and integral
+gains of a controlled OV tracking its reference lane ye,o,ref
+with assumed Gaussian process noise wy,o. These gains can
+be identiﬁed from the human-drive r data to emulate different
+driving habits, e.g. either aggressive or conservative [49]. Forsystem outputs, only the positions s
+oand ye,oare assumed
+measured with associated Gaussian sensor noises vs,oandvy,o
+(e.g., from on-board range sensors like radars on the ACV).
+B. Filtering Design for Motion Estimation and Prediction
+Given the nonlinear system model in (1), we adopt
+Unscented Kalman Filter (UKF) [50] to estimate the motion
+states of ACV in the presence of process and measurement
+uncertainty/noise. Given the linear dynamics motion modelsfor the OVs (2), a regular KF can be used for state estimation
+of one maneuver (tracking a speciﬁc lane and speed). To
+account for other possible maneuvers of the OVs, the Inter-
+active Multi-Model KF algorithm [41], [51] can be applied
+for OV state estimation. Here, we assume the gains are wellcaptured from the driving data for the drivers of all OVs of
+all maneuvers.
+Given the current estimates of the ACV and OV states,
+one can predict the evolution of the mean and covarianceof the states for the whole length of the prediction hori-
+zon of the MPC. Here, we propagate uncertainty in the
+predicted states (for both ACV and OV) using the ﬁltering
+techniques(UKF/KF) based on (1) and (2) with the notionof the most likely measurement. This notion is based on the
+assumption that the future measurements in the update of the
+ﬁlter recursions are approximated well by the prediction. Thisassumption is motivated by the f act that future measurements
+are unavailable. Even though the updated covariance is notdirectly affected by the value of the measurement, as the mea-
+surement information is considered (via the only assumption
+that same sensors and models are to be used), the uncertainties
+in the likely state are reduced. It is shown in [39] that the most
+likely measurement will not introduce bias in the system, thus
+it is useful to constrain the uncertainty propagation. Finally,note that the future inputs used in the motion prediction of
+the ACV will be taken from the previous planning results of
+the MPC.
+
+--- Page 5 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 5
+The above models for motion prediction of OVs and the
+ACV do not explicitly consider the interactions between vehi-
+cles, particularly those that would exist in mixed-trafﬁc involv-
+ing other human-driven vehicles. As alternatives, other motionprediction approaches such as interactive multi-model ﬁltering,
+Bayesian Networks, and Hidden Markov Models trained on
+human-driver data are all possible options [31], [52]. Whileany of these approaches may be used for motion prediction and
+incorporated with th e maneuver planning framework presented
+in this paper, as we point out later, for multiple OVs in multi-lane scenarios, the computational complexity of using even
+linear motion models for the OVs needs to be handled withcare.
+IV . H
+YBRID SYSTEM MODELING OF THE VEHICLE
+MANEUVERS AND RULE-BASED REFERENCE
+SPEED AUTOMATON
+A. Hybrid System Modeling of the Vehicle Maneuvers
+The hybrid system notion is straightforward to apply to
+the motion of a road vehicle, since basic maneuvers, like
+accelerating, cruising or decelerating in the longitudinal direc-
+tion and steering to the left or right in the lateral directioncan be identiﬁed from the vehicle’s motion [44], [45]. For
+the ACV , these maneuvers can be designed via tracking
+different reference speeds and re ference paths/lanes [42]. This
+results in a hybrid system model involving tracking of two-
+dimensional discrete references (speed and lane) and the
+underlying continuous vehicle motion trajectories. To reduce
+the complexity of the maneuver planning for a prediction
+horizon, the switching among the discrete references can bedone hierarchically (see Figure 3, for example): 1) Firstly,
+the switching of the reference speeds assigned for each lane
+based on pre-deﬁned rules (rule-based switch sets) is executed
+at each prediction step in the horizon. This is called rule-based
+switch. 2) Then, an optimization problem is solved for thewhole horizon to ﬁnd the optimized switching sequence for the
+reference lanes. This is called optimization-based switch. For
+different scenarios, the maneu vers and the rule-based switch
+sets can be speciﬁcally designed and stored in different FSMs
+of the assigner module, e.g., single lane, intersection, etc.
+B. Rule-Based Reference Speed Automaton
+1) Reference Speed Assignment: Considering the interaction
+of the vehicle with the surrounding dynamic environment,
+e.g. the trafﬁc sign, signals and OVs, for example, when
+approaching a slow front OV , a normal reaction of the vehicle
+will be either slowing down to follow it or simply changing
+lane to overtake it. Those intentions can be reﬂected by thereference speed assignment to the ACV . Speciﬁcally, on lane
+l, a relevant reference speed v
+t,r,lwill be assigned to the ACV
+to follow, depending on the detection of approaching or closeby object vehicles, as shown in Figure 4. The detection
+condition (3) and approaching condition (4) are deﬁned by:
+/vextendsingle/vextendsingleˆs−ˆs
+oi/vextendsingle/vextendsingle<T
+dvt,ref (3)/parenleftbig
+ˆs−ˆsoi/parenrightbig/parenleftbig
+vt,ref−ˆvs
+t,oi/parenrightbig
+<0( 4 )
+Fig. 3. Maneuver automaton example for 3-lane highway scenario.
+Rule-based switch sets are denoted by R.
+where Tdis the detection preview time (set from speciﬁcations
+of the perception module, its value should be larger than the
+predictive horizon Hpto prevent the ignorance of an abrupt
+event from the surrounding trafﬁc for MPC). Here, and inthe following, the usual hat (^) notation is used to denote the
+respective estimated states. The i
+thOV occupying lane lis
+denoted by:
+ˆye,oi∈/bracketleftBig
+ye,l
+,
+ye,l/bracketrightBig
+(5)
+where ye,oiis the lateral position of OV iin the path coordinate
+and the lane lis demarked by the lateral position bounds /bracketleftBig
+ye,l
+,
+ye,l/bracketrightBig
+.
+Accordingly, the cruising man euver is deﬁned as tracking
+a desired cruise speed vt,refon lane l( l a n e2i nF i g u r e4 )
+without detecting any approaching OVs on the same lane. The
+corresponding speed relation and reference speed assignment
+is given by:
+vt,r,l=vt,ref (6)
+The following or leading man euver refers to tracking the
+speed vs
+t,oiof a detected approaching OV on lane lin the
+front or rear by assigning:
+vt,r,l=ˆvs
+t,oi(7)
+2) Reference Speed Adjustment: Generally, the ACV is
+expected to track the desired cruise speed vt,ref within
+the acceptable speed range [ vt,cl,vt,ch] with positive speed
+
+--- Page 6 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+6 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+Fig. 4. Reference speed assignment for ACV in 2 lane scenario.
+tolerance /Delta1vt:
+/braceleftBigg
+vt,cl=vt,ref−/Delta1vt
+vt,ch=vt,ref+/Delta1vt(8)
+However, as argued in [43], by following the optimization-
+based reference lane automato n introduced in the next section,
+the ACV can be “trapped” in one lane in a following or leading
+maneuver due to the formulation of MPC objective function
+with a lane selection variable (to be described later). In suchsituations, a forced lane change is necessary to help the ACV
+jump out of the trap. Therefore, we extend the rules used
+in [42] to guide the ACV to an adjacent empty lane or to onewith the assigned speed closest to the desired cruise speed via
+reference speed adjustment. If the assigned reference speed of
+the ACV in the current lane lgoes outside of this speed range:
+ˆv
+t,r,l/∈/bracketleftbig
+vt,cl,vt,ch/bracketrightbig
+(9)
+and adjacent lane(s) are unoccupied or are with assignedspeeds closest to v
+t,ref, with complementary sets deﬁned by:
+/vextendsingle/vextendsingleˆs−ˆsotl/vextendsingle/vextendsingle<d
+sorˆvt,r,l±1/∈/bracketleftbigvt,cl,vt,ch/bracketrightbig
+or/vextendsingle/vextendsingleˆvt,r,l±1−vt,ref/vextendsingle/vextendsingle=min/vextendsingle/vextendsingleˆv
+t,r,i−vt,ref/vextendsingle/vextendsingle,i=[1,..., N
+l]
+(10)
+then a forced lane change will be assigned. Here, dsis a safe
+headway distance between the ACV and the preceding OV
+which will be deﬁned in the next section (see equation (13)).
+A forced lane change is activated by adjusting the assigned
+speed for those lanes with follo wing or leading maneuver
+outside the acceptable speed range. The adjustment is given
+by:
+vt,r,j=klˆvs
+t,oj,ˆvs
+t,oj/∈/bracketleftbig
+vt,cl,vt,ch/bracketrightbig
+,kl∈/bracketleftbigg
+0,vt,max
+ˆvs
+t,oi/bracketrightbigg
+(11)
+where klis the adjustment factor and vt,maxis the maximum
+speed of the ACV . klcan be selected to generate a high
+value of the objective function associated with tracking the
+Fig. 5. Prediction of reference speed assignment and adjustment.
+TABLE I
+CONFIGURATION OF THE RULE-BASED REFERENCE
+SPEED AUTOMATON FOR LANE l
+adjusted reference speed of speci ﬁc lanes. This will then force
+the MPC to track other lanes with closer assigned reference
+speed to the desired cruising speed vt,refwith lower values
+of the objective function. An example of the reference speed
+assignment and adjustment for multiple-lane scenario is shown
+in Figure 5.
+In summary, the conﬁgurations of rule-based reference
+speed automatons for FSMs are listed as in Table I. In the
+rule description, the symbol “/intersectiontext” represents intersection, “/uniontext”
+means union, and the superscript “C” represents complement.
+Remark 1: Given a prediction horizon of length Npsteps,
+the rule-based reference speed automaton of Table 1 is applied
+for every lane at every prediction interval. This means a
+reference speed sequence with Npelements will be generated
+for each lane, thus effectively constructing a two-dimensional
+pre-plan of the references in both the longitudinal and lateral
+directions. This will be used later in the MPC to ﬁnd the best
+sequence of reference selections for the whole horizon that
+minimize an objective function. Note that there is a possible
+loss of performance from the non- optimality of the reference
+speed assignment rules; but these are discrete rules executed
+outside of the MPC; the optimization of such assignment rules
+is beyond the scope of our paper.
+
+--- Page 7 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 7
+Fig. 6. Elliptical boundary for collision a voidance with comb ined uncertain-
+tiesσs,σyof ACV and OV .
+V. M P C - B ASED LANE SELECTION AND
+TRAJECTORY PLANNING
+We conﬁgure the MPC in this section with the ability
+to conduct predictive lane change maneuver planning and
+guidance, with advance knowledge of the predicted reference
+speed assignment as described above.
+A. Tightened Collision Avoidance Constraints
+The constraint to keep a safe distance between the ACV and
+any nearby OV iwith the predicted uncertainties is tightened
+by the following elliptic inequality:
+/parenleftbiggye−ˆye,oi
+/Delta1ye,oi+fσ,yσy/parenrightbigg2
++/parenleftbiggs−ˆsoi
+ds/parenrightbigg2
+≥1 (12)
+ds=/Delta1so,ss+fσ,sσs+fζ,DoζDo (13)
+This constraint is depicted in Figure 6. A rectangular region
+is inscribed in the ellipse. Its dimensions /Delta1ye,oiand/Delta1so,ssare
+calculated by incorporating the geometry (length and width) of
+OViand the ACV . σs=σs,ACV+σs,oiandσy=σy,ACV+
+σy,oiare the combined covariances of, respectively, the arc
+length and lateral position error of ACV and OV i, based on
+the predicted covariances from the motion prediction module.Multipliers f
+σ,sand f σ,ydeﬁne the cross-belief region of the
+combined states. For example, fσ,s=fσ,y=3 approximates
+a cross-belief region with belief coefﬁcient δ=99% between
+the arc length and lateral position. ζDois a slack variable used
+to deﬁne a speed-based headwa y distance between the ACV
+and OV that can extend the collision area of an OV (tighteningthe avoidance constraints, see equations (12) and (13),and
+Figure 6). The variable can be used to obtain conservative and
+comfortable responses. For example, in an emergency situationwith an OV executing a sudden cut-in lane change, the MPC
+solver for the ACV can pursue hard braking/speed reduction
+by further reduction of the variable ζ
+Dothereby reducing the
+headway space/distance. This expands the feasible space for
+the solver that can be used in situations like this. See [19]for detailed discussions of this. We give it the auxiliary
+dynamics:
+˙ζ
+Do=uζDo (14)
+In (13), fζ,Dois an tuning parameter (has a unit of time,
+typically fζ,Do>Tmpc). To ensure a safety headway distance
+(exclude extreme events between MPC update intervals Tmpc)
+the following constraint should be satisﬁed:
+ζDo≥Tmpcvt/fζ,Do (15)Other state constraints like friction ellipse of a real vehicle’s
+tire/road contact, lane boundaries, speed limits and the mini-mum turning radius, etc. are also considered with uncertainties,
+for complete details, please refer to [19].
+B. MPC Problem Formulation
+As uncertainties are considered, the lane selection maneuver
+planning problem to be solved over the prediction horizon
+[0,H
+p] results in a stochastic MPC problem that is formulated
+by:
+minxk,ukE⎛
+⎝Np/summationdisplay
+k=1Nl/summationdisplay
+l=1/vextenddouble/vextenddoublezl,k/parenleftbigy1,k−r1,l,k/parenrightbig/vextenddouble/vextenddouble2
+P1
++Np/summationdisplay
+k=1/vextenddouble/vextenddoubley2,k−r2,k/vextenddouble/vextenddouble2
+P2+Np−1/summationdisplay
+k=0uk2
+R⎞
+⎠ (16)
+subject to : ˙x=f(x,u,w),x∈X,u∈U,w∈W(17)
+x(0)=x0 (18)
+Nl/summationdisplay
+l=1zl=1,zl∈{0,1},∀l∈{1,..., Nl}(19)
+Pr(c1(x,u)≥0)≥δ (20)
+c2(x,u)≥0 (21)
+Here, the cost function minimizes the expectation of state
+tracking error and control efforts. xcovers all the state
+variables of the ACV particle motion model given by (1),
+the slack variables in (14) and lane selection variables z1∼zNl
+whose dynamics is described below in (23). Xrepresents the
+state-space for x.x0denotes the current/initial state (measured
+and estimated). The estimation of the system outputs, namely
+the speed vtand lateral position yeof the ACV are grouped in
+vector y1, and the slack variable outputs ζDois in y2.r1,l,r2,
+are, respectively, the candida te output references for lane land
+references for the slack variables (corresponding respectively
+toy1and y2).P1,P2and Rare the weighting matrices for
+the candidate maneuver tracking error, slack variable referencetracking error and control efforts, respectively. In (17), U
+denotes the admissible set for input u, which includes the
+input to ACV motion model and selection variables. Wis
+the state space for noise/disturbance wdeﬁned in (1). The
+continuous model (17) is eventually discretized in sample steps/Delta1T,/Delta1T=H
+p/NpandHpis the horizon length.
+The collision avoidance constraints are written compactly
+as equation (20) with a nonlinear vector function c 1and
+are considered to be generally probabilistic with a beliefcoefﬁcient δ. For computing solutions efﬁciently, these con-
+straints are eventually converted (tightened) into conservativedeterministic constraints such as those we have already writtenas (12). In (12), multipliers f
+σ,s,fσ,ycan be written in a
+function of δbased on accumulated Gaussian distributions for
+the respective states [39], [51]. Similarly, the vector function
+c2in (21) is a compact representation of other deterministic
+inequality constraints like the tire-road friction ellipse or speed
+limits, or headway safety distance (15), etc.
+In order to realize the optimization-based lane selection,
+we utilize a suite of selection variables zlthat take on
+
+--- Page 8 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+8 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+binary (integers 0 or 1) values (with their summation equal to
+1 for each time step) in (19) to coordinate the consideration
+of tracking different lanes and their corresponding assigned
+reference speeds (by the pre-planning described in the previoussection). However, this formulation leads to a MINP problem
+and it’s hard to solve at real time. Therefore, we apply an
+approximation method we proposed in [43] (and describedfuther in Remark 2 below) to rel ax the original MINP problem,
+where the the integrality constraint in (19) is replaced with thefollowing relaxed formulation (22):
+Nl/summationdisplay
+l=1zl=1,zl∈[0,1],∀l∈{1,..., Nl} (22)
+Here, with the relaxed formulation (22), the selection variables
+zlare regarded as additional continuous states with the auxil-
+iary dynamics (included among the state equations in (17)):
+⎧
+⎪⎪⎨
+⎪⎪⎩˙z
+l=uzl, ifl=Nl
+˙zl=−Nl−1/summationdisplay
+i=1uzi,ifl=Nl(23)
+Remark 2: To solve a MINP problem efﬁciently at real
+time, two fundamental approximation methods can be applied
+in tandem: relaxation and constraint enforcement [53]. Therelaxation approach is to extend the feasible solution set of
+the problem, by relaxing or neglecting certain constraints,
+e.g., relaxing the integrality constraint from (19) to (22).Afterward, constraint enforcement can be sought to exclude
+the solutions that are feasible under the relaxation but not
+for the original problem. For our problem formulation, the
+constraint enforcement is deemed optional as the relaxation of
+the integrality constraint will not affect the global minimumof (16). The optimization will naturally converge to tracking
+only one of the lanes if the conﬁguration space is convex. If it
+is not, we have the following case.
+Remark 3: With the relaxation of the lane selection variable
+involved in the integrality constraint, the ACV is no longerstrictly guided to track only one of lanes. This may lead to
+undesired behaviors of the ACV in complex trafﬁc scenar-
+ios with few available lanes, where the ACV may laterallyapproach an adjacent OV and stay in between two lanes until
+the OV is overtaken, as shown in our previous results [43].
+More rules designed in the reference speed automaton forthese situations may help to improve or exclude such behavior.
+The proposed rule-based speed assignment over the whole
+prediction horizon is meant to address this issue.
+C. Computational Complexity
+The computational complexity of our MPC formulations
+can be estimated. For our purposes, we solved the nonlinear
+programming problem above using the ACADO (Automatic
+Control and Dynamic Optimization) Toolkit [54] which imple-
+ments qpOASES, a one-iteration SQP algorithm employing anactive set strategy. From [55], the computational complexity
+of solving the MPC problem for tracking only one reference
+lane and reference speed with a prediction horizon length N
+p
+Fig. 7. Relative position of ACV and OVs in the simualtion.
+is at most O(g(Nx,Nu,Np,Nc)),w h e r e :
+g/parenleftbigNx,Nu,Np,Nc/parenrightbig=N3
+x+N2
+u+N2
+p+(NuNp)2+NcNuNp
+(24)
+which is in low-order polynomial time. Here, Nxis the number
+of states, Nuis the number of control inputs, Npis the length
+of the prediction horizon, Ncis the number of constraints.
+The computational complexity of solving the MINP problem
+is then ( NNp
+lg(Nx,Nu,Np,Nc)), which is in high-order poly-
+nomial time, since N pis typically in the order of 40 or more
+for the present application. The computational complexity of
+the resulting NLP problem with the approximation method is
+at most O(g(Nx+Nl,Nu+Nl−1,Np,Nc+Nl+1)),w h i c h
+is in low-order polynomial time. Therefore, by adopting the
+approximation method, the complexity of solving the MINP
+problem can be signiﬁcantly reduced to an NLP problem with
+much less computational burden. As we comment in the next
+section, the resulting execution times are feasible for real-timeimplementation in the many scenarios we have tested.
+VI. R
+ESULTS AND DISCUSSIONS
+A. Simulation Settings
+To illustrate the performance of the predictive maneuver
+planning approach, we consider a straight six-lane highwaywhere the ACV faces sequentially connected scenarios, like
+overtaking, following and collision avoidance in the presenceof eight nearby object vehicles (OVs), as shown in Figure 7.
+The situations progress from those requiring simple responses
+(lane change) to aggressive ones that push the vehicle dynam-ics and the control to the limit. The proposed approach,
+hereafter labeled OSM (for op timized sequence of maneuvers
+within a prediction horizon), will be compared with the
+previous approach in [43] where only one optimized maneuver
+(labled OOM) is selected for the entire prediction horizon. We
+also compare the results to a common adaptive cruise control(ACC) scheme to show the advantage of two-dimensional
+maneuver planning. The assumed uncertainties for the ACV
+and OVs motion models are given in Table II, where the dis-
+turbances/noises are modeled by normal distribution N(μ,σ
+2)
+with mean μand covariance σ2. The parameters selected for
+the MPC formulation are listed in Table III. The parametersin Table II and III are chosen based on experimental tuning.
+Details about tuning the MPC weights for one lane tracking
+
+--- Page 9 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 9
+Fig. 8. State evolutions for the whole duration under the different manuever planners and ACC.
+TABLE II
+UNCERTAINTIES AND PARAMETERS FOR ESTIMA TION OF ACV AND OV
+were given in our recent paper [19]. However, in this paper,
+as several lanes are considered as candidates at the same
+time, additional weights on the lane selection control variables
+(uzl,l=1∼Nl)are introduced (and included in R). Tuning
+these weights is a trade-off between keeping the current lane
+and initiating a lane change when the lateral bias of the ACV is
+large. If the weights for uzl, are high, the solution tends to keep
+the current lane; if the weights for uzl, are set low, the solution
+will tend to make a lane change. The longitudinal speeds of theOVs are set to be constant at values to be discussed below for
+the various scenarios. The meas urement sampling time/MPC
+update time T
+mpcis set to 150ms.TABLE III
+MAINPARAMETERS SELECTED
+B. Results and Discussion
+The state trajectories for the whole scenario are shown in
+Figure 7 and Figure 8.
+1) Preceding OVs Detected at Cruising (In the First 20 s):
+In this scenario, the ACV initially occupies lane 1 (rightmost lane) at its reference/desired speed of 30 m/s. Then,
+it faces two slower vehicles OV1 and OV2, going in parallel
+in lane 1 and lane 2 at speed of 25 m/s. At around time
+of 7 seconds, the ACV under OSM starts a lane changeto lane 3, which is the closest available lane, to overtake
+OV1 and OV3. However, for the case with OOM, the lane
+change to lane 3 happens around 10 seconds. But the ACV
+
+--- Page 10 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+10 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+Fig. 9. Trajectory examples for the predictive horizon at t =11.1s.
+under ACC will only slow down starting from 3 second to
+follow OV1 as lane change is not available under this setting.
+This also shows the potential undesired local minimum formaneuver planning. The predictive speed assignment in the
+OSM case considers reference speed change on lane 1 as well
+as the potential reference speed change on lane 2. This can bealso seen in Figure 9 which shows the computed trajectories
+for the prediction horizon at t =11.1s, including the planned
+relative position, the reference speed assignment, and the laneselection variables. We can see when ACV approaches OV2
+(at 11+2=13s), the reference speeds of the OSM case in
+the prediction horizon (set via the rule-based reference speed
+automaton of Section IV-B) for lane 2 vary from the desired
+cruise speed to those of speed of the OV2. This is done as soonas the gaps between the ACV and these OVs are predicted to
+be smaller than the threshold deﬁned in equation (10). For
+the same horizon, the OOM case switched only the reference
+speed for lane 1. The changes of the speed references in the
+prediction horizon are captured via the switching of v
+t,r,1,
+vt,r,2andvt,r,2at the left column. These changes gradually
+increase the value of the objective function and force theACV to either slow down to follow OV2 or change lane. Theweighting parameters listed in Table III promote a lane change
+maneuver if an open lane is available. The ACV is predictively
+controlled to steer to lane 3 in this case. The pre-planningof the reference speed changes helps to consider changes in
+the environment from the beginning and helps the MPC to
+generate more smooth trajectories.
+Note that during the lane change, the rise of z
+2is observed
+in Figure 8, this is due to the fact that ACV needs to go acrosslane 2 to reach lane 3 and the rise of z
+2actually reduces the
+value of the objective function. However, z2will not rise to
+1 because settling down in lane 2 is not the local minimum
+Fig. 10. Trajectory examples for the predictive horizon at t =30.9s.
+for that moment. The MPC update continues to predictivelychange lane to lane 3 further reducing the objective function
+to zero.
+2) Overtaking While Following: For the next 40s (20 ∼60s),
+the ACV faces a “trafﬁc jam” consisting of OV3 in lane 1,
+OV4 in lane 2, OV5 in lane 3, OV6 in lane 4, OV7 in lane
+5 and OV8 in lane 6. Only lane 4 is eventually available to
+go through. However, the ACV has to change lane to follow
+a slower OV6 ﬁrst, because it occupies lane 4 in front of
+the ACV . As OV6 is faster than the other OVs, it can passthrough the “block” together with the ACV . Afterward, the
+ACV will switch from a following mode (discrete state) to lane
+change mode in order to overtake the OV6. The details of thisoperation are as shown in Figure 7, Figure 8 and Figure 10.
+From Figure 10, we can see the detailed workings of the
+ACV detects the “trafﬁc jam” around time =30.9s. Similar as
+the previous scenario, the ACV with OSM can predict thereference speed switch. The reference speed of the lanes fromlane 1 to lane 6, except for lane 4 (which tracks a higher speed
+27m/s of OV6), in the predictive horizon switch from 30m/s
+to 25m/s at different times when the ACV approaches the jam.
+While in the OOM case only the thresholds of lane 2, 3 and
+4 are triggered based on the relative position at that moment.
+The different speed assignments in the two cases affect theirposition planning, as shown in the top of Figure 10. For case
+of OSM, the ACV plan to change lane to lane 4 and follow
+OV6 with least speed gap to minimize the objective function
+(zero value local minimum can be achieved). However, in the
+OOM case, the ACV only has a sideward movement to OV6 toreduce the object function but not strictly following one lane
+(see the z
+3and z4in Figure 10). This lead to the dilemma
+of the ACV at the joint area of the elliptical boundaries of
+
+--- Page 11 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 11
+Fig. 11. Trajectory examples for the predictive horizon at t =78.45s.
+OV6 and OV5 (non-zero local minimum), which further causes
+the oscillation of lateral acceleration, lane selection, more
+speed reduction and slow settling of the objective functionbetween 40s and 50s in Figure 10. Here we can see the
+predictive maneuver sequence can help achieve a feasible and
+smoother motion plan which manifests as reduced occupant
+discomfort and mechanical wear. Finally, when OV6 passes
+OV5, the ACV gradually goes back to lane 4. Note that asthe elliptical collisio n boundary with 99% uncertainty belief
+region is not violated during the planning, a collision-freetrajectory is achieved.
+Afterward, in both cases, the ACV follows the front
+OV6 until it passes the block/jam. When ACV exceed the otherOV(3,4,5,7,8), reference speeds of the related lanes are then
+reduced by the coefﬁcient of k
+lto ensure that tracking these
+lanes leads to more cost. Therefore, the MPC will command
+another lane change to lane 3 to overtake OV6 and increase
+the ACVs speed to 30m/s. Finally, the reference speed of each
+lane will switch back to the desired cruise speed when ACVpasses all the OVs.
+3) Collision Avoidance: In the last 15 s, OV6 makes an
+unexpected sudden lane change starting at time =78 s to the
+lane occupied by the ACV when the ACV is just overtaking
+the OV6 from behind. To avoid collision with OV6, the ACV
+needs to plan its trajectorie s without entering the elliptical
+boundary, which might require either slowing down (or speed-
+ing up in other situations) in the longitudinal direction and
+lane change in the lateral direction. The spike in the objective
+function is mainly due to the sudden braking by the ACV .
+From Figure 8, the ACV under OSM and OOM combines
+both decelerating and lane change to the right to avoid thecollision. The future trajectory of the OV6 is predicted at
+each sampling time, an example for the prediction horizon at
+Fig. 12. History of MPC execution time.
+time=78.45 is shown in Figure 11. Based on this, in OSM
+case, the lane reference sp eeds from lane 4 to lane 1 are
+assigned with OV6’s speed at the time OV6 is predicted to goacross them. The ACV in this case plans to change lane to lane
+2 to avoid a collision with lowest cost. While the OOM case
+can only assign the reference speed based on the estimation
+of the current lane occupation for OV6, the speed assignment
+can’t match the position prediction of the OV6, therefore itsplanning decision is more naïve than OSM case. In this case,
+slowing down and changing lane to lane 4 to track the speed
+of OV6 is with the lowest cost. When OV6 goes across theboundary between lane 3 and lane 4, change lane to lane
+2 became the best planning decision, which matches the results
+in Figure 7. In both cases, the collision probability during the
+collision avoidance is close to 0% due to the constraint (25)
+considering the uncertainties.
+Here, we have to point out that the relative positions
+between OV6 and the ACV when OV6 starts to change lanewill affect the maneuver planning results. A closer distancerequires faster lane change. That’s why the lane change of
+the ACV in OSM case is more aggressive than the ACV in
+OOM case. With predictive speed assignment, the ACV can
+be better prepared for the change of the environment and then
+make more appropriate planning decisions. If OV6 and ACVare too close to each other, there might be no feasible solution
+in the MPC that avoids ente ring the collision boundary.
+4) Execution Time: Finally, we comment on the execution
+times involved in the above simulations. The MPC solver inthe ACADO Toolkit is executed on an Intel Dual Core i5-
+4200M 2.4 GHz processor and 4GB RAM. The execution
+times for the MPC problem for this simulation are shown in
+VII. Note that for all the cases compared, the MPC execution
+times are mostly in the order of 90ms or less; increasing when
+the elliptical inequality constraints are engaged, more sharply
+in the initial part of collision avoidance.
+VII. S
+UMMARY AND CONCLUSIONS
+This paper outlined, a predictive maneuver planning and
+control framework that integrates both discrete maneuverplanning and motion trajectory planning for an autonomous
+controlled vehicle in the presence of uncertainties (distur-
+bances and sensor noise). Within the prediction horizon, a rule-based assignment of reference speeds for each reference lane is
+applied in each interval of the horizon based on the predicted
+motion of the autonomous vehicle and other object vehicles.
+
+--- Page 12 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+12 IEEE TRANSACTIONS ON INTELLIGENT TRANSPORTATION SYSTEMS
+Then, the sequence of maneuvers is incorporated in a relaxed
+stochastic MPC formulated to simultaneously generate the
+optimized reference selections and control input trajectories
+that minimize an objective func tion subjected to trafﬁc con-
+straints and rules involving o ther objects that are prevalent
+in public trafﬁc. A series of simulation experiments showedthat, the maneuver planning helps the autonomous vehicle tobetter accommodate the environm ent. Also, the modiﬁcation
+in the reference speed assignment improves the optimality andthe robustness of the maneuver decision in trajectory planning
+without adding computational complexity to the optimization
+problem.
+Future work will look at: 1) how to approach a formal
+design of the switching set (automaton) to improve, or ifpossible guarantee, the feasibility of the MPC in most sit-uations, 2) consider externally controlled switching, such as
+with interventions from a human driver in a semi-autonomous
+driving mode or from trafﬁc control devices in a collaborative
+driving mode. In addition, the broader impact of the proposed
+predictive maneuver planning on overall trafﬁc efﬁciencyshould be evaluated considering heterogeneity of vehicles and
+other classes of uncertainty than those considered in this paper.
+R
+EFERENCES
+[1] D. Delling, P. Sanders, D. Schulte s, and D. Wagner, “Engineering route
+planning algorithms,” in Algorithmics of Large and Complex Networks ,
+vol. 5515. Berlin, Germany: Springer, 2009, pp. 117–139.
+[2] D. González, J. Pérez, V . Milanés, and F. Nashashibi, “A review of
+motion planning techniques for automated vehicles,” IEEE Trans. Intell.
+Transp. Syst. , vol. 17, no. 4, pp. 1135–1145, Apr. 2016.
+[3] B. Paden, M. ˇCáp, S. Z. Yong, D. Yershov, and E. Frazzoli, “A survey of
+motion planning and control techniques f or self-driving urban vehicles,”
+IEEE Trans. Intell. Veh. , vol. 1, no. 1, pp. 33–55, Mar. 2016. [Online].
+Available: https://arxiv.org/pdf/1604.07446.pdf
+[4] S. M. LaValle, Planning Algorithms . Cambridge, U.K.: Cambridge Univ.
+Press, 2006.
+[5] E. Frazzoli, M. A. Dahleh, and E. Feron, “Maneuver-based motion
+planning for nonlinear systems with symmetries,” IEEE Trans. Robot. ,
+vol. 21, no. 6, pp. 1077–1091, Dec. 2005.
+[6] A. Kushleyev and M. Likhachev, “Time-bounded lattice for efﬁcient
+planning in dynamic environments,” in Proc. IEEE Int. Conf. Robot.
+Automat. (ICRA) , May 2009, pp. 1662–1668.
+[7] Y . Kuwata, J. Teo, G. Fiore, S. Karaman, E. Frazzoli, and J. P. How,
+“Real-time motion planning with a pplications to autonomous urban
+driving,” IEEE Trans. Control Syst. Technol. , vol. 17, no. 5,
+pp. 1105–1118, Sep. 2009.
+[8] J. Bohren et al. , “Little ben: The ben franklin racing team’s entry in
+the 2007 DARPA urban challenge,” J. Field Robot. , vol. 25, no. 9,
+pp. 598–614, 2008.
+[9] D. Ferguson, T. M. Howard, and M. Likhachev, “Motion planning in
+urban environments,” J. Field Robot. , vol. 25, nos. 11–12, pp. 939–960,
+Nov. 2008.
+[10] T. Fraichard and A. Scheuer, “From Reeds and Shepp’s to continuous-
+curvature paths,” IEEE Trans. Robot. , vol. 20, no. 6, pp. 1025–1035,
+Dec. 2004.
+[11] M. McNaughton, C. Urmson, J. M. Dolan, and J.-W. Lee, “Motion
+planning for autonomous driving with a conformal spatiotemporal
+lattice,” in Proc. IEEE Int. Conf. Robot. Automat. (ICRA) , May 2011,
+pp. 4889–4895.
+[12] L. Han, H. Yashiro, H. T. N. Nejad, Q. H. Do, and S. Mita, “Bézier curve
+based path planning for autonomous vehicle in urban environment,” inProc. IEEE Intell. Vehicles Symp. , Jun. 2010, pp. 1036–1042.
+[13] M. Vukov, A. Domahidi, H. J. Ferreau, M. Morari, and M. Diehl, “Auto-
+generated algorithms for nonlinear m odel predictive control on long and
+on short horizons,” in Proc. IEEE 52nd Annu. Conf. Decis. Control ,
+Florence, Italy, Dec. 2013, pp. 5113–5118.
+[14] B. Houska, H. J. Ferreau, and M. Diehl, “An auto-generated real-
+time iteration algorithm for nonlinear MPC in the microsecond range,”Automatica , vol. 47, no. 10, pp. 2279–2285, 2011.[15] G. Prokop, “Modeling human vehicle d riving by model predictive online
+optimization,” Veh. Syst. Dyn. , vol. 35, no. 1, pp. 19–53, 2001.
+[16] P. Falcone, F. Borrelli, J. Asgari, H. E. Tseng, and D. Hrovat, “Predictive
+active steering control for autonomous vehicle systems,” IEEE Trans.
+Control Syst. Technol. , vol. 15, no. 3, pp. 566–580, May 2007.
+[17] J. Ziegler, P. Bender, T. Dang, and C. Stiller, “Trajectory planning for
+Bertha—A local, continuous method,” in Proc. IEEE Intell. Vehicles
+Symp. , Jun. 2014, pp. 450–457.
+[18] S. J. Anderson, S. C. Peters, T. E. Pilutti, and K. Iagnemma, “An optimal-
+control-based framework for traject ory planning, threat assessment, and
+semi-autonomous control of passenger vehicles in hazard avoidancescenarios,” Int. J. Vehicle Auto. Syst. , vol. 8, nos. 2–4, pp. 190–216,
+2010.
+[19] T. Weiskircher, Q. Wang, and B. A yale
+ w, “Predictive guidance and
+control framework for (semi-)aut onomous vehicles in public trafﬁc,”
+IEEE Trans. Control Syst. Technol. , vol. 25, no. 6, pp. 2034–2046,
+Nov. 2017.
+[20] A. B. Hillel, R. Lerner, D. Levi, and G. Raz, “Recent progress in
+road and lane detection: A survey,” Mach. Vis. Appl. , vol. 25, no. 3,
+pp. 727–745, 2014.
+[21] T. Kowsari, S. S. Beauchemin, and M. A. Bauer, “Map-based lane and
+obstacle-free area detection,” in Proc. IEEE Int. Conf. Comput. Vis.
+Theory Appl. (VISAPP) , Jan. 2014, pp. 523–530.
+[22] A. Gray, Y . Gao, T. Lin, J. K. Hedrick, H. E. Tseng, and F. Borrelli,
+“Predictive control for agile semi -autonomous ground vehicles using
+motion primitives,” in Proc. Amer. Control Conf. , Montreal, QC, Canada,
+2012, pp. 4239–4244.
+[23] D. Q. Mayne, J. B. Rawlings, C. V . Rao, and P. O. M. Scokaert, “Con-
+strained model predictive control: Stability and optimality,” Automatica ,
+vol. 36, no. 6, pp. 789–814, 2000.
+[24] H. Chen and F. Allgöwer, “A quasi-inﬁnite horizon nonlinear model
+predictive control scheme with guaranteed stability,” in Proc. IEEE Eur.
+Control Conf. (ECC) , Jul. 1997, pp. 1421–1426.
+[25] S. Lefèvre, D. Vasquez, and C. Laugier, “A survey on motion prediction
+and risk assessment for intelligent vehicles,” Robomech J. , vol. 1, no. 1,
+2014.
+[26] R. Schubert, E. Richter, and G. Wani elik, “Comparison and evaluation
+of advanced motion models for vehicle tracking,” in Proc. IEEE Int.
+Conf. Inf. Fusion , Jun./Jul. 2008, pp. 1–6.
+[27] M. Brännström, E. Coelingh, and J . Sjöberg, “Model-based threat
+assessment for avoiding arbitrary vehicle collisions,” IEEE Trans. Intell.
+Transp. Syst. , vol. 11, no. 3, pp. 658–669, Sep. 2010.
+[28] S. Atev, G. Miller, and N. P. Papanikolopoulos, “Clustering of vehi-
+cle trajectories,” IEEE Trans. Intell. Transp. Syst. , vol. 11, no. 3,
+pp. 647–657, Sep. 2010.
+[29] Q. Tran and J. Firl, “Online maneuver recognition and multi-
+modal trajectory prediction for intersection assistance using non-
+parametric regression,” in Proc. IEEE Intell. Vehicles Symp. , Jun. 2014,
+pp. 918–923.
+[30] A. Lawitzky, D. Althoff, C. F. Passenberg, G. Tanzmeister, D. Wollherr,
+and M. Buss, “Interactive scene prediction for automotive applications,”
+inProc. IEEE Intell. Vehicles Symp. , Jun. 2013, pp. 1028–1033.
+[31] G. Agamennoni, J. I. Nieto, and E. M. Nebot, “A Bayesian approach
+for driving behavior inference,” in Proc. IEEE Intell. Vehicles Symp. ,
+Jun. 2011, pp. 595–600.
+[32] N. Dadkhah and B. Mettler, “Survey of motion planning literature in
+the presence of uncertainty: Considerations for UA V guidance,” J. Intell.
+Robot. Syst. , vol. 65, no. 1, pp. 233–246, 2012.
+[33] C. Schmidt, F. Oechsle, and W. Branz, “Research on trajectory planning
+in emergency situations with multiple objects,” in Proc. IEEE Intell.
+Transp. Syst. Conf. , Sep. 2006, pp. 988–992.
+[34] Y . Kuwata, T. Schouwenaars, A. Richards, and J. How, “Robust con-
+strained receding horizon control for trajectory planning,” in Proc. AIAA
+Guid., Navigat., Control Conf. Exhibit , 2005.
+[35] P. Falcone, M. Ali, and J. Sjoberg, “Predictive threat assessment via
+reachability analysis and s et invariance theory,” IEEE Trans. Intell.
+Transp. Syst. , vol. 12, no. 4, pp. 1352–1361, Dec. 2011.
+[36] C. J. Ostafew, A. P. Schoellig, and T. D. Barfoot, “Robust constrained
+learning-based NMPC enabling reliable mobile robot path tracking,” Int.
+J. Robot. Res. , vol. 35, no. 13, pp. 1547–1563, 2016.
+[37] M. Althoff, O. Stursberg, and M. Buss, “Model-based probabilistic
+collision detection in autonomous driving,” IEEE Trans. Intell. Transp.
+Syst., vol. 10, no. 2, pp. 299–310, Jun. 2009.
+[38] M. Althoff and J. M. Dolan, “On line veriﬁcation of automated road
+vehicles using reachability analysis,” IEEE Trans. Robot. , vol. 30, no. 4,
+pp. 903–918, Aug. 2014.
+
+--- Page 13 ---
+This article has been accepted for inclusion in a future issue of this journal. Content is final as presented, with the exception of pagination.
+WANG et al. : PREDICTIVE MANEUVER PLANNING FOR AN AUTONOMOUS VEHICLE IN PUBLIC HIGHWAY TRAFFIC 13
+[39] N. E. Du Toit and J. W. Burdick, “Robot motion planning in
+dynamic, uncertain environments,” IEEE Trans. Robot. , vol. 28, no. 1,
+pp. 101–115, Feb. 2012.
+[40] M. Farrokhsiar and H. Najjaran, “U nscented model predictive control
+of chance constrained nonlinear systems,” Adv. Robot. , vol. 28, no. 4,
+pp. 257–267, 2014.
+[41] E. Mazor, A. Averbuch, Y . Bar-Shalom, and J. Dayan, “Interacting
+multiple model methods in target tracking: A survey,” IEEE Trans.
+Aerosp. Electron. Syst. , vol. 34, no. 1, pp. 103–123, Jan. 1998.
+[42] Q. Wang, T. Weiskircher, and B. Aya lew, “Hierarchical hybrid predictive
+control of an autonomous road vehicle,” in Proc. ASME Dyn. Syst.
+Control Conf. , Columbus, HI, USA, 2015, p. V003T50A006.
+[43] Q. Wang, B. Ayalew, and T. Weiskircher, “Optimal assigner decisions in
+a hybrid predictive control of an autonomous vehicle in public trafﬁc,”
+inProc. Amer. Control Conf. , Boston, MA, USA, 2016, pp. 3468–3473.
+[44] M. Tsogas, A. Polychronopoulos, N. Floudas, and A. Amditis, “Situation
+reﬁnement for vehicle maneuver identiﬁcation and driver’s intentionprediction,” in Proc. IEEE Int. Conf. Inf. Fusion , Jul. 2007, pp. 1–8.
+[45] V . Gadepally, A. Krishnamurthy , and U. Ozguner, “A framework for esti-
+mating driver decisions near intersections,” IEEE Trans. Intell. Transp.
+Syst., vol. 15, no. 2, pp. 637–646, Apr. 2014.
+[46] A. Kurt and Ü. Özgüner, “Hierarchical ﬁnite state machines for
+autonomous mobile systems,” Control Eng. Pract. , vol. 21, no. 2,
+pp. 184–194, 2013.
+[47] T. Weiskircher and B. Ayalew, “Frameworks for interfacing trajec-
+tory tracking with predictive trajectory guidance for autonomous road
+vehicles,” in Proc. Amer. Control Conf. , Chicago, IL, USA, 2015,
+pp. 477–482.
+[48] A. Micaelli and C. Samson, “Trajectory tracking for unicycle-
+type and two-steering-wheels mob ile robots,” INRIA, Paris, France,
+Res. Rep. RR-2097, 1993.
+[49] D. A. Johnson and M. M. Trivedi, “Driving style recognition using a
+smartphone as a sensor platform,” in Proc. Int. IEEE Conf. Intell. Transp.
+Syst. (ITSC) , Oct. 2011, pp. 1609–1615.
+[50] S. J. Julier and J. K. Uhlmann, “New extension of the Kalman ﬁlter to
+nonlinear systems,” Proc. SPIE, vol. 3068, Jul. 1997.
+[51] A. Carvalho, Y . Gao, S. Lefèvre, and F. Borrelli, “Stochastic predictive
+control of autonomous vehicles in uncertain environments,” in Proc. Int.
+Symp. Adv. Vehicle Control , 2014, pp. 1–8.
+[52] T. Streubel and K. H. Hoffmann, “P rediction of driver intended path
+at intersections,” in Proc. IEEE Intell. Vehicles Symp. , Jun. 2014,
+pp. 134–139.
+[53] P. Belotti, C. Kirches, S. Leyffer, J. Linderoth, J. Luedtke, and
+A. Mahajan, “Mixed-integer nonlinear optimization,” Acta Numer.,
+vol. 22, pp. 1–131, 2013.
+[54] B. Houska, H. J. Ferreau, and M. Diehl, “ACADO toolkit—An open-
+source framework for automatic control and dynamic optimization,”Optim. Control Appl. Methods , vol. 32, no. 3, pp. 298–312, 2011.
+[55] H. J. Ferreau, “Model predictiv e control algorithms for applications
+with millisecond timescales,” Ph.D. dissertation, Dept. Elect. Eng.,KU Leuven, Leuven, Belgium, 2011.[56] T. Weiskircher and B. Ayalew, “ Predictive trajectory guidance for
+(semi-)autonomous vehicles in public trafﬁc,” in Proc. Amer. Control
+Conf. , Chicago, IL, USA, 2015, pp. 3328–3333.
+[57] J. Ziegler and C. Stiller, “Spatiotemporal state lattices for fast trajectory
+planning in dynamic on-road driving scenarios,” in Proc. IEEE/RSJ Int.
+Conf. Intell. Robots Syst. (IROS) , Oct. 2009, pp. 1879–1884.
+Qian Wang received the Diploma and master’s
+degrees in vehicle engineering from South ChinaUniversity of Technology, Guangzhou, China,
+in 2013 and the Ph.D. degree in automotive engi-
+neering from Clemson University in 2017. Since2017, he has been an Autonomous Driving Researchand Development Engineering with Aptiv (formerly
+known as delphi). His research interests include
+optimal control, predictive trajectory planning andcontrol for autonomous vehicles, and control alloca-
+tion for vehicle actuation systems.
+Beshah Ayalew received the M.S. and Ph.D. degrees
+in mechanical engineering from Pennsylvania State
+University in 2000 and 2005, respectively. He is
+currently a Professor of automotive engineering and
+the Director of the DOE GATE Center of Excellencein Sustainable Vehicle Systems, Clemson University.His interest and expertise is in systems dynamics and
+controls. He is an active member of the ASME’s
+Vehicle Design Committee, the IEEE’s Control Sys-tems Society, and SAE. He received the Ralph TeetorEducational Award from SAE (2014), the Clemson
+University Board of Trustees Award f or Faculty Excellence (2012), and the
+NSF CAREER Award (2011). He was a recipient of the Penn State AlumniAssociation Dissertation Award (2005).
+Thomas Weiskircher received the Diploma degree
+in mechatronics engineering from Universität desSaarlandes, Saarbrücken, Germany, in 2009 and thePh.D. degree in mechanical engineering from Tech-nische Universität Kaiserslautern, Kaiserslautern,
+Germany, in 2013. He was a Post-Doctoral Research
+in vehicle control with the Applied Dynamics andControl Research Group, Clemson University Inter-
+national Center of Automotive Research, Greenville,
+SC, USA, from 2014 to 2015. Since 2015, he hasbeen a Research and Advanced Engineer at Dimlar
+AG, Böblingen, Germany. His current research interests include optimal
+control, real-time model predictive contro l for automotive applications, vehicle
+dynamics control, and active safety systems.

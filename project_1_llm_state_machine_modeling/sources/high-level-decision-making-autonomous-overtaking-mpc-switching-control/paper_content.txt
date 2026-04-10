@@ -1,0 +1,1235 @@
+--- Page 1 ---
+Received: 16 October 2022 Revised: 18 March 2024 Accepted: 20 March 2024 IET Intelligent Transport Systems
+DOI: 10.1049/itr2.12507
+ORIGINAL RESEARCH
+High-level decision-making for autonomous overtaking: An
+MPC-based switching control approach
+Xue-Fang Wang1Wen-Hua Chen2Jingjing Jiang2Yunda Yan3
+1School of Engineering, University of Leicester,
+Leicester, UK
+2Aeronautical and Automotive Engineering,
+Loughborough University, Loughborough, UK
+3Department of Computer Science, University
+College London, London, UK
+Correspondence
+Wen-Hua Chen, Aeronautical and Automotive
+Engineering, Loughborough University,
+Loughborough, UK.
+Email: w.chen@lboro.ac.uk
+Funding information
+Engineering and Physical Sciences Research Council,
+Grant/Award Number: EP/T005734/1Abstract
+The key motivation of this paper lies in the development of a high-level decision-
+making framework for autonomous overtaking maneuvers on two-lane country roads with
+dynamic oncoming trafﬁc. To generate an optimal and safe decision sequence for such
+scenario, an innovative high-level decision-making framework that combines model pre-
+dictive control (MPC) and switching control methodologies is introduced. Speciﬁcally,
+the autonomous vehicle is abstracted and modelled as a switched system. This abstrac-
+tion allows vehicle to operate in different modes corresponding to different high-level
+decisions. It establishes a crucial connection between high-level decision-making and low-
+level behaviour of the autonomous vehicle. Furthermore, barrier functions and predictive
+models that account for the relationship between the autonomous vehicle and oncom-
+ing trafﬁc are incorporated. This technique enables us to guarantee the satisfaction of
+constraints, while also assessing performance within a prediction horizon. By repeatedly
+solving the online constrained optimization problems, we not only generate an optimal
+decision sequence for overtaking safely and efﬁciently but also enhance the adaptabil-
+ity and robustness. This adaptability allows the system to respond effectively to potential
+changes and unexpected events. Finally, the performance of the proposed MPC framework
+is demonstrated via simulations of four driving scenarios, which shows that it can handle
+multiple behaviours.
+1 INTRODUCTION
+Autonomous overtaking is one of the most common yet chal-
+lenging driving maneuvers, improving trip efﬁciency by avoiding
+a slower or stationary preceding vehicle (see [ 1–10 ]). In the
+early years of autonomous vehicle research, the primary focus
+was predominantly on trajectory planning and tracking. Chai
+et al. [3] proposed several optimization frameworks for solving a
+series of vehicle trajectory planning problems. The approaches
+of using a gradient operation [ 11], a swarm intelligent algo-
+rithm [ 12], a fuzzy adaptive strategy [ 2], and a deep neural
+network [ 13] have been explored to enhance the search capabil-
+ity. These optimisation-based approaches gained considerable
+attention and found practical applications in the ﬁeld of path
+planning.
+In general, there are three sequential steps in the control
+architecture for autonomous vehicles (see Figure 1). A percep-
+This is an open access article under the terms of the Creative Commons Attribution License, which permits use, distribution and reproduction in any medium, provided the original work is
+properly cited.
+© 2024 The Authors. IET Intelligent Transport Systems published by John Wiley & Sons Ltd on behalf of The Institution of Engineering and Technology.tion module fuses sensor readings to increase the reliability of
+information on both the environment and the status of the
+autonomous vehicle. The decision maker uses the perception
+outputs to make a decision from a set of possible choices, such
+as {“ Following lane ”, “Slowdown ”, “Stop”, “Overtaking ”}. Based on
+the decision, the path planner generates a reference path that
+is followed by the low-level controller. In other words, deci-
+sion making, path planning, and motion control constitute a
+complete control scheme [ 14].
+Decision-making is responsible for evaluating potential colli-
+sion risks of each possible maneuver based on current trafﬁc
+states and then making an appropriate decision with min-
+imised collision risks. The existing studies on decision-making
+can be roughly categorised into three categories, that is, rule-
+based methods [ 15–19 ], learning-based schemes [ 20–24 ]a n d
+Monte Carlo Tree Search (MCTS) [ 25–28 ]. For instance, Wang
+et al. [ 15] proposed a predictive maneuver-planning method
+IET Intell. Transp. Syst. 2024;18:1259–1271. wileyonlinelibrary.com/iet-its 1259
+
+
+--- Page 2 ---
+1260 WANG ET AL .
+FIGURE 1 The control architecture. The grey shaded block shows the
+component discussed here.
+FIGURE 2 Autonomous overtaking with the emerging trafﬁc.
+for autonomous vehicle navigating in public highway trafﬁc
+based on pre-deﬁned switched rules. Jula et al. [ 18] proposed
+a rule-based minimum safety spacing calculation method in
+lane-changing and lane-merging scenarios based on vehicle
+kinematics. This rule-based method has gained widespread
+adoption in various applications such as risk assessment in tra-
+jectory planning [ 29], maneuver modelling [ 30], and overtaking
+[31]. An integrated rule-based decision-making and motion con-
+trol framework was presented in [ 19] to achieve emergency
+avoidance in complex driving scenarios. However, rule-based
+methods have several drawbacks. For example, the approach
+is error-prone, and correct behaviour can only be guaranteed
+through exhaustive testing. Due to the nature of driving and
+road conditions, it is impossible to anticipate and account for
+all possible scenarios during the design stage. Any oversight or
+omission can lead to potentially dangerous consequences such
+as colliding with popping up oncoming vehicles, as illustrated in
+Figure 2. In contrast, Johansson et al. [ 20] investigated a deep
+reinforcement learning method for decision-making in the high
+level. Although this approach yields a promising performance,
+there is still a concern about how to guarantee collision-free dur-
+ing both the training and the deployment process by the virtue
+of reinforcement learning methods. Learning-based methods
+depend on the training scenarios and it is hard to use them in
+safety-related applications since it is very difﬁcult to obtain data
+for all possible dangerous cases [ 23, 32, 33 ].
+In addition, MCTS, a promising method for solving com-
+plicated sequence optimisation problems, has also shown its
+advantages in solving decision-making for unmanned vehicles
+[25–28 ]. For example, a cooperative motion planning algo-
+FIGURE 3 Autonomous overtaking with the oncoming trafﬁc.
+rithm for autonomous highway driving was developed in [ 25]
+using MCTS, which relies on a manually designed coopera-
+tive cost function. This method can handle multiple vehicle
+interactions in a merging scenario in the simulator without
+requiring inter-vehicle communication. A deep-MCTS algo-
+rithm for vision-based autonomous driving was presented in
+[26], which can predict driving maneuvers to help improve the
+stability and performance of driving control. Although MCTS
+yields promising performance by summing costs of distance to
+other road users into ﬁnal cost function, there is still concern about
+how to guarantee the speciﬁcation of a minimum safe distance
+between the autonomous vehicle and other road users, thereby
+improving safety margins in highly dynamic and uncertain envi-
+ronments. Hence, it is a vital task to integrate safety constraints
+into the decision-making process to ensure that the autonomous
+system operates safely in all situations.
+The autonomous vehicle controller needs to make com-
+plex decisions regarding how and where to drive. Especially, it
+becomes even more challenging when autonomously overtak-
+ing a leading vehicle on two-lane country roads in the presence
+of oncoming vehicles. For example, the autonomous vehicle
+has lower priority on the opposite lane. This means that the
+autonomous vehicle always needs to give way to oncoming vehi-
+cles. In addition, if the distance from the front car is too small,
+the ﬁeld of view of the autonomous vehicle becomes partially
+blocked. However, if the distance from the front car is too
+large, the overtaking time would be quite long, resulting in more
+uncertainties and a prolonged duration during the overtaking
+maneuver. As illustrated in Figure 3, there are several stages
+as follows: (1) Depart from the original lane. (2) Occupy the
+opposite lane to drive past a slow moving (or stationary) vehi-
+cle travelling in the same direction. (3) Return to the original
+lane. The success of overtaking on such a road is signiﬁcantly
+affected by many factors, for example, the wide range of natu-
+ral/trafﬁc conditions (e.g. the layout of the road, visibility), the
+distance between the autonomous vehicle and the surrounding
+ones whose behaviours could be widely varying. Moreover, both
+the longitudinal and lateral motions are involved in this process.
+To complete the overtaking maneuver successfully and safely,
+the autonomous vehicle has to evaluate the available gaps in the
+opposite direction. This necessitates the autonomous vehicle to
+drive on the path of potential oncoming vehicles for a signiﬁ-
+cant period of time, often at high speeds [ 6, 7, 9 ]. In addition,
+the information of leading vehicle’s trajectory and road bound-
+aries are also required. This means that the overtaking process
+must satisfy many constraints simultaneously, and this property
+also brings many more challenges for completing overtaking
+maneuvers safely, especially on a single-lane two-direction road.
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 3 ---
+WANG ET AL . 1261
+Therefore, it is important to properly make a series of overtak-
+ing decisions that improve the trip efﬁciency and simultaneously
+satisfy the safety in the high level. The decision-maker is then
+integrated effectively with a trajectory planning module at the
+low level to successfully complete overtaking maneuvers.
+To effectively deal with the aforementioned challenges
+and provide an alternative solution, model predictive control
+(MPC)-based optimisation methods are receiving signiﬁcant
+attention because they can generate an optimal path/decision
+by solving an input and state constrained optimisation problem
+based on the latest available information in a receding prediction
+horizon fashion (see [ 16, 34–47 ]). This means that MPC method
+is applicable in real time and can avoid moving obstacles. For
+example, Dixit et al. proposed a high-level decision-making pro-
+cess based on the MPC method in [ 44], and this algorithm was
+executed in the absence of surrounding vehicles. A ﬁnite state
+machine was employed as a high-level decision-maker in [ 16],
+where MPC was chosen as a trajectory planner. Reference [ 45]
+investigated a multi-mode switching longitudinal autonomous
+driving system based on MPC, which is serving as the upper-
+level controller. While these papers did not consider oncoming
+vehicles (as depicted in Figures 2and3), in practice, however, it
+is inevitable that a vehicle may emerge suddenly on the oppo-
+site lane from a crossing road after overtaking is initiated (see
+Figure 2), or the sensors of the autonomous vehicle did not
+detect an oncoming vehicle (e.g. due to a limited sensor range
+or partially blocked ﬁeld view of the sensors) before executing
+the overtaking action.
+To tackle two-way overtaking problems which may encounter
+oncoming vehicles, a number of works have been reported,
+which can be roughly divided into two categories, that is,
+mechanism-based and learning-based models. The mechanism-
+based models mainly use risk-related indices for overtaking
+decisions. Game theory, as a representative mechanism-based
+approach, has been widely embraced for modelling human
+decision-making in driving, especially the mutual dependence
+between the interacting drivers (e.g. [ 48–50 ]). Although the
+game-based approach is promising, as [ 49] pointed out, there
+are still many improvements to be made for game-based driv-
+ing decision models, for example, the sufﬁcient trafﬁc data
+for modelling, the proper design of payoff function based on
+understanding how drivers value different objectives, and so
+on. On the other hand, in recent years, many learning-based
+models have been proposed to describe overtaking decision
+(e.g. DQN model [ 51], hidden Markov model [ 52], RL [ 53],
+DRL [ 20]). For example, Johansson et al. [ 20] designed a tra-
+jectory planner based on a DRL method using a discrete action
+space, where these discrete actions are connected to a low-level
+controller to complete the control of the autonomous vehicle.
+However, due to the limited control accuracy of the discrete
+action space, it cannot guarantee collision-free during training
+and execution. Reference [ 53] used a risk-based approach to
+estimate risk states during RL training, and a MCTS was also
+used to reduce unsafe behaviours of the agent while training. In
+general, learning-based models have shown powerful capabili-
+ties in describing complex driving behaviours, especially when
+high-quality driving data are available. A drawback of learning-based models is that the learned decision strategies/policies can
+have difﬁculty in situations not covered by the training episodes.
+Therefore, it is very challenging to develop a reliable and robust
+decision-maker that is able to not only guarantee safety but also
+perform overtaking in an optimal manner under diverse traf-
+ﬁc conditions. Motivated by the above-mentioned observations
+and recognising the abundance of excellent works in lower-
+level path planning and dynamics control (see, e.g. [ 2, 3, 11–13,
+54–56 ]), this paper speciﬁcally focuses on decision-making at a
+higher level for autonomous overtaking under two-lane country
+roads subject to oncoming vehicles by integrating optimisation
+methods and switching control techniques.
+Here, we are interested in, for a given trafﬁc scenario, how
+to make a right decision and when to perform overtaking
+quickly while guaranteeing safety. We develop a process to rep-
+resent the relationship between the high-level decisions and real
+control inputs for the vehicles with the help of the concept
+of switched systems. During the prediction horizon, the con-
+trol inputs (i.e. the steering angle and the acceleration of the
+autonomous vehicle) are updated based on the optimal action
+made by the MPC-based decision-maker. That is, the inputs
+are regarded as a switched controller and the optimal decision
+variable is regarded as a switching signal. A cost function for
+online optimisation is proposed where a coupled term on the
+relative distance (i.e. the distance between the autonomous vehi-
+cle and the oncoming one) and velocity tracking error is also
+included. This optimisation is repeatedly solved based on the
+latest available information of the trafﬁc, giving the autonomous
+vehicle the ability to quickly respond to changes or unexpected
+events.
+The main contributions of this paper are summarised as fol-
+lows. First, as a contrast to conventional pre-deﬁned rule-based
+methods, our approach seeks to streamline the decision-making
+process in autonomous overtaking. We achieve this by incorpo-
+rating switching techniques and abstracting the decision-making
+under complex environmental conditions through an MPC-
+based framework that effectively captures interactions with
+other road users. Furthermore, the introduced switched sys-
+tem serves as a bridge, connecting high-level decisions to the
+actual control inputs implemented on the autonomous vehi-
+cle at the lower level. Consequently, we can select the safe and
+optimal action to execute maneuvers. Second, the proposed
+method can deal with dynamic environments, as well as avoid-
+ing collisions. Furthermore, the performance of the proposed
+approach is validated within four typical driving scenarios,
+containing a stopped/moving leading vehicle or oncoming
+vehicles. This demonstrates its feasibility, effectiveness and
+adaptivity when operating in a dynamic and uncertain trafﬁc
+environment.
+The rest of this paper is organised as follows: In Section 2,
+problem formulation for autonomous overtaking on two-lane
+country roads with oncoming vehicles is introduced. A decision-
+making framework based on MPC and switching approaches
+is proposed in Section 3, while four driving scenarios are set
+to verify the effectiveness of the proposed decision-making
+framework in Section 4. Finally conclusions are discussed in
+Section 5.
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 4 ---
+1262 WANG ET AL .
+Notations. The set of real numbers is denoted by ℝ. The set of
+integers is denoted by ℤ.ℝ>0∶=(0,∞).ℤ>0denotes the set
+of positive integers. xTdenotes the transpose of x.
+2 PROBLEM FORMULATION
+Here, we only consider the optimal decision-making for
+the high-level control design of autonomous overtaking for
+a two-way road in the presence of oncoming vehicles or
+other unexpected events (e.g. emerging vehicles or changing
+behaviours of other vehicles). We propose a high-level decision-
+making framework by integrating an MPC-based optimisation
+method and switching control approaches. The decision vari-
+ables include following lane, slowdown, stop, and overtaking.
+This allows us to initiate, execute, hold or even abandon an over-
+taking maneuver. To enable the design of the high-level control
+system, representations of the autonomous vehicle and its sur-
+rounding environment are required. This includes a simpliﬁed
+vehicle model, physical and safety constraints, performance
+speciﬁcation, and information about oncoming vehicles, all of
+which will be introduced in this section.
+2.1 Vehicle model
+When high-level decision-making for autonomous vehicles is
+of concern, a kinematic model is widely used due to its low
+parameter dependency [ 57], described as
+̇x=vcos𝜃,
+̇y=vsin𝜃,
+̇𝜃=v
+ltan𝜑,
+̇v=a, (1)
+where z=[x,y,𝜃,v]Tare the states of the model and u=
+[𝜑,a]Tare control inputs. Speciﬁcally, ( x,y) are the coordinates
+of the centre point of the rear axle, 𝜃is the heading angle of the
+vehicle body with respect to the xaxis, vis the linear forward
+velocity,𝜑is the steering angle of the front wheel with respect
+to the vehicle’s longitudinal line and ais the longitudinal accel-
+eration. lis the distance between the front axle and the rear
+axle, which can be seen from Figure 4. To facilitate the high-
+level decision-making, the link between the kinematic model
+and the MPC-based high-level decision-making is realised by
+determining the control variables u=[𝜑,a]Tusing each corre-
+sponding decision variable. This means that the model switches
+into different modes based on the different decision variables.
+Therefore, we can represent the system as a switched system,
+where the decision variable deﬁnes the switching mode. We take
+advantage of this representation in the sequel to build up the
+link between the high-level decisions and low-level real control
+inputs applied to the autonomous vehicle. More details will be
+discussed in Section 3.
+FIGURE 4 Kinematic model for a rear-wheel driving car.
+FIGURE 5 The illustration of an elliptical constraint.
+To successfully complete the overtaking and ensure the
+safety, it is important to abstract the behaviour of both the
+autonomous and surrounding vehicles, model the road lay-
+out, and carefully incorporate all the information into the
+decision-making process. This includes taking into account all
+safety constraints.
+2.2 Constraints
+1)State/Control variables constraints : To take physical limita-
+tions and other constraints of the autonomous vehicle into
+consideration, the following constraints are considered:
+y∈[ymin,ymax],𝜃∈ [𝜃min,𝜃max],v∈[vmin,vmax]
+𝜑∈ [𝜑min,𝜑max],a∈[amin,amax]. (2)
+2)Safety constraints : Inspired by [ 40], to keep a safe distance
+between the autonomous vehicle and any nearby Vehicle i
+with position ( xi,yi), we introduce an elliptical constraint of
+the form:
+(x−xi
+Δxi+𝛽)2
++(y−yi
+Δyi)2
+≥1, (3)
+whereΔxi,Δyiare calculated by incorporating the geometry
+(length and width) of Vehicle iand the autonomous vehicle
+(see Figure 5). These are assumed available from sensing. 𝛽
+is an optional tuning parameter to manipulate the behaviour
+of the proposed optimisation approach.
+2.3 Performance indexes
+1)Tracking performance indexes : As shown in Figures 2and3,t h e
+autonomous vehicle needs to return to the original lane after
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 5 ---
+WANG ET AL . 1263
+ﬁnishing the overtaking maneuver. Assume that the desired
+trajectory is ( Vlre f,Ylre f), representing the tracking reference
+signal of the left lane. Then, the corresponding tracking
+indexes are designed as follows:
+Jtrv=𝛾 1(v−Vlre f)2(4a)
+Jtry=𝛾 2(y−Ylre f)2, (4b)
+where constants 𝛾1,𝛾2>0.Jtryguides the autonomous
+vehicle into the centre of the left lane .
+2)Road boundary indexes : We consider two lanes deﬁned by three
+boundaries: left, yrl, middle, yrm,a n dr i g h t , yrr, ones (see
+Figures 2and 3). During overtaking maneuvers, a vehicle
+must stay inside the edges of the road. This is ensured here
+by using barrier functions that are designed such that the
+boundaries of the road have the highest (i.e., +∞) poten-
+tial and the centret of the lane has the lowest potential (see,
+e.g. [ 58]a n d[ 44]). Depending on the stage of the overtak-
+ing manoeuvre, we deﬁne two barrier functions based on a
+widely used barrier function in literature.
+∙When overtaking is not happening, the autonomous vehi-
+cle stays in the original lane, and we only need to consider
+theleft boundary and the middle boundary . Hence, the road
+potential function is given as follows:
+Jroadlm=1
+2𝜂m∑
+j(1
+y−yrj)2
+, (5)
+where𝜂mis a scaling factor and yrjis the y-
+coordinate of the jthroad edge with j∈{l,m}∶=
+{le ft boundary ,middle boundary }.
+∙When overtaking is happening, the autonomous vehi-
+cle is able to go across the middle boundary, while the
+boundaries of left boundary and right boundary need to be
+concerned. Thus, the road potential function is
+Jroadlr=1
+2𝜂r∑
+j(1
+y−yrj)2
+, (6)
+where𝜂ris a scaling factor and j∈{l,r}∶=
+{le ft boundary ,right boundary }. Figure 6shows a plot
+of this potential for a y-axis cross-section of a two-lane
+road under different scaling factors.
+2.4 Autonomous overtaking process
+description
+Let qbe the discrete decision of the autonomous
+vehicle. More speciﬁcally, q∈{1,−1,−2,2}∶=
+{following lane ,slowdown,stop,overtaking}.L e t( XOV
+ri,YOV
+ri)
+be the position of oncoming Vehicle ion the opposite right
+lane, which provides a sketchy path reference of the vehi-
+cleiof concern as an input to the low-level controller of
+FIGURE 6 Road edge potentials. Three vertical grey lines mark lane
+dividers dashed line and road edges.
+the autonomous vehicle. After taking into account all the
+constraints and speciﬁcations as described above, the overall
+performance index is given by
+J(q)=q2−4
+−3Jroadlm+q2−1
+3Jroadlr+Jtry+Jpv, (7)
+where Jroadlm,Jroadlr and Jtryare given in ( 5), (6)a n d( 4), respec-
+tively. The safety requirement during the overtaking is reﬂected
+byJpv. It describes the relative distance between the autonomous
+vehicle and the oncoming one and the velocity tracking error,
+given by
+Jpv=q2−4
+−31
+𝛾3|x−XOV
+ri|+𝜖Jtrv, (8)
+where𝛾3>0a n d𝜖is a small positive number to avoid the
+denominator being zero in the calculation.
+Remark 1. Driving on the left lane is the goal of the autonomous
+vehicle, so tracking the desired trajectory should be taken into
+consideration in the whole overtaking process. That is, there
+is no qcoupled on Jtryin (7). Moreover, the ﬁrst two terms
+q2−4
+−3Jroadlm andq2−1
+3Jroadlr of (7) correspond to the road bound-
+ary constraints mentioned in Section 2.2.I nf a c t ,“q2−4
+−3” could
+be changed to any other functions of qas long as it equals to
+1 and 0, when q=±1a n d q=±2, respectively. Similarly,q2−1
+3could be also changed.
+With the above problem formulation, the overtaking pro-
+cess on a two-way road is described as follows. When the
+autonomous vehicle is running on the original lane and
+approaching the desired velocity, both Jtrvand|x−XOV
+ri|are
+decreasing. This means thatJtrv
+|x−XOV
+ri|does not play a main role
+in the performance index. Therefore, q=1, rather than q=±2,
+minimises cost J(q)g i v e ni n( 7). When the sensor detects that
+the distance between the autonomous vehicle and the leading
+vehicle is closing to the safe distance, and the opposite lane does
+not allow the autonomous vehicle to initiate overtaking maneu-
+vers, the optimal solution to ( 7)i sq=−1(slowdown ). In this
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 6 ---
+1264 WANG ET AL .
+case, Jtrvis increasing, while |x−XOV
+ri|is still decreasing. Cor-
+respondingly, we have thatJtrv
+|x−XOV
+ri|is getting bigger and bigger,
+which plays a main role in the performance index. Therefore, to
+minimise the total cost function, qequals to±2. In other words,
+when the opposite lane is available for overtaking, decision
+q=2(overtaking ) is obtained; when the opposite lane is busy,
+action q=−2(stop) is obtained. When the autonomous vehicle
+restarted after executing q=−2(stop) action, Jtrvplays a main
+role and action q=2(overtaking ) is obtained, since oncoming
+vehicles have passed. When overtaking process is in proceeding,
+that is, q=2, the distance |x−XOV
+ri|is getting bigger (since all
+oncoming vehicles are driving away from the autonomous vehi-
+cle) and the value of Jtrvis around zero. Then,Jtrv
+|x−XOV
+ri|does
+not play a main role. Hence, the optimal decision q=1(follow-
+ing lane ) is made according to other terms in the performance
+index ( 7) and the autonomous vehicle returns to the original
+lane. It shall be highlighted that the above decision-making pro-
+cess continuously execute with all the updated information of
+the surrounding trafﬁc. This allows the autonomous vehicle to
+respond to the changing environment in a safe and rational way,
+which will be explained further and demonstrated in simulation
+studies.
+Remark 2. We consider only the relative distance in X-direction
+between the autonomous vehicle and the ﬁrst oncoming vehicle,
+which does not drive pass the autonomous vehicle. That means
+x≤XOV
+riwhen consider the direction of the autonomous
+vehicle as positive direction.
+3 DECISION-MAKING BASED ON MPC
+AND SWITCHING APPROACHES
+3.1 Switching control approach
+The main purpose of the MPC approach is to ﬁnd the opti-
+mal high-level decision consequence by repeatedly solving an
+online constrained optimisation problem. In this subsection,
+we demonstrate that the high-level decision-making can be
+represented as a switched system. Speciﬁcally, we treat the
+decision-making as a switching control process that facilitates
+the autonomous vehicle switching from one sub-operation
+mode to another one. For each sub-operation mode, we deﬁne
+speciﬁc pairs of control inputs with respect to decision vari-
+ables applied on the vehicle. Under these pairs of control
+inputs, the autonomous vehicle exhibits different behaviours
+that could be described by the kinematic model which is
+given by ( 1), but with different control inputs with respect
+to different decision variables. This will be presented by the
+following model ( 9). This approach enables us to link the high-
+level decision (such as slowdown orovertaking ) to lower-level
+behaviours and status of the autonomous vehicle (e.g. position,
+velocity). Furthermore, it also allows us to evaluate the rela-
+tionship between the autonomous vehicle and other vehicles
+(e.g. leading or oncoming vehicles) to ensure safety and other
+desirable properties.TABLE 1 The control inputs uq(k)(k),k∈ℤ≥1, in the predictive
+kinematic model and its relationships with decision variables.
+(𝝋q(k)(k),aq(k)(k)) logical conditions
+(0,c2) q(k)=1&v(k)<Vlre f
+(0,0) q(k−1)≠−2&q(k)=1&v(k)=Vlre f
+(0,c2) q(k−1)=−2&q(k)=1
+(0,−c1) q(k)=−1
+(−c4,c2) q(k)=2&x−XLV
+l≤Xel&y≥−yf
+(0,c2) q(k)=2&x−XLV
+l≤Xel&y<− yf
+(c3,c2) q(k)=2&x−XLV
+l>Xel&y≤yz
+(0,c2) x−XLV
+l>Xel&y>yz
+(𝜑(k−1),0) q(k)=−2
+More precisely, we ﬁrst discretize the system ( 1)b yu s i n g
+Euler method with sampling time Ts. Hence, the system ( 1)c a n
+be rewritten as
+z(k+1)=fq(k)(z(k),uq(k)(k)), (9)
+where z(k)=[x(k),y(k),𝜃(k),v(k)]T,uq(k)(k)=[𝜑q(k)(k),
+aq(k)(k)]Tare determined by decision variable q(k)w i t h
+q(k)∈{1,−1,−2,2}that can be interpreted as the switch-
+ing modes and f(0,0)=0. Moreover, the control and state
+sequences must satisfy
+z(k)∈ℤ (10a)
+uq(k)(k)∈𝕌, (10b)
+whereℤis a subset of ℝ4and𝕌is a subset of ℝ2,e a c hs e t
+containing the origin in its interior.
+Remark 3. In this study we assume that the autonomous vehicle
+cannot reverse, that is ,v(k)≥0 for all k∈ℤ≥1. In addition, due
+to safety reasons, the overtaking maneuvers must be ﬁnished
+as soon as possible. To sum up, the constraints on the decision
+variable q(k) are summarised as
+q(k+1)≠{
+−1,q(k)=±2,
+−2,q(k)=1.(11)
+Here, we mainly focus on how to obtain the sequence of
+optimal decision action q∗(k) on the high level. Therefore, to
+give a sketchy tracking reference to the low-level control of the
+autonomous vehicle, based on the optimal decision q∗(k), we
+use the logic shown in Table 1to update control inputs u(k)i n
+the predictive model. Note that ( XLV
+l,YLV
+l) is the position of
+the leading vehicle in the left lane .
+In Table 1, constants Xel,yf,yz∈ℝ>0and c1,c2,c3,c4∈
+𝕌∩ℝ>0are to be determined later. In Table 1, for the second
+case when q(k)=2, that autonomous vehicle runs on the right
+lanefor a while with steering angle 𝜑= 0. Noting that, the focus
+of this paper is not on path planning and trajectory following,
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 7 ---
+WANG ET AL . 1265
+a simple rule-based low-level control (given in Table 1) is used
+to capture and represent the behaviour of the autonomous
+and other vehicles for the purpose of decision-making. Once
+an action such as overtaking or lane-following is decided, the
+command will be passed to a lower-level path planning module
+that will generate a realistic path based on more detailed models
+and other information using optimisation or other search tools.
+This path will be used as a trajectory reference for the lowest
+level controller to follow.
+3.2 MPC-based framework
+During the overall maneuver, the constraints ( 2)a n d( 3) should
+always be satisﬁed. Let ( XOV
+rj(k),YOV
+rj(k)) and VOV
+rj(k)b et h e
+position and the longitudinal speed of the oncoming Vehicle j
+at instant kTs, respectively. Then, the prediction for the posi-
+tion of the oncoming Vehicle jat time ( k+1)Tsis calculated as
+follows:
+XOV
+rj(k+1)=XOV
+rj(k)+VOV
+rj(k)(k−1)Ts
+YOV
+rj(k+1)=YOV
+rj(k). (12)
+Similarly, given the position ( XLV
+l(k),YLV
+l(k)) and the longi-
+tudinal speed VLV
+l(k) of the leading vehicle at instant kTs,t h e
+prediction of its position at time ( k+1)Tsis given as
+XLV
+l(k+1)=XLV
+l(k)+VLV
+l(k)(k−1)Ts
+YLV
+l(k+1)=YLV
+l(k). (13)
+Thus, the overall optimisation problem is formulated as
+follows:
+min
+q(k)N−1∑
+i=0J(q(i;k)) (14a)
+s.t.z(i+1;k)=fq(i;k)(z(i;k),uq(i;k)(i;k)) (14b)
+z(i;k)∈ℤ, uq(i;k)(i;k)∈𝕌 (14c)
+q(i;k)∈{1,−1,−2,2} (14d)
+q(i+1;k)≠{
+−1,q(i;k)=±2
+−2,q(i;k)=1(14e)
+(
+x(i;k)−XLV
+l(i;k)
+ΔX+𝛽)2
++(
+y(i;k)−YLV
+l(i;k)
+ΔY)2
+≥1
+(14f)
+(
+x(i;k)−XOV
+ri(i;k)
+ΔX+𝛽)2
++(
+y(i;k)−YOV
+ri(i;k)
+ΔY)2
+≥1
+(14g)ALGORITHM 1 Implementation of hierarchical framework
+/*High-level decision-making*/
+1) Initialisation: At initial time step, i.e., k=0, initialize the state
+z(0)=[x(0),y(0),𝜃(0),v(0)]T. Given parameters 𝛾1,𝛾2,𝛾3,𝜂m,𝜂r,𝜖,a n d
+sampling time Ts.
+2) Find the optimal decision q∗(k) that gives the minimum value of the cost
+function ( 14a) and subject to the physical and safety constraints
+(14b)–(14g).
+3) Execute the ﬁrst decision q∗(i;k),i=0.
+/*Lower-level path planning process*/
+1) Check the value of the optimal decision variable q∗transmitted from high
+level.
+2) Choose control inputs uq∗=[𝜑q∗,aq∗]Tfor switching system ( 9) based
+on Table 1.
+3) Feedback the physical information of autonomous vehicle to high level,
+and then high-level decision-making framework will re-solve the
+optimisation problem ( 14) to calculate the new optimal decision passed to
+the lower level.
+4)k←k+1 and go to step 2) of high level.
+where J(q(i;k)) is deﬁned in ( 7),uq(i;k)(i;k) is given in Table 1
+andNis the planning horizon.
+After solving the above constrained optimisation problem,
+the following optimal decision sequence can be achieved
+q∗(k)=[
+q∗(i;k),q∗(i+1;k),…, q∗(i+N−1;k)]T.(15)
+For each MPC update step, only the ﬁrst value in the control
+sequence q∗(0;k) is implemented as the decision action to the
+autonomous vehicle. At the next time step ( k+1), a new opti-
+misation problem is solved over a shifted prediction horizon
+again with the updated state z(0;k+1)=z∗(1;k). This can be
+summarised in Algorithm 1.
+Remark 4. The formulation ( 14) shows that, to facilitate the
+decision design in autonomous overtaking, we abstract the
+decision-making process under a complex environment where
+interactions with other road users are captured. This safety-
+constrained solution allows constraints to be speciﬁed to ensure
+that the minimum safe margin between the ego vehicle and
+other road users is respected (i.e. refer to ( 14f)-(14g)) despite
+the behaviour of the other road users not being fully predictable.
+This formulation enables us to formulate the generation of safe
+and optimal decisions in uncertain and dynamic environments.
+Remark 5. The optimisation problem formulation in Equa-
+tion ( 14) differs from the conventional MPC-based trajectory
+planning problem. Our approach treats decision-making as a
+switching control process based on various high-level decision
+commands. Consequently, analysing the duration problem and
+stability of the proposed framework becomes a challenging
+task. It is important to note that the main contribution of the
+paper is to propose this new high-level decision-making frame-
+work by integrating MPC and switching control approaches
+and demonstrate its efﬁciency. However, detailed theoretical
+analysis will be our future work. This framework establishes a
+crucial connection between high-level decision-making and the
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 8 ---
+1266 WANG ET AL .
+autonomous vehicle’s lower-level behaviour and status, enabling
+trajectory planning at the lower level for overtaking maneuvers.
+The core concept of this paper can be seen as a benchmark for
+researchers interested in designing high-level decision-making
+frameworks using various optimisation-based methods.
+4 TESTING DRIVING SCENARIOS
+In this section, we illustrate the effectiveness of the proposed
+MPC-based decision-maker through four simulated practical
+trafﬁc scenarios. Here, we consider the discrete decisions of the
+autonomous vehicle in the high level by using integer variables.
+Therefore, the formed optimisation problem can be regarded as
+mixed-integer programming (MIP). Because YALMIP supports
+several MIP solvers, all the driving scenarios are built and tested
+on MATLAB platform with YALMIP Toolkit [ 59]. The central
+component in the optimisation problem is the decision vari-
+ables, and these variables are represented in YALMIP by sdpvar
+objects . The optimisation problem resulting from the integration
+of the YALMIP solver and the conventional MPC solving pro-
+cess is typically addressed using a receding horizon strategy. In
+this approach, only the ﬁrst computed sample of the control
+input within the prediction horizon is applied to the system,
+while the remaining samples are discarded. Subsequently, the
+process is iteratively repeated, adapting to an updated optimi-
+sation problem based on the new initial conditions at the next
+sample. The main idea of the implementation of the proposed
+high-level decision-making framework is given in Figure 7.
+4.1 Testing environment
+For all the driving scenarios, we use Driving Scenario Designer
+provided by MATLAB to set the testing environment (e.g. see
+Figure 8). The initial value of the autonomous vehicle is set as
+z0=[3m;1.3m;0rad;15m∕s]T. Both lanes are set to be 3.6-m
+wide and all the vehicles are 1.9-m wide. Other information
+about the lanes are given in Table 2.
+Next, we will present four driving scenarios in details. The ini-
+tial positions and velocities of surrounding vehicles in different
+scenarios are given in Table 3.
+FIGURE 7 Implementation of the proposed high-level decision-making
+framework.
+FIGURE 8 The testing environment designed by Driving Scenario
+Designer.
+TABLE 2 Reference information of the left lane andright lane ,a n d
+boundaries of lanes as shown in Figure 2.
+Lanes Ylre f Vlre f Yrre f
+Values 1 .3(m)2 5 ( m∕s) −2.3(m)
+Boundaries yrl yrm yrr
+Values 3 .1(m) −0.5(m) −4.1(m)
+Scenario I : The autonomous vehicle starts on the left lane and
+its sensors detect that there is one leading vehicle moving slowly
+on the left lane , and there is no oncoming vehicle on the right lane .
+The autonomous vehicle needs to overtake the leading one by
+occupying the opposite road without any collisions.
+Scenario II : The leading vehicle is parked on the left lane .
+The oncoming vehicle is approaching at a high speed on the
+opposite direction.
+Scenario III : The leading vehicle is not in stationary but moving
+forward slowly. Different from Scenario I, the oncoming vehicle
+is not far from the autonomous one.
+Scenario IV : Different from the above three scenarios, in this
+case, we consider a dynamic environment. Besides the parked
+leading vehicle, we consider two oncoming vehicles: one is a typ-
+ical fast-moving vehicle which is not far from the autonomous
+vehicle, while the other one emerges suddenly (e.g. from the
+crossing road [see Figure 2]). In addition, to verify the effective-
+ness of our MPC-based method, in this scenario, we compare
+with the existing rule-based method proposed in paper [ 19].
+This benchmarked rule-based method concludes four decision
+variables (i.e. initialisation, acceleration, emergency breaking and
+quick lane change), and it works very well for addressing over-
+taking problem in a static environment. However, it may not be
+ﬂexible when it deals with dynamic environments.
+Moreover, the parameters required by the proposed frame-
+work are selected as follows:
+∙Prediction horizon: N=5
+∙Sampling time Ts=0.5(s)
+∙Parameters in cost functions and in constraints are given in
+Table 4.
+4.2 Simulation results
+∙In Scenario I, we set the overall simulation time to 12 s. The
+simulation results are shown in Figures 9-I,10,a n d 11.I tc a n
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 9 ---
+WANG ET AL . 1267
+TABLE 3 The initial positions and velocities of surrounding vehicles in different scenarios.
+Scenarios I II III IV
+Leading (70 m;1.3m;6m∕s)( 6 0 m;1.3m;0m∕s)( 5 2 m;1.3m;6m∕s)( 7 0 m;1.3m;3m∕s)
+Oncoming 1 − (140 m;−2.3m;−20m∕s)( 3 9 m,−2.3m;−15m∕s) (104 m;−2.3m;−25m∕s)
+Oncoming 2 −− − (101 m;−139.8m;−25m∕s)
+FIGURE 9 Time histories of decisions in four scenarios.
+FIGURE 10 The time histories of states and control inputs of the
+autonomous vehicle in Scenario I.
+FIGURE 11 A series of screenshots for the overtaking process in
+Scenario I.TABLE 4 Parameter speciﬁcation.
+Weights Values Parameters Values Parameters Values
+𝛾1 167 l(m)3 c1(m∕s2)3 . 5
+𝛾2 228 𝜖(m)1 0−5c2(m∕s2)1 . 5
+𝜂m 3 𝛽(m)1 c3(m∕s2) 0.008
+𝜂r 3 ΔX(m)4 c4(m∕s2) 0.009
+𝛾3 0.016 ΔY(m)1 . 6 yf(m)−1.9
+−− − − yz(m)0 . 8 3
+−− − − Xel(m)0 . 5
+be seen from Figure 9-Ithat q(0)=1 and the autonomous
+vehicle starts to change to the opposite lane to overtake the
+slowly-moving leading vehicle at 0.5 s (i.e. q(1)=2) since the
+sensor does not detect the oncoming vehicle in the whole
+overtaking process (see Figure 11). From Figure 9-I,w ec a n
+see that the autonomous vehicle returns to the original lane
+after 9 s, that is, q(19)=1. That is, the overall overtak-
+ing maneuvers last for 9 s. This paper mainly focuses on
+the high-level decision-making by assuming there are well-
+designed lower-level path planning and trajectory following.
+Therefore, only a simple rule-based low-level controller is
+implemented in the simulations to illustrate the effectiveness
+of our high-level decision-making on MATLAB Driving Sce-
+nario Designer platform and also which is why we obtain
+non-smooth results (e.g. see heading angle 𝜃in Figure 10).
+In real implementation, much detailed and smooth paths will
+be generated by the path planning module after a high-level
+decision, which is generated by the high-level decision-maker
+and passed to the path planning layer. A series of screenshots
+of the overtaking process can be seen in Figure 11.
+∙In Scenario II, the overall simulation time is 23 s. Accord-
+ing to the settings of this scenario, the simulation results
+are shown in Figures 9-II,12,a n d 13. Figure 13is used
+to illustrate the overtaking process. At the beginning, the
+autonomous vehicle accelerates to track the desired veloc-
+ity on the original lane. After 0.5 s, the sensors of the
+autonomous vehicle detect that there is a vehicle parked
+on the lane, so the autonomous vehicle decides to over-
+take (i.e. q(1)=2). However, as shown in Figure 13,t h e
+opposite lane has been occupied by an oncoming vehicle
+that is close to the autonomous vehicle. Thus, due to the
+safety constraints ( 3), the autonomous vehicle automatically
+ﬁnds the optimal solution to ( 14), stops ( i.e., q (4)=−2) and
+waits for future gaps (see Figure 9-II and the velocity of the
+autonomous vehicle in Figure 12). From Figures 9-II,12,a n d
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 10 ---
+1268 WANG ET AL .
+FIGURE 12 The time histories of states and control inputs of the
+autonomous vehicle in Scenario II.
+FIGURE 13 A series of screenshots for the overtaking process in
+Scenario II.
+FIGURE 14 The time histories of states and control inputs of
+autonomous vehicle in Scenario III.
+13, we know that the autonomous vehicle decides to re-start
+overtaking (i.e. q(10)=2) at 5s (i.e. the waiting time is 3 s)
+when the opposite lane is free, and it goes back to the origi-
+nal lane when the high-level decision changes from “ overtake ”
+to “following lane ”a t1 5s .
+∙In Scenario III, the overall simulation time is 12.5 s, and
+the simulation results are shown in Figures 9-III ,14,a n d
+15. When the autonomous vehicle detects that there is a
+slowly moving leading vehicle in front of it and the oppo-
+FIGURE 15 A series of screenshots for the overtaking process in
+Scenario III.
+FIGURE 16 The time histories of states and control inputs of the
+autonomous vehicle in Scenario IV .
+site lane is busy, the autonomous vehicle decides to slow
+down q=−1 ﬁrst (see Figures 9-III and14) until the oncom-
+ing vehicle bypasses it 1.5 s later, which makes the opposite
+lane clear (see the second screenshot in Figure 15). Hence,
+the autonomous vehicle automatically restarts overtaking
+(i.e.q(4)=2). After 7 s, the autonomous vehicle bypasses the
+leading vehicle and returns back to the original lane; hence,
+q(17)=1. This overtaking process can be seen in Figure 15.
+∙The simulation results of Scenario IV are shown in
+Figures 9-IV ,16,a n d 17with 25 s simulation time. From
+Figure 17, one can see that the left lane is occupied by a
+slower vehicle and the opposite lane is busy with oncoming
+vehicles. Therefore, initially the autonomous vehicle decides
+to slow down (i.e. q(1)=−1), and this coincides with human
+behaviours as human drivers usually slow down ﬁrst to see
+whether the leading vehicle will accelerate or not before fully
+stops (i.e. q=−2). When t=2.5 s, oncoming vehicle 1
+bypasses; hence, the autonomous vehicle makes the decision
+to start to overtake the leading vehicle (i.e. q(5)=2). From
+Figures 9-IV and 17, one can see that during the overtak-
+ing process, another oncoming vehicle emerges suddenly (e.g.
+from the crossing road) at t=5 s and the autonomous vehi-
+cle makes emergency stop ( q(10)=−2) and gives way to
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 11 ---
+WANG ET AL . 1269
+FIGURE 17 A series of screenshots for the overtaking process under the
+proposed model predictive control (MPC)-based framework in Scenario IV .
+FIGURE 18 A series of screenshots for the overtaking process under
+rule-based framework [ 19] in Scenario IV .
+oncoming vehicle 2. After about 1.5 s, the opposite lane is
+free and the autonomous vehicle re-starts the overtaking (i.e.
+q(12)=2) and it returns back to the original lane at t=19
+s (i.e. q(38)=1). The results in this scenario demonstrate
+that the proposed framework is able to cope with sudden-
+emerging vehicles in the dynamic environment. However,
+when we use the existing benchmarked rule-based method
+proposed in paper [ 19] to make a decision for such a dynamic
+environment in the high level, it has collision dangerous, as
+can be seen in Figure 18around t=6s .
+Remark 6. Here, we mainly focus on the high-level decision-
+making framework, and we assume that the low level can
+perfectly execute the command from the high level. For exam-
+ple, in the high level, we set prediction horizon N=5a n d
+sampling time Ts=0.5. By using Matlab command “tic; toc”,
+it can be easy to check that the maximum computational time
+for calculating the optimal decision at each time step is 0.35
+s (except for the computational time of the ﬁrst time step,
+which is 3.1sdue to the initialisation of the algorithm), which
+is less than the sampling time of 0 .5s. Hence, the real-time
+applicability of the proposed algorithm can be achieved.5 DISCUSSION
+Our simulation results display the autonomous behaviour under
+different practical trafﬁc scenarios on two-lane country roads.
+Just like a human driver, the autonomous vehicle is content to
+slow down to see whether the leading vehicle will accelerate or
+not. If the leading vehicle is moving reasonably close to our
+desired speed, we may consider the effort of overtaking not worth
+it. However, if the leading vehicle’s speed is below tolerance, the
+automatic behaviour is to overtake, but only if the opposite lane
+is clear of oncoming vehicles; Otherwise, the autonomous vehi-
+cle will keep the same speed as the leading vehicle to wait for a
+further safe gap to re-start overtaking.
+The constraints and cost function given in Section 2all work
+together to generate the above behaviour. This interplay, how-
+ever, necessitates that the weighting parameter values must be
+chosen holistically. One procedure for parameter selection is to
+select a few of the parameters as independent , with others assigned
+progressively. For example, inspired by [ 44]a n d[ 58], for a 3.6-
+m wide lane with normalised parameters, 𝛾1,𝛾2can be chosen
+as 167 and 228, respectively, and 𝛾3can be chosen as 0.016.
+𝜂mand𝜂rcan be chosen based on the desired overlap of road
+edges and the width of vehicle (see, e.g., Figure 6). For safety
+constraints ( 3), the larger the 𝛽, the more conservative the algo-
+rithm. Conversely, the smaller the 𝛽, the more progressive the
+algorithm. In addition, for a wider lane, it is allowed to chose
+largerΔyi.
+It is well-known that determining the appropriate dura-
+tion for behaviours poses a signiﬁcant challenge in long-term
+behavioural planning problems. The motion planners employed
+in autonomous driving vehicles typically comprise a behaviour
+planner and a trajectory planner. The role of the behaviour
+planner is to make high-level decisions based on the output
+of perception and prediction, which involves extrapolating per-
+ception outputs to future timestamps. During the duration of
+the planning horizon, typically ranging from 5 to 10 s into the
+future (as illustrated in [ 60, 61 ]), the trajectory planner leverages
+the decisions of the behaviour planner and a coarse trajectory
+to generate a smooth trajectory at a lower level. Therefore,
+such a challenge is dealt by not only high-level decision-making,
+but also the lower-level control. Our paper mainly focuses on
+the framework design of high-level decision-making. The sam-
+pling time used in the high level is the time period to update a
+decision and it is usually greater than that in the low level. Sim-
+ilar to human driving, high-level decision-making is relatively
+slow in autonomous driving and it is not desirable to change
+decisions like overtaking too frequently. If the behaviours of
+surrounding vehicles change, the low-level path planning would
+automatically adjust the planned path accordingly. That is, the
+ﬁnal trajectory outputted by the trajectory planner might differ
+signiﬁcantly from the one generated by the behaviour planner.
+However if necessary, we could change the sampling time. In
+our future work, we will tackle this challenge by constructing a
+hierarchical framework.
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 12 ---
+1270 WANG ET AL .
+6 CONCLUSIONS
+This paper has presented a high-level decision-making frame-
+work designed to enable safe and optimal decision-making
+for autonomous overtaking maneuvers in dynamic environ-
+ments, particularly on two-lane country roads with oncoming
+vehicles. The proposed decision-making process integrates
+with the lower-level trajectory planning model to execute
+overtaking maneuvers effectively. Ensuring the correctness of
+decisions relies on establishing a strong connection between
+high-level decision-making and the behaviour and status of
+the autonomous vehicle. To achieve this, we abstract the
+behaviours of both the autonomous vehicle and surrounding
+vehicles, incorporating them into an MPC-based decision-
+making framework, which is further enhanced with switching
+control methods.
+While we have showcased the effectiveness of our proposed
+framework through four numerical simulations, including a
+comparison to the benchmarked rule-based method, analysing
+theoretical properties of the algorithm, such as convergence,
+remains challenging. In the future, we intend to employ a more
+dependable platform to investigate real-world scenarios and
+adapt our proposed method accordingly, ensuring guaranteed
+performance. Moreover, theoretical analysis will be conducted.
+AUTHOR CONTRIBUTIONS
+Xue-Fang Wang : Conceptualization; data curation; formal
+analysis; investigation; methodology; resources; software; vali-
+dation; visualization; writing—original draft. Wen-Hua Chen :
+Conceptualization; funding acquisition; investigation; project
+administration; resources; supervision; writing—review and
+editing. Jingjing Jiang : Conceptualization; formal analysis;
+investigation; methodology; resources; supervision; valida-
+tion; visualization; writing—review and editing. Yunda Yan :
+Investigation; resources; software; validation; writing—review
+and editing.
+CONFLICT OF INTEREST STATEMENT
+The authors declare no conﬂicts of interest.
+DATA AVAILABILITY STATEMENT
+Data sharing is not applicable to this article as no datasets were
+generated or analysed during the current study.
+ORCID
+Xue-Fang Wang https://orcid.org/0000-0001-8104-4408
+Yunda Yan https://orcid.org/0000-0002-2839-6778
+REFERENCES
+1. Chen, L., Lin, S., Lu, X., Cao, D., Wu, H., Guo, C., Liu, C., Wang, F.Y .: Deep
+neural network based vehicle and pedestrian detection for autonomous
+driving: a survey. IEEE Trans. Intell. Transp. Syst. 22(6), 3234–3246 (2021)
+2. Chai, R., Tsourdos, A., Chai, S., Xia, Y ., Savvaris, A., Chen, C.P .: Multi-
+phase overtaking maneuver planning for autonomous ground vehicles via a
+desensitized trajectory optimization approach. IEEE Trans. Ind. Inf. 19(1),
+74–87 (2023)
+3. Chai, R., Tsourdos, A., Savvaris, A., Chai, S., Xia, Y ., Chen, C.P .: Multi-
+objective overtaking maneuver planning for autonomous ground vehicles.
+IEEE Trans. Cybern. 51(8), 4035–4049 (2021)4. Li, Z., Jiang, J., Chen, W .H., Sun, L.: Autonomous lateral maneuvers for
+self-driving vehicles in complex trafﬁc environment. IEEE Trans. Intell.
+Veh. 8(2), 1900–1910 (2022)
+5. Alighanbari, S., Azad, N.L.: Deep reinforcement learning with NMPC
+assistance nash switching for urban autonomous driving. IEEE Trans.
+Intell. Veh. 8(3), 2604–2615 (2023). https://doi.org/10.1109/TIV .2022.
+3167616
+6. Vanholme, B., Gruyer, D., Lusetti, B., Glaser, S., Mammar, S.: Highly
+automated driving on highways based on legal safety. IEEE Trans. Intell.
+Transp. Syst. 14(1), 333–347 (2012)
+7. Hegeman, G., Brookhuis, K., Hoogendoorn, S.: Opportunities of
+advanced driver assistance systems towards overtaking. European Journal
+of Transport and Infrastructure Research 5(4), 281–296 (2005)
+8. Wang, Y ., Shao, Q., Zhou, J., Zheng, H., Chen, H.: Longitudinal and lat-
+eral control of autonomous vehicles in multi-vehicle driving environments.
+IET Intel. Transport Syst. 14(8), 924–935 (2020)
+9. Yamada, Y ., Bakibillah, A.S.M., Hashikura, K., Kamal, M.A.S., Yamada,
+K.: Autonomous vehicle overtaking: modeling and an optimal trajectory
+generation scheme. Sustainability 14(3), 1–14 (2022)
+10. Kessler, T., Esterle, K., Knoll, A.: Mixed-integer motion planning on ger-
+man roads within the apollo driving stack. IEEE Trans. Intell. Veh. 8(1),
+851–867 (2023)
+11. Chai, R., Savvaris, A., Tsourdos, A., Chai, S., Xia, Y .: Uniﬁed multiobjective
+optimization scheme for aeroassisted vehicle trajectory planning. Journal
+of Guidance, Control, and Dynamics 41(7), 1521–1530 (2018)
+12. Chai, R., Tsourdos, A., Savvaris, A., Chai, S., Xia, Y ., Chen, C.P .: Multi-
+objective optimal parking maneuver planning of autonomous wheeled
+vehicles. IEEE Trans. Ind. Inf. 67(12), 10809–10821 (2020)
+13. Chai, R., Tsourdos, A., Savvaris, A., Xia, Y ., Chai, S.: Real-time reentry tra-
+jectory planning of hypersonic vehicles: a two-step strategy incorporating
+fuzzy multiobjective transcription and deep neural network. IEEE Trans.
+Ind. Electron. 67(8), 6904–6915 (2020)
+14. Luo, Y ., Yang, G., Xu, M., Qin, Z., Li, K.: Cooperative lane-change maneu-
+ver for multiple automated vehicles on a highway. Automotive Innovation
+2, 157–168 (2019)
+15. Wang, Q., Ayalew, B., Weiskircher, T.: Predictive maneuver planning for an
+autonomous vehicle in public highway trafﬁc. IEEE Trans. Intell. Transp.
+Syst. 20(4), 1303–1315 (2019)
+16. Jeon, S., Lee, K., Kum, D.: Overtaking decision and trajectory plan-
+ning in highway via hierarchical architecture of conditional state machine
+and chance constrained model predictive control. Rob. Auton. Syst. 151,
+104014 (2022)
+17. Xu, C., Zhao, W ., Liu, J., Wang, C., Lv, C.: An integrated decision-making
+framework for highway autonomous driving using combined learning and
+rule-based algorithm. IEEE Trans. Veh. Technol. 71(4), 3621–3632 (2022)
+18. Jula, H., Kosmatopoulos, E.B., Ioannou, P .A.: Collision avoidance analysis
+for lane changing and merging. IEEE Trans. Veh. Technol. 49(6), 2295–
+2308 (2000)
+19. Zhang, Z., Zhang, L., Wang, C., Wang, M., Cao, D., Wang, Z.: Integrated
+decision making and motion control for autonomous emergency avoid-
+ance based on driving primitives transition. IEEE Trans. Veh. Technol.
+72(4), 4207–4221 (2023)
+20. Chen, X., Wei, J., Ren, X., Johansson, K.H., Wang, X.: Automatic overtak-
+ing on two-way roads with vehicle interactions based on proximal policy
+optimization. In: 2021 IEEE Intelligent Vehicles Symposium (IV), pp.
+1057–1064. IEEE, Piscataway, NJ (2021)
+21. Hoel, C.J., Driggs-Campbell, K., Wolff, K., Laine, L., Kochenderfer, M.J.:
+Combining planning and deep reinforcement learning in tactical decision
+making for autonomous driving. IEEE Trans. Intell. Veh. 5(2), 294–305
+(2020)
+22. Sun, L.T., Peng, C., Zhan, W ., Tomizuka, M.: A fast integrated planning
+and control framework for autonomous driving via imitation learning. In:
+Proceedings of the ASME Dynamic Systems and Control Conference,
+vol. 51913, pp. 1–11. ASME, New York (2018). DOI: https://doi.org/
+10.1115/DSCC2018-9249
+23. Kiran, B.R., Sobh, I., Talpaert, V ., Mannion, P ., Al Sallab, A.A.,
+Yogamaniand, S., Pérez, P .: Deep reinforcement learning for autonomous
+driving: a survey. IEEE Trans. Intell. Transp. Syst. 23(6), 4909–4926 (2022)
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
+
+--- Page 13 ---
+WANG ET AL . 1271
+24. Hou, Y ., Edara, P ., Sun, C.: Situation assessment and decision making
+for lane change assistance using ensemble learning methods. Expert Syst.
+Appl. 42(8), 3875–3882 (2015)
+25. Lenz, D., Kessler, T., Knoll, A.: Tactical cooperative planning for
+autonomous highway driving using Monte-Carlo Tree Search. IEEE Intel-
+ligent Vehicles Symposium (IV), pp. 447–453. IEEE, Piscataway, NJ
+(2016)
+26. Chen, J., Zhang, C., Luo, J., Xie, J., Wan, Y .: Driving maneuvers prediction
+based autonomous driving control by deep Monte Carlo tree search. IEEE
+Trans. Veh. Technol. 69(7), 7146–7158 (2020)
+27. Wen, L., Fu, Z., Cai, P ., Fu, D., Mao, S., Shi, B.: TrafﬁcMCTS: A closed-
+loop trafﬁc ﬂow generation framework with group-based monte carlo tree
+search. arXiv preprint arXiv:2308.12797 (2023)
+28. Ziegler, C., Adamy, J.: Anytime tree-based trajectory planning for urban
+driving. IEEE Open J. Intell. Transp. Syst. 4, 48–57 (2023)
+29. Luo, Y ., Xiang, Y ., Cao, K., Li, K.: A dynamic automated lane change
+maneuver based on vehicle-to-vehicle communication. Transportation
+Research Part C: Emerging Technologies 62, 87–102 (2016)
+30. Butakov, V .A., Ioannou, P .: Personalized driver/vehicle lane change
+models for ADAS. IEEE Trans. Veh. Technol. 64(10), 4422–4431 (2014)
+31. Ngai, D.C.K., Yung, N.H.C.: A multiple-goal reinforcement learning
+method for complex vehicle overtaking maneuvers. IEEE Trans. Intell.
+Transp. Syst. 12(2), 509–522 (2011)
+32. Kober, J., Bagnell, J.A., Peters, J.: Reinforcement learning in robotics: A
+survey. Int. J. Rob. Res. 32(11), 1238–1274 (2013)
+33. Chen, W .H.: Perspective view of autonomous control in unknown envi-
+ronment: dual control for exploitation and exploration vs reinforcement
+learning. Neurocomputing 497, 50–63 (2022)
+3 4 . H u a n g ,Y . ,W a n g ,H . ,K h a j e p o u r ,A . ,D i n g ,H . ,Y u a n ,K . ,Q i n ,Y . :An o v e l
+local motion planning framework for autonomous vehicles based on resis-
+tance network and model predictive control. IEEE Trans. Veh. Technol.
+69(1), 55–66 (2020)
+35. Chen, C., Gaschler, A., Rickert, M., Knoll, A.: Task planning for highly
+automated driving. In: Proceedings of the IEEE Intelligent Vehicles
+Symposium (IV), pp. 940–945. IEEE, Piscataway, NJ (2015)
+36. Mayne, D.Q., Rawlings, J.B., Rao, C.V ., Scokaert, P .O.M.: Constrained
+model predictive control: Stability and optimality. Automatica 36(6),
+789–814 (2000)
+37. Falcone, P ., Borrelli, F., Asgari, J., Tseng, H.E., Hrovat, D.: Predictive active
+steering control for autonomous vehicle systems. IEEE Trans. Control
+Syst. Technol. 15(3), 566–580 (2007)
+38. Anderson, S.J., Peters, S.C., Pilutti, T.E., Iagnemma, K.: An optimalcontrol-
+based framework for trajectory planning, threat assessment, and semi-
+autonomous control of passenger vehicles in hazard avoidance scenarios.
+Int. J. Veh. Auton. Syst. 8(2-4), 190–216 (2010)
+39. Hillel, A.B., Lerner, R., Levi, D., Raz, G.: Recent progress in road and
+lane detection: a survey. Machine Vision and Applications 25(3), 727–745
+(2014)
+40. Weiskircher, T., Wang, Q., Ayalew, B.: Predictive guidance and control
+framework for (semi-)autonomous vehicles in public trafﬁc. IEEE Trans.
+Control Syst. Technol. 25(6), 2034–2046 (2017)
+41. Yuan, K., Shu, H., Huang, Y ., Zhang, Y ., Khajepour, A., Zhang, L.: Mixed
+local motion planning and tracking control framework for autonomous
+vehicles based on model predictive control. IET Intel. Transport Syst.
+13(6), 950–959 (2019)
+42. Houska, B., Ferreau, H.J., Diehl, M.: An auto-generated realtime itera-
+tion algorithm for nonlinear MPC in the microsecond range. Automatica
+47(10), 2279–2285 (2011)
+43. Muraleedharan, A., Okuda, H., Suzuki, T.: Real-time implementation of
+randomized model predictive control for autonomous driving. IEEE
+Trans. Intell. Veh. 7(1), 11–20 (2022)
+44. Dixit, S., Montanaro, U., Dianati, M., Oxtoby, D., Mizutani, T., Mouzakitis,
+A., Fallah, S.: Trajectory planning for autonomous high-speed overtaking
+in structured environments using robust MPC. IEEE Trans. Intell. Transp.
+Syst. 21(6), 2310–2323 (2020)
+45. Qu, T., Zhao, J., Gao, H., Cai, K., Chen, H., Xu, F.: Multi-mode switching-
+based model predictive control approach for longitudinal autonomousdriving with acceleration estimation. IET Intel. Transport Syst. 14(14),
+2102–2112 (2021)
+4 6 . Y a n ,Y . ,W a n g ,X . F . ,M a r s h a l l ,B . J . ,L i u ,C . ,Y a n g ,J . ,C h e n ,W . H . :S u r v i v -
+ing disturbances: a predictive control framework with guaranteed safety.
+Automatica 158, 111238 (2023)
+47. Lenz, D., Kessler, T., Knoll, A.: Stochastic model predictive controller
+with chance constraints for comfortable and safe driving behavior of
+autonomous vehicles. IEEE Intelligent Vehicles Symposium (IV), pp.
+292–297 (2015)
+48. Chen, P ., Xing, Y ., Huang, C., Hu, Z.: Human-like decision making for
+autonomous driving: a noncooperative game theoretic approach. IEEE
+Trans. Intell. Transp. Syst. 22(4), 2076–2087 (2021)
+49. Ji, A., Levinson, D.: A review of game theory models of lane changing.
+Transportmetrica A: Transport Science 16(3), 1628–1647 (2020)
+50. Li, D., Pan, H.: Two-lane two-way overtaking decision model with driving
+style awareness based on a game-theoretic framework. Transportmetrica
+A: Transport Science 19(3), 2076755 (2023)
+51. Ronecker, M.P ., Zhu, Y .: Deep q-network based decision making for
+autonomous driving. In: 2019 3rd International Conference on Robotics
+and Automation Sciences (ICRAS), pp. 154–160. IEEE, Piscataway, NJ
+(2019)
+52. Chen, J., Bhat, M., Jiang, S., Zhao, D.: Advanced driver assistance strategies
+for a single-vehicle overtaking a platoon on the two-lane two-way road.
+IEEE Access 8, 77285–77297 (2020)
+53. Mo, S., Pei, X., Wu, C.: Safe reinforcement learning for autonomous vehi-
+cle using monte carlo tree search. IEEE Trans. Intell. Transp. Syst. 23(7),
+6766–6773 (2022)
+54. Schwarting, W ., Alonso-Mora, J., Rus, D.: Planning and decisionmaking for
+autonomous vehicles. Annual Review of Control. Annu. Rev. Control Rob.
+Auton. Syst. 1, 187–210 (2018)
+55. Ji, Y ., Ni, L., Zhao, C., Lei, C., Du, Y ., Wang, W .: 3D potential ﬁeld model
+and its applications to local path planning of autonomous vehicles. IEEE
+Trans. Intell. Transp. Syst. 24(3), 3541–3554 (2023)
+56. Taghavifar, H., Taghavifar, L., Hu, C., Wei, C., Qin, Y .: Optimal reinforce-
+ment learning and probabilistic-risk-based path planning and following of
+autonomous vehicles with obstacle avoidance. Proceedings of the Institu-
+tion of Mechanical Engineers, Part D: Journal of Automobile Engineering
+(2023)
+57. Fierro, R., Lewis, F.: Control of a nonholonomic mobile robot: backstep-
+ping kinematics into dynamics. Journal of Robotic Systems 14(3), 149–163
+(1997)
+58. Wolf, M.T., Burdick, J.W .: Artiﬁcial potential functions for highway driving
+with collision avoidance. In: Proceedings of the IEEE International Con-
+ference on Robotics and Automation, pp. 3731–3736. IEEE, Piscataway,
+NJ (2008). DOI: https://doi.org/10.1109/ROBOT.2008.4543783
+59. Lofberg, J.: YALMIP: A toolbox for modeling and optimization in MAT-
+LAB. In: Proceedings of IEEE International Conference on Robotics and
+Automation, pp. 284–289. IEEE, Piscataway, NJ (2004). DOI: https://
+doi.org/10.1109/CACSD.2004.1393890
+60. Sadat, A., Ren, M., Pokrovsky, A., Lin, Y .-C., Yumer, E., Urtasun, R.: Jointly
+learnable behavior and trajectory planning for self-driving vehicles. In:
+IEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS), Macau, China, pp. 3949–3956. IEEE, Piscataway, NJ (2019)
+61. Huang, Z., Liu, H., Wu, J., Lv, C.: Conditional predictive behavior planning
+with inverse reinforcement learning for human-like autonomous driving.
+IEEE Trans. Intell. Transp. Syst. 24(7), 7244–7258 (2023)
+How to cite this article: Wang, X.-F., Chen, W .-H.,
+Jiang, J., Yan, Y .: High-level decision-making for
+autonomous overtaking: An MPC-based switching
+control approach. IET Intell. Transp. Syst. 18,
+1259–1271 (2024). https://doi.org/10.1049/itr2.12507
+ 17519578, 2024, 7, Downloaded from https://ietresearch.onlinelibrary.wiley.com/doi/10.1049/itr2.12507 by University College London UCL Library Services, Wiley Online Library on [03/07/2024]. See the Terms and Conditions (https://onlinelibrary.wiley.com/terms-and-conditions) on Wiley Online Library for rules of use; OA articles are governed by the applicable Creative Commons License
+
