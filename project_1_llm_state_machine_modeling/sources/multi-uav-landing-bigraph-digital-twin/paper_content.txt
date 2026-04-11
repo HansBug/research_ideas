@@ -1,0 +1,1124 @@
+--- Page 1 ---
+Academic Editors: Sarah Hubbard,
+Damon Lercel and Cheng Wang
+Received: 20 November 2025
+Revised: 23 December 2025
+Accepted: 24 December 2025
+Published: 26 December 2025
+Copyright: © 2025 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license.
+Article
+A Bigraph-Based Digital Twin for Multi-UA V
+Landing Management
+Tianxiong Zhang1,*
+, Dominik Grzelak1
+, Martin Lindner2
+, Hartmut Fricke2
+and Uwe Aßmann1
+1Institute of Software and Multimedia Technology, Technische Universität Dresden, 01187 Dresden, Germany;
+dominik.grzelak@tu-dresden.de (D.G.); uwe.assmann@tu-dresden.de (U.A.)
+2Institute of Logistics and Aviation, Technische Universität Dresden, 01069 Dresden, Germany;
+martin.lindner1@tu-dresden.de (M.L.); hartmut.fricke@tu-dresden.de (H.F.)
+*Correspondence: tianxiong.zhang@tu-dresden.de
+Highlights
+What are the main findings?
+•A unified bigraph-based digital twin framework is developed to formally model, verify,
+and execute multi-UAV landing operations on modular UAV-tailored pads, integrating
+spatial representation and reaction rule-based behavior in a single formalism.
+•The framework provides executable correctness guarantees through bigraph model
+checking and a cyber–physical synchronization control architecture, ensuring conflict-
+free UAV-pad allocation and safe multi-UAV landing across diverse pad layouts and
+fleet sizes.
+What are the implications of the main findings?
+•The proposed approach demonstrates that formal digital twins based on Bigraphical
+Reactive Systems (BRS) can effectively model multi-UAV operations while also bridging
+the gap between formal verification and runtime cyber–physical consistency.
+•The framework offers a scalable and safety-proven foundation for future Innovative
+Air Mobility (IAM) operations, enabling reliable deployment of large numbers of au-
+tonomous UAVs on reconfigurable landing sites.
+Abstract
+Applications of Innovative Air Mobility (IAM) place high demands on the safe coordination
+of multiple UAVs and UAV-tailored takeoff and landing pads to mitigate unforeseen ad-
+verse effects. However, existing modeling approaches for multi-UAV flight operation often
+provide neither formal correctness guarantees nor effective mechanisms for maintaining
+cyber–physical consistency. To address these limitations, this paper proposes a bigraph-
+based digital twin framework that unifies modeling, execution, and synchronization for
+the management of landing operations involving multiple UAVs. Leveraging Bigraphical
+Reactive Systems (BRS), the framework employs a bigrid-based spatial model to formally
+represent UAV–pad occupancy constraints and to enforce one-to-one pad assignments
+via reaction rules, supporting formal proofs of safety properties. The model is linked
+to physical execution through modular APIs and a state-machine-based control service,
+enabling runtime cyber–physical synchronization. The formal specification is verified
+through model checking, which exhaustively explores the solution space (i.e., UAV be-
+haviors in abstracted environments) to identify bigraph-algebraic solutions that guarantee
+conflict-free landings across different pad configurations. The framework is instantiated on
+the Crazyflie platform, demonstrating its ability to bridge formal modeling and physical
+Drones 2026 ,10, 12 https://doi.org/10.3390/drones10010012
+
+--- Page 2 ---
+Drones 2026 ,10, 12 2 of 27
+execution while maintaining safety, scalability, and robustness in operational scenarios
+involving multiple UAVs.
+Keywords: IAM; digital twin; bigraphical reactive systems; vertiport pad; UAV
+1. Introduction
+Innovative Air Mobility (IAM) refers to a new mobility concept that enables safe,
+secure, efficient, and sustainable air mobility services [ 1–3]. Within this context, unmanned
+vehicle operation must be seen as a safety-critical application following ICAO and EASA
+safety-based approach of implementation. It is essential to formally guarantee safe op-
+erations at all times, i.e., that system behavior conforms to intended operations planned
+according to well-defined standards. Since market forecasts show a significant demand for
+especially small vehicles, IAM shall account for large numbers of vehicles (agents) involved.
+However, many multi-agent coordination algorithms and protocols lack mathematically
+precise semantics and formal correctness guarantees, and are therefore susceptible to er-
+rors [ 4]. Even minor mistakes in coordination can compromise communication, endanger
+the physical integrity of the UAVs, and ultimately lead to mission failure.
+In practice, safely coordinating multiple UAVs is a key challenge, especially when con-
+sidering the resources and constraints of UAV-tailored takeoff and landing pads. Although
+operational landing sites for small UAVs do not yet exist, prior research on vertiports has
+been conducted in virtual or simulated environments and through extrapolation from
+helicopter operations. This body of work primarily focuses on scheduling and queuing-
+based optimization algorithms [ 5–7], as well as intelligent control systems for UAVs [ 8,9].
+Nevertheless, these studies typically do not provide formal, executable correctness guar-
+antees for the spatio-temporal positioning of UAVs on and around UAV-tailored pads.
+Moreover, where formal methods are used, they are usually developed in isolation from
+concrete UAV control strategies, creating a potential mismatch between verified models and
+deployed controllers that can ultimately compromise safety and scalability in the physical
+system [10–12].
+Formal model-based digital twin technology may offer a promising approach to ad-
+dressing these challenges. By constructing mathematically precise models and rules in
+cyberspace, such twins can support analysis and decision making for UAV scheduling
+and resource management, while enabling formal verification of critical safety proper-
+ties [ 13]. At the same time, as digital twins, they must support bidirectional interaction:
+the virtual model issues control guidance to the UAVs, and the UAVs’ real-time state
+information continuously updates the model. Consequently, designing formal models and
+mechanisms that maintain reliable cyber–physical consistency becomes a key objective for
+practical deployment.
+This study adopts Bigraphical Reactive Systems (BRS) [ 14] as the core formal language
+for building digital twin models to automate multi-UAV landing operations on modular,
+UAV-tailored pads inspired by EASA prototype guidelines for vertiport [ 15,16]. Bigraphs
+provide a unified formalism by integrating spatial configuration, communication topology,
+and dynamic occupancy within a single mathematically precise structure. Their two-
+layer representation—place graph for spatial hierarchy and link graph for coordination
+links—supports a coherent yet independent modeling of UAV–pad interactions. Through
+reaction rules and the operational semantics of BRS, system evolution, pad allocation,
+and topology updates (e.g., relocation of nodes) can be expressed, analyzed, and formally
+verified within the same framework.
+https://doi.org/10.3390/drones10010012
+
+--- Page 3 ---
+Drones 2026 ,10, 12 3 of 27
+Building on the bigraph modeling language, we propose a three-component digital
+twin framework that integrates modeling, model checking, and execution through cy-
+ber–physical synchronization. The digital twin developed in this work is model-driven:
+at its core is a BRS model that captures the discrete, structural, and topological aspects
+of multi-UAV operations. To represent the continuous physical states of UAVs, the twin
+incorporates sensor measurements, which are mapped into the discrete bigraph domain.
+Compared with related work and our prior studies [ 17,18], the main contributions of this
+work are as follows:
+• Formal Specification: We present the first formally specified digital twin for automated
+UAV landing based on BRS. Our approach introduces a bigrid-based spatial abstraction
+that precisely models modular, UAV-tailored landing pads and encodes safety-critical
+reaction rules governing conflict-free landing behavior.
+• Verification: We provide a comprehensive verification pipeline that combines ex-
+haustive model checking with hardware-in-the-loop experiments. The formal model
+checking explores the entire state space, validating both safety and liveness properties.
+Our physical experiments demonstrate that the formally verified model can be exe-
+cuted on real platforms, achieving conflict-free landings under varied pad layouts and
+fleet sizes.
+• Cyber–Physical Synchronization: We deliver the first integration of bigraph-based
+formal models with an executable digital twin for UAV landing operations. Our spatial
+model generation service enables reconfiguration of landing pads while supporting
+scalable instantiation of multiple UAV agents without modifying any underlying
+bigraph rules. Combined with the AeroCtrl controller, Protobuf message protocol, and
+ROS2 integration, this establishes a fully operational cyber–physical synchronization
+loop, turning the formal model into an executable digital twin.
+Outline
+Section 2 provides a concise overview of research progress on digital twin applications
+and bigraphs in the multi-UAV traffic system domain. Section 3 presents the bigraph-based
+digital twin framework for coordinating and managing multiple UAVs during landing
+operations, together with the implementation methodology. Section 4 reports model
+checking and physical validation results for landing scenarios involving multiple UAVs
+with UAV-tailored pads. Section 5 discusses the proposed approach. Finally, Section 6
+concludes the paper.
+2. Related Work
+2.1. Digital Twin Applications in Innovative Air Mobility
+Digital Twin technology was initially developed and widely applied in industrial man-
+ufacturing to achieve synchronized mapping and interaction between physical entities and
+their virtual counterparts [ 19]. As the concept of IAM continues to evolve, the digital twin
+is gradually applied to this field [ 13]. Its core advantage lies in the ability to create virtual
+prototypes and perform multi-scenario simulations before physical experimentation, en-
+abling real-time optimization and control of aircraft aerodynamic performance, operational
+behaviors, and overall mission functionalities [ 20]. Previous studies have demonstrated
+the broad applicability of digital twins in, e.g., UAV mission planning, swarm control, and
+operational safety [21–24].
+In the domain of intelligent mission planning of UAVs, digital twins have been success-
+fully combined with intelligent algorithms using i.e., deep reinforcement learning to enable
+efficient testing and verification of operational mobility concepts using virtual environ-
+ments, facilitating autonomous decision-making and optimal task allocation [ 12,21]. More-
+https://doi.org/10.3390/drones10010012
+
+--- Page 4 ---
+Drones 2026 ,10, 12 4 of 27
+over, digital twins have been applied to the exploration of intelligent control strategies, for
+instance, leveraging virtual reality to support multi-UAV collaborative operations [25,26] .
+Adaptive digital twin testing platforms have also been proposed, allowing UAVs to dy-
+namically adjust decisions during mission execution, thereby maintaining robustness in
+complex, i.e., obstacle-rich environments [27].
+For the control and optimization of multiple UAVs, digital twins primarily contribute
+by providing high-fidelity system modeling and supporting optimization of operational
+strategies. One line of research emphasizes the role of digital twins in supporting intelligent
+control, such as using digital twin environments to optimize multi-agent deep reinforce-
+ment learning, improving the safety of multi-UAV operations and real-time decision-
+making capabilities [ 28]. Another line focuses on kinetic and aerodynamic behavior mod-
+eling based on machine learning to track and analyze fleet-level behavior [ 24], thereby
+enhancing swarm coordination and collective intelligence [ 22]. Digital twins have also
+been applied to perception and task execution scenarios, such as wildfire monitoring and
+emergency response [ 29,30]. While these approaches improve swarm cooperation and
+real-time execution, they are often limited to the algorithm-level view and face challenges
+such as constrained computational resources, leading to potentially delayed model updates.
+In addition, deep learning-based black-box models exhibit limited interpretability, omitting
+their use in safety-critical applications.
+A central challenge of digital twins is to ensure cyber–physical consistency at all times,
+i.e., ensuring that the operational logic and processes of real-world UAVs align with those
+designed in the model [ 31]. Although existing methods in other domains [ 32] demonstrate
+certain advantages for nonlinear systems, their high computational complexity prevents
+direct application to large-scale digital twins.
+2.2. Bigraph-Based Modeling for Multiple UAVs
+Formal models allow for rigorous verification of system behavior and facilitate a
+deeper understanding and potential simplification of system analysis. By mathematically
+abstracting the target system, formal models enable verification against requirements,
+testing across different infrastructures, and simulation of system behavior.
+In recent years, the bigraph theory has been applied in cyber–physical systems, digital
+twins, and multi-agent systems [ 33–36]. This graph-based approach, incorporating reaction
+rules, offers both intuitive visualization and formal abstraction through explicit constructs
+(e.g., sites, regions, and names), rewriting rules, and multiple entity association mechanisms
+(topology and linkage), supporting compositional reasoning (see Appendix A). Compared
+to other modeling languages that lack the expressive capacity to capture dynamic changes
+in spatially distributed systems, bigraph offers a hierarchical structure and dynamic re-
+configuration capabilities. These features make it particularly suitable for representing
+spatiotemporal occupancy constraints, as well as modeling UAV task interactions and
+environmental dynamics.
+Recent studies have increasingly adopted bigraphs for modeling multiple UAVs. Bi-
+graphs have been incorporated into the BDI architecture for formal modeling and property
+verification of UAV behaviors [ 37] in an exemplary surveillance and retrieval mission. In
+behavior modeling, bigraph-based methods define action sequences executed by individ-
+ual UAVs at discrete steps to accomplish specified missions [ 38], and through the use of
+tracking bigraphical reactive systems (TBRS), unify motion, monitoring, collaboration, and
+collision-avoidance behaviors, while employing trajectory and position concepts for visual-
+ization and rule validation [ 39]. Although these studies have achieved significant progress
+in formal verification and behavior modeling, they typically operate at an abstract level,
+https://doi.org/10.3390/drones10010012
+
+--- Page 5 ---
+Drones 2026 ,10, 12 5 of 27
+while the connection to concrete UAV control stacks or executable digital-twin instances is
+left implicit.
+In summary, existing research has made significant progress in both digital twin
+development and bigraph-based multi-UAV modeling. However, two key limitations
+persist: (i) current multi-UAV digital twin platforms lack formal methods that can unify
+spatial occupancy and system state representation; and (ii) existing studies based on formal
+methods have paid limited attention to the synchronization mechanism between virtual
+models and physical UAV states, leading to potential inconsistencies within the digital twin
+and low synchronization fidelity with the real world.
+3. Methodology
+3.1. Bigraph-Based Digital Twin Framework for Coordinating and Managing Multiple UAV
+Flight Operations
+According to Braun et al. [ 40], a digital twin comprises not only a set of virtual models
+but also a set of services that enable purposeful use of these models and data in relation to
+the original system. For IAM, the respective models need to capture both the behavioral
+dynamics of the vehicles and the environment (airspace) in which they operate. Moreover,
+effective communication services are essential to ensure seamless interaction between
+physical and cyberspaces, thereby supporting real-time control through the digital twin.
+This resembles a basic feedback loop in control theory.
+The bigraph-based digital twin framework we propose is illustrated in Figure 1,
+which faithfully implements [ 40] [Definition 2], consisting of three aspects: the Cyber
+Space (Sections 3.3 and 3.4), the Physical Space, and Cyber–Physical Synchronization
+(Section 3.5).
+Within the Cyber space, physical entities are modeled through a modular toolset that
+provides spatial abstractions and high-level UAV control interfaces, enabling real-time
+mapping, UAV state determination, and control. The cyber–physical synchronization part
+acts as middleware, supporting bi-directional interaction by ensuring data transmission
+and translation of high-level commands into UAV control. The following paragraphs
+elaborate on each part of the framework.
+Figure 1. Proposed bigraph-based digital twin framework for multi-UAV landing management.
+https://doi.org/10.3390/drones10010012
+
+--- Page 6 ---
+Drones 2026 ,10, 12 6 of 27
+In the Cyber space, the framework is further divided into a modeling layer and an
+execution layer.
+In the modeling layer, we employ the bigraph formal modeling language to abstract
+UAV landing operations on modular, UAV-tailored pads. This abstraction yields a unified
+consistency abstraction model. Building upon this model, we design reaction rules under
+the theory of BRS [ 41] that capture the state transitions during the approaching and landing
+processes of multiple UAVs, enabling systematic evolution of system states.
+The execution layer focuses on bridging abstraction and execution. It dynamically
+generates virtual spatial models from the consistency abstraction and integrates a state
+machine–based high-level UAV controller, AeroCtrl, developed on ROS2. AeroCtrl enforces
+safety checks on UAV state transitions, ensuring reliable mapping of abstract states into
+executable control actions.
+The cyber–physical synchronization component serves as the critical bridge between
+the cyber and physical spaces, enabling bi-directional data exchange and state mapping.
+This component relies on RESTful APIs and the Protobuf protocol, with ROS2 as middle-
+ware, to support real-time UAV control and synchronization based on spatial models and
+state machines.
+Finally, in the Physical space, the framework is validated on an actual multi-UAV
+platform. We adopt a multi-UAV coordination paradigm that integrates UAVs with a
+centralized ground control station. The control station executes computationally inten-
+sive tasks within the cyber space and generates control instructions. These instructions
+are transmitted through the cyber–physical synchronization component to the onboard
+flight control modules, thereby enabling accurate navigation and safe landing operations
+for UAVs.
+3.2. Bigraphs and Bigraphical Reactive Systems
+A bigraph represents the state of a system at a given moment, which consists of two
+components: a place graph and a link graph. The place graph models the spatial relations
+among elements in the graph, whereas the link graph is a hypergraph used to represent
+their interconnections along an orthogonal dimension.
+In the place graph, nodes represent various geometric shapes such as squares, dia-
+monds, or triangles. Each node is assigned a type, referred to as a control in bigraph-jargon,
+which determines its arity (i.e., number of links). Arity indicates how many connections
+(links) can be established on this type of node. Type indicates whether the node is atomic
+(i.e., whether it can contain other entities or not). Nodes can also be nested, indicating
+containment relationships. The outermost dashed box represents the root, which does not
+have types but serves to separate different nesting hierarchies. Additionally, gray rectangles
+denote sites, which abstract the model elements that constitute the place graph. In other
+words, an entity containing a sitecan accommodate zero or more entities of arbitrary types.
+Figure 2 exemplifies the graphical conventions applied to node types: A Drone is depicted
+as a UAV symbol, Route as a diamond, and OccupiedBy as a rounded rectangle, for instance.
+In the link graph, green connecting lines are used to link to a node. Names allow a
+bigraph to establish connections (or potential connections) with some external environment
+(e.g., the roof of some hospital building), and are displayed as labels above the diagram.
+Unconnected lines are closed and depicted as loops. Note that this is not the focus of
+this paper. We are only concerned with the infrastructure of UAV-tailored pads and the
+UAVs themselves.
+https://doi.org/10.3390/drones10010012
+
+--- Page 7 ---
+Drones 2026 ,10, 12 7 of 27
+Figure 2. An abstracted bigraph example model of a UAV–pad scenario: ( a) a bigraph; ( b) place
+graph; ( c) link graph.
+To introduce dynamics into bigraphs, we define reaction rules , forming what is known
+as Bigraphical Reactive Systems (BRS). BRS consists of a set of reaction rules of the form
+LHS−−RHS , where LHS (left-hand side) and RHS (right-hand side) are also referred
+to as the redex and the reactum , respectively, both being bigraphs. Intuitively, a bigraph
+Bis matched against the LHS ; upon a successful match, the corresponding portion of
+LHS is rewritten as RHS , evolving the system into a new bigraph B′. We introduce more
+bigraph theory in Appendix A. It is worth noting that this paper provides only a non-formal
+overview of bigraphs. The full theoretical framework can be found in [41].
+3.3. Bigraph-Based Landing Scenario Modeling for Multiple UAVs
+In the overall design of our bigraph-based model, we adopt the so-called Bigrid [17] as
+the foundational structure for our spatiotemporal model. From a topological perspective,
+our bigraphical structure abstracts from metric distances, focusing instead on the parti-
+tioning of abstract spatial layouts and the connectivity between abstract realms. More
+technically, a bigrid is a modular topological structure based on bigraph algebra, used to
+represent the connectivity between dimensionless positions (i.e., discrete points or regions)
+while also capturing properties such as direction, orientation, and resolution. Its primary
+components include: Locale , representing spatial regions; Route , representing paths within
+a locale that can connect to other locales; and site, serving as a placeholder to represent
+potential entities within a locale, such as UAVs or obstacles. In a bigrid, each locale corre-
+sponds to a disjoint subset of Cartesian space, enabling a clear partitioning of the spatial
+domain into non-overlapping regions. Two locales can be connected unidirectionally, either
+from the left region to the right or vice versa (see [ 17], Example 3). Subsequently, we
+will first introduce the individual components of the model, followed by a diagrammatic
+example of a complete environment.
+3.3.1. World Model
+Although specific landing-site design guidelines for small UAVs are not yet available,
+our pad layout is inspired by vertiport design guidelines for eVTOLs [ 15,16]. Each landing
+and takeoff position is characterized by three functional zones: the Touchdown and Lift-Off
+Area (TLOF), the Final Approach and Takeoff Area (FATO), and the Safety Area. The
+schematic layout of these zones is illustrated in Figure 3. Since the bigraph structure
+abstracts geometric and metric distances, we only model the hierarchical relationships.
+In the place graph, each virtual vertiport pad is represented as a locale containing three
+nested layers, from outermost to innermost: SafetyArea ,FATO , and TLOF , corresponding to
+their respective ranges. By default, UAVs landing on the pad are expected to dock within
+the TLOF.
+While the EASA terminology does not define a single consolidated ‘vertiport pad,’
+in this paper (Refer to [ 42,43], for reviews on the concept of vertiport infrastructures),
+we adopt this term as a convenient abstraction that refers to a collocated TLOF–FATO
+https://doi.org/10.3390/drones10010012
+
+--- Page 8 ---
+Drones 2026 ,10, 12 8 of 27
+configuration, representing both the landing interface and the turnaround area for an
+individual aircraft. Each pad is treated as a single operational unit, simplifying the formal
+modeling of scheduling and coordination within this take-off and landing area.
+TLOFFATOSafety Area
+Figure 3. Hierarchical relationship of TLOF, FATO, and Safety Area according to [15,16].
+Figure 2a shows, on the left-hand side, a FlyingArea node representing the external
+flight environment around Vertiport pads. Typically, each abstract realm is allowed to be
+occupied by only a single UAV . Therefore, each FlyingArea denotes a “locale” that may be
+occupied by at most one UAV . To capture this, it contains an OccupiedBy node, inside which
+aDrone node is placed whenever a UAV is present at that locale; the UAV may further carry
+attributes such as Status . In addition, each FlyingArea contains a Route node that encodes
+its connectivity to other FlyingArea nodes and VertiportPad s.
+On the right-hand side of Figure 2a, the node VertiportPad represents a UAV-tailored
+pad, which includes specific subregions such as SafetyArea ,FATO , and TLOF . This node
+also includes a Route element to denote external connectivity.
+In the link graph, Green edges link the Route node within the FlyingArea to the
+VertiportPad , and likewise connect the Route node of the VertiportPad back to the FlyingArea ,
+thereby representing the bidirectional spatial connectivity between the two nodes. The
+Route nodes and their edges represent approach and departure corridors. In addition, outer
+names linked to the VertiportPad ,FlyingArea , and Drone nodes are used to uniquely identify
+these entities.
+Figure 2a can be expressed in bigraph algebra as follows (the UAV’s attribute subnodes
+are omitted):
+FlyingAreax.(OccupiedBy .Drone |Route y)|
+VertiportPady.(SafetyArea .FATO .TLOF |Route x)(1)
+Finally, the world model consists of a collection of FlyingArea andVertiportPad nodes
+within the bigraph, interconnected via Route -typed links.
+3.3.2. Multi-UAV Model
+For UAV modeling, we follow the UAV template model defined in [ 17], Definition 13.
+In this representation, a UAV is modeled as a dimensionless point mass that can include
+type variables of arbitrary order. These variables may represent discrete, categorical, or
+Boolean properties. Here, we define three key attributes for each UAV: ID,Status , and
+Battery . Within the UAV model, every Drone node necessarily contains an IDnode that
+specifies the UAV’s unique identifier. A Status node encodes the operational state of the
+UAV , holding either a Flying orLanded type node. Additionally, a Battery node contains
+one or more Pow nodes, representing the remaining energy levels of the UAV .
+https://doi.org/10.3390/drones10010012
+
+--- Page 9 ---
+Drones 2026 ,10, 12 9 of 27
+The collective state of all UAVs positioned within the world model is defined as the
+parallel composition of individual UAV model instances D(i):D⋆=D(0)∥D(1)∥ · · · ∥
+D(n), where each component D(i)corresponds to a specific placeholder in the world model
+(i.e., the indexed holes in the bigrid depicted in Figure 4a).
+Figure 4. Compositionality of the bigraph model: ( a) Raw bigrid model without UAVs; ( b) Complete
+bigraph model instance with UAVs and UAV-tailored pads. In the figure, each bigraph node is labeled
+using the format “ID: Type”. Sites are denoted by identifiers starting with “s”. Outer names start
+with “y”.
+3.3.3. Composition Model
+Following [ 17], Equation (1) defines a general composite model for multi-UAV path
+planning. We simplify this to LM◦D, consisting only of the bigrid-based world model
+(i.e., UAV-tailored pads and flying areas) LMand multiple UAV agents D, such that the
+full system is expressed as the composition of these two components. An instance of this
+model is illustrated in Figure 4b.
+3.3.4. Rule-Based Behavioral Specification
+We next define a reaction rule for safe landing, which captures the transition of a UAV
+from a FlyingArea into the TLOF zone of an available VertiportPad . An example of such
+a rule is shown in Figure 5. On the LHS, the UAV D1(a unique UAV instance) resides
+in aFlyingArea with status Flying . On the RHS, the UAV has moved into the pad’s TLOF
+zone and its status is updated to Landed , while the original FlyingArea becomes available
+for reuse. By construction, this rule enforces spatial safety: at most one Drone may occupy
+aVertiportPad at any time. The SafetyArea and the nested containment structure ensure
+exclusive access to the landing zone and thus prevent collisions. The corresponding takeoff
+operation is defined symmetrically. To support additional UAVs (e.g., D2,D3), further
+reaction rules must be instantiated. Alternatively, one may abstract away the UAV IDusing
+bigraph sites, enabling a parameterized rule that generalizes across UAV agents. This,
+however, remains a design choice for the model designer.
+https://doi.org/10.3390/drones10010012
+
+--- Page 10 ---
+Drones 2026 ,10, 12 10 of 27
+Figure 5. A designed reaction rule.
+Specifically, before a UAV approaches the pad, it must first ensure that the target pad
+is available, meaning that no other Drone node is currently located under the corresponding
+VertiportPad node. Once this condition is satisfied, the UAV leaves the FlyingArea and lands
+under the TLOF node of the designated VertiportPad .
+This reaction rule can be expressed in bigraph algebra as follows:
+Rule Landing = (VertiportPadarrival .( i|SafetyArea .FATO .TLOF )|
+FlyingAreadeparture .( i|OccupiedBy .Drone d1.(ID.D1|Status .Flying |Battery .Pow )))
+−−(FlyingAreadeparture .( i|OccupiedBy )|VertiportPadarrival
+.( i|SafetyArea .FATO .TLOF .Drone d1.(ID.D1|Status .Landed |Battery .Pow )))(2)
+Additional Rules
+The full set of reaction rules is available in the repository of the BIGG ERtool and omit-
+ted here for brevity (https://github.com/bigraph-toolkit-suite/bigraphs.grgen-bigraphs
+(accessed on 10 November 2025)). These include, for instance, RApproachInit (initial link to a
+reachable pad), RApproachOccupied (approaching an occupied pad), REnterEmpty (entering a free
+pad), and RHopBetweenPads (reallocation between pads).
+3.4. Execution-Layer Components of the Digital Twin Framework
+In the previous subsection, spatial regions such as the UAV-tailored pads and the flying
+area were abstracted using the bigrid axioms. While these highly abstract spatial models
+are suitable for formal reasoning and verification, they cannot be directly mapped onto the
+physical environment to guide concrete UAV navigation. Hence, a bridging mechanism
+is required to connect the abstract representation with the physical world and enable the
+executability of the digital twin. To address this need, the execution layer of our digital
+twin framework incorporates two complementary components, which are described in
+detail in the following paragraphs.
+3.4.1. Spatial Model Generation
+The model generation service is responsible for constructing the world model, in-
+cluding the assigned coordinate attributes for each grid. Based on this, simulated or
+real-world UAV positions can be collected and mapped into a bigraphical world represen-
+tation, forming the composition model. This allows the specification to be executed both
+https://doi.org/10.3390/drones10010012
+
+--- Page 11 ---
+Drones 2026 ,10, 12 11 of 27
+in simulation and in the physical world, as the AeroCtrl module can access the Cartesian
+coordinates directly.
+As a submodule of the digital twin framework, the spatial model generation service
+enables the generation, modification, and extension of spatial models through different
+RESTful commands. For instance, one can add or remove pads, adjust pad grid resolution,
+or reconfigure regional layouts, thereby supporting flexible dynamic reconstruction and
+ensuring that spatial representations remain synchronized with the operational state of
+multiple UAVs.
+3.4.2. AeroCtrl
+The AeroCtrl is a UAV controller implemented as a web service structured around a
+state-machine architecture. It defines and manages core UAV skills such as take-off, landing,
+and navigation between Cartesian coordinates while exposing all state transitions through
+web endpoints for external interaction. That is, the execution of a bigraphical reaction
+rule can be directly mapped to a web endpoint. Figure 6 illustrates the state machine
+that underlies the AeroCtrl. The system follows a standard OSGi software lifecycle (from
+installation to activation and eventual uninstallation) in parallel with a UAV operational
+lifecycle (idle, hovering, flying, landing). These two regions are orthogonally coupled:
+physical actions are permitted only when the software is active, and transitions between
+flight states are strictly ordered. This design ensures cyber–physical consistency and
+prevents conflicts in UAV behavior. Based on this state machine, actual UAV control is
+implemented through ROS2 commands corresponding to each state transition.
+Figure 6. State machine in AeroCtrl.
+3.5. Execution by Cyber–Physical Synchronization
+Within the digital twin framework, ensuring strict consistency between the abstract
+models and physical execution hinges on the design of an efficient and scalable cross-
+component communication mechanism. In this work, we adopt RESTful APIs, Protobuf
+messages, and ROS2 as the core communication channels connecting the physical space
+and cyber space, with the corresponding data flow illustrated in Figure 7.
+First, RESTful APIs provide a standardized interface, enabling decoupled interaction
+between high-level modeling and low-level physical control through explicit requests
+and responses. In this work, both the spatial model generation service and the AeroCtrl
+service support RESTful APIs. In the design of the AeroCtrl service, considering the
+control and monitoring requirements of individual UAVs in IAM scenarios, we assign each
+UAV a dedicated port and a separate web service instance. This allows HTTP requests
+to trigger state transitions in the UAV’s state machine—for example, POST requests can
+invoke activate_idle ,begin_takeoff , orbegin_landing —so that the UAV’s physical actions are
+https://doi.org/10.3390/drones10010012
+
+--- Page 12 ---
+Drones 2026 ,10, 12 12 of 27
+immediately synchronized with its state machine, achieving a closed-loop control from
+abstract modeling to physical execution.
+Figure 7. Synchronized Data Flow in Cyber–Physical Spaces.
+Simultaneously, each UAV continuously reports its status to the digital twin models
+in real time. To further enhance the visualization and manageability of UAV scheduling,
+we implemented a web interface for monitoring the state of each UAV’s state machine, as
+shown in Figure 8. Upon startup, each UAV is automatically assigned a dedicated web
+port (e.g., UAV with ID cf231 corresponds to port 8080, cf232 corresponds to port 8081),
+allowing operators to observe the complete state machine, including the current state (e.g.,
+Idle,Hovering ,Flying ,Landing ) and its historical state transitions. The interface refreshes
+dynamically to improve situational awareness of UAV monitoring personnel. The spatial
+model generation service also provides dynamic configuration capabilities via RESTful
+APIs, as discussed in Section 3.4.
+Figure 8. Web-based state machine monitoring interface for UAVs.
+To enable transmission of the generated spatial model data, this work employs Protocol
+Buffers (Protobuf) as a binary serialization method. The spatial models generated by the
+service can be serialized into Protobuf messages for reception by the AeroCtrl service.
+https://doi.org/10.3390/drones10010012
+
+--- Page 13 ---
+Drones 2026 ,10, 12 13 of 27
+During flight, UAVs parse these messages to dynamically identify available pads, ensuring
+that landing maneuvers and path planning strictly adhere to the task constraints defined
+by the bigraph. This approach guarantees consistency between the abstract bigraph model
+and the UAVs’ physical execution.
+For low-level control, ROS2 is employed, which is widely adopted in the robotics
+domains due to its high efficiency, flexibility, and broad compatibility. This ensures that the
+proposed digital twin framework can be applied to a variety of UAV platforms without
+significant modification.
+4. Experiments
+4.1. Bigraph Simulation and Model Checking
+To evaluate the formal correctness and robustness of the proposed framework, we
+conducted bigraph simulation and model checking experiments based on the BRS. Specifi-
+cally, the simulations test whether the bigraph naturally enforces the exclusive occupancy
+constraint of pads, ensuring conflict-free scheduling and landing process for our UAVs.
+In the experiments, we generated two types of spatial models based on the bigrid
+modeling foundation. Scenario 1 consists of a 2 ×3 arrangement of pads combined with
+a 1×3 flying area, while Scenario 2 consists of a 1 ×5 arrangement of pads combined
+with a 1 ×5 flying area. These layouts correspond to different cyber space scenarios for
+IAM operations.
+In Scenario 1, the task objective is to move two UAVs from the flying area to unoccu-
+pied pads and land them, given that one pad has already been occupied by a UAV . The
+initial task state is represented by the bigraph shown in Figure 4b. In Scenario 2, the task
+objective is to move three UAVs from the flying area to the pads and land them, given that
+two pads are already occupied by UAVs.
+The approach and landing actions of UAVs are abstracted into bigraph reaction rules.
+In Scenario 1, the BRS comprises two reaction rules and four bigraphs: one rule for each
+flying UAV , with LHS and RHS bigraphs. Scenario 2 comprises three reaction rules and
+six bigraphs in the same LHS/RHS pattern. An example of a reaction rule is illustrated in
+Figure 5.
+We first performed a full exploration of the state space using BIGRAPH FRAMEWORK .
+The experiments were conducted on a system equipped with an Intel Core i7-13700H CPU,
+an NVIDIA GeForce RTX 4070 GPU, and 32 GB of RAM. Taking Scenario 1 as an example
+(Scenario 2 follows the same procedure), the possible states observed in the experiment are
+listed as follows:
+State A—Two UAVs are located in the flying area, while one UAV is located in the pad
+area (the specific pad is irrelevant, as all configurations are isomorphic).
+State B—One UAV is located in the flying area, while two UAVs are located in the
+pad area.
+State C—All three UAVs are located in the pad area.
+Figure 9 shows the state space evolution of Scenario 1 and Scenario 2. Table 1 presents
+the complete data from the state space exploration process.
+Table 1. State space exploration results.
+Scenario Execution Time (s) Edges Vertices
+Scenario 1 79.84 50 31
+Scenario 2 113.54 63 34
+https://doi.org/10.3390/drones10010012
+
+--- Page 14 ---
+Drones 2026 ,10, 12 14 of 27
+Figure 9. State space representations of Scenario 1 ( left) and Scenario 2 ( right ) in the form of
+state-transition diagrams. The central yellow node represents the initial state, while nodes with
+progressively darker colors indicate states reached in later transitions.
+As shown in Table 1, Scenario 2 produces a larger graph and requires noticeably longer
+computation time than Scenario 1. This difference arises from Scenario 2 involving more
+flying UAVs, which increases the branching factor of the reaction rules and leads to a richer
+set of reachable configurations. Although both scenarios remain tractable at this scale, our
+results show that even a slight increase in the number of agents causes a rapid escalation in
+the number of states and transitions. This makes exhaustive model checking impractical
+for larger UAV fleets and motivates our shift toward a runtime, rule-constrained bigraph
+world model, which we further elaborate in Section 5.3.
+To verify the correctness and safety of our formal models, we define two state predi-
+cates that are evaluated during model checking: a landing predicate for verifying liveness
+properties and a collision predicate for verifying safety properties. Both predicates are
+implemented using the SubBigraphMatchPredicate strategy, which employs subgraph
+matching to determine whether the current system state contains the expected configurations.
+The landing predicate ϕlanded checks whether all UAVs have successfully landed on
+theTLOF nodes. The formal definition of the predicate is as follows: for a system containing
+nUAVs, the predicate verifies the existence of a subgraph structure:
+ϕlanded =n−1^
+i=0∃VertiportPadyi.SafetyArea .FATO .TLOF .Drone di.(Status .Landed |i)(3)
+The predicate is constructed dynamically to accommodate an arbitrary number of
+UAVs by first creating independent landing predicate structures for each UAV , and then
+combining all predicates into a complete predicate bigraph using the merge product .
+The collision predicate ϕcollision detects whether two or more different UAVs simulta-
+neously occupy the same TLOF node, which represents a safety violation. The predicate is
+defined as follows:
+ϕcollision =∃TLOF .(Drone di.i|i) (4)
+This predicate uses an outer name ( di) to identify one UAV , and a siteto capture any
+additional content within the same TLOF node. During subgraph matching, if a TLOF node
+contains both a UAV and additional content (represented by the site), the predicate matches,
+indicating that the TLOF node accommodates more than one element, which violates the
+safety requirement that each TLOF node should contain at most one UAV at a time.
+https://doi.org/10.3390/drones10010012
+
+--- Page 15 ---
+Drones 2026 ,10, 12 15 of 27
+Using the two predicates defined above, we verify two critical properties of this system
+using Computation Tree Logic (CTL):
+1. Landing Reachability (Liveness Property): We verify that on all execution paths, all
+UAVs will eventually land.
+AFϕlanded (5)
+where Adenotes “for all paths” and Fdenotes “eventually”. This liveness property
+ensures that the system will eventually reach a state where all UAVs have successfully
+completed their landing procedures, regardless of the execution path taken.
+2. Collision Avoidance (Safety Property): We verify that collisions never occur in any
+state along any execution path.
+AG¬ϕcollision (6)
+where Gdenotes “globally” (always) and ¬denotes logical negation. This safety
+property ensures that at no point during system execution will two or more
+UAVs occupy the same TLOF node simultaneously, thereby guaranteeing collision-
+free operation.
+During the model checking process, both predicates are evaluated at each newly gen-
+erated state during the state space exploration of the BRS. The model checker verifies that:
+• All terminal states (states with no outgoing edges) satisfy ϕlanded , confirming that
+AFϕlanded holds.
+• No state in the entire state space satisfies ϕcollision , confirming that AG¬ϕcollision holds.
+As illustrated in Figure 10, the reaction graph visualization shows that all terminal
+states satisfy the landing predicate (represented by green nodes), and no states satisfy the
+collision predicate throughout the entire state space exploration. These results validate
+both the liveness property (all UAVs eventually land) and the safety property (collision-free
+operation), ensuring that the system can safely and reliably complete landing tasks under
+all possible execution scenarios.
+Figure 10. Model checking result: ( a) Scenario 1; ( b) Scenario 2.
+https://doi.org/10.3390/drones10010012
+
+--- Page 16 ---
+Drones 2026 ,10, 12 16 of 27
+4.2. Physical Experiments
+To validate the feasibility of the proposed bigraph-based digital twin in a real-world
+physical environment, we conducted physical-layer experiments using multiple Crazyflie
+UAVs. The experiments were performed with the Bitcraze Crazyflie 2.1 platform, equipped
+with the Flow Deck v2 to enable optical flow positioning and altitude hold under indoor,
+GPS-denied conditions. The UAVs used in the experiments are shown in Figure 11.
+Figure 11. Crazyflies.
+In this work, we employed Crazyswarm2 as the middleware for connecting Crazyflie
+with ROS2. Crazyswarm2 provides low-latency communication and multi-UA V coordination
+API under ROS2, ensuring that multiple Crazyflie UAVs can share states and achieve syn-
+chronized scheduling within a unified digital twin framework. Each Crazyflie is connected to
+the Crazyswarm2 via Crazyradio and is assigned a unique REST port by AeroCtrl for state
+machine visualization and command execution. To systematically evaluate the performance
+of the proposed approach under varying scales and occupancy conditions, three categories of
+experiments were designed.
+Experiment 1: A grid layout of six virtual pads arranged in a 2 ×3 configuration (from
+V0 to V5) was generated. Two UAVs were pre-assigned to occupy specific pads at the
+start of the experiment, while another UAV took off from different initial positions and
+autonomously selected the nearest unoccupied TLOF by distance. This setup was designed
+to validate the ability of the framework to handle single-UAV landing scheduling and
+conflict avoidance. The experimental environment is illustrated in Figure 12a, which shows
+the grid layout of the virtual pads and their designated labels, with each pad measuring
+1 m × 1 m (Safety Area: white lines; TLOF: white area).
+Experiment 2: The pad layout in this experiment was identical to Experiment 1. At the
+beginning of the experiment, one UAV was pre-assigned to occupy a pad. Subsequently, two
+UAVs took off sequentially from different initial positions. Each UAV queried the bigraph
+model, checked occupancy status, and landed on the nearest available pad. This experiment
+was designed to validate multi-UAV scheduling and the cyber–physical consistency of
+spatial allocation.
+Experiment 3: A grid layout of five virtual pads arranged in a 1 ×5 configuration
+(from V0 to V4) was generated, as shown in Figure 12b. Two experimental cases were
+conducted: (i) two UAVs were pre-assigned to occupy pads before the experiment started,
+and three UAVs took off from different initial positions for landing; (ii) four UAVs were
+pre-assigned to occupy pads, and one UAV took off from different initial positions and
+autonomously selected the nearest available pad. This experiment was designed to validate
+https://doi.org/10.3390/drones10010012
+
+--- Page 17 ---
+Drones 2026 ,10, 12 17 of 27
+the scalability of the framework with respect to multi-UAV coordination, as well as the
+robustness of pad reconfiguration and dynamic scheduling.
+Figure 12. Experimental setup: ( a) Experiments 1 and 2; ( b) Experiment 3.
+The detailed results of the experiments are summarized in Table 2, which lists the
+pad configurations, initial UAV states, assigned target pads, and conflict outcomes across
+15 trials.
+Table 2. Physical Experimental Results.
+Experiment IDPad
+ConfigurationPre-Assigned
+UA Vs
+(Occupied
+Pads)Occupied PadsIncoming
+UA VsInitial
+Positions of
+Incoming
+UA VsAssigned PadsConflict
+Occurred
+Experiment 1-1 2 × 3 cf232, cf233 V5, V1 cf231 (1.0, 0.0, 0.0) V3 NO
+Experiment 1-2 2 × 3 cf232, cf233 V3, V4 cf231 (1.0, 0.7, 0.0) V5 NO
+Experiment 1-3 2 × 3 cf232, cf233 V5, V2 cf231 (0.8, 0.8, 0.0) V4 NO
+Experiment 1-4 2 × 3 cf232, cf233 V3, V2 cf231 (0.3, −0.8, 0.0) V4 NO
+Experiment 1-5 2 × 3 cf232, cf233 V1, V0 cf231 (0.8, −0.3, 0.0) V4 NO
+Experiment 2-1 2 × 3 cf231 V4 cf232, cf233(−0.4,−0.7,
+0.0), (−0.4,
+−0.3, 0.0)V0, V1 NO
+Experiment 2-2 2 × 3 cf231 V4 cf232, cf233(0.3, 0.6, 0.0),
+(0.3,−0.8, 0.0)V5, V3 NO
+Experiment 2-3 2 × 3 cf231 V5 cf232, cf233(0.3,−0.6, 0.0),
+(0.7,−0.8, 0.0)V3, V4 NO
+Experiment 2-4 2 × 3 cf231 V3 cf232, cf233(0.6, 0.0, 0.0),
+(0.7, 0.8, 0.0)V4, V5 NO
+Experiment 2-5 2 × 3 cf231 V1 cf232, cf233(0.8, 0.6, 0.0),
+(0.7,−0.8, 0.0)V5, V3 NO
+Experiment 3-1 1 × 5 cf234, cf235 V0, V1cf231, cf232,
+cf233(0.8,−0.2, 0.0),
+(−0.8, 0.2, 0.0),
+(0.6, 0.7, 0.0)V2, V3, V4 NO
+Experiment 3-2 1 × 5 cf234, cf235 V1, V3cf231, cf232,
+cf233(0.8,−2.2, 0.0),
+(0.7,−0.3, 0.0),
+(0.6, 1.2, 0.0)V0, V2, V4 NO
+Experiment 3-3 1 × 5 cf234, cf235 V4, V2cf231, cf232,
+cf233(−0.6,−2.0,
+0.0), (−0.8,
+−0.7, 0.0),
+(−0.6, 1.2, 0.0)V0, V1, V3 NO
+Experiment 3-4 1 × 5cf231, cf232,
+cf233, cf235V0, V1, V2, V4 cf234(−0.8,−1.2,
+0.0)V3 NO
+Experiment 3-5 1 × 5cf231, cf232,
+cf233, cf234V1, V2, V3, V4 cf235 (0.7, −0.8, 0.0) V0 NO
+https://doi.org/10.3390/drones10010012
+
+--- Page 18 ---
+Drones 2026 ,10, 12 18 of 27
+Based on the experimental results summarized in Table 2, it can be observed that in all
+scenarios the proposed models successfully assigned UAVs to the available pad, taking into
+account both the UAVs’ current positions and the occupancy status of each pad, without
+any conflicts occurring. This outcome is primarily attributed to the explicit spatial modeling
+capability of bigraphs and the locale uniqueness property of the bigrid-based spatial model.
+In the bigraph representation, each pad corresponds to a locale node whose occupancy state
+can be held by only one UAV at a time, thereby naturally preventing duplicate assignments
+and conflicts. Furthermore, the bigrid-based spatial model and AeroCtrl service enable a
+one-to-one mapping between UAVs’ physical positions and the structural configuration of
+the cyber space, allowing the model to perceive pad occupancy in real-time and perform
+dynamic allocation for safe landings. Figure 13 further illustrates how the designed bigraph
+model corresponds to actual UAV behavior during the experiments, showing the dynamic
+evolution of occupancy within the cyber space.
+Figure 13. (a) Evolution of the bigraph. ( b) Corresponding physical flight scenario.
+Figure 14 presents representative UAV trajectory plots from several experiments. In
+Figure 14a, corresponding to Experiment 1-2, two UAVs, cf232 and cf233, are pre-assigned
+to pads V3 and V4, while cf231 takes off and is assigned to land on pad V5. It is noteworthy
+that during the landing process, cf231 exhibits oscillations along the x-axis, as shown in the
+detailed analysis in Figure 15. From this figure, it can be observed that when the UAV’s
+https://doi.org/10.3390/drones10010012
+
+--- Page 19 ---
+Drones 2026 ,10, 12 19 of 27
+altitude drops below 0.1 m, the x-axis displacement reaches up to 0.2 m, while no significant
+deviation occurs along the y-axis, and the altitude temporarily increases. In practice, due to
+the inherent ground effect of the Crazyflie micro UAVs, such oscillations have been studied
+in previous works [ 44]. Therefore, this experiment records only the flight trajectory of
+the UAV , and UAV-ground data are not recorded. Since the focus of this study is not on
+UAV aerodynamics, further discussion is omitted. Considering the UAV’s flight direction
+and position at the onset of landing, we conclude that the UAV can accurately reach the
+assigned pad.
+Figure 14. Typical UAV trajectory plots for the experiments: ( a) Experiment 1-2; ( b) Experiment 2-3;
+(c) Experiment 2-5; ( d) Experiment 3-1; ( e) Experiment 3-2; ( f) Experiment 3-4.
+Figure 14b corresponds to Experiment 2-3, where UAV cf231 is pre-assigned to pad
+V5, and cf232 and cf233 take off and are assigned to land on V3 and V4, respectively.
+Slight deviations were observed during the landing process. Figure 14d, corresponding
+to Experiment 3-1, shows cf234 and cf235 pre-assigned to V0 and V1, while cf231, cf232,
+and cf233 take off and are assigned to V2, V3, and V4. The UAVs approach the pads
+from different directions and land without conflicts, demonstrating the effectiveness of the
+proposed method. Figure 14e, corresponding to Experiment 3-2, shows cf234 and cf235 pre-
+assigned to V1 and V3, with cf231, cf232, and cf233 assigned to V0, V2, and V4. A noticeable
+deviation along the y-axis was observed for cf231; however, no anomalies occurred during
+actual flight, suggesting a potential data recording error. Figure 14f, corresponding to
+Experiment 3-4, shows cf231, cf232, cf233, and cf235 pre-assigned to V0, V1, V2, and V4,
+https://doi.org/10.3390/drones10010012
+
+--- Page 20 ---
+Drones 2026 ,10, 12 20 of 27
+while cf234 takes off and is assigned to V3. This experiment confirms that the framework
+can correctly identify occupied pads in scenarios with multiple UAVs already docked,
+enabling incoming UAVs to select and land on the correct pads.
+Figure 15. Trajectory analysis for Experiment 1-2 ( a) XY-plane projection; ( b) XZ-plane projection;
+(c) YZ-plane projection; and ( d) altitude versus time. Dots in different colors represent the initial
+positions of the UAVs, and stars denote the final positions.
+Across all experimental trials, we further recorded the computational latency of the
+framework in performing pad occupancy analysis and allocating UAVs to available pads,
+as shown in Figure 16. The results indicate that the pad analysis time consistently ranges
+between 0.02 and 0.04 s, while the pad allocation time remains on the order of 0.001–0.004 s.
+This performance benefits from the partitioning provided by the bigrid, where we only
+need to analyze a limited local set of occupancy states.
+Figure 16. Computation time analysis for pad occupancy evaluation and UA V assignment to free pads.
+https://doi.org/10.3390/drones10010012
+
+--- Page 21 ---
+Drones 2026 ,10, 12 21 of 27
+During the experiments, we were able to monitor the real-time status of all UAVs on
+the designed web interface while multiple UAVs executed tasks concurrently. Because
+each UAV operates with an independent port and process instance, monitoring does not
+induce resource contention, nor does it degrade page responsiveness as the number of
+UAVs increases, thereby ensuring scalability and interactivity.
+5. Discussion
+5.1. Relevance
+Given the critical importance of safety in aircraft operations, formal methods capable
+of providing scalable correctness guarantees are indispensable. In particular, model
+checking offers exhaustive exploration of admissible UAV and infrastructure behaviors,
+ensuring conflict-free coordination across heterogeneous configurations. When such proofs
+are not only formal but also diagrammatically understandable and executable, they bridge
+the gap between abstract regulatory compliance and operational practice: stakeholders
+can visually validate safety properties, engineers can directly execute verified models,
+and regulators can rely on transparent, reproducible correctness arguments. This dual
+assurance makes diagram-driven model checking a nice tool for trustworthy deployment
+of IAM-related applications, lowering the entry barrier for beginners of formal model
+checking tools.
+5.2. Model Considerations
+5.2.1. Underlying Assumptions
+Altitude-dependent changes of the FATO footprint are treated as an infrastructure-level
+safety margin and can be incorporated if needed, but lie outside the present scope of the
+model. As a foundational step of the project, this work assumes ideal sensing conditions and
+therefore disregards potential measurement noise or data uncertainties. Likewise, in our
+formal model, the battery state is not included as a dynamic constraint. This simplification
+is justified because safe operations typically presuppose that each UAV has sufficient energy
+reserves to complete all queuing, holding, and landing procedures; in practice, this is a
+standard precondition for take-off clearance. A UAV is allowed to enter the system only
+after its energy level has been verified to exceed the operational minimum. However, real-
+world operations involve various forms of non-determinism, such as unexpected battery
+degradation, intermittent communication loss, and sensing uncertainties. These factors will
+be explicitly addressed in our subsequent work by extending the model with Probabilistic
+Bigraphical Reactive System (PBRS) and Stochastic Bigraphical Reactive System (SBRS), to
+capture such uncertainties in a rigorous and formally verifiable manner.
+5.2.2. Top–Down vs. Bottom–Up
+Since we define the system by individual components, i.e., UAV-tailored pads and
+UAVs, this enables formal verification at both the system level and the component level.
+At the same time, each Crazyflie in our case operates through a formal, state-machine-
+based controller, which supports independent verification of local UAV skills alongside
+test-driven software engineering practices. Consequently, both top-down validation of
+overall system behavior and bottom-up testing of individual capabilities are fostered within
+a unified framework.
+5.2.3. Cross-Formalism Comparison
+Consistent with the findings in [ 45], we observe that bigraphical models provide
+notational advantages over other formal modeling languages through their inherent modu-
+larity and visual representation. A promising direction is investigating the construction
+https://doi.org/10.3390/drones10010012
+
+--- Page 22 ---
+Drones 2026 ,10, 12 22 of 27
+of equivalent models to enable quantitative comparisons across formal methods. Such
+cross-formalism benchmarks are currently missing in the literature [ 45–47] and will help
+clarify when and which approaches are best applied.
+5.3. Scalability
+Scalability is one of the key challenges for applying this work to IAM. However, our
+experiments show that the state space grows combinatorially with the number of agents.
+Using the transition system automatically generated by BiGGer+GrGen.NET, increasing
+the number of agents from four to five leads to a jump in the number of states from
+approximately 1.2k to 9.2k (and transitions from 2.7k to 22k), while the verification time
+rises from around ten seconds to over one hundred seconds. When the scale increases
+to six agents, the system contains more than 310k states and over one million transitions,
+and generating the model alone takes nearly two hours (https://bigraphs.org/software/
+bigraph-framework/tutorials/ssr/ssr-generalization (accessed on 12 December 2025)).
+These results indicate that even a slight increase in UAV count causes the number of states
+and transitions to multiply rapidly, making global model checking expensive.
+Given the impracticality of exhaustive state-space verification for large UAV systems,
+our approach is to use bigraphs as a runtime world model rather than an offline exhaustive
+verifier. The system evolution is constrained by a set of reaction rules that define how the
+system is allowed to evolve. During flight, each UAV only needs to follow these predefined
+reaction rules when triggering behavior transitions, without exploring the entire state space.
+This runtime modeling approach provides real-time guidance and safety constraints on
+UAV behavior, ensuring that the system evolves safely according to the rules even without
+enumerating all possible states.
+5.4. Extensibility
+The proposed bigraph-based digital twin is designed as a task-agnostic framework.
+The bigrid spatial structure, node hierarchy (e.g., Drone ,Route ,Locale ), the runtime update
+mechanism, and compositional semantics are reused without modification when adapting
+the model to different flight tasks.
+To support new mission types, only the reaction rules —which define the allowed
+behavioral transitions—need to be extended or adapted. For instance, tasks such as collision-
+free navigation, inspection, or cooperative missions can be incorporated by introducing
+task-specific rules. This modularity enables the framework to scale beyond the scenarios
+demonstrated in this paper and serves as the basis for our future work.
+5.5. Cyber–Physical Synchronization
+From a software engineering perspective, a similar notion of “cyber–physical synchro-
+nization” was also practically employed in [ 48]. This paper applied bigraphical models to
+home wireless networks for real-time verification purposes. The verification framework
+continuously generates bigraph models from the live network events and user policies, and
+checks these models for policy conflicts. For example, any runtime errors are reported to
+the user as soon as they occur.
+In contrast, our approach additionally incorporates the physical dimension by en-
+abling the inverse process, namely, the initiation of physical actions via a state-machine-
+based controller.
+However, the authors in [ 48] note that reasoning at this high level (with spatial
+bigraph models) incurs “significant overheads, compared to more conventional runtime
+verification,” due to capturing both spatial and temporal aspects of the wireless network
+system case study.
+https://doi.org/10.3390/drones10010012
+
+--- Page 23 ---
+Drones 2026 ,10, 12 23 of 27
+In our case, the additional cost is offset by richer feedback, as users receive a detailed
+bigraphical state of pad occupancy and UAV behavior rather than low-level log messages.
+Moreover, we employ bi-spatial structures, which further reduce this overhead by support-
+ing compositional and inductive model checking for optimized runtime verification.
+Temporal Resolution
+In the present work, time is treated as computational and discretized at the level of
+reaction-rule applications. Each bigraph transition corresponds to a logically atomic change
+(e.g., a UAV entering a pad). This design makes the temporal resolution a modeling choice:
+the granularity of the reaction rules can be refined or coarsened without changing the
+overall structure of the model.
+From a digital twin perspective, real-time capability is a core performance criterion,
+since the execution of reaction rules must keep pace with the physical system, in particular
+during safety-critical phases such as takeoff, landing, and conflict detection. In this first
+step, we therefore make an explicit simplification: we assume that suitable scheduling
+and sufficient computational resources are available to apply the relevant rules within the
+required deadlines, and focus our contribution on maintaining cyber–physical consistency
+of spatial occupancy and task states. More elaborate timed semantics (for example, explicit
+clocks or deadlines attached to bigraph nodes and rules [ 49]) and an explicit analysis of
+adaptive scheduling policies for real-time adherence are left for future work.
+6. Conclusions
+This work developed a bigraph-based digital twin framework for multi-UAV landing
+management and demonstrated its feasibility through formal verification and hardware-in-
+the-loop experimentation. The proposed digital twin is structured into three layers: the
+physical space, the cyber space, and a cyber–physical synchronization component. In the
+cyber space, a world model, a multi-UAV model, and a composition model are constructed,
+and the bigrid spatial structure is used to represent UAV operating environments and
+system states formally. Based on Bigraphical Reactive Systems (BRS), we design reaction
+rules that explicitly capture the multi-UAV landing process and ensure conflict-free pad
+occupancy. To enable executable digital twins, we further design two execution components,
+namely the Spatial Model Generation service and the AeroCtrl service. The former supports
+real-time and online generation of world models, while the latter is responsible for issuing
+concrete control commands to UAVs. In the cyber–physical synchronization component,
+communication between the formal models and physical UAVs is realized through ROS 2,
+RESTful APIs, and Protobuf messages, enabling continuous synchronization between the
+cyber and physical domains.
+Within the digital twin, the bigraph forms the core modeling component, where spatial
+configurations and operational dependencies are formally represented. It captures how
+UAVs occupy, interact with, and transition between pads, allowing the system to reason
+about these configurations before execution. In this way, the digital twin does not merely
+reflect physical states but also anticipates and validates safe operational sequences. The
+underlying BRS provides a rigorous basis for verifying coordination logic and ensuring
+that scheduling decisions remain consistent with safety requirements.
+Compared with previous studies, this work delivers the first executable bigraph-
+based digital twin for UAV landing operations, integrating formal semantics with real-time
+cyber–physical synchronization. The framework further supports reconfiguration of pad
+layouts under changing operational conditions without modification of the execution logic.
+This flexibility enables adaptation to different numbers of UAVs and pad arrangements, an
+essential capability for dynamic IAM environments.
+https://doi.org/10.3390/drones10010012
+
+--- Page 24 ---
+Drones 2026 ,10, 12 24 of 27
+The experimental results confirm consistent alignment between verified bigraph states
+and physical UAV behavior, demonstrating that the formal model can reliably guide safe,
+conflict-free landings in small-scale multi-UAV scenarios.
+Future Work
+• Incorporate sensing uncertainties and dynamic constraints by integrating PBRS and
+SBRS into the model. More elaborate timed semantics will also be introduced, in
+combination with time bigraphs, to enable finer-grained behavioral modeling.
+• Extend the proposed framework to scenarios with higher traffic densities, increased
+uncertainty, and more complex operational conditions, in order to further evaluate its
+robustness and scalability.
+• Generalize the digital twin framework to other UAV missions, such as UAV navigation
+and cooperative task execution.
+Author Contributions: Conceptualization, T.Z. and U.A.; methodology, T.Z. and D.G.; software, T.Z.
+and D.G.; validation, T.Z.; formal analysis, T.Z. and M.L.; investigation, T.Z.; resources, U.A.; data
+curation, T.Z. and M.L.; writing—original draft preparation, T.Z.; writing—review and editing, D.G.,
+M.L., H.F. and U.A.; visualization, T.Z. and D.G.; supervision, U.A.; project administration, U.A.;
+funding acquisition, H.F. All authors have read and agreed to the published version of the manuscript.
+Funding: This research was funded by the German Research Foundation (DFG) as part of RTG-
+AirMetro, grant number GRK 2947/1, 508591287 and Germany’s Excellence Strategy, grant number
+EXC 2050/1, 390696704—Cluster of Excellence Centre for Tactile Internet with Human-in-the-Loop
+(CeTI) of Technische Universität Dresden.
+Data Availability Statement: The data presented in this study are available upon request from the
+corresponding author.
+Conflicts of Interest: The authors declare no conflicts of interest.
+Appendix A. Bigraph Foundation
+Appendix A.1. Notation
+Bigraphs form a process algebra and are therefore equipped with an algebraic term
+notation. For this work, we employ a sugared form to reduce categorical overhead. The
+syntax of this language is defined by the following EBNF grammar (Comparable to the
+specification languages used in BigraphER [46], BigMC [50], and BDSL):
+p::=cn1,...,nar(c).p|p|p|p∥p| i (A1)
+The grammar constitutes the static semantics of a generic bigraphical language Ξ
+comprised of a fixed set of elementary bigraphs and operators. The precedence of operators
+is determined by the utilization of parentheses. The first operator is nesting “ .”, meaning
+that a bigraphical term pcan be put under a node assigned type c∈ΣΞ. The ports of that
+node are indexed by nk,(k∈arity (c))(The arity of a node type determines how many
+ports a node will have in the model) and are named to denote attachment to open links
+nk∈ {⃗y}. The operators “ |” and “ ∥” denote the merge and parallel product, respectively,
+that is, placing terms under a shared root or under separate roots. The placeholder iis
+also called a site, where i≥0 and unique over all pterms of a language.
+Appendix A.2. Composition
+Composition in bigraphs is used to form larger bigraphs from smaller ones. For
+example, two bigraphs can be placed side by side, or one bigraph can be nested within
+another. By employing these operations, smaller bigraphs can be created independently
+https://doi.org/10.3390/drones10010012
+
+--- Page 25 ---
+Drones 2026 ,10, 12 25 of 27
+before constructing a more complex bigraph, enabling modular modeling. Specifically, the
+main operators in bigraphs include the following: the parallel product places two bigraphs
+side by side under separate roots, which corresponds to two root nodes arranged side by
+side in the place graph; the merge product places two bigraphs side by side under the same
+root. In both the merge and parallel products, the bigraphs are connected through shared
+names, thereby constructing the link graph. In addition, nesting allows one bigraph to be
+placed inside another within the place graph, representing a parent-child relationship.
+Appendix A.3. Dynamic Aspects
+This state progression is formally expressed as the stepwise evolution of a bigraph
+under rewriting rules (see Section 3.3.4), consistent with the general notion in graph
+rewriting and process algebra: w(t)−−Rw(t+1). Here, w(t)denotes the system state at
+logical time t, and Ris the reaction rule applied. The resulting state w(t+1)reflects a valid
+transition in the BRS induced by R. Time is computational in our approach (cf. also [ 51,52]).
+For a discussion of temporal aspects, see further Section 5.2.
+References
+1. Federal Aviation Administration (FAA). Urban Air Mobility (UAM) Concept of Operations. Available online: https://www.faa.
+gov/air-taxis/uam_blueprint (accessed on 18 July 2025).
+2. European Union Aviation Safety Agency (EASA). EASA Publishes World’s First Rules for Operation of Air Taxis in Cities.
+Available online: https://www.easa.europa.eu/en/newsroom-and-events/press-releases/easa-publishes-worlds-first-rules-
+operation-air-taxis-cities (accessed on 22 September 2025).
+3. Johnson, W.; Silva, C. NASA concept vehicles and the engineering of advanced air mobility aircraft. Aeronaut. J. 2022 ,126, 59–91.
+[CrossRef]
+4. Doan, H.T.T.; Bonnet, F.; Ogata, K. Model Checking of Robot Gathering. LIPIcs 2018 ,95, 12:1–12:16. [CrossRef]
+5. Zhang, H.; Fei, Y.; Li, J.; Li, B.; Liu, H. Method of vertiport capacity assessment based on queuing theory of unmanned aerial
+vehicles. Sustainability 2022 ,15, 709. [CrossRef]
+6. Li, J.; Zhang, H.; Yi, J.; Deng, C.; Zhou, J. Capacity assessment of vertiports with a scheduling algorithm considering quality of
+service. Aeronaut. J. 2025 ,129, 1791–1809. [CrossRef]
+7. Pang, Y.; Zhao, P .; Hu, J.; Liu, Y. Machine learning-enhanced aircraft landing scheduling under uncertainties. Transp. Res. Part C
+Emerg. Technol. 2024 ,158, 104444. [CrossRef]
+8. Kumar, P .K.; Witter, J.; Paul, S.; Dantu, K.; Chowdhury, S. Graph learning based decision support for multi-aircraft take-off and
+landing at urban air mobility vertiports. In Proceedings of the AIAA Scitech 2023 Forum, National Harbor, MD, USA, 23–27
+January 2023; p. 1848.
+9. Chen, J.; Liu, Y.; Chen, X.; Tang, L.; Xiong, Z. Dynamic Takeoff and Landing Control for Multi-Rotor eVTOL Aircraft. Int. J.
+Aeronaut. Space Sci. 2025 ,26, 376–389. [CrossRef]
+10. Iqbal, D.; Buhnova, B. Model-based approach for building trust in autonomous drones through digital twins. In Proceedings of
+the 2022 IEEE International Conference on Systems, Man, and Cybernetics (SMC), Prague, Czech Republic, 9–12 October 2022;
+pp. 656–662.
+11. Gonçalves, P .; Sobral, J.; Ferreira, L.A. Unmanned aerial vehicle safety assessment modelling through petri Nets. Reliab. Eng.
+Syst. Saf. 2017 ,167, 383–393. [CrossRef]
+12. Lee, E.B.K.; Van Bossuyt, D.L.; Bickford, J.F. Digital twin-enabled decision support in mission engineering and route planning.
+Systems 2021 ,9, 82. [CrossRef]
+13. Zhang, T.; Grzelak, D.; Zhao, W.; Islam, M.A.; Fricke, H.; Aßmann, U. A Review on the Construction, Modeling, and Consistency
+of Digital Twins for Advanced Air Mobility Applications. Drones 2025 ,9, 394. [CrossRef]
+14. Milner, R. Bigraphical reactive systems. In Proceedings of the International Conference on Concurrency Theory, Aalborg,
+Denmark, 20–25 August 2001; Springer: Berlin/Heidelberg, Germany, 2001; pp. 16–35.
+15. European Union Aviation Safety Agency (EASA). Prototype Technical Design Specifications for Vertiports. March 2022. Available
+online: https://www.easa.europa.eu/en/document-library/general-publications/prototype-technical-design-specifications-
+vertiports (accessed on 21 September 2025).
+16. Federal Aviation Administration (FAA). Engineering Brief No. 105A: Vertiports, U.S. Department of Transportation. December
+2024. Available online: https://www.faa.gov/airports/engineering/engineering_briefs/eb_105a_vertiports (accessed on 17
+August 2025).
+https://doi.org/10.3390/drones10010012
+
+--- Page 26 ---
+Drones 2026 ,10, 12 26 of 27
+17. Grzelak, D.; Lindner, M.; Belov, M.; Aßmann, U.; Husak, O.; Fricke, H. A Bigraphical Framework for Modeling and Simulation
+of UAV-based Inspection Scenarios. Preprint (Revised). Technische Universität Dresden. 2024. Available online: https:
+//nbn-resolving.org/urn:nbn:de:bsz:14-qucosa2-908655 (accessed on 11 September 2024).
+18. Grzelak, D. Programming Drone Collectives: Towards Safe Plug-And-Play Modularity. In Proceedings of the 1st German
+Robotics Conference (GRC), Nürnberg, Germany, 13–15 March 2025.
+19. Tao, F.; Xiao, B.; Qi, Q.; Cheng, J.; Ji, P . Digital twin modeling. J. Manuf. Syst. 2022 ,64, 372–389. [CrossRef]
+20. Mei, H.; Wang, K.; Zhou, D.; Yang, K. Joint trajectory-task-cache optimization in UAV-enabled mobile edge networks for
+cyber-physical system. IEEE Access 2019 ,7, 156476–156488. [CrossRef]
+21. Shen, G.; Lei, L.; Li, Z.; Cai, S.; Zhang, L.; Cao, P .; Liu, X. Deep reinforcement learning for flocking motion of multi-UAV systems:
+Learn from a digital twin. IEEE Internet Things J. 2021 ,9, 11141–11153. [CrossRef]
+22. Lei, L.; Shen, G.; Zhang, L.; Li, Z. Toward intelligent cooperation of UAV swarms: When machine learning meets digital twin.
+IEEE Network 2020 ,35, 386–392. [CrossRef]
+23. Fakhraian, E.; Semanjski, I.; Semanjski, S.; Aghezzaf, E.H. Towards safe and efficient unmanned aircraft system operations:
+Literature review of digital twins’ applications and european union regulatory compliance. Drones 2023 ,7, 478. [CrossRef]
+24. Aláez, D.; Olaz, X.; Prieto, M.; Villadangos, J.; Astrain, J.J. VTOL UAV digital twin for take-off, hovering and landing in different
+wind conditions. Simul. Model. Pract. Theory 2023 ,123, 102703. [CrossRef]
+25. Oh, C.G.; Lee, M. Approaches of Safe and Efficient 3D UAM Traffic Management Using VR, AR, and MR with AI; HCI
+Requirements for Digital Twin Application. In Proceedings of the International Conference on Intelligent Autonomous Systems,
+Qinhuangdao, China, 22–24 September 2023; Springer: Berlin/Heidelberg, Germany, 2023; pp. 169–177.
+26. Chen, H.; Liu, F.; Yang, Y.; Meng, W. Multivr: Digital twin and virtual reality based system for multi-people remote control
+unmanned aerial vehicles. In Proceedings of the 2022 17th International Conference on Control, Automation, Robotics and Vision
+(ICARCV), Singapore, 11–13 December 2022; pp. 647–652.
+27. Salinger, S.J.; Kapteyn, M.G.; Kays, C.; Pretorius, J.V .; Willcox, K.E. A hardware testbed for dynamic data-driven aerospace Digital
+Twins. In Proceedings of the Dynamic Data Driven Applications Systems: Third International Conference, DDDAS 2020, Boston,
+MA, USA, 2–4 October 2020; Proceedings 3; Springer: Berlin/Heidelberg, Germany, 2020; pp. 37–45.
+28. Li, Z.; Lei, L.; Shen, G.; Liu, X.; Liu, X. Digital Twin-Enabled Deep Reinforcement Learning for Safety-Guaranteed Flocking
+Motion of UAV Swarm. Trans. Emerg. Telecommun. Technol. 2024 ,35, e70011. [CrossRef]
+29. Salinas, L.R.; Tzoumas, G.; Pitonakova, L.; Hauert, S. Digital twin technology for wildfire monitoring using UAV swarms. In
+Proceedings of the 2023 International Conference on Unmanned Aircraft Systems (ICUAS), Warsaw, Poland, 6–9 June 2023;
+pp. 586–593.
+30. Zhou, L.; Leng, S.; Quek, T.Q. Hierarchical Digital Twin Enhanced Cooperative Sensing for UAV Swarms. IEEE Internet Things J.
+2024 ,11, 33204–33216. [CrossRef]
+31. Fraser, B.; Al-Rubaye, S.; Aslam, S.; Tsourdos, A. Enhancing the security of unmanned aerial systems using digital-twin technology
+and intrusion detection. In Proceedings of the 2021 IEEE/AIAA 40th Digital Avionics Systems Conference (DASC), San Antonio,
+TX, USA, 3–7 October 2021; pp. 1–10.
+32. Tripura, T.; Desai, A.S.; Adhikari, S.; Chakraborty, S. Probabilistic machine learning based predictive and interpretable digital
+twin for dynamical systems. Comput. Struct. 2023 ,281, 107008. [CrossRef]
+33. Birkedal, L.; Debois, S.; Elsborg, E.; Hildebrandt, T.; Niss, H. Bigraphical models of context-aware systems. In Proceedings of the
+International Conference on Foundations of Software Science and Computation Structures, Vienna, Austria, 25–31 March 2006;
+Springer: Berlin/Heidelberg, Germany, 2006; pp. 187–201.
+34. Tsigkanos, C.; Kehrer, T.; Ghezzi, C. Architecting dynamic cyber-physical spaces. Computing 2016 ,98, 1011–1040. [CrossRef]
+35. Tsigkanos, C.; Pasquale, L.; Ghezzi, C.; Nuseibeh, B. On the interplay between cyber and physical spaces for adaptive security.
+IEEE Trans. Dependable Secur. Comput. 2016 ,15, 466–480. [CrossRef]
+36. Tsigkanos, C.; Kehrer, T.; Ghezzi, C. Modeling and verification of evolving cyber-physical spaces. In Proceedings of the 2017 11th
+Joint Meeting on Foundations of Software Engineering, Paderborn, Germany, 4–8 September 2017; pp. 38–48.
+37. Archibald, B.; Calder, M.; Sevegnani, M.; Xu, M. Modelling and Verifying BDI Agents with Bigraphs. Sci. Comput. Program. 2022 ,
+215, 102760. [CrossRef]
+38. Cybulski, P .; Zieli ´ nski, Z. A Comprehensive Framework for Designing Behavior of UAV Swarms. In Proceedings of the Annals of
+Computer Science and Information Systems, Belgrade, Serbia, 8–11 September 2022; Volume 32, pp. 173–180.
+39. Cybulski, P .; Zieli ´ nski, Z. UAV Swarms Behavior Modeling Using Tracking Bigraphical Reactive Systems. Sensors 2021 ,21, 622.
+[CrossRef] [PubMed]
+40. Braun, S.; Dalibor, M.; Jansen, N.; Jarke, M.; Koren, I.; Quix, C.; Rumpe, B.; Wimmer, M.; Wortmann, A. Engineering digital
+twins and digital shadows as key enablers for industry 4.0. In Digital transformation: Core Technologies and Emerging Topics from a
+Computer Science Perspective ; Springer: Berlin/Heidelberg, Germany, 2023; pp. 3–31.
+41. Milner, R. The Space and Motion of Communicating Agents , 1st ed.; Cambridge University Press: New York, NY, USA, 2009.
+https://doi.org/10.3390/drones10010012
+
+--- Page 27 ---
+Drones 2026 ,10, 12 27 of 27
+42. Brunelli, M.; Ditta, C.C.; Postorino, M.N. New Infrastructures for Urban Air Mobility Systems: A Systematic Review on Vertiport
+Location and Capacity. J. Air Transp. Manag. 2023 ,112, 102460. [CrossRef]
+43. Schweiger, K.; Preis, L. Urban Air Mobility: Systematic Review of Scientific Publications and Regulations for Vertiport Design
+and Operations. Drones 2022 ,6, 179. [CrossRef]
+44. Neumann, P .P .; Hirschberger, P .; Bartholmai, M. Influence of rotor downwash on vertically displaced nanobots in flight. Mater.
+Today Proc. 2020 ,32, 108–111. [CrossRef]
+45. Dilkas, P . Nondeterministic Bigraphical Reactive Systems for Markov Decision Processes ; Technical Report; University of Glasgow:
+Glasgow, UK, 2018.
+46. Archibald, B.; Calder, M.; Sevegnani, M. Practical Modelling with Bigraphs. Form. Asp. Comput. 2025 ,37, 20:1–20:36. [CrossRef]
+47. Archibald, B.; Calder, M.; Sevegnani, M. Probabilistic bigraphs. Form. Asp. Comput. 2022 ,34, 1–27. [CrossRef]
+48. Calder, M.; Koliousis, A.; Sevegnani, M.; Sventek, J. Real-Time Verification of Wireless Home Networks Using Bigraphs with
+Sharing. Sci. Comput. Program. 2014 ,80, 288–310. [CrossRef]
+49. Albalwe, M.; Archibald, B.; Sevegnani, M. Modelling real-time systems with bigraphs. arXiv 2025 , arXiv:2505.13449. [CrossRef]
+50. Perrone, G.; Debois, S.; Hildebrandt, T.T. A Model Checker for Bigraphs. In Proceedings of the Proceedings of the 27th Annual
+ACM Symposium on Applied Computing, New York, NY, USA, 25–29 March 2012; SAC’12; pp. 1320–1325. [CrossRef]
+51. Wolfram, S. A Class of Models with the Potential to Represent Fundamental Physics. Complex Syst. 2020 ,29, 107–536. [CrossRef]
+52. Rosas, F.E.; Geiger, B.C.; Luppi, A.I.; Seth, A.K.; Polani, D.; Gastpar, M.; Mediano, P .A.M. Software in the Natural World: A
+Computational Approach to Hierarchical Emergence. arXiv 2024 , arXiv:2402.09090. [CrossRef]
+Disclaimer/Publisher’s Note: The statements, opinions and data contained in all publications are solely those of the individual
+author(s) and contributor(s) and not of MDPI and/or the editor(s). MDPI and/or the editor(s) disclaim responsibility for any injury to
+people or property resulting from any ideas, methods, instructions or products referred to in the content.
+https://doi.org/10.3390/drones10010012
