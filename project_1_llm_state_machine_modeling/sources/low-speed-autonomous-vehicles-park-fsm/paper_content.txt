@@ -1,0 +1,481 @@
+--- Page 1 ---
+
+Abstract — Park is an important population and industry
+gathering area in a city, and a popular scene in theoretical
+research and technical application of automatic driving.
+Decision-making, path planning and control are the core
+technologies. Due to cost and safety issues, automatic driving has
+not been widely used for park applications. In this paper, a
+decision-making model is devised based on finite state machine
+(FSM), a local path planner is designed based on Bézier curve
+and the lateral and longitudinal control method is realized on
+GAC Aion LX. This decision-making system for low speed
+automatic driving in the park is tested. Results demonstrate its
+accuracy and reliability.
+I. I NTRODUCTION
+As an important scene to realize autonomous driving,
+low-speed autonomous vehicles in the park have great
+commercial application potential. Decision-making, path
+planning and control system are the key technologies of
+automatic driving, in which much research has been
+performed.
+Finite state machine (FSM) is widely used in
+decision-making system. Boss’s FSM based decision-making
+system [1] defines the highest level based on driving scenes,
+and defines the bottom layer based on driving behaviors. Three
+highest levels and their corresponding bottom layers are lane
+driving (made up by lane selector, merge planner, current
+scene reporter and distance keeper), intersection handling
+(made up by precedence estimator, pan-head planner and
+transition manager), and achieving a zone pose (made up by
+state estimator and goal selector) respectively. Talos [3], which
+is good at logical clarity, divides its decision-making system
+into lane finding, navigator, motion planner, controller,
+drivability map and obstacle detector by logical hierarchy. But
+it also has poor adaptability to complex problems. Junior [4]
+divides its decision system into lane changes, U-turns, parking,
+and merging into moving traffic. AnnieWAY [5] which
+includes all relevant maneuvers in DARPA Urban Challenge
+devides its decision system into DriveStart, DriveOnLane,
+LaneChange, DriveKTurn, DriveStop and DriveRecover.
+Team Cornell’s [6] intelligent planning system uses the scene
+* Research supported by the Natural Science Foundation of China
+(61876137), and Foshan Xianhu Laboratory of the Advanced Energy Science
+and Technology Guangdong Laboratory (XHD2020-003).
+* Corresponding author is Lirong Yan (e-mail: lirong.yan@whut.edu.cn )
+Yufeng Hu, Lirong Yan, JunZhan, Fuwu Yan, Zhishuai Yin and Fuming
+Peng are with Wuhan University of Technology, Wuhan 430070, China,
+Foshan Xianhu Laboratory of the Advanced Energy Science and Technology
+Guangdong Laboratory, Xianhu Hydrogen Valley, Foshan 528200, P.R.
+China (e-mail: huyufeng98@126.com; lirong.yan@whut.edu.cn ;
+jun.zhan99@qq.com ; yanfuwu@vip.sina.com ; zyin@whut.edu.cn;
+pfm888@sina.com ).
+Yibo Wu is with Tumxuk Xinguang Jingwei UAV Technology Co. Ltd,
+Tumxuk 843999, China (e-mail: wybbok@163.com ).estimator’s probabilistic perception of the environment to plan
+mission paths within the context of the rule-based road
+network. However, there are still conditions that are not
+covered by their FSM in real test. Other scene-based FSM [7-8]
+design their decision making system aiming at urban
+environments and highway and verified their system through
+the simulation respectively.
+This paper presents a new decision-making system with
+path planning and control methods for application in the park.
+The lane change path is manipulated by setting control points
+based on Bézier curve. A lateral and longitudinal control
+method is used for path tracking. The road test results of the
+decision-making algorithm demonstrate its accuracy and
+reliability.
+This paper is organized as follows: Section II summarizes
+the system architecture. Section III describes the design of the
+decision-making system which includes planning and control
+method. Section IV shows the experiments and results of path
+tracking and lane changing. Section V provides the
+conclusions and discusses the future work.
+II. A RCHITECTURE
+Figure 1 shows the overall system architecture of this paper
+including the following subsystems.
+Road-Paint Detection using image-processing method to fit
+splines to lane based on cameras data provides lane boundry
+for drivability area.
+Obstacles Detector uses lidar and cameras data to detect the
+position, velocity, moving direction, size and category of the
+objects.
+Fusion of Positioning reconciles Inertial measurement unit
+(IMU) information, global positioning system (GPS) and
+Real-time kinematic (RTK) integrated positioning information
+and point cloud matching positioning information, and outputs
+the real-time positioning results with high precision finally.
+The high precision map uses lidar and positioning data to mark
+the pre-defined path and the hazard which is hard to detect by
+Obstacles Detector, like hollow on the road.
+Drivability Area reconciles the lane detection and high
+precision map, answering queries from Local Path Planner of
+the validity of drivability path.
+The Path Tracker tracks the pre-defined path based on high
+precision positioning.
+These modules are all running based on Robot Operating
+System (ROS), which provides efficient communication, a set
+of software libraries and tools.Decision-making System based on Finite State Machine for
+Low-speed Autonomous Vehicles in the Park
+Yufeng Hu, Lirong Yan*, Jun Zhan, Fuwu Yan, Zhishuai Yin, Fuming Peng, and Yibo Wu
+978-1-6654-6983-8/22/$31.00 © 2022 IEEE 721Proceedings of The 2022 IEEE International
+Conference on Real-time Computing and Robotics
+July 17-22, 2022, Guiyang, China2022 IEEE International Conference on Real-time Computing and Robotics (RCAR) | 978-1-6654-6983-8/22/$31.00 ©2022 IEEE | DOI: 10.1109/RCAR54675.2022.9872208
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 2 ---
+Figure 1. System architecture.
+III. D ECISION -MAKING SYSTEM BASED ON FSM
+The FSM that is used to switch between different driving
+states is shown in Figure 2. There are 7 individual states in the
+FSM, which correspond to the following conditions.
+StateEstimator: this state receives the vehicle’s position, lane
+information, obstacles information and drivability area, andfilters out the useless information.
+StopAndWait: this state enables the autonomous vehicle to
+wait for pedestrians and other cars in the opposite lane passing
+when lane changing.
+DistanceKeeping: information provided by perception system
+is used in this state to determine the necessary safety gaps
+between two vehicles and adjust the speed of the autonomous
+vehicle accordingly.
+ConstantSpeed: in this state, the autonomous vehicle goes at
+the default speed which is 3m/s.
+LaneChoosing: this state uses the perceptual information to
+determine the optimal lane to be in at any instant and evaluate
+whether it is feasible.
+LocalPlanner: path planning based on Bézier curve is used in
+this state to merge into a lane proposed by lane choosing.
+VehicleController: control system based on lateral and
+longitudinal control is used for path tracking.
+Figure 2. Behaviors architecture based on FSM
+A. Distance Keeping
+This behavior aims to make the actual distance not less than
+the desired distance between the autonomous vehicle and the
+vehicle in front. The following area is divided into Collision
+Avoidance Area and Vehicle Following Area according to
+actuald , which means the actual distance between the frontvehicle and autonomous vehicle. For Vehicle Following Area,
+this means:
+stop actual stop followdd dd  (1)
+For Collision Avoidance Area, this means:
+actual stopdd (2)
+In Vehicle Following Area, the autonomous vehicle
+governs the speed according to the distance change in the past
+second: ifactuald decreases, then 1( 5 )dd dvv v m / s  ;if
+actuald increases, then 1( 0 )dd dvv v  ;i factuald is
+unchanged, thenddvv,w h e r edvis the desired velocity.
+In Collision Avoidance Area, 0dv.
+Figure 3. Distance Keeping state
+B. Lane Choosing
+In this paper, overtaking other cars on the road isn’t
+considered. Hence, Lane Changing is only considered when
+avoiding static obstacles. Firstly, consider whether there are
+incoming vehicles in the opposite lane when encountering
+obstacles. If there are incoming vehicles in the opposite lane,
+stop and wait until the vehicles pass. Secondly, return to the
+original lane if passable, for staying in the opposite lane may
+cause accident.
+C. Local Planner
+The following three problems are one of the most difficult
+problems in path planning in order to reduce the probability of
+traffic accidents in the park[9].
+(1) The path should meet the constraints of vehicle
+dynamics.
+(2) The path should ensure driving comfort and safety.
+(3) The path planner should be able to do path planning
+adaptively under different circumstances.
+To solve the problems above, a real-time local path planner
+based on Bézier curve is proposed.
+Nowadays, Bézier curves are widely used in computer
+graphics and animation, for which it has the advantages of
+continuous curvature, easily tracking and meeting vehicle
+dynamics constraints. Therefore, Bézier curve is selected for
+path planning in this paper.
+A Bézier curve of degree ncan be represented as
+0()n
+i, n i
+inB( t ) b t Pi (3)
+whereiPare control points, 01t, ,()i, nbt is a Bernstein
+polynomial given by
+722
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 3 ---
+(1 )in i
+i, nnbt ti (4)
+There are important properties of Bézier curve for path
+planning[10] ：
+(1) They always pass through0PandnP,a n dd o n’tp a s s
+through other control points.
+(2) They are always tangent to the lines connecting0P→
+1Pand1nP→nPat0PandnPrespectively.
+(3) They always lie within the convex hull consisting of
+their control points. This property can be used to constrain theposition of control points, so as to ensure that the curve has no
+collision with obstacles.
+Generally, the controller tracks the pre-defined path until
+coming across obstacles. This paper proposes a local planner todeal with lane changing in the park based on a fixed tracking
+path, which needs to follow the procedure as follows.
+(1) Input parameters
+The local planner requires parameters as follow.
+0Cv: the velocity of the obstacle, it’s considered statics if
+002Cv. , then local path will be planned. Otherwise,
+StateEstimator will turn to Lane Keeping state.
+0Pand5P:starting point0P00()X, Y and ending point5P
+55()X, Y are required for lane changing, where5P55()X, Y is
+determined by High precision map and the position of
+obstacles, and0P00()X, Y is where the vehicle is when
+obstacle is detected.
+r: the safety distance between the autonomous vehicle and
+obstacles.
+0CL and
+0Cw: the length and width of the obstacle C0,
+which is provided by Perception system.
+1Cw: the width of the vehicle.
+rw: the width of the road which is provided by Road-Paint
+Detection.
+0()ob ob CX, Y : the center coordinate of the obstacles, which
+is provided by Perception system. If 12obX , Local planner
+will ignore this object, for which it’s still far away. If
+81 2obX , Local planner will plan path to change lane, and
+the path will meet the vehicle dynamics constraints due to long
+distance for lane change. However, the behavior will turn to
+StopAndWait if 8obX, because the path won’t meet the
+vehicle dynamics constraints.
+(2) Drivability area
+The local planner in this paper treats vehicle as a point,
+which can result in collision due to the dimension of thevehicle. Hence, obstacle expansion radius
+ris used to avoid
+collision by increasing the size of the obstacle. Besides,mindisused for the minimum desired distance from obstacles to the
+vehicle. Lis the desired distance between the vehicle and the
+obstacle, which can be written as
+0
+2C
+ob minL
+LX d (5)
+According to property (3), the planning path is wrapped in
+a convex hull connected by its control points, so that it is only
+necessary to ensure that all control points of Bézier curve arelimited in the safe area, then the curve will not collide withobstacles. Obviously, point O is the most prone to collisionduring lane changing as shown in Figure 4. This means the
+radius of circle O needs to satisfy:
+1C rw (6)
+Figure 4. Lane change for obstacle avoidance
+(3) Selection of control points
+As shown in Figure 5, Bézier curve is used for local
+planning, where ()ii iPX , Y are selected as the control points.
+This paper employs 5th-order Bézier curve for local planning.
+Point0Pis the origin of local planning coordinates. Point5Pis
+the end of lane change path, which is on pre-defined path 1, so
+that5Ycan be given by the ordinate corresponding to5X.
+Take Figure 5 as an example,0Pand5Pare selected as
+00
+5500
+rX, Y
+XL , Y w
+(7)
+Divide Linto four equal parts, after that1P,2P,3Pand4P
+are computed by
+5
+11 0
+5
+22 0
+5
+33 5
+5
+44 54
+2
+2
+3
+4XX, Y Y ,
+XX, Y Y ,
+XX, Y Y ,
+XX, Y Y
+
+
+(8)
+After changing lane successfully, the vehicle needs to
+move past the obstacle. The distance that vehicle has to go on
+Pre-defined path 1 is decided bylineL,which is
+02line C minLL d (9)
+Thus, the local planning has been constructed by 5th-order
+Bézier curve based on the 6 control points.
+723
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 4 ---
+Figure 5. Path planning based on 5th-order Bézier curve
+(4) Collision detection
+Suppose the circle O is tangent to25PP , according to the
+area of25OP P
+25 535rPP OP PP (10)
+Hence, (10) can be rewritten as
+02
+2[( ) ]42 2C
+rrm i n o bw LLrw w d y   (11)
+From (11) ,the collision detection can be tested as below
+0
+1 22[( ) ]2
+4C
+rm i n o b
+C
+rw
+Lw d y
+rw
+wL 
+
+(12)
+However, if the collision detection failed, then5Pshould
+be changed as follow until the collision detection succeeded,
+while the other control points are still the same.
+554
+5rLX, Y w (13)
+(5) Return to the original path
+After passing obstacle0C, the Decision-making system
+will require the vehicle to return to the original path under
+normal circumstances. As shown in Figure 6a,
+6 7 8 9 10 11P ,P P ,P ,P ,P and012345P, P, P, P, P, P are symmetry.
+(a) Under normal circumstances
+(b) Obstacle C2hidden by C0
+Figure 6.The path back to Pre-defined path 0
+However, as shown in Figure 6b, there might be obstacles
+hidden by0C, which means they might not be detected by lidar
+and cameras when the vehicle is on Pre-defined path 0. Hence,
+the vehicle is unable to change lane after passing obstacle0Cimmediately. The obstacles in path 0 must be considered when
+switching to Lane Keeping state.
+D. Vehicle Controller
+(1) Lateral control based on pure pursuit method
+Combined with the characteristics of low-speed automatic
+driving in the park, a pure pursuit method is chosen for the
+steering control. As shown in Figure 7a, the pure pursuit
+algorithm is based on Ackerman steering model, whichsimplifies a 4-wheel vehicle into a 2-wheel bicycle model[8].
+The advantage of adopting the 2-wheel model is that it
+simplifies the geometric relationship between the steering
+angle of the front wheel and the curvature that the rear axle will
+follow. The relationship is shown in the equation ：
+()LtanR (14)
+whereis the front wheel angle of the vehicle, Lis the
+wheelbase of the vehicle, and Ris the radius of the circle
+followed by the rear axle under the steering angle of the front
+wheel.
+Based on the bicycle model, pure pursuit method takes the
+rear axle of the vehicle as the tan gent point and the longitudinal
+body of the vehicle as the tangent line, by controlling the angleof the front wheel, the vehicle can drive along an arc passingthrough the target road point, as shown in Figure 7b.
+(a) Bicycle model (b) Pure pursuit method
+Figure 7.The model of pure pursuit
+(gx,gy) is the goal point to be tracked, it is necessary to
+control the center point of the rear axle of the vehicle to pass
+through the point to be tracked.dlrepresents the distance from
+the current position of the vehicle to the target road point,
+which is called look-ahead distance. represents the angle
+between the current orientation of the vehicle and the target
+road point. The following equation can be deduced from the
+sine theorem:
+(2 )()2dl R
+sinsin
+(15)
+2dl R
+sin cos cos  (16)
+2dlRsin (17)
+Equation (17) can be written as
+724
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 5 ---
+2
+dsin
+l (18)
+whereis the curvature of the arc, and the vehicle
+wheelbase is represented by L,then the expression of the
+rotation angle of the front wheel is
+1() tan L (19)
+Combining (18) and (19), the control quantity of pure
+pursuit method can be written as
+12( ( ) )() ( )
+dLs i n ttt a nl (20)
+An e wv a r i a b l e1eis defined to represent the lateral error
+between the heading vector and the goal point. According to
+Ackermann model
+1
+desinl (21)
+The curvature of the circular arc can be written as
+122
+del (22)
+The look-ahead distance ldis expressed as a linear function
+of the vehicle longitudinal speed, which is0+dxlk v l ,w h e r e
+xvis the velocity of the vehicle, kis a coefficient and0lis the
+shortest look-ahead distance. The equation of the angle of front
+wheel results in
+1
+02( ( ) )() ( )() +xLs i n ttt a nkv t l (23)
+Equation (23) is the control quantity of the pure pursuit
+method.
+(2) Longitudinal control based on PID methodA PID method is used for longitudinal control, which is
+written as
+01( )() ()t
+tp D
+Ide tU K et etd t KKd t  (24)
+wheretUis the acceleration or braking control quantity of
+the vehicle; () =da et v v;dvis the desired velocity whileavis
+the actual velocity; andpK,IK,DKare input parameters[11].
+By discretizing (24), the calculation equation of discrete
+PID can be written as
+1
+0kkk
+tp k j D j
+Iee TUK e eKKT
+  (25)
+where Tis the instruction cycle of the controller, andtU
+is the output of longitudinal control.IV. E XPERIMENT AND RESULT
+A. Experimental environment
+As shown in Figure 8, this paper built an automatic driving
+platform based on GAC Aion LX. In this platform, power box,host of Integration Navigation System, Nuvo-7160GC IPC, 4GDTU and CAN gateway were arranged. Figure 9 showed thetest site which was a circular parking lot with two lanes.
+Figure 8.Automatic driving platform based on GAC Aion LX
+Figure 9. The test site
+B. The result of experiment
+(1) Path tracking experiment
+This paper did the automatic driving experiment in a
+parking lot. Figure 10a showed the trajectory of tracking, in
+which the dotted line is the tracking path and the solid line is
+the original path. The tracking error is 0-13.51cm, and the
+average error is 5.42cm. In conclusion, the path trackingalgorithm in this paper can track with high accuracy, especiallywhen turning.
+The accuracy of tracking largely depended on the shortest
+value of look-ahead distance
+dl.dlshouldn’t be too small, for
+which it might cause the oscillations of vehicle motion
+although smalldlwould make tracking more accurate.
+However,dlshouldn’t be too large, for which the vehicle
+might have a tendency to understeer although large look-ahead
+distance meant smooth tracking[10].
+This paper chose 2m as the shortest look-ahead distance0l,
+as a result of low speed driving in the park.
+(2) Lane changing experimentBased on the high accuracy of tracking, Figure 10b showed
+the result of lane change. The two different lane change pathrepresented two different position where the obstacles existed.The result implicated that the vehicle was able to change lane
+safely and smoothly when necessary.
+725
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
+
+--- Page 6 ---
+(a) Path tracking (b) Lane changing
+Figure 10. The results of path tracking and lane changing
+V. C ONCLUSION
+In this paper, we proposed a decision-making system
+including local path planner and control method used in thepark with high accuracy and safety. However, its practicabilitywas limited by the scene. In the future, more scenes should beconsidered, and universally applicable decision-making
+system should be studied.
+R
+EFERENCES
+[1] C. Urmson, J. Anhalt, D. Bagnell, et al, “Autonomous driving in urban
+environments: Boss and the Urban Challenge,” Journal of Field
+Robotics , vol. 25, no. 8, pp. 425-466, Aug, 2008.
+[2] C. R. Baker, and J. M. Dolan, “Traffic Interaction in the Urban
+Challenge: Putting Boss on its Best Behavior,” 2008 Ieee/Rsj
+International Conference on Robots and Intelligent Systems ,v o l s1 - 3 ,
+pp. 1752-1758, Oct, 2008.
+[3] J. Leonard, J. How, S. Teller, et al, “A Perception-Driven Autonomous
+Urban Vehicle,” Journal of Field Robotics , vol. 25, no. 10, pp. 727-774,
+Oct, 2008.
+[4] M. Montemerlo, J. Becker, S. Bhat, et al, “Junior: The Stanford entry in
+the Urban Challenge,” Journal of Field Robotics , vol. 25, no. 9, pp.
+569-597, Sep, 2008.
+[5] Kammel S, ren, Ziegler J, et al. “Team AnnieWAY’s Autonomous
+System for the 2007 DARPA Urhan Challenge,” Journal of Field
+Robotics , vol. 25, no. 9, pp. 615-639, Aug, 2008.
+[6] I. Miller, M. Campbell, D. Huttenlocher, et al, “Team Cornell's Skynet:
+Robust perception and planning in an urban environment,” Journal of
+Field Robotics , vol. 25, no. 8, pp. 493-527, Aug, 2008.
+[7] S. H. Bae, S. H. Joo, J. W. Pyo, et al, “Finite State Machine based
+Vehicle System for Autonomous Driving in Urban Environments,” in
+20th International Conference on Control, Automation and Systems
+(Iccas) , pp. 1181-1186, Oct, 2020.
+[8] Q. J. Cui, R. J. Ding, C. F. Wei, and B. Zhou, “A hierarchical framework
+of emergency collision avoidance amid surrounding vehicles in
+highway driving,” Control Engineering Practice , vol. 109, pp. 104751,
+Apr, 2021.
+[9] Choi, J. W., Curry, R., and Elkaim, G. “Path Planning Based on Bézier
+Curve for Autonomous Ground Vehicles”. in World Congress on
+Engineering and Computer Science, (WCECS), pp. 158-166, Oct, 2008.
+[10] Long, H., Yashiro, H., Nejad, H., et al, “Bézier curve based path
+planning for autonomous vehicle in urban environment”. in 2010 IEEE
+intelligent vehicles symposium(IV) , pp. 1036-1042, Jun, 2010.
+[11] N. V. Dinh, Y. G. Ha, and G. W. Kim, “A Universal Control System for
+Self-Driving Car Towards Urban Challenges,” in 2020 Ieee
+International Conference on Big Data and Smart Computing (Bigcomp) ,
+pp. 452-454, Apr, 2020.
+726
+Authorized licensed use limited to: WUHAN UNIVERSITY OF TECHNOLOGY. Downloaded on October 22,2025 at 08:05:45 UTC from IEEE Xplore.  Restrictions apply. 
