@@ -1,0 +1,1478 @@
+--- Page 1 ---
+A Finite-state Machine for Accommodating Unexpected Large
+Ground Height Variations in Bipedal Robot Walking
+Hae-Won Park, Alireza Ramezani, and J.W. Grizzle
+Abstract —This paper presents a feedback controller that
+allows MABEL, a kneed planar bipedal robot with 1 m-long legs,
+to accommodate terrain that presents large unexpected increas es
+and decreases in height. The robot is provided information
+on neither where the change in terrain height occurs, nor by
+how much. A ﬁnite-state machine is designed that manages
+transitions among controllers for ﬂat-ground walking, stepping-
+up and down, and a trip reﬂex. If the robot completes a step, the
+depth of a step-down or height of a step-up can be immediately
+estimated at impact from the lengths of the legs and the angles
+of the robot’s joints. The change in height can be used to
+invoke a proper control response. On the other hand, if the
+swing leg impacts an obstacle during a step, or has a premature
+impact with the ground, a trip reﬂex is triggered on the basis of
+specially designed contact switches on the robot’s shins, contact
+switches on the end of each leg, and the current conﬁguration
+of the robot. The design of each control mode and the transition
+conditions among them are presented. The paper concludes with
+experimental results of MABEL (blindly) accommodating various
+types of platforms, including ascent of a 12.5 cm high platform,
+stepping-off an 18.5 cm high platform, and walking over a
+platform with multiple ascending and descending steps.
+I. I NTRODUCTION
+Bipedal locomotion has attracted attention for its potenti al
+ability, superior when compared to wheeled locomotion, to
+overcome rough terrain or environments with discontinuous
+supports. Existing bipedal robots, however, can only deal w ith
+small unknown variations in ground height. Ground height
+variations exceeding a few centimeters must be known a priori
+and require carefully planned maneuvers to overcome them.
+Two major avenues of research are currently being pursued
+to quantify and improve the ability of a bipedal machine to
+walk over uneven terrain. A stochastic model of ground vari-
+ation is being investigated in [1], [2], [3] for low-dimensi onal
+dynamical systems such as the rimless wheel and the compass
+bipedal walker. The mean ﬁrst-passage time to the fallen
+absorbing state is used to assess the robustness of a gait.
+This metric captures the expected time that a robot can walk
+before falling down, measured in units of number of steps.
+Numerical dynamic programming is applied to a discretized
+representation of the dynamics to maximize the mean ﬁrst-
+passage time. In [4], [5], [6], the gait sensitivity norm, de ﬁned
+as the variance of the system’s output (taken as step duratio n)
+to unit white noise input (taken as change in ground height),
+is introduced to quantify the ability of a bipedal robot to
+H.-W. Park and A. Ramezani are with the Mechanical Engineerin g
+Department, University of Michigan, Ann Arbor, MI, 48109-21 25, USA,
+parkhw@umich.edu
+J. W. Grizzle is with the Control Systems Laboratory, Electri cal Engineering
+and Computer Science Department, University of Michigan, Ann Arbor, MI
+48109-2122, USA.
+This work is supported in part by NSF grant ECS-909300 and in p art by
+DARPA Contract W91CRB-11-1-0002.
+Fig. 1: MABEL, a planar testbed for bipedal locomotion, is
+shown traversing a platform with 10.5 cm and 8 cm steps.
+handle disturbances. Particular attention is given to a “st ep-
+down test”, where the ground proﬁle consists of a ﬂat section ,
+followed by an abrupt decrease in height, followed again by a
+ﬂat section of ground. These references use the gait sensiti vity
+norm to assess the improvement in disturbance rejection whe n
+swing-leg retraction speed at the end of the step is varied [5 ].
+Along with the search for the best quantity to measure
+the robustness of bipedal walking to ground variation, seve ral
+control design approaches for walking over uneven ground
+have been proposed in the literature. The work presented in [ 7],
+[8] begins with the computation of a transverse linearizati on
+around the desired trajectories; speciﬁcally, the transve rse
+linearization is a linear system with linearized impulse ef fects
+which locally represents the original transversal dynamic s
+of a target trajectory. Next, a receding-horizon controlle r
+is designed to exponentially stabilize the linear impulsiv e
+system. The designed controller has been veriﬁed by a walkin g
+experiment [7] over uneven ground where the height varied by
+steps of 2.0 cm. A neural network was tuned to accommodate
+irregular surfaces in [9]. The algorithm was tested on the ro bot
+Rabbit, whose legs are 80 cm long, resulting in 1.5 cm ground-
+height variations being accommodated.
+A sensory reﬂex-based control strategy has been consid-
+ered for bipedal walking [10] and for running over uneven
+ground [11]. In response to various types of disturbance, su ch
+as tripping and slipping [11], or step-down and step-up [10] ,
+a separately designed reﬂex controller is activated to atte nuate
+the effects of the disturbances. The sensory reﬂex control
+proposed in [10] was tested to accommodate obstacles 1.0 cm
+in height, while a reﬂex strategy in [11] was veriﬁed only
+in simulation to the best knowledge of the authors. A reﬂex-
+based control strategy for traversing unknown sloped terra in
+was presented in [12] along with experimental veriﬁcation. On
+the other hand, prior information of the stair proﬁle is requ ired
+in order to handle stepped terrain.
+
+--- Page 2 ---
+While important progress is being made on walking over
+uneven ground with unknown abrupt variations, signiﬁcant
+restrictions still remain. The experimental work in [4], [5 ],
+[6], [9], [7] and [10] accommodates only obstacles that are l ess
+than 6% of leg length, a value that is small when compared
+to common obstacles in everyday life, such as the height of
+steps in a building or the curb height of a sidewalk on a city
+street.
+In this paper, we propose a new control policy for the planar
+bipedal robot MABEL [13], which weighs 65 kg and has
+1 m-long legs. The control policy allows MABEL to traverse
+various ground proﬁles, including ascent of a stair with a
+height of 12.5 cm (12.5% of the leg length), step-down from
+a platform with a height of 18.5 cm (18.5% of the leg length),
+and walking over constructed platforms which consist of ste ps
+with heights of 10.5 cm and 8.0 cm (see Figure 1), without
+falling. The robot is provided information on neither where
+the change in height occurs, nor by how much.
+The remainder of the paper is organized as follows. Sec-
+tion II describes the general features of MABEL’s morpholog y,
+and summarizes two mathematical models for a walking gait.
+Section III provides the design of the baseline controller
+reported in [14] and an initial step-down experiment report ed
+in [15]. Individual control designs to accommodate various
+types of obstacles including step-down, step-up, and tripp ing
+are presented in Section IV. Section V introduces a ﬁnite-st ate
+machine to manage the transitions among these controllers.
+In Section VI, the overall controller is veriﬁed on a detaile d
+simulation model reported in [15]. Experimental results of
+the new controller are provided in Section VII. Finally, Sec -
+tion VIII provides concluding remarks and brieﬂy discusses
+future research plans.
+II. H ARDWARE AND MATHEMATICAL MODEL OF MABEL
+This section brieﬂy introduces MABEL, the robot used to
+test the proposed ﬁnite-state machine, and two mathematica l
+models for control law design and veriﬁcation. This materia l
+is based primarily on [14], [13], [15].
+A. Description of MABEL’s hardware
+MABEL is a planar bipedal robot comprised of ﬁve rigid
+links assembled to form a torso and two legs with knees. As
+shown in Figure 2, the legs are terminated in point feet. All
+actuators are located in the torso, so that the legs are kept
+as light as possible. Unlike most bipedal robots, the actuat ed
+degrees of freedom of each leg do not correspond to the knee
+and hip angles. Instead, for each leg, a collection of cable-
+differentials is used to connect two motors to the hip and kne e
+joints in such a way that one motor controls the angle of the
+virtual leg consisting of the line connecting the hip to the t oe,
+and the second motor is connected in series with a spring
+in order to control the length or shape of the virtual leg (see
+Figure 3). The reader is referred to [16], [13], [15] for furt her
+details on the transmission. Table I summarizes the convent ion
+used for subscripts for variables in the remainder of the pap er.
+The springs in MABEL serve to isolate the reﬂected rotor
+inertia of the leg-shape motors (see Figure 3) from the impac t
+(a)
+−qT
+qLA
+qLS
+Virtual
+Compliant Leg −θs
+(b)
+Fig. 2: (a) MABEL is shown with the switch in front of the
+shin that is used to detect contact with obstacles. The robot
+is planar, with a boom providing stabilization in the fronta l
+plane. The robot weighs 65kg and is 1m at the hip. (b) The
+virtual compliant leg created by the drivetrain through a set
+of differentials.
+BspringqmLSleg-shape
+motor
+ torso
+leg-angle
+motor
+qThigh qShin
+qLS−=qThigh qShin
+2=qLA qThigh qShin
+2+Bspring 
+springqBsp
+Fig. 3: MABEL’s powertrain (same for each leg), all housed
+in the torso. Two motors and a spring are connected to the
+traditional hip and knee joints via three differentials, wh ich
+are connected such that the actuated variables are leg angle
+and leg shape (see Figure 2), and so that the spring is in a
+series with the leg-shape motor. The differentials are real ized
+with pulleys and cables; for further details, see [15].
+forces at leg touchdown and to store energy in the compressio n
+phase of a walking gait, when the support leg must decelerate
+the downward motion of the robot’s center of mass. The
+energy stored in the spring can then be used to redirect
+the center of mass upwards for the subsequent phase. These
+properties (shock isolation and energy storage) enhance th e
+energy efﬁciency of walking and reduce the overall actuator
+power requirements [14], [17].
+As depicted in Figure 2a, MABEL is equipped with contact
+switches installed on the bottom of the toe and the front of
+the shin. The contact switch installed on the bottom of the
+toe is used for detecting impacts with the ground whereas the
+contact switch installed on the front of the shin is used for
+detecting contact with obstacles. These contact switch sig nals,
+
+--- Page 3 ---
+TABLE I: Nomenclature for subscripts.
+Subscript Variable
+LA Leg Angle
+LS Leg Shape
+mLA Motor Leg Angle
+mLS Motor Leg Shape
+T Torso
+Bsp B spring Pulley Angle
+st Stance leg
+sw Swing leg
+along with position encoder signals located on the joints, w ill
+be used in the design of a ﬁnite-state machine.
+B. Mathematical Model
+Two models of MABEL have been developed and identiﬁed
+in [14] and [15]. This section brieﬂy summarizes a simpliﬁed
+design model that is appropriate for control design and a
+more detailed model appropriate for controller veriﬁcation.
+These two models will be used extensively in Section IV. The
+simpliﬁed design model will be used for iterative controlle r
+design because it can be simulated twenty times faster than
+the detailed model. The detailed model will be used to verify
+controller performance because it better reﬂects the actua l
+hardware.
+1) Simpliﬁed Design model: The hybrid model consists of
+a continuous-time stance phase and an instantaneous double
+support phase. The generalized coordinates are taken as,
+qs:= (qLAst;qmLSst;qBspst;qLAsw;qmLSsw;qT), (1)
+where, as in Figure 2 and Figure 3, qLAst,qmLSst, andqBspst
+are the leg angle, leg-shape motor position, and angle of the
+pulleyBspring (a pulley which is connected to the free end
+of the spring as shown in Figure 3, and therefore corresponds
+to spring deﬂection) of the stance leg, respectively; qLAswand
+qmLSsware the leg angle and leg-shape motor position of the
+swing leg, respectively; qTis the angle of torso with respect
+to the vertical. With the generalized coordinates deﬁned in (1),
+the equations of motion of the continuous-time stance phase
+are obtained using the method of Lagrange [18].
+An impact occurs when the swing leg touches the ground,
+and is modeled here as an inelastic contact between two rigid
+bodies. It is assumed that there is neither rebound nor slip a t
+impact. The method of [19] provides a (static) map that takes
+the state variables xs:= (qs; ˙qs)just before impact to their
+values just after impact when impact occurs.
+More details about the development of the impact map and
+the hybrid model for MABEL are presented in [14], [15].
+2) Detailed Model: The simpliﬁed design model does not
+fully reﬂect experimental reality due to the following reas ons:
+cable stretch in the robot’s drivetrain; asymmetry due to
+the boom radius not being large enough; the fact that the
+simpliﬁed impact model assumes an instantaneous double
+support phase whereas, in experiments, the double support
+phase lasts approximately 20 ms. More details are provided
+in [14] and [15]. By representing cable stretch as a spring-
+damper, incorporating the boom dynamics to account for
+asymmetry side-to-side, and computing ground reaction for ces
+on the basis of a compliant ground model and a LuGre friction
+model [20], [21], the accuracy of the model is signiﬁcantlyimproved. However, because of the complexity of this model,
+simulations of the detailed model take 20 times longer than t he
+simpliﬁed design model. Hence, this model is not appropriat e
+for optimization processes which may require thousands of
+simulations.
+Therefore, to take advantage of each model’s strengths,
+which are low computational effort for the simpliﬁed design
+model and high accuracy for the detailed model, iterative
+controller design is conducted on the simpliﬁed design mode l,
+and then the designed controller is tested on the detailed mo del
+before implementing it on the robot.
+III. B ASELINE CONTROLLER AND SHOCK -ABSORBING
+CONTROLLER
+A. Baseline Controller
+MABEL’s baseline feedback controller is designed using the
+method of virtual constraints [22]. The particular control ler
+used here has been reported in [14]. The method of virtual
+constraints begins with the choice of outputs which depend
+on only conﬁguration variables and take the form
+y=h(qs) =h0(qs)−hd(s(qs),α). (2)
+In the baseline controller, the controlled variables are
+h0(qs) =
+qmLSst
+qLAsw
+qmLSsw
+qT
+(3)
+andhd(s(qs),α)is a vector representing the desired evolution
+of the controlled variables as a function of s(qs), a scalar
+function of the conﬁguration variables that replaces time i n a
+standard tracking controller. The function s(qs)is designed to
+be strictly monotonically increasing over the course of a st ep,
+and is selected as
+s(qs) =
+
+θ(qs)−θ+
+θ−−θ+, θ+< θ(qs)< θ−
+1, θ (qs)≥θ−
+0, θ (qs)≤θ+(4)
+whereθis the absolute angle formed by the virtual compliant
+leg relative to the ground, that is,
+θ(qs) =π−qLAst−qT, (5)
+andθ+andθ−are the values of θ(qs)at the beginning and
+end of a step, respectively.
+If a feedback can be found such that the output yis driven
+asymptotically to zero, then the solutions of the closed-lo op
+system asymptotically satisfy h(qs) = 0 , which has the form of
+a holonomic constraint on a mechanical system (for addition al
+information about virtual constraints, see [23]).
+In the baseline controller, the desired evolution of the
+controlled variables in (3) is speciﬁed by the functions hd
+mLSst,
+hd
+LAsw,hd
+mLSsw, andhd
+T, respectively which are parametrized
+5th-order Bézier polynomials with corresponding Bézier Coef-
+ﬁcientsαmLSst,αLAsw,αmLSsw, andαT. The desired evolution
+
+--- Page 4 ---
+is assembled as
+hd(s,α) =
+hd
+mLSst(s,α)
+hd
+LAsw(s,α)
+hd
+mLSsw(s,α)
+hd
+T(s,α)
+, (6)
+whereαis organized as,
+α= [αmLSst,αLAsw,αmLSsw,αT]T. (7)
+How the functions in hd(s,α)are constructed from Bézier
+polynomials and how the parameters are chosen to create
+a periodic walking gait in the closed-loop system are both
+explained in [22] and [14].
+In principle, the virtual constraints can be implemented on
+the robot by any feedback capable of driving yto zero. In the
+experiments described below, we use the feedforward-plus-
+PD-controller,
+uPD(x) =u∗(s(qs),α)−KPy−KD˙y, (8)
+whereu∗(s(qs),α)is the nominal torque along the periodic
+orbit determined from the parameter-optimization problem
+when designing the virtual constraints, and yis deﬁned in
+(2). The values of KPandKDwere obtained by hand tuning,
+and are given by
+KP= diag(6 45 6 45) ,KD= diag(0 .125 1 0.125 1).(9)
+The above process results in the virtual constraints which
+correspond to the nominal walking gait presented in [14], wi th
+an average walking speed of approximately 1.0 m/s. Here, we
+modify the nominal virtual constraints so that the end of the
+swing leg at mid-stance can clear a 3 cm obstacle, allowing th e
+robot to step onto a platform before stepping off it. Hencefo rth,
+we call this the baseline controller .
+B. Baseline step-down performance
+As reported in [15], using the control law (8) and the base-
+line virtual constraints, MABEL can accommodate a 2.0 inch
+(5.08 cm) step-down disturbance. However, MABEL fell after
+stepping off the 2.5 inch platform because the leg broke on
+the ensuing step; the video is available at [24].
+Further analysis of the experimental results reveals that
+the feedback system overreacts when correcting the forward -
+pitching motion of the torso arising from the impact at step-
+down. Moreover, this overreaction causes a second, very rap id,
+forward-pitching motion of the torso. Because the angle of
+the swing leg was controlled relative to the torso, the swing
+leg rotated forward rapidly as well and impacted the ground
+with sufﬁcient force to break the leg. Though not reported
+in [15], the experiment was repeated several times, with the
+same result, namely, a broken leg following a 2.5 inch step-
+down.
+C. Active Force Control and Virtual Compliance for Shock
+Absorption
+To attenuate excessive torso pitching following a large ste p-
+down, we adopted the idea of a switching controller from
+[25], along with active force control [26]. The height of theplatform, or equivalently, the depth of the step down, can
+be immediately computed at impact from the lengths of the
+robot’s legs and the angles of its joints. If the calculated h eight
+of the platform is greater than 3 cm, the baseline controller
+is replaced for one step with a controller whose purpose is to
+attenuate pitching of the torso from the step-down disturba nce.
+Then, at the beginning of the very next step, the baseline
+controller is re-applied.
+The new controller, called active force control , im-
+poses virtual holonomic constraints on only three variable s,
+qLAsw,qmLSsw, andqT, instead of four variables, as in the
+baseline controller. In particular, the system input corre spond-
+ing to the stance motor leg shape is left free and is not used fo r
+imposing a virtual constraint. Recall that this motor is in s eries
+with a physical spring in the drivetrain, as shown in Figure 3 .
+Building on an idea developed in [27], [26] for bipedal runni ng
+on MABEL, we use the torque input of this motor to create an
+additional virtual compliant element by deﬁning the feedback,
+umLSst(x) =−k(qmLSst−qrest)−b(˙qmLSst). (10)
+For further use, we assemble the independent parameters of
+the virtual compliance as αvc= [k,b,qrest]T.
+This feedback essentially turns the motor leg shape into a
+shock absorber with stiffness k, damping b, and rest position
+qrest. As will be seen, this method of creating a virtual com-
+pliant element serves to maintain good ground contact force s
+(the friction cone is respected and the normal component is
+positive) during large step-down events. Parameters in the
+controller were obtained by solving a constrained optimiza tion
+problem, and the proposed switching controller resulted in a
+dramatic increase in performance: MABEL was repeatedly
+able to step off an 8.0 inch (20.32 cm) platform without
+falling [28].
+IV. C ONTROLLER DESIGN FOR LARGE UNEXPECTED
+GROUND HEIGHT INCREASES AND DECREASES
+A. Motivation of the Control Design
+As established in the successful 20 cm step-down experi-
+ments in Section III, by activating the speciﬁcally designe d
+step-down controller in the form of active force control, in
+response to a step-down disturbance, MABEL could not only
+maintain a positive vertical ground reaction force, causin g the
+stance toe to stay in contact with the ground, but also reduce
+torso oscillation by a signiﬁcant amount, thereby attenuat ing
+the impact force on the swing toe at the end of the ensuing
+step of the step-down event.
+It appears that, similar to MABEL’s switching control strat -
+egy for a step-down disturbance, humans also change their ga it
+strategy in response to disturbances in ground height, in up -
+slope as well as down-slope walking [29], [30], [31]. Resear ch
+studies have shown that the typical level walking gait may
+require small modiﬁcations for small grade ramps; however,
+steeper grades seem to require signiﬁcant changes in the gai t
+patterns to accommodate both large up-slope changes and lar ge
+down-slope changes. Along with modiﬁcations of gait patter ns,
+it is found that humans adjust the stiffness of the stance leg in
+response to ground variations in height during running [32] ,
+
+--- Page 5 ---
+[33]. The adjustment is characterized by an increase in leg
+stiffness in preparation for a step-down disturbance, and a
+reduction in response to a step-up disturbance.
+Tripping over obstacles is also a commonly occurring per-
+turbation while a human is walking, and it is shown in [34],
+[35] that humans accommodate a tripping disturbance by
+changing their gait strategy. Cutaneous receptors are stim u-
+lated when the trajectory of the swing foot is obstructed, an d
+a response which ensures the removal of the limb from the
+perturbation, as well as the safe continuation of the locomo tor
+pattern, is activated to deal with the detected perturbatio n.
+In MABEL, this idea of a reﬂex strategy in response to
+ground-height variations and tripping perturbations can b e
+implemented in the context of switching-control design and
+active force control. Step-up and step-down disturbances c an
+be detected based on calculated swing heights and the contac t
+switch signal on the toe at the moment of impact. Furthermore ,
+MABEL can also detect tripping over obstacles by using the
+signals of the switch located in front of the shin and at the
+end of toe, replacing cutaneous receptors in humans.
+For each type of disturbance, gait pattern and leg stiffness
+can be adjusted by switching to a speciﬁcally designed con-
+troller. Changes in the effective leg stiffness can be made
+by varying the values of stiffness k, damping b, and rest
+positionqrest, and adjustments in gait pattern can be made
+by redesigning the virtual constraints. In the design of the
+controller, stiffness, damping, and rest position are the d esign
+parameters to be determined along with virtual constraints for
+the rest of the controlled variables. Furthermore, drawing on
+the observation in [36] that a human’s stance knee essential ly
+shows the dynamic behavior of a spring-damper system when
+walking on ﬂat ground, we also extend the use of active force
+control to walking over ﬂat ground.
+Transitions among the designed controllers for ﬂat-ground
+walking, stepping-down, stepping-up, and a trip-reﬂex wil l
+be managed by a ﬁnite-state machine, which is presented in
+Section V.
+B. Summaries of Controller Designs
+The controllers for ﬂat-ground walking, stepping-down,
+stepping-up, and a trip-reﬂex are called Regular-walking (RW),
+Step-down (SD), Step-up (SU), and Tripping-reﬂex (TR) con-
+trollers, respectively. This section summarizes the desig n pro-
+cess of each controller.
+1) Regular-Walking Controller: The regular-walking con-
+troller is obtained from the baseline controller by replaci ng its
+motor leg shape control with a virtual compliance to include
+active force control. The parameter values for the virtual
+compliance αvcare iteratively found through simulations, and
+given by,
+αvc= [1.8,0.1297,2.7]T. (11)
+The regular-walking controller retains the virtual constr aints
+of the baseline controller for the torso, swing leg angle, an d
+swing leg shape.
+2) Step-down and Step-up Controllers: As explained in
+Section III, excessive oscillation in the torso angle after a(a) (b) (c)
+Fig. 4: Various situations of tripping. The red line with an
+arrow at the end illustrates an example swing foot trajector y
+in response to the tripping event. (a) Early tripping over
+obstacles. (b) Premature (i.e., early) contact with the gro und.
+(c) Late tripping over obstacles.
+step-down event was the main reason for the robot’s falling.
+Therefore, in the design of the step-down controller, it is
+important to redesign the virtual constraint for the torso t o
+reduce the oscillation. When redesigning the virtual constr aint
+for the torso, the ﬁrst and last coefﬁcients of the Bézier
+polynomials from the baseline controller are retained in or der
+to provide a smooth transition from and to the regular-walki ng
+controller. The coefﬁcients between them, denoted hereaft er
+byα2···5
+T∈R4, together with the parameter values for the
+virtual compliance αvcwill be selected through optimization
+as explained in Section IV-C.
+In the case of step-up disturbances, simulation of the base-
+line controller shows that oscillations in the vertical gro und
+reaction force is the main reason leading to falls instead
+of the excessive torso oscillation. Therefore, the baselin e
+virtual constraint for the torso is retained whereas parame ter
+values for the virtual compliance αvcare redesigned through
+optimization.
+3) Tripping-reﬂex controller: Tripping occurs when the
+robot’s swing foot experiences unexpected impacts. The im-
+pacts can arise due to obstacles, as shown in Figures 4a and 4c ,
+or due to inadequate foot height, as shown in Figure 4b. The
+required response varies with the nature of the impact and
+it is thus important that the robot has adequate sensing to
+differentiate among the cases shown in Figure 4. For this
+purpose, MABEL has contact switches on the front of each
+lower shin, as shown in Figure 2a, in addition to the traditio nal
+contact switches on the end of each leg.
+It has been suggested that humans adopt two different
+strategies for recovery from tripping, depending on whethe r it
+occurred in the early or late swing phase [34], [35]. A strate gy
+of rapidly elevating the swing limb is activated in response to
+early tripping while a lowering strategy is used in response to
+late tripping. Similar strategies are applied here.
+Reﬂexive Strategy for Late Tripping: Condition for late
+tripping ( SRL) can be deﬁned mathematically with respect
+to the robot’s state and contact switch signals. If the front al
+surface of the swing foot hits an obstacle ( swsh= 1) with
+the step being close to the end ( s(qs)≥searly) as well
+as the absolute swing leg angle being advanced sufﬁciently
+(qabs
+LAsw:=qLAsw+qT≥qearly) to yield the next step starting
+with a value of s(qs)close to 0, then tripping is classiﬁed as
+
+--- Page 6 ---
+tripping-reﬂex (TR)
+rapid−lowering
+recoveryrapid−elevationtripping−start
+SRL SRE
+S(RE,RC)S(RL,RC)
+Fig. 5: Finite-state machine of tripping-reﬂex controller
+late tripping. In this paper, searly andqearly are set to 0.66and
+190deg.
+In response to late tripping, the rapid-lowering ( RL) strategy
+of the swing leg is applied. The controller is not changed unt il
+the swing foot touches the ground. Because all of the walking
+gaits used in this paper are designed to lower the swing foot
+near the end of the gait to initiate leg swapping, the swing
+leg will be lowered making contact with the ground, and, at
+the ensuing step, a recovery controller focusing on rejecti ng
+the tripping disturbance of the previous step is applied. Th e
+parameters of the virtual compliance αvc, and coefﬁcients of
+the Bézier polynomials for the torso virtual constraints ex cept
+for the last coefﬁcient, α1···5
+T∈R5, are chosen by optimization
+as explained in Section IV-C. The last coefﬁcient of the tors o
+virtual constraint for the baseline controller is retained in order
+to smooth the transition to the regular-walking controller .
+Reﬂexive Strategy for Early Tripping: Condition for early
+tripping ( SRE) can be deﬁned mathematically with respect
+to the robot’s state and contact switch signals. Referring t o
+Figure 4, impact with the ground ( swtoe= 1) or an obstacle
+(swsh= 1) is deﬁned to be early tripping if it occurs before
+or during the middle of the gait ( s(qs)< searly) or with swing
+leg not advanced adequately (absolute swing leg angle being
+less than some value, that is, qabs
+LAsw:=qLAsw+qT< qearly).
+In response to early tripping, the rapid-elevation (RE)
+strategy of the swing leg is activated. Rapid-elevation of t he
+swing leg is accomplished by rapidly bending the swing knee,
+which is in turn accomplished by repositioning the leg shape
+motor of the swing leg. The motor’s position is set through
+the appropriate choice of hd
+mLSsw(θ(qs),α)in (6), designed
+so that the swing leg will clear a 10 cm obstacle. Examples
+of modiﬁcation are given in Figure 6. The purpose of the
+elevation strategy of the swing leg is to place the swing foot
+on top of the obstacle, and allow the robot to continue the
+walking gait. Once the swing foot is on top of the obstacle, th e
+robot can continue walking by applying the step-up controll er
+at the ensuing step.
+If the swing foot gets trapped against the vertical step and
+fails to be placed on top of the obstacle at the end of the step
+in spite of the rapid-elevation of the swing leg, the recover y
+controller, which is designed in Section IV-B3, will be appl ied
+at the ensuing step in order to have a safe continuation of
+the walking gait. Failure of the rapid-elevation strategy o f the
+swing leg can be detected by checking the calculated height
+of the swing foot at the end of the gait, denoted by pv
+toesw(qs),
+and by how much the swing foot advanced horizontally before
+it touches the ground, denoted by δph
+toesw. If the swing foot0.00.30.5 1.00.0
+0.0 0.50.71.00.0s0s0hdmLSswhdmLSsw
+s
+Fig. 6: Example of modiﬁcation on the desired trajectory of
+the motor leg shape. Blue lines with circle indicate modiﬁed
+desired trajectory for the motor leg shape. Solid red line
+indicates original desired trajectory of the motor leg shap e
+while dashed red line shows elevated desired trajectory. s0is
+the value of sat the moment of tripping. Graph on top: when
+s(qs)> s0, Graph on bottom: when s(qs)≤s0
+gets stuck on the vertical step, the swing foot will not be
+able to advance forward ( δph
+toesw≈0) and will make an
+impact with the ground instead of on top of the obstacle
+(/vextendsingle/vextendsinglepv
+toesw(qs)/vextendsingle/vextendsingle≤∆H). Here,∆H∈Ris a scalar threshold
+value, which is set to 0.05m in this paper. Combining all of
+these conditions yields switching condition for rapid-ele vation
+controller to recovery controller ( S(RE,RC)).
+The overall tripping-reﬂex controller is summarized in
+Figure 5 including rapid-lowering and rapid-elevation of t he
+swing leg in response to late and early tripping, and activat ion
+of the recovery controller after the failure of rapid-eleva tion
+of the swing leg strategy.
+C. Determining Controller Parameters
+1) Process overview:: The parameters for the step-down,
+step-up, and recovery controllers are obtained through a tw o
+stage process. In the ﬁrst stage, the controller parameters for
+the torso and stance leg are obtained by solving a constraine d
+optimization problem. Denote the collection of these param -
+eter values by ΘSD,SU,RC. In the second stage, the virtual
+constraints for the swing leg shape αmLSswand angle αLAsw
+are re-designed by hand, for each of the controllers, to ensu re
+foot clearance (e.g., prevent premature toe stubbing).
+Because the legs are relatively light, swing leg movement
+only weakly affects the robot’s overall dynamics; conse-
+quently, hand tuning of the parameters of the swing leg
+does not signiﬁcantly change the optimization results of th e
+ﬁrst stage of parameter selection. To conﬁrm this, both the
+optimized parameters and the hand-tuned parameters are ver -
+iﬁed via simulation to satisfy the constraints used in the th e
+constrained optimization problem with the optimization co st
+not being changed appreciably.
+Table II summarizes the design parameters for the regular-
+walking, step-down, step-up, and tripping-reﬂex controll ers.
+The detailed optimization process to obtain the design para m-
+eters is provided next.
+2) Process details:: The optimization problems for the se-
+lection of ΘSD,SU,RCare posed as follows. Assume the robot is
+
+--- Page 7 ---
+TABLE II: Controller parameters to be determined.
+Optimization Hand-tuning
+Regular-walking Controller · αvc
+Step-Down Controller αvc,α2···5
+T·
+Step-Up Controller αvc αLAsw,αmLSsw
+Recovery Controller αvc,α1···5
+TαLAsw,αmLSsw
+tSD
+0tSD
+1tSD
+2
+(a) Step-downtSU
+0tSU
+1tSU
+2
+(b) Step-up
+tRC
+0 tRC
+1 tRC
+1 tRC
+2atRC
+2
+10 cm
+(c) Recovery
+Fig. 7: Timeline for controller design.
+on the periodic orbit corresponding to the baseline control ler,
+and hence is walking on ﬂat ground. As displayed in Figure 7,
+lettSD,SU,RC
+0 be the time that the robot is at the end of the last
+step on ﬂat ground, let tSD,SU,RC
+1 be the moment that the step-
+down, step-up, or recovery controller is activated in respo nse
+to step-down, step-up, or late tripping, and let tSD,SU,RC
+2
+denote the end of the step with the step-down, step-up, or
+recovery controller. Over the interval [tSD,SU,RC
+1,tSD,SU,RC
+2],
+the robot is operating under the controller to be designed.
+For step-down and step-up controllers, once the step-down
+depth or step-up height is speciﬁed, x(tSD,SU
+1), the state of the
+robot at time tSD,SU
+1 , is known. In the case of late tripping,
+because the swing foot slips down along the wall of the
+obstacle over the interval [tRC
+0,tRC
+1)while the stance foot
+is on the ground, the trajectory cannot be simulated using
+the simpliﬁed design model, because it does not account for
+double-support dynamics. Therefore, the detailed model is
+used for the simulation of this slip behavior during double
+support, and the value of the robot’s state at tRC
+1after the
+impact with the ground, x/parenleftbig
+tRC
+1/parenrightbig
+, is acquired from the detailed
+model simulation data. As shown in Figure 7c, the time at the
+end of the step with the recovery controller varies dependin g
+on the sizes of the obstacles. In this optimization problem, the
+following two scenarios are considered. In the scenario a, t he
+robot has tripped over a 10 cm high obstacle and the swing
+foot is supported on the top of the obstacle at the end of the
+step. We deﬁne tRC
+2ato be the time when the swing foot touches
+the top of the obstacle. In the scenario b, we assume that the
+robot has tripped over a narrow obstacle, thus the swing foot
+crosses over the obstacle and touches the ground at the end of
+the step. We deﬁne tRC
+2to be the time when the swing foot
+touches the ground as shown in Figure 7c.Numerical optimization problems for step-down, step-up,
+and late tripping are now posed so that the trajectory under t he
+controller can be continued in such a way that the robot will
+not fall. In principle, the optimization could consider sev eral
+steps, but only one step is considered here.
+Objective: SelectΘSD,SU,RCto minimize peak-to-peak am-
+plitude of torso oscillation as deﬁned by,
+JΘi= max
+t∈[ti
+1,ti
+2]{qT(t)}−min
+t∈[ti
+1,ti
+2]{qT(t)}, i∈ {SD,SU,RC}
+(12)
+whereqT(t)is trajectory of the torso angle. The cost function
+is optimized subject to the following constraints.
+Constraints for Step-down Controller, CONSD:
+1) positive horizontal swing toe position at the end of the
+step,
+ph
+2(tSD
+2)>0; (13)
+2) bound on the ratio of tangential to normal ground
+reaction forces experienced by the stance leg end,
+max
+t∈[tSD
+1,tSD
+2]/braceleftbiggFT
+1(t)
+FN
+1(t)/bracerightbigg
+< µs; (14)
+3) minimum normal ground reaction force experienced by
+the stance leg end,
+min
+t∈[tSD
+1,tSD
+2]{FN
+1(t)}> C,for some C >0; (15)
+4) avoid premature impact,
+s(q(tSD
+2))>1−δ,whereδ≪1 (16)
+5) upper bound on the magnitude of torso angular velocity
+max
+t{|˙qT(t)|}< γ˙qT,for some γ˙qT>0. (17)
+Constraints for Step-up Controller, CONSU:
+1)CONSDwithtSD
+2substituted by tSU
+2.
+2) to enforce that the robot ends the step-up with the stance
+leg shape nearly straight, which avoids starting the next
+step with a crouched conﬁguration,
+qLSst(tSU
+2)< γLSst,for some γLSst>0. (18)
+Constraints for Recovery Controller, CONRC:
+1)CONSDwithtSD
+2substituted by tRC
+2.
+2) magnitude of torso angular velocity at the end of the
+step,
+/vextendsingle/vextendsingle˙qT(tRC
+2)/vextendsingle/vextendsingle< γ˙qT,RC, (19)
+in order to attenuate torso movement in preparation for
+impact,
+3) torso angle at the end of the step bounded below by
+some constant γqT,RC,
+qT(tRC
+2)> γqT,rc, (20)
+to keep the torso from pitching forward too much at the
+end of the step,
+
+--- Page 8 ---
+0 0.05 0.1 0.15 0.2 0.25 0.3 0.35−25−20−15−10−50
+  
+0 0.05 0.1 0.15 0.2 0.25 0.3 0.35050010001500
+time (s)Torso Angle (deg)Ground Reaction Force (N)Step-down
+Baseline
+(a)0 0.1 0.2 0.3 0.4 0.5 0.6−14−12−10−8−6
+  
+0 0.1 0.2 0.3 0.4 0.5 0.60500100015002000
+time (s)Step-up
+Baseline
+(b)0 0.05 0.1 0.15 0.2 0.25 0.3 0.35−30−20−100
+  
+0 0.05 0.1 0.15 0.2 0.25 0.3 0.3502004006008001000
+time (s)tRC
+2a
+Recovery
+Baseline
+(c)
+Fig. 8: Simulation data with optimal parameter vector ΘSD,ΘSU, andΘRCfrom the simpliﬁed design model for (a) a step-
+down height of 20 cm, (b) a step-up height of 10 cm, and (c) a tri p recovery. The step-down, step-up, and recovery controlle rs
+are shown with a solid line, while dashed lines represent the baseline controller.
+4) torso angular velocity at tRC
+2a,
+˙qT(tRC
+2a)≤0, (21)
+so that the torso has enough forward pitching velocity
+just before impact in order not to fall backward after an
+impact with a 10 cm high obstacle.
+The optimizations are conducted over a transient phase
+of the gait, and thus constraints are not required to impose
+periodicity of an orbit. We have observed that solutions to t he
+above optimization problems tend to steer the robot so that t he
+conﬁguration variables at time tSD,SU,RC
+2 are near their values
+on the periodic orbit. We conjecture that this is because the
+two virtual constraints for the swing leg, as well as the endi ng
+value for the torso virtual constraint, are inherited from t he
+baseline periodic orbit.
+MATLAB’s constrained optimization routine fmincon is
+used to perform the numerical searches outlined above1, and
+the resulting controllers are then applied to the simpliﬁed
+design model with a 20 cm step-down, a 10 cm step-up, and
+late tripping over a 10 cm platform with a length less than
+80 cm. The torso trajectory and vertical ground reaction for ce
+are shown in the top, middle, and bottom graphs of Figure 8. In
+Figure 8a, it is observed that the torso oscillates approxim ately
+11 deg during the step following the step-down. On the other
+hand, under the baseline controller (red dashed line), the t orso
+noticeably overshoots while returning to the nominal lean
+angle. Figure 8b shows in the case of step-up that there is
+no notable difference in the torso angle between the baselin e
+and step-up controllers because the virtual constraints fo r the
+torso were identical. However, the vertical ground reactio n
+force remains positive under the step-up controller while t he
+baseline controller fails to keep this value positive, whic h
+leads to slipping. Figure 8c compares simulation results of
+the simpliﬁed design model from tRC
+1totRC
+2for the recovery
+controller with optimized ΘRCand the baseline controller.
+By using the recovery controller, torso oscillation is not o nly
+reduced by approximately a factor of 3, but also the vertical
+ground reaction force remains positive during the recovery
+1Execution of numerical search requires the values of the cons tants on the
+right side of inequalities from (13) to (21). The speciﬁc val ues for MABEL
+used in the optimization are given in [37]. These values can be changed for
+other robots.−0.4 −0.2 0 0.2 0.4 0.6−0.100.10.20.3
+−0.4 −0.2 0 0.2 0.4 0.6−0.100.10.20.3
+ph
+toesw(m)pvtoesw(m) pvtoesw(m)
+Fig. 9: Horizontal position ph
+toeswand vertical position pv
+toesw
+of swing foot throughout the step. Grey colored region illus -
+trates the vertical obstacle.
+phase. Time tRC
+2ais indicated by the vertical black dotted line.
+It is observed that at time tRC
+2a, the torso is pitching forward,
+satisfying constraint (21).
+After the virtual constraints for the torso and the paramete rs
+in the virtual compliance have been chosen through optimiza -
+tion, the virtual constraints for the swing leg are tuned by
+hand for the step-up and recovery controllers. In particula r, the
+virtual constraints for the swing leg are designed so that kn ee
+is bent rapidly by repositioning the swing motor leg shape,
+and the swing leg is also moved backward at the beginning
+of the gait by repositioning the swing leg angle motor. These
+actions are required to avoid re-striking the obstacle duri ng
+step-up and recovery from late-tripping. Figure 9 shows the
+position of the swing foot throughout the step. The top graph
+shows the simulation result for step-up while the bottom gra ph
+shows the simulation result for late tripping. The gray colo red
+region represents the vertical obstacle. It is observed tha t the
+swing foot neither touches the vertical step during step-up nor
+when recovering from late tripping.
+Using both the optimized virtual compliance parameters and
+the hand-tuned virtual constraints for the swing leg shape
+and angle, we re-ran the simulations and found that all of
+the constraints of the constrained optimization problems w ere
+still satisﬁed, and the optimization cost had not changed
+signiﬁcantly.
+
+--- Page 9 ---
+TABLE III: Normalized stiffness values in response to distu r-
+bances for robot walking and human running with respect to
+the values used for level ground walking.
+Disturbance Robot Walking Human Running
+Step-Down 1.04 1.09
+Regular-Walking 1.00 1.00
+Step-Up 0.89 0.84
+regular-walking
+step-down step-up
+tripping-reﬂexSRW
+SRWSRW
+SRW
+SSUSSU
+SSUSSU
+STRSTR
+STR
+STRSSDSSD
+SSDSSD
+Fig. 10: Finite-state machine for managing transitions amo ng
+the various contollers.
+D. Comments on the Values of Stiffness of the Virtual Com-
+pliant Element
+Through the optimization process explained above, stiffne ss
+values for the step-down controller, kSD= 2.1088 , and for the
+step-up controller, kSU= 1.2198 , were obtained. In compari-
+son to the value for the regular-walking controller, kRW= 1.8,
+a stiffer virtual compliance has been selected for the step-
+down controller while a softer virtual compliant element ha s
+been chosen for the step-up controller. These choices of vir tual
+compliant elements - stiffer compliance for the step-down
+disturbance and softer compliance for the step-up disturba nce
+- are consistent with the strategy of humans when adjusting l eg
+stiffness for running on uneven ground [32]. These tendenci es2
+are summarized in Table III.
+V. A F INITE -STATE MACHINE
+This section presents a ﬁnite-state machine to manage tran-
+sitions among controllers for ﬂat-ground walking, steppin g-
+down, stepping-up, and a trip-reﬂex.
+The design process of the ﬁnite-state machine begins by
+distinguishing four types of stance phase with respect to pe r-
+turbations in ground height, or disturbances from tripping over
+obstacles: regular-walking phase (RW), step-down phase (SD ),
+step-up phase (SU), and tripping phase (TR), as illustrated in
+Figure 10. Hereafter, we index the phases by elements of the
+following set,
+W:={RW,SD,SU,TR}. (22)
+A decision to transition from one phase to another will be
+made on the basis of the values of the contact switches at the
+2It should be noted that normalization of the leg stiffness val ues for robot
+walking is conducted on the effective stiffness values obta ined by summing
+all the sources of compliance - virtual compliant elements, spr ings, and cable
+stretch - in a series manner. See Appendix A for the calculatio n of effective
+stiffness.0 0.1 0.2 0.3 0.4 0.5 0.6−100102030
+  
+time (s)Stance Spring
+Deﬂection (deg)W/O modiﬁcation
+With Modiﬁcation
+Fig. 11: Simulation data of a step with the stance knee being
+excessively bent at the start. The dashed line shows simulat ion
+result without modiﬁcation on the virtual compliance, and t he
+solid line illustrates simulation result with modiﬁcation . The
+small circles on the plot indicate the end of the step.
+front and end of each leg, as well as a detected change in
+walking surface height, which can be immediately computed
+at impact from the length of the robot’s legs and the angles of
+its joints. The conditions for executing the various transi tions
+are developed next. Firstly, the transition to RW takes place
+when following condition SRWis satisﬁed: the impact with
+the ground ( xs∈ SH) occurs close to the end of the gait
+(s(qs)≥searly) as well as when the magnitude of the height
+of the swing toe at the moment of the impact is less than ∆H.
+The transition to SDorSUoccurs when the impact with
+the ground occurs close to the end of the gait ( s(qs)≥searly),
+along with the height of the swing toe at the moment of impact
+being less than −∆H, or larger than ∆H, respectively. Those
+two conditions are denoted by SSDandSSU.
+Lastly, the transition to TRarises when the swing leg trips
+over obstacles or touches the ground prematurely. Tripping can
+be detected by checking switching condition SRLorSRE.
+VI. C ONTROLLER EVALUATION ON THE DETAILED
+MODEL
+Before experimental deployment, the ﬁnite-state machine
+will be simulated on the detailed model. Certain straightfo r-
+ward modiﬁcations to the regular-walking, step-down, step -up,
+and tripping-reﬂex controllers are required due to discrep an-
+cies between the simpliﬁed and detailed models. As mentione d
+in Section II, the discrepancies between the simpliﬁed and
+detailed models mostly arise from features that are unique t o
+MABEL, specially the robot’s cable-differential-based dr ive
+train and the boom mechanism used to planarize the robot’s
+motion. The modiﬁcations made here are therefore speciﬁc to
+MABEL. Initial simulations will reveal one additional modi ﬁ-
+cation that needs to be performed. After these changes to the
+controllers, the performance of the ﬁnite-state machine wi ll be
+evaluated when the controllers are sequentially composed i n
+response to various disturbances in ground height.
+A. Minor Modiﬁcation of Controllers for Detailed Model
+Implementation
+As part of implementing the proposed controllers on the
+detailed model, the following modiﬁcations are made to com-
+pensate for the gap between the simpliﬁed design model and
+the detailed model.
+1) Modiﬁcation for Cable Stretch: The most critical reason
+for model discrepancy is cable stretch. To account for the
+
+--- Page 10 ---
+0 0.2 0.4 0.6 0.8 1 1.2 1.4−20−15−10−50
+0 0.2 0.4 0.6 0.8 1 1.2 1.4time (sec)Torso Angle (deg)
+TR-RC
+TR-RL
+TR-RE
+SU
+SD
+RW
+(a) (b)
+Fig. 12: Experimental data of walking over a 7 cm bump. (a)
+Stick ﬁgure illustration of the experimental data with a bla ck
+circle indicating the stance toe. Black solid and dashed lin e
+represent the path of the swing leg. Swing leg modiﬁcation
+is activated twice (see Figure 12b) to clear the leg from the
+obstacle. (b) Torso angle (top), s(qs)(middle), and controller
+type (bottom) are shown, respectively. Blue hollow circle a nd
+vertical gray dashed line mark the end of the step.
+stretching of the cables, the coefﬁcients of the virtual com pli-
+ancekin regular-walking, step-down, step-up, and tripping-
+reﬂex controller are modiﬁed as in [27], [26] so that the seri es
+connection of the compliance due to the cable stretch and the
+virtual compliance has the effective compliance speciﬁed b y
+the optimization process. The details are given in Appendix A.
+2) Modiﬁcation for Asymmetry: In the experimental setup,
+due to the boom, the robot’s hip position is constrained to
+lie on the surface of a sphere, rather than a plane. The hip
+width (distance between the legs) being 10% of the length
+of the boom causes the robot to weigh 10% (almost 70 N)
+more when supported on the inner leg than when supported
+on the outer leg. This causes inner-outer asymmetry in the
+walking gait [14]. To account for this asymmetry, the virtua l
+compliance is made an additional 10% stiffer on the inside
+leg.
+3) Modiﬁcation for Avoiding Foot Scufﬁng: As discussed in
+Section IV, the step-up and recovery controllers use the vir tual
+constraints for the swing leg with a modiﬁcation allowing
+the swing leg height to be increased in order to keep the
+swing foot from scufﬁng the ground. Similar modiﬁcations
+are required for step-down and regular-walking controller s.
+Step-down Controller : When MABEL steps off platforms, the
+higher impact force causes an additional bend in the stance
+knee during the ensuing step of the step-down event. The
+higher the platform which MABEL steps off is, the greater the
+bend in the stance knee caused. To deal with this additional
+bend, the virtual constraint for the swing motor leg shape
+is increased according to the platform height calculated at
+impact.
+Regular-walking Controller : In the regular-walking phase,
+foot scufﬁng can also occur when a step starts with the stance
+knee being overly bent. Therefore, an event-based control i s
+introduced so that the virtual constraint for the swing moto r
+leg shape is increased according to how much more the stance
+knee is bent from some reference value. In particular, if the
+stance leg shape angle is larger than 10 deg at the start of
+the gait, the desired swing motor leg shape is then modiﬁed
+by increasing the middle two Bézier coefﬁcients of the swingleg shape proportional to the difference between the stance leg
+shape angle and 10 deg.
+B. Additional Modiﬁcation of the Virtual Compliance
+The initial simulation of the controller showed that when
+the stance knee angle, which is two times the leg shape angle,
+is bent more than 60 deg at impact, the spring compresses
+further and subsequently decompresses very rapidly, causi ng
+the stance leg to lose contact with the ground. In order to
+account for this problem, we soften the virtual compliance
+by the amount by which the stance knee is additionally bent
+from the nominal value. The solid line in Figure 11 illustrat es
+spring deﬂection after the modiﬁcation. With the modiﬁcati on,
+the spring compresses and decompresses gently, and does not
+reach zero.
+C. Simulation of the ﬁnite-state machine
+With these modiﬁcations to the proposed controller, the sim -
+ulation results show MABEL successfully traversing variou s
+ground proﬁles representing large obstacles without a priori
+information; in particular, vision feedback is not used. It is ob-
+served that the robot’s conﬁguration converges to the nomin al
+conﬁguration within a few steps after each disturbance even t,
+and, in response to various disturbance events, appropriat e
+transitions among controllers occur. For detailed analysi s of
+the veriﬁcation results, see [37].
+VII. E XPERIMENT
+The proposed ﬁnite-state machine is now evaluated on the
+robot. In the experiments, various stair-stepped platform s are
+placed in the robot’s path to verify various executions of th e
+ﬁnite-state machine. Because the baseline controller alre ady
+allowed MABEL to cross any combination of up and down
+for small obstacles with a height of less than 2.54 cm, only
+obstacles with a height greater than 5 cm are tested here.
+Videos are available at [38].
+A. Small Bump with Height of 7 cm
+As a ﬁrst test of the tripping-reﬂex controller, a small bump
+higher than the maximum vertical position of the swing foot
+was placed in the middle of MABEL’s walking path. As shown
+in Figure 12, in response to tripping over this small bump,
+the tripping-reﬂex controller was activated, and modiﬁcat ion
+of the swing foot trajectory was made successfully, thereby
+providing clearance of the bump.
+B. Step-up and Step-down of 10.5 cmplatform
+In this experiment, MABEL stepped upon a platform with
+a height of 10.5 cm (more than 10% of its leg length), walked
+three steps on level ground on top of the platform, and steppe d
+off the platform; see Figure 13. Two laps were completed
+before the robot was stopped by a researcher. On the ﬁrst
+lap, MABEL’s swing foot struck obstacles at a late point of
+the step, so the rapid-lowering controller was activated in
+response to the late perturbation, as shown in Figure 14(a).
+
+--- Page 11 ---
+0 0.5 1 1.5 2 2.5 3 3.5−20−100
+0 0.5 1 1.5 2 2.5 3 3.502040
+0 0.5 1 1.5 2 2.5 3 3.5
+time (sec)Torso Angle (deg)Stance Spring
+Deﬂection (deg)
+TR-RC
+TR-RL
+TR-RE
+SU
+SD
+RW0 0.5 1 1.5 2 2.5 3 3.5−20−100
+0 0.5 1 1.5 2 2.5 3 3.502040
+0 0.5 1 1.5 2 2.5 3 3.5
+time (sec)Torso Angle (deg)Stance Spring
+Deﬂection (deg)
+TR-RC
+TR-RL
+TR-RE
+SU
+SD
+RW
+(a) (b)
+Fig. 13: Experimental data of step-up and step-down of 10.5 c m platform. In the stick ﬁgure illustration, black circle at the
+leg end indicates stance toe. Torso angle (top), s(qs)(middle), and types of controllers (bottom) applied are sho wn next,
+respectively. In these ﬁgures, blue hollow circle and black dashed line indicate the end of the step. RW, SD, SU, TR-RE,
+TR-RL, TR-RC refer to walking on ﬂat ground, step-down, step -up, rapid-elevation of the swing leg, rapid-lowering of th e
+swing, and recovery, respectively. Black solid line and red dashed line in the stick ﬁgure illustration demonstrate the change
+in swing leg path due to the activation of the tripping-reﬂex controller. A detailed illustration of the controller tran sition and
+swing leg modiﬁcation during stepping-up are shown in Figur e 14. (a) First lap (b) Second lap.
+On the other hand, on the second lap, the rapid-elevation
+controller is triggered in response to the early perturbati on
+as shown in Figure 14(b). With either controller, MABEL
+could successfully step upon a 10.5 cm platform. We veriﬁed
+that MABEL could ascend a platform with a height of up
+to 12.5 cm, which is 12.5% of the leg length. In response
+to step-down disturbances of the 10.5 cm height, the step-
+down controller is activated as shown in the bottom ﬁgures
+of Figure 14(a) and (b), and step-down disturbances were
+accommodated by the controller.
+C. Consecutive Two Step-ups and One Large Step-down of
+18.5 cm platform
+For the next experiment, we built a platform with two
+stair-steps, one with a height of 10.5 cm and the other with
+a height of 8 cm as shown in Figure 15. MABEL walked
+up two consecutive risers, took two steps of level walking
+on top of the platform, and stepped off from the platform
+with one step (18.5 cm step-down, which is 18.5% of the
+leg length), while skipping a stair-step placed between the
+top of the platform and the ground. The bottom graph of
+Figure 15b shows the horizontal hip velocity. In the graph,
+the horizontal hip velocity at the end of the two stair ascent s
+is 0.9 m/sec (see the blue circle at 1.295 sec in the hip veloci ty
+graphs.) which is negligibly different from 0.93 m/sec of th e
+average ﬂat-walking hip velocity measured at the end of thestep. After step-down from the 18.5 cm high platform, hip
+velocity at the end of step was increased to 1.8 m/sec (see the
+blue circle at 3.148 sec), but reduced to 1.12 m/sec rapidly a t
+the ensuing step. From these analyses of the hip velocity, it
+is observed that hip velocity is successfully regulated by t he
+proposed controller in response to large step-up and step-d own
+disturbances. The rapid-elevation controller in the middl e of
+the step-down phase is activated from 2.919 sec to 3.148 sec
+because the swing foot struck a stair between the top of the
+platform and the ground during a step-down event. Figure 16
+shows control torques. Torques are saturated at 10 Nm for
+Motor Leg Angle and 20 Nm for Motor Leg Shape.
+A similar experiment was conducted on the same platform,
+but this time MABEL took two steps during the step-down as
+shown in Figure 17. Therefore, the step-down controller was
+executed twice in succession.
+D. One Step-up, One Regular-Walking Step, and One Step-
+down of 10.5 cmPlatform
+In this experiment, MABEL stepped upon a 10.5 cm plat-
+form, took one step on the top of the platform, and stepped off
+the platform as shown in Figure 18. Figure 19 shows a stick
+ﬁgure illustration of the step-down phase in Figure 19a and
+the ensuing step in Figure 19b, along with torso angle, sprin g
+deﬂection, and the types of controllers applied during the
+experiment in Figure 19c. As shown in Figure 19, tripping ove r
+
+--- Page 12 ---
+(a)
+(b)
+Fig. 14: Detailed illustration of the controller transitio n and
+swing leg modiﬁcation during stepping-up of Experiment B.
+Black circle at leg end indicates stance toe. (a) On the ﬁrst l ap,
+the rapid-lowering controller is activated in response to l ate
+tripping. First two ﬁgures show rapid-lowering of the swing
+leg, and last two ﬁgures display the action of the recovery
+controller. In part (b), on the second lap, the rapid-elevat ion
+controller is triggered in response to early tripping. Rapi d-
+elevation of the swing leg occurs in the second ﬁgure, and at
+the ensuing step (last two ﬁgures), the step-up controller i s
+activated.
+the ground occurred at the end of the step. In response to the
+tripping event, the rapid-elevation controller was applie d (see
+0.411 sec of Figure 19c), but the swing foot could not clear
+the ground. Therefore, the recovery controller was trigger ed
+at the ensuing step instead of the regular-walking controll er.
+This clearly shows use of the transition from rapid-elevati on
+phase to recovery phase as shown in Figure 5.
+E. Discussion of the Experiments
+Although MABEL was able to accommodate various com-
+binations of terrain as explained above, several tests cond ucted
+on certain combinations of disturbances showed limitation s in
+the ﬁnite-state machine. For example, MABEL consistently
+failed to accommodate a platform with consecutive step-
+up and step-down disturbances with a height greater than
+10.5 cm although experiments on this type of ground variatio ns
+were repeated several times. Similar results were obtained by
+other experiments on a platform with consecutive step-down
+and step-up disturbances with change in height greater than
+10.5 cm. Typical platforms are shown in Figure 20. As stated
+previously, for shorter platforms, the robot could accommo date
+such combinations of disturbances.
+It can be conjectured that the reason for these failures is
+that the robot’s state after the large step-up or step-down
+disturbance is not in the “basin of attraction” of the ensuin g
+step-down or step-up controller. Quantifying these basins of
+0 0.5 1 1.5 2 2.5 3 3.5−20−100
+0 0.5 1 1.5 2 2.5 3 3.502040
+0 0.5 1 1.5 2 2.5 3 3.5
+0 0.5 1 1.5 2 2.5 3 3.5012
+time (sec)time (sec)Torso Angle (deg)Stance Spring
+Deﬂection (deg)
+TR-RC
+TR-RL
+TR-RE
+SU
+SD
+RW
+Hip Velocity (m/sec)
+Fig. 15: Experimental data of consecutive two step-up and
+one large step-down of 18.5 cm platform. (a) Stick ﬁgure
+illustration. Black circle at the toe indicates stance toe. (b)
+Torso angle, spring deﬂection, types of controllers applie d, and
+horizontal hip velocity are shown, respectively. Blue holl ow
+circle and black dashed line display end of the step.
+0 0.5 1 1.5 2 2.5 3 3.5010 
+  
+0 0.5 1 1.5 2 2.5 3 3.5020 
+  
+time (sec)umLS(N) umLA(N)stst
+swsw
+Fig. 16: Experimental data of consecutive two step-up and on e
+large step-down of 18.5 cm platform. Torques are shown.
+attraction and redesigning the step-up or step-down contro llers
+are extremely challenging tasks.
+VIII. C ONCLUSION
+A ﬁnite-state machine has been designed to handle various
+kinds of disturbances including blind step-downs and step-
+
+--- Page 13 ---
+Fig. 17: Experimental data of two step-ups and two step-
+downs. Black circle at the toe indicates stance toe.
+Fig. 18: Experimental data of one step-up, one regular-walk ing
+step, and one step-down of 10.5 cm platform. Steps in black
+dashed square is redisplayed in Figure 19.
+(a)
+ (b)
+1.4 1.5 1.6 1.7 1.8 1.9 2−20−100
+1.4 1.5 1.6 1.7 1.8 1.9 202040
+1.4 1.5 1.6 1.7 1.8 1.9 2
+time (sec)Torso Angle (deg)Stance Spring
+Deﬂection (deg)
+TR-RC
+TR-RL
+TR-RE
+SU
+SD
+RW
+(c)
+Fig. 19: Experimental data of one step-up, one regular-walk ing
+step, and one step-down of 10.5 cm platform. In this ﬁgure,
+only step-down and ensuing step are shown. Stick ﬁgure
+illustration of (a) step-down, and (b) ensuing step. Black
+circle at the toe and black solid line indicate stance toe
+and a trajectory of swing toe, respectively. Premature impa ct
+with the ground is observed during the step-down. (c) Torso
+angle, spring deﬂection, and types of controllers used in th e
+experiments. Blue hollow circle and vertical dashed black l ine
+illustrate at the end of the step.10 cm 10 cm 10 cm
+30 cm∼60 cm 30 cm∼60 cm
+Fig. 20: Typical examples of terrain causing the robot to fal l.
+On the other hand, if the robot had at least one regular-walki ng
+step between such obstacles, it did not fall; see, for exampl e,
+Figures 15, 17, and 18.
+ups of considerable height, and tripping over obstacles. Th e
+proposed ﬁnite-state machine consists of a regular-walkin g
+controller for walking on ﬂat ground and three special-purp ose
+controllers, namely step-down, step-up, and tripping-reﬂ ex
+controllers, whose objective is the safe continuation of wa lking
+in response to a large disturbance in ground height or trippi ng
+over obstacles.
+Each of the controllers employs active force control at the
+stance knee, with the feature of being able to easily vary its
+stiffness and damping. When optimization was used to tune
+the stance-knee stiffness of the regular-walking, step-do wn,
+and step-up controllers, a pattern similar to that observed
+in humans was found: a virtual compliant element for the
+step-down controller is stiffer than for the regular walkin g
+controller, and a softer virtual compliant element was foun d
+for the step-up controller.
+The tripping-reﬂex controller is designed to behave in
+different manners with respect to early or late tripping: a r apid
+elevating strategy of the swing leg is activated in response
+to early tripping while a rapid lowering strategy is used
+in response to late tripping. This rapid lowering strategy i s
+followed by a recovery phase which is designed to reject the
+previous step’s disturbance.
+Experimentation with this controller showed MABEL
+traversing various kinds of obstacles including 12.5 cm bli nd
+step-ups, and 18.5 cm blind step-downs, as well as various
+combinations of step-ups and step-downs, such as short stac ks
+of stairs.
+Although the proposed ﬁnite-state machine shows good
+performance on various terrain proﬁles, the video in [39]
+shows limited controller performance to attenuate the inﬂu -
+ence of random variations in ground height on the robot’s
+speed. To improve controller performance in the face of such
+disturbances, it would be interesting to explore an outer-l oop
+discrete-event-based control design which can be layered o nto
+the present controller.
+REFERENCES
+[1] K. Byl and R. Tedrake, “Metastable walking machines,” International
+Journal of Robotics Research , vol. 28, pp. 1040–1064, August 2009.
+[2] R. T. Katie Byl, “Metastable walking on stochastically r ough terrain,” in
+Proceedings of Robotics: Science and Systems IV , Zurich, Switzerland,
+June 2008.
+[3] K. Byl and R. Tedrake, “Approximate optimal control of the c ompass
+gait on rough terrain,” in IEEE International Conference on Robotics
+and Automation , may 2008, pp. 1258 –1263.
+
+--- Page 14 ---
+[4] D. Hobbelen and M. Wisse, “A disturbance rejection measur e for
+limit cycle walkers: The gait sensitivity norm,” IEEE Transactions on
+Robotics , vol. 23, no. 6, pp. 1213 –1224, dec. 2007.
+[5] ——, “Swing-leg retraction for limit cycle walkers improve s disturbance
+rejection,” IEEE Transactions on Robotics , vol. 24, no. 2, pp. 377 –389,
+april 2008.
+[6] M. Wisse, A. L. Schwab, R. Q. van der Linde, and F. C. T. van d er
+Helm, “How to keep from falling forward: Elementary swing leg a ction
+for passive dynamic walkers,” IEEE Transactions on Robotics , vol. 21,
+no. 3, pp. 393–401, June 2005.
+[7] I. R. Manchester, U. Mettin, F. Iida, and R. Tedrake, “Sta ble dynamic
+walking over uneven terrain,” The International Journal of Robotics
+Research , vol. 30, no. 3, pp. 265–279, 2011.
+[8] I. R. Manchester, “Transverse dynamics and regions of sta bility for
+nonlinear hybrid limit cycles.” in Proceedings of the 18th IFAC World
+Congress , 2011.
+[9] C. Sabourin, O. Bruneau, and G. Buche, “Control strategy for the robust
+dynamic walk of a biped robot,” The International Journal of Robotics
+Research , vol. 25, no. 9, pp. 843–860, Sept. 2006.
+[10] Q. Huang and Y . Nakamura, “Sensory reﬂex control for human oid
+walking,” IEEE Transactions on Robotics , vol. 21, no. 5, pp. 977 –
+984, oct. 2005.
+[11] G. N. Boone and J. K. Hodgins, “Slipping and tripping reﬂ exes for
+bipedal robots,” Autonomous Robots , vol. 4, pp. 259–271, July 1997.
+[12] J. Pratt, C.-M. Chew, A. Torres, P. Dilworth, and G. Prat t, “Virtual model
+control: An intuitive approach for bipedal locomotion,” The International
+Journal of Robotics Research , vol. 20, no. 2, pp. 129–143, 2001.
+[13] J. Grizzle, J. Hurst, B. Morris, H.-W. Park, and K. Sreen ath, “MABEL,
+a new robotic bipedal walker and runner,” in American Control Confer-
+ence, St. Louis, MO, USA, June 2009, pp. 2030–2036.
+[14] K. Sreenath, H.-W. Park, I. Poulakakis, and J. W. Grizzl e, “A compliant
+hybrid zero dynamics controller for stable, efﬁcient and fas t bipedal
+walking on MABEL,” The International Journal of Robotics Research ,
+vol. 30, no. 9, pp. 1170–1193, Aug 2011.
+[15] H.-W. Park, K. Sreenath, J. Hurst, and J. Grizzle, “Iden tiﬁcation of
+a bipedal robot with a compliant drivetrain,” IEEE Control Systems
+Magazine , vol. 31, no. 2, pp. 63 –88, april 2011.
+[16] J. W. Hurst, “The role and implementation of compliance in l egged
+locomotion,” Ph.D. dissertation, Robotics Institute, Carn egie Mellon
+University, Pittsburgh, PA, August 2008.
+[17] R. Alexander, “Three uses for springs in legged locomoti on,” The
+International Journal of Robotics Research , vol. 9, no. 2, pp. 53–61,
+1990.
+[18] W. Khalil and E. Dombre, Modeling, Identiﬁcation and Control of
+Robots . Bristol, PA, USA: Taylor & Francis, Inc., 2002.
+[19] Y . Hurmuzlu and D. B. Marghitu, “Rigid Body Collisions of Planar
+Kinematic Chains With Multiple Contact Points,” The International
+Journal of Robotics Research , vol. 13, no. 1, pp. 82–92, 1994.
+[20] C. Canudas de Wit, H. Olsson, K. Astrom, and P. Lischinsky , “A new
+model for control of systems with friction,” IEEE Transactions on
+Automatic Control , vol. 40, no. 3, pp. 419–425, Mar. 1995.
+[21] F. Plestan, J. Grizzle, E. Westervelt, and G. Abba, “Sta ble walking of a
+7-DOF biped robot,” IEEE Transactions on Robotics and Automation ,
+vol. 19, no. 4, pp. 653–668, Aug. 2003.
+[22] E. R. Westervelt, J. W. Grizzle, C. Chevallereau, J. H. C hoi, and
+B. Morris, Feedback Control of Dynamic Bipedal Robot Locomotion .
+Taylor & Francis/CRC Press, 2007.
+[23] C. Canudas de Wit, “On the concept of virtual constraint s as a tool
+for walking robot control and balancing,” Annual Reviews in Control ,
+vol. 28, no. 2, pp. 157–166, 2004.
+[24] H.-W. Park. (2010) First attempt at walking over rough gr ound
+for bipedal robot mabel. Youtube Video. [Online]. Available :
+http://youtu.be/IlWIWf4daNs
+[25] T. Yang, E. Westervelt, and A. Serrani, “A framework for t he control
+of stable aperiodic walking in underactuated planar bipeds ,” in IEEE
+International Conference on Robotics and Automation , Roma, Italy,
+April 2007, pp. 4661–4666.
+[26] K. Sreenath, H.-W. Park, , and J. W. Grizzle, “Embedding a ctive force
+control within the compliant hybrid zero dynamics to achieve s table,
+fast running on mabel,” The International Journal of Robotics Research ,
+2012, submitted.
+[27] K. Sreenath, “Feedback control of a bipedal walker and r unner with
+compliance,” Ph.D. dissertation, The University of Michiga n, 2011.
+[28] H.-W. Park, K. Sreenath, A. Ramezani, and J. Grizzle, “Sw itching
+control design for accommodating large step-down disturbanc es in
+bipedal robot walking,” in IEEE International Conference on Robotics
+and Automation , Saint Paul, USA, May 2012, pp. 45–50.[29] S. D. Prentice, E. N. Hasler, J. J. Groves, and J. S. Frank , “Locomotor
+adaptations for changes in the slope of the walking surface, ”Gait &
+Posture , vol. 20, no. 3, pp. 255 – 265, 2004.
+[30] K. Kawamura, A. Tokuhiro, and H. Takechi, “Gait analysis of slope
+walking: a study on step length, stride width, time factors an d deviation
+in the center of pressure,” Acta Med Okayama , vol. 45, no. 3, pp. 179
+– 184, 1991.
+[31] A. Tokuhiro, H. Nagashima, and H. Takechi, “Electromyogr aphic kine-
+siology of lower extremity muscles during slope walking,” Arch Phys
+Med Rehabil , vol. 66, no. 9, pp. 610 – 613, 1985.
+[32] S. Grimmer, M. Ernst, M. Günther, and R. Blickhan, “Runnin g on
+uneven ground: leg adjustment to vertical steps and self-sta bility,”
+Journal of Experimental Biology , vol. 211, no. 18, pp. 2989–3000, 2008.
+[33] R. M ¨ uller and R. Blickhan, “Running on uneven ground: Leg adjust-
+ments to altered ground level,” Human Movement Science , vol. 29, no. 4,
+pp. 578 – 589, 2010.
+[34] J. J. Eng, D. A. Winter, and A. E. Patla, “Strategies for r ecovery from a
+trip in early and late swing during human walking,” Experimental Brain
+Research , vol. 102, pp. 339–349, 1994.
+[35] ——, “Intralimb dynamics simplify reactive control strate gies during
+locomotion,” Journal of Biomechanics , vol. 30, no. 6, pp. 581 – 588,
+1997.
+[36] R. W. Sinnet, M. J. Powell, R. P. Shah, and A. D. Ames, “A huma n-
+inspired hybrid control approach to bipedal robotic walkin g,” in 18th
+IFAC World Congress , 2011.
+[37] H.-W. Park, “Control of a bipedal robot walker on rough t errain,” Ph.D.
+dissertation, The University of Michigan, 2012.
+[38] ——. (2012) Bipedal robot mabel traverses uneven terrain using
+touch instead of sight. Youtube Video. [Online]. Available : http:
+//youtu.be/MhPSZOUgZ_8
+[39] ——. (2011) Bipedal robot mabel walks over randomly varyin g
+ground: Experiment no. 1. Youtube Video. [Online]. Availabl e:
+http://youtu.be/m8-j7s6-bzE
+APPENDIX A
+MODIFICATION ON VIRTUAL COMPLIANCE AND
+CALCULATION OF EFFECTIVE STIFFNESS
+MABEL has three sources of compliance: physical springs
+installed on the torso, virtual compliance created by the le g
+shape motor, and compliance due to the cable stretch. Becaus e
+the cable stretch is not included in the simpliﬁed design
+model, the stiffness of virtual compliance k∗designed from
+optimization on simpliﬁed-model needs to be modiﬁed to take
+into account the effect of the cable stretch. This modiﬁcati on
+is based on the fact that the cable stretch and the virtual
+compliance form a series connection, and consequently, we
+can multiply k∗by some correction factor γvcso that the
+series connection realizes the desired compliance k∗, namely,
+1
+k∗=1
+γvck∗+1
+kcable, (23)
+wherekcable is the spring constant of the cable stretch seen
+at the motor leg shape angle. For the designed stiffness valu e
+of the regular-walking controller k∗,RW= 1.8,γvc= 2.5is
+obtained from (23), and we use this correction factor for the
+step-up, step-down, and recovery controllers as well as to m ake
+the controller structure simpler.
+Similarly, effective stiffness keﬀwhich is the series sum-
+mation of three sources of compliance can be calculated as
+follows:
+1
+keﬀ=1
+kBsp+1
+γvck∗+1
+kcable, (24)
+wherekBspis the spring constant of physical spring, seen at
+the motor leg shape angle.

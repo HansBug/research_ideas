@@ -1,0 +1,1476 @@
+--- Page 1 ---
+1
+A Phase Variable Approach for Improved Rhythmic
+and Non-Rhythmic Control of a Powered
+Knee-Ankle Prosthesis
+Siavash Rezazadeh1, David Quintero2, Nikhil Divekar1, Emma Reznick1, Leslie Gray3, and Robert D. Gregg4
+Abstract —Although there has been recent progress in control
+of multi-joint prosthetic legs for rhythmic tasks such as walking,
+control of these systems for non-rhythmic motions and general
+real-world maneuvers is still an open problem. In this article,
+we develop a new controller that is capable of both rhyth-
+mic (constant-speed) walking, transitions between speeds and/or
+tasks, and some common volitional leg motions. We introduce
+a new piecewise holonomic phase variable, which, through a
+ﬁnite state machine, forms the basis of our controller. The phase
+variable is constructed by measuring the thigh angle, and the
+transitions in the ﬁnite state machine are formulated through
+sensing foot contact along with attributes of a nominal reference
+gait trajectory. The controller was implemented on a powered
+knee-ankle prosthesis and tested with a transfemoral amputee
+subject, who successfully performed a wide range of rhythmic
+and non-rhythmic tasks, including slow and fast walking, quick
+start and stop, backward walking, walking over obstacles, and
+kicking a soccer ball. Use of the powered leg resulted in clinically
+signiﬁcant reductions in amputee compensations for rhythmic
+tasks (including vaulting and hip circumduction) when compared
+to use of the take-home passive leg. In addition, considerable
+improvements were also observed in the performance for non-
+rhythmic tasks. The proposed approach is expected to provide
+a better understanding of rhythmic and non-rhythmic motions
+in a uniﬁed framework, which in turn can lead to more reliable
+control of multi-joint prostheses for a wider range of real-world
+tasks.
+Index Terms —powered prostheses, transfemoral amputees,
+rehabilitation robotics.
+I. I NTRODUCTION
+THE vast majority of lower-limb amputees use mechan-
+ically passive prosthetic legs, which can only dissipate
+energy during locomotion. This limits the ability of amputees
+1Department of Bioengineering, University of Texas at Dallas, Richard-
+son, TX 75080, USA.2School of Engineering, San Francisco State Uni-
+versity, San Francisco, CA 94132, USA.3Department of Health Care
+Sciences, University of Texas Southwestern Medical Center, Dallas, TX
+75390, USA.4Department of Electrical Engineering and Computer Science
+and the Robotics Institute, University of Michigan, Ann Arbor, MI 48109
+USA. Contact emails: siavash.rezazadeh@utdallas.edu,
+rdgregg@umich.edu
+This work was supported by the National Institute of Child Health &
+Human Development of the NIH under Award Numbers DP2HD080349 and
+R01HD09477. This work was also supported by NSF Award 1734600. The
+content is solely the responsibility of the authors and does not necessarily
+represent the ofﬁcial views of the NIH or the NSF. R. D. Gregg holds a
+Career Award at the Scientiﬁc Interface from the Burroughs Wellcome Fund.
+© 2019 IEEE. Personal use of this material is permitted. Permission from
+IEEE must be obtained for all other uses, in any current or future media,
+including reprinting/republishing this material for advertising or promotional
+purposes, creating new collective works, for resale or redistribution to servers
+or lists, or reuse of any copyrighted component of this work in other works.to efﬁciently perform various ambulation modes, particularly
+walking at variable speeds or slopes. Furthermore, the biome-
+chanical compensations required to walk with these passive
+devices generally cause joint discomfort and back pain during
+daily usage [1]. Powered prosthetic legs that provide actuation
+at the joints have the potential to improve amputee gait
+and eliminate these problems [2]–[6]. However, they require
+sophisticated control strategies, especially for multi-joint legs,
+in order to perform various activities in a natural and safe
+manner [7].
+From a biomechanics perspective, the human gait cycle can
+be divided into different phases (namely, stance and swing
+phase) and sub-phases (for example, weight acceptance, push-
+off, early swing, etc.), each serving a speciﬁc purpose in
+locomotion [8]. This perspective was preserved in control
+design for powered lower-limb prostheses, which involves
+ﬁrst detecting the correct sub-phase and then controlling that
+particular behavior of the prosthetic joints [5], [9]–[12]. The
+tuning has to be performed separately for each individual
+based on various physical parameters, for example, body mass,
+as well as functional parameters, for example, gait pattern. Due
+to the large number of parameters that need to be manually
+tuned, the process is typically arduous, often taking multiple
+hours for each subject [10]. Methods have been developed
+to automate this tuning process for a single joint (e.g., a knee
+prosthesis in [13] and an ankle exoskeleton in [14]), but further
+investigations are required to extend these methods to multi-
+joint prostheses.
+To address these issues, recent approaches have parameter-
+ized the gait cycle over a phase variable, i.e., a monotonic
+signal that represents the progression through the cycle. Aside
+from parameterizing the gait, ideally the phase variable is
+invariant across different subjects and does not depend on pa-
+rameters such as the person’s mass or height [15]. In [16], the
+heel-to-toe movement of the Center of Pressure (CoP) served
+as the phase variable for determining progression through the
+stance phase, whereas the swing phase was controlled by
+two impedance-based states. In [17], the authors investigated
+additional phase variables for locomotion and found that the
+global thigh angle is a suitable piecewise monotonic signal that
+can be used to control the stance and swing phases separately.
+By also using the integral of the global thigh angle, the phase
+variable was made continuous across the gait cycle and was
+implemented in a powered knee-ankle prosthesis for use by
+amputee subjects [6].
+Everyday tasks comprise both rhythmic activities, such asarXiv:1811.05414v3  [cs.RO]  4 Aug 2019
+
+--- Page 2 ---
+2
+walking, as well as non-rhythmic activities, such as stepping
+over obstacles. A controller strictly based on behavior in a
+rhythmic task, such as the uniﬁed controller presented in
+[6], will encounter problems for non-rhythmic motions and
+thus will not be practical for real-world use. Previous studies
+such as [18]–[20] attempted to enhance volitional control
+of rhythmic and non-rhythmic motions using information
+contained in the bioelectric signals of the residual limb, such
+as those acquired from electromyography (EMG). However,
+EMG quality is highly dependent on physical factors such as
+electrode placement, movement artifact, and electromagnetic
+noise; physiological factors such as muscle and nerve fatigue;
+and anatomical factors such as volume conduction, which
+causes “mixing” of signals from different underlying muscles
+when using surface electrodes. In the case of transfemoral
+amputees, the muscles used for controlling the ankle joint do
+not exist. The information may still be recovered if a nerve
+re-innervation procedure was carried out during amputation,
+but sophisticated “unmixing” algorithms have to be used to
+decipher individual muscle activity from the EMG [21]. In
+light of this knowledge, we seek a more reliable solution using
+only mechanical measurements.
+As a ﬁrst attempt for such a control scheme, Villarreal et
+al. used the thigh angle and a stance/swing detection switch
+to implement a piecewise phase variable for non-rhythmic
+control [22]. However, the controller was problematic during
+transitions, as using solely the foot contact condition for transi-
+tioning between stance and swing phase variables would result
+in jumps and oscillations. To avoid such jumps, pushoff was
+eliminated, but it consequently made walking at greater speeds
+difﬁcult and inefﬁcient. Moreover, the undesired jumps would
+still occur when standing, as the subject shifted their weight to
+the sound leg. This motivated the design of a controller based
+on a Finite State Machine (FSM) and preliminary experiments
+with an amputee subject demonstrated its functionality for
+different non-rhythmic and rhythmic tasks [23].
+In this article, we extend this investigation by showing
+how the proposed controller can improve the performance
+compared to passive transfemoral prostheses. This assessment
+includes both rhythmic and non-rhythmic tasks (which was
+not possible using our previous controller [6]). Comparisons
+of walking performance with passive and powered prosthe-
+ses have been done in works such as [24] (for a powered
+ankle) and [25] (for a powered knee-ankle). However, both
+these works rely on several sessions of training in order to
+obtain meaningful improvements with the powered prostheses.
+Speciﬁcally, in [24], it was shown that without training, the
+outcomes may only have slight improvements. In contrast, we
+show that using the presented controller, clinically signiﬁcant
+improvements can be observed immediately after a brief tun-
+ing/acclimation session (about 10 minutes) with the powered
+leg.
+In [25], the positive effects of a powered leg on back
+muscles and gait energy expenditure were investigated. Such
+symptoms often originate from compensations that amputees
+adopt to overcome the lack of power in passive prostheses
+[26]–[29]. In this work, we study the kinematic and ki-
+netic attributes characterizing these compensations. The mostcommon compensations associated with the use of passive
+prostheses are related to prosthetic foot clearance resulting
+from under-powered plantarﬂexion during pushoff and knee
+ﬂexion during swing [30], [31]. Since individual amputees
+develop different compensatory mechanisms, we focused our
+analyses on traits that were the most apparent with the
+amputee participant, namely, vaulting and hip circumduction.
+Vaulting emerges as excessive plantarﬂexion during midstance
+of the sound leg, whereas hip circumduction is characterized
+by excessive hip abduction of the prosthetic side during
+swing, resulting in lateral deviation of the prosthetic foot.
+We hypothesized our powered leg would help mitigate these
+compensatory mechanisms by providing active plantarﬂexion
+and knee ﬂexion to better aid the foot clearance.
+In both [24] and [25] the studies were limited to comparison
+of powered and passive legs for rhythmic (treadmill walking)
+tasks. A direct outcome of the present phase-based controller
+is its additional ability to enable a range of non-rhythmic tasks.
+Based on this, we studied some common non-rhythmic tasks
+that amputees may face in daily life. For backward walking, as
+a ﬁrst task tested for this purpose, two different gait patterns
+are recognizable. In a “step-to” pattern, the sound leg leads
+the motion while the prosthetic leg follows, seldom passing
+beyond the sound leg. In contrast, in a “step-through” pattern,
+both sound and prosthetic legs alternately lead the motion and
+the swing leg passes the stance leg. We analyze these gait
+patterns during backward walking trials to determine how the
+powered leg performs compared to the passive leg.
+The next non-rhythmic task we tested was stepping over
+an obstacle. We predicted the subject would be able to
+successfully maneuver his intact joints into a conﬁguration
+that maintains the prosthetic knee and ankle in a sufﬁciently
+ﬂexed position while guiding his hip joint over the obstacle.
+This kind of maneuver is quite difﬁcult or even impossible
+with passive prostheses or the state-of-the-art powered pros-
+theses designed for walking. Another task that we tested was
+kicking a soccer ball. Kicking is a non-rhythmic movement
+that requires powerful but controlled extension of the knee.
+Functional abilities are compared between the powered and
+passive legs during these tasks.
+The paper is organized as follows. In Section II, we describe
+the new phase variable, its states and corresponding transitions,
+and the implementation of the controller. Section III addresses
+the experimental setup, protocol, and methods. Next, in Sec-
+tion IV, the results of the experiments are presented. Based on
+that, in Section V, the obtained results are discussed and the
+performance of the controller for different tasks is analyzed.
+At the end, we present a series of conclusions together with
+suggestions for future works.
+II. C ONTROL DESIGN
+This section presents the design of the proposed scheme
+for non-rhythmic and rhythmic control of a powered knee-
+ankle prosthesis. First, we explain the use of virtual constraints
+for formulating the desired knee and ankle joint trajectories.
+Next, we describe the design of our proposed phase variable
+for parameterizing the virtual constraints in different stages
+
+--- Page 3 ---
+3
+of the gait cycle. Finally, we discuss how the controller is
+implemented on a powered prosthesis.
+A. Virtual Constraints
+Virtual constraints, as introduced in [32], [33], are a useful
+tool to represent time-invariant trajectories, which can con-
+siderably simplify the process of controlling periodic orbits.
+Originally, virtual constraints were introduced as relationships
+among generalized positions (angles), which is analogous
+to a holonomic set of kinematic constraints. More recently,
+nonholonomic virtual constraints have also been used in legged
+robots applications [34], [35]. Generally, virtual constraints
+deﬁne the desired trajectories for the controlled degrees of
+freedom in the following form:
+qd
+i=h(s); (1)
+wheresis a monotonic function of positions (for holonomic
+virtual constraints), or positions and velocities (for nonholo-
+nomic virtual constraints), and is usually scaled between 0 and
+1.
+In legged robot applications, sis normally reset every step,
+and continuity is preserved by imposing equality conditions on
+hand@h=@q ats= 0 ands= 1. This is a convenient choice
+for legged robots, especially considering there are sensors on
+both legs for computing the phase variable. For a prosthetic leg
+application, in order to avoid attaching sensors on the sound
+leg of the subject, it is desirable to use only onboard sensors
+from the prosthesis. This is equivalent to resetting the phase
+variable at the end of each stride, rather than each step. In
+this case, (1) represents the desired, periodic trajectories for
+the entire stride [36].
+Due to their dependence on velocities or integrals, nonholo-
+nomic virtual constraints are sensitive to changes in speed and
+are thus not suitable for a controller that is intended to work
+in a wide range of non-steady activities. A good example is
+the integral-based uniﬁed controller presented in [6], which
+worked well in normal-speed steady-state walking, but was
+unreliable for slow speeds and was unable to perform non-
+rhythmic motions. Therefore, we establish our control scheme
+on a holonomic phase variable in order to make it speed-
+independent. Motivated by the results of [17] and [15], and
+since the holonomicity of the thigh angle makes it an ideal
+selection for a volitional controller, we use this variable as the
+basis for our controller. In what follows we show how this
+angle is used to construct our phase variable.
+B. Constructing the Phase Variable
+As mentioned before, we aim to use thigh angle qh(Fig.
+1(b)), for deﬁning our holonomic phase variable. In what
+follows, we will show how this variable can be used for this
+purpose and what other measurements are necessary.
+Fig. 1(a) depicts the thigh, knee, and ankle angle trajectories
+during one stride of a normal able-bodied walking gait on
+ﬂat ground [8]. Note that the thigh angle is not a monotonic
+signal throughout the stride. As a result, each value of qh
+corresponds to at least two points in the cycle (one in the
+descending part of qhand one in the ascending part), making
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)-20-10010203040506070Angle (deg.)Thigh
+Knee
+Ankle
+0.53Stance Swing
+h
+q-q
+kaq(a)
+(b)Fig. 1. (a) Human leg’s joint angle trajectories during one stride of walking
+with normal speed and stride period T[8]. (b) Deﬁnition of the joint angles.
+the determination of a unique sbased solely on qhimpossible.
+To avoid this problem, and also to keep the beneﬁts of a
+holonomic system, we propose to use a set of piecewise
+holonomic virtual constraints. The idea is to divide the gait
+cycle into different sections, where each section corresponds
+to a monotonic (either ascending or descending) thigh angle
+trajectory.
+From Fig. 1, the thigh angle trajectory during a stride can
+roughly be divided into two monotonic sections (neglecting
+the small retraction section at the end); it is descending after
+heel strike ( t=T = 0 ) and through the stance phase until
+the trajectory reaches its minimum at t=T= 0:53, and then
+becomes ascending. Note that the swing phase starts a little
+later, att=T= 0:63. An obvious way to transitioning between
+these two states is using the sign change of the thigh angle’s
+
+--- Page 4 ---
+4
+rate, _qh. In practice this proves to be a very sensitive signal,
+because velocities can change rapidly, which results in large
+discontinuities in the virtual constraints and in undesirable
+transitions. For this reason and since these two monotonic
+sections approximately correspond to stance and swing phases,
+in [22] a foot contact sensor was used for transitioning between
+these two states. The ﬁrst problem with this approach is that
+the minimum thigh angle does not exactly correspond to the
+foot takeoff ( t=T= 0:53versust=T= 0:63) and thus part of
+pushoff will be performed when the leg is already in swing.
+Moreover, this approach assumes that the thigh angle exactly
+follows the reference trajectory. If the minimum thigh angle is
+larger than the reference trajectory’s minimum (shorter step),
+there will be a jump in the virtual constraints. Conversely, if
+the minimum thigh angle is less than the reference (longer
+step), the virtual constraint will saturate, which leaves pushoff
+half-completed. These undesirable features can be seen in the
+results of [22].
+To resolve these problems, we propose to have two supple-
+mentary states (in addition to stance and swing) to represent
+pushoff. The result is depicted in Fig. 2(a) in the form
+of an FSM with four states, where S1 and S2 pertain to
+the descending part of the thigh trajectory, and S3 and S4
+correspond to the ascending part. Note that S1, S2, and S3
+are all parts of the stance phase, and thus for all of these
+statesFC = 1 (FC represents foot contact as a binary
+signal). For this reason, we use other variables to deﬁne these
+transition conditions. Namely, transitioning from S1 (stance) to
+S2 (pushoff onset) occurs at a speciﬁc thigh angle ( qh=qpo),
+and transitioning from S2 to S3 (pre-swing) occurs when
+_qh= 0. The tunable constant qporepresents the thigh angle
+at the start of pushoff and its default value is obtained from
+the thigh angle at the maximum ankle angle in the reference
+trajectory (Fig. 1, from which qpo=8:4). As previously
+mentioned, a transition based on velocity is accompanied with
+the risk of sensitivity and sudden jumps in virtual constraints.
+Although these jumps would be small due to the small range
+of thigh angles represented by S2 and S3, we propose a two-
+step approach to completely eliminate such discontinuities. In
+the ﬁrst step, the transitions from S1 to S2 and from S2 to
+S3 are designed to be unidirectional, resulting in only one
+possible jump from S2 to S3. To eliminate this single jump,
+in the second step we reset the associated parameters based
+on the information from the sensors. This will be explained
+in the deﬁnition of sin what follows.
+For S1 and S2, the phase variable can be computed from a
+shift and scale of the thigh angle:
+s=q0
+hqh
+q0
+hqmin
+hc; (2)
+whereq0
+handqmin
+h are constants whose default values are
+touchdown value and the minimum of the reference thigh angle
+trajectory, respectively. These two parameters can be tuned if
+the subject prefers a different step length. The constant cis
+also tunable and is related to the ratio of the stance phase to
+the whole cycle. The default value of cis the normalized time
+at whichqhreaches its minimum, which is 0.53 in Fig. 1.Since the transitioning from S2 to S3 is based on the change
+of sign of _qh, S3 pertains to the ascending part of the thigh
+angle. To form a continuous phase variable and to avoid jumps
+at each transitioning from S2 to S3, we record the values
+forsandqhand name them smandqh;m, respectively. The
+phase variable in preswing (S3) and swing (S4) phases is then
+computed from
+s= 1 +1sm
+q0
+hqh;m(qhq0
+h): (3)
+Note thats=smatqh=qh;m, ands= 1 atqh=q0
+h. For
+both (2) and (3), the phase variable is saturated between 0 and
+1.
+An additional factor to consider for the preswing phase is
+the tendency of the leg to oscillate as the load is removed from
+it. This is eliminated by imposing a unidirectional ﬁlter on the
+phase variable in S3. That is, in the discrete time instance k:
+s(k)s(k1); whenS=S3; (4)
+whereSis the current state. Note that this condition is not
+required for S2, as it transitions to S3 at the ﬁrst instance when
+_qh(and hence _s) crosses zero.
+The FSM of Fig. 2(a) together with the phase variable
+deﬁnition in (2) and (3) constitute a control paradigm based
+on a forward walking scheme. However, a volitional controller
+needs to also manage situations in which the motion is
+interrupted or even reversed. Due to the holonomic nature of
+the designed phase variable, it is invariant to the direction
+of motion. Therefore, the problem can only arise during
+transitions. The most critical situation happens when the leg is
+in swing and it touches the ground behind the body (backward
+walking). According to Fig. 2(a) the state transitions to S1
+and then immediately to S2 (and perhaps S3), which leads to
+pushoff and does not allow the subject to put weight on the
+leg. In order to avoid this, we added another state, S5, to the
+FSM (Fig. 2(b)). This new state keeps the leg in stance phase
+when walking backward, and it transitions to pushoff only if
+the subject resumes moving forward. With this new state, we
+deﬁne the transitions for our controller as follows:
+1)Transition from S1 or S5 to S4: The primary condition
+for transitioning between stance and swing is foot con-
+tact. However, in conditions such as standing still, if the
+leg is unloaded for a moment (i.e., shifting weight to the
+sound leg), a transition to swing can result in a sudden
+and undesirable ﬂexion of the knee. To avoid this, we
+require that the transition to swing happens either after
+pushoff (i.e., through S2 and S3), or directly from S1 or
+S5 to S4 at maximum thigh angle ( s= 0). Obviously,
+for transitioning from S5 to pushoff, the state ﬁrst needs
+to go to S1, as discussed next.
+2)Transition from S5 to S1: This transition happens when
+the subject steps backward and then decides to move
+forward. The transition condition is given by qh<q51
+h,
+whereq51
+his a tunable constant. Note that q51
+h> qpo,
+in order to avoid direct transitioning to pushoff. For our
+experiments, we set q51
+h=6.
+3)Transition from S4 to S1 or S5: Since stance is a more
+reliable state for the subjects (they can put their weight
+
+--- Page 5 ---
+5
+S4
+swingS3
+preswingS1
+stanceS2
+pushoff
+onset
+̇𝑞𝑞ℎ>0
+𝐹𝐹𝐹𝐹=0𝐹𝐹𝐹𝐹=0 𝐹𝐹𝐹𝐹=1𝑞𝑞ℎ<𝑞𝑞𝑝𝑝𝑝𝑝&𝐹𝐹𝐹𝐹=1
+(a)
+S4
+swingS3
+preswing
+Forward Motion Backward 
+MotionS5
+backward 
+stanceS1
+stanceS2
+pushoff
+onset𝑞𝑞ℎ<𝑞𝑞𝑝𝑝𝑝𝑝&𝐹𝐹𝐹𝐹=1
+̇𝑞𝑞ℎ>0
+𝐹𝐹𝐹𝐹=0𝐹𝐹𝐹𝐹=0&
+𝑠𝑠=0𝐹𝐹𝐹𝐹=1&
+𝑞𝑞ℎ≥𝑞𝑞ℎ41
+𝐹𝐹𝐹𝐹=1&
+𝑞𝑞ℎ<𝑞𝑞ℎ41𝐹𝐹𝐹𝐹=0&𝑠𝑠=0𝑞𝑞ℎ<𝑞𝑞ℎ51&𝐹𝐹𝐹𝐹=1 (b)
+Fig. 2. (a) The preliminary ﬁnite state machine based on forward walking. The phase variable, s, in the yellow circle states is obtained from (2), and in
+the blue rectangle states from (3). (b) The complete ﬁnite state machine for computing the phase variable for control of the prosthetic leg for forward and
+backward walking and general non-rhythmic tasks. Again, the yellow circles correspond to (2), and the blue rectangles to (3).
+on the leg), the condition for transitioning from S4 to S1
+or S5 is less strict compared to S1 and S5 to S4. When
+foot contact happens ( FC= 1), the transition will be
+to S1 ifqhq41
+h, otherwise it will be to S5, where q41
+h
+is a tunable constant. For our experiments, we set q41
+h
+to zero, which is equivalent to transition from S4 to S1
+for a forward step or to S5 for a backward step.
+Fig. 2(b) summarizes the states and the corresponding transi-
+tions.
+C. Control Design Based on Virtual Constraints
+Having computed the phase variable, the next step is ob-
+taining the virtual constraints. In this work, we follow the
+approach of [6] in using Discrete Fourier Transform (DFT)
+in order to generate virtual constraints for knee and ankle,
+based on data from normal-speed ﬂat-ground human walking
+provided in [8]. In this form, the desired joint angles can be
+computed as
+qd
+i=h(s) =1
+20+1
+2N=2cos(Ns)
++N=21X
+k=1[kcos(
+ ks) ksin(
+ ks)];(5)
+wherekand kare the coefﬁcients of real and imaginary
+parts of DFT, respectively.
+In the next step, the desired knee and ankle angle obtained
+from (5), are imposed using a Proportional-Derivative (PD)
+position controller. Noting that the position error for joint iis
+ei=h(s)qi; (6)
+the commanded motor torque is obtained from
+i=Kp;iei+Kd;i_ei; (7)whereKp;i>0andKd;i>0are PD control gains for joint
+i.
+Fig. 3(a) displays the block diagram of the proposed con-
+troller.
+III. E XPERIMENTAL METHODS
+A. Materials
+The knee-ankle powered leg used for our experiments is
+shown in Fig. 3(b). Each joint is equipped with a Maxon EC-
+4pole 30, 200 Watt, three-phase brushless DC motor driving
+the joints through a timing belt and a Nook 2-mm lead ball
+screw. Due to greater torques in the ankle joint, the timing
+belt ratio for the ankle is twice that for the knee.
+The joints and motors are equipped with optical encoders
+(Maxon 2RMHF for motors and US Digital EC35 for joints).
+An IMU sensor (LORD MicroStrain, 3DMGX4-25) is used to
+measure the global thigh angle, as shown in Fig. 3(b). Foot
+contact condition is determined using a force sensitive resistor
+sensor (FSR - FlexiForce A401, Tekscan Inc.) located inside
+the pyramid adapter of the prosthetic foot.
+The computation and control is done offboard via a tethered
+connection to a dSPACE DS1007 system with Freescale OorIQ
+P5020, dual-core, 2 GHz PowerPC processor. The commanded
+torques from the computer are sent to an Elmo Gold Twitter
+R80/80 ampliﬁer, which controls the motors. The powers for
+the motors and the FSR are provided through DC power
+supplies (Agilent Technologies 6673A for the motors and BK
+Precision 1761 for the FSR). See [6] for further details on the
+design of the prosthetic leg and the hardware speciﬁcations.
+Motion capture data was collected using a 10-camera
+VICON system. A 16-marker lower body model was used
+(Plug-in-Gait - VICON). Standard data processing procedures,
+including gap ﬁlling and ﬁltering (fourth-order 6 Hz cut-off
+low-pass Butterworth), were applied. A walking platform with
+
+--- Page 6 ---
+6
+Finite 
+State 
+MachineVirtual 
+Constraints𝑠𝑠
+𝐹𝐹𝐹𝐹𝑞𝑞ℎ,̇𝑞𝑞ℎKnee PD 
+Control
+Prosthetic 
+Leg
+Ankle PD 
+Control𝑞𝑞𝑘𝑘𝑑𝑑
+𝑞𝑞𝑎𝑎𝑑𝑑+−𝑒𝑒𝑘𝑘
+𝑒𝑒𝑎𝑎
+−+
+𝜏𝜏𝑎𝑎𝜏𝜏𝑘𝑘𝑞𝑞𝑘𝑘
+𝑞𝑞𝑎𝑎
+(a)
+IMU
+(b)
+Fig. 3. (a) Block diagram of the proposed controller for the knee-ankle prosthesis. qkandqarepresent knee and ankle joint angles, respectively, and qd
+kand
+qd
+aare their desired values.(b) The powered knee-ankle prosthetic leg worn by the transfemoral amputee participant.
+a single 3-axial force plate (Kistler) positioned midway of
+the walkway length was constructed. Handrails were provided
+alongside the entire length of the platform. A non-instrumented
+treadmill with a safety harness was used for collection of
+continuous gait data.
+B. Procedure
+The controller was ﬁrst tested and tuned through a set of
+walking experiments on a ﬂat-ground treadmill with an able-
+bodied subject using the powered leg with a bypass system
+[37]. Any tunable parameter discussed in Section II was ap-
+propriately changed until the subject was able to comfortably
+walk in different speeds. The joint trajectories for the trials
+with three different speeds (slow: 0.7 m/s; normal: 0.9 m/s;and fast: 1.1 m/s) were recorded for qualitative comparison
+with those of the amputee subject. After this set of tests, the
+main experiments were conducted with an amputee subject
+with the same set of parameters and with no change. The
+amputee participant was a 32-year old male with a height of
+1.75 m, weight of 76 kg with the passive leg, and weight of
+78.9 kg with the powered leg. His left leg was amputated 11
+years before these experiments and he used an Ottobock 3R60
+knee together with an Ability Rush ankle-foot prosthesis as his
+everyday passive leg. The participant had no prior experience
+with the powered prosthesis device being tested, and he had no
+neuro-muscular disorder that is known to affect gait, balance,
+or muscle activity. The experimental protocol was reviewed
+and approved by the Institutional Review Board (IRB) at the
+
+--- Page 7 ---
+7
+University of Texas at Dallas.
+Prior to the experiment with the amputee subject, standard
+procedures for ﬁtting and tuning of the prosthetic leg were
+carried out by a licensed Prosthetist. For ﬁtting the powered
+prosthesis, the participant’s daily-use socket was used. The
+experiments were designed in two different sets, namely non-
+rhythmic and rhythmic. The non-rhythmic experiments were
+done on the walkway platform, while the rhythmic exper-
+iments were conducted on the treadmill. The subject ﬁrst
+performed both sets of tasks with his passive prosthesis, and
+then he repeated them with the powered leg. As mentioned, for
+all these tasks, the control parameters introduced in Section II
+remained the same.
+As the ﬁrst overground experiment, the subject was asked
+to start from rest, walk forward between the handrails with
+a comfortable speed, and stop at the end of the walkway.
+The experiment was repeated until we captured three clean
+foot strikes on the force plate for each leg (prosthetic, sound).
+After that, we examined the invariance of the controller to
+the direction of locomotion and the ability of reversing the
+direction of walking at the subject’s will. For this purpose, we
+asked the participant to walk backward on the walkway, as
+well as a combination of forward and backward transitions.
+After that, we tested the ability of the subject to step over
+an obstacle, speciﬁcally an 85-mm high wooden block. The
+goal was to step over it ﬁrst using the sound leg and then
+the prosthesis. No restrictions were placed on the number of
+practice trials. No additional guidance was provided regarding
+the ideal foot placement or maneuvering strategy for crossing
+the obstacle; the participant was encouraged to explore and
+practice his preferred strategy. After this experiment, the
+subject was asked to kick a soccer ball to demonstrate the
+fast extension of the powered knee following a quick forward
+motion of the hip in an activity other than walking. This test
+concluded the overground experiments.
+Flat-ground treadmill trials for rhythmic tasks were per-
+formed at three speeds: slow, normal, and fast. First, the
+participant was instructed to adjust the treadmill speed to
+his self selected speed (i.e., normal speed) with his passive
+prosthesis. The slow and fast speeds were then taken as the
+minimum and maximum speeds, respectively, at which the
+participant was able to maintain a stable and comfortable
+gait with his passive leg. Data were captured for 60, 60, and
+45 seconds for slow, normal, and fast speeds, respectively,
+where recording was only started after the participant was
+able to produce a reasonably consistent gait cycle (as visually
+inspected). With the powered leg, the subject was able to
+reach higher speeds than the maximum speed with the passive
+leg. Thus, in addition to the previous speeds, we tested and
+recorded the maximum speed at which the subject was able
+to comfortably walk with the powered leg for the duration of
+30 seconds.
+C. Data and Statistical Analyses
+For comparing the joint angle trajectories of the prosthetic
+legs with those of the reference able-bodied subjects (adopted
+from [8]), we computed the Pearson correlation coefﬁcient foreach case, as in [25]. In the ideal case (trajectories identical
+to reference able-bodied trajectories), this coefﬁcient would be
+equal to 1.
+Vaulting is usually quantiﬁed by measuring peak ankle
+ﬂexion power during single support [31]. However, in the
+present work, we utilize an alternative to kinetic quantiﬁcation,
+using only kinematic parameters. As it will be shown in the
+next section, this approach measures the peak sagittal-plane
+global foot angle (with respect to the ground) during single-
+support, which corresponds to the point of zero velocity.
+Similar to [38], we quantiﬁed hip circumduction as the
+medio-lateral range of motion of the prosthetic ankle marker
+coordinates during a stride. This method corresponds better
+with what a clinician observes visually than other measures
+such as hip frontal-plane range of motion [39].
+The symmetry index ( SI) between the sound and prosthetic
+sides was quantiﬁed as
+SI=VProsth VSound
+1
+2(VProsth +VSound ); (8)
+whereVProsth andVSound are the gait variables corresponding
+to each side [40]. Based on this, SI= 0 represents perfect
+symmetry and increasing deviation from zero corresponds to
+increasing asymmetry.
+For backwards walking, we assessed the improvement in
+gait type from “step-to” gait (observed with the passive leg)
+to a “step-through” gait (observed with the powered leg) [41].
+This asymmetry in backwards motion cannot be captured using
+standard step length symmetry assessments which are based on
+the distance covered by each foot with respect to itself. Instead,
+we assessed the distance along the direction of walking
+between the prosthetic versus sound ankle marker coordinates
+at their respective mid-stance positions. This allowed a relative
+(prosthetic versus sound) measure of foot positions.
+The ability to cross over the obstacle was quantiﬁed by the
+height of the toe marker above the obstacle and also quali-
+tatively assessed by plotting toe marker trajectories over the
+obstacle. Kicking the soccer ball was quantiﬁed by measuring
+ball velocity (estimated using coordinates of reﬂective markers
+afﬁxed to the ball).
+Means and standard deviations were calculated for the
+biomechanical variables discussed in the previous section for
+each applicable condition resulting from a combination of
+1) prosthetic device (powered, passive), 2) side (prosthetic,
+sound), and 3) speed (fast, normal, slow).
+IV. R ESULTS
+A supplemental video of these experiments is available for
+download. The main goal of this work was to demonstrate the
+ability of the controller to facilitate both rhythmic (constant-
+speed walking) tasks as well as a range of non-rhythmic
+(i.e., volitional) tasks and the improvements compared to the
+amputee subject’s passive leg. Our participant was able to suc-
+cessfully complete all (rhythmic and non-rhythmic) tasks that
+were part of the testing protocol as described in Section III-B.
+We present both qualitative as well as quantitative results in
+what follows.
+
+--- Page 8 ---
+8
+02468
+Time (s)00.51Phase variable
+02468
+Time (s)-20020Thigh angle (deg.)
+02468
+Time (s)01020304050Knee angle (deg.)
+02468
+Time (s)-20-10010Ankle angle (deg.)
+(a)
+0 5 10 15
+Time (s)00.51Phase variable
+0 5 10 15
+Time (s)-20020Thigh angle (deg.)
+0 5 10 15
+Time (s)0204060Knee angle (deg.)
+0 5 10 15
+Time (s)-20-10010Ankle angle (deg.)
+(b)
+Fig. 4. Phase variable and joint angle plots for (a) a forward walking trial
+between handrails, and (b) a backward walking trial.
+A. Non-Rhythmic Tasks
+The ﬁrst non-rhythmic tasks were overground forward and
+backward walking between handrails, including start and stop.
+Fig. 4(a) displays the phase variable and joint angles through
+an overground forward walking trial. The subject started from
+rest (almost vertical leg), walked across the walkway, and
+stopped at the end. The change of the minimum ankle angle
+across strides is particularly interesting, as it represents the ex-
+tent of pushoff. As the subject started from rest and increased
+his walking speed, the ankle plantarﬂexion also increased (i.e.,
+larger pushoff) until the last stride where the subject decreased
+his speed and pushoff became smaller correspondingly.
+The representative joint ankle powers for overground walk-
+ing with powered and passive legs are displayed in Fig.
+5. Although the passive ankle cannot produce power, its
+compliance allows for storage and release of energy through
+the stance phase. The comparison of the pushoff powers shows
+0 20 40 60 80 100
+Stance %-0.6-0.4-0.200.20.40.60.811.2Power (W/kg)Passive
+PoweredFig. 5. Comparison of joint ankle powers during stance phase for overground
+trials with powered and passive legs. A signiﬁcantly higher pushoff power is
+observed for the powered leg compared to the passive leg.
+TABLE I
+BACKWARD WALKING STEP SYMMETRY :PASSIVE (PAS)VERSUS POWERED
+(PWR),AND SOUND (S) VERSUS PROSTHETIC (P).
+Pas P Pas S Pwr P Pwr S
+Length (mm) 281 (32) 498 (44) 669 (44) 513 (30)
+SI 0.56 0.26
+that the peak generated by the powered leg is more than
+three times larger compared to that of the passive leg. We
+will discuss the improvements in gait characteristics associated
+with this increase in the next subsection.
+The results of a representative backward walking trial with
+the powered leg are depicted in Fig. 4(b). The holonomic
+nature of the controller enabled the subject to comfortably
+reverse his direction of motion and still maintain a smooth gait.
+Note that the phase variable has a reverse trajectory compared
+to Fig. 4(a). Because of the natural limitation of the passive
+prosthesis, the participant was forced to adopt a step-to pattern
+of walking, whereas he was able to walk using a normal step-
+through pattern using the powered leg. Our results show that
+use of the powered leg substantially improved the symmetry
+index for backwards walking: from 0.56 (passive leg) to 0.26
+(powered leg). See Table I for details.
+Crossing over an obstacle was another non-rhythmic every-
+day task that we tested and compared between the passive and
+powered legs. Fig. 6 shows the planar path of the toe marker
+and the obstacle. It can be seen that the powered leg (blue solid
+curve) provided substantially greater toe clearance compared
+to the passive leg (dashed curve). In fact, in one of the trials,
+the participant toppled the obstacle with the passive leg (dotted
+curve). The maximum toe height reached with the passive leg
+was 0.106 m, whereas the powered leg reached 0.231 m.
+As the last non-rhythmic experiment, we tested the perfor-
+mance of kicking a soccer ball with the passive and powered
+legs. We chose ball velocity as our performance metric. The
+trials with the passive leg resulted in velocities of 1.4 and
+1.9 m/s (mean: 1.65 m/s), whereas the powered leg produced
+velocities of 5.0 and 5.5 m/s (mean: 5.25 m/s). The use of the
+powered prosthesis allows the participant to kick the soccer
+ball with a substantially higher velocity (218% increase in
+the mean ball velocity) when compared to using the passive
+
+--- Page 9 ---
+9
+0 0.2 0.4 0.6 0.8 1.0 1.2
+Horizontal Motion of Toe Marker (m)050100150200250Vertical Motion of Toe Marker (mm)Passive Trial 1
+Passive Trial 2
+Powered Trial 1
+Progression of Stride
+Fig. 6. Illustration of obstacle crossing using toe marker trajectory. A high
+clearance can be seen using the powered leg, whereas much lower clearances
+are seen using the passive leg. For better illustration, different scales for
+horizontal and vertical axes have been applied.
+00.511.522.533.54
+Time (s)-20-10010203040506070Angle (deg.) Thigh
+ Knee
+rest kicking the ball
+Fig. 7. Thigh and knee angles during kicking a soccer ball with the powered
+prosthesis. After the shot, the leg retracts and then is put on the ground (rest).
+prosthesis. Fig. 7 shows the thigh and knee angles as the
+subject kicks the ball. Notice that the ball is kicked before
+maximum hip ﬂexion (and hence maximum knee extension),
+but due to inertias, the leg continues moving forward. After
+reaching maximum ﬂexion, the thigh retracts and the knee
+ﬂexes for ground clearance. Finally, the thigh slightly extends
+forward, causing the knee to extend and the leg to rest on the
+ground. This shows the beneﬁt of designing knee and ankle
+controllers based on following the motion of the thigh, which
+allows the subject to manage all of these maneuvers without
+difﬁculty.
+B. Rhythmic Tasks
+The knee and ankle angle trajectories for the trials with the
+passive leg on the treadmill are shown in Fig. 8. In particular,
+the absence of ankle plantarﬂexion (pushoff) in these trials is
+noticeable. In contrast, the ankle pushoff is quite conspicuous
+in the powered leg results of Figs. 9(a) to 9(c). Note that since
+q0
+handqmin
+h were not changed in these trials, the minimum
+thigh angle is reached later than the reference trajectory during
+slow walking (Fig. 9(a)). In other words, the ratio of stance
+to swing duration increases in order to provide extra time toTABLE II
+PEARSON CORRELATION COEFFICIENTS BETWEEN THE JOINT
+TRAJECTORIES OF EACH PROSTHETIC LEG (PASSIVE OR POWERED )AND
+THE SPEED -MATCHED NORMATIVE ABLE -BODIED DATA FOR DIFFERENT
+WALKING SPEEDS [8].
+Pas knee Pwr knee Pas ankle Pwr ankle
+Slow 0.93 0.80 0.15 0.71
+Normal 0.96 0.96 0.16 0.94
+Fast 0.75 0.95 -0.20 0.97
+achieve the minimum thigh angle while the foot is constrained
+to follow the treadmill speed. As the treadmill speed increases,
+the minimum thigh angle shifts to the left (Figs. 9(b) and 9(c))
+and the stance to swing duration ratio decreases. Also, the
+amplitude of the minimum thigh angle is consistently larger
+than the reference (about 17for all three speeds as opposed
+to11for the reference trajectory). This means that the ankle
+pushoff was not fast enough to quickly reverse the direction
+of motion of the thigh and prepare it for the swing phase
+[42]. Similar trends are visible in the results of experiments
+with an able-bodied subject with the same control parameters
+(Figs. 10(a) to 10(c)). The Pearson correlation coefﬁcients
+for the knee joint (Table II) conﬁrm these observations. The
+overlong stance to swing duration ratio in slow speed with
+the powered leg shows its effect in the signiﬁcant lag in
+both knee and ankle trajectories compared to the normative
+gait (Fig. 9(a)). This lag increases the difference between
+the normative and measured knee trajectories, which in turn
+decreases the correlation compared to that of the passive leg
+(0.80 versus 0.93). However, with the increase of speed, the
+correlation of the powered leg improves, and in fast speed it
+signiﬁcantly outperforms the passive leg (0.95 versus 0.75).
+These observations will be discussed in detail in the next
+section.
+Next, we focus our analysis on common foot clearance
+compensation strategies employed by transfemoral amputees
+(i.e., vaulting and hip circumduction) for walking tasks. The
+goal is to determine whether our controller improves these
+compensations compared to the subject’s passive leg. Fig.
+11(a) shows the mean global foot angles of the sound leg
+during the fast treadmill walking speed using passive and
+powered legs. Additionally, the global foot angle of the able-
+bodied reference data is shown for comparison [8]. It can be
+seen that the amputee subject employed a rising global foot
+angle during the single-support phase (for both passive and
+powered legs) when compared to the much more constant
+angle of able-bodied reference data during the same phase.
+Importantly, the vaulting angle (the angle at which the velocity
+crosses zero, indicated by a red circle) was lower when using
+the powered leg when compared to using the passive leg. See
+Table III for mean and SD values. Note that the markers on
+the sound leg were not moved during the entire experiment
+(with passive and powered legs), and thus there was not any
+possibility of marker placement error.
+Next, we present the results of hip circumduction. Fig. 11(b)
+
+--- Page 10 ---
+10
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)0204060Knee angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)-20-10010Ankle angle (deg.)Measured Ref. Able-bodied
+(a)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)0204060Knee angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)-20-10010Ankle angle (deg.)
+(b)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)0204060Knee angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)-20-10010Ankle angle (deg.)
+(c)
+Fig. 8. Mean std of the joint angles of the passive leg as a function of
+normalized time for the treadmill tests with the amputee subject; (a) a 60-
+second trial with slow speed (0.7 m/s); (b) a 60-second trial with normal speed
+(1.0 m/s); and (c) a 45-second trial with fast speed (1.3 m/s). The able-bodied
+reference data for the three speeds are from [8].
+TABLE III
+MEAN (SD) VALUES OF VAULTING (DEG.)FOR POWERED AND PASSIVE
+LEGS AT SLOW ,NORMAL AND FAST WALKING SPEEDS USING THE GLOBAL
+FOOT ANGLE METHOD .
+Passive Powered
+Slow 16.1 (1.3) 13.6 (1.6)
+Normal 21.0 (1.8) 13.6 (1.4)
+Fast 28.6 (1.7) 20.3 (2.0)
+shows mean ankle marker trajectories during fast treadmill
+walking. A clear reduction in the medio-lateral range of motion
+of the prosthetic ankle marker trajectories can be seen when
+using the powered leg compared to passive. Furthermore, cir-
+cumduction symmetry ratios were improved with the powered
+leg for all speeds, showing that the amount of circumduction
+with the powered leg was closer to that of the sound leg (taken
+as a reference). See Table IV for mean, SD, and symmetry
+index values.
+0 0.2 0.4 0.6 0.8 100.20.40.60.81Phase variable
+0 0.2 0.4 0.6 0.8 1-20-100102030Thigh angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized Time (t/T)0204060Knee angle (deg.)
+0 0.2 0.4 0.6 0.8 1-20-10010Ankle angle (deg.)Measured Commanded Ref. Able-bodied
+Normalized Time (t/T)Normalized Time (t/T) Normalized Time (t/T)(a)
+0 0.2 0.4 0.6 0.8 100.20.40.60.81Phase variable
+0 0.2 0.4 0.6 0.8 1-20-100102030Thigh angle (deg.) 
+0 0.2 0.4 0.6 0.8 10204060Knee angle (deg.) 
+0 0.2 0.4 0.6 0.8 1-20-10010Ankle angle (deg.) Normalized Time (t/T) Normalized Time (t/T)
+Normalized Time (t/T) Normalized Time (t/T)
+(b)
+0 0.2 0.4 0.6 0.8 100.20.40.60.81Phase Variable
+0 0.2 0.4 0.6 0.8 1-20-100102030Thigh Angle (deg.)
+0 0.2 0.4 0.6 0.8 10204060Knee Angle (deg.)
+0 0.2 0.4 0.6 0.8 1-20-10010Ankle Angle (deg.)Normalized Time (t/T) Normalized Time (t/T)
+Normalized Time (t/T) Normalized Time (t/T)
+(c)
+Fig. 9. Mean std for phase variable, and commanded and measured joint
+angles vs. normalized time for the treadmill tests with the amputee subject;
+(a) a 60-second trial with slow speed (0.7 m/s); (b) a 60-second trial with
+normal speed (1.0 m/s); and (c) a 30-second trial with maximum speed (1.6
+m/s). Reference trajectories are normal-speed in all cases.
+
+--- Page 11 ---
+11
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)00.20.40.60.81Phase Variable
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-100102030Thigh Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)0204060Knee Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-10010Ankle Angle (deg.)Measured Commanded Ref. Able-bodied
+(a)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)00.20.40.60.81Phase Variable
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-100102030Thigh Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)0204060Knee Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-10010Ankle Angle (deg.)
+(b)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)00.20.40.60.81Phase Variable
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-100102030Thigh Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)0204060Knee Angle (deg.)
+0 0.2 0.4 0.6 0.8 1
+Normalized time (t/T)-20-10010Ankle Angle (deg.)
+(c)
+Fig. 10. Mean std for phase variable, and commanded and measured joint
+angles vs. normalized time for treadmill test with the able-bodied subject; (a)
+a 30-second trial with slow speed (0.7 m/s); (b) a 30-second trial with normal
+speed (0.9 m/s); and (c) a 30-second trial with fast speed (1.1 m/s). Reference
+trajectories are normal-speed in all cases.
+0 20 40 60 80 100
+Gait Cycle (%)-40-20020406080Foot Progression Angle (deg)Passive
+Powered
+Able bodied(a)
+-150 -100 -50 0 50 100
+Mediolateral Axis (mm)-800-600-400-2000200Anteroposterior Axis (mm)Passive
+PoweredSound Side Prosthetic Side
+(b)
+Fig. 11. (a) Mean foot angles of the amputee subject’s sound leg while
+wearing the powered (blue line) and passive (black dashed line) legs during
+fast treadmill walking. Also shown is the mean global foot angle of able-
+bodied reference data at fast cadence (green dotted line) [8]. Red circles
+show peak global foot angle during single support period, i.e., vaulting angle.
+(b) Mean ankle marker trajectories during fast treadmill walking representing
+differences in hip circumduction while using the powered and passive legs.
+Left: prosthetic leg side. Right: sound leg side.
+TABLE IV
+ANKLE LATERAL DEVIATION (HIP CIRCUMDUCTION ):POWERED VERSUS
+PASSIVE PROSTHESES MEAN (SD) AT DIFFERENT SPEEDS .
+Passive Powered SI Passive SI Powered
+Slow 46.4 (10.2) 45.5 (5.7) 0.2 0.1
+Normal 71.8 (19.4) 55.8 (13.5) 0.3 0.1
+Fast 105.8 (9.5) 70.3 (12.1) 0.8 0.5
+V. D ISCUSSION
+As the supplemental video presents, the proposed controller
+enabled the amputee subject to accomplish a number of non-
+rhythmic (stepping forward and backward, instantaneous start
+and stops, walking over obstacles, kicking a soccer ball)
+and rhythmic (walking on a treadmill with different speeds)
+tasks. Although the designed virtual constraints were based
+on a rhythmic task, i.e., normal-speed walking kinematics,
+the holonomic nature of the controller helped the subject
+perform non-rhythmic tasks as well. Unlike previous con-
+trollers that used thigh angle to parameterize the gait [6],
+[22], the proposed controller is not limited to only one type
+of motion (rhythmic or non-rhythmic). In what follows, we
+discuss about the performance of the proposed controller and
+the observed improvements compared to that of the amputee
+
+--- Page 12 ---
+12
+subject’s passive leg. Since the goal of this study has been to
+investigate the acute biomechanical effects of the powered leg,
+we excluded the variables that are signiﬁcantly dependent on
+adaptation time, such as step width [43].
+A. Biomechanical Analysis of Rhythmic and Non-Rhythmic
+Tasks
+One of the main objectives of this work is to demonstrate
+the ability of the powered prosthesis to facilitate both rhythmic
+and non-rhythmic tasks. Compensatory mechanisms during
+walking (primarily for aiding foot clearance) are problematic
+in general because of higher energy expenditure [26], [44],
+[45] and deterioration of the intact joints [27], [28], [46]. We
+hypothesized that the assisted (powered) ankle plantarﬂexion
+during push-off and knee ﬂexion during early swing would
+help reduce these compensations, namely, vaulting and hip
+circumduction.
+Our amputee participant exhibited moderate to severe vault-
+ing with his passive leg. Analysis with the vaulting angle
+metric shows that vaulting improved with the powered leg as
+compared to passive for all walking speeds tested. Based on
+this result, we expect that the use of our powered device with
+the proposed controller can mitigate the deleterious effects of
+vaulting such as metatarsal pain and the sinus tarsi syndrome
+caused by overloading of the forefoot [31]. Moreover, we
+can expect a reduction in energy expenditure through reduced
+plantarﬂexion and vertical displacement of the whole body
+[26]. Likewise, the use of the powered leg led to a clinically
+signiﬁcant reduction in hip circumduction compared to the
+excessive level observed when using the passive leg. Similar
+beneﬁts to those of vaulting reduction can be expected from
+the hip circumduction improvement as well.
+The joint trajectories of the powered prosthesis had notice-
+ably greater correlations with the reference able-bodied data
+compared to those of the passive leg. The passive leg only had
+a greater correlation at the knee for the slow speed, which was
+due to the powered leg’s use of a single parameterization for
+all speeds, as discussed in the previous section. As the speed
+increased, the greater propulsion force generated from the
+ankle pushoff of the powered leg resulted in more normative
+trajectories than the passive leg.
+The phase variables reported in Figs. 4(a) (overground
+forward walking), 4(b) (overground backward walking), 9, and
+10 (treadmill walking) saturate at the end of the swing phase.
+This means that the touchdown thigh angles for both subjects
+have been greater than the default value q0
+h. As mentioned in
+Section II, this saturation can be eliminated through tuning
+ofq0
+h. However, even without tuning (as was the case in the
+conducted experiments), the saturation did not seem to have
+a noticeable effect on the performance. Since the touchdown
+thigh angle is controlled by the subjects, the chosen angle can
+be considered as the angle that is preferred by them to attain
+the best performance and comfort.
+The commanded swing knee extensions in both Figs. 9
+and 10 are faster than the normative trajectory. This happens
+because in the designed virtual constraint, s= 1 corresponds
+to the maximum thigh angle during swing, which occurs at87% of the gait cycle and not at 100% (see Fig. 1(a)). This
+leads to a shorter swing phase, which in turn results in a
+faster knee extension commanded trajectory compared to the
+reference trajectory (Figs. 9 and 10). In practice, due to the
+natural dynamics of the actuator and the leg, and the lag
+resulting from these factors, the measured knee extension was
+more similar to the reference knee angles (Figs. 9 and 10). In
+any case, this difference can be eliminated through changing
+the tunable parameter cin (2).
+The joint ankle power of the powered leg (as depicted in Fig.
+5) is in the same level as reported in [6] (about 100 W), and
+as expected, substantially increases pushoff power compared
+to the passive leg. In the case of passive prostheses, the lack
+of active pushoff and knee ﬂexion during the stance phase
+results in reduced propulsion. Therefore, to maintain a constant
+walking velocity, braking forces are usually reduced in the
+subsequent stance phase [47]. This asymmetry contributes to
+numerous clinical symptoms, for example, osteoarthritis and
+back pain [29]. Thus the improvement in symmetric use of
+the legs through increase of the ankle pushoff power can
+lead to reducing common overuse symptoms. The peak joint
+power is mainly limited by the motor’s speed and torque range
+as well as the high reﬂected inertia of the actuator system,
+which consumes a substantial part of the motor power for
+acceleration and deceleration. These factors also limit the knee
+ﬂexion speed at the swing phase onset, which resulted in
+toe-stubbing at some strides. We expect that with the use of
+higher-power motors with lower reﬂected inertias (i.e., lower
+transmission ratios) such as [48], the controller will achieve
+pushoff powers comparable to that of able-bodied subjects.
+The speed-invariance of the controller and its improved
+pushoff management also allowed for greater walking speeds
+compared to the maximum speed achieved in [6], which was
+1.2 m/s. With the present controller, the amputee subject
+was able to comfortably walk at 1.6 m/s, which can also
+be compared with the maximum walking speeds achieved in
+[9] (1.4 m/s) and [25] (1.6 m/s). It is worth noting that the
+subject who achieved 1.6 m/s in [25] was able to walk at
+the same speed using his passive leg, whereas our amputee
+subject was only able to reach a maximum speed of 1.3 m/s
+with his passive leg. In our preliminary experiments, the able-
+bodied subject wearing the prosthesis using a bypass was able
+to reach 1.8 m/s with the present controller. The limitation for
+high speeds primarily originates from the torque saturation of
+the motors and not from the controller. The inadequate ankle
+torque and power during stance and the limited speed of the
+knee actuator during swing require the users to compensate
+using torque from their hips, which quickly leads to fatigue
+at fast speeds. Overall, the results highlight the substantial
+improvement made in the controller performance as compared
+to [22] in which pushoff had to be eliminated to avoid abrupt
+jumps.
+Backward walking is an interesting feature of our con-
+trol approach that cannot be achieved with the traditional
+impedance-based FSM control methods of powered knee-
+ankle prostheses, which are limited to working only in the
+forward direction. As mentioned, for the backwards walking
+task, our participant utilized a step-to gait when using the
+
+--- Page 13 ---
+13
+passive prosthesis. The lead leg was the sound leg, which the
+prosthetic leg followed. This choice of gait is not surprising
+as the passive knee is incapable of load bearing when behind
+the body. In contrast, a more natural step-through gait was
+adopted with the powered prosthesis. Comparison of step
+symmetry for backwards walking shows that the powered
+leg enables more stable and more natural-looking maneuvers.
+The phase variable in backward walking is not monotonic at
+all points (see Fig. 4(b)). The break in monotonicity around
+s= 0:5corresponds to the minimum thigh angle, i.e., when
+the thigh angle is in its most backward position, preparing
+for touchdown. As can be seen from the video, the amputee
+subject hesitates when putting his leg on the ground in order
+to ensure that the knee is fully extended and the prosthesis is
+ready for weight bearing. This can be attributed to the short
+acclimation time with the powered leg and especially this
+particular task, which cannot be accomplished with passive
+legs.
+An analysis of the obstacle crossing task (Fig. 6) shows that
+our participant was easily able to clear the obstacle using his
+powered leg, with a clearance of 100 mm between the toe
+marker and top edge of the obstacle. While using the passive
+leg, this same task was extremely difﬁcult. The obstacle was
+toppled over on one attempt and was barely cleared on the
+second try. The controller of the powered leg is designed to
+provide maximum knee ﬂexion (clearance) at a hip angle of
+approximately 12of ﬂexion. Therefore, the optimal way to
+cross the obstacle for an amputee would be to maintain this
+hip angle and guide the hip joint (and thus the prosthesis)
+over the obstacle. Our amputee participant was quickly able to
+ﬁgure out this optimal strategy without any guidance from the
+experimenters. This is due to the holonomic mapping between
+the thigh angle and the foot position, which is easy for the
+subjects to learn. Once again, this emphasizes the intuitiveness
+of the controller for common volitional tasks.
+Kicking the soccer ball requires a rapid yet controlled
+extension of the knee. Our participant was able to kick the
+soccer ball using the passive as well as the powered legs.
+However, the mean ball velocity was more than three times
+higher when using the powered leg. This result is impressive
+as it demonstrates the intuitive control of the powered knee
+and ankle at high speeds. Based on the control strategy, a fast
+extension of the knee can be achieved by a rapid ﬂexion of the
+hip. Our amputee participant was able to gain an understanding
+of these mechanics and execute them after only a couple of
+practice trials. Again, no guidance or feedback was provided
+to the participant regarding the optimal mechanics.
+B. Limitations
+The use of a purely holonomic set of virtual constraints
+also has a limitation. There is a relatively ﬂat section in the
+middle part of the phase variable plots (normalized time of
+about 0.5-0.6) in both Figs. 9(a) to 9(c) and Figs. 10(a) to
+10(c), meaning that the rate of the phase variable is almost
+zero. To investigate the reason for this phenomenon, note that
+_s=ds
+dqh_qh; (9)which means for _qh= 0, we will have _s= 0. This condition
+occurs during pushoff (transition from S2 to S3). As a result
+of_s= 0 , the knee and ankle rates also tend to vanish,
+and pushoff becomes slower. This contributes to the thigh
+continuing backward, before the ankle plantarﬂexion increases
+enough to stop the backward motion and drives the thigh
+forward. This is intrinsic to the holonomic virtual constraints
+and can be regarded as a trade-off.
+The proposed controller has a few more tunable parameters
+than the previous version of the phase-based controller [6].
+However, as we showed, both the able-bodied and the amputee
+subjects were able to comfortably walk with the default
+parameters (taken from the normative human kinematics data).
+The addition of tunable parameters provides the ability of
+easily adopting various walking styles, such as different step
+lengths or pushoff initiation points, which was not possible in
+[6]. See [49] for an example of using these tunable parameters
+in an intuitive clinical control interface.
+The amputee subject tended to use the handrails more in
+the experiments with the powered leg. This can be mostly at-
+tributed to the acclimation factor. This hypothesis is supported
+by the fact that the subject did use the treadmill handrails
+in slow and fast speeds with his passive leg and only in his
+self-selected normal speed he did not rely on them. In any
+case, we do not expect that the use of handrails would affect
+our results, because 1) at slow and fast speeds the subject
+used the handrails both with passive and powered legs, and 2)
+the results at normal speed (at which the handrails were used
+with the powered leg, but not with the passive leg) show no
+signiﬁcant deviation in the trend from slow to fast speed.
+Another observation from the treadmill tests was the stance
+to swing duration ratio. Note that the leg’s joint kinematics
+and especially the maximum and minimum of thigh angle
+change as walking speed varies [50]. For the present study,
+we kept the kinematics (virtual constraints) unchanged, in
+order to demonstrate the ability of the controller to work
+in different situations with minimal tuning. As a result, for
+low speeds the stance to swing duration ratio was greater
+than expected. However, the decrease of stance to swing ratio
+and earlier pushoff in higher speeds is still in accordance
+with observations from able-bodied subjects [50]. Moreover,
+walking speed can be estimated using fairly straightforward
+methods (see [9], [51], for example), and the virtual constraints
+can be changed accordingly. A similar idea can incorporate
+the necessary kinematic differences between forward and
+backward trajectories. Note that adding these additional vir-
+tual constraints is merely a kinematic modiﬁcation, whereas
+the dynamic joint attributes (i.e., joint impedances) remain
+unchanged. This provided invariance across subjects for the
+phase-based controller that was proposed and tested in our
+previous work [6]. The comparison between able-bodied and
+amputee users of the powered prosthesis (Figs. 9 and 10) offer
+some evidence that our updated phase variable retains this
+beneﬁcial property. However, the purpose of this study was
+to demonstrate the potential for increased functional abilities
+rather than subject independence.
+
+--- Page 14 ---
+14
+VI. C ONCLUSION
+A new control framework for a range of rhythmic and
+non-rhythmic tasks was designed for powered knee-ankle
+prostheses and validated through experiments with an above-
+knee amputee subject. The controller uses a phase variable
+deﬁned as a piecewise holonomic function of the thigh angle
+with transitions based on a ﬁnite state machine. Unlike the
+previous phase-variable-based controllers (see [6]), the speciﬁc
+design of the presented phase variable enables the subjects
+to manage both rhythmic and non-rhythmic tasks, which
+makes it more practical for real-world applications. Through
+the experiments with an amputee subject, it was shown that
+the controller enabled operation in an extensive range of
+walking speeds with clinically signiﬁcant improvements in
+compensations associated with passive prostheses.
+Although the controller facilitates a wider range of tasks
+than walking, it does not encapsulate tasks such as stair ascent
+and descent. However, the structure provided is ﬂexible for
+embodying new sets of kinematics in task-recognition frame-
+works [52], [53]. Similarly, a paradigm that uniﬁes different
+speeds and inclines (as in [54]) can be incorporated to expand
+the range of tasks that the proposed controller can manage,
+especially for walking on non-ﬂat surfaces.
+Another interesting extension of the controller would in-
+clude a nonholonomic correction for the interruption in pushoff
+for a faster and smoother transition to the swing phase.
+Furthermore, we plan to test the controller on our newly
+designed leg [48], which provides greater torques as well
+as backdrivability. These investigations will provide a better
+understanding of the controller’s additional capabilities and its
+associated beneﬁts.
+ACKNOWLEDGMENT
+The authors would like to thank Christopher Nesler for his
+help in conducting the experiments.
+REFERENCES
+[1] M. Rabuffetti, M. Recalcati, and M. Ferrarin, “Trans-femoral amputee
+gait: Socket-pelvis constraints and compensation strategies,” Prosthetics
+and Orthotics International , vol. 29, no. 2, pp. 183–192, 2005.
+[2] S. Au, M. Berniker, and H. Herr, “Powered ankle-foot prosthesis to
+assist level-ground and stair-descent gaits,” Neural Networks , vol. 21,
+no. 4, pp. 654–666, 2008.
+[3] R. D. Bellman, M. A. Holgate, and T. G. Sugar, “Sparky 3: Design of
+an active robotic ankle prosthesis with two actuated degrees of freedom
+using regenerative kinetics,” in 2nd IEEE RAS & EMBS International
+Conference on Biomedical Robotics and Biomechatronics (BioRob) ,
+2008, pp. 511–516.
+[4] E. Ficanha, M. Rastgaar, and K. R. Kaufman, “Cable-driven two
+degrees-of-freedom ankle–foot prosthesis,” Journal of Medical Devices ,
+vol. 10, no. 3, p. 030902, 2016.
+[5] F. Sup, A. Bohara, and M. Goldfarb, “Design and control of a powered
+transfemoral prosthesis,” Int. J. Robot. Res. , vol. 27, no. 2, pp. 263–273,
+2008.
+[6] D. Quintero, D. Villarreal, D. Lambert, S. Kapp, and R. Gregg,
+“Continuous-Phase Control of a Powered Knee-Ankle Prosthesis: Am-
+putee Experiments Across Speeds and Inclines,” IEEE Trans. Robot. ,
+vol. 34, no. 3, pp. 686–701, 2018.
+[7] M. R. Tucker, J. Olivier, A. Pagel, H. Bleuler, M. Bouri, O. Lambercy,
+J. d. R. Mill ´an, R. Riener, H. Vallery, and R. Gassert, “Control strategies
+for active lower extremity prosthetics and orthotics: a review,” Journal
+of NeuroEngineering and Rehabilitation , vol. 12, no. 1, p. 1, Jan. 2015.[8] D. A. Winter, Biomechanics and Motor Control of Human Movement .
+John Wiley & Sons, 2005.
+[9] T. Lenzi, L. Hargrove, and J. Sensinger, “Speed-Adaptation Mechanism:
+Robotic Prostheses Can Actively Regulate Joint Torque,” IEEE Robot.
+Autom. Mag. , vol. 21, no. 4, pp. 94–107, Dec. 2014.
+[10] A. M. Simon, K. A. Ingraham, N. P. Fey, S. B. Finucane, R. D.
+Lipschutz, A. J. Young, and L. J. Hargrove, “Conﬁguring a powered
+knee and ankle prosthesis for transfemoral amputees within ﬁve speciﬁc
+ambulation modes,” PLoS One , vol. 9, no. 6, pp. 1–10, 06 2014.
+[11] B. E. Lawson and M. Goldfarb, “Impedance and Admittance-Based
+Coordination Control Strategies for Robotic Lower Limb Prostheses,”
+ASME Dynamic Systems and Control Magazine , vol. 136, no. 9, pp.
+S12–S17, 2014.
+[12] B. E. Lawson, B. Ruhe, A. Shultz, and M. Goldfarb, “A Powered
+Prosthetic Intervention for Bilateral Transfemoral Amputees,” IEEE
+Trans. Biomed. Eng. , vol. 62, no. 4, pp. 1042–1050, Apr. 2015.
+[13] Y . Wen, J. Si, A. Brandt, X. Gao, and H. Huang, “Online reinforcement
+learning control for the personalization of a robotic knee prosthesis,”
+IEEE Transactions on Cybernetics (preprint) , pp. 1–11, 2019.
+[14] J. Zhang, P. Fiers, K. A. Witte, R. W. Jackson, K. L. Poggensee,
+C. G. Atkeson, and S. H. Collins, “Human-in-the-loop optimization of
+exoskeleton assistance during walking,” Science , vol. 356, no. 6344, pp.
+1280–1284, 2017.
+[15] D. J. Villarreal, H. A. Poonawala, and R. D. Gregg, “A Robust Parame-
+terization of Human Gait Patterns Across Phase-Shifting Perturbations,”
+IEEE Trans. Neural Syst. Rehabil. Eng. , vol. 25, no. 3, pp. 265–278,
+Mar. 2017.
+[16] R. D. Gregg, T. Lenzi, L. J. Hargrove, and J. W. Sensinger, “Virtual
+constraint control of a powered prosthetic leg: From simulation to
+experiments with transfemoral amputees,” IEEE Trans. Robot. , vol. 30,
+no. 6, pp. 1455–1471, Dec. 2014.
+[17] D. J. Villarreal and R. D. Gregg, “A survey of phase variable candidates
+of human locomotion,” in Proc. IEEE Int. Conf. Eng. Med. Biol. Soc. ,
+Aug. 2014, pp. 4017–4021.
+[18] K. H. Ha, H. A. Varol, and M. Goldfarb, “V olitional control of a
+prosthetic knee using surface electromyography,” IEEE Trans. Biomed.
+Eng., vol. 58, no. 1, pp. 144–151, Jan. 2011.
+[19] L. J. Hargrove, A. M. Simon, R. D. Lipschutz, S. B. Finucane, and T. A.
+Kuiken, “Real-Time Myoelectric Control of Knee and Ankle Motions
+for Transfemoral Amputees,” JAMA , vol. 305, no. 15, p. 1542, Apr.
+2011.
+[20] C. D. Hoover, G. D. Fulk, and K. B. Fite, “Stair Ascent With a
+Powered Transfemoral Prosthesis Under Direct Myoelectric Control,”
+IEEE/ASME Trans. Mechatron. , vol. 18, no. 3, pp. 1191–1200, Jun.
+2013.
+[21] L. J. Hargrove, A. M. Simon, A. J. Young, R. D. Lipschutz, S. B.
+Finucane, D. G. Smith, and T. A. Kuiken, “Robotic Leg Control with
+EMG Decoding in an Amputee with Nerve Transfers,” New Eng. J.
+Med. , vol. 369, no. 13, pp. 1237–1242, Sep. 2013.
+[22] D. J. Villarreal, D. Quintero, and R. Gregg, “Piecewise and Uniﬁed
+Phase Variables in the Control of a Powered Prosthetic Leg,” in Proc.
+IEEE Int. Conf. Rehabil. Robot. , London, UK, 2017, pp. 1425–1430.
+[23] S. Rezazadeh, D. Quintero, N. Divekar, and R. D. Gregg, “A phase vari-
+able approach to volitional control of powered knee-ankle prostheses,”
+inIEEE/RSJ International Conference on Intelligent Robots and Systems
+(IROS) , Madrid, Spain, 2018.
+[24] A. Armannsdottir, R. Tranberg, G. Halldorsdottir, and K. Briem, “Frontal
+plane pelvis and hip kinematics of transfemoral amputee gait. effect
+of a prosthetic foot with active ankle dorsiﬂexion and individualized
+training–a case study,” Disability and Rehabilitation: Assistive Technol-
+ogy, vol. 13, no. 4, pp. 388–393, 2018.
+[25] C. Jayaraman, S. Hoppe-Ludwig, S. Deems-Dluhy, M. McGuire,
+C. Mummidisetty, R. Siegal, A. Naef, B. E. Lawson, M. Goldfarb, K. E.
+Gordon, and A. Jayaraman, “Impact of Powered Knee-Ankle Prosthesis
+on Low Back Muscle Mechanics in Transfemoral Amputees: A Case
+Series,” Frontiers in Neuroscience , vol. 12, p. 134, Mar. 2018.
+[26] R. L. Waters and S. J. Mulroy, “The energy expenditure of normal and
+pathologic gait,” Gait & posture , vol. 9, no. 3, pp. 207–231, 1999.
+[27] R. Gailey, K. Allen, J. Castles, J. Kucharik, and M. Roeder, “Review
+of secondary physical conditions associated with lower-limb amputation
+and long-term prosthesis use,” Journal of Rehabilitation Research &
+Development , vol. 45, no. 1, 2008.
+[28] J. Kulkarni, J. Adams, E. Thomas, and A. Silman, “Association between
+amputation, arthritis and osteopenia in british male war veterans with
+major lower limb amputations,” Clinical Rehabilitation , vol. 12, no. 3,
+pp. 274–279, 1998.
+
+--- Page 15 ---
+15
+[29] H. Devan, P. Hendrick, D. C. Ribeiro, L. A. Hale, and A. Carman,
+“Asymmetrical movements of the lumbopelvic region: Is this a potential
+mechanism for low back pain in people with lower limb amputation?”
+Medical Hypotheses , vol. 82, no. 1, pp. 77–85, 2014.
+[30] J. Perry, “Amputee gait,” in Atlas of Limb Prosthetics: Surgical,
+Prosthetic, and Rehabilitation Principles , D. Smith, J. Michael, and
+J. Bowker, Eds. American Academy of Orthopedic Surgeons, 2004,
+ch. 30, pp. 367–384.
+[31] X. Drevelle, C. Villa, X. Bonnet, I. Loiret, P. Fode, and H. Pillet,
+“Vaulting quantiﬁcation during level walking of transfemoral amputees,”
+Clinical Biomechanics , vol. 29, no. 6, pp. 679–683, 2014.
+[32] E. R. Westervelt, G. Buche, and J. W. Grizzle, “Experimental Validation
+of a Framework for the Design of Controllers that Induce Stable Walking
+in Planar Bipeds,” Int. J. Robot. Res. , vol. 23, no. 6, pp. 559–582, Jun.
+2004.
+[33] E. R. Westervelt, J. W. Grizzle, C. Chevallereau, J. H. Choi, and
+B. Morris, Feedback Control of Dynamic Bipedal Robot Locomotion .
+CRC Press, 2007.
+[34] S. Rezazadeh and J. W. Hurst, “Toward step-by-step synthesis of stable
+gaits for underactuated compliant legged robots,” in Proc. IEEE Int.
+Conf. Robot. Autom. , Seattle, USA, May 2015, pp. 4532–4538.
+[35] B. Grifﬁn and J. Grizzle, “Nonholonomic virtual constraints and gait
+optimization for robust walking control,” Int. J. Robot. Res. , vol. 36,
+no. 8, pp. 895–922, Jul. 2017.
+[36] D. Quintero, A. E. Martin, and R. D. Gregg, “Toward uniﬁed control
+of a powered prosthetic leg: A simulation study,” IEEE Transactions on
+Control Systems Technology , vol. 26, no. 1, pp. 305–312, 2018.
+[37] D. Quintero, D. J. Villarreal, and R. D. Gregg, “Preliminary experiments
+with a uniﬁed controller for a powered knee-ankle prosthetic leg across
+walking speeds,” in IEEE/RSJ International Conference on Intelligent
+Robots and Systems(IROS) , 2016.
+[38] L. N. Awad, J. Bae, P. Kudzia, A. Long, K. Hendron, K. G. Holt,
+K. O’donnell, T. D. Ellis, and C. J. Walsh, “Reducing Circumduction and
+Hip Hiking During Hemiparetic Walking Through Targeted Assistance
+of the Paretic Limb Using a Soft Robotic Exosuit,” American journal
+of physical medicine & rehabilitation , vol. 96, no. 10, pp. S157–S164,
+2017.
+[39] D. C. Kerrigan, E. P. Frates, S. Rogan, and P. O. Riley, “Hip hiking and
+circumduction: quantitative deﬁnitions,” American journal of physical
+medicine & rehabilitation , vol. 79, no. 3, pp. 247–252, 2000.
+[40] K. K. Patterson, W. H. Gage, D. Brooks, S. E. Black, and W. E. McIlroy,
+“Evaluation of gait symmetry after stroke: a comparison of current
+methods and recommendations for standardization,” Gait & posture ,
+vol. 31, no. 2, pp. 241–246, 2010.
+[41] T. A. Thrasher, H. M. Flett, and M. R. Popovic, “Gait training regimen
+for incomplete spinal cord injury using functional electrical stimulation,”
+Spinal Cord , vol. 44, no. 6, pp. 357–361, 2006.
+[42] S. W. Lipfert, M. G ¨unther, D. Renjewski, and A. Seyfarth, “Impulsive
+ankle push-off powers leg swing in human walking,” J. Exp. Biol. , vol.
+217, no. 8, pp. 1218–28, Apr. 2014.
+[43] T. Schmalz, M. Bellmann, E. Proebsting, and S. Blumentritt, “Effects
+of adaptation to a functionally new prosthetic lower-limb component:
+Results of biomechanical tests immediately after ﬁtting and after 3
+months of use,” Journal of Prosthetics and Orthotics , vol. 26, no. 3,
+pp. 134–143, 2014.
+[44] T. Schmalz, S. Blumentritt, and R. Jarasch, “Energy expenditure and
+biomechanical characteristics of lower limb amputee gait:: The inﬂuence
+of prosthetic alignment and different prosthetic components,” Gait &
+posture , vol. 16, no. 3, pp. 255–263, 2002.
+[45] R. L. Waters and S. J. Mulroy, “Energy expenditure of walking in
+individuals with lower limb amputations,” in Atlas of Limb Prosthetics:
+Surgical, Prosthetic, and Rehabilitation Principles , D. Smith, J. Michael,
+and J. Bowker, Eds. American Academy of Orthopedic Surgeons, 2004,
+ch. 32, pp. 395–407.
+[46] P. A. Struyf, C. M. van Heugten, M. W. Hitters, and R. J. Smeets, “The
+prevalence of osteoarthritis of the intact hip and knee among traumatic
+leg amputees,” Archives of physical medicine and rehabilitation , vol. 90,
+no. 3, pp. 440–446, 2009.
+[47] P. G. Adamczyk and A. D. Kuo, “Mechanisms of gait asymmetry due
+to push-off deﬁciency in unilateral amputees,” IEEE Transactions on
+Neural Systems and Rehabilitation Engineering , vol. 23, no. 5, pp. 776–
+785, 2015.
+[48] T. Elery, S. Rezazadeh, C. Nesler, J. Doan, H. Zhu, and R. D. Gregg,
+“Design and Benchtop Validation of a Powered Knee-Ankle Prosthesis
+with High-Torque, Low-Impedance Actuators,” in Proc. IEEE Int. Conf.
+Robot. Autom. , Brisbane, Australia, 2018.[49] D. Quintero, E. Reznick, D. J. Lambert, S. Rezazadeh, L. Gray,
+and R. D. Gregg, “Intuitive clinician control interface for a powered
+knee-ankle prosthesis: A case study,” IEEE Journal of Translational
+Engineering in Health and Medicine , vol. 6, pp. 1–9, 2018.
+[50] C. Kirtley, M. W. Whittle, and R. Jefferson, “Inﬂuence of walking speed
+on gait parameters,” Journal of Biomedical Engineering , vol. 7, no. 4,
+pp. 282–288, 1985.
+[51] D. Quintero, D. J. Lambert, D. J. Villarreal, and R. D. Gregg, “Real-
+time continuous gait phase and speed estimation from a single sensor,”
+inIEEE Conference on Control Technology and Applications (CCTA) ,
+2017, pp. 847–852.
+[52] H. Varol, F. Sup, and M. Goldfarb, “Multiclass Real-Time Intent
+Recognition of a Powered Lower Limb Prosthesis,” IEEE Trans. Biomed.
+Eng., vol. 57, no. 3, pp. 542–551, Mar. 2010.
+[53] H. L. Bartlett and M. Goldfarb, “A Phase Variable Approach for IMU-
+Based Locomotion Activity Recognition,” IEEE Trans. Biomed. Eng. ,
+vol. 65, no. 6, pp. 1330–1338, 2018.
+[54] K. R. Embry, D. J. Villarreal, R. L. Macaluso, and R. D. Gregg,
+“Modeling the kinematics of human locomotion over continuously
+varying speeds and inclines,” IEEE Transactions on Neural Systems and
+Rehabilitation Engineering , vol. 26, no. 12, pp. 2342–2350, 2018.
