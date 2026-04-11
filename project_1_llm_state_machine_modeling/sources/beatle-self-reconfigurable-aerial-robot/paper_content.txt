@@ -1,0 +1,1001 @@
+--- Page 1 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 1
+BEATLE—Self-Reconfigurable Aerial Robot:
+Design, Control and Experimental Validation
+Junichiro Sugihara, Moju Zhao, Takuzumi Nishio, Kei Okada, and Masayuki Inaba
+Abstract —Modular self-reconfigurable robots (MSRRs) offer
+enhanced task flexibility by constructing various structures
+suitable for each task. However, conventional terrestrial MSRRs
+equipped with wheels face critical challenges, including limita-
+tions in the size of constructible structures and system robustness
+due to elevated wrench loads applied to each module. In this
+work, we introduce a Aerial MSRR (A-MSRR) system named
+BEATLE, capable of merging and separating in-flight. BEATLE
+can merge without applying wrench loads to adjacent modules,
+thereby expanding the scalability and robustness of conventional
+terrestrial MSRRs. In this article, we propose a system con-
+figuration for BEATLE, including mechanical design, a control
+framework for multi-connected flight, and a motion planner for
+reconfiguration motion. The design of a docking mechanism
+and housing structure aims to balance the durability of the
+constructed structure with ease of separation. Furthermore,
+the proposed flight control framework achieves stable multi-
+connected flight based on contact wrench control. Moreover,
+the proposed motion planner based on a finite state machine
+(FSM) achieves precise and robust reconfiguration motion. We
+also introduce the actual implementation of the prototype and
+validate the robustness and scalability of the proposed system
+design through experiments and simulation studies.
+Index Terms —Aerial robots, reconfigurable robots, distributed
+systems, contact wrench control.
+I. I NTRODUCTION
+IN RECENT years, significant progress has been made in
+the field of modular self-configurable robots (MSRRs) [1]–
+[5], which possess the ability to autonomously merge to new
+create structures. The principal objective of MSRRs is to
+address various tasks utilizing a single type of robot, achieved
+through the construction of structures tailored to each task.
+For example, mobility can be enhanced by constructing wheel
+or leg structures [6]–[8], while manipulation capabilities can
+be augmented through the creation of arm structures [9]–
+[11]. Furthermore, the integration of multiple bodies can yield
+the formation of bridge-like structures [11], [12], thereby
+facilitating the movement of other robots.
+However, these terrestrial MSRRs encounter the drawback
+of being constrained in the scale of structures they can
+construct. This limitation is particularly evident in cantilever
+configurations such as arm and bridge structures. In the
+scenario of a cantilever arrangement, a module imposes a
+Junichiro Sugihara (corresponding author), Takuzumi Nishio, Kei Okada, and
+Masayuki Inaba are with the Department of Mechano-
+Infomatics, The University of Tokyo, Bunkyo-ku, Tokyo 113-8656, Japan (e-
+mail:j-sugihara@jsk.imi.i.u-tokyo.ac.jp nishio@jsk.imi.i.u-tokyo.ac.jp k-
+okada@jsk.imi.i.u-tokyo.ac.jp inaba@jsk.imi.i.u-tokyo.ac.jp).
+Moju Zhao is with the Department of Mechanical-
+Engineering, The University of Tokyo, Bunkyo-ku, Tokyo 113-
+8656, Japan (e-mail:chou@jsk.imi.i.u-tokyo.ac.jp).
+Fig. 1: The proposed robot platform BEATLE: BEnding-
+moment-free self-reconfigurable Aerial robo Tmodu LE. This
+chronophotography visualizes reconfiguration motion of BEA-
+TLE.
+contact wrench on adjacent modules due to its own weight.
+Therefore, considering the module on the edge as the 1st
+module, the i−thmodule is subject to a wrench load induced
+by the weight of (i−1)bodies. Consequently, as the scale
+of the intended structure increases, the impact of contact
+wrench becomes more pronounced. These contact wrenches
+can lead to overloading of actuators and mechanical compo-
+nents, thereby reducing system responsiveness and structural
+robustness. Hence, to address this problem, it is necessary for
+each module to compensate for its own weight and control its
+orientation independently.
+In this study, we introduce an aerial Modular Self-
+Reconfigurable Robot (A-MSRR) platform named BEATLE-
+Fig. 1, designed for autonomous merging and separation in
+mid-air. Similar to terrestrial MSRRs, BEATLE enhances
+available force and torque by rigidly interconnecting with one
+another, thereby augmenting task capabilities. Furthermore,
+the interlinking of aerial modules enables the autonomous
+assembly of structures such as bridges and ladders at ele-
+vated altitudes. Although terrestrial MSRRs are equipped with
+rotational joints [4] at the docking points, aerial robots can
+execute diverse tasks without joints [13], [14] since their
+bodies possess inherent three-dimensional mobility. Addition-
+ally, BEATLE possesses the capability to exert force in an
+arbitrary direction through its thrust vectoring rotor, enabling
+it to compensate its own weight in any orientation without
+imposing torque loads on neighboring bodies, during a multi-
+connected state. Hence, BEATLE facilitates amalgamation
+with an arbitrary number of moudules, substantially enhancingarXiv:2404.09153v4  [cs.RO]  18 Sep 2024
+
+--- Page 2 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 2
+the scalability of MSRR.
+A. Related works
+1) Docking mechanism: Docking mechanism is one of the
+most crucial hardware components in MSRRs, and various
+coupling methods have been proposed in prior research. For
+example, the A-MSRR presented in [15] features a magnetic
+docking mechanism. Magnetic coupling proves suitable for A-
+MSRRs as magnetic force can compensate for misalignment
+between two docking parts, simplyfing aerial docking. How-
+ever, [15] lacks the capability for undocking motion due to
+the absence of a mechanism to release magnetic connections.
+Although the A-MSRR in [16], equipped with a much smaller
+magnetic connector, can perform aerial undocking motion by
+applying a momentary bending moment to the docking part
+with rotor thrusts, this smaller connector conversely compli-
+cates the docking motion. In contrast, TRADY , an A-MSRR
+proposed in our previous work [17], achieves both docking and
+undocking motion by employing a pole-switching mechanism
+with a servo motor.
+However, a remaining issue with magnetic connections is
+the lack of resistance against bending moments. Particularly,
+to enable high-torque activities and the assembly of large
+structures, a more robust mechanical coupling is necessary.
+Regarding mechanical connections, certain mechanisms for
+terrestrial MSRRs adopt this approach. For instance, in [18],
+a docking mechanism comprised of locking “jaws” capable
+of hooking onto the corresponding “jaws” on the other side
+is proposed. Additionally, a mechanism consisting of movable
+pins that can be inserted into the holes of other modules is also
+suggested in [19]. However, both these “jaws” and pins are
+relatively small compared to the overall body size, which may
+limit their practical durability. Therefore, this article introduces
+a hybrid docking mechanism composed of both magnetic and
+mechanical connectors. The mechanical connection is achieved
+by inserting sticks which are supported by durable structure.
+Additionally, to improve the rigidity of the assembled structure
+and ensure safer reconfiguration motion, a housing design for
+aerial modules is proposed.
+2) Control method: The key points regarding the stability
+and scalability of the A-MSRR system include robustness
+during multi-connected flight and stability of aerial recon-
+figuration motion. These attributes are characterized by the
+controllability of each module. These attributes depend on
+the control degree of freedom (CDoF) of the assembled
+structure and each module. Concerning the controllability of
+the assembled structure, A-MSRRs proposed in [15], [16],
+[20], [21],are underactuated systems during both single flight
+and multi-connected flight. According to the general control
+theory for underactuated aerial robot [22], translational control
+is achieved through the rotational motion of the airframe.
+However, as the scale of the assembled structure increases, the
+responsiveness of rotational motion decreases. Hence, when
+more than a certain number of modules are connected, flight
+control becomes critically unstable. On the other hand, in the
+case of TRADY [17], while each module is underactuated,
+the merged structure is over-actuated. Consequently, TRADY
+Fig. 2: The proposed control framework for BEATLE: (A)
+Fundamental Control Flow and (B) Contact Wrench Com-
+pensation. Blocks highlighted in bold font denote processes
+essential for multi-connected flight. Green arrows signify ref-
+erence inputs from upstream sources, while red arrows indicate
+information exchange with other modules. Each blue block
+represents an individual module.
+can address the instability caused by the low responsiveness
+of rotational motion.
+On the other hand, concerning the controllability of each
+module, all previously proposed A-MSRRs are underactuated.
+These underactuated A-MSRRs cannot explicitly control the
+inter-module contact forces that arise during multi-connected
+flight because underactuated modules do not have extra CDoF.
+Therefore, the flight control of A-MSRR in the merged state
+is achieved by employing a dynamics model that considers
+the entire connected structure as a single aircraft. However, a
+significant issue with this approach is that the dynamics model
+required for control needs updating during reconfiguration.
+This updating results in discontinuous changes in the target
+thrust during reconfiguration. These discrete changes lead to
+instability in the aircraft, such as sudden ascents or descents
+[15], [17].
+Another challenge arises from the accumulation of un-
+expected contact wrench between adjacent modules. This
+is because the control process is decentralized, with each
+module independently carrying out its control procedures.
+Consequently, variations in target control outputs among mod-
+ules arise from deviations in self-state estimation and subtle
+disparities in aircraft characteristics. The interference between
+modules resulting from this discrepancy in target outputs leads
+to the accumulation of contact wrenches. As the number
+of modules increases, these contact wrenches become more
+pronounced, destabilizing flight control and reconfiguration
+operations, thus significantly impacting the scalability of the
+system.
+Therefore, BEATLE proposed in this study features a thrust
+configuration, enabling each module to perform overactuated
+control independently. This aircraft configuration, along with
+the proposed control framework, enables explicit control of
+inter-module contact wrenches during multi-connected flight.
+Thus, the problems of dynamics model switching and contact
+
+--- Page 3 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 3
+Fig. 3: The overview of the proposed design for BEATLE. Top: visualization of BEATLE module and its fundamental
+components. Bottom: visualization of docking mechanisms and housing plates where (a) represents the male side and (b)
+represents the female side.
+wrench accumulation that were problems with previous A-
+MSRRs can be solved, greatly improving system stability and
+scalability. This control framework is summarized in Fig. 2.
+B. Contributions of this work
+In summary, this paper presents an extended A-MSRR
+system, offering the following novel contributions:
+1) We propose a mechanical design for A-MSRR aimed at
+constructing structures with heightened rigidity.
+2) We introduce a flight control framework facilitating
+scalable multi-connected flight and ensuring stable self-
+reconfiguration based on contact wrench control.
+3) We validate the efficacy of the proposed A-MSRR sys-
+tem through a comprehensive evaluation encompassing
+real-machine experiments and simulation studies.
+To the best of our knowledge, this is the first work that
+introduces an A-MSRR capable of conducting multi-connected
+flight utilizing a contact wrench controller.
+C. Notation
+From this section, nonbold lowercase symbols (e.g., m)
+represent scalars, and bold symbols (e.g., u) represent vectors.
+Superscripts (e.g,{CoG}p) represent the frame in which the
+vector or matrics is expressed, and subscripts represent the
+target frame or an axis, e.g.,{W}r{CoG}represents a vector
+point from {W}to{CoG}w.r.t.{W}, whereas uxdenotes
+thexcomponent of the vector u. Furthermore, superscripts
+(e.g.,tf,ΛT) represent transposed vectors.D. Organization
+Section. II introduces the module configuration method,
+covering thrust configuration and mechanical design. Subse-
+quently, Section. III introduces the design of basic flight con-
+trollers for the modules. Following this, Section. IV describes
+the motion planning method for reconfiguration operations,
+while Section. V proposes a method to convert target state and
+a contact wrench control framework for multi-connected flight.
+Then, Section. VI evaluates the proposed methods through
+simulations, and Section. VII elaborates on the mechanical
+implementation of the actual system and the experimental
+results obtained using it before concluding in Section. VIII.
+II. D ESIGN
+A. Rotor Configuration
+As highlighted in Section. I, achieving overactuation for
+BEATLE necessitates the use of vectoring rotors. While the
+minimum requirement is three rotors, this study opts for four
+rotors to enhance redundancy and maintain symmetry across
+the entire module structure. As depicted in Fig. 3, each rotor
+can rotate its thrust direction about an axis parallel to its
+rotor arm within the range of [−π
+2,π
+2]. To simplify the rotor
+structure, we employ the direct drive method for rotor tilting,
+foregoing the use of gears or pulleys in the transmission
+mechanism. In summary, with four rotors and four servos, the
+BEATLE module has a total control input dimension of eight.
+B. Docking Mechanism
+The entire coupling system design is illustrated in Fig. 3,
+with the male side depicted in a) and the female side in b).
+
+--- Page 4 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 4
+Fig. 4: The diagram illustrating the operation of the coupling
+mechanism. Some parts are depicted in cross-sectional view
+for ease of viewing. l1-l3are key parameters of design.
+Furthermore, the operation of the docking system is illustrated
+in Fig. 4. This system features two key aspects.
+Initially, the female side mechanism is equipped with a
+switchable permanent magnet module as proposed in [17],
+which is driven by a servo motor. The tensile strength of
+this magnetic connection is 220 N . Additionally, the female
+side mechanism features a cone-shaped structure known as
+a drogue, which compensates for alignment errors between
+modules. l1in Fig. 4 corresponds to the tolerable range of
+error that can be compensated by the drogue. In this study,
+l1is set to 70 mm based on the position control accuracy
+obtained through experiments.
+Secondly, the male side incorporates a stick insertion system
+utilizing a slider-crank mechanism, which is also driven by a
+servo motor. These sticks are composed of CFRP pipe and
+PLA core, and they are supported by sockets firmly fixed to
+BEATLE’s skeleton. This structure efficiently converts most of
+the applied bending load on the sticks into tensile force. Thus,
+the torque resistance of the proposed mechanism primarily
+depends on the tensile strength of the sticks. In the case of
+CFRP, its tensile strength is 2200 MPa and is durable enough
+for the expected load. l2andl3are parameters representing
+the length of the inserted stick and the height of the coupling
+mechanism, respectively, with l2dependent on l3. In this study,
+l3is set to 170 mm as the minimum value to ensure clearance
+for the propeller, and consequently, l2was set to 110 mm .
+C. Housing
+BEATLE’s housing shown in Fig. 3 serves three main
+purposes: firstly, to enhance the rigidity of the docking con-
+nection by expanding the contact area; secondly, to prevent
+propeller collision during reconfiguration motion; and lastly,
+to increase the utility of structures constructed with BEATLE,
+such as bridges. However, as the housing surrounds the rotor, it
+potentially obstructs air intake and affects thrust efficiency. To
+address this issue, appropriate lightening holes are made in the
+housing to ensure airflow. In this study, approximately 65 %
+Fig. 5: Coordinate model for BEATLE module.
+of the housing’s footprint is cut out. Table. I compares the
+thrust during hovering with and without the rotor covered by
+the housing. Since the housing weighs 0.4 kg, the thrust loss
+of each rotor caused by aerodynamic interference is calculated
+as0.7 N. This value is 6.2 %of the hovering thrust, which is
+not considered to be a significant problem.
+III. F UNDAMENTAL FLIGHT CONTROL
+In this section, we present the design of the fundamental
+flight controller for each module. The process introduced in
+this section corresponds to “Fundamental Control Flow” in
+Fig. 2.
+A. Single Module Dynamics Model
+The coordinates model for BEATLE is depicted in Fig. 5,
+with each quantity defined as shown in Table. II.
+Originally, the dynamics model including rotor thrust vec-
+toring are nonlinear system. However, [23] proposed a method
+to linearize the dynamics model by assuming that rotor thrust
+vectoring occurs momentarily and the intermediate rotational
+motion can be disregarded. In this study, we also adopt this
+approximation.
+First of all, as illustrated in Fig. 5, the rotor thrust of the
+i−throtor can be expressed as following:
+{Rotor i}Λi=λi,x0λi,zT, (1)
+where Λiis the thrust force vector of i−throtor, while λi,x
+andλi,zare rotor thrust elements aligned with the xandz
+axis of {Rotor i}, respectively.
+Here, the coordinates conversion of thrust vector from
+i−throtor arm coordinates {Rotor i}to center-of-gravity
+coordinates {CoG}can be written as follows:
+{CoG}Λi={CoG}R{Rotor i}{Rotor i}Λi (2)
+TABLE I
+EFFECT OF HOUSING ON THRUST .
+With housing Without housing
+Hovering Thrust 10.5 N 12.2 N
+
+--- Page 5 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 5
+TABLE II
+DEFINITION OF QUANTITIES FOR DYNAMICS MODEL .
+Symbol Definition
+m Mass of body
+I Moment of inertia of body
+r Position of CoG
+α= [θ ϕ ψ ]Euler angles (roll, pitch, yaw)
+pi Positiopn of i-th rotor
+σi∈[−1,1] Counter torque of each rotor
+c Yaw-thrust ratio
+f Resultant force
+τ Resultant torque
+ω Angular velociy
+where{CoG}R{Rotor i}is the transformation matrix from
+{Rotor i}to{CoG}.
+Based on (III-C), the wrench-force{CoG}fand torque
+{CoG}τ) can be written as
+{CoG}f=4X
+i=1{CoG}Λi, (3)
+{CoG}τ=4X
+i=1h
+{CoG}pi×i
+−c σi{CoG}
+{CoG}Λi.(4)
+From (3) and (4), the translational and rotational dynamics of
+a multirotor unit are given by the Newton-Euler equation as
+followings:
+m{W}¨r{CoG}={W}R{CoG}{CoG}f−mg, (5)
+{CoG}I{CoG}˙ω={CoG}τ+σ{CoG}f
+−{CoG}ω×{CoG}I{CoG}ω,(6)
+where {W}frame represent the world coordinate system and
+gis gravity acceleration vector.
+B. Pose PID Control
+Considering equations (3) and (4), a common PID controller
+is applied to obtain the desired wrench on the {CoG}as
+follows:
+fdes=m{W}R−1
+{CoG}
+Kf,per+Kf,iZ
+erdt+Kf,d˙er
++fff,
+(7)
+τdes={CoG}I
+Kτ,peα+Kτ,iZ
+eαdt+Kτ,d˙eα
++{CoG}ω×{CoG}I{CoG}ω+τff,(8)
+where eris a position error defined as er={W}rdes
+{CoG}−
+{W}r{CoG}, and K.,p,K.,i,K.,dare gains for controller.
+Additionally, fffandτffrepresent the feedforward terms
+generated in the contact wrench compensation flow, as de-
+picted in Fig. 2 B).
+Fig. 6: The motion planning framework for aerial reconfig-
+uration is depicted. In A), the comprehensive structure of
+the Finite State Machine (FSM) is delineated. Each block
+delineated with a standard line represents an individual state,
+whereas those with a bold line signify a Sub-FSM. These Sub-
+FSMs encompass states requisite for unitary reconfiguration
+motion. In B), the motion of robots throughout the processes
+within Sub-FSM iis visually represented.
+C. Control Allocation
+Using (3) and (4), allocation from the thrust force λto the
+resultant wrench{CoG}Wcan be given by following:
+{CoG}W={CoG}f
+{CoG}τ
+=Q{CoG}Λi, (9)
+where
+Q=E{CoG}pi×
+−c σi{CoG}
+, (10)
+Λ={CoG}ΛT
+1{CoG}ΛT
+2{CoG}ΛT
+3{CoG}ΛT
+4T.
+(11)
+Consequently, the desired thrust allocation can be obtained as
+follows:
+{CoG}Λdes=Q#{CoG}W, (12)
+where Q#is the pseudo-inverse matrix of Q. Therefore, using
+, desired i−ththrust vector can be obtained as follows:
+{Rotor i}Λdes={Rotor i}R{CoG}{CoG}Λdes, (13)
+Lastly, the final control outputs including target thrust Λout
+i
+and tilt angle βifor each rotor can be calculate as following:
+Λout
+i=∥Λi∥,
+βi=atan(λi,z, λi,x). (14)
+IV. R ECONFIGURATION MOTION PLANNING
+In this section, we propose motion planning strategies aimed
+at achieving stable in-flight reconfiguration. As mentioned in
+our previous work [17], pose control becomes unstable during
+aerial reconfiguration motion. Hence, Finite State Machine
+(FSM) style motion planning approach is appropriate since
+it can easily incorporate recovery actions.
+As depicted in Fig. 6 A), in this study, the planning pro-
+cess consists of multiple sub-FSMs to support reconfiguration
+
+--- Page 6 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 6
+motion with arbitrary number of modules. Each sub-FSM
+corresponds to a specific assembly motion, with the process
+transitioning to the next sub-FSM upon completion of the
+current one.
+In a sub-FMS, the assembly motion is segmented into three
+states, as visualized in Fig. 6 B). Initially, in the “Approach”
+state, the followr module is guided to a position and orien-
+tation that satisfies the following relationship with the leader
+structure:
+{GCoS}r{CoG i}=dst0 0T,
+{GCoS}R{CoG i}=0 (15)
+where dstis the desired distance between leader and follower.
+If this relationship is achieved within an acceptable margin
+of error, the procedure progresses to the “Approach” state,
+where the follower moves towards the leader and endeavors to
+establish contact. During this motion, if the pose error exceeds
+an acceptable threshold, the reconfiguration process reverts to
+the “Alignment” state. Through this mechanism, it becomes
+possible to promptly rectify a hazardous pose situation be-
+tween the two agents and resume the reconfiguration motion
+without interruption.
+Finally, in the “Assembly” state, the leader and follower are
+fixed by activating the docking mechanism, followed by the
+updating of parameters such as the quantity of interconnected
+modules and their arrangement.
+In the event of a disassembly motion, this can be achieved
+by transitioning these states in reverse order.
+V. M ULTI -CONNECTED FLIGHT
+In this section, we introduce the methods to achieve stable
+multi-connected flight and aerial reconfiguration. Firstly, we
+present the method of target state conversion, followed by the
+framework for contact wrench compensation.
+A. Target State Conversion
+During multi-connected flight, the target position and atti-
+tude of the geometric center of the entire structure (GCoS)
+is transmitted from upstream. Hence, for the initial step, the
+target state of the GCoS should be transformed into the CoG
+of each module. This process corresponds to “Target State
+Conversion” block depicted in Fig. 2.
+To begin, the position of the GCoS is defined as the average
+of the positions of CoGs of connected modules, as follows:
+{W}r{GCoS}=1
+nnX
+i=1{W}r{CoG},i, (16)
+where nrepresents the number of connected modules. Fig. 7
+visualizes the relationship between {CoG i}in the case of
+four modules. Subsequently, the conversion is derived using a
+homogeneous transformation matrix as follows:
+{W}rdes
+{CoG},i
+1
+=Hi{W}rdes
+{GCoS}
+1
+, (17)
+Hi={W}Rdes
+{GCoS}d3×1
+i
+01×31
+,
+di={W}r{CoG},i−{W}r{GCoS},
+Fig. 7: Dynamics and coordinates model during four-
+connected flight.
+where,{W}Rdes
+{GCoS}represents the rotation matrix equivalent
+to the target Euler angle of the entire structure.
+B. Contact Wrench Compensation
+The conversion process outlined in (17) theoretically gener-
+ates target positions and orientations for each module that do
+not interfere with each other. However, in practice, unexpected
+contact wrenches accumulate between adjacent modules due
+to deviations in target poses among modules. This deviation
+arises from slight offsets in the sensors and subtle differ-
+ences in aircraft characteristics between modules. The contact
+wrenches not only affect the stability of normal flight but also
+significantly destabilize the assembly and disassembly motion
+by abruptly appearing or disappearing during the process.
+Hence, we require a framework to dynamically and explicitly
+control this contact wrench as illustrated in B) block in Fig. 2.
+Following this, we elaborate on the design of the contact
+wrench filter and outline the method for calculating the feed-
+forward term.
+1) Dynamics in Multi-connected State: To simplify the
+dynamics model, we assume that the connection between
+modules is sufficiently strong and that no relative motion is
+generated between them. Therefore, according to the action-
+reaction law, the external wrench Wext
+iapplied to the i−th
+module can be expressed as follows:
+Wext
+i=Wcont
+i−Wcont
+i+1+Wdist, (18)
+where Wcont
+i = [tfcont
+i,tτcont
+i]Tis the contact wrench
+applied to the i−thmodule by the (i−1)−thmodule
+as illustrated in Fig. 7, and Wdistrepresents the disturbance
+wrench like aerodynamic effects. Note that in this study, we
+assume the disturbance wrench affects all modules equally.
+2) External Wrench Estimation: Generally, two methods
+are used to estimate external wrenches like Wextin (18):
+momentum-based, utilizing velocity data, and acceleration-
+based. Due to substantial acceleration noise in the IMU sensors
+on Beatle, we employ the full momentum-based observer, as
+also utilized in [24]. By rewriting (3) and (4) to incorporate
+external wrenches, we derive the following relationship:
+˙p=M˙v=JtW+Wext−N, (19)
+M=mE 3×303×3
+03×3 I
+, J=
+RT03×3
+03×3E3×3
+,
+N=
+mg
+ω×I ω
+,
+where pandvrepresent the generalized momentum and
+velocity, respectively, while WandWextdenote the wrench
+generated from rotor thrust and the external wrench, respec-
+tively. Subscripts and superscripts consistent with (3) and (4)
+
+--- Page 7 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 7
+are omitted. According to [25], the estimated external wrench
+can be expressed as the following residual term:
+ˆWext=KI
+p(t)−p(t0)−Zt
+t0
+JTW+ˆWext−N
+dt
+,
+(20)
+where, tandt0represent the current and initial time instances
+respectively, and KI∈R6×6is a positive-definite gain matrix.
+Taking the time derivative of (20), we obtain the following
+dynamics for the residual vector:
+˙ˆWext+KIˆWext=KIWext. (21)
+(21) reveals a first-order low-pass filter that converges to Wext
+ast→ ∞ approaches infinity, with the convergence speed
+dependent on the matrix KI.
+Note that this method only requires the estimation of the
+generalized velocity v, which is less susceptible to sensor
+offsets than pose estimation.
+3) Contact Wrench Filtering: The quantity required for i−
+thmodule to compensate for the contact wrench is Wcont
+i.
+However, ˆWext
+iobtained in (20) includes not only Wcont
+i but
+alsoWcont
+i+1andWdistas implied by (19). Therefore, a filter
+to remove these values from ˆWext
+iis necessary. To decompose
+ˆWext
+iinto each element, the proposed filter utilizes the values
+ofˆWext
+kfrom all other connected modules. According to (19),
+Wdistcan be derived by summing up these estimated external
+wrench values as follows:
+Wdist=1
+nnX
+k=1ˆWext
+k. (22)
+Note that each contact wrench cancels out, leaving only the
+Wdist. Now, as 1stmodule is positioned at the left end, we
+haveWcont
+1= 0. Therefore, from (19), Wcont
+2 is obtained as
+follows.
+Wcont
+2=ˆWext
+1−Wdist(23)
+In a same manner, Wcont
+3,Wcont
+4, . . .Wcont
+n are derived
+sequentially.
+Note that this process necessitate communication among
+modules, hence the control frequency of the feedforward term
+relies on the bandwidth of this communication. However, it is
+crucial to emphasize that this process operates independently
+of normal flight control, thus any time delay does not adversely
+affect the frequency of flight control execution. Moreover,
+since we assume that the contact wrench is approximately
+steady in the case of BEATLE, any incurred time delay is
+not considered significant in ensuring stability.
+4) Feedforward Term for Wrench Compensation: To con-
+trol the contact wrench, an appropriate feedforward term
+Wff=tfff tτffTis incorporated into the fundamental
+pose control output of each module as shown in (7) and (8).
+One important consideration is that this feedforward term
+has a cascading effect on other aircraft as well. First of all, the
+relationship between the Wcont
+i at discrete times tandt+ 1
+is expressed by the following recurrence relation:
+Wcont
+i(t+1) = Wcont
+i(t)−Wff
+i(t+1)+ Wff
+i−1(t+1),(24)where Wff
+i(t)is a feedforward wrench add to i−thmodule at
+timet. Note that (24) includes Wff
+i−1which is the feedforward
+term added to (i−1)−thmodule. Here, (24) is subject to
+the following constraints:
+Wcont
+i(t+ 1) =desWcont
+i(t+ 1), (25)
+desWcont
+1(t+ 1) = Wcont
+1(t) =Wff
+0(t+ 1) = 0,(26)
+wheredesWcont
+i(t+1) is the desired contact wrench occurring
+between module (i−1)and module i, which is set to 0in
+this study.
+Under the conditions of (25) and (26), solving the recur-
+rence equation (24) yields the target feedforward term at time
+t+ 1as follows:
+Wff
+i(t+ 1) =iX
+k=1{Wcont
+k(t)−desWcont
+k(t+ 1)}.(27)
+VI. S IMULATION STUDIES
+In this study, we conduct simulation experiments that are
+challenging to carry out in the real world due to safety and
+resource constraints.
+A. Simulation Setup
+Regarding the simulation conditions, we utilize Gazebo,
+ensuring that each physical parameters matches those of the
+real machine. Furthermore, we introduce thfe Gaussian noise
+to the pose information obtained from Gazebo to replicate
+sensor noise in the real machine. The mean and standard
+deviation of the noise are 0.05and0.01, respectively.
+B. Validation of Contact Wrench Compensation
+Firstly, we validate our hypothesis regarding contact wrench
+accumulation and the effectiveness of the proposed method
+in eliminating this contact wrench. Note that, similar to real
+world, the self-position estimation of each module is slightly
+deviated due to sensor noise in the simulation. Fig. 8 dis-
+plays the outcomes of multi-connected flight and disassembly
+motion without the proposed contact wrench compensation.
+According to Fig. 8 (c) and (d), it is evident that the contact
+wrench gradually accumulates at the coupling between two
+modules. As Fig. 8 (a) and (b) reveal, when the coupling
+is released, the accumulated wrench is released, causing the
+divergence of pose control of each module.
+TABLE III
+RMSE DURING HOVERING IN EACH NUMER OF CONNECTED MODULES
+nRMSE
+ex[m] ey[m] ez[m] eθ[rad] eϕ[rad] eψ[rad]
+1 2.0e-3 1.9e-3 3.8e-3 1.2e-3 1.5e-3 1.3e-3
+4 4.0e-3 3.1e-3 4.0e-3 1.4e-3 3.1e-3 3.5e-3
+8 1.4e-3 3.9e-3 3.0e-3 1.0e-3 1.1e-3 1.5e-3
+
+--- Page 8 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 8
+Fig. 8: The Results of multi-connected hovering and in-flight
+separation simulation without the proposed wrench compen-
+sation method: (a) and (b) show the positional and rotational
+errors of the left module. Note that only the errors in the left
+module are shown for simplicity; (c) and (d) represent the
+contact force and torque occurring between two modules. (i)
+through (iii) in the graph correspond to (i) through (iii) in the
+snapshots.
+C. Scaling Feasibility Verification
+Next, we verify the scalability of our system by comparing
+the stability of flight with different numbers of connected
+modules. In this simulation, takeoff and hovering motions with
+proposed contact wrench compensation method are observed.
+The results are shown in Fig. 9 and Table. III. From the
+results in Table. III, it is evident that increasing the number
+of connected aircraft does not affect the accuracy of pose
+control. This implies that the proposed system is scalable to
+an arbitrary number of modules.
+VII. E XPERIMENT
+A. Implementation
+1) Hardware Configuration: Based on the design proposed
+in Section. II, we implemente the prototype of BEATLE as
+Fig. 9: The results of takeoff and hovering simulation with
+different numbers of connected modules: (a), (b), and (c) show
+the results for one, four, and eight moudules, respectively.
+Regarding the positional and rotational errors, the values for
+the module closest to the center of the structure are shown as
+representative values.
+Fig. 10: The snapshot of the prototype of BEATLE module.
+(a): Exterior. (b): Detailed components. (c): Male-side docking
+mechanism. (d): Female-side docking mechanism.
+depicted in Fig. 10.
+The skeleton and housing primarily consist of CFRP, while
+other components are constructed from PLA. The CFRP plate
+has a thickness of 2 mm , and the CFRP cylinder has a
+thickness of 1 mm .
+The rotor module consists of a 9-inch propeller (GEMFAN
+9045-3), a brushless motor (T-Motor AT2814), and a servo
+motor (KRS3304R2). Each rotor is driven by an ESC (T-Motor
+AIR 40A). With this configuration, each rotor generates thrust
+ranging from approximately 1 Nto20 N at a voltage of 25.2 V
+(6 S).
+Regarding processors, our original flight control unit, named
+
+--- Page 9 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 9
+TABLE IV
+MAIN PARAMETERS OF ROBOT
+Parameter Value
+Mass of main body 4.2 kg
+Size of main body 0.52 m×0.52 m
+Battery 6000 mAh
+Continuous flight time 6 min
+“Spinal,” is installed, equipped with an onboard IMU and an
+STM32 MUC. The “Fundamental Control Flow” in Fig. 2 runs
+at a frequency of 500 Hz on the Spinal. Additionally, as a high-
+level processor, an onboard PC (VIM 4) is equipped, where
+“Trajectory Conversion” and “Contact Wrench Compensation”
+in Fig. 2 operate at 40 Hz .
+The primary characteristics of the developed BEATLE pro-
+totype are presented in Table. IV.
+2) External Components: In the real-machine experiment,
+we utilize a motion capture system for position estimation
+and a laptop to transmit upstream commands. Communication
+between these external components and the robot occurs via
+a Wi-Fi network.
+B. Trajectory Tracking
+We begin by introducing the trajectory tracking experiments.
+In this experiment, various numbers of connected modules
+track a lemniscate trajectory defined as r2=p
+cos (2 θ).
+Here, θtransitions 0→2πover 100 s at a constant rate.
+Consequently, the target translational acceleration changes
+nonlinearly.
+In this experiment, we utilize 1 to 3 modules. The results
+for each number of connected modules are depicted in Fig. 11
+and Table. V.
+From these results, it can be observed that even with an
+increase in the number of connected modules, the modules can
+achieve various accelerations while maintaining flight stability.
+Although the rotational error slightly increases as the number
+of modules increases, this is primarily due to the increase in
+aerodynamic interference caused by the surrounding walls and
+is considered specific to this experimental environment.
+C. In-flight assembly and disassembly
+Next, we demonstrate an in-flight reconfiguration experi-
+ment. In this experiment, three modules merge sequentially,
+and subsequently, they separate sequentially.
+TABLE V
+RMSE DURING TRAJECTORY TRACKING IN EACH NUMER OF CONNECTED
+MODULES
+nRMSE
+eθ[rad] eϕ[rad] eψ[rad]
+1 1.5e-2 1.9e-2 4.3e-2
+2 1.7e-2 2.8e-2 4.8e-2
+3 2.1e-2 4.8e-2 4.3e-2
+TABLE VI
+RMSE DURING RECONFIGURATION MOTION
+ex[m] ey[m]ez[m]eθ[rad]eϕ[rad]eψ[rad]
+2.3e-2 2.2e-2 2.5e-2 1.6e-2 5.2e-2 4.8e-2
+Fig. 11: The results of trajectory tracking experiments with
+different numbers of connected modules. (a), (b), and (c) show
+the results for one, two, and three modules, respectively. Left:
+visualized trajectory tracking; right: in-flight attitude control
+error.
+The result of the experiment is depicted in Fig. 12, Fig. 13,
+and Table. VI. According to Fig. 12 (c)-(f), it can be observed
+that the contact wrench between modules instantaneously
+occurs when a module docks, but this wrench is instantly
+eliminated, allowing the merged modules to continue stable
+flight. This result indicates that the proposed wrench compen-
+sation method functioned properly. Fig. 12 (a) and (b) also
+demonstrate that pose instability, similar to those observed
+in previous conventional A-MSRRs [15]–[17], does not occur
+during reconfiguration motions.
+On the other hand, slight instabilities in position and ori-
+entation can be observed just before assembly (around 20 s)
+and just after separation (around 70 s). These instabilities
+are presumably caused by aerodynamic interference between
+modules that are very close together.
+In this experiment, hovering was sustained for more than
+30 s after the three bodies merged. However, no accumulation
+of contact wrenches was observed and the position error
+and attitude error were both within 0.025 m and0.048 rad ,
+respectively.
+VIII. C ONCLUSION
+In this paper, we present the design and control framework
+for a Aerial Modular Self-Reconfigurable Robot (A-MSRR)
+named BEATLE, capable of connecting and separating in-
+flight. BEATLE is equipped with a coupling mechanism con-
+sisting of both magnetic and mechanical locking mechanisms,
+as well as a robust housing, enabling the construction of a
+
+--- Page 10 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 10
+Fig. 12: The Results of the in-flight reconfiguration experi-
+ment: (a) and (b) show the positional and rotational errors.
+Note that the values for the module closest to the center
+of the structure are shown as representative values; (c) and
+(d) represent the contact force and torque occurring between
+module 1 and module 2, while (e) and (f) represent those
+between module 2 and module 3. (ii) through (vii) in the graph
+correspond to (ii) through (vii) in the snapshots.
+highly rigid structure. By proposing a thrust configuration
+with vectoring rotors that enables over-actuation and a control
+framework for multi-connected flight incorporating contact
+wrench controller, we have significantly enhanced the scal-
+ability and stability of conventional methods. The feasibility
+and scalability of the proposed framework have been validated
+Fig. 13: The snapshots of the in-flight reconfiguration ex-
+periment. From left to right, the modules are designated as
+module1, module2, and module3. (i)-(iv) represent assembly
+motion, while (v)-(viii) depict disassembly motion.
+through simulation studies and experiments with implemented
+prototype robots, which encompass hovering, trajectory track-
+ing, and in-flight self-reconfiguration.
+Although we solely focus on A-MSRR with rigid and one-
+direction connections in this work, it is expected that the
+proposed method can be extended to A-MSRR systems with
+joint and multi-direction connections in future work. With the
+extended A-MSRR system, various structures such as bridges
+with complicated truss structures, multi-link arms connected
+to ceilings, and multi-legged robots capable of terrestrial
+movement can be realized.
+REFERENCES
+[1] M. Jorgensen, E. Ostergaard, and H. Lund, “Modular atron: modules
+for a self-reconfigurable robot,” vol. 2. IEEE, 2004, pp. 2068–2073.
+[Online]. Available: http://ieeexplore.ieee.org/document/1389702/
+[2] M. Yim, W. min Shen, B. Salemi, D. Rus, M. Moll, H. Lipson,
+E. Klavins, and G. Chirikjian, “Modular self-reconfigurable robot
+systems [grand challenges of robotics],” IEEE Robotics and Automation
+Magazine , vol. 14, pp. 43–52, 3 2007. [Online]. Available: http:
+//ieeexplore.ieee.org/document/4141032/
+[3] V . Zykov, E. Mytilinaios, M. Desnoyer, and H. Lipson, “Evolved
+and designed self-reproducing modular robotics,” IEEE Transactions
+on Robotics , vol. 23, pp. 308–319, 4 2007. [Online]. Available:
+http://ieeexplore.ieee.org/document/4154840/
+[4] S. S. R. Chennareddy, A. Agrawal, and A. Karuppiah, “Modular self-
+reconfigurable robotic systems: A survey on hardware architectures,”
+Journal of Robotics , vol. 2017, pp. 1–19, 2017. [Online]. Available:
+https://www.hindawi.com/journals/jr/2017/5013532/
+
+--- Page 11 ---
+JOURNAL OF L ATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 11
+[5] A. Brunete, A. Ranganath, S. Segovia, J. P. de Frutos, M. Hernando,
+and E. Gambao, “Current trends in reconfigurable modular robots
+design,” International Journal of Advanced Robotic Systems , vol. 14, p.
+172988141771045, 5 2017. [Online]. Available: http://journals.sagepub.
+com/doi/10.1177/1729881417710457
+[6] H. Wei, Y . Chen, J. Tan, and T. Wang, “Sambot: A self-
+assembly modular robot system,” IEEE/ASME Transactions on
+Mechatronics , vol. 16, pp. 745–757, 8 2011. [Online]. Available:
+http://ieeexplore.ieee.org/document/5634125/
+[7] J. Davey, N. Kwok, and M. Yim, “Emulating self-reconfigurable robots
+- design of the smores system.” IEEE, 10 2012, pp. 4464–4469.
+[Online]. Available: http://ieeexplore.ieee.org/document/6385845/
+[8] C. Liu, Q. Lin, H. Kim, and M. Yim, “Smores-ep, a modular
+robot with parallel self-assembly,” Autonomous Robots , vol. 47, pp.
+211–228, 2 2023. [Online]. Available: https://link.springer.com/10.1007/
+s10514-022-10078-1
+[9] G. Liang, H. Luo, M. Li, H. Qian, and T. L. Lam, “Freebot: A
+freeform modular self-reconfigurable robot with arbitrary connection
+point - design and implementation.” IEEE, 10 2020, pp. 6506–6513.
+[10] P. Swissler and M. Rubenstein, “Fireant3d: a 3d self-climbing robot
+towards non-latticed robotic self-assembly.” IEEE, 10 2020, pp.
+3340–3347. [Online]. Available: https://ieeexplore.ieee.org/document/
+9341116/
+[11] Y . Tu, G. Liang, and T. L. Lam, “Freesn: A freeform strut-
+node structured modular self-reconfigurable robot - design and
+implementation.” IEEE, 5 2022, pp. 4239–4245. [Online]. Available:
+https://ieeexplore.ieee.org/document/9811583/
+[12] T. Tosun, J. Daudelin, G. Jing, H. Kress-Gazit, M. Campbell, and
+M. Yim, “Perception-informed autonomous environment augmentation
+with modular robots.” IEEE, 5 2018, pp. 6818–6824. [Online].
+Available: https://ieeexplore.ieee.org/document/8463155/
+[13] R. Watson, M. Kamel, D. Zhang, G. Dobie, C. MacLeod, S. G.
+Pierce, and J. Nieto, “Dry coupled ultrasonic non-destructive evaluation
+using an over-actuated unmanned aerial vehicle,” IEEE Transactions on
+Automation Science and Engineering , vol. 19, pp. 2874–2889, 10 2022.
+[14] R. R. Martinez, H. Paul, and K. Shimonomura, “Aerial torsional work
+utilizing a multirotor uav with add-on thrust vectoring device,” Drones ,
+vol. 7, p. 551, 8 2023.
+[15] D. Saldana, B. Gabrich, G. Li, M. Yim, and V . Kumar, “Modquad: The
+flying modular structure that self-assembles in midair.” Institute of
+Electrical and Electronics Engineers Inc., 9 2018, pp. 691–698.
+[16] D. Saldana, P. M. Gupta, and V . Kumar, “Design and control of aerial
+modules for inflight self-disassembly,” IEEE Robotics and Automation
+Letters , vol. 4, pp. 3402–3409, 10 2019.
+[17] J. Sugihara, T. Nishio, K. Nagato, M. Nakao, and M. Zhao, “Design,
+control, and motion strategy of trady: Tilted-rotor-equipped aerial robot
+with autonomous in-flight assembly and disassembly ability,” Advanced
+Intelligent Systems , vol. 5, no. 10, p. 2300191, 2023. [Online]. Available:
+https://onlinelibrary.wiley.com/doi/abs/10.1002/aisy.202300191
+[18] B. Salemi, M. Moll, and W. min Shen, “Superbot: A deployable,
+multi-functional, and modular self-reconfigurable robotic system.”
+IEEE, 10 2006, pp. 3636–3641. [Online]. Available: http://ieeexplore.
+ieee.org/document/4058969/
+[19] K. C. Wolfe, M. S. Moses, M. D. Kutzer, and G. S.
+Chirikjian, “M¡sup¿3¡/sup¿express: A low-cost independently-mobile
+reconfigurable modular robot.” IEEE, 5 2012, pp. 2704–2710. [Online].
+Available: http://ieeexplore.ieee.org/document/6224971/
+[20] R. Oung, A. Ramezani, and R. D’Andrea, “Feasibility of a distributed
+flight array,” in Proceedings of the 48h IEEE Conference on Decision
+and Control (CDC) held jointly with 2009 28th Chinese Control Con-
+ference , 2009, pp. 3038–3044.
+[21] R. Oung, F. Bourgault, M. Donovan, and R. D’Andrea, “The distributed
+flight array,” in 2010 IEEE International Conference on Robotics and
+Automation , 2010, pp. 601–607.
+[22] “Opportunities and challenges with autonomous micro aerial vehicles,”
+vol. 31, 9 2012, pp. 1279–1291.
+[23] “The voliro omniorientational hexacopter: An agile and maneuverable
+tiltable-rotor aerial vehicle,” IEEE Robotics and Automation Magazine ,
+vol. 25, pp. 34–44, 12 2018.
+[24] M. Ryll, G. Muscio, F. Pierri, E. Cataldi, G. Antonelli, F. Caccavale,
+and A. Franchi, “6d physical interaction with a fully actuated
+aerial robot.” IEEE, 5 2017, pp. 5190–5195. [Online]. Available:
+http://ieeexplore.ieee.org/document/7989608/
+[25] A. de Luca and R. Mattone, “Sensorless robot collision detection and
+hybrid force/motion control.” IEEE, 2005, pp. 999–1004. [Online].
+Available: http://ieeexplore.ieee.org/document/1570247/
+Junichiro Sugihara is a PhD student in the Depart-
+ment of Mechano-Informatics, School of Informa-
+tion Science and Technology, University of Tokyo.
+He received BE degree from the Department of
+Mechanical Engineering, University of Tokyo, in
+2023. His research interests are mechanical design,
+modeling and control of aerial robots, and self-
+reconfigurable modular robot.
+Moju Zhao is currently an Associate Professor at
+The University of Tokyo. He received Doctor Degree
+from the Department of Mechano-Informatics, The
+University of Tokyo, 2018. His research interests are
+mechanical design, modelling and control, motion
+planning, and vision based recognition in aerial
+robotics. His main achievement is the articulated
+aerial robots which have received several awards
+in conference and journal, including the Best Paper
+Award in IEEE ICRA 2018.
+Takuzumi Nishio is an Assistant Professor in the
+Department of Mechano-Informatics, School of In-
+formation Science and Technology, University of
+Tokyo. He received PhD degree from the Depart-
+ment of Interdisciplinary-Informatics, University of
+Tokyo, in 2022. His research interests are mechan-
+ical design, modeling and control of aerial robots,
+and vision-based recognition and motion planning
+of manipulators in field robotics.
+Kei Okada received BE in Computer Science from
+Kyoto University in 1997. He received MS and PhD
+in Information Engineering from The University of
+Tokyo in 1999 and 2002, respectively. From 2002
+to 2006, he joined the Professional Programme for
+Strategic Software Project in The University Tokyo.
+He was appointed as a lecturer in the Creative In-
+formatics at the University of Tokyo in 2006 and an
+associate professor in the Department of Mechano-
+Informatics in 2009. His research interests include
+humanoids robots, real-time 3D computer vision,
+and recognitionaction integrated system.
+Masayuki Inaba is a professor in the Department
+of Mechano-Informatics, School of Information Sci-
+ence and Technology, University of Tokyo. He re-
+ceived PhD degree from the Graduate School of
+Information Engineering, University of Tokyo, in
+1986. He is currently a professor in the Department
+of Mechano-Informatics, University of Tokyo, in
+2000. His research interests include robotic systems
+and software architectures to advance robotics re-
+search.
