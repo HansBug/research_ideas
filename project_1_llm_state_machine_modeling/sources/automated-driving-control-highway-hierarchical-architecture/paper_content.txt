@@ -1,0 +1,1570 @@
+--- Page 1 ---
+11 April 2026POLITECNICO DI TORINO
+Repository ISTITUZIONALE
+Automated Driving Control in Highway Scenarios Through a Two-Level Hierarchical Architecture / Canale, Massimo;
+Razza, Valentino. - In: IEEE ACCESS. - ISSN 2169-3536. - ELETTRONICO. - 12:(2024), pp. 86470-86486.
+[10.1109/access.2024.3416670]OriginalAutomated Driving Control in Highway Scenarios Through a Two-Level Hierarchical Architecture
+Publisher:
+Published
+DOI:10.1109/access.2024.3416670
+Terms of use:
+Publisher copyright
+(Article begins on next page)This article is made available under terms and conditions as specified in the  corresponding bibliographic description in
+the repositoryAvailability:
+This version is available at: 11583/2989930 since: 2024-06-27T10:25:53Z
+IEEE
+
+--- Page 2 ---
+Received 18 April 2024, accepted 14 June 2024, date of publication 19 June 2024, date of current version 26 June 2024.
+Digital Object Identifier 10.1 109/ACCESS.2024.3416670
+Automated Driving Control in Highway Scenarios
+Through a Two-Level Hierarchical Architecture
+MASSIMO CANALE
+1, (Member, IEEE), AND VALENTINO RAZZA
+2
+1Department of Control and Computer Engineering, Politecnico di Torino, 10129 Turin, Italy
+2Department of Management and Production Engineering, Politecnico di Torino, 10129 Turin, Italy
+Corresponding author: Massimo Canale (massimo.canale@polito.it)
+ABSTRACT We introduce an approach for automated driving in highway scenarios based on a two-level
+hierarchical architecture. The high-level consists of a path planner implemented through a Model Predictive
+Control algorithm that, using a simple kinematic model of the vehicle, effectively manages the relevant
+maneuvers of highway driving, such as lane keeping, lane change, velocity, and distance tracking, by means
+of suitable combinations of artificial potential field functions. Parameters of such functions are dynamically
+tuned according to the acquired scenario. A switching logic described by a finite state machine, based
+on acquired sensor data, selects the most appropriate maneuver to realize in the present driving scenario.
+At the low-level, the motion controller regulates the longitudinal and lateral dynamics through an original
+decentralized architecture to track the generated reference trajectory. Robustness issues in the presence of
+plant uncertainty are handled by H∞synthesis. Extensive simulation tests show the effectiveness of the
+proposed approach.
+INDEX TERMS Autonomous vehicles, model predictive control, robust control, path planning.
+I. INTRODUCTION
+In the past years, the increase of traffic density led to
+the need to develop appropriate driving support systems to
+improve safety and prevent accidents and fatalities mainly
+due to distracted drivers. In such a context, enhancements
+were initially introduced by Advanced Driver Assistance
+Systems (ADAS) in commercial cars through Automated
+Lane Keeping systems and Adaptive Cruise Control functions
+(see, e.g., [1]). More recently, thanks to significant research
+efforts by both academia and industry, vehicles with fully
+automated driving functionality have been developed to
+further improve safety and driveability issues, see, e.g.,
+[2]. As a result, car manufacturers, like, e.g., Waymo [3],
+Tesla [4], Audi [5], Mercedes-Benz [6]and Stellantis [7]
+deployed advanced prototypes of autonomous vehicles (A V)
+and ongoing field tests are giving promising results, espe-
+cially in low complexity scenarios such as highway routes.
+In highway scenarios, the vehicle is expected to perform
+autonomously standard maneuvers such as lane keeping,
+The associate editor coordinating the review of this manuscript and
+approving it for publication was Zhong Wu
+ .distance tracking with respect to preceding vehicles, and
+lane change to overtake and return when allowed by the
+surrounding traffic conditions.
+The principal ingredient for automated driving is the
+path planner that is responsible for finding an optimal
+collision-free path to perform the requested maneuver. In this
+context, an effective approach is made up by the use of
+artificial potential field (APF) that describes obstacles as
+repulsive virtual forces, while attractive forces represent
+target locations. Suitable combinations of APF can account
+for environment virtual obstacles such as lane borders to
+generate minimum energy-constrained paths even for lane
+change maneuvers. APFs have been originally introduced
+in [8] in industrial and mobile robotics as a collision
+avoidance method. The main advantage of this method is the
+possibility of adapting the path generation in a closed-loop
+fashion with the environment, see, e.g., [9]. Furthermore,
+APF can overcome computational drawbacks related to
+grid cells methods such as A∗algorithm, see, e.g., [10],
+[11], [12] and Rapidly exploring Random Trees (RTTs)
+methods, see, e.g., [13] and[14]. However, as observed
+in[15], APF cannot directly include physical limitations
+86470
+2024 The Authors. This work is licensed under a Creative Commons Attribution 4.0 License.
+For more information, see https://creativecommons.org/licenses/by/4.0/ VOLUME 12, 2024
+
+--- Page 3 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+in vehicle behavior, such as on the steering angle and
+lateral acceleration. A method to include such constraints
+in the APF description is introduced in [16] by considering
+customized APF. In this regard, more systematic approaches
+combine the driving scenario and maneuver setting described
+by APF with control methods appropriated for vehicle
+dynamics control. As relevant examples, in [17], [18],
+and [19], the combined use of APF and model predictive
+control (MPC) is introduced for collaborative automated
+driving, path planning, and collision avoidance, respectively.
+In [20], an MPC controller is employed to track the path
+generated by a planner based on the combination of APF
+and Reinforcement Learning methodologies. Finally, [21]
+proposes an optimal path planning based on enhanced APF
+and PID control. To realize the considered automated driving
+functions, a suitable tracking of the trajectory provided
+by the path planner is performed by means of a motion
+controller that computes the steering and acceleration actions
+needed to accomplish the required maneuvers and accounting
+for the vehicle lateral and longitudinal dynamics. Motion
+controller must guarantee, besides smooth driving maneuver
+for comfort purposes, robustness issues in the presence of
+plant uncertainty. The integrated action of path planning
+and vehicle dynamic control is implemented through either
+single-level or two-level architectures, according to whether
+the planner and the controller are embedded together or are
+placed in two different hierarchical layers. In [18], [19],
+and[22], a single-level architecture is adopted where an
+MPC algorithm performs at the same time as both path
+generator and motion controller. Possible critical points
+with such approaches are represented by the complexity of
+the optimization problem that needs additional constraints
+to manage stability and robustness issues (see, e.g., the
+methods presented in [23]and[24]) and by consequent higher
+computational times.
+Two-level architectures are mainly characterized by an
+upper layer made up of a path planner that computes
+the trajectory way-points and the speed to be tracked
+by the vehicle and a lower layer that implements the
+motion control functions that realize the requested maneuver.
+In general, two-level architectures provide more flexible
+solutions to handle the integration between path planning
+and motion control since different control methodologies
+can be employed for each of the two levels to exploit their
+peculiar characteristics in the view of achieving significant
+overall performance improvements. The advantages of using
+two-level approaches are also shown in the field of cooper-
+ative driving, as discussed in [25]. Several interesting and
+effective approaches to two-layer architectures have been
+recently introduced in the relevant literature. Basically, such
+approaches can be classified according to the methodologies
+employed in the path planner, the motion controllers, and
+the maneuver scenario that is accounted for. As an example,
+in[15], the path planner and motion controller are both made
+up of an MPC strategy based on, respectively, kinematic
+and dynamic linear time-varying (LTV) single-track models.Such an approach, is successfully tested in overtaking
+maneuvers of quasi-static obstacles performed at medium
+speed in straight roads. In [21], instead, the upper level
+employs suitable APF to describe moving obstacles, road
+boundaries, and target positions combined with a fireworks
+optimization algorithm to generate safe and smooth paths
+effectively. The motion control is implemented through a
+standard PID controller that provides the steering action
+needed to realize the considered maneuver. The effectiveness
+of this approach is shown by considering lane change and
+overtaking maneuvers in straight roads. In the two-layer
+solution presented in [26], the upper level exploits a given
+reference path to compute the steering command through
+an MPC controller that accounts for dynamic changes in
+driving conditions. The lower level implements the steer
+actuator control using a PID controller whose parameters
+are updated online through a recursive algorithm based
+on neural networks. In this approach, the driving scenario
+is predetermined, and trajectory modifications cannot be
+introduced to perform, e.g., overtaking slower vehicles
+traveling in the same lane. In all the methods presented above,
+the attention is mainly focused on lateral maneuvers without
+a thorough analysis of robustness issues in the presence of
+plant uncertainty.
+In this paper, we introduce a two-layer architecture for
+SAE automated driving level 3 in highway scenarios that aims
+at
+1) managing the lateral and longitudinal maneuvers as
+well as their combination that may occur in the
+considered driving scenario;
+2) handling robustness issue in the presence of parametric
+and dynamic uncertainty of the vehicle.
+In the proposed solution, the path planner of the higher
+level is based on the approach described in [27], where a
+dynamic tuning of the APF parameters manages the relevant
+maneuvers based on the current driving scenario. An MPC
+control algorithm that includes the maneuver objectives
+described by suitable APF in the cost function computes
+the path way-points and the corresponding target vehicle
+speed. The low-level controller computes the steering and
+acceleration actions needed to track the path computed at
+the higher level. A finite state machine (FSM) manages
+the switching among the considered maneuvers. An original
+decoupled robust architecture based on H∞methodology is
+introduced to control the lateral and the longitudinal vehicle
+dynamics. Since the higher-level control is working at a
+slower rate, a suitable path interpolator based on Bezier
+curves is included to generate the trajectory to be tracked
+by the motion controller implemented at the lower level. The
+main features of the proposed approach are summarized and
+highlighted below.
+•The proposed path planner architecture can handle at the
+same time both lateral and longitudinal maneuvers by
+choosing suitable combinations of APF functions whose
+VOLUME 12, 2024 86471
+
+--- Page 4 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+parameters are adapted online based on the scenario
+acquired by the vehicle onboard sensors.
+•The actual traffic conditions are considered by an FSM,
+which selects the most suitable maneuver to perform.
+•Obstacle dynamic is explicitly considered in the
+path-planner MPC model to generate collision-free
+trajectories.
+•The original decentralized motion control architecture
+can guarantee robust stability in the presence of
+parametric and/or dynamic uncertainty of both lateral
+and longitudinal vehicle dynamics.
+•Both the control levels can be designed independently,
+allowing a more flexible management of the interaction
+between the path planning task and the automated
+driving functions when either different planners or
+motion control functions are already implemented in the
+existing control hardware and exploit different sampling
+times.
+To show the advantages of the proposed architecture, we com-
+pare its performance with respect to a single-level approach
+based on an MPC controller designed including APFs in the
+cost function and a two-layer structure that exploits linear
+quadratic (LQ) methodologies for the motion controller. In
+both cases, extensive simulation tests that include sensitivity
+analysis are included to show the effectiveness of the method.
+The main contributions of this paper can be summarized as
+follows.
+1) To propose a two-layer architecture that exploits the
+potentials of MPC and APF in path generation and
+H∞methodologies for motion control to effectively
+manage robustness issues in both longitudinal and
+lateral driving maneuvers.
+2) To show the advantages of two-layer with respect to
+one-layer solutions that employ a similar approach.
+3) To introduce extensive simulation tests that include a
+wide set of maneuvering situations performed in the
+considered scenario and to show the potential of the
+method in handling robustness issues through a suitable
+sensitivity analysis.
+The paper is organized as follows. Section IIdefines
+the main settings of the considered automated driving
+problem and the two-level architecture. Section IIIintroduces
+the high-level controller by describing the APF functions
+employed in the MPC path planner and how they are
+customized according to the specific maneuvers to be
+realized. Details on FSM are included as well. In Section IV,
+the path interpolation procedure is introduced. Section Vis
+devoted to describing the structure and the design settings
+of the low-level motion controller. Extensive simulation tests
+that show the effectiveness of the proposed approach during
+the execution of the relevant driving maneuvers and in the
+presence of model uncertainty are presented in Section VI.
+Comparisons with other approaches are introduced as well
+to highlight the advantages of the proposed method. Some
+concluding remarks end the paper.II. PROBLEM FORMULATION
+We consider an autonomous vehicle, denoted as the host
+vehicle (HV), traveling in a highway scenario according to
+the SAE automation level 3, see [28]. In particular, the HV
+is requested to perform standard highway maneuvers such as
+velocity regulation, either in the presence or the absence of
+a preceding vehicle, overtaking and returning while keeping
+the center of the lane in both straight and curved roads. Thus,
+emergency maneuvers are not considered in this context.
+We assume the HV is equipped with a complete sensor
+configuration as described in the list below.
+•Vehicle dynamic sensor for acquisition of the relevant
+longitudinal and lateral variables.
+•Front camera to detect and reconstruct lane edges.
+•Surround-view cameras to detect lateral scenarios such
+as vehicles in adjacent lanes.
+•Front radar (long and short-range) to detect front
+vehicles’ relevant variables such as the relative distance
+and speed.
+•Inertial Measurements Unit (IMU) for the most relevant
+inertial measurements.
+•Differential Global Positioning System (DGPS) to
+locate the vehicle in the world coordinate.
+We introduce the two-layer hierarchical control architecture
+reported in Fig. 1to handle the automated driving functions
+for the considered highway application. It consists of the two
+functional blocks described below.
+1) High-level controller, which includes:
+a) a path planner, implemented by an MPC
+algorithm based on APF and a kinematic single
+track model of the vehicle, that generates every
+200 ms the way-points of the cartesian path
+needed to perform the requested maneuver;
+b) a trajectory planner, starting from the way-points
+provided by the path planner, that employs the
+Bezier curve interpolation method to obtain at
+a rate of 10 ms the trajectory to be tracked by
+the vehicle in terms of the desired speed and
+acceleration, cartesian position, and desired yaw
+rate.
+2) Low-level controller that implements the motion
+control unit and aims at providing the vehicle with
+suitable acceleration and steering actions needed to
+accomplish the requested maneuver. Such acceleration
+and steering action are obtained through a decentralized
+control architecture, including a longitudinal and
+lateral controller. Robustness issues in the presence of
+model uncertainty are managed as well.
+Using a two-layer architecture can bring some advantages
+in the context of practical implementation with respect to a
+single-layer one. Single-layer approaches are based on the
+same principles, but path planning and motion control are
+performed simultaneously, employing more complex models
+to describe the vehicle dynamics. Here, as described in
+Section III, a simpler model is used in the path generation
+86472 VOLUME 12, 2024
+
+--- Page 5 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+FIGURE 1. The proposed two-layer hierarchical control architecture.
+phase leading to a more efficient solution of the underlying
+MPC optimization problem in terms of complexity and
+computation time. In this context, the trajectory tracking
+performed by the low-level controller can be implemented
+more effectively to account for possible plant uncertainty
+in the control design, as it will be explained in Section V.
+Moreover, since each architecture layer can be seen as a
+standalone block, the path and trajectory generation level
+can be easily interfaced with commercial motion control
+modules (see, e.g., [29]), already implemented in the vehicle
+Electronic Control Unit board.
+III. HIGH-LEVEL CONTROLLER
+In this Section, we provide details about the high-level control
+architecture introduced in Section II. First, we describe
+the vehicle model employed in this context. Then, details
+on how Artificial Potential Fields (APF) are employed to
+characterize the most relevant maneuvers during highway
+automated driving and how to include them in a suitable
+path planner formulation based on Model Predictive Control
+(MPC) methodologies. Finally, we show how Bezier curve
+interpolation methods can be customized to obtain an
+effective trajectory planner.
+A. VEHICLE MODEL
+Small steering angles characterize the maneuvers of the
+considered driving scenario. In this context, the single-track
+kinematic model reported in Fig. 2adequately describes
+the lateral behavior for path generation purposes (see, e.g.,
+[17]). In fact, the use of more complicated models may
+lead to more complex MPC controllers. The schematic of
+such vehicle model is reported in Fig. 2, together with the
+frame (x ,y) that defines the vehicle behavior and the local
+frame (X ,Y) employed to formalize the interaction with the
+highway scenario.
+FIGURE 2. Single-track kinematic model schematic and frames.
+Equation (1) introduces the single-track kinematic state
+equations.
+
+
+˙x(t)=v(t) cos(ψ (t))
+˙y(t)=v(t) sin(ψ (t))
+˙ψ(t)=v(t)
+Ltan(δ (t))
+˙v(t)=a(t)
+˙δ(t)=ωδ(t)(1)
+In (1), x,yandψrepresent the pose of the HV rear axle, v
+is the longitudinal speed, δis the steering angle while Lis
+the wheelbase. The state vector ξdefined in (2) includes the
+relevant variables of model (1).
+ξ=[x,y,ψ, v,δ]T(2)
+The longitudinal acceleration a= ˙vand the angular speed
+ωδ=˙δare the inputs of the system.
+B. ARTIFICIAL POTENTIAL FIELDS FOR AUTOMATED
+DRIVING
+Artificial Potential Fields (APF) allow effective automated
+driving thanks to their capability to generate virtual forces,
+VOLUME 12, 2024 86473
+
+--- Page 6 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+either attractive or repulsive, that affect the vehicle motion,
+see, e.g., [30]. In the following subsections, we describe
+how suitable combinations of APF can be employed to
+handle typical maneuvers in highway scenarios such as
+lane keeping, overtaking and returning, and distance-tracking
+with respect to a preceding vehicle. In particular, we show
+how the standard parameters of APF functions like height
+and width can be tuned on the basis of the maneuver
+to be performed and according to the acquired sensors
+data.
+1) APF FOR LANE KEEPING AND LANE CHANGE
+The lane-keeping function is activated when the HV should
+track the lane center. Such a task can be implemented through
+the combined action Pℓof two APF defined by a 2ndorder
+Gaussian function PℓlandPℓrcentered at the left and the
+right borders of the lane, respectively, and providing a pulling
+action towards the lane center, as described in (3)and shown
+in Fig. 3.
+Pℓ=Pℓl+Pℓr (3)
+where
+Pℓi=P0exp/parenleftbigg
+−di
+γ0/parenrightbigg4
+,i=l,r (4)
+with
+di=/radicalig
+(X−X0i)2+(Y−Y0i)2,i=l,r. (5)
+In(4),P0andγ0represent the height and width of the field,
+respectively, while diis the Euclidean distance between the
+vehicle and the left and right edges of the lane located at
+(X0l,Y0l) and (X 0r,Y0r) respectively. Parameters P0andγ0are
+chosen to make the vehicle track the lane center to prevent
+lane escaping and avoid overtaking when not allowed. The
+field height P0is set to a sufficiently high value while the field
+widths γ0i,i=l,rare obtained by assigning a suitable value
+Pℓi(dtar)i=l,rto the field functions at the target distance
+dtar=wL
+2being wLthe lane width. According to (4)and(5),
+γ0can be computed as
+γ0i=4/radicaltp/radicalvertex/radicalvertex/radicalvertex/radicalbt−dtar
+log/parenleftbiggPℓi(dtar)
+P0/parenrightbigg. (6)
+For example, Fig. 3 shows the resulting APF combination
+for a road with curvature radius R=500 m and lane width
+wL=3.65 m. The other parameters are P0=100, Pℓi(dtar)=
+0.1,i=l,r. In Fig. 3, the road boundary is the right lane
+represented by a straight line. The red line is the center of
+the lane where the functions Pℓi,i=l,rare minimal.
+Lane change maneuvers such as overtaking and returning
+are handled through the combination of two repulsive fields,
+as in the case of lane keeping. Considering an overtaking
+maneuver, i.e., a lane change to the left, the first field is
+centered on the right line, while the second field is suitably
+shaped to damp and limit the vehicle motion as it enters the
+FIGURE 3. Lane keeping APF. The black dashed lines represent the lane
+boundaries, and the background color is relative to the APF value (i.e.,
+blue is the lowest, and yellow is the highest APF value).
+new lane. As soon as the vehicle enters into the destination
+lane, the high-level logic switches the working mode to lane-
+keeping, and the vehicle is driven to the lane center. The actual
+implementation employs quadratic Gaussian fields as in lane
+keeping with minor changes. In particular, a part overlaps
+the destination lane since the first field pushes the vehicle to
+the new lane. Then, γ0is obtained as in (6) with dtar=wL.
+Fig. 4 shows an example of the APF employed to perform
+an overtaking maneuver. Similar considerations hold for the
+returning maneuver.
+2) APF FOR OBSTACLE VEHICLES
+Obstacle vehicles (OV), i.e., vehicles moving ahead of the HV
+that can not be overtaken because the left lane is not empty,
+are managed by an appropriate combination of an attractive
+and a repulsive APF. A single-track model, similar to the
+one introduced in (1), describes the OV kinematic behavior.
+In this context, we assume that information on the obstacle
+pose ( XO,YO,ψO) and velocity vOis achieved either directly
+86474 VOLUME 12, 2024
+
+--- Page 7 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+FIGURE 4. Example of lane change PF built to move on the left line. The
+red star represents the vehicle position, the black lines are the lane
+boundaries and the red line is the minimum APF value within the road
+boundaries.
+or indirectly by the considered onboard sensors. Obstacle
+APFs are designed to regulate the velocity vof the HV in
+order to keep a target distance dtar,ofrom the OV. Such a target
+distance is defined as
+dtar,o=
+
+d0+tHvi, v≤vO
+d0+tHvP+(v−vO)2
+2adec,v>vO(7)
+where adecis the desired magnitude of the HV deceleration,
+d0represents a safety distance including the vehicle size, vO
+is the obstacle speed and tHis the time headway, defined as
+tH=dO
+v, being dOthe relative distance between HV and OV.
+The distance-approaching maneuver is obtained thanks to
+a suitable interaction between
+1) a repulsive field that performs a smooth deceleration;
+2) an attractive field that implements the target position
+tracking.
+Given the pose (X O,YO,ψO) of the OV in the local HV frame,
+the first-order Gaussian function reported in (8)describes the
+repulsive APF considered above.
+Po,r=P0·exp/parenleftigg
+−/parenleftigg
+(˜X−˜XO)2
+γ2
+X/parenrightigg
+−/parenleftigg
+(˜Y−˜YO)2
+γ2
+Y/parenrightigg/parenrightigg
+(8)
+where
+/bracketleftbigg˜X
+˜Y/bracketrightbigg
+=T·/bracketleftbiggX
+Y/bracketrightbigg
+,/bracketleftbigg˜XO
+˜YO/bracketrightbigg
+=T·/bracketleftbiggXO
+YO/bracketrightbigg
+(9)
+and
+T=/bracketleftbiggcosψOsinψO
+−sinψOcosψO/bracketrightbigg
+. (10)
+In (8), γXandγYdefine the Gaussian function sizes along the
+coordinate axes XandY, respectively, while P0stands for thefunction height. Similarly as in (6),γXandγYare computed
+as
+γX=/radicaltp/radicalvertex/radicalvertex/radicalvertex/radicalbt−dtar,o,X
+log/parenleftbiggP0
+Po,r(dtar,X)/parenrightbigg,γY=/radicaltp/radicalvertex/radicalvertex/radicalvertex/radicalbt−dtar,o,Y
+log/parenleftbiggP0
+Po,r(dtar,Y)/parenrightbigg
+(11)
+A reasonable choice for the field parameter in case of a
+semi-straight road is dtar,o,X =dtar,o, see (7). Notice that
+dtar,o,X depends on the relative speed between HV and OV.
+dtar,o,Y , is chosen according to the OV width. Moreover,
+Po,r(dtar,X)=Po,r(dtar,Y)=¯Pois selected.
+The attractive APF function considered above is chosen as
+Po,a=P0·/parenleftigg
+1−exp/parenleftigg
+−/parenleftigg
+(˜X−˜X′O)2
+γ2
+X/parenrightigg
+−/parenleftigg
+(˜Y−˜Y′O)2
+γ2
+Y/parenrightigg/parenrightigg/parenrightigg
+(12)
+where ( ˜X′O,˜Y′O)=(X O−dtar,YO). Parameters in (12) are
+tuned through the same procedure described for (8). An
+example of the repulsive (8)and the attractive fields (12)can
+be found in [27].
+C. MODEL PREDICTIVE CONTROL PATH PLANNER
+Here, we introduce how MPC methodologies effectively
+implement the path planning task. In such a context, the
+vehicle model (1)is discretized through the forward Euler
+method and using sampling time Ts=200 ms. The obtained
+discretized model is reported in (13).
+
+
+x(k+1)=x(k)+Tsv(k) cos(ψ (k))
+y(k+1)=y(k)+Tsv(k) sin(ψ (k))
+ψ(k+1)=ψ(k)+Tsv(k)
+Ltan(δ (k))
+v(k+1)=v(k)+1v(k )
+δ(k+1)=δ(k)+1δ(k)(13)
+where 1v(k )=Tsa(k) and 1δ(k)=Tsωδ(k) represent the
+speed and steering angle finite increments respectively. The
+control input of (13)is
+u(k)=/bracketleftbig1v(k )1δ(k)/bracketrightbigT. (14)
+Considering (2)and(14), the state equation (13) is repre-
+sented in the compact nonlinear form
+ξ(k+1)=f(ξ(k),u(k)) (15)
+The MPC path planner is designed by considering the
+objectives described below.
+1) Track a constant speed vdesin the absence of a
+preceding vehicle.
+2) Track a (speed-depending) distance from a preceding
+vehicle when overtaking is not allowed.
+3) Keep the center of the lane when traveling on a curved
+road.
+4) Perform overtaking of a slower vehicle and returning to
+the rightmost lane when overtaking is completed.
+VOLUME 12, 2024 86475
+
+--- Page 8 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+Remark 1: It is worth noting that the goal of the designed
+control structure is to reach the SAE level 3 automation
+level, where no emergency maneuvers are considered. The
+assumed sampling time Ts=200 ms is sufficient for the MPC
+motion planner to schedule a suitable trajectory in highway
+scenarios. The effective vehicle input, i.e., steering angle and
+acceleration, is computed by the lower layer controller, which
+works at a higher frequency to track the desired trajectory
+precisely.
+The cost function Jintroduced in (16) accounts for all
+the control objectives listed above as a weighted sum of the
+relevant contributions.
+J(U(k))˙ =k+Np/summationdisplay
+i=k(∥Po(i)||2
+O+∥P ℓ(i)||2
+L+∥v(i) −vdes||2
+Q
++∥1v(i)||2
+R1+∥1δ (i)||2
+R2) (16)
+where
+U(k)=
+1v(k ) 1δ(k)
+1v(k+1) 1δ(k+1)
+......
+1v(k+Np−1)1δ(k+Np−1)
+(17)
+The cost function J(U(k)), introduced in (16), is defined over
+a prediction horizon Npand depends on a sum of terms,
+each describing how the control objectives are treated. More
+specifically:
+•∥Po(τ)||Ois the weighted 2-norm related to the obstacle
+field that implements the distance-keeping functionality.
+•∥Pℓ(τ)||Lis the weighted norm of the lane field
+responsible for either the lane keeping or the lane
+changing feature.
+•∥v(τ)−vdes||Qis the weighted 2-norm of the speed
+tracking error that accounts for the achievements of the
+target speed.
+•∥1v(τ )||R1and∥1δ(τ)||R2are the weighted 2-norm of
+the two inputs increments, needed to handle the control
+action effort.
+Weight matrices O,L,Q,R1, and R2are chosen to regulate the
+desired trade-off among all the control objectives. Typically,
+a trial and error procedure is employed to tune the entries of
+such matrices. Given the cost function (16), the underlying
+optimization problem for MPC design is formulated as
+min
+U(k)J(k)
+s.t. (15)
+0≤v(i)≤vdes,i=0,..., Np−1
+−¯1vTs≤1v(i)≤¯1vTs,i=1,..., Np−1
+−¯δ≤δ(i)≤¯δ,i=0,..., Np−1
+−¯1δTs≤1δ(i)≤¯1δTs,i=1,..., Np−1
+Y0l≤y(k)≤Y0r,i=1,..., Np−1
+|1ψ(k)| ≤¯1ψ(k),i=1,..., Np−1, (18)where 1ψ(k)=ψ(k)−ψ(k−1) and ¯1ψ(k)=Tsµg/v(k ) is
+the limit of the yaw angle increment, being µthe road friction
+coefficient and gthe gravity acceleration. Notice that, since
+the optimization is performed with respect to the rates 1vand
+1δ, an implicit integral action is included in the control input
+computation. In (18), constraints on the δand1δaccount
+for physical limitations of the steering actuator; in this case
+we impose ¯δ=25◦and¯1δ=0.47◦s−1. Limitations on v
+and1vintroduce a suitable speed limitation and comfort
+performance during acceleration maneuvers. In particular,
+vdesis either the user set-speed or the velocity limit for
+the road regulations, while ¯1v=2.5 ms−2. The two latter
+constraints in (18)account for the stability of the generated
+trajectory. As to the prediction horizon, a value Np=15 is
+chosen, corresponding to a prediction time Tp=NpTs=3 s.
+Furthermore, a control horizon Nc=8 is introduced to reduce
+the number of optimization variables in the optimization
+problem. The remaining manipulable inputs are set as U(i)=
+U(Nc),i=Nc+1,..., Np−1.
+Remark 2: The control input is computed by predicting the
+relevant variables over the time horizon Np. In particular:
+•The kinematic variables of HV are obtained through (13)
+represented in the local frame of the HV.
+•The values of the center of the lane involved in the
+APF (4)are provided by the vision system, which
+updates the information at every sampling instant.
+•The prediction of the OV kinematic variables is
+obtained through a suitable discretized single-track
+model expressed in the OV coordinate.
+The control input is then computed according to the
+receding horizon principle as the first time component of the
+optimizer U∗(k)=arg min U(k)J(k). In particular, at a given
+sampling time k, the optimal vehicle speed and the steering
+angle are provided as
+v(k)=v(k−1)+Ts1v(k )
+δ(k)=δ(k−1)+Ts1δ(k) (19)
+The previously described MPC procedure allows us to
+generate the waypoints of an optimal geometric path and the
+required longitudinal speed needed to perform the requested
+driving maneuver. In particular, based on the solution to the
+optimization problem (18), at every sampling time Ts, the
+MPC path planner provides
+1) the optimal target way-point coordinate x∗(k+
+1),y∗(k+1) obtained by applying the first time
+component of the optimizer
+U∗(k)=/bracketleftbig1v∗(k)1δ∗(k)/bracketrightbig
+(20)
+to the model (13) starting from the previous step
+solution x∗(k),y∗(k);
+2) the longitudinal speed target vtarobtained as
+vtar=v∗(k+1)=v∗(k)+1v∗(k). (21)
+Remark 3: The MPC-based trajectory planner is based on
+the discretized system equations (1), i.e., the single-track
+86476 VOLUME 12, 2024
+
+--- Page 9 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+kinematic model. The only physical vehicle parameter is the
+wheelbase L, whose uncertainty is related to the production
+tolerance that is typically negligible and does not affect
+significantly the path planning procedure. Robust stability
+issues due to the vehicle uncertain parameters are managed
+by the lower-layer controller described later in Section V.
+The path way-points and the reference speed described
+above are obtained at a rate of Ts=200 ms. The low-level
+motion controller runs at a sampling time of Tm
+s=10 ms.
+Thus, the way-point and speed interpolation procedures must
+be applied to obtain a suitable trajectory reference to be
+tracked by the motion controller at the prescribed rate.
+Section IV describes the details of how trajectory generation
+is performed through way-point and speed interpolation.
+D. BEHAVIORAL LOGIC
+The transition between one driving task and another, e.g.
+between lane keeping and overtaking, depends on the
+driving environment that is detected by the on-board sensors.
+A switching logic must be is introduced to decide when the
+HV has
+•to track a target speed or regulate the relative distance
+with respect to a preceding OV;
+•to keep the center of the lane when no lane change
+maneuver is permitted;
+•to overtake in the presence of a slower preceding OV and
+the left lane is free;
+•to return after an overtaking maneuver when the right
+lane is free.
+To manage the transition among the different driving
+functions, we introduce the finite-state machine (FSM)
+reported in Fig. 5. In the FSM of Fig. 5, red ellipses are the
+FIGURE 5. Path planner finite state machine diagram.
+states of the path planner while black rectangles define the
+conditions for state switching. State transitions are described
+by quantitative switching rules. As an example, we consider
+the transition between the task Lane Keeping / Speed Tracking
+andLane Keeping / Distance Tracking. This case occurs when
+a preceding OV, e.g., a truck, is running in the same lane
+at a lower speed with respect to the HV, and overtakingis prevented because of the presence of another OV in
+the left lane. Supposing that the Lane Keeping function is
+always active, the transition Speed Tracking (ST)→Distance
+Tracking (DT) is governed by the hysteresis mechanism based
+on the relative distance dObetween HV and OV and defined
+in (22).
+mode→/braceleftigg
+ST→DT if dO<dtar−dm1
+DT→ST if dO>dtar+dm2(22)
+where dtaris a suitable target distance that depends on
+the relative speed between HV and OV and dm1,dm2
+are appropriate hysteresis thresholds introduced to avoid
+chattering during the switching ST ↔DT.
+On the basis of the selected driving task, the MPC con-
+troller formulation described in (18)must be set accordingly.
+In this regard, the contributions in the cost function (16)
+should be suitably chosen. As an example, during Lane
+Keeping / Speed Tracking task, the cost function (16)must
+include the terms described below.
+1)∥Pl∥L, that accounts for the lane keeping task and its
+relevant field function is obtained as in (3)and(5);
+2)∥v−vdes∥Q, that describe the speed tracking perfor-
+mance;
+3)∥1v∥ R1and∥1δ∥R2, that penalize the input rates to
+obtain smooth control actions.
+The weight matrices L,Q,R1, and R2, are chosen to set
+the desired performance trade-off. In general, for each task
+described in the FSM of Fig. 5there is the corresponding
+formulation of the MPC problem.
+IV. PATH INTERPOLATION AND TRAJECTORY
+GENERATION
+As described in Section III, the output of the MPC
+path-planner is the one-step-ahead prediction of the path
+way-point and a constant reference speed value vref, both
+generated at the planner sampling time Ts=200 ms while
+the low-level motion controller is running at Tm
+s=10 ms.
+This means that between every run of the path-planner
+there are twenty runs of the motion control. Thus, to obtain
+effective and smooth path tracking, a suitable interpolation
+procedure is implemented to generate twenty trajectory
+target points between the present vehicle position and speed
+and those provided by the path-planner. The following
+Subsections describe how desired speed and path way-points
+are interpolated.
+A. SPEED REFERENCE INTERPOLATION
+The speed reference sequence vreffor the motion controller
+is obtained through a linear interpolation between the speed
+measured at the present planner sample time v0and the target
+value vtaras described in (23).
+vref(t)=/integraldisplayt
+01
+Ts(vdes−v0)dτ,vref(0)=v0 (23)
+VOLUME 12, 2024 86477
+
+--- Page 10 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+B. WAY-POINTS INTERPOLATION
+The use of a linear approach for target position interpo-
+lation leads to non-smooth trajectories that significantly
+affect the comfort performance of the resulting automated
+driving system. In such a context, polynomial curves are
+a more appropriate solution to obtain regular paths to be
+tracked by the motion controller. In particular, Bezier curves
+are demonstrated to be an effective tool for trajectory
+computation (see, e.g., [31] and [32]). In fact, such an
+approach based on Bernstein polynomial basis can generate
+the needed trajectory reference guaranteeing smooth sharp
+borders and perfect fitting of starting and ending points. As a
+matter of fact, the Bezier method applied for interpolating
+the way-points (x∗(k),y∗(k)) and (x∗(k+1),y∗(k+1)),
+see (20), may lead to non-smooth solutions. Thus, to improve
+the smoothness properties of the interpolated trajectory,
+we compute, at first, an interpolated trajectory that includes
+nT≤Npway-points obtained as the vehicle positions (x∗(k+
+i),y∗(k+i)),i=0,..., nT≤Npwithin the prediction horizon.
+Then, as reference trajectory, we consider the first tract that
+includes the first 20 samples that belong to the obtained curve.
+A Bezier curve of order nTthat interpolates nT+1 way-points
+is described by the parametric expression introduced in (24).
+/bracketleftbigg˜x(υ)
+˜y(υ)/bracketrightbigg
+=nT/summationdisplay
+i=0/parenleftbiggnT
+i/parenrightbigg
+υi(1−υ)nT−i/bracketleftbiggx∗(k+i)
+y∗(k+i)/bracketrightbigg
+(24)
+In(24), υ=t
+Ts∈[0,1] is the time-dependent parameter
+and (˜x(υ),˜y(υ)) are the coordinates of the generic point
+of the curve. In particular, ( ˜x(0),˜y(0))=(x∗(k),y∗(k))
+and (˜x(1),˜y(1))=(x∗(k+nT),y∗(k+nT)). In general, the
+coordinates of the jthpoint of the curve is given by
+(˜x(j
+nT−1),˜y(j
+nT−1)).
+As already observed, the trajectory to be tracked
+is obtained by computingTs
+Tms=20 points of the
+curve (24) between ( ˜x(0),˜y(0)) and ( ˜x(1
+nT−1),˜y(1
+nT−1)) as
+(˜x(κ
+20(n T−1)),˜y(κ
+20(n T−1))),κ=1,..., 20.
+Remark 4: It is well known that the Bezier curves do
+not cross the way-point employed for its definition (24),
+except for the first and the last., see e.g. [31]. However,
+since, in general, small steering angles and almost constant
+speed values characterize the considered application, the
+difference between the actual target and its approximation in
+the interpolating Bezier curve is usually negligible. In Fig. 6,
+we compare the trajectory target computed by the planner
+and the approximated ones, showing the small difference
+between the real and interpolated targets.
+The high-level controller must provide the yaw rate
+reference ˙ψrefto the motion controller as defined in (25)
+˙ψref=vx
+ρ(25)
+where
+ρ(υ)=˙˜x(υ)·¨˜y(υ)−˙˜y(υ)·¨˜x(υ)
+(˙˜x(υ)2+˙˜y(υ)2)3
+2(26)
+FIGURE 6. Bezier interpolating curve. In red are the trajectory points from
+the high-level MPC controller and, in blue, the Bezier interpolating curve.
+The data is collected from the simulation example described in Section VI.
+is the road curvature (see, e.g., [33]), computed by evaluating
+the first and the second derivative of (24) with respect to
+parameter υ. From ˙ψref, we get
+ψref(t)=/integraldisplayt
+0˙ψref(τ)dτ, ψ ref(0)=ψ0, (27)
+where ψ0is the yaw angle measured at the present planner
+sample time.
+V. LOW-LEVEL CONTROLLER
+The low-level controller aims to regulate vehicle dynamics to
+track the reference trajectory computed at the higher level.
+The longitudinal behavior is described by the kinematic
+relationship between the desired acceleration adesto be
+tracked and the actual longitudinal speed vxis (see, e.g., [1])
+Glong(s)=vx(s)
+ades(s)=1
+s(1+τs). (28)
+In (28), the time constant τdepends on the characteristic
+of the vehicle driveline and on the dynamics of the actuator
+devices, such as the throttle body, the engine and brake circuit,
+see e.g., [1] for details. The lateral dynamics are accounted for
+by considering the single-track state equation (30)where the
+state variables are chosen as the lateral speed vy, the yaw rate
+˙ψ, the lateral deviation with respect to the trajectory center
+computed by the path planner
+ey=(˜y−y)cos(ψ ref)−(˜x−x)sin(ψ ref) (29)
+and the yaw rate deviation defined as e˙ψ=˙ψref−˙ψ. The
+manipulable input is the steering angle δwhile the yaw rate
+reference ˙ψrefacts as a measurable disturbance.
+
+˙vy
+¨ψ
+˙ey
+˙e˙ψ
+=A
+vy
+˙ψ
+ey
+e˙ψ
++B1δ+B2˙ψdes (30)
+86478 VOLUME 12, 2024
+
+--- Page 11 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+where
+A=
+−cf+cr
+mvx−vx−cflf−crlr
+mvx0 0
+crlr−cflf
+Jψvx−crl2r+cfl2
+f
+Jψvx0 0
+1 0 0 vx
+0 1 0 0
+(31)
+and
+B1=
+cf
+m
+0
+cflf
+Jψ
+0
+,B2=
+0
+0
+0
+1
+. (32)
+In (30), the symbols cfandcrrepresent the front and the
+rear cornering stiffness coefficients, mandJψare the vehicle
+mass and the yaw moment of inertia respectively, while lf
+andlrare the front and the rear semi-wheelbase. Since in the
+considered autonomous driving application, the longitudinal
+velocity vxis varying during the considered maneuvers,
+it results that the longitudinal and the lateral dynamics
+described by (28) and(30) are coupled. In this regard,
+a combined longitudinal/lateral approach to the vehicle
+dynamics control can be used. Several solutions have been
+employed in such a context, leading to a nonlinear controller.
+For example, MPC methodologies are used in [18]and[22],
+while sliding mode approaches are considered, e.g., in [34].
+Linear Parameter Varying solutions are discussed in [35].
+In this paper, a robust decentralized approach is introduced to
+obtain a linear control architecture. In particular, we consider
+a decoupled longitudinal controller based on (28)and a robust
+lateral controller based on (30)considering fixed the value
+ofvxand, at the same time, imposing robust stability in the
+presence of variations of vxand other relevant parameters of
+model (30).
+A. LONGITUDINAL CONTROLLER
+The longitudinal controller is represented by the one degree of
+freedom architecture reported in Fig. 7and aims at regulating
+the longitudinal velocity vxto track the reference speed
+vrefprovided by the path planner. The control input is ades,
+which is realized by a suitable regulation of the throttle and
+brake actuators that is not described here. The design of
+FIGURE 7. Longitudinal control architecture.
+the cascade controller Clong(s) is performed considering the
+plant transfer function Glong(s) with the nominal value of
+the delay τ=500 ms. The design procedure is developed
+in the frequency domain through loop-shaping techniques by
+imposing robust stability in the presence of a variation of the
+time constant τwithin ±10% of its nominal value, null steady
+state tracking error for a linear ramp velocity reference signaland nominal closed-loop bandwidth of about 15 rad/s. The
+resulting Nichols diagram is reported in Fig. 8.
+FIGURE 8. Nichols diagram of the longitudinal control loop transfer
+function Llong=ClongGlong. We compare the nominal loop transfer
+function (blue) with the uncertain functions (gray), where τhas variations
+within ±10% of its nominal value. The red dashed line represents the
+−3 dB constant magnitude locus for the complementary sensitivity
+function, and ωbis the nominal closed-loop transfer function bandwidth.
+B. LATERAL CONTROLLER
+The lateral controller aims at minimizing the lateral deviation
+eyduring lane-keeping and overtaking maneuvers. Robust
+stability must also be guaranteed in the presence of longi-
+tudinal speed and relevant parameter variations. The design
+is performed by considering the transfer functions Gδ,ey(s)
+andGδ,˙ψ(s) that describe the relationship between the input
+δand the outputs of interest eyand˙ψobtained from the
+model (30) with the nominal value of the longitudinal velocity
+vx=110 km/h and the other physical parameters set to the
+nominal values reported in Table 1.
+TABLE 1. Lateral model parameters nominal values.
+To account for perturbation of the physical parameters
+of the lateral dynamics model (30), we consider that the
+longitudinal speed vxvaries between 80 and 130 km/h, i.e.,
+the range of velocities allowed in typical highway scenarios.
+Moreover, we suppose that the relevant parameters, i.e., the
+cornering stiffness coefficients cfandcrand the vehicle mass
+m, are affected by an uncertainty of 10%. The perturbation on
+the mass induces a variation on the polar moment of inertia
+VOLUME 12, 2024 86479
+
+--- Page 12 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+Jψthat can be computed, as explained in [36], supposing that
+the 30% is concentrated on the front axle and the 70% on the
+rear axle.
+FIGURE 9. Lateral control architecture.
+FIGURE 10. Nichols diagram of the lateral control inner loop transfer
+function L˙ψ. We compare the nominal loop transfer function (blue) with
+the uncertain parameter functions (gray). The red dashed line represents
+the−3 dB constant magnitude locus for the complementary sensitivity
+function, and ωbis the nominal closed-loop transfer function bandwidth.
+The nested architecture reported in Fig. 9, where
+G˙ψ,ey(s)=Gδ,ey(s)·G−1
+δ,˙ψ(s) and ey,ref=0, implements
+the lateral controller. The lateral control design consists
+of a two-step procedure. In the first step, the inner loop
+controller C˙ψ
+lat(s) is obtained to pre-stabilize the yaw rate
+dynamics described by Gδ,˙ψ(s). The second step is in charge
+of guaranteeing robust stability of the overall architecture
+through the controller Cy
+lat(s). A loop-shaping procedure
+is employed to design the inner loop controller C˙ψ
+lat(s) to
+obtain stability in the presence of the described parameter
+perturbations and imposing a closed loop bandwidth greater
+than the one of the outer loop. Fig. 10displays the obtained
+uncertainty bounds of the open loop function L˙ψ(s)=
+C˙ψ
+lat(s)Gδ,˙ψ(s) in the Nichols plane showing the achievement
+of the design objectives.
+The outer loop controller Cy
+lat(s) is designed to obtain
+robust stability of the lateral control system introduced in
+Fig. 9. An H∞approach is adopted considering a planttransfer function
+Gp
+lat(s)=Q˙ψ(s)G ˙ψ,ey(s) (33)
+where
+Q˙ψ(s)=Gδ,˙ψ(s)
+1+Gδ,˙ψ(s)C˙ψ
+lat(s)
+To account for the parameter variation in the control
+design, we introduce the unstructured multiplicative uncer-
+tainty described by 1m,lat
+1m,lat(s)=˜Gp
+lat(s)−Gp
+lat(s)
+Gp
+lat(s)(34)
+where ˜Gp
+lat(s) represents the perturbed plant transfer function.
+The multiplicative uncertainty (34)induces a multiplicative
+model set of the form
+G(Gp
+lat,(s),0 δ,ey)
+=/braceleftbig
+Gp
+lat(s)(1+1m,lat(s)): |1 m,lat(jω)| ≤ |0 m,lat(jω)|/bracerightbig
+.
+(35)
+Such a model set is computed through uniform gridding
+of the considered vehicle parameter values and is reported
+in Fig. 11. As overbound of the multiplicative uncertainty
+1m,lat(s) the low order real rational function 0m,lat(s) reported
+in(36), is employed.
+0m,lat(s)=0.22(s2+42.42s +900)
+s2+28.59s +408.9. (36)
+The closed-loop performance is described by the nominal
+FIGURE 11. Comparison of the multiplicative uncertain functions
+magnitude 1m,lat (s) (gray) with the magnitude of the over-bounding
+function 0m,lat (s) (red).
+sensitivity function Slat,˙ψ(s) of the lateral deviation eywith
+respect to the yaw rate reference disturbance Slat,˙ψ(s) and
+86480 VOLUME 12, 2024
+
+--- Page 13 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+the closed loop complementary sensitivity function Tlat(s),
+defined as
+Slat,˙ψ(s)=Gδ,˙ψ(s)G˙ψ,ey(s)C˙ψ
+lat(s)
+1+Gδ,˙ψ(s)/parenleftig
+G˙ψ,ey(s)Cy
+lat(s)+C˙ψ
+lat(s)/parenrightig
+Tlat(s)=Gp
+lat(s)Cy
+lat(s)
+1+Gp
+lat(s)Cy
+lat(s). (37)
+AnH∞control synthesis method is adopted to handle
+robust stability in the presence of the model uncertainty
+described in (35) and, simultaneously, disturbance rejection
+and bandwidth requirements. More specifically, the lateral
+controller transfer function Cy
+lat(s) is designed through the
+following H∞optimization problem
+Cy
+lat(s)=arg min
+∥Tlat(s)0 m,lat(s)∥∞<1∥W−1
+S(s)Slat,˙ψ(s)∥∞,(38)
+where
+WS(s)=22s
+s2+0.0707 s+0.0025(39)
+represents a proper real rational transfer function that
+describes the desired requirements on Snom
+lat,˙ψ(s) in terms of
+closed-loop bandwidth and steady-state disturbance rejection
+foreywhen ˙ψdesis a step function The controller Cy
+lat(s)
+is computed through the MatLab function hinfopt, and
+a model order reduction procedure is performed before its
+implementation. We have implemented all the controllers
+transfer functions, i.e., Clong,C˙ψ
+lat, and Cy
+lat, by discretization
+using the Tustin method and sampling time Tm
+s.
+VI. SIMULATION RESULTS
+In this section, we demonstrate the efficiency of the proposed
+approach through a simulation example.
+A. EXECUTION ENVIRONMENT
+The simulation is performed using MatLab and Simulink
+environments. Specifically, we utilized the Automated Driv-
+ing Toolbox to simulate the highway road and the Vehicle
+Dynamics Blockset to describe the vehicle dynamics. The
+underlying MPC optimization problem was solved using the
+MatLab function fmincon, with a maximum peak of 0.17 s,
+using a computer equipped with 16 GB of RAM and an Intel
+i7-12700H processor.
+B. COMPARISON AMONG CONTROL TECHNIQUE
+To show the effectiveness of the proposed two-layer control
+architecture, denoted here as MPC-H ∞, we compare its
+performance with respect to
+•a single-layer architecture based on a nonlinear
+single-layer MPC controller indicated as MPC-SL;
+•a two-layer architecture denoted as MPC-LQ where a
+standard LQ control law as described in [1] replaces
+the lateral controller introduced in sub-section V-Band
+the path planner is the same MPC APF based controller
+described in subsection III-C.In particular, the architecture MPC-SL embeds both the
+path planner and the motion controller and provides the
+required inputs directly to the HV. The design is performed by
+considering the dynamical single tack model (30)augmented
+by the longitudinal dynamics described by (28). As a
+consequence, the vehicle model becomes nonlinear. The
+underlying optimization problem employed to compute the
+control move is similar to (16), where the same APFs
+account for lateral and longitudinal maneuver performance.
+The optimization is performed with respect to the steering
+angle δand the vehicle acceleration a. Constraints on the
+lateral acceleration ayare also included to guarantee closed-
+loop stability. Because of the nonlinear characteristics of the
+optimization problem, a sampling time of 100 ms is chosen
+for such MPC-SL architecture.
+As to the two-layer MPC-LQ architecture, the LQ con-
+troller is designed by considering the cost function introduced
+in(40)that aims at minimizing the lateral and the yaw rate
+deviations eyande˙ψ
+JLQ=/integraldisplay∞
+0(qye2
+y(τ)+q˙ψe2
+˙ψ(τ)+rδδ2(τ)dτ) (40)
+where qy,q˙ψandrδare suitable positive weights. To improve
+the nominal steady-state performance of ey, a feed-forward
+contribution based on the knowledge of ˙ψdesis added as an
+additional control action of the LQ controller.
+C. MANEUVERS DESCRIPTION
+We have designed a 3.8 km long three-lane highway road
+scenario to simulate all possible situations that may occur in
+standard conditions. The width of each lane is 3.65 m. Fig. 12
+shows the shape of the considered scenario. The simulation
+is composed of three consecutive sections to test different
+driving situations.
+FIGURE 12. Road profile of the testing scenario. The simulation starts
+from the top-left vertex of the path.
+In the first section, the road path bends to the right with
+a minimum radius of 500 m, the minimum curvature radius
+VOLUME 12, 2024 86481
+
+--- Page 14 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+FIGURE 13. Vehicle positions during the first section of the simulation.
+The orange vehicle moves 70 km/h ahead of the HV (blue). The yellow
+vehicle is preventing the overtaking maneuver.
+allowed on Italian Highways. The HV starts on the rightmost
+lane at 100 km/h. Another vehicle is placed 90 m ahead
+on the same lane, moving at 70 km/h. On the second lane,
+a vehicle moves between 75 and 80 km/h, preventing the HV
+from performing the overtaking maneuver. Fig. 13shows the
+vehicles’ positions in this simulation stage. Until the central
+lane is empty, the HV has to follow the preceding vehicle,
+regulating the speed to maintain the right safety distance
+while traveling on the bending path. The objective of this first
+section of the path is to demonstrate the ability of the HV
+to perform the lane-keeping maneuver together with distance
+tracking from a slower vehicle ahead.
+The HV can start the overtaking maneuver as soon as the
+vehicle in the second lane leaves the space. It is worth noting
+that the vehicle on the second lane is moving at 80 km/h,
+while the HV objective speed is set at 120 km/h. Thus, this
+second section of the path leads to a double overtaking, with
+the HV moving to the third and leftmost lane. The path section
+is completed when the HV vehicle moves correctly to the
+third lane, where a vehicle moving at 100 km/h is moving
+ahead. We show a snapshot of the vehicle positions during
+this stage in Fig. 14. In this second path section, we test the
+ability of the controlled system to perform the lane-change
+maneuver while maintaining the distance from preceding
+vehicles.
+Finally, in the last section of the path, the preceding
+vehicle on the third lane moves to the second one. This
+allows the HV vehicle to reach the objective speed, complete
+the overtaking maneuver, and return to the second lane.
+The second lane is free till the end of the simulation, while the
+rightmost is still occupied by a truck moving at 70 km/h (see
+Fig.15). As soon as the truck is overtaken, the HV moves
+to the first lane. Here, we demonstrate the speed-tracking
+ability while performing lane-change and lane-keeping
+maneuvers.
+In such a driving scenario, the HV lateral performance
+are evaluated considering the position error εy
+ssduring steady
+state LK operation and the maximum lateral deviation εy
+max
+in transient phases such as overtaking maneuvers. Similar
+indices are considered for distance tracking maneuvers, i.e.,
+FIGURE 14. Vehicle positions during the second section of the simulation.
+The HV (blue) overtakes the orange car in the first lane. On the third lane,
+the distance from the purple vehicle is enough to begin the second
+overtaking maneuver of the yellow car.
+FIGURE 15. Vehicle positions during the final section of the simulation.
+The HV (blue) moves on the second lane, while a slower truck (green)
+travels on the rightmost lane.
+εx
+ssandεx
+maxto account for longitudinal position errors at
+steady state and during the transient of the approaching
+maneuver respectively. Velocity tracking errors εvxssandεvxmax
+are evaluated as well.
+D. SIMULATION RESULTS IN NOMINAL CONDITIONS
+This simulation is performed considering the nominal values
+of the vehicle parameters.
+Fig. 16 shows the vehicle lateral position with respect to
+the rightmost lane border along the considered 3.8 km path.
+The simulation starts with the vehicle not exactly centered
+in the lane, leading to small initial oscillations. The first
+section of the path, when the HV performs the distance-
+keeping maneuver, is about 900 m long. After this, the double
+overtaking maneuver is performed. After 1050 m from the
+starting point of the simulation, the HV moves to the second
+lane to perform the first overtaking and immediately starts
+the successive overtaking maneuver. The second section ends
+when the HV is 1600 m from the initial point. At last, the HV
+performs the final returning maneuver to the rightmost free
+lane. In Fig. 16, we can observe quite a good performance of
+the lateral behavior of the HV. Let us consider the MPC-H ∞
+HV. We see that
+86482 VOLUME 12, 2024
+
+--- Page 15 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+FIGURE 16. Vehicle lateral position along the designed scenario, together with the lanes limits (thick black) and center
+(dash-dotted). The dark red, blue, and green lines show the MPC-H ∞, MPC-SL, and MPC-LQ nominal trajectories, respectively.
+Light color lines are the trajectories for uncertain vehicle parameters.
+FIGURE 17. Steering angle δalong the trajectory. The dark red, blue, and green lines show the MPC-H ∞, MPC-SL, and MPC-LQ
+nominal inputs, respectively. Light color lines are the inputs for uncertain vehicle parameters.
+1) in the first phase, when a slower car ahead induces
+a speed reduction of about 30 km/h, the HV can
+effectively keep the center of the lane in the right bend;
+2) the lateral position error is about 4 cm from the lane
+center in all the steady state situations;
+3) the maximum spatial overshoot is less than 3% with
+respect to the lane width during the lane change
+transient as happens at about 3000 m from the starting
+point when the maneuver is performed at 120 km/h
+within 200 m.
+The steering angle δemployed to carry out the considered
+driving maneuvers is reported in Fig. 17. The plot of δshows
+an even course characterized by small values, i.e., less than
+0.5◦that lead to smooth trajectories that ensure passengers’
+comfort, especially during the bend of the first 700 m of the
+road.The MPC-LQ and MPC-H ∞HV trajectories almost
+overlap. It is worth noting that these approaches differ only
+for the low-level lateral controller. The LQ controller is tuned
+to get the best performances along the scenario, where the
+HV speed changes from 80 km/h in the first part to 120 km/h
+in the last. Thus, the LQ controller has been designed by
+linearizing the vehicle dynamic around the average speed
+equal to 100 km/h. As the speed increases, the MPC-LQ HV
+lateral behavior has worse performances than the MPC-H ∞
+HV, leading to less damped oscillations in the final first lane
+return (see Fig. 16).
+The MPC-SL controller shows comparable nominal
+performances to the MPC-H ∞HV. Due to the higher
+computational effort required by the MPC-SL approach,
+we have set the Hcand Hphorizons equal in both the
+MPC approaches. Through the same computer and numerical
+VOLUME 12, 2024 86483
+
+--- Page 16 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+FIGURE 18. HV distance from preceding car during the distance-keeping
+maneuver. Comparison between the two vehicles’ distance and the safety
+distance (black) computed as a function of the preceding vehicle speed.
+The dark red and blue lines show the MPC-H ∞and, MPC-SL nominal
+trajectories, respectively. Light color lines are the trajectories for
+uncertain vehicle parameters.
+FIGURE 19. Comparison between the HV and slower vehicle ahead (black)
+velocities during the distance-keeping maneuver. The dark red and blue
+lines show the MPC-H ∞and, MPC-SL nominal trajectories, respectively.
+Light color lines are the trajectories for uncertain vehicle parameters.
+solver, the MPC-SL problem is solved in 0.5 s, almost two
+times more than the proposed MPC path planner. Moreover,
+it is worth noting that the solver time is six times larger
+than the MPC-SL sampling time, making this approach
+not applicable as it is to a real vehicle. The MPC-SL
+controlled A V shows slightly different longitudinal dynamics.
+In fact, from Fig. 16, we see that the MPC-SL HV vehicle
+performs the lane change maneuvers at different times with
+respect to the MPC-H ∞HV. However, the more considerable
+longitudinal difference is only 130 m in performing the lane
+change. The MPC-SL shows good performances in the lateral
+behavior since the maximum overshoot during the lane
+change is 1.5% of the lane width. Fig. 18compares therelative distance between HV and the preceding vehicle with
+the target value introduced in (7)and proves the achieved
+good tracking performance. Similar accuracy is obtained
+while tracking the preceding vehicle speed, as shown in
+Fig.19. The plots do not show the MPC-LQ trajectory since
+it is equal to the one from the MPC-H ∞HV. The MPC-H ∞
+approaches the preceding vehicle with a smoother trajectory.
+The desired safety distance is reached in 15 s by the MPC-H ∞
+HV and in 22 s by the MPC-SL HV. The MPC-SL HV shows
+large speed oscillations approaching the preceding slower
+vehicle, leading to reduced comfort for the HV passengers.
+To evaluate the comfort performance, Fig. 20shows the
+G-G diagram of the lateral and longitudinal accelerations
+obtained along the simulation. The maximum longitudinal
+acceleration achieved by the MPC-H ∞HV is 1.5 ms−2, while
+the lateral acceleration is always less than 0.25 ms−2. The
+lateral acceleration evaluated for the MPC-SL HV reaches
+higher values, up to 0.6 ms−2, often in combination of large
+longitudinal acceleration phases. On the overall, user comfort
+is achieved by both MPC-H ∞and MPC-SL HVs throughout
+the simulation since the equivalent acceleration is less than
+the preset boundary of 2.5 ms−2. An animation video of the
+simulation is available online [37].
+FIGURE 20. G-G diagram showing the set of longitudinal and lateral
+accelerations estimated during the simulation. The black circle represents
+the comfort region. The dark red and blue dots show the MPC-H ∞and
+MPC-SL nominal G-G values, respectively. Light color lines are the G-G
+values for uncertain vehicle parameters.
+E. CONTROL SENSITIVITY ANALYSIS
+In this subsection, we perform a sensitivity analysis to test
+the robustness properties of the proposed control strategy
+in the presence of vehicle parameter variations. Through
+uniform gridding of the vehicle parameter ranges described
+in Subsection V-B, we have performed 100 simulations to
+evaluate the control performances in the proposed highway
+scenario. The robustness analysis for the MPC-LQ-controlled
+autonomous vehicle led to unstable behavior, even for small
+vehicle parameter variations.
+86484 VOLUME 12, 2024
+
+--- Page 17 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+TABLE 2. Comparison of the tested HV control techniques performances along the considered scenario.
+In Fig. 16, we show the vehicle’s lateral position with
+respect to the rightmost lane. The trajectories in all the tests
+almost match the nominal performance. The MPC-H ∞HV
+shows lateral displacement trajectories within a range of
+18 cm during the lane change maneuvers, while the MPC-SL
+HV has larger lateral displacement, up to 40 cm. In steady-
+state conditions, the vehicle parameter uncertainty leads to
+a lateral error up to 5 mm and 7 mm with respect to the
+nominal trajectory while considering, respectively, the MPC-
+H∞and MPC-SL controller. The larger difference in the
+trajectory is due to the longitudinal behavior since variations
+in the vehicle mass are responsible for different accelerations
+when the same longitudinal input is applied. This difference
+is evident in Fig. 16after 2300 m from the starting point of
+the simulation when the HV performs the return to the second
+lane.
+The controller also shows robust performances during the
+distance-keeping maneuver. From Fig. 18, we see that the
+controller keeps the target distance from the preceding car
+despite uncertain parameters. On average, the perturbed
+vehicle is farther with respect to the nominal HV: the
+maximum error in the relative distance is about 5 cm for both
+approaches. User comfort is preserved as well. In fact, in the
+G-G plot reported in Fig. 20, the uncertainty still ensures the
+comfort performance. The differences are due to the low-level
+controller input when applied to cars with different masses
+and moments of inertia. In the worst case, the longitudinal
+acceleration reaches 1.9 ms−2, while the lateral acceleration
+is less than 0.3 ms−2for the MPC-H ∞HV. The effects of the
+uncertain parameters affects the G-G plot for the MPC-SL
+HV as well. In this case, the lateral acceleration reaches
+1 ms−2, while the longitudinal acceleration is comparable
+to the MPC-SL controlled vehicle. The uncertain parameter
+values lead to larger activity for the steering angle δ(see
+Fig.17), especially in the bending section of the path, where
+the input values are within a 0.8 degrees range. However,
+it is worth noting that the applied input allows the HV to
+follow the trajectory (Fig. 16) and ensure passengers’ comfort
+performance (Fig. 20).
+The overall comparison between the three approaches is
+reported in Table 2.
+VII. CONCLUSION
+We presented an original approach for automated driving
+in highway scenarios using a two-layer control architecture.
+The higher level includes a planner that computes the
+road path through an MPC algorithm that exploits a
+simplified kinematic model of the vehicle and suitableAPFs combinations to handle the most relevant maneuvers
+of highway driving effectively. The motion controller of
+the lower level is implemented through a decentralized
+architecture to regulate the vehicle longitudinal and lateral
+dynamics for the required trajectory tracking. Robust syn-
+thesis methods of both longitudinal and lateral controllers
+allow the overall automated driving architecture to account
+for plant uncertainty. A complete simulation setting that
+includes all the relevant highway driving maneuvers such as
+lane keeping, distance end speed-tracking, overtaking, and
+returning has been built to evaluate the achieved performance.
+In particular, a sensitivity analysis has been carried out in
+the presence of perturbation of the vehicle model relevant
+parameters. The results show that the introduced approach
+achieves quite good robust performance in all the maneuvers
+considered regarding path tracking, accuracy, and comfort.
+The effectiveness of the proposed approach is shown by
+comparing the performance obtained with a single-level
+architecture based on an MPC-APF strategy and a two-layer
+structure that includes an LQ strategy as a motion controller.
+REFERENCES
+[1] R. Rajamani, Vehicle Dynamics and Control. New York, NY, USA:
+Springer, 2012.
+[2] B. Paden, M. Cáp, S. Z. Yong, D. Yershov, and E. Frazzoli, ‘‘A survey of
+motion planning and control techniques for self-driving urban vehicles,’’
+IEEE Trans. Intell. Vehicles, vol. 1, no. 1, pp. 33–55, Mar. 2016.
+[3]Waymo. (21) Autopilot AI. Accessed: Jun. 19, 2024. [Online]. Available:
+https://waymo.com/tech/
+[4]Tesla. (21) Former Google Self-Driving Car Project. Accessed: Jun. 19,
+2024. [Online]. Available: https://www.tesla.com/autopilotAI
+[5]Audi. (21) Audi Autonomous Driving. Accessed: Jun. 19, 2024. [Online].
+Available: https://www.audi.com/en/innovation/future-technology/auto
+nomous-driving.html
+[6]Mercedes-Benz. (21) Mercedes-Benz Autonomous Driving. Accessed:
+Jun. 19, 2024. [Online]. Available: https://group.mercedes-benz.com/
+innovation/product-innovation/autonomous-driving/
+[7]Stellantis. (23) Stellantis Autonomous Driving. Accessed: Jun. 19, 2024.
+[Online]. Available: https://www.stellantis.com/en/technology/autono
+mous-driving
+[8] O. Khatib, ‘‘Real-time obstacle avoidance for manipulators and mobile
+robots,’’ in Proc. IEEE Int. Conf. Robot. Autom., vol. 2, Mar. 1985,
+pp. 500–505.
+[9] P. B. Kumar, H. Rawat, and D. R. Parhi, ‘‘Path planning of humanoids
+based on artificial potential field method in unknown environments,’’
+Expert Syst., vol. 36, no. 2, Apr. 2019, Art. no. e12360.
+[10] X. Tang, T. Zhou, J. Yu, J. Wang, and Y. Su, ‘‘An improved fusion algorithm
+of path planning for automated guided vehicle in storage system,’’ in Proc.
+IEEE 4th Int. Conf. Comput. Commun. (ICCC), Dec. 2018, pp. 510–514.
+[11] L. Cheng, C. Liu, and B. Yan, ‘‘Improved hierarchical A-star algorithm for
+optimal parking path planning of the large parking lot,’’ in Proc. IEEE Int.
+Conf. Inf. Autom. (ICIA), Jul. 2014, pp. 695–698.
+[12] S. Sedighi, D.-V. Nguyen, and K.-D. Kuhnert, ‘‘Guided hybrid A-star path
+planning algorithm for valet parking applications,’’ in Proc. 5th Int. Conf.
+Control, Autom. Robot. (ICCAR), Apr. 2019, pp. 570–575.
+VOLUME 12, 2024 86485
+
+--- Page 18 ---
+M. Canale, V. Razza: Automated Driving Control in Highway Scenarios
+[13] Y. Kuwata, G. A. Fiore, J. Teo, E. Frazzoli, and J. P. How, ‘‘Motion
+planning for urban driving using RRT,’’ in Proc. IEEE/RSJ Int. Conf. Intell.
+Robots Syst., Sep. 2008, pp. 1681–1686.
+[14] S. Karaman and E. Frazzoli, ‘‘Sampling-based algorithms for optimal
+motion planning,’’ Int. J. Robot. Res. , vol. 30, no. 7, pp. 846–894,
+Jun. 2011.
+[15] Q. Shi, J. Zhao, A. E. Kamel, and I. Lopez-Juarez, ‘‘MPC based vehicular
+trajectory planning in structured environment,’’ IEEE Access, vol. 9,
+pp. 21998–22013, 2021.
+[16] N. Noto, H. Okuda, Y. Tazaki, and T. Suzuki, ‘‘Steering assisting system
+for obstacle avoidance based on personalized potential field,’’ in Proc. 15th
+Int. IEEE Conf. Intell. Transp. Syst., Sep. 2012, pp. 1702–1707.
+[17] Z. Huang, Q. Wu, J. Ma, and S. Fan, ‘‘An APF and MPC combined collab-
+orative driving controller using vehicular communication technologies,’’
+Chaos, Solitons Fractals, vol. 89, pp. 232–242, Aug. 2016.
+[18] Y. Rasekhipour, A. Khajepour, S.-K. Chen, and B. Litkouhi, ‘‘A potential
+field-based model predictive path-planning controller for autonomous road
+vehicles,’’ IEEE Trans. Intell. Transp. Syst. , vol. 18, no. 5, pp. 1255–1267,
+May 2017.
+[19] J. Ji, A. Khajepour, W. W. Melek, and Y. Huang, ‘‘Path planning
+and tracking for vehicle collision avoidance based on model predictive
+control with multiconstraints,’’ IEEE Trans. Veh. Technol., vol. 66, no. 2,
+pp. 952–964, Feb. 2017.
+[20] Z. Qi, T. Wang, J. Chen, D. Narang, Y. Wang, and H. Yang, ‘‘Learning-
+based path planning and predictive control for autonomous vehicles
+with low-cost positioning,’’ IEEE Trans. Intell. Vehicles, vol. 8, no. 2,
+pp. 1093–1104, Feb. 2023.
+[21] H. Li, W. Liu, C. Yang, W. Wang, T. Qie, and C. Xiang, ‘‘An
+optimization-based path planning approach for autonomous vehicles using
+the DynEFWA-artificial potential field,’’ IEEE Trans. Intell. Vehicles,
+vol. 7, no. 2, pp. 263–272, Jun. 2022.
+[22] J. Nilsson, P. Falcone, M. Ali, and J. Sjöberg, ‘‘Receding horizon maneuver
+generation for automated highway driving,’’ Control Eng. Pract., vol. 41,
+pp. 124–133, Aug. 2015.
+[23] M. Nezami, H. S. Abbas, N. T. Nguyen, and G. Schildbach, ‘‘Robust
+tube-based LPV-MPC for autonomous lane keeping,’’ in Proc. 5th IFAC
+Workshop Linear Parameter Varying Syst. (LPVS), 2022, vol. 55, no. 35,
+pp. 103–108.
+[24] T. Brüdigam, M. Olbrich, D. Wollherr, and M. Leibold, ‘‘Stochastic model
+predictive control with a safety guarantee for automated driving,’’ IEEE
+Trans. Intell. Vehicles, vol. 8, no. 1, pp. 22–36, Jan. 2023.
+[25] M. Li, H. Cao, G. Li, S. Zhao, X. Song, Y. Chen, and D. Cao, ‘‘A two-
+layer potential-field-driven model predictive shared control towards driver-
+automation cooperation,’’ IEEE Trans. Intell. Transp. Syst., vol. 23, no. 5,
+pp. 4415–4431, May 2022.
+[26] Z. He, L. Nie, Z. Yin, and S. Huang, ‘‘A two-layer controller for lateral
+path tracking control of autonomous vehicles,’’ Sensors, vol. 20, no. 13,
+p. 3689, Jul. 2020.
+[27] M. Canale, A. E. Belvedere, and V. Razza, ‘‘Autonomous driving in
+highway scenarios through artificial potential fields and model predictive
+control,’’ in Proc. Eur. Control Conf. (ECC), Jul. 2022, pp. 8–13.
+[28] Taxonomy and Definitions for Terms Related to Driving Automation
+Systems for On-Road Motor Vehicles, SAE Int., Warrendale, PA, USA,
+2021.
+[29] Bosch. (21) Bosch Autonomous Driving. Accessed: Jun. 19, 2024.
+[Online]. Available: https://www.bosch-mobility.com/en/mobility-topics/
+automated-driving-sense-think-act/
+[30] C. W. Warren, ‘‘Global path planning using artificial potential fields,’’ in
+Proc., Int. Conf. Robot. Autom., Sep. 1989, pp. 316–321.
+[31] K. G. Jolly, R. S. Kumar, and R. Vijayakumar, ‘‘A Bezier curve based
+path planning in a multi-agent robot soccer system without violating the
+acceleration limits,’’ Robot. Auto. Syst., vol. 57, no. 1, pp. 23–33, Jan. 2009.
+[32] K. Kawabata, L. Ma, J. Xue, C. Zhu, and N. Zheng, ‘‘A path generation
+for automated vehicle based on Bezier curve and via-points,’’ Robot. Auto.
+Syst., vol. 74, pp. 243–252, Dec. 2015.
+[33] J. W. Rutter, Geometry Curves. London, U.K.: Chapman & Hall, 2000.[34] R. Attia, R. Orjuela, and M. Basset, ‘‘Combined longitudinal and lateral
+control for automated vehicle guidance,’’ Vehicle Syst. Dyn., vol. 52, no. 2,
+pp. 261–279, Feb. 2014.
+[35] H. Atoui, O. Sename, V. Milanés, and J. J. Martinez, ‘‘LPV-based
+autonomous vehicle lateral controllers: A comparative analysis,’’ IEEE
+Trans. Intell. Transp. Syst., vol. 23, no. 8, pp. 13570–13581, Aug. 2022.
+[36] M. Canale and L. Fagiano, ‘‘Comparing rear wheel steering and rear active
+differential approaches to vehicle yaw control,’’ Vehicle Syst. Dyn., vol. 48,
+no. 5, pp. 529–546, May 2010.
+[37] M. Canale and V. Razza. (2023). Autonomous Driving in High-
+way Scenarios Simulation Example. [Online]. Available: https://youtu.
+be/AxeZtKjNT7s
+MASSIMO CANALE (Member, IEEE) received
+the M.Sc. degree in electronic engineering and
+the Ph.D. degree in information and system
+engineering from Politecnico di Torino, Italy, in
+1992 and 1997, respectively. From 1997 to 1998,
+he was a Software Engineer with the Research
+and Development Department, Comau Robotics,
+Italy. In 1998, he joined the Department of Control
+and Computer Engineering, Politecnico di Torino,
+where he is currently an Associate Professor of
+automatic control. At present, he is on a Research Staff with the Center
+for Automotive Research and Sustainable Mobility (CARS), Politecnico
+di Torino. His research interests include robust control, model predictive
+control, set membership approximation, and application to automotive
+and sustainable energy problems. He is a member of the IEEE Control
+System Society (CSS) Technical Committee on Automotive Control and
+IEEE INTELLIGENT TRANSPORTATION SYSTEMS SOCIETY. In 2011, he has been
+a co-recipient of IEEE TRANSACTIONS ON CONTROL SYSTEMS TECHNOLOGY
+Outstanding Paper Award.
+VALENTINO RAZZA received the M.S. degree
+in computer engineering and the Ph.D. degree
+in information and system engineering from
+Politecnico di Torino, Italy, in 2008 and 2012,
+respectively. From 2009 to 2013, he was a Post-
+doctoral Researcher with the System Identification
+and Control (SIC) Group, Control and Com-
+puter Department, Politecnico di Torino. From
+January 2014 to June 2015, he was with the
+Multi-Layer Wireless Solutions Group, Istituto
+Superiore Mario Boella. From 2015 to 2019, he was a Research Assistant
+with the Control and Computer Department, SIC Group, Politecnico di
+Torino. After that, he was a Researcher with the Artificial Mechanical
+Intelligence Group, Italian Institute of Technology, in 2022. He currently
+holds the position of an Assistant Professor with the Management and
+Production Engineering Department, Politecnico di Torino. His main
+research interests include identification, robust control, and model predictive
+control of linear and nonlinear systems, with an application to real-world
+problems in industrial process technologies and the automotive and green-
+energy fields.
+Open Access funding provided by ‘Politecnico di Torino’ within the CRUI CARE Agreement
+86486 VOLUME 12, 2024
