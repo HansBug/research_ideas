@@ -70,6 +70,7 @@
 - `pyfcstm` 页不能把它写成“最近写了一个工具”，必须写成目标形式主义与基础设施。
 - 所有页都保留小号 evidence footer，标明主要依据来源编号。
 - 关键证据页必须显式写出“前因 / 因此”或等价因果条，避免只剩结论和数字。
+- 可见文本中不要出现反引号或其他 markdown 痕迹；仓库名、项目名、术语都按正常文本排版。
 - internal slide id 只出现在 guide、code 和 review notes 中，不出现在可见幻灯片里。
 
 ## Slide Plan
@@ -112,9 +113,9 @@
 - Subtitle: `先拍板问题边界，再决定论文如何写和接下来 6 周怎么推`
 - Message: `整场讨论的目标是形成可执行决策，而不是继续把信息摊得更散。`
 - Visible Text:
-  - `决策 1：这学期主投稿是否明确锁定 project_1`
-  - `决策 2：论文对象是否先限定为离散 control-state layer`
-  - `决策 3：pyfcstm 与 pyudbm 是否分别承担建模基座和验证后端地基`
+  - `决策 1：主投稿是否先锁定 project_1`
+  - `决策 2：论文对象是否先限于离散控制状态层`
+  - `决策 3：pyfcstm 与 pyudbm 的分工是否先讲清`
   - `下方一条四段式流程：结论 -> project_1 证据 -> 基础设施 -> 待拍板事项`
 - Visuals:
   - `上方三张大决策卡；下方一条 agenda band。`
@@ -143,9 +144,9 @@
 - Subtitle: `一页结论先给出来，后面逐页用文库与仓库证据补强`
 - Message: `已经积累的材料足以支撑一篇会议论文，但前提是把“控制系统状态机”界定得更稳。`
 - Visible Text:
-  - `结论 1：这学期第一优先级应先把 project_1 发出去`
+  - `结论 1：当前第一优先级是把 project_1 主稿收束成型`
   - `结论 2：project_1 目前真正缺的是问题收束，而不是样本`
-  - `结论 3：论文对象应先落到离散 control-state layer`
+  - `结论 3：论文对象应先落到离散控制状态层`
   - `结论 4：pyfcstm 应被写成 executable control-state infrastructure`
   - `结论 5：project_3 的实质推进主要在 pyudbm，但还缺 verifyta 核心搜索`
   - `结论 6：LLM-based modeling 的真正杀手锏是基础设施反馈`
@@ -172,32 +173,37 @@
 
 - Target Duration: `1:00`
 - Cumulative Time: `3:10`
-- Title: `站在本学期投稿窗口看，只有 project_1 适合先冲出去`
-- Subtitle: `近端会议时间窗口 + 当前准备度 两条线必须同时看`
-- Message: `project_1 既有问题定义基础，又赶得上最近端的 conference-style 写法；其余项目当前更适合作为支撑线。`
+- Title: `官方 2026 日程显示：A/B 主窗口已过，近端出口主要是 ESEM 与期刊`
+- Subtitle: `main-track full paper 基本结束；近端只剩 ESEM、NIER 与 rolling journal`
+- Message: `到 2026-04-14 为止，A 类会议和多数贴题 B 类会议的 main-track research deadline 都已经过去；真正还开着的近端窗口主要是 ESEM technical / emerging 以及 MODELS NIER，而官方期刊主页则显示 TSE、SoSyM、Requirements Engineering、ASE Journal、EMSE 仍可投稿。因此 project_1 更应被当作下一轮主稿来打磨，而不是继续被 deadline 牵着扩题。`
 - Visible Text:
-  - `时间窗口参考：RE 2025 = 2025-03-10；MoDELS 2025 = 2025-04-03；ASE 2025 = 2025-05-30`
-  - `当前判断：RE / MoDELS 节奏已基本过去，ASE-style 表达仍是近端最现实窗口`
+  - `前因 / 因果条：CAiSE / FM / RE / ASE / MoDELS research 等 A/B 主窗口都早于 2026-04-14，而 project_1 的准备度又明显最高；因此当前策略应从“抢今年 main-track”改成“把主稿打厚，择机走 ESEM / rolling journal / short-format 后手”。`
+  - `已过主窗口：CAiSE = 2025-11-21 / 2025-11-28；FM = 2025-11-25 / 2025-12-02；RE = 2026-02-16 / 2026-02-23；ASE = 2026-03-26；MoDELS research = 2026-03-20 / 2026-03-27`
+  - `仍可操作窗口：ESEM technical = 2026-05-11 / 2026-05-18；ESEM emerging / vision = 2026-05-22 / 2026-05-29；MoDELS NIER = 2026-06-24 / 2026-07-01；ISSRE research = 2026-04-10 / 2026-04-17，但若摘要未交基本不算现实窗口`
+  - `rolling journals：官方主页已确认 TSE、SoSyM、Requirements Engineering、ASE Journal、EMSE 仍有 submit / CFP 入口`
   - `四个 project readiness bars：project_1 最高；project_3 有后端地基但原型未成；project_4 最不适合先发`
-  - `页面结论：先拿下一篇 focused paper，不追求一次覆盖四个问题`
+  - `页面结论：若本学期一定要形成外部输出，现实路径应是 ESEM 或 rolling journal；但 project_1 仍应按“下一轮主稿”质量来打，而不是为了赶窗口扩题`
 - Visuals:
-  - `上半页时间轴，标出 2026-04-14 当前点和若干 prior-year 参考 deadline；下半页四条 readiness bars。`
+  - `标题下先放因果条；上半页左侧是 official 2026 时间轴，横跨 2025-11 到 2026-07，既画出已过主窗口，也画出 ESEM / MoDELS NIER 等剩余窗口；右上角独立列出“仍可操作窗口”；下半页左侧保留四条 readiness bars；下半页右侧做 rolling journals 列表。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `如果只看博士全局，四个方向都重要；但如果加上这学期必须先发出第一篇会议论文这个约束，当前只有 project_1 同时具备问题、材料、baseline 和基础设施落点。`
-  - `我这里故意把 prior-year 的具体日期写上来，是为了说明这是按现实投稿节奏倒推出来的判断，而不是抽象偏好。`
+  - `如果只看博士全局，四个方向都重要；但从官方 2026 页面看，A 类会议和大多数贴题 B 类会议的 main-track deadline 已经过去，真正还开着的会议主窗口主要只剩 ESEM，而 MoDELS 也已经只剩 NIER 这类短格式。`
+  - `所以这页真正要表达的不是“现在没有路了”，而是“现在的路已经从赶 main-track 变成两类后手：一个是 ESEM 这样的剩余会议窗口，另一个是官方主页明确还在收稿的 rolling journals”。`
+  - `在这个前提下，project_1 更应该按下一轮主稿质量去打磨，而不是为了抢一个近端窗口把问题定义重新做散。`
 - Notes Supplement:
-  - `强调 2026 官方 CFP 仍要临投稿前回官方页面再核对。`
+  - `时间统一按官方页面的 AoE 口径；journal 的判断标准不是年度 CFP，而是官方主页明确仍有 submit / author-guidelines 入口。`
 - Implementation Notes:
-  - `时间轴不要太花；重点是当前点与 prior-year 窗口的相对位置。`
+  - `时间轴不要太花；重点是 official 2026 deadline 与当前点的相对位置。月份标签必须放最上排且不能被 chip 盖住；MoDELS research / ASE 日期接近，ESEM technical / emerging 日期接近，必须上下错层布局。`
 - Acceptance Checks:
-  - `观众能直接看出 project_1 是近端唯一合理主线。`
-  - `时间窗口里必须出现具体日期，不能只有“最近”或“快到了”这类词。`
+  - `观众能直接看出“main-track 主窗口基本已过，但近端仍有 ESEM 与 rolling journal 这两类出口”。`
+  - `时间窗口里必须出现 official 2026 具体日期，不能再用 prior-year proxy。`
+  - `rolling journals 必须明确写出具体期刊名，不能只写抽象的 “journal” 一词。`
+  - `月份标签必须完整可见，不得被 deadline chip 覆盖。`
 - Generator-Ready Instructions:
-  - `时间轴放上半页；deadline band 用 5 个 venue cards；下半页用四个水平 readiness bars。`
+  - `时间轴放上半页左侧；month strip 在最上排；milestone chip 按时间落点上下错层；current point 单独竖线；右上角做 remaining windows list；下半页左侧做四个水平 readiness bars；右侧做 rolling journals list。`
 
 ### s05-four-project-map
 
@@ -238,13 +244,14 @@
 - Subtitle: `不是平行摆设，而是共同回答“该建什么、凭什么、如何落地”`
 - Message: `baselines、sources、state_machine_types 和 pyfcstm 分别承担比较、数据、类型选型和可执行落地。`
 - Visible Text:
-  - `baselines：别人现在怎么做，和谁比`
-  - `sources：真实控制系统设计文本长什么样，数据集从哪里来`
-  - `state_machine_types：状态机家族到底有哪些，为什么要主动选型`
-  - `pyfcstm：目标形式主义 / executable IR / 闭环基础设施`
+  - `前因 / 因果条：project_1 不是靠单一材料就能站住；因此比较对象、真实样本、状态机选型和可执行落地必须连成一条证据链。`
+  - `baseline 比较集：别人现在怎么做，和谁比`
+  - `真实样本库：控制系统设计文本长什么样，数据集从哪里来`
+  - `状态机家族库：状态机到底有哪些，为什么要主动选型`
+  - `pyfcstm 基础设施：目标形式主义 / executable IR / 闭环基座`
   - `汇总判断：三条文库线共同把论文对象压向 control-state problem`
 - Visuals:
-  - `四张 role cards 围绕中央结论节点；每张卡片带数量与一句职责。`
+  - `标题下先放因果条；四张 role cards 围绕中央结论节点；每张卡片带数量与一句职责。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
@@ -265,47 +272,52 @@
 
 - Target Duration: `0:55`
 - Cumulative Time: `5:55`
-- Title: `baselines/ 解决的是“该和谁比，以及差距究竟在哪里”`
-- Subtitle: `这不是领域均匀采样，而是围绕 project_1 可比性刻意筛出的比较集`
-- Message: `baseline 文库已经足够支撑“直接比较对象 + 邻近任务对象 + 方法启发对象”的分层讨论。`
+- Title: `绿色 baseline 已经勾出了 5 条可直接讨论的方法线`
+- Subtitle: `明天不该只报数量，而要把最值得讲的几篇“怎么做”讲清楚`
+- Message: `baseline 文库已经不只是“有几篇可以比”，而是已经能清楚划出结构分解、反馈修复、迭代精化、知识注入工具链、RAG/微调这几条方法线。`
 - Visible Text:
   - `总量：62 篇`
   - `状态分布：🟢 14 / 🟡 19 / 🟠 29`
-  - `筛选口径：优先保留 direct baseline 与任务邻近条目`
-  - `页面结论：baseline 已经够用，关键是挑最有说服力的绿色条目来讲`
+  - `方法概述表：代表论文 / 方法骨架 / 对我们的启发`
+  - `五条方法线：Structure/Event-Driven；Prompt + MC Feedback；Iterative FSM + IEC 61499；Knowledge Injection + Toolchain；Umple 的 One-shot / RAG`
+  - `页面结论：baseline 已经不是“有没有”，而是“该把哪几类方法差异讲清楚”`
 - Visuals:
-  - `左侧一张状态分布图；右侧三张 role cards：direct baseline / 邻近任务 / 方法启发。`
+  - `左侧保留一张紧凑状态分布图；右侧主体换成 5 行方法概述表，每行写清楚代表论文、方法骨架与对 project_1 的启发。`
+  - `五行里必须显式点名 Umple baseline，说明 zero-shot 几乎不可用、One-shot 与 RAG 才能把文本 DSL 拉回可用区间。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `我不打算明天把 62 篇 baseline 都摊开，而是想把它说成一个经过筛选的比较集。`
-  - `这里更重要的不是总数，而是我们已经能清楚地区分哪几篇能直接比、哪几篇提供邻近任务证据、哪几篇提供 workflow 启发。`
+  - `这一页我不想再把 baseline 讲成“62 篇里有 14 篇绿色”这么空的话，而是要把最关键的绿色文献到底走了哪些方法路线讲清楚。`
+  - `因为我们真正需要的不是更多题目，而是一个清楚的方法地图：别人是靠结构分解、反馈修复、代码生成闭环，还是靠知识注入和工具链集成把效果拉起来。`
 - Notes Supplement:
-  - `强调不是自然分布。`
+  - `五条方法线最好按从“更直接的 NL -> state machine”到“更强基础设施闭环”来讲。`
+  - `讲到 Umple 时，强调“小而稳的文本 DSL 仍需要示例 / schema 支撑”。`
 - Implementation Notes:
-  - `分布图可以是 donut 或 column，但必须能清楚看出绿色条目数量有限而关键。`
+  - `左侧数字区保持紧凑，右侧方法表必须是主体。每行都要写出论文名缩写与方法骨架，不要退化成抽象类别词。`
 - Acceptance Checks:
   - `看完后不会误以为 baseline 文库只是数量堆积。`
+  - `至少 4 篇绿色代表论文要能在这一页上被点名。`
   - `必须出现 62、14、19、29 四个数字。`
 - Generator-Ready Instructions:
-  - `左 40% 放 chart；右 60% 放三张 role cards 与一句 take-home。`
+  - `左 30% 放数量与状态分布；右 70% 放 5 行方法概述表；底部放一句 take-home。`
 
 ### s08-baseline-evidence
 
 - Target Duration: `1:15`
 - Cumulative Time: `7:10`
-- Title: `baseline 的共同趋势不是更花的 prompt，而是更强的工具反馈`
-- Subtitle: `几篇最值得讲的绿色条目给出的实证指向相当一致`
-- Message: `纯 prompt 可以做出骨架，但真正把质量拉起来的，越来越是 workflow、model checking、仿真和工具链反馈。`
+- Title: `这些 baseline 方法线的共同指向，不是 prompt 花活，而是反馈基础设施`
+- Subtitle: `最值得讲的绿色文献在证据上其实相当一致`
+- Message: `纯 prompt 可以给出结构草稿，但真正把 guard、action、语义一致性和工程质量拉起来的，越来越是 model checking、仿真、代码生成与工具链反馈。`
 - Visible Text:
-  - `图 1：2026 direct baseline 的 F1 对比：0.7029 / 0.5431 / 0.6559`
+  - `图 1：Structure/Event-Driven 2026 的 F1 对比：0.7029 / 0.5431 / 0.6559`
   - `图 2：SysML empirical study 的错误修复率：94.6 / 88.0 / 43.1 / 37.3`
   - `图 3：TTool AI 的评分与效率：63 vs 58；15.2x；81 vs 70；67.5x`
+  - `证据卡：IEC 61499 不是一次生成，而是 iterative refinement + simulator + code generation`
   - `页面结论：workflow feedback > prompt tricks`
 - Visuals:
-  - `左中两张小型柱状图；右侧两张 evidence cards，总结 TTool AI 与 IEC 61499 论文结论。`
+  - `左中两张小型柱状图；右侧两张 evidence cards，总结 TTool AI 和 IEC 61499 这两种“工具链闭环”路线。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
@@ -327,7 +339,7 @@
 
 - Target Duration: `0:55`
 - Cumulative Time: `8:05`
-- Title: `sources/ 不是自然分布样本，而是面向数据集建设的治理后主集`
+- Title: `sources/ 不是自然分布样本，而是为 project_1 定向治理出来的样例池`
 - Subtitle: `如果不先说明这一点，后面的统计就很容易被误读`
 - Message: `sources 文库当前的分布首先反映的是收录策略和数据集治理目标，其次才是领域文献现象本身。`
 - Visible Text:
@@ -359,15 +371,15 @@
 
 - Target Duration: `1:05`
 - Cumulative Time: `9:10`
-- Title: `sources/ 的总体统计已经足以支撑数据集和问题边界判断`
-- Subtitle: `统计项必须带定义列，否则数字没有解释力`
-- Message: `不仅数量大，而且统计口径已经足够稳定，能直接支撑对样本主链的判断。`
+- Title: `sources/ 的大数字说明我们已经不缺样例池，只缺问题收束`
+- Subtitle: `这些统计首先回答“样例池够不够厚”，而不是“世界真实分布怎样”`
+- Message: `sources 现在最重要的作用，是证明 project_1 已经拥有足够厚、足够稳定、足够可治理的样例池来做数据集和评测。`
 - Visible Text:
   - `前因 / 因果条：样本主链已经够厚；因此这一页要证明我们不再处在“先去找样本”的阶段。`
   - `四个 big numbers：787 papers / 715 paper-level green / 746 positive cases / 685 core cases`
   - `表 1：论文级总体统计，列为指标 / 定义 / 数量`
   - `表 2：案例级保留角色统计，列为类别 / 定义 / 数量`
-  - `底部 take-home：样本主链已经足够厚，不再是“先去找样本”的阶段`
+  - `底部 take-home：样例池已经够厚，不再是“先去找样本”的阶段`
 - Visuals:
   - `标题下先放因果条；上排四个 big-number cards；下排两张解释性表格。`
 - Formula Requirements:
@@ -376,7 +388,7 @@
   - `None`
 - Speaker Notes:
   - `我这里故意把表格做成“指标加定义”的形式，因为如果只有标题和数字，导师很难判断这些统计到底在说明什么。`
-  - `现在这组数字最重要的意义是：样本主链已经够厚，真正该做的是围绕它定义论文对象和评测口径。`
+  - `现在这组数字最重要的意义是：样例池已经够厚，真正该做的是围绕它定义论文对象和评测口径，而不是再把时间花在泛扩样上。`
 - Notes Supplement:
   - `先念 big numbers，再看下方两张表。`
 - Implementation Notes:
@@ -391,87 +403,87 @@
 
 - Target Duration: `1:00`
 - Cumulative Time: `10:10`
-- Title: `主类型分布说明真实样本主链是 FSM / EFSM / HSM`
-- Subtitle: `713 / 746 条正例都落在离散控制状态层附近`
-- Message: `当前最稳的建模对象不是 protocol、resource-flow 或 hybrid，而是离散控制状态层主链。`
+- Title: `这些比例不能被读成自然分布，它们只能证明我们已经蓄了足够厚的目标样例池`
+- Subtitle: `后期 sources 是按 EFSM / HSM + T0 / T1 主动强筛出来的`
+- Message: `我们能从这些数字里稳妥宣称的，不是“控制系统天然大多如此”，而是“project_1 已经拥有足够多的 EFSM/HSM + T0/T1 样例来做数据集与评测”。`
 - Visible Text:
-  - `前因 / 因果条：主类型分布不只是数字，它直接决定论文对象如何收束；因此要把这页读成“control-state 主链占绝对主体”。`
-  - `柱状图类别：FSM 127 / EFSM 429 / HSM 157 / Protocol 4 / Resource-flow 13 / Hybrid 16`
-  - `右侧说明表：每种主类型的定义`
-  - `结论卡：713 / 746 = 95.6% 落在 FSM + EFSM + HSM`
+  - `前因 / 因果条：如果把这些比例误读成自然分布，后面的结论就会站不住；因此这一页必须明确“能说什么、不能说什么”。`
+  - `不能这样说：控制系统天然大多数都是 EFSM / HSM；这些比例不是总体文献分布`
+  - `可以这样说：当前已经有 127 FSM / 429 EFSM / 157 HSM，另有 719 条 T0/T1 样例，足以支撑数据集与评测`
+  - `底部结论：sources 的价值在于“样例池够厚”，不是“替整个领域做分布统计”`
 - Visuals:
-  - `标题下先放因果条；左侧横向柱状图；右侧 definitions table；底部 conclusion card。`
+  - `标题下先放因果条；主体改成左右两大栏：左侧“不能这样解读”，右侧“可以这样解读”；下方再放一条 sample-pool conclusion ribbon。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `这一页其实是在回答“为什么我想把论文对象先收束到 control-state layer”。`
-  - `因为当前主集里绝大多数正例都还是围绕离散阶段、guard、变量和层次结构展开，真正需要 hybrid 语义的只是很小的一部分。`
+  - `这一页不是在替领域做统计，而是在替我们的论文边界做自我约束。`
+  - `我要明确告诉导师：这些数字首先来自定向筛选，所以它们能证明“我们池子里有很多这类样本”，却不能证明“世界上控制系统天然主要就是这类”。`
 - Notes Supplement:
-  - `念 713/746 这个比例时停顿一下。`
+  - `把“不能这样说 / 可以这样说”对照着讲，避免观众只记住右边数字。`
 - Implementation Notes:
-  - `横向柱状图类别名保持简短；定义表只写一行定义。`
+  - `不要再做“分布图 + 结论卡”的逻辑；这一页要明显长得像“口径澄清页”。`
 - Acceptance Checks:
-  - `EFSM 必须显著高于其他类别。`
-  - `结论卡清楚强调 95.6% 这个比例。`
+  - `观众必须明确听懂“这些统计不是自然分布”。`
+  - `右栏必须同时出现 127 / 429 / 157 / 719 这几个数字。`
 - Generator-Ready Instructions:
-  - `左 50% chart；右 50% 定义表和结论卡。`
+  - `左 45% 做“不能这样说”警示栏；右 55% 做“可以这样说”的样例池证据栏；底部一条结论带。`
 
 ### s12-sources-time-structure
 
 - Target Duration: `1:00`
 - Cumulative Time: `11:10`
-- Title: `时间级别与结构标签说明“离散控制”不等于“扁平简单 FSM”`
-- Subtitle: `T0/T1 占主导，但显式时钟与层次结构都不是小噪声`
-- Message: `本学期论文可以先做离散 control-state，但绝不能把目标对象退化成最简单的平面 FSM。`
+- Title: `这个定向样例池依然不是“简单平面 FSM 池”，它保留了层次、定时和恢复复杂度`
+- Subtitle: `收敛对象不等于退化对象`
+- Message: `虽然我们主动把对象收束到 control-state layer，但池子内部仍保留了 hierarchy、局部 timer、显式时钟、恢复链等复杂度。`
 - Visible Text:
-  - `前因 / 因果条：离散主链并不意味着简单模型；因此必须把 timer 与 hierarchy 一起保留下来。`
-  - `时间级别：T0 352 / T1 367 / T2 15 / T3 12`
-  - `结构标签：显式时钟 243 / 层次 160 / 连续耦合 71`
-  - `结论 1：T0 + T1 = 719 / 746`
-  - `结论 2：显式时钟与层次关系必须保留`
+  - `前因 / 因果条：如果把目标收束误读成“只做最简单 FSM”，后面 pyfcstm 的定位也会被说扁；因此这一页要强调池子里的结构复杂度。`
+  - `四类主模式：阶段链 / 联锁许可 / 模式层次 / 异常恢复`
+  - `结构证据：160 条层次样例；243 条显式时钟；T0 + T1 = 719 / 746`
+  - `结论 1：收敛对象 = 离散 control-state，不 = 简单 FSM`
+  - `结论 2：目标形式主义至少要能承载 EFSM + HSM + local timing`
 - Visuals:
-  - `标题下先放因果条；左侧时间级别图；右侧结构标签图；底部双结论卡。`
+  - `标题下先放因果条；主体改成 2x2 四张模式卡，每张卡写“模式定义 + 代表样本 + 为什么对 project_1 重要”；底部再放两张结论卡。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `如果只看前一页，很容易把它误解成“那我们就做最普通的 FSM 就行了”。`
-  - `这一页要强调的是，主链虽然是离散 control-state，但里面大量样本仍然带有局部 timer、显式时钟和层次关系，所以目标形式主义必须比扁平 FSM 更强。`
+  - `这一页是为了防止导师自然地追问一句“那是不是做个普通 FSM 就行了”。`
+  - `答案是否定的，因为我们现在这个池子虽然定向筛成了 control-state layer，但里面仍然大量保留了层次、timer、恢复链和联锁条件。`
 - Notes Supplement:
-  - `先看左侧时间，再指右侧结构标签。`
+  - `四张模式卡按“阶段链 -> 联锁 -> 层次 -> 恢复”顺序讲。`
 - Implementation Notes:
-  - `两个图的尺度不同，避免放进同一张坐标系；用底部两张结论卡收束。`
+  - `不要回退成双图统计页；主体必须是 control-state pattern 解释。`
 - Acceptance Checks:
-  - `必须同时看到 T0/T1 主导与显式时钟/层次显著存在这两个事实。`
+  - `必须同时看到“池子被收窄过”与“池子仍有复杂度”这两个事实。`
 - Generator-Ready Instructions:
-  - `左右双图并排；底部两张 take-home cards。`
+  - `上方因果条；中间 2x2 pattern cards；底部两张 take-home cards。`
 
 ### s13-sources-examples
 
 - Target Duration: `1:05`
 - Cumulative Time: `12:15`
-- Title: `代表样本显示：真实控制系统里至少并存五类不同建模难点`
-- Subtitle: `同样都叫“状态机”，但它们的主难点并不相同`
-- Message: `样本例子能更直观地说明为什么论文对象必须主动收束，而不能把所有“状态机”一股脑并进来。`
+- Title: `样例池已经覆盖多类控制语境，因此足够支撑 paper 的案例与评测`
+- Subtitle: `这些例子证明的是 coverage，而不是 prevalence`
+- Message: `当前样例池并不局限于单一行业，而是已经跨离散制造、楼宇机电、铁路联锁、任务控制等多类语境，足够支撑 project_1。`
 - Visible Text:
-  - `顶部一句 framing：这些样本不是用来“凑例子”，而是用来说明“状态机”一词背后其实罩着不同问题。`
-  - `五个代表样本：洗衣机 PLC / 电梯 PLC / 铁路联锁 / UAV 分层任务 / 外骨骼步态控制`
-  - `表格列：场景 / 标签 / 关键建模难点 / 对论文对象的启发`
-  - `底部总结：离散顺序控制、门控联锁、层次任务、连续耦合至少是四种不同问题`
+  - `顶部一句 framing：这里不是在说“哪个行业最常见”，而是在说“我们已经有哪些可用语境”。`
+  - `五个代表样本：洗衣机 PLC / 电梯 PLC / 铁路联锁 / UAV supervisor / 自动驾驶 HSM`
+  - `表格列：控制语境 / 为什么被纳入池子 / 支持的 control-state 模式 / 对 paper 的作用`
+  - `底部总结：这些例子证明我们已有足够的跨语境 coverage 来做实验与叙事`
 - Visuals:
-  - `顶部 framing sentence；主体是一张 5x4 的代表样本解释表；右下角一张结论卡。`
+  - `顶部 framing sentence；主体仍是一张 5x4 的代表样本解释表；右下角一张 coverage conclusion card。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `这页我想用几个很具体的系统把抽象统计落地。`
-  - `它们之所以重要，不是因为每个例子都要拿去做实验，而是因为它们把“状态机”这个词背后其实罩着几类不同问题，展示得非常直观。`
+  - `这页我想强调的是，我们并不是只在一个很窄的离散制造角落里找到样本，而是已经在多个控制语境里都有足够可用的例子。`
+  - `所以这些例子不是为了说“世界分布是这样”，而是为了说明“我们现在写 paper 已经不缺可讲、可比、可测的案例”。`
 - Notes Supplement:
-  - `五个样本只挑两三个展开说，不要每行都讲。`
+  - `五个样本重点只讲三行，但要点出“coverage 而非 prevalence”。`
 - Implementation Notes:
   - `表格不能太密；最后一列用一句判断，不要写成长段。`
 - Acceptance Checks:
@@ -484,123 +496,129 @@
 
 - Target Duration: `0:55`
 - Cumulative Time: `13:10`
-- Title: `state_machine_types/ 证明“状态机”是一整个家族而不是单对象`
-- Subtitle: `问题不在于有没有状态机，而在于我们到底主动选择其中哪一支`
-- Message: `状态机家族谱系已经足够清楚，这恰好给论文对象收束提供了理论依据。`
+- Title: `state_machine_types/ 给出的启发不是“谁最多”，而是贡献点可以落在 profile / DSL / infrastructure`
+- Subtitle: `现代状态机研究越来越像“选择并塑造目标对象”，而不是假定唯一标准`
+- Message: `因为状态机本来就是家族，而现代研究重心大量落在 DSL、元模型、执行载体与 profile 上，所以 pyfcstm 作为目标形式主义设计是合理贡献。`
 - Visible Text:
-  - `前因 / 因果条：既然“状态机”本来就是家族，project_1 就不能假装目标对象天然唯一；因此必须主动选 control-state + infrastructure 这条分支。`
-  - `柱状图类别：经典离散状态机 160 / 时间自动机 96 / 混成随机 46 / Petri 网 28 / 接口契约 31 / DSL 59 / 标准与元模型 264`
-  - `右侧 family tree：control-state / timed / hybrid / interaction-resource / infrastructure`
-  - `结论：现代状态机研究越来越多地落在 profile、DSL、元模型与执行载体上`
+  - `前因 / 因果条：既然“状态机”本来就是家族，project_1 就不能把目标对象说成天然唯一；因此必须主动选型。`
+  - `左侧：状态机家族主分支 = control-state / timed / hybrid / interaction-resource`
+  - `右侧：现代贡献形态 = DSL 59 / 标准与元模型 264 / 2010+ 非模型层 82.6%`
+  - `结论：project_1 的贡献不一定是再发明一种“全新状态机”，也可以是主动选定并塑造一类更适合任务的 profile`
 - Visuals:
-  - `标题下先放因果条；左侧分布图；右侧分支图，突出 control-state 与 infrastructure 两支。`
+  - `标题下先放因果条；主体改成左右两张表。左表写“主分支 / 解决的复杂度 / 代表对象”，右表写“贡献形态 / 当前证据 / 对 project_1 的意义”。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `这条文库线给我的最大启发是，现代状态机研究早就不是只在发明新形式主义，而是在发明 profile、DSL、元模型和执行基础设施。`
-  - `这也正是 pyfcstm 为什么在学术叙事里可以有位置，因为我们其实是在主动选择并塑造一个适合 LLM 的 control-state profile。`
+  - `这条文库线最重要的结论不是“哪个家族分支条目最多”，而是今天的状态机研究已经很大程度上转向 profile、DSL、元模型和执行载体。`
+  - `这就给了 pyfcstm 一个很清楚的学术位置：它不是在假装覆盖整个状态机宇宙，而是在主动塑造一个更适合 project_1 的 control-state profile。`
 - Notes Supplement:
-  - `右侧分支图最后落到 control-state + infrastructure。`
+  - `右侧一定要点出“贡献形态”而不是只点类别名。`
 - Implementation Notes:
-  - `family tree 要简洁；不要做成过度复杂的 taxonomy 海报。`
+  - `这一页不要再靠一堆方框模拟族谱树；主体必须真的是表格。`
+  - `右侧不要只是数字，要写出“为什么这允许 pyfcstm 成为贡献点”。`
 - Acceptance Checks:
   - `观众能看出“状态机是家族”而不是一条直线。`
-  - `要明确把 infrastructure 这一支画出来。`
+  - `观众还能看出“现代贡献可以落在 profile / DSL / infrastructure”。`
 - Generator-Ready Instructions:
-  - `左 chart 右 branch diagram；highlight control-state branch。`
+  - `左 family tree / band；右 contribution-form cards；底部一句 take-home。`
 
 ### s15-control-state-definition
 
 - Target Duration: `1:15`
 - Cumulative Time: `14:25`
-- Title: `这篇论文更稳的对象应是控制系统的离散 control-state layer`
-- Subtitle: `离散监督 / 顺序控制 与 连续 / 混成控制 在建模视角上其实是两类问题`
-- Message: `最稳妥的第一篇论文对象不是所有控制系统状态机，而是模式、阶段、互锁、恢复和局部工程定时这一层。`
+- Title: `我们要解的是控制系统的离散 control-state layer，而不是所有状态机`
+- Subtitle: `模式组织、联锁 guard、异常恢复、事件权限和局部 timer 才是当前主问题`
+- Message: `第一篇 paper 最该解决的不是整个控制系统状态机宇宙，而是离散监督控制层这几个最稳定、最可执行、最可验证的语义块。`
 - Visible Text:
-  - `左列：离散监督 / 顺序控制 / 模式管理`
-  - `右列：连续 / 混成控制中的模式切换`
-  - `对比维度：典型系统 / 状态含义 / 核心难点 / 更自然模型 / 更自然反馈基础设施`
-  - `底部结论条：project_1 先解左列问题，右列作为后续延展`
+  - `六类核心语义：模式层次 / 联锁 guard / 故障与恢复链 / 事件作用域 / 生命周期动作 / 局部工程定时`
+  - `主体表：语义块 / 工程含义 / 为什么是第一篇 paper 的主问题 / pyfcstm 当前承载`
+  - `底部结论条：pyfcstm 现在已经能承载这一层，而不需要先把 DSL 推到 hybrid / TA 那一侧`
 - Visuals:
-  - `一张双色 2 列比较表；底部一条深色 conclusion ribbon。`
+  - `主体改成一张 6 行表格，每行写“语义块 / 工程含义 / 为什么重要 / pyfcstm 当前承载”；底部一条深色 conclusion ribbon。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `这一页是整场汇报最关键的定义页。`
-  - `我现在越来越不想把“控制系统状态机”当成一个大口袋，因为 sources 和 state_machine_types 已经证明，这个词至少罩着离散监督控制和连续混成控制两类完全不同的问题。`
-  - `如果第一篇论文先把左边这列讲透，我觉得问题会更稳，也更容易做出可执行实验。`
+  - `这一页要把“控制系统状态机”这个词收成一个更可操作的对象，而不是继续用大口袋式说法。`
+  - `我更愿意把第一篇 paper 直接聚焦到模式组织、联锁、恢复、事件权限和局部 timer 这几类语义，因为这正是 pyfcstm 现在最能承载的那层。`
 - Notes Supplement:
-  - `这页多停留几秒，等导师看表。`
+  - `这页多停留几秒，等导师看六张卡。`
 - Implementation Notes:
-  - `两列配色必须明显对比；左列用 project_1 accent，高亮为当前 focus。`
+  - `不要再用 3x2 卡片。`
+  - `“pyfcstm 当前是否能承载”要明确写成可读短句，并对“局部工程定时”诚实写成部分承载。`
 - Acceptance Checks:
-  - `观众必须能明确看到“先做左列”这个结论。`
-  - `表格不能只有名词，要写清楚五个维度。`
+  - `观众必须能明确看到“当前先做这六类 control-state 语义”这个结论。`
+  - `不能再退回泛泛的“离散 vs 连续”抽象表。`
 - Generator-Ready Instructions:
-  - `整页大比较表；底部 conclusion ribbon 横跨全页。`
+  - `中部一张 6 行解释表；底部 conclusion ribbon 横跨全页。`
 
 ### s16-pyfcstm-progress
 
 - Target Duration: `0:55`
 - Cumulative Time: `15:20`
-- Title: `pyfcstm 从 2 月底到现在已经具备可执行基础设施的骨架`
-- Subtitle: `它已经不是单文件 demo 级 DSL，而是在往工程可维护对象走`
-- Message: `pyfcstm 已经在模块化、执行语义、代码生成、工具支持和验证预备上形成一条连续能力带。`
+- Title: `在 STM 语境下，pyfcstm 更像一个收窄后的 control-state DSL，而不是大而全状态机工具`
+- Subtitle: `最该重点比较的是 Umple / UmpleRun 这条文本状态机生态，而不是泛泛说“它像状态图”`
+- Message: `pyfcstm 不是普通 FSM，也不是完整 UML/SCXML/UPPAAL 替代；它更接近 sequential HSM 骨架 + EFSM 数据面 + 确定执行语义的 executable control-state profile。`
 - Visible Text:
-  - `main HEAD：dcf1f70`
-  - `五层能力：import / 模块化；执行语义；Python/C 模板；PlantUML + VS Code；solver/verify groundwork`
-  - `页面结论：这不是“又写了个小工具”，而是一条 executable control-state infrastructure`
+  - `一句话定位：executable control-state DSL`
+  - `对照表：近邻对象 / 它在 STM 文库里做什么 / 与 pyfcstm 的相似点 / 关键差异`
+  - `重点近邻：HSM / Statecharts；Umple；UmpleRun；SCXML；Sismic；UPPAAL`
+  - `核心差异：sequential hierarchy；EFSM 数据面；abstract action 隔离；cycle/stable-boundary 语义`
+  - `页面结论：它的研究辨识度来自“窄 profile + 闭 formal core”，而不是“大而全兼容”`
 - Visuals:
-  - `五列 capability cards + 一条从 2026-02-28 到 2026-04-14 的 progress rail。`
+  - `顶部先放一句话定位；主体做一张 6 行对照表：近邻对象 / 它在 STM 文库里做什么 / 相似点 / 关键差异；底部一条定位结论带。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
-  - `我想把 pyfcstm 的叙事从“最近写了不少功能”换成“已经形成了一个可执行控制状态基础设施骨架”。`
-  - `现在它至少已经把模块化、运行语义、代码生成、工具支持和后续验证接口这些关键层都搭起来了。`
+  - `这一页站在状态机语境里讲 pyfcstm 到底是什么，以及它和几类相邻工作的边界差在哪里。`
+  - `核心不是说它比别人更大，而是说它在 control-state 这条线上做了一个更窄、更闭、更适合自动生成和闭环反馈的 profile。`
 - Notes Supplement:
-  - `main HEAD 可以快速带一下，不用停留。`
+  - `讲解顺序优先按 HSM -> Umple -> UmpleRun -> SCXML -> Sismic -> UPPAAL。`
+  - `Umple 必须重点讲：它最像文本状态机 DSL 近邻，但更偏 UML 复合状态机文本承载与代码生成；UmpleRun 则更偏其动态验证路线。`
 - Implementation Notes:
-  - `进展页强调 capability layers，不做细碎 commit 列表。`
+  - `这一页必须以真正的表格为主体，不要再用四张差异卡。`
+  - `对照表要明显区分“相似点”和“不能等同的原因”。`
 - Acceptance Checks:
-  - `五层能力清楚可见。`
-  - `观众能看出这是结构性推进，而不是零散 feature list。`
+  - `观众必须能明确听懂 pyfcstm 在 STM 谱系里属于什么。`
+  - `至少 4 个相邻工作要被显式点名比较。`
 - Generator-Ready Instructions:
-  - `顶部放 HEAD 与时间 rail；下方五张 capability cards。`
+  - `上半页做定位与对照表；下半页放四张核心差异卡和一句 take-home。`
 
 ### s17-pyfcstm-role
 
 - Target Duration: `1:00`
 - Cumulative Time: `16:20`
-- Title: `pyfcstm 在论文里应被写成目标形式主义与闭环基座`
-- Subtitle: `把“自然语言生成状态机”提升成“自然语言生成可执行形式模型”`
-- Message: `pyfcstm 的学术价值不在于工具实现，而在于它同时回答了目标对象、执行语义、行为隔离和后续闭环如何接入。`
+- Title: `pyfcstm 的研究价值，在于把目标形式主义、执行语义和闭环接口一起做出来`
+- Subtitle: `它不是附属工具，而是 project_1 的核心研究产出之一`
+- Message: `pyfcstm 的学术价值不在于“又做了一个状态机工具”，而在于它把目标 profile、可执行语义、形式化边界和 analysis-ready substrate 一起设计了出来。`
 - Visible Text:
-  - `中央流程：需求文本 -> LLM -> pyfcstm control-state DSL -> parser/runtime -> simulation/codegen/verification hooks`
-  - `四个贡献点：target profile / executable semantics / formal core vs abstract action / cross-project base`
-  - `结论：pyfcstm 是 project_1 的研究答案之一`
+  - `左表：五个贡献点 = target profile / executable semantics / formal core boundary / executable model output / unified analysis-ready substrate`
+  - `右表：当前落地能力 = parser / runtime / symbolic expr / codegen / tooling`
+  - `结论：pyfcstm 是 project_1 对“应该生成什么、怎样立刻可用、如何继续进闭环”的研究性回答`
 - Visuals:
-  - `中央管线图；左右两侧各两张更大的 contribution cards。`
+  - `主体改成左右两张表。左表写“贡献点 / 真正回答的问题”，右表写“当前能力层 / 已有落地 / 为什么重要”；底部一条结论带。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
   - `如果论文里只是把 pyfcstm 当成实现细节，我觉得会浪费掉它最重要的研究意义。`
-  - `它真正回答的是：我们到底让 LLM 生成什么对象，这个对象为什么既可执行、可校验，又适合作为后续验证和修复的共同基座。`
+  - `它真正回答的是三件事：应该生成什么对象、生成结果为什么能立刻执行、以及为什么它能继续接到验证和修复闭环。`
 - Notes Supplement:
-  - `指管线图时强调 parser/runtime 是第一层反馈。`
+  - `能力带要被讲成“这不是空口贡献，而是已经有落地基座”。`
 - Implementation Notes:
-  - `中央管线图要一眼能看懂；贡献点每张卡只放短语，不放长句。`
+  - `不要再做贡献卡海。`
+  - `两张表都要可读，右表里“已有落地”必须写成具体能力而不是抽象形容词。`
 - Acceptance Checks:
   - `观众会把 pyfcstm 理解成研究答案，而不是周边工具。`
+  - `“贡献点”与“已有落地能力”必须同时出现，避免又变回概念页。`
 - Generator-Ready Instructions:
-  - `中心流程图横向铺开；左右各三张贡献卡。`
+  - `上方一句话定位；中部左右两张表；底部 conclusion ribbon。`
 
 ### s18-pyudbm-progress
 
@@ -670,25 +688,26 @@
 - Target Duration: `1:20`
 - Cumulative Time: `19:45`
 - Title: `如果明天拍板这五件事，后续 6 周的推进路径会更稳`
-- Subtitle: `收束问题对象、拉厚实验、准备 conference-style 论文`
+- Subtitle: `收束问题对象、拉厚实验、准备 ESEM / rolling journal 后手`
 - Message: `现在最需要的不是更多开放问题，而是把主线固定下来并倒排接下来 6 周。`
 - Visible Text:
-  - `上方时间线：第 1-2 周收束问题定义与论文主张；第 3-4 周固化样本与 baseline 实验；第 5-6 周完成初稿与 venue 策略`
+  - `前因 / 因果条：如果前面几项关键判断不能拍板，后面 6 周就会继续分散推进；因此这一页把倒排计划和待确认问题放在一起。`
+  - `上方时间线：第 1-2 周收束问题定义与论文主张；第 3-4 周固化样本与 baseline 实验；第 5-6 周完成初稿并锁定 ESEM / rolling journal 后手`
   - `五个待拍板问题：`
-  - `1. 本学期主投稿是否锁定 project_1`
-  - `2. 论文对象是否先限定为离散 control-state layer`
-  - `3. pyfcstm 是否正面写成 target formalism / executable IR`
-  - `4. pyudbm 是否继续做 backend 地基而不抢主线`
-  - `5. 近端写法是否按 ASE-style automation + feedback infrastructure 组织`
+  - `1. 主投稿是否锁定 project_1`
+  - `2. 论文对象是否先限于离散控制状态层`
+  - `3. pyfcstm 是否写成目标形式主义 / executable IR`
+  - `4. pyudbm 是否继续沉淀 backend 地基`
+  - `5. 主稿写法是否按 feedback infrastructure 组织，并把 ESEM / rolling journal 作为近端出口`
 - Visuals:
-  - `上半页 6 周时间线；下半页五张 decision cards；右下角一张 closing card。`
+  - `标题下先放因果条；上半页 6 周时间线；下半页五张 decision cards；右下角一张 closing card。`
 - Formula Requirements:
   - `None`
 - Symbol Explanations:
   - `None`
 - Speaker Notes:
   - `最后我最希望明天讨论能落到这五个具体问题上。`
-  - `只要这五件事里有三四件能拍板，后面 6 周其实就可以很明确地按“对象收束、实验拉厚、初稿成型”这条线推进。`
+  - `只要这五件事里有三四件能拍板，后面 6 周其实就可以很明确地按“对象收束、实验拉厚、初稿成型、锁定 ESEM 或 rolling journal 后手”这条线推进。`
   - `如果您觉得其中某个判断有问题，我也希望优先把那个问题挑出来，而不是继续平均铺开。`
 - Notes Supplement:
   - `最后一句停顿，进入讨论。`

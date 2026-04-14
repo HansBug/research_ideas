@@ -231,6 +231,25 @@
 
 > 一类面向控制逻辑的、以 sequential hierarchy 为结构骨架、以 `EFSM` 风格 guard / variable / effect 为数据面的 executable control-state DSL，并且把外部副作用隔离为 abstract action。
 
+如果进一步站到 `state_machine_types/` 的 STM 家族语境里看，我觉得更稳妥的说法是：`pyfcstm` 不是“又一种泛状态机工具”，而是把 `Statecharts / HSM` 这一支主动收窄成一个更适合控制逻辑自动建模的 textual control-state profile。[5][7]
+
+这里最值得重点对照的，不是抽象的“状态图”，而是 `Umple` 这条文本状态机生态，因为它同时连着：
+
+1. `baselines/` 里直接做 `LLM -> Umple 状态机` 的条目；[3]
+2. `state_machine_types/` 里 `Umple` 的文本 DSL / 代码生成路线；[5]
+3. `UmpleRun` 代表的 execution-scenario 动态验证路线。[5]
+
+如果把 `pyfcstm` 放回 STM 文库里和这些近邻比较，我现在更愿意这样讲：
+
+| 对照对象 | 在 STM 文库里的位置 | 与 `pyfcstm` 的相似点 | 关键差异 |
+| --- | --- | --- | --- |
+| `HSM / Statecharts` | 家族血缘上的最近上位类 | 都把层次控制、复合状态和模式切换当作核心骨架 | `pyfcstm` 主动收窄了语义面，不追求完整 `Statecharts/UML` 大全集 |
+| `Umple` | 文本化 `UML` / 复合状态机 DSL + 代码生成路线 | 都是文本状态机 DSL，都支持层次、事件、guard / action，并且可落地成可执行工件 | `Umple` 更靠近 `UML` 文本承载与 `Java/C++` 代码生成；`pyfcstm` 更强调 control-state profile、本体语义闭合和运行时确定性 |
+| `UmpleRun` | `Umple` 生态里的动态验证 / execution scenario 工具 | 都说明“文本状态机”可以直接接执行与反馈，而不必停在静态图上 | `UmpleRun` 依赖 `Umple -> Java/JAR -> scenario` 链条；`pyfcstm` 则把 parser、runtime、symbolic core 放在同一 DSL 内核里 |
+| `SCXML` | 标准化 executable state machine / interchange 载体 | 都是可执行的层次状态机文本承载 | `SCXML` 语义面更宽，含 queue、history、parallel、invoke/send；`pyfcstm` 则更窄、更偏 control-state 闭核 |
+| `Sismic` | executable statechart runtime / testing 路线 | 都强调可执行 state machine、运行时与测试反馈 | `Sismic` 更像依托 `Python` 的开放 runtime；`pyfcstm` 更强调形式化核心与外部副作用隔离 |
+| `UPPAAL` | timed automata / verification backend | 两者都与后续验证闭环强相关 | `UPPAAL` 是 clocks / invariants / symbolic reachability 这条家族；`pyfcstm` 当前仍是 control-state DSL 本体，而不是 timed automata 本体 |
+
 这一定义对 `project_1` 很重要，因为它实际上回答了五个学术问题。[7]
 
 | 学术问题 | `pyfcstm` 给出的回答 |
@@ -357,23 +376,28 @@
 3. `pyfcstm` 正是这个阶段的关键研究产出，因为它提供了目标对象和基础设施骨架。[7][8]
 4. `pyudbm` 则是在为后续 timed / symbolic verification 打地基。[9][10][11]
 
-## 9. 从 `dev/frontier` 看投稿时间点：本学期还剩什么窗口
+## 9. 从官方 `2026 CFP` 与期刊主页回看，A/B 会议主窗口已经基本关窗，现实出口主要剩 `ESEM` 与 rolling journals
 
-这一部分我只基于 `dev/frontier` 里现有整理来判断，不把它说成官方最终 `CFP`；真正投稿前仍需要回官方页面再核对。[15]
+这一部分不再只依赖 `dev/frontier` 的历史节奏，而是回到各会议 `2026` 官方页面核对 research deadline，并回到期刊官方主页确认是否仍明确显示 `Submit your manuscript`、`Author guidelines` 或等价投稿入口；所有会议日期默认按页面给出的 `AoE (UTC-12h)` 口径理解。[15]
 
-| venue | 与当前论文的关系 | `frontier` 中可见时间节奏 | 站在 `2026-04-14` 的判断 |
+| 路径 | 与当前论文的关系 | 官方 `2026` 时间点 / 官方主页信号 | 站在 `2026-04-14` 的判断 |
 | --- | --- | --- | --- |
-| `RE` | 需求工程 / 需求到模型 / 规约抽取很强相关 | 近年大多在 `3` 月上中旬摘要 / 投稿；`RE 2025` 是 `2025-03-03` 摘要、`2025-03-10` 投稿 [15] | `2026` 这一轮基本已过 |
-| `MoDELS` | 模型驱动 / 状态机 / SysML / 形式化建模主场 | 近年大多在 `3` 月下旬到 `4` 月上旬；`2025` 是 `2025-03-27` 摘要、`2025-04-03` 投稿 [15] | `2026` 这一轮大概率刚过或已过 |
-| `ASE` | 自动化软件工程 / `LLM for SE` / 建模-验证-修复最匹配 | `2024` 是 `2024-05-31` 摘要、`2024-06-07` 投稿；`2025` 是 `2025-05-30` 投稿 [15] | 这是本学期最值得盯的近端 A 类窗口 |
-| `FM` | 形式化方法 / timed automata / verification 邻近 | 节奏不如 `RE/MoDELS/ASE` 稳定，但 `2024` 是 `2024-04-05` 摘要、`2024-04-12` 投稿；`frontier` 的 `2026` 推断周历把它放到 `4` 月下旬到 `5` 月上旬 [15] | 若论文更偏形式化目标形式主义，也可观察，但对 `project_1` 不是首选 |
-| `SoSyM / STVR` | 建模与验证类期刊 | `frontier` 里按全年滚动处理 [15] | 若本学期 conference 赶不上，是稳定后手 |
+| `CAiSE` | 建模 / 信息系统工程邻近，适合补需求-建模-规约链 | `2025-11-21` 摘要，`2025-11-28` full paper [15] | main track 已过 |
+| `FM` | 形式化方法 / timed automata / verification 邻近 | `2025-11-25` 摘要，`2025-12-02` full paper [15] | 对 `2026-04-14` 来说更早已过 |
+| `RE` | 需求工程 / 需求到模型 / 规约抽取很强相关 | `2026-02-16` 摘要，`2026-02-23` full paper [15] | main track 已过 |
+| `ASE` | 自动化软件工程 / `LLM for SE` / 建模-验证-修复最匹配 | `2026-03-26` research paper submission [15] | main track 已过 |
+| `MoDELS research` | 模型驱动 / 状态机 / SysML / 形式化建模主场 | `2026-03-20` 摘要，`2026-03-27` paper [15] | research main track 已过 |
+| `ISSRE research` | reliability / assurance / verification 邻近 | `2026-04-10` 摘要，`2026-04-17` paper [15] | 若摘要未交，已基本不算现实窗口 |
+| `ESEM technical` | 实证设计、评测方法与实验写法最贴近当前论文补强需求 | `2026-05-11` 摘要，`2026-05-18` full paper [15] | 这是当前最现实的剩余 B 类 main-track 窗口 |
+| `ESEM emerging / vision` | 若主稿还不够厚，可作为更轻的经验 / 愿景型后手 | `2026-05-22` 摘要，`2026-05-29` submission [15] | 仍开放，但更像轻量后手 |
+| `MoDELS NIER` | 建模主场里的 short-format 后手 | `2026-06-24` 摘要，`2026-07-01` paper [15] | 可作为 short-format 后手，但不等于 research full paper |
+| `TSE / SoSyM / Requirements Engineering / ASE Journal / EMSE` | A/B 类软件工程与建模相关期刊 | 官方主页均显示 `submit` / `Submit your manuscript` / `Author guidelines` 等投稿入口 [15] | 若本学期一定要形成外部输出，这是最稳定的滚动后手 |
 
-因此，如果只谈“这学期还要发出去”，我现在的判断是：
+这意味着，之前那种“也许还能赶 `ASE`”的判断已经不成立。更准确的说法是：
 
-1. 最近端最值得争取的是 `ASE` 这条线；
-2. `RE` 和 `MoDELS` 更像下一轮周期的自然主场；
-3. 如果 `ASE` 时间上来不及，就不要为了抢窗口把问题重新做散，宁愿老老实实把 `project_1` 的对象和实验打厚，再看下一轮 `RE / MoDELS` 或 rolling journal。[15]
+1. 以 A 类会议和多数贴题 B 类会议的 **main-track full paper** 而言，站在 `2026-04-14` 已经基本没有富余窗口；真正还现实的会议型入口主要只剩 `ESEM technical`，以及 `MoDELS NIER` 这样的 short-format 后手；
+2. 因此，本学期更合理的策略不是为了抢 deadline 把问题重新做散，而是把 `project_1` 的对象、论点、样本和实验做厚，形成一篇**面向下一轮 full paper 的主稿**；
+3. 如果这学期确实需要先形成一个外部输出，那么 `ESEM` 或 rolling journal 比硬挤一个仓促的 full paper 更现实；但这些后手不应该反过来主导问题定义。[15]
 
 ## 10. 我明天最希望和导师讨论出结论的几个点
 
@@ -381,7 +405,7 @@
 2. 论文中的“控制系统状态机”，是否就先明确限定为**离散控制状态层**，而把连续 / 混成控制整体作为后续延展方向。
 3. `pyfcstm` 是否可以在学术叙事中明确作为目标形式主义 / 可执行中间表示 / 闭环基础设施来写，而不是只当一个实现细节。
 4. `project_3` 下一步是否应当继续由 `pyudbm` 这条线沉淀 timed / symbolic 基础，但不打断本学期 `project_1` 投稿节奏。
-5. 如果按本学期投稿节奏倒推，是否优先瞄准 `ASE` 风格的表达方式：自动化软件工程 + 可执行反馈基础设施 + 建模闭环，而不是把论文写得过于泛形式化。
+5. 主稿写法是否按“自动化软件工程 + 可执行反馈基础设施 + 建模闭环”来组织，并把 rolling / short-paper 只当后手，而不是让后手 venue 反过来牵着论文结构走。
 
 ## 参考文献
 
@@ -399,6 +423,6 @@
 [12] Samer Abdulkarim, Evan Boyd, Karl Bridi, Alec Tufenkjian, Boqi Chen, Gunter Mussbacher. *Structure- and Event-Driven Frameworks for State Machine Modeling with Large Language Models*. arXiv, 2026. 公开链接：<https://arxiv.org/abs/2604.00275>；仓库分析稿：[DESC.md](../../../project_1_llm_state_machine_modeling/baselines/structure-and-event-driven-frameworks-for-state-machine-modeling-with-large-language-models/DESC.md)  
 [13] Yuan Wang, Ning Ge, Jiangxi Liu, Zhilong Cao, Zheping Chen, Chunming Hu. *Generating SysML Behavior Models via Large Language Models: an Empirical Study*. Internetware 2025. DOI: `10.1145/3755881.3755926`；仓库分析稿：[DESC.md](../../../project_1_llm_state_machine_modeling/baselines/llms_emp/DESC.md)  
 [14] Ludovic Apvrille, Bastien Sultan. *System Architects Are not Alone Anymore: Automatic System Modeling with AI*. MODELSWARD 2024. 仓库分析稿：[DESC.md](../../../project_1_llm_state_machine_modeling/baselines/ttool-ai/DESC.md)  
-[15] `dev/frontier` 投稿时间线资料：`frontier_index/ccf_history/SUBMISSION_TIMELINES.md`，以及相关 venue 页 `ASE / RE / MoDELS / FM`  
+[15] 投稿时间线与期刊入口核对资料：`dev/frontier` 中的 `frontier_index/ccf_history/SUBMISSION_TIMELINES.md`，以及官方页面：CAiSE 2026 Main Track <https://caise26.polimi.it/?page_id=60>，FM Important Dates <https://conf.researchr.org/dates/fm-2026>，RE Important Dates <https://conf.researchr.org/dates/re-2026>，ASE Important Dates <https://conf.researchr.org/dates/ase-2026>，MODELS Important Dates <https://conf.researchr.org/dates/models-2026>，ESEM Important Dates <https://conf.researchr.org/dates/esem-2026>，ISSRE 2026 Research Track <https://cyprusconferences.org/issre2026/cfp-research/>，IEEE Transactions on Software Engineering 官方页面 <https://www.computer.org/digital-library/journals/ts/cfp-ieee-transactions-on-software-engineering>，Software and Systems Modeling 官方主页 <https://link.springer.com/journal/10270>，Requirements Engineering 官方主页 <https://link.springer.com/journal/766>，Automated Software Engineering 官方主页 <https://link.springer.com/journal/10515>，Empirical Software Engineering 官方主页 <https://link.springer.com/journal/10664>  
 [16] Chih-Hong Cheng, Brian Hsuan-Cheng Liao, Adam Molin, Hasan Esen. *Workflow-Level Design Principles for Trustworthy GenAI in Automotive System Engineering*. arXiv, 2026. 公开链接：<https://arxiv.org/abs/2602.19614>；仓库分析稿：[DESC.md](../../../project_1_llm_state_machine_modeling/baselines/workflow-level-design-principles-trustworthy-genai-automotive/DESC.md)  
 [17] Valeriy Vyatkin, Sandeep Patil, Dmitrii Drozdov, Anatoly Shalyto. *LLM-based Iterative Requirements Refinement in FSM with IEC 61499 Code Generation*. INDIN 2025. 公开链接：<https://ieeexplore.ieee.org/abstract/document/11279575/>；仓库分析稿：[DESC.md](../../../project_1_llm_state_machine_modeling/baselines/fsm-gen-iec-61499/DESC.md)  

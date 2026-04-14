@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 import zipfile
+from datetime import date
 from pathlib import Path
 
 from pptx import Presentation
@@ -54,6 +55,10 @@ def rgb(hex_value: str) -> RGBColor:
     return RGBColor.from_string(hex_value)
 
 
+def clean_display(text: str) -> str:
+    return text.replace("`", "")
+
+
 COLORS = {
     "bg": rgb("#F5F1EA"),
     "panel": rgb("#FFFDFC"),
@@ -99,7 +104,7 @@ def set_paragraph_font(paragraph, *, name=FONT_SANS, size=12, bold=False, color=
 
 
 def set_cell_text(cell, text, *, size=11, bold=False, color=None, align=PP_ALIGN.LEFT, fill=None, font=FONT_SANS):
-    cell.text = text
+    cell.text = clean_display(text)
     cell.vertical_anchor = MSO_ANCHOR.MIDDLE
     cell.margin_left = Pt(6)
     cell.margin_right = Pt(6)
@@ -140,7 +145,7 @@ def add_textbox(
     lines = text.split("\n")
     for idx, line in enumerate(lines):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = line
+        paragraph.text = clean_display(line)
         paragraph.alignment = align
         for run in paragraph.runs:
             run.font.name = font
@@ -171,7 +176,7 @@ def add_paragraph_box(
     frame.clear()
     for idx, line in enumerate(lines):
         paragraph = frame.paragraphs[0] if idx == 0 else frame.add_paragraph()
-        paragraph.text = f"• {line}" if bullet else line
+        paragraph.text = clean_display(f"• {line}" if bullet else line)
         paragraph.space_after = Pt(line_space_after)
         for run in paragraph.runs:
             run.font.name = font
@@ -282,7 +287,7 @@ def add_footer(slide, page_num, refs):
     add_textbox(slide, 11.95, 6.9, 0.75, 0.2, f"{page_num:02d}/20", font=FONT_MONO, size=8.5, color=COLORS["muted"], align=PP_ALIGN.RIGHT)
 
 
-def add_table(slide, x, y, w, h, headers, rows, *, header_fill, col_widths=None, font_size=10.5):
+def add_table(slide, x, y, w, h, headers, rows, *, header_fill, col_widths=None, font_size=10.5, alignments=None):
     table_shape = slide.shapes.add_table(len(rows) + 1, len(headers), Inches(x), Inches(y), Inches(w), Inches(h))
     table = table_shape.table
     if col_widths:
@@ -301,12 +306,13 @@ def add_table(slide, x, y, w, h, headers, rows, *, header_fill, col_widths=None,
     for row_idx, row in enumerate(rows, start=1):
         fill = COLORS["panel"] if row_idx % 2 else COLORS["panel_alt"]
         for col_idx, value in enumerate(row):
+            align = alignments[col_idx] if alignments else (PP_ALIGN.LEFT if col_idx != len(headers) - 1 else PP_ALIGN.CENTER)
             set_cell_text(
                 table.cell(row_idx, col_idx),
                 value,
                 size=font_size,
                 color=COLORS["ink"],
-                align=PP_ALIGN.LEFT if col_idx != len(headers) - 1 else PP_ALIGN.CENTER,
+                align=align,
                 fill=fill,
             )
     return table
@@ -327,7 +333,7 @@ def add_chart(
     max_scale=None,
 ):
     chart_data = CategoryChartData()
-    chart_data.categories = categories
+    chart_data.categories = [clean_display(cat) for cat in categories]
     chart_data.add_series("数量", values)
     chart = slide.shapes.add_chart(
         chart_type,
@@ -374,7 +380,7 @@ def add_horizontal_segments(slide, x, y, w, h, segments, *, label_y_offset=0.18)
             y + label_y_offset,
             seg_w,
             h - 0.1,
-            f"{label}\n{value}",
+            f"{clean_display(label)}\n{value}",
             size=12,
             bold=True,
             color=text_color,
@@ -396,6 +402,13 @@ def add_arrow(slide, x, y, w, h, *, fill, direction="right"):
     shape.fill.fore_color.rgb = fill
     shape.line.color.rgb = fill
     return shape
+
+
+def timeline_pos(day: date, start: date, end: date, left: float, width: float) -> float:
+    total_days = (end - start).days
+    if total_days <= 0:
+        raise ValueError("Invalid timeline range")
+    return left + width * ((day - start).days / total_days)
 
 
 def parse_notes_from_guide(path: Path) -> list[str]:
@@ -448,7 +461,7 @@ def parse_notes_from_guide(path: Path) -> list[str]:
     for slide_id in SLIDE_IDS:
         if slide_id not in notes_map:
             raise ValueError(f"Missing notes for {slide_id} in {path}")
-        notes.append(notes_map[slide_id][0])
+        notes.append(clean_display(notes_map[slide_id][0]))
     return notes
 
 
@@ -511,9 +524,9 @@ def build_agenda(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_title_block(slide, "明天这次讨论，我最希望先对齐三个决策", "先拍板问题边界，再决定论文如何写和接下来 6 周怎么推", section="总体判断")
     cards = [
-        ("01", "本学期主投稿是否明确锁定 `project_1`", "先做 focused paper，而不是一次性拉四个 project。", COLORS["navy"]),
-        ("02", "论文对象是否先限定为离散 `control-state layer`", "把模式、阶段、互锁、恢复、局部定时这一层先讲透。", COLORS["teal"]),
-        ("03", "`pyfcstm` 与 `pyudbm` 是否分担建模基座与验证地基", "一个回答目标对象，一个沉淀 timed backend。", COLORS["rust"]),
+        ("01", "主投稿先锁定 project_1", "先把主稿打成型，不再一次性拉四个 project。", COLORS["navy"]),
+        ("02", "对象先限于离散控制状态层", "先把模式、阶段、互锁、恢复、局部定时这一层讲透。", COLORS["teal"]),
+        ("03", "先讲清 pyfcstm / pyudbm 分工", "一个回答目标对象，一个沉淀 timed backend。", COLORS["rust"]),
     ]
     x_positions = [0.72, 4.48, 8.24]
     for x, (badge, title, detail, accent) in zip(x_positions, cards, strict=True):
@@ -553,11 +566,11 @@ def build_summary(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_title_block(slide, "当前最缺的不是材料，而是把问题对象收束清楚", "一页结论先给出来，后面逐页用文库与仓库证据补强", section="总体判断")
     cards = [
-        ("1", "先发 `project_1`", "本学期第一优先级应先把 focused paper 发出去。", COLORS["navy"]),
+        ("1", "先锁定 `project_1`", "当前第一优先级是把主稿收束成型。", COLORS["navy"]),
         ("2", "真正缺的是收束", "`project_1` 当前不缺样本，缺的是问题定义。", COLORS["teal"]),
-        ("3", "先做离散 control-state", "目标对象先落到模式、阶段、互锁、恢复、局部 timer。", COLORS["gold"]),
-        ("4", "`pyfcstm` 是研究答案", "它应被写成 executable control-state infrastructure。", COLORS["rust"]),
-        ("5", "`project_3` 有地基但未成型", "`pyudbm` 已推进很深，但 verifyta 核心搜索仍缺。", COLORS["sage"]),
+        ("3", "先做离散控制状态层", "目标对象先落到模式、阶段、互锁、恢复、局部 timer。", COLORS["gold"]),
+        ("4", "pyfcstm 是研究基座", "它应被写成 control-state 基础设施。", COLORS["rust"]),
+        ("5", "project_3 有地基", "pyudbm 已推进很深，仍缺核心搜索。", COLORS["sage"]),
         ("6", "反馈基础设施最关键", "LLM-based modeling 的杀手锏是持续反馈，而不只是 prompt。", COLORS["navy"]),
     ]
     positions = [
@@ -577,7 +590,7 @@ def build_summary(prs: Presentation) -> None:
         11.68,
         0.9,
         "Take-home",
-        ["先收束对象，再拉厚实验；只要定义稳住，现有文库和仓库推进已经足以支撑一篇 conference-style 论文。"],
+        ["先收束对象，再拉厚实验；只要定义稳住，现有文库和仓库推进已经足以支撑一篇面向下一轮 conference 的主稿。"],
         accent=COLORS["navy"],
         fill=COLORS["teal_soft"],
         title_size=15,
@@ -588,56 +601,133 @@ def build_summary(prs: Presentation) -> None:
 
 def build_why_project1_now(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "站在本学期投稿窗口看，只有 project_1 适合先冲出去", "近端会议时间窗口 + 当前准备度 两条线必须同时看", section="总体判断")
-    add_textbox(slide, 0.78, 1.35, 3.2, 0.2, "prior-year deadline 参考", size=10.5, bold=True, color=COLORS["navy"])
-    add_panel(slide, 0.8, 1.62, 11.75, 1.3, fill=COLORS["panel"], line=COLORS["line"], radius=True)
-    add_panel(slide, 1.15, 2.23, 10.9, 0.04, fill=COLORS["line"], line=COLORS["line"], radius=False)
-    month_x = [1.1, 3.8, 6.45, 9.1, 11.55]
-    month_labels = ["2026-03", "2026-04", "2026-05", "2026-06", ""]
-    for x, label in zip(month_x[:-1], month_labels[:-1], strict=True):
-        add_textbox(slide, x, 1.88, 0.9, 0.18, label, font=FONT_MONO, size=9.5, color=COLORS["muted"], align=PP_ALIGN.CENTER)
-    venue_bands = [
-        (1.35, 1.86, 1.0, 0.24, "RE 2025\n03-10", COLORS["rust_soft"], COLORS["rust"]),
-        (2.55, 1.86, 1.1, 0.24, "MoDELS 2025\n04-03", COLORS["teal_soft"], COLORS["teal"]),
-        (6.1, 1.86, 1.0, 0.24, "FM 参考\n4 月下旬", COLORS["gold_soft"], COLORS["gold"]),
-        (7.65, 1.86, 1.3, 0.24, "ASE 2025\n05-30", COLORS["blue_soft"], COLORS["navy"]),
-        (9.45, 1.86, 1.9, 0.24, "SoSyM / STVR\nrolling", COLORS["sage_soft"], COLORS["sage"]),
+    add_title_block(slide, "官方 2026 日程显示：A/B 主窗口已过，近端出口主要是 ESEM 与期刊", "main-track full paper 基本结束；近端只剩 ESEM、NIER 与 rolling journal", section="总体判断")
+    add_context_bar(
+        slide,
+        0.8,
+        1.25,
+        11.75,
+        0.42,
+        "CAiSE / FM / RE / ASE / MoDELS research 等 A/B 主窗口都早于 2026-04-14。",
+        "所以现在更该把 project_1 打成下一轮主稿，并把 ESEM / rolling journal 只当近端出口。",
+        accent=COLORS["navy"],
+    )
+    add_textbox(slide, 0.78, 1.82, 4.2, 0.2, "官方 2026 A/B 会议窗口（AoE）", size=10.5, bold=True, color=COLORS["navy"])
+    add_panel(slide, 0.8, 2.05, 8.35, 1.95, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    timeline_left = 1.08
+    timeline_width = 7.62
+    timeline_start = date(2025, 11, 20)
+    timeline_end = date(2026, 7, 5)
+    axis_y = 2.98
+    add_panel(slide, timeline_left, axis_y, timeline_width, 0.04, fill=COLORS["line"], line=COLORS["line"], radius=False)
+    month_labels = [
+        (date(2025, 11, 20), "2025-11"),
+        (date(2025, 12, 1), "2025-12"),
+        (date(2026, 1, 1), "2026-01"),
+        (date(2026, 2, 1), "2026-02"),
+        (date(2026, 3, 1), "2026-03"),
+        (date(2026, 4, 1), "2026-04"),
+        (date(2026, 5, 1), "2026-05"),
+        (date(2026, 6, 1), "2026-06"),
+        (date(2026, 7, 1), "2026-07"),
     ]
-    for x, y, w, h, label, fill, accent in venue_bands:
+    for when, label in month_labels:
+        x = timeline_pos(when, timeline_start, timeline_end, timeline_left, timeline_width)
+        add_textbox(slide, x - 0.34, 2.22, 0.68, 0.16, label, font=FONT_MONO, size=7.2, color=COLORS["muted"], align=PP_ALIGN.CENTER)
+        add_panel(slide, x - 0.008, 2.46, 0.016, 0.56, fill=COLORS["line"], line=COLORS["line"], radius=False)
+
+    milestones = [
+        (date(2025, 11, 28), 0.03, 2.56, 0.98, 0.34, "CAiSE\n11-21 / 11-28", COLORS["panel_alt"], COLORS["muted"], True),
+        (date(2025, 12, 2), 0.02, 3.12, 0.94, 0.34, "FM\n11-25 / 12-02", COLORS["gold_soft"], COLORS["gold"], False),
+        (date(2026, 2, 23), 0.0, 2.56, 0.96, 0.34, "RE\n02-16 / 02-23", COLORS["rust_soft"], COLORS["rust"], True),
+        (date(2026, 3, 26), -0.12, 3.12, 0.88, 0.34, "ASE\n03-26", COLORS["blue_soft"], COLORS["navy"], False),
+        (date(2026, 3, 27), 0.14, 2.56, 1.05, 0.34, "MoDELS\n03-20 / 03-27", COLORS["panel_alt"], COLORS["teal"], True),
+        (date(2026, 5, 18), 0.0, 3.12, 1.08, 0.34, "ESEM Tech\n05-11 / 05-18", COLORS["teal_soft"], COLORS["teal"], False),
+        (date(2026, 7, 1), 0.0, 2.56, 1.0, 0.34, "NIER\n06-24 / 07-01", COLORS["sage_soft"], COLORS["sage"], True),
+    ]
+    for when, dx, y, w, h, label, fill, accent, above in milestones:
+        center_x = timeline_pos(when, timeline_start, timeline_end, timeline_left, timeline_width) + dx
+        x = center_x - w / 2
         add_panel(slide, x, y, w, h, fill=fill, line=accent, radius=True)
-        add_textbox(slide, x, y + 0.01, w, h - 0.01, label, size=8.8, bold=True, color=COLORS["ink"], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
-    add_panel(slide, 4.78, 1.6, 0.03, 0.98, fill=COLORS["navy"], line=COLORS["navy"], radius=False)
-    add_textbox(slide, 4.2, 1.55, 1.2, 0.18, "当前点\n2026-04-14", font=FONT_MONO, size=8.5, color=COLORS["navy"], align=PP_ALIGN.CENTER)
-    add_textbox(slide, 0.78, 3.15, 3.2, 0.2, "当前准备度", size=10.5, bold=True, color=COLORS["navy"])
+        add_textbox(slide, x, y + 0.01, w, h - 0.01, label, size=7.4, bold=True, color=COLORS["ink"], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+        if above:
+            line_y = y + h
+            line_h = max(0.03, axis_y - line_y)
+            add_panel(slide, center_x - 0.012, line_y, 0.024, line_h, fill=accent, line=accent, radius=False)
+        else:
+            line_y = axis_y + 0.04
+            line_h = max(0.03, y - line_y)
+            add_panel(slide, center_x - 0.012, line_y, 0.024, line_h, fill=accent, line=accent, radius=False)
+
+    current_x = timeline_pos(date(2026, 4, 14), timeline_start, timeline_end, timeline_left, timeline_width)
+    add_panel(slide, current_x - 0.015, 2.46, 0.03, 0.95, fill=COLORS["navy"], line=COLORS["navy"], radius=False)
+    add_textbox(slide, current_x - 0.48, 2.05, 0.96, 0.28, "当前点\n2026-04-14", font=FONT_MONO, size=8.2, color=COLORS["navy"], align=PP_ALIGN.CENTER)
+    add_panel(slide, 9.35, 2.05, 3.2, 1.95, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 9.54, 2.18, 2.82, 0.2, "仍可操作窗口", size=10.6, bold=True, color=COLORS["navy"])
+    add_table(
+        slide,
+        9.5,
+        2.42,
+        2.9,
+        1.08,
+        ["路径", "窗口"],
+        [
+            ("ESEM Tech", "05-11 / 05-18"),
+            ("ESEM EVR", "05-22 / 05-29"),
+            ("MODELS NIER", "06-24 / 07-01"),
+        ],
+        header_fill=COLORS["teal"],
+        col_widths=[1.35, 1.55],
+        font_size=8.2,
+    )
+    add_textbox(slide, 9.54, 3.58, 2.8, 0.24, "ISSRE research 04-17；若 04-10 摘要未交，基本不算现实窗口。", size=8.3, color=COLORS["muted"])
+    add_panel(slide, 0.8, 4.18, 7.25, 1.56, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 0.96, 4.34, 2.2, 0.2, "当前准备度", size=10.5, bold=True, color=COLORS["navy"])
     readiness = [
-        ("project_1", 0.92, COLORS["teal"], "问题、文库、baseline、pyfcstm 都已具备"),
+        ("project_1", 0.92, COLORS["teal"], "问题、文库、baseline、pyfcstm 已够支撑主稿"),
         ("project_2", 0.56, COLORS["gold"], "接口层有意义，但当前不适合单独先发"),
         ("project_3", 0.44, COLORS["rust"], "backend 地基较深，验证原型尚未成型"),
         ("project_4", 0.24, COLORS["sage"], "依赖前几项更成熟后再起飞"),
     ]
-    y = 3.5
+    y = 4.66
     for label, ratio, accent, note in readiness:
-        add_textbox(slide, 0.9, y, 1.35, 0.22, label, font=FONT_MONO, size=11, bold=True, color=COLORS["ink"])
-        add_panel(slide, 2.2, y + 0.02, 4.4, 0.18, fill=COLORS["panel_alt"], line=COLORS["panel_alt"], radius=True)
-        add_panel(slide, 2.2, y + 0.02, 4.4 * ratio, 0.18, fill=accent, line=accent, radius=True)
-        add_textbox(slide, 6.8, y - 0.03, 5.0, 0.25, note, size=9.8, color=COLORS["muted"])
-        y += 0.56
+        add_textbox(slide, 0.98, y, 1.0, 0.18, label, font=FONT_MONO, size=9.3, bold=True, color=COLORS["ink"])
+        add_panel(slide, 2.02, y + 0.01, 2.85, 0.14, fill=COLORS["panel_alt"], line=COLORS["panel_alt"], radius=True)
+        add_panel(slide, 2.02, y + 0.01, 2.85 * ratio, 0.14, fill=accent, line=accent, radius=True)
+        add_textbox(slide, 5.02, y - 0.03, 2.78, 0.2, note, size=8.1, color=COLORS["muted"])
+        y += 0.28
+    add_panel(slide, 8.25, 4.18, 4.3, 1.56, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 8.45, 4.34, 3.85, 0.2, "官方主页确认仍可投稿的期刊", size=10.5, bold=True, color=COLORS["navy"])
+    add_paragraph_box(
+        slide,
+        8.45,
+        4.62,
+        3.82,
+        0.95,
+        [
+            "TSE: CFP / submission",
+            "SoSyM: submit your manuscript",
+            "Requirements Engineering: submit your manuscript",
+            "ASE Journal / EMSE: submit your manuscript",
+        ],
+        size=8.3,
+        color=COLORS["ink"],
+        bullet=False,
+        line_space_after=1,
+    )
+    add_textbox(slide, 8.45, 5.52, 3.82, 0.16, "这些路径更适合作为近端外部输出，不应反过来牵引问题定义。", size=8.0, color=COLORS["muted"])
     add_card(
         slide,
-        7.15,
-        3.35,
-        5.45,
-        2.15,
+        0.8,
+        6.0,
+        11.75,
+        0.54,
         "页面结论",
-        [
-            "RE / MoDELS 风格窗口基本已过。",
-            "ASE-style automation + infrastructure 写法仍是近端最现实目标。",
-            "所以这学期不宜再把主问题做散。",
-        ],
+        ["现实的 this-semester 出口主要是 ESEM 或 rolling journals；但 project_1 仍应按下一轮主稿质量来打，而不是为了赶窗口扩题。"],
         accent=COLORS["navy"],
-        fill=COLORS["panel"],
-        title_size=16,
-        body_size=11,
+        fill=COLORS["gold_soft"],
+        title_size=14.5,
+        body_size=9.8,
     )
     add_footer(slide, 4, "[1][15]")
 
@@ -686,62 +776,72 @@ def build_four_project_map(prs: Presentation) -> None:
 def build_project1_evidence_chain(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     add_title_block(slide, "project_1 的说服力来自三条文库线加上一条基础设施线", "不是平行摆设，而是共同回答“该建什么、凭什么、如何落地”", section="project_1")
-    add_card(slide, 0.92, 1.75, 2.55, 1.45, "`baselines/`", ["62 篇比较集", "回答“该和谁比”"], accent=COLORS["navy"], fill=COLORS["panel"], title_size=16, body_size=11)
-    add_card(slide, 9.85, 1.75, 2.55, 1.45, "`sources/`", ["787 篇 / 746 条正例", "回答“数据从哪里来”"], accent=COLORS["teal"], fill=COLORS["panel"], title_size=16, body_size=11)
-    add_card(slide, 0.92, 4.0, 2.55, 1.45, "`state_machine_types/`", ["669 + 10 条目", "回答“到底选哪类状态机”"], accent=COLORS["gold"], fill=COLORS["panel"], title_size=15, body_size=11)
-    add_card(slide, 9.85, 4.0, 2.55, 1.45, "`pyfcstm`", ["executable IR", "回答“如何落地并形成闭环”"], accent=COLORS["rust"], fill=COLORS["panel"], title_size=16, body_size=11)
-    add_panel(slide, 4.15, 2.55, 5.05, 2.15, fill=COLORS["navy"], line=COLORS["navy"], radius=True)
-    add_textbox(slide, 4.55, 2.88, 4.2, 0.32, "中央结论", size=12, bold=True, color=COLORS["sand"], align=PP_ALIGN.CENTER)
-    add_textbox(slide, 4.45, 3.25, 4.45, 0.78, "三条文库线共同把论文对象\n压向 control-state problem", font=FONT_SERIF, size=19, bold=True, color=COLORS["white"], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
-    add_textbox(slide, 4.45, 4.05, 4.45, 0.34, "而 `pyfcstm` 则把这个对象变成可执行、可反馈、可持续迭代的模型空间。", size=10.5, color=COLORS["white"], align=PP_ALIGN.CENTER)
-    add_arrow(slide, 3.55, 2.7, 0.45, 0.32, fill=COLORS["sand"], direction="right")
-    add_arrow(slide, 8.76, 2.7, 0.45, 0.32, fill=COLORS["sand"], direction="left")
-    add_arrow(slide, 3.55, 4.55, 0.45, 0.32, fill=COLORS["sand"], direction="right")
-    add_arrow(slide, 8.76, 4.55, 0.45, 0.32, fill=COLORS["sand"], direction="left")
+    add_context_bar(
+        slide,
+        0.9,
+        1.22,
+        11.56,
+        0.42,
+        "project_1 不是靠单一材料就能站住，它需要比较对象、真实样本、状态机选型和可执行落地一起支持。",
+        "所以这四条线必须被讲成一条证据链。",
+        accent=COLORS["teal"],
+    )
+    add_card(slide, 0.92, 1.86, 2.55, 1.2, "baseline 比较集", ["62 篇比较集", "回答“该和谁比”"], accent=COLORS["navy"], fill=COLORS["panel"], title_size=15, body_size=10.5)
+    add_card(slide, 9.85, 1.86, 2.55, 1.2, "真实样本库", ["787 篇 / 746 条正例", "回答“数据从哪里来”"], accent=COLORS["teal"], fill=COLORS["panel"], title_size=15, body_size=10.5)
+    add_card(slide, 0.92, 4.16, 2.55, 1.2, "状态机家族库", ["669 + 10 条目", "回答“到底选哪类状态机”"], accent=COLORS["gold"], fill=COLORS["panel"], title_size=14.5, body_size=10.3)
+    add_card(slide, 9.85, 4.16, 2.55, 1.2, "pyfcstm 基础设施", ["executable IR", "回答“如何落地”"], accent=COLORS["rust"], fill=COLORS["panel"], title_size=14.5, body_size=10.3)
+    add_panel(slide, 4.15, 2.6, 5.05, 2.05, fill=COLORS["navy"], line=COLORS["navy"], radius=True)
+    add_textbox(slide, 4.55, 2.9, 4.2, 0.26, "中央结论", size=12, bold=True, color=COLORS["sand"], align=PP_ALIGN.CENTER)
+    add_textbox(slide, 4.4, 3.2, 4.55, 0.62, "三条文库线共同把论文对象\n压向 control-state 主问题", font=FONT_SERIF, size=18, bold=True, color=COLORS["white"], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
+    add_textbox(slide, 4.35, 3.9, 4.65, 0.28, "而 pyfcstm 则把这个对象变成可执行、可反馈、可持续迭代的模型空间。", size=10.3, color=COLORS["white"], align=PP_ALIGN.CENTER)
+    add_arrow(slide, 3.55, 2.72, 0.45, 0.32, fill=COLORS["sand"], direction="right")
+    add_arrow(slide, 8.76, 2.72, 0.45, 0.32, fill=COLORS["sand"], direction="left")
+    add_arrow(slide, 3.55, 4.48, 0.45, 0.32, fill=COLORS["sand"], direction="right")
+    add_arrow(slide, 8.76, 4.48, 0.45, 0.32, fill=COLORS["sand"], direction="left")
     add_footer(slide, 6, "[2][3][4][5][7]")
 
 
 def build_baselines_overview(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "`baselines/` 解决的是“该和谁比，以及差距究竟在哪里”", "这不是领域均匀采样，而是围绕 project_1 可比性刻意筛出的比较集", section="文库证据")
-    add_textbox(slide, 0.82, 1.52, 2.0, 0.22, "状态分布", size=11, bold=True, color=COLORS["navy"])
-    add_big_number_card(slide, 0.85, 1.86, 2.45, 1.2, "62", "baseline 条目", "直接比较对象已经够用", accent=COLORS["navy"])
-    add_panel(slide, 0.85, 3.35, 5.3, 0.85, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_title_block(slide, "绿色 baseline 已经勾出了 5 条可直接讨论的方法线", "明天不该只报数量，而要把最值得讲的几篇“怎么做”讲清楚", section="文库证据")
+    add_big_number_card(slide, 0.86, 1.7, 2.4, 1.16, "62", "baseline 条目", "比较对象已经够用", accent=COLORS["navy"])
+    add_panel(slide, 0.86, 3.05, 2.4, 1.18, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 1.05, 3.22, 1.95, 0.18, "状态分布", size=10.2, bold=True, color=COLORS["navy"])
     add_horizontal_segments(
         slide,
         1.02,
-        3.63,
-        4.95,
-        0.26,
+        3.56,
+        2.08,
+        0.28,
         [
             ("🟢", 14, COLORS["green"], COLORS["white"]),
             ("🟡", 19, COLORS["amber"], COLORS["ink"]),
             ("🟠", 29, COLORS["orange"], COLORS["white"]),
         ],
+        label_y_offset=0.06,
     )
-    add_textbox(slide, 1.05, 4.08, 5.0, 0.18, "绿色条目不多，但它们正是明天汇报该重点讲的几篇。", size=10.5, color=COLORS["muted"])
-    role_cards = [
-        ("direct baseline", "正面回答“自由文本 -> 状态机”", COLORS["navy"]),
-        ("邻近任务", "需求 -> 行为模型 / model checking 修复", COLORS["teal"]),
-        ("方法启发", "workflow、反馈闭环、工具链集成", COLORS["rust"]),
-    ]
-    y = 1.78
-    for title, detail, accent in role_cards:
-        add_card(slide, 6.45, y, 5.75, 1.15, title, [detail], accent=accent, fill=COLORS["panel"], title_size=15, body_size=11)
-        y += 1.37
-    add_card(
+    add_textbox(slide, 1.04, 3.98, 2.02, 0.26, "不是继续堆数量，而是把几条最硬的方法线讲清楚。", size=9.4, color=COLORS["muted"])
+    add_table(
         slide,
-        6.45,
-        5.95,
-        5.75,
-        0.55,
-        "页面结论",
-        ["baseline 文库已经够厚，关键是挑最硬的绿色条目来支撑主张。"],
-        accent=COLORS["navy"],
-        fill=COLORS["gold_soft"],
-        title_size=14,
-        body_size=10.5,
+        3.55,
+        1.62,
+        8.96,
+        4.92,
+        ["代表论文", "方法骨架", "对 project_1 的启发"],
+        [
+            ("Structure/Event-Driven 2026", "多步结构分解 + 事件分解 + Hybrid 细化", "direct baseline 已经出现，问题不再是“有没有人做”"),
+            ("SysML empirical 2025", "两阶段 prompting + model checking feedback repair", "真正有效的是 feedback loop，而不是一次性 prompt"),
+            ("IEC 61499 2025", "iterative refinement + simulator / code generation", "一旦接上仿真与部署，方法性质就变了"),
+            ("TTool AI 2024", "知识注入 + 工具链反馈 + MBSE 集成", "基础设施与领域知识会明显抬高效果"),
+            ("Umple 2025", "One-shot / RAG 生成文本 DSL；zero-shot 基本失败", "小而稳的文本 DSL 仍需要示例与 schema 支撑"),
+        ],
+        header_fill=COLORS["navy"],
+        col_widths=[2.4, 2.95, 3.61],
+        font_size=9.7,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
+    add_panel(slide, 0.86, 5.7, 11.66, 0.58, fill=COLORS["gold_soft"], line=COLORS["gold_soft"], radius=True)
+    add_textbox(slide, 1.05, 5.89, 11.2, 0.18, "页面结论：baseline 已经不是“有没有”，而是“该把哪几类方法差异和反馈路线讲清楚”。", size=10.6, bold=True, color=COLORS["navy"])
     add_footer(slide, 7, "[3]")
 
 
@@ -965,108 +1065,108 @@ def build_sources_stats(prs: Presentation) -> None:
 
 def build_sources_main_types(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "主类型分布说明真实样本主链是 `FSM / EFSM / HSM`", "713 / 746 条正例都落在离散控制状态层附近", section="文库证据")
+    add_title_block(slide, "这些比例不能被读成自然分布，它们只能证明我们已经蓄了足够厚的目标样例池", "后期 sources 是按 EFSM / HSM + T0 / T1 主动强筛出来的", section="文库证据")
     add_context_bar(
         slide,
         0.84,
         1.22,
         11.62,
         0.42,
-        "主类型分布不只是数字，它直接决定论文对象该落在哪条主链上。",
-        "所以这页要读成“control-state 占绝对主体”。",
+        "如果把这些比例误读成自然分布，后面的结论就会站不住。",
+        "所以这一页必须明确“能说什么、不能说什么”。",
         accent=COLORS["teal"],
     )
-    add_chart(
-        slide,
-        0.85,
-        1.78,
-        5.2,
-        3.75,
-        ["FSM", "EFSM", "HSM", "Protocol", "Resource", "Hybrid"],
-        [127, 429, 157, 4, 13, 16],
-        chart_type=XL_CHART_TYPE.BAR_CLUSTERED,
-        accent=COLORS["teal"],
-        second_colors=[COLORS["navy"], COLORS["teal"], COLORS["gold"], COLORS["sand"], COLORS["sage"], COLORS["rust"]],
-        max_scale=460,
-    )
+    add_textbox(slide, 0.86, 1.86, 2.0, 0.2, "不能这样解读", size=10.8, bold=True, color=COLORS["rust"])
     add_table(
         slide,
-        6.35,
-        1.8,
-        6.12,
-        2.95,
-        ["主类型", "定义"],
+        0.84,
+        2.1,
+        5.45,
+        3.92,
+        ["误读", "为什么不成立"],
         [
-            ("FSM", "普通离散阶段机，少量条件并入状态也不会明显失真"),
-            ("EFSM", "离散状态仍是主体，但关键语义依赖 guard / effect 数据面"),
-            ("HSM", "高层模式和低层子状态关系本身就是主要结构事实"),
-            ("Protocol", "多角色请求、授权、接管等交互顺序是核心语义"),
-            ("Resource-flow", "正确性主要由资源占用、互斥、释放关系决定"),
-            ("Hybrid", "连续动力学或连续控制律是语义不可删的一部分"),
+            ("“EFSM 最多”", "不能推出控制系统文献天然以 EFSM 为主；这里只能说明我们后期主动把 EFSM/HSM 样例筛得更厚。"),
+            ("“T0/T1 最多”", "不能推出真实系统几乎没有强时间 / 连续问题；这里只能说明 project_1 当前主池刻意优先保留这两类。"),
+            ("“429 / 157 / 127 就是总体分布”", "sources 是治理后的主样例池，不是为替整个领域做分布统计而建。"),
         ],
-        header_fill=COLORS["teal"],
-        col_widths=[1.45, 4.67],
-        font_size=10.2,
+        header_fill=COLORS["rust"],
+        col_widths=[1.48, 3.97],
+        font_size=9.4,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
-    add_card(
+    add_textbox(slide, 6.55, 1.86, 2.05, 0.2, "可以这样解读", size=10.8, bold=True, color=COLORS["navy"])
+    add_table(
         slide,
-        6.38,
-        4.95,
-        6.08,
-        0.9,
-        "关键比例",
-        ["713 / 746 = 95.6% 的主集正例都落在 `FSM + EFSM + HSM` 这条离散控制状态主链上。"],
-        accent=COLORS["navy"],
-        fill=COLORS["teal_soft"],
-        title_size=15,
-        body_size=11.2,
+        6.52,
+        2.1,
+        5.95,
+        3.92,
+        ["可以这样说", "证据", "为什么重要"],
+        [
+            ("目标样例池已经够厚", "FSM 127 / EFSM 429 / HSM 157", "足以支撑 project_1 的数据集与评测设计"),
+            ("局部时间样例已经充足", "T0 + T1 = 719 / 746", "第一篇 paper 可以先收束到离散 control-state + local timing"),
+            ("收束对象不等于样例贫瘠", "显式时钟 243 / 层次 160", "目标形式主义仍需保留 hierarchy、guard 与局部 timer"),
+        ],
+        header_fill=COLORS["navy"],
+        col_widths=[1.86, 1.72, 2.37],
+        font_size=9.35,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
+    add_panel(slide, 0.86, 6.12, 11.6, 0.45, fill=COLORS["teal_soft"], line=COLORS["teal_soft"], radius=True)
+    add_textbox(slide, 1.04, 6.26, 11.2, 0.16, "结论：sources 的价值在于“样例池够厚”，不是“替整个领域做分布统计”。", size=10.3, bold=True, color=COLORS["navy"])
     add_footer(slide, 11, "[4]")
 
 
 def build_sources_time_structure(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "时间级别与结构标签说明“离散控制”不等于“扁平简单 FSM”", "T0/T1 占主导，但显式时钟与层次结构都不是小噪声", section="文库证据")
+    add_title_block(slide, "这个定向样例池依然不是“简单平面 FSM 池”，它保留了层次、定时和恢复复杂度", "收敛对象不等于退化对象", section="文库证据")
     add_context_bar(
         slide,
         0.82,
         1.22,
         11.64,
         0.42,
-        "离散主链并不意味着“模型可以极简化”。",
-        "所以 timer、显式时钟和 hierarchy 都必须被保留下来。",
+        "如果把目标收束误读成“只做最简单 FSM”，后面 pyfcstm 的定位也会被说扁。",
+        "所以这一页要强调池子里的结构复杂度。",
         accent=COLORS["navy"],
     )
-    add_textbox(slide, 0.82, 1.72, 2.2, 0.2, "时间级别分布", size=10.5, bold=True, color=COLORS["navy"])
-    add_chart(
+    add_table(
         slide,
         0.82,
-        2.0,
-        5.0,
-        2.9,
-        ["T0", "T1", "T2", "T3"],
-        [352, 367, 15, 12],
-        chart_type=XL_CHART_TYPE.COLUMN_CLUSTERED,
-        accent=COLORS["navy"],
-        second_colors=[COLORS["navy"], COLORS["teal"], COLORS["gold"], COLORS["rust"]],
-        max_scale=400,
+        1.82,
+        11.66,
+        3.98,
+        ["主模式", "定义", "为什么重要", "当前证据"],
+        [
+            ("阶段链", "系统按步骤推进，每一步由 guard / timer 决定下一段。", "这是离散顺序控制最常见的结构骨架。", "洗衣机 PLC、电梯 PLC；T0/T1 合计 719 / 746"),
+            ("联锁许可", "动作是否允许由权限、互斥、锁闭、到位条件共同决定。", "说明 guard 与变量面不能只是附属装饰。", "铁路联锁、门控控制；显式时钟 243"),
+            ("模式层次", "上层模式管理下层子阶段、子任务或执行层。", "目标 DSL 至少要保留 hierarchy。", "层次样例 160；UAV supervisor 等 HSM 案例"),
+            ("异常恢复", "fault -> safe fallback -> reset / recovery 构成专门链路。", "模型不能只覆盖 happy path。", "sources 中恢复链与异常保护样例长期高频出现"),
+        ],
+        header_fill=COLORS["navy"],
+        col_widths=[1.28, 3.08, 3.0, 4.3],
+        font_size=9.35,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
-    add_textbox(slide, 6.25, 1.72, 2.2, 0.2, "结构标签覆盖", size=10.5, bold=True, color=COLORS["navy"])
-    add_chart(
+    add_table(
         slide,
-        6.25,
-        2.0,
-        5.95,
-        2.9,
-        ["显式时钟", "层次", "连续耦合"],
-        [243, 160, 71],
-        chart_type=XL_CHART_TYPE.BAR_CLUSTERED,
-        accent=COLORS["teal"],
-        second_colors=[COLORS["teal"], COLORS["gold"], COLORS["rust"]],
-        max_scale=270,
+        0.82,
+        5.9,
+        11.66,
+        0.72,
+        ["结构证据", "数量", "含义"],
+        [
+            ("层次", "160", "离散 control-state 仍大量包含父子模式关系"),
+            ("显式时钟", "243", "局部 timer / 时钟条件并不是少数样例"),
+            ("T0 + T1", "719 / 746", "当前主问题可先稳定收束到离散 control-state + local timing"),
+        ],
+        header_fill=COLORS["teal"],
+        col_widths=[1.45, 1.05, 9.16],
+        font_size=9.2,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.CENTER, PP_ALIGN.LEFT],
     )
-    add_card(slide, 0.84, 5.15, 5.15, 0.88, "结论 1", ["`T0 + T1 = 719 / 746`，短期最稳的对象仍是离散控制 + 局部工程定时。"], accent=COLORS["navy"], fill=COLORS["panel"], title_size=15, body_size=10.6)
-    add_card(slide, 6.25, 5.15, 5.95, 0.88, "结论 2", ["显式时钟与层次结构必须保留，所以目标形式主义不能退回最平的 FSM。"], accent=COLORS["teal"], fill=COLORS["panel"], title_size=15, body_size=10.6)
+    add_panel(slide, 0.82, 6.62, 11.66, 0.32, fill=COLORS["gold_soft"], line=COLORS["gold_soft"], radius=True)
+    add_textbox(slide, 1.02, 6.71, 11.2, 0.14, "结论：收敛对象 = 离散 control-state，不 = 简单平面 FSM；目标形式主义至少要能承载 EFSM + HSM + local timing。", size=9.8, bold=True, color=COLORS["navy"])
     add_footer(slide, 12, "[4][6]")
 
 
@@ -1122,7 +1222,7 @@ def build_sources_examples(prs: Presentation) -> None:
 
 def build_sm_family(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "`state_machine_types/` 证明“状态机”是一整个家族而不是单对象", "问题不在于有没有状态机，而在于我们到底主动选择其中哪一支", section="文库证据")
+    add_title_block(slide, "state_machine_types 给出的启发不是“谁最多”，而是贡献点可以落在 profile / DSL / infrastructure", "现代状态机研究越来越像“选择并塑造目标对象”，而不是假定唯一标准", section="文库证据")
     add_context_bar(
         slide,
         0.84,
@@ -1133,141 +1233,159 @@ def build_sm_family(prs: Presentation) -> None:
         "所以必须主动选 control-state + infrastructure 这条分支。",
         accent=COLORS["navy"],
     )
-    add_chart(
+    add_table(
         slide,
         0.84,
-        1.84,
-        5.05,
-        3.68,
-        ["离散", "Timed", "Hybrid", "Petri", "契约", "DSL", "标准/元模型"],
-        [160, 96, 46, 28, 31, 59, 264],
-        chart_type=XL_CHART_TYPE.BAR_CLUSTERED,
-        accent=COLORS["navy"],
-        second_colors=[COLORS["navy"], COLORS["teal"], COLORS["rust"], COLORS["sage"], COLORS["sand"], COLORS["gold"], COLORS["navy"]],
-        max_scale=290,
+        1.86,
+        5.72,
+        4.28,
+        ["主分支", "解决的复杂度", "代表对象"],
+        [
+            ("control-state", "模式、阶段、guard、层次组织", "FSM / EFSM / HSM"),
+            ("timed", "时钟、deadline、最小/最大持续时间", "Timed Automata / clocks"),
+            ("hybrid", "连续动力学与离散切换耦合", "Hybrid Automata / CPS"),
+            ("interaction-resource", "资源互斥、契约组合、并发同步", "Petri / Interface / contract"),
+        ],
+        header_fill=COLORS["navy"],
+        col_widths=[1.45, 2.2, 2.07],
+        font_size=9.35,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
-    add_panel(slide, 6.35, 1.86, 6.0, 3.62, fill=COLORS["panel"], line=COLORS["line"], radius=True)
-    add_textbox(slide, 8.65, 2.02, 1.4, 0.22, "状态机家族", font=FONT_SERIF, size=17, bold=True, color=COLORS["navy"], align=PP_ALIGN.CENTER)
-    branches = [
-        (6.75, 2.68, 2.0, 0.78, "control-state", "FSM / EFSM / HSM", COLORS["teal"]),
-        (9.15, 2.68, 2.0, 0.78, "timed", "TA / clocks", COLORS["gold"]),
-        (6.75, 3.74, 2.0, 0.78, "hybrid", "continuous coupling", COLORS["rust"]),
-        (9.15, 3.74, 2.0, 0.78, "resource / contract", "Petri / contract", COLORS["sage"]),
-    ]
-    for x, y, w, h, title, detail, accent in branches:
-        add_card(slide, x, y, w, h, title, [detail], accent=accent, fill=COLORS["panel_alt"], title_size=13.5, body_size=9.8)
-    add_card(slide, 8.0, 4.76, 2.7, 0.92, "infrastructure", ["DSL / 标准 / 元模型 / 执行载体"], accent=COLORS["navy"], fill=COLORS["gold_soft"], title_size=14.5, body_size=10)
-    add_card(slide, 0.84, 5.52, 11.62, 0.88, "因此", ["对 project_1 来说，最自然的选择不是“任意状态机”，而是 control-state profile 加执行基础设施。"], accent=COLORS["navy"], fill=COLORS["teal_soft"], title_size=14, body_size=10.4)
+    add_table(
+        slide,
+        6.76,
+        1.86,
+        5.7,
+        4.28,
+        ["贡献形态", "当前证据", "对 project_1 的意义"],
+        [
+            ("DSL / target profile", "59 条", "目标对象设计本身就是学术贡献位点"),
+            ("标准 / 元模型 / 交换载体", "264 条", "工程上更关心可承载、可互操作、可执行"),
+            ("2010+ 非模型层增量", "82.6%", "现代增量大量发生在 runtime / bridge / workbench"),
+        ],
+        header_fill=COLORS["teal"],
+        col_widths=[1.7, 1.0, 3.0],
+        font_size=9.3,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.CENTER, PP_ALIGN.LEFT],
+    )
+    add_panel(slide, 0.84, 6.2, 11.62, 0.34, fill=COLORS["teal_soft"], line=COLORS["teal_soft"], radius=True)
+    add_textbox(slide, 1.04, 6.3, 11.2, 0.14, "结论：project_1 的贡献不一定是再发明一种“全新状态机”，也可以是主动选定并塑造一类更适合任务的 profile。", size=9.9, bold=True, color=COLORS["navy"])
     add_footer(slide, 14, "[5][7]")
 
 
 def build_control_state_definition(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "这篇论文更稳的对象应是控制系统的离散 control-state layer", "离散监督 / 顺序控制 与 连续 / 混成控制 在建模视角上其实是两类问题", section="project_1")
+    add_title_block(slide, "我们要解的是控制系统的离散 control-state layer，而不是所有状态机", "模式组织、联锁 guard、异常恢复、事件权限和局部 timer 才是当前主问题", section="project_1")
+    add_context_bar(
+        slide,
+        0.82,
+        1.22,
+        11.64,
+        0.42,
+        "“控制系统状态机”这个词太大，如果不拆开，第一篇 paper 就会同时背上离散、timed、hybrid 三类问题。",
+        "所以这里先把当前最稳定、最可执行、最可验证的 control-state 语义块钉出来。",
+        accent=COLORS["teal"],
+    )
     add_table(
         slide,
         0.82,
-        1.52,
+        1.84,
         11.65,
-        4.65,
-        ["维度", "离散监督 / 顺序控制 / 模式管理", "连续 / 混成控制中的模式切换"],
+        4.38,
+        ["语义块", "工程含义", "为什么是第一篇 paper 的主问题", "pyfcstm 当前承载"],
         [
-            ("典型系统", "PLC、电梯、铁路联锁、门控、任务控制、异常恢复链", "ABS / BBW、外骨骼步态、强时序医疗控制、动力学模式切换"),
-            ("状态的主要含义", "模式、阶段、权限、流程位置、故障恢复位置", "控制律区间、相变量阶段、连续动力学运行区间"),
-            ("核心建模难点", "guard、事件、互锁、局部 timer、异常链", "时钟组合、连续变量、动力学耦合、hybrid semantics"),
-            ("更自然的模型", "FSM / EFSM / HSM / control-state DSL", "Timed / Hybrid 一类对象"),
-            ("更自然的反馈基础设施", "parser、simulator、结构校验、可执行 trace", "timed/hybrid verification、数值仿真、symbolic reachability"),
+            ("模式层次", "系统有上层 mode 与下层子阶段 / 子任务。", "控制系统最常见的结构复杂度来自 hierarchy，而不是抽象图形语法。", "可直接承载"),
+            ("联锁 guard", "动作是否允许取决于权限、互斥、到位、锁闭等条件。", "决定变量、guard、effect 必须成为一等建模对象。", "可直接承载"),
+            ("故障与恢复链", "fault、fallback、reset、recover 构成专门路径。", "控制逻辑不能只覆盖 happy path。", "可直接承载"),
+            ("事件作用域", "同一事件只在某些模式 / 边界上才有效。", "这是 hierarchy 与 control-state 语义的核心交点。", "可直接承载"),
+            ("生命周期动作", "enter / during / exit 负责阶段切面与局部行为。", "比“普通状态机画图”更贴近真实控制逻辑。", "可直接承载"),
+            ("局部工程定时", "延时保持、watchdog、最小停留等局部 timer。", "第一篇 paper 需要承认 local timing，但不必先吞下完整 TA / hybrid 家族。", "部分承载；强实时仍待后续映射"),
         ],
         header_fill=COLORS["navy"],
-        col_widths=[1.4, 5.0, 5.25],
-        font_size=10.2,
+        col_widths=[1.55, 2.85, 4.15, 3.1],
+        font_size=9.1,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
-    add_card(
-        slide,
-        0.82,
-        6.25,
-        11.65,
-        0.42,
-        "论文对象建议",
-        ["project_1 第一篇论文先解左列问题；右列问题不否认其重要性，但放到后续延展更稳。"],
-        accent=COLORS["teal"],
-        fill=COLORS["teal_soft"],
-        title_size=13.5,
-        body_size=10.2,
-    )
+    add_panel(slide, 0.82, 6.34, 11.65, 0.34, fill=COLORS["teal_soft"], line=COLORS["teal_soft"], radius=True)
+    add_textbox(slide, 1.02, 6.44, 11.2, 0.14, "结论：第一篇 paper 先解这六类 control-state 语义；连续 / 混成控制的问题承认其重要性，但放到后续延展更稳。", size=9.8, bold=True, color=COLORS["navy"])
     add_footer(slide, 15, "[4][5][6][7]")
 
 
 def build_pyfcstm_progress(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "`pyfcstm` 从 2 月底到现在已经具备可执行基础设施的骨架", "它已经不是单文件 demo 级 DSL，而是在往工程可维护对象走", section="基础设施")
-    add_big_number_card(slide, 0.85, 1.48, 2.25, 1.1, "dcf1f70", "main HEAD", "截至 2026-04-14", accent=COLORS["rust"])
-    add_panel(slide, 3.35, 1.68, 8.95, 0.18, fill=COLORS["panel_alt"], line=COLORS["panel_alt"], radius=True)
-    add_panel(slide, 3.35, 1.68, 8.95, 0.18, fill=COLORS["rust"], line=COLORS["rust"], radius=True)
-    add_textbox(slide, 3.25, 1.98, 1.35, 0.2, "2026-02-28", font=FONT_MONO, size=9.5, color=COLORS["muted"], align=PP_ALIGN.LEFT)
-    add_textbox(slide, 11.15, 1.98, 1.35, 0.2, "2026-04-14", font=FONT_MONO, size=9.5, color=COLORS["muted"], align=PP_ALIGN.RIGHT)
-    cards = [
-        ("import / 模块化", "import 语法、模型组装、目录入口、editor support", COLORS["navy"]),
-        ("执行语义", "`if` 语句、运行时递归执行、symbolic if-block execution", COLORS["teal"]),
-        ("代码生成", "Python / C 模板、`c_poll` 路线、template tests", COLORS["gold"]),
-        ("工具支持", "PlantUML 导出、文档、教程、VS Code 支持", COLORS["sage"]),
-        ("验证预备", "solver / verify groundwork、symbolic witness 方向", COLORS["rust"]),
-    ]
-    x = 0.85
-    for title, detail, accent in cards:
-        add_card(slide, x, 2.55, 2.25, 2.6, title, [detail], accent=accent, fill=COLORS["panel"], title_size=14.5, body_size=10.5)
-        x += 2.4
-    add_card(
+    add_title_block(slide, "在 STM 语境下，pyfcstm 更像一个收窄后的 control-state DSL，而不是大而全状态机工具", "最该重点比较的是 Umple / UmpleRun 这条文本状态机生态，而不是泛泛说“它像状态图”", section="基础设施")
+    add_panel(slide, 0.84, 1.32, 11.64, 0.52, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 1.02, 1.48, 11.2, 0.16, "一句话定位：sequential HSM 骨架 + EFSM 数据面 + 确定执行语义的 executable control-state DSL。", size=10.8, bold=True, color=COLORS["navy"])
+    add_table(
         slide,
-        0.85,
-        5.52,
-        11.65,
-        0.72,
-        "页面结论",
-        ["`pyfcstm` 现在最值得强调的不是 feature 数量，而是它已经形成了一条从模型表达、执行、代码生成到后续验证接口的连续能力带。"],
-        accent=COLORS["rust"],
-        fill=COLORS["rust_soft"],
-        title_size=14.5,
-        body_size=11,
+        0.84,
+        2.02,
+        11.64,
+        4.42,
+        ["近邻对象", "它在 STM 文库里做什么", "与 pyfcstm 的相似点", "关键差异"],
+        [
+            ("HSM / Statecharts", "层次控制与复合状态的家族血缘", "都把 hierarchy 当结构骨架", "pyfcstm 主动收窄语义面，不追求完整并发 / history / 广播语义"),
+            ("Umple", "文本化 UML / 复合状态机 DSL 与代码生成", "都强调文本状态机、层次、guard / action 与可执行工件", "Umple 更偏 UML 文本承载与 Java/C++ 代码生成；pyfcstm 更强调 control-state profile 与 formal core"),
+            ("UmpleRun", "Umple 生态里的 execution-scenario 动态验证", "都说明文本状态机可以直接接反馈闭环", "UmpleRun 依赖 Umple -> Java/JAR -> scenario；pyfcstm 直接把 parser、runtime、symbolic core 放在同一内核里"),
+            ("SCXML", "标准化 executable state machine / interchange 载体", "都属于可执行层次状态机文本承载", "SCXML 语义面更宽，含 queue、parallel、history、invoke/send；pyfcstm 更窄、更偏 control-state 闭核"),
+            ("Sismic", "statechart runtime / testing 路线", "都强调 executable state machine 与测试反馈", "Sismic 更像 Python runtime；pyfcstm 更强调形式化核心与外部副作用隔离"),
+            ("UPPAAL", "timed automata / verification backend", "都和后续验证闭环强相关", "UPPAAL 属于 clocks / invariants / symbolic reachability 家族；pyfcstm 当前仍是 control-state DSL 本体"),
+        ],
+        header_fill=COLORS["rust"],
+        col_widths=[1.45, 2.35, 2.9, 4.94],
+        font_size=8.75,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
-    add_footer(slide, 16, "[8]")
+    add_panel(slide, 0.84, 6.54, 11.64, 0.16, fill=COLORS["gold_soft"], line=COLORS["gold_soft"], radius=True)
+    add_textbox(slide, 1.02, 6.57, 11.2, 0.12, "结论：pyfcstm 的辨识度来自“窄 profile + 闭 formal core”，而不是“大而全兼容”。", size=9.8, bold=True, color=COLORS["navy"])
+    add_footer(slide, 16, "[5][7][8]")
 
 
 def build_pyfcstm_role(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "`pyfcstm` 在论文里应被写成目标形式主义与闭环基座", "把“自然语言生成状态机”提升成“自然语言生成可执行形式模型”", section="基础设施")
-    add_panel(slide, 3.1, 2.3, 7.15, 1.38, fill=COLORS["panel"], line=COLORS["line"], radius=True)
-    steps = [
-        (3.15, "需求文本", COLORS["panel_alt"]),
-        (4.6, "LLM", COLORS["gold_soft"]),
-        (5.75, "`pyfcstm`\ncontrol-state DSL", COLORS["teal_soft"]),
-        (7.6, "parser /\nruntime", COLORS["blue_soft"]),
-        (9.25, "simulation /\ncodegen /\nverification hooks", COLORS["rust_soft"]),
-    ]
-    for x, label, fill in steps:
-        add_panel(slide, x, 2.58, 1.1 if x != 5.75 else 1.55, 0.82, fill=fill, line=COLORS["line"], radius=True)
-        add_textbox(slide, x, 2.78, 1.55 if x == 5.75 else 1.1, 0.26, label, size=10.5, bold=True, color=COLORS["ink"], align=PP_ALIGN.CENTER, valign=MSO_ANCHOR.MIDDLE)
-    add_arrow(slide, 4.23, 2.82, 0.28, 0.26, fill=COLORS["sand"], direction="right")
-    add_arrow(slide, 5.42, 2.82, 0.28, 0.26, fill=COLORS["sand"], direction="right")
-    add_arrow(slide, 7.32, 2.82, 0.28, 0.26, fill=COLORS["sand"], direction="right")
-    add_arrow(slide, 8.92, 2.82, 0.28, 0.26, fill=COLORS["sand"], direction="right")
-    add_card(slide, 0.82, 1.58, 2.1, 1.28, "target profile", ["不直接追求宽语义 UML/SCXML，而是主动收束成 control-state profile。"], accent=COLORS["navy"], fill=COLORS["panel"], title_size=14, body_size=10.2)
-    add_card(slide, 0.82, 3.1, 2.1, 1.28, "executable semantics", ["一生成就可解析、可执行、可继续进入 parser/runtime 反馈。"], accent=COLORS["teal"], fill=COLORS["panel"], title_size=14, body_size=10.2)
-    add_card(slide, 10.35, 1.58, 2.1, 1.28, "formal core", ["形式化核心与外部 action 显式隔离，方便验证与后续修复。"], accent=COLORS["gold"], fill=COLORS["panel"], title_size=14, body_size=10.2)
-    add_card(slide, 10.35, 3.1, 2.1, 1.28, "cross-project base", ["它为 project_2/3/4 提供共同模型对象，而不是一次性 demo。"], accent=COLORS["rust"], fill=COLORS["panel"], title_size=14, body_size=10.2)
-    add_card(
+    add_title_block(slide, "pyfcstm 的研究价值，在于把目标形式主义、执行语义和闭环接口一起做出来", "它不是附属工具，而是 project_1 的核心研究产出之一", section="基础设施")
+    add_panel(slide, 0.84, 1.32, 11.62, 0.5, fill=COLORS["panel"], line=COLORS["line"], radius=True)
+    add_textbox(slide, 1.02, 1.47, 11.2, 0.16, "它不是“又做了一个状态机工具”，而是在回答：应该生成什么对象、为什么它能立刻运行、以及为什么它能继续接向验证与修复闭环。", size=10.2, bold=True, color=COLORS["navy"])
+    add_table(
         slide,
         0.84,
-        5.52,
-        11.62,
-        0.72,
-        "结论",
-        ["`pyfcstm` 回答的是“LLM 到底该生成什么对象，为什么这个对象既可执行又适合闭环”这个研究问题，而不是简单实现问题。"],
-        accent=COLORS["rust"],
-        fill=COLORS["gold_soft"],
-        title_size=14.5,
-        body_size=11,
+        2.02,
+        5.6,
+        4.16,
+        ["贡献点", "真正回答的问题"],
+        [
+            ("target profile", "LLM 应该生成什么对象，而不是任意 UML / SCXML 子集"),
+            ("executable semantics", "为什么生成结果一落地就能跑起来，而不是只是一张图"),
+            ("formal core boundary", "哪些语义留在模型核心里，哪些必须外挂给 abstract action"),
+            ("executable model output", "输出对象为何从状态图升级成可执行形式模型"),
+            ("unified analysis-ready substrate", "为什么它能继续接 parser / runtime / verification hooks"),
+        ],
+        header_fill=COLORS["navy"],
+        col_widths=[1.65, 3.95],
+        font_size=9.2,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT],
     )
+    add_table(
+        slide,
+        6.86,
+        2.02,
+        5.6,
+        4.16,
+        ["当前能力层", "已有落地", "为什么重要"],
+        [
+            ("parser", "DSL 解析 + 结构校验", "保证目标对象不是松散文本"),
+            ("runtime", "cycle、stable-boundary、rollback", "为仿真与反馈提供确定执行边界"),
+            ("symbolic expr", "表达式到 Z3、symbolic execution", "为后续 analysis-ready 路线预埋接口"),
+            ("codegen", "Python / C 模板与生成路线", "让模型能继续落向实现侧"),
+            ("tooling", "PlantUML、文档、教程、编辑器支持", "让它成为可维护对象而不是 demo"),
+        ],
+        header_fill=COLORS["rust"],
+        col_widths=[1.15, 1.75, 2.7],
+        font_size=8.9,
+        alignments=[PP_ALIGN.LEFT, PP_ALIGN.LEFT, PP_ALIGN.LEFT],
+    )
+    add_panel(slide, 0.84, 6.28, 11.62, 0.34, fill=COLORS["gold_soft"], line=COLORS["gold_soft"], radius=True)
+    add_textbox(slide, 1.04, 6.39, 11.2, 0.12, "结论：pyfcstm 是 project_1 对“应该生成什么、怎样立刻可用、如何继续进闭环”的研究性回答。", size=9.8, bold=True, color=COLORS["navy"])
     add_footer(slide, 17, "[7][8]")
 
 
@@ -1287,9 +1405,9 @@ def build_pyudbm_progress(prs: Presentation) -> None:
     add_big_number_card(slide, 0.82, 1.76, 2.3, 1.02, "a8d0649", "main HEAD", "本地 clone 于 `~/oo-projects/pyudbm`", accent=COLORS["rust"])
     stack_items = [
         ("符号核", "UDBM API 与 UCDD 路线已立住", COLORS["navy"]),
-        ("模型前端", "UTAP 绑定、`load_xml`、`parse_query` 已有", COLORS["teal"]),
+        ("模型前端", "UTAP 绑定与 query 接口已接通", COLORS["teal"]),
         ("query + corpus", "roundtrip 与 178 个官方样本已成体系", COLORS["gold"]),
-        ("文献与路线", "TA / UPPAAL 阅读地图与 roadmap 持续维护", COLORS["sage"]),
+        ("文献与路线", "TA / UPPAAL 阅读地图持续维护", COLORS["sage"]),
     ]
     y = 2.95
     for idx, (title, detail, accent) in enumerate(stack_items):
@@ -1362,10 +1480,10 @@ def build_infra_feedback(prs: Presentation) -> None:
     add_arrow(slide, 6.88, 3.74, 0.26, 0.22, fill=COLORS["sand"], direction="left")
     add_arrow(slide, 4.38, 3.12, 0.22, 0.36, fill=COLORS["sand"], direction="up")
     evidence_cards = [
-        (0.82, 1.82, 2.3, 1.12, "2026 direct baseline", ["0.7029 vs 0.5431", "Hybrid 流程能明显拉回弱模型"], COLORS["navy"]),
+        (0.82, 1.82, 2.3, 1.12, "2026 direct baseline", ["0.7029 vs 0.5431", "Hybrid 流程能拉回弱模型"], COLORS["navy"]),
         (10.2, 1.82, 2.25, 1.18, "SysML empirical", ["94.6 / 88.0 / 43.1 / 37.3", "规则反馈有效，但还不够"], COLORS["teal"]),
         (0.82, 4.7, 2.3, 1.12, "TTool AI", ["63 vs 58，15.2x", "81 vs 70，67.5x"], COLORS["rust"]),
-        (10.2, 4.62, 2.25, 1.2, "workflow principles", ["可信 GenAI 依赖 decomposition、sanity checks、traceability"], COLORS["gold"]),
+        (10.2, 4.62, 2.25, 1.2, "workflow principles", ["可信 GenAI 依赖 decomposition + checks + traceability"], COLORS["gold"]),
     ]
     for x, y, w, h, title, lines, accent in evidence_cards:
         add_card(slide, x, y, w, h, title, lines, accent=accent, fill=COLORS["panel"], title_size=13.5, body_size=10)
@@ -1387,39 +1505,49 @@ def build_infra_feedback(prs: Presentation) -> None:
 
 def build_decisions_next_steps(prs: Presentation) -> None:
     slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_title_block(slide, "如果明天拍板这五件事，后续 6 周的推进路径会更稳", "收束问题对象、拉厚实验、准备 conference-style 论文", section="待拍板事项")
-    add_textbox(slide, 0.84, 1.35, 2.0, 0.2, "6 周倒排", size=10.5, bold=True, color=COLORS["navy"])
+    add_title_block(slide, "如果明天拍板这五件事，后续 6 周的推进路径会更稳", "收束问题对象、拉厚实验、准备 ESEM / rolling journal 后手", section="待拍板事项")
+    add_context_bar(
+        slide,
+        0.84,
+        1.22,
+        11.62,
+        0.42,
+        "如果前面几项关键判断不能拍板，后面 6 周就会继续分散推进。",
+        "所以这一页把倒排计划和待确认问题放在一起。",
+        accent=COLORS["gold"],
+    )
+    add_textbox(slide, 0.84, 1.76, 2.0, 0.2, "6 周倒排", size=10.5, bold=True, color=COLORS["navy"])
     phases = [
         ("第 1-2 周", "收束问题定义与论文主张", COLORS["teal"]),
         ("第 3-4 周", "固化样本与 baseline 实验", COLORS["gold"]),
-        ("第 5-6 周", "完成初稿与 venue 策略", COLORS["rust"]),
+        ("第 5-6 周", "完成初稿并锁定 ESEM / journal 后手", COLORS["rust"]),
     ]
     x = 0.86
     for idx, (label, detail, accent) in enumerate(phases):
-        add_card(slide, x, 1.62, 3.55, 1.08, label, [detail], accent=accent, fill=COLORS["panel"], title_size=15, body_size=11)
+        add_card(slide, x, 2.02, 3.55, 1.0, label, [detail], accent=accent, fill=COLORS["panel"], title_size=14.5, body_size=10.4)
         if idx < len(phases) - 1:
-            add_arrow(slide, x + 3.65, 1.95, 0.38, 0.32, fill=COLORS["sand"])
+            add_arrow(slide, x + 3.65, 2.3, 0.38, 0.32, fill=COLORS["sand"])
         x += 3.95
     decisions = [
-        "本学期主投稿是否锁定 `project_1`",
-        "论文对象是否先限定为离散 `control-state layer`",
-        "`pyfcstm` 是否正面写成 target formalism / executable IR",
-        "`pyudbm` 是否继续做 backend 地基而不抢主线",
-        "近端写法是否按 ASE-style automation + feedback infrastructure 组织",
+        "主投稿是否锁定 project_1",
+        "对象是否先限于离散控制状态层",
+        "pyfcstm 是否写成目标形式主义",
+        "pyudbm 是否继续沉淀 backend 地基",
+        "主稿是否按 feedback infrastructure 组织，并以 ESEM / journal 作近端出口",
     ]
     x_positions = [0.86, 4.05, 7.24, 0.86, 4.05]
-    y_positions = [3.2, 3.2, 3.2, 4.86, 4.86]
+    y_positions = [3.4, 3.4, 3.4, 5.0, 5.0]
     accents = [COLORS["navy"], COLORS["teal"], COLORS["gold"], COLORS["rust"], COLORS["sage"]]
     for idx, (x, y, text, accent) in enumerate(zip(x_positions, y_positions, decisions, accents, strict=True), start=1):
-        add_card(slide, x, y, 2.95, 1.35, f"决策 {idx}", [text], accent=accent, fill=COLORS["panel"], title_size=14.5, body_size=10.5)
+        add_card(slide, x, y, 2.95, 1.2, f"决策 {idx}", [text], accent=accent, fill=COLORS["panel"], title_size=14, body_size=10.0)
     add_card(
         slide,
         10.22,
-        4.08,
+        4.1,
         2.25,
-        2.15,
-        "Closing",
-        ["如果这五件事里有三四件能拍板，后面 6 周就可以沿着“对象收束 -> 实验拉厚 -> 初稿成型”稳步推进。"],
+        2.1,
+        "收束判断",
+        ["只要 3-4 项能拍板，后面 6 周就能按“对象收束 -> 实验拉厚 -> 初稿成型 -> ESEM / journal 选择”推进。"],
         accent=COLORS["navy"],
         fill=COLORS["gold_soft"],
         title_size=15,
