@@ -32,7 +32,8 @@
 ├── talks/                     # 与导师/他人的讨论纪要工作区
 │
 ├── tools/                     # 研究辅助工具
-│   └── pdf_extractor.py              # PDF文本提取工具
+│   ├── pdf_extractor.py              # PDF文本提取工具
+│   └── init_talk_workspace.py        # 讨论工作区初始化工具
 │
 ├── TARGET.md                  # 研究内容总结（核心参考文档）
 ├── CLAUDE.md                  # Claude Code 使用指南
@@ -69,9 +70,10 @@
 ### [talks/README.md](./talks/README.md) 与 [talks/GUIDE.md](./talks/GUIDE.md)
 用于维护与导师、同门、合作者等人类对象的讨论纪要，强调：
 
-- 先在 `raw.md` 中保存原始记忆碎片
-- 再由 AI 扩写为 `minutes.md`
-- 经过多轮人工纠偏后形成稳定纪要
+- 每次讨论必须使用 `yyyy-mm-dd-对象-主题` 一类子目录
+- 子目录中同时维护 `prep/`、`ppt/`、`raw.md`、`minutes.md`、`todo.md`
+- `ppt/` 内统一用 Python 的 `generate_ppt.py` 维护 `deck.pptx`
+- 默认借助本机已安装的 `deck-workflow` skill 做 guide-first 工作流
 
 ## 四大研究主题
 
@@ -110,12 +112,20 @@ python -m tools.pdf_extractor -i "path/to/paper/论文.pdf" -o "path/to/paper/pa
 ### 记录一次讨论纪要
 
 ```bash
-# 1. 创建单次讨论目录
-mkdir -p talks/2026-04-14-10-30-导师-讨论主题
+# 1. 初始化单次讨论目录
+python -m tools.init_talk_workspace 2026-04-14-导师-讨论主题
 
-# 2. 先写 raw.md，记录会后还能回忆起的原始片段
+# 2. 先完善准备材料与 PPT 指南
+# talks/2026-04-14-导师-讨论主题/prep/notes.md
+# talks/2026-04-14-导师-讨论主题/ppt/PPT_GUIDE.md
 
-# 3. 按 talks/GUIDE.md 的规则扩写 minutes.md
+# 3. 生成并 review deck
+python talks/2026-04-14-导师-讨论主题/ppt/generate_ppt.py
+python ~/.codex/skills/deck-workflow/scripts/render_review.py \
+  talks/2026-04-14-导师-讨论主题/ppt/deck.pptx \
+  --output-dir talks/2026-04-14-导师-讨论主题/ppt/rendered
+
+# 4. 讨论后记录 raw.md，再扩写 minutes.md
 ```
 
 ### 环境设置
@@ -150,6 +160,7 @@ pip install -r requirements.txt
 - 所有文档使用中文撰写
 - LaTeX文档使用XeLaTeX编译
 - 优先使用 `tools/pdf_extractor.py` 处理PDF文件
+- 讨论材料优先使用 `python -m tools.init_talk_workspace` 初始化
 - 文献分析按照 `CLAUDE.md` 中的规范编写
 
 ---

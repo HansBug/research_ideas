@@ -35,8 +35,9 @@
 - `talks/` - 与导师、同门、合作者等人类讨论的纪要工作区
 - `tools/` - Python工具集（详见下方"工具使用说明"）
   - `pdf_extractor.py` - PDF文本提取工具
+  - `init_talk_workspace.py` - 讨论工作区初始化工具
 - `TARGET.md` - 研究内容综合总结（中文）
-- `requirements.txt` - PDF处理所需的Python依赖
+- `requirements.txt` - 仓库工具与PPT工作流所需的Python依赖
 
 **论文组织方式**：论文资料可以出现在仓库的任何路径下（如各个 `project` 目录、专题文献目录、baseline 目录等），但后续统一按“**论文集路径** + **单论文路径**”两级结构组织；单论文路径是基础单元，论文集路径是其上级汇总与操作入口（详见下方“论文文件管理规范”）。
 
@@ -92,6 +93,22 @@ venv\Scripts\activate  # Windows
 # 安装依赖
 pip install -r requirements.txt
 ```
+
+### 讨论工作区初始化工具（tools/init_talk_workspace.py）
+
+当需要新建一次导师/同门/合作者讨论工作区时，优先使用此工具而不是手工搭目录：
+
+```bash
+python -m tools.init_talk_workspace 2026-04-14-导师-讨论主题
+```
+
+该工具会在 `talks/` 下初始化单次讨论子目录，默认包含：
+
+1. `prep/` - 讨论前准备材料
+2. `ppt/` - `PPT_GUIDE.md`、`generate_ppt.py`、`review/` 等 deck 工作区
+3. `raw.md` - 会后原始碎片
+4. `minutes.md` - 结构化纪要
+5. `todo.md` - 后续动作
 
 ## 论文文件管理规范
 
@@ -614,7 +631,7 @@ $$
 
 ### 1. 路径定位
 
-根目录 `talks/` 用于存放**我与导师、同门、合作者或其他人类对象的讨论纪要**。它服务的不是论文收录，而是把“会后回忆碎片 -> AI 扩写 -> 人工纠偏 -> 纪要定稿”这条迭代链稳定下来。
+根目录 `talks/` 用于存放**我与导师、同门、合作者或其他人类对象的讨论纪要**。它服务的不是论文收录，而是把“讨论前准备 -> deck 准备与 review -> 会后原始碎片 -> AI 扩写 -> 人工纠偏 -> 纪要定稿”这条迭代链稳定下来。
 
 该路径默认适合以下材料：
 
@@ -636,7 +653,18 @@ $$
 talks/
 ├── README.md
 ├── GUIDE.md
-└── 2026-04-14-10-30-导师-状态机边界/
+└── 2026-04-14-导师-状态机边界/
+    ├── prep/
+    │   ├── notes.md
+    │   └── materials.md
+    ├── ppt/
+    │   ├── PPT_GUIDE.md
+    │   ├── generate_ppt.py
+    │   ├── deck.pptx
+    │   ├── assets/
+    │   ├── rendered/
+    │   └── review/
+    │       └── notes.md
     ├── raw.md
     ├── minutes.md
     └── todo.md
@@ -644,8 +672,8 @@ talks/
 
 默认规则如下：
 
-1. 单次讨论目录名优先使用 `yyyy-mm-dd-hh-mm-对象-主题`。
-2. 如果只记得日期，不记得时分，可以退化为 `yyyy-mm-dd-对象-主题`。
+1. 单次讨论目录名默认优先使用 `yyyy-mm-dd-对象-主题`。
+2. 如果同一天有多次相近讨论，为避免冲突，可以扩展为 `yyyy-mm-dd-hh-mm-对象-主题`。
 3. `对象` 应尽量稳定，如 `导师`、`组会`、`同门`、`合作者`。
 4. `主题` 只保留短关键词，不要写成长句。
 
@@ -653,40 +681,71 @@ talks/
 
 单次讨论目录默认包含以下文件：
 
-1. `raw.md`
+1. `prep/`
+   - 讨论前准备材料目录。
+   - 默认至少包含 `prep/notes.md` 与 `prep/materials.md`。
+   - `prep/notes.md` 用于写本次要解决的问题、当前判断和想确认的点。
+   - `prep/materials.md` 用于列出需要回看的论文、路径、图表或数据。
+2. `ppt/`
+   - 讨论配套 deck 工作区。
+   - 默认维护 `PPT_GUIDE.md`、`generate_ppt.py`、`deck.pptx`、`assets/`、`rendered/`、`review/notes.md`。
+   - 其中 `PPT_GUIDE.md` 是 deck 的上游真源，`generate_ppt.py` 是唯一生成入口。
+3. `raw.md`
    - 原始输入文件。
    - 存放会后立即写下的记忆片段、关键词、半句、疑问和不完整判断。
    - 原则上保留原始表达，不应用 AI 扩写文本直接覆盖。
-2. `minutes.md`
+4. `minutes.md`
    - 扩写后的结构化纪要。
    - 由 AI 基于 `raw.md` 和用户后续纠正反复重写，直到形成可用版本。
-3. `todo.md`
+5. `todo.md`
    - 可选文件。
    - 当讨论直接产生了后续任务、待确认材料或行动项时再创建。
 
 默认不要求 `SUMMARY.md`，因为 `talks/` 不是论文集，总账应保持轻量。
 
-### 4. 编写与修订规则
+### 4. PPT 工作流与 `deck-workflow` skill 规则
+
+当某次讨论需要准备 PPT 时，默认必须遵循以下规则：
+
+1. 优先检查本地是否已安装 `deck-workflow` skill：`~/.codex/skills/deck-workflow/SKILL.md`。
+2. 若未安装，使用以下命令安装，而不是临时绕开：
+   ```bash
+   python ~/.codex/skills/.system/skill-installer/scripts/install-skill-from-github.py \
+     --repo HansBug/deck-workflow-skill \
+     --path deck-workflow
+   ```
+3. 安装后需要**重启 Codex** 才能在新会话中自动拾取该 skill。
+4. 在本仓库里，`ppt/` 下**统一使用 Python 后端**，文件名固定为 `generate_ppt.py`，不要改成 `generate_ppt.js`。
+5. Python 依赖统一安装到仓库已有环境里：若当前有激活的 conda 环境就用 conda；否则使用仓库根目录已有 `venv`。
+6. 不要在 `talks/.../ppt/` 下再创建新的 `.venv`、`venv` 或局部 Python 环境。
+7. `python-pptx`、`PyMuPDF`、`Pillow`、`pdf2image` 等依赖统一由仓库根目录 `requirements.txt` 管理。
+8. `soffice`、`pdftoppm` 或字体等系统依赖若缺失，可以直接安装，不要为了规避安装而跳过 review 链。
+9. deck 的默认生产链必须是：`PPT_GUIDE.md -> generate_ppt.py -> deck.pptx -> rendered/ -> review/notes.md -> 回写源文件 -> 重新生成`。
+
+### 5. 编写与修订规则
 
 处理 `talks/` 下材料时，默认遵循以下规则：
 
 1. 先读 [talks/README.md](./talks/README.md) 和 [talks/GUIDE.md](./talks/GUIDE.md)，再进入具体讨论目录。
-2. 新建讨论时，优先先写 `raw.md`，不要跳过原始碎片直接伪造一份完整纪要。
-3. AI 扩写 `minutes.md` 时，应把“用户明确说过的内容”和“为使语义完整做出的补全”区分开来。
-4. 如果某个结论、表述顺序或动作项只来自模糊记忆，应明确写成“待确认”或“根据上下文推测”，不能把不确定内容写成既定事实。
-5. 用户后续纠正优先级高于先前扩写版本；如两轮内容冲突，应重写 `minutes.md`，而不是机械并列堆积冲突版本。
-6. `raw.md` 是原始记忆入口，除非用户明确要求整理原稿，否则不应把它改写成 polished 纪要。
-7. 若讨论最终沉淀出明确的研究决策、任务拆分或对仓库已有材料的修订要求，应在 `minutes.md` 中写清楚落点路径或目标对象。
+2. 新建讨论时，优先先写 `prep/notes.md` 与 `prep/materials.md`，讨论后再写 `raw.md`。
+3. 若需要讲解材料，先维护 `ppt/PPT_GUIDE.md`，再改 `ppt/generate_ppt.py`，不要直接把 `deck.pptx` 当唯一编辑入口。
+4. AI 扩写 `minutes.md` 时，应把“用户明确说过的内容”和“为使语义完整做出的补全”区分开来。
+5. 如果某个结论、表述顺序或动作项只来自模糊记忆，应明确写成“待确认”或“根据上下文推测”，不能把不确定内容写成既定事实。
+6. 用户后续纠正优先级高于先前扩写版本；如两轮内容冲突，应重写 `minutes.md`，而不是机械并列堆积冲突版本。
+7. `raw.md` 是原始记忆入口，除非用户明确要求整理原稿，否则不应把它改写成 polished 纪要。
+8. 若讨论最终沉淀出明确的研究决策、任务拆分或对仓库已有材料的修订要求，应在 `minutes.md` 中写清楚落点路径或目标对象。
 
-### 5. 推荐阅读与工作顺序
+### 6. 推荐阅读与工作顺序
 
 当任务涉及 `talks/` 时，推荐顺序如下：
 
 1. 先读 [talks/README.md](./talks/README.md)：理解这个工作区是干什么的。
 2. 再读 [talks/GUIDE.md](./talks/GUIDE.md)：理解目录命名、文件职责和扩写边界。
-3. 进入目标讨论目录，先读 `raw.md`。
-4. 若 `minutes.md` 已存在，再读 `minutes.md`，判断当前纪要与原始片段是否一致。
-5. 必要时根据用户新补充的信息重写 `minutes.md`，并把待办拆到 `todo.md`。
+3. 进入目标讨论目录，先读 `prep/notes.md` 与 `prep/materials.md`，理解讨论前上下文。
+4. 若存在 `ppt/` 内容，再读 `ppt/PPT_GUIDE.md` 与 `ppt/review/notes.md`，判断 deck 当前状态。
+5. 讨论后处理纪要时，先读 `raw.md`。
+6. 若 `minutes.md` 已存在，再读 `minutes.md`，判断当前纪要与原始片段是否一致。
+7. 必要时根据用户新补充的信息重写 `minutes.md`，并把待办拆到 `todo.md`。
 
 ## 核心技术概念
 
