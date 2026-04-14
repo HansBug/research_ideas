@@ -1,0 +1,72 @@
+# `ASE / 期刊 / B` (`2016`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/ase_journal_b.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-ase_journal_b](../../SUBMISSION_TIMELINES.md#timeline-ase_journal_b)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：Automated Software Engineering
+- `CCF` 等级：`B`
+- 类型：`期刊`
+- 年份：`2016`
+- 条目数：`24`
+- 主体归属：软件工程
+- `软工归属级别`：`完全属于软工`
+- `氛围`：`A 🔥`
+- 与本课题的关系：自动化软件工程 / `LLM for SE` / 建模-验证-修复主场
+
+## 3. 关键信息页面
+
+- 期刊主页：https://link.springer.com/journal/10515
+- 学术索引页：http://dblp.uni-trier.de/db/journals/ase/
+- 2016 年官方 article page：见下表 `官方落地页` 列
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (2) / 🟡 保留观察 (1) / ⏳ 待补信息 (21) / ⚪ 暂不跟进 (0)
+- 一级总判定分布：软件工程 13 / 跨域/待判定 10 / 系统软件 1
+- 软工纳入判定分布：属于软件工程 13 / 不属于软件工程 11
+- 判定来源分布：启发式初判 (24)
+- 人工复核状态分布：未人工复核 (24)
+- 高频软工主路径：3.2.1 静态分析与抽象解释 (2) / 4.1.2 重构、重模块化与代码清理 (2) / 1.1.1 需求获取与发现 (1) / 4.2.1 代码搜索、导航与摘要 (1) / 3.1.4 场景化测试 (1) / 6.5.3 开源社区、多样性与治理 (1) / 7.1.4 AI 支持的架构、设计与工程决策 (1) / 3.4.1 调试、分诊与根因分析 (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Assisting requirements analysts to find latent concerns with REAssistant | Alejandro Rago, Claudia A. Marcos, Jorge Andrés Díaz Pace | 围绕《Assisting requirements analysts to find latent concerns with REAssistant》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.1.1 需求获取与发现 | 1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制；1.1.4 需求追踪、变更与演化 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0156-0](https://doi.org/10.1007/s10515-014-0156-0) | [link](http://link.springer.com/10.1007/s10515-014-0156-0) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2016:journals_ase_RagoMP16` |  |
+| 2 | Practical verification of decision-making in agent-based autonomous systems | Louise A. Dennis, Michael Fisher 0001, Nicholas Lincoln, Alexei Lisitsa 0001, Sandor M. Veres | We present a verification methodology for analysing the decision-making component in agent-based hybrid systems. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.3.3 模型分析、仿真与验证 | 3.3.1 面向软工问题的形式化验证；1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级 | X1=否; D1=1; D2=2; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0168-9](https://doi.org/10.1007/s10515-014-0168-9) | [link](http://link.springer.com/10.1007/s10515-014-0168-9) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2016:journals_ase_DennisFLLV16` |  |
+| 3 | Model inference for spreadsheets | Jácome Cunha, Martin Erwig, Jorge Mendes 0001, João Saraiva | Many errors in spreadsheet formulas can be avoided if spreadsheets are built automatically from higher-level models that can encode and enforce consistency constraints in the generated spreadsheets. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 1.2.3 规约质量与一致性；6.3.1 实验、案例研究与调查；1.1.1 需求获取与发现 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=完全属于软工; cross=是 | [10.1007/s10515-014-0167-x](https://doi.org/10.1007/s10515-014-0167-x) | [link](http://link.springer.com/10.1007/s10515-014-0167-x) | 🟡 保留观察 | 🟡 可选获取 | `CCF2016:journals_ase_CunhaEMS16` | 跨域 |
+| 4 | Ahead of time static analysis for automatic generation of debugging interfaces to the Linux kernel | Tegawendé F. Bissyandé, Laurent Réveillère, Julia L. Lawall, Gilles Muller | 围绕《Ahead of time static analysis for automatic generation of debugging interfaces to the Linux kernel》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 3.4.1 调试、分诊与根因分析；3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证 | X1=否; D1=2; D2=1; D3=2; D4=0; venue=完全属于软工; cross=是 | [10.1007/s10515-014-0152-4](https://doi.org/10.1007/s10515-014-0152-4) | [link](http://link.springer.com/10.1007/s10515-014-0152-4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_BissyandeRLM16` | 跨域 |
+| 5 | An approach to prioritize code smells for refactoring | Santiago A. Vidal, Claudia A. Marcos, Jorge Andrés Díaz Pace | 围绕《An approach to prioritize code smells for refactoring》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.1.2 重构、重模块化与代码清理 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0175-x](https://doi.org/10.1007/s10515-014-0175-x) | [link](http://link.springer.com/10.1007/s10515-014-0175-x) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_VidalMP16` |  |
+| 6 | Assessment and cross-product prediction of software product line quality: accounting for reuse across products, over multiple releases | Thomas R. Devine, Katerina Goseva-Popstojanova, Sandeep Krishnan, Robyn R. Lutz | 围绕《Assessment and cross-product prediction of software product line quality: accounting for reuse across products, over multiple releases》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0160-4](https://doi.org/10.1007/s10515-014-0160-4) | [link](http://link.springer.com/10.1007/s10515-014-0160-4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_DevineGKL16` |  |
+| 7 | Automatic query rewriting schemes for multitenant SaaS applications | Chun-Feng Liao, Kung Chen, Deik Hoong Tan, Jiu-Jye Chen | 围绕《Automatic query rewriting schemes for multitenant SaaS applications》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-015-0178-2](https://doi.org/10.1007/s10515-015-0178-2) | [link](http://link.springer.com/10.1007/s10515-015-0178-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_LiaoCTC16` |  |
+| 8 | AutoQuery: automatic construction of dependency queries for code search | Shaowei Wang 0002, David Lo 0001, Lingxiao Jiang | 围绕《AutoQuery: automatic construction of dependency queries for code search》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.2.1 代码搜索、导航与摘要 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=2; D2=1; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0170-2](https://doi.org/10.1007/s10515-014-0170-2) | [link](http://link.springer.com/10.1007/s10515-014-0170-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_WangLJ16` |  |
+| 9 | Concept extraction from business documents for software engineering projects | Pierre André Ménard, Sylvie Ratté | 围绕《Concept extraction from business documents for software engineering projects》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-015-0184-4](https://doi.org/10.1007/s10515-015-0184-4) | [link](http://link.springer.com/10.1007/s10515-015-0184-4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_MenardR16` |  |
+| 10 | Detecting plagiarized mobile apps using API birthmarks | Daeyoung Kim 0004, Amruta Gokhale, Vinod Ganapathy, Abhinav Srivastava | 围绕《Detecting plagiarized mobile apps using API birthmarks》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=1; D2=1; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-015-0182-6](https://doi.org/10.1007/s10515-015-0182-6) | [link](http://link.springer.com/10.1007/s10515-015-0182-6) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_KimGGS16` |  |
+| 11 | Differential precondition checking: a language-independent, reusable analysis for refactoring engines | Jeffrey L. Overbey, Ralph E. Johnson, Munawar Hafiz | 围绕《Differential precondition checking: a language-independent, reusable analysis for refactoring engines》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.1.2 重构、重模块化与代码清理 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0176-9](https://doi.org/10.1007/s10515-014-0176-9) | [link](http://link.springer.com/10.1007/s10515-014-0176-9) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_OverbeyJH16` |  |
+| 12 | Diversity maximization speedup for localizing faults in single-fault and multi-fault programs | Xin Xia 0001, Liang Gong, Tien-Duy B. Le, David Lo 0001, Lingxiao Jiang, Hongyu Zhang 0002 | 围绕《Diversity maximization speedup for localizing faults in single-fault and multi-fault programs》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 6.5.3 开源社区、多样性与治理 | 3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证；1.1.1 需求获取与发现 | X1=否; D1=1; D2=0; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0165-z](https://doi.org/10.1007/s10515-014-0165-z) | [link](http://link.springer.com/10.1007/s10515-014-0165-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_XiaGLLJZ16` |  |
+| 13 | Editorial introduction | Robert J. Hall 0001 | 围绕《Editorial introduction》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1007/s10515-015-0187-1](https://doi.org/10.1007/s10515-015-0187-1) | [link](http://link.springer.com/10.1007/s10515-015-0187-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_Hall16` |  |
+| 14 | Editorial Introduction | Robert J. Hall 0001 | 围绕《Editorial Introduction》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1007/s10515-016-0193-y](https://doi.org/10.1007/s10515-016-0193-y) | [link](http://link.springer.com/10.1007/s10515-016-0193-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_Hall16a` |  |
+| 15 | Editorial introduction | Robert J. Hall 0001 | 围绕《Editorial introduction》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1007/s10515-016-0199-5](https://doi.org/10.1007/s10515-016-0199-5) | [link](http://link.springer.com/10.1007/s10515-016-0199-5) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_Hall16b` |  |
+| 16 | Editorial introduction | Robert J. Hall 0001 | 围绕《Editorial introduction》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1007/s10515-016-0205-y](https://doi.org/10.1007/s10515-016-0205-y) | [link](http://link.springer.com/10.1007/s10515-016-0205-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_Hall16c` |  |
+| 17 | Identifying and understanding header file hotspots in C/C++ build processes | Shane McIntosh, Bram Adams, Meiyappan Nagappan, Ahmed E. Hassan | 围绕《Identifying and understanding header file hotspots in C/C++ build processes》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-015-0183-5](https://doi.org/10.1007/s10515-015-0183-5) | [link](http://link.springer.com/10.1007/s10515-015-0183-5) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_McIntoshANH16` |  |
+| 18 | Model-based diagnosis of spreadsheet programs: a constraint-based debugging approach | Dietmar Jannach, Thomas Schmitz 0002 | 围绕《Model-based diagnosis of spreadsheet programs: a constraint-based debugging approach》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.4.1 调试、分诊与根因分析 | 3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证；1.1.1 需求获取与发现 | X1=否; D1=1; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0141-7](https://doi.org/10.1007/s10515-014-0141-7) | [link](http://link.springer.com/10.1007/s10515-014-0141-7) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_JannachS16` |  |
+| 19 | Multiple kernel ensemble learning for software defect prediction | Tiejian Wang, Zhiwu Zhang 0002, Xiaoyuan Jing, Liqiang Zhang | 围绕《Multiple kernel ensemble learning for software defect prediction》开展研究。 | 系统软件 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工; SYS=kernel | [10.1007/s10515-015-0179-1](https://doi.org/10.1007/s10515-015-0179-1) | [link](http://link.springer.com/10.1007/s10515-015-0179-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_WangZJZ16` |  |
+| 20 | Preserving architectural decisions through architectural patterns | Minh Tu Ton That, Salah Sadou, Flávio Oquendo, Régis Fleurquin | 围绕《Preserving architectural decisions through architectural patterns》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0172-0](https://doi.org/10.1007/s10515-014-0172-0) | [link](http://link.springer.com/10.1007/s10515-014-0172-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_ThatSOF16` |  |
+| 21 | Reasoning about product-line evolution using complex feature model differences | Johannes Bürdek, Timo Kehrer, Malte Lochau, Dennis Reuling, Udo Kelter, Andy Schürr | 围绕《Reasoning about product-line evolution using complex feature model differences》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.4.1 特征建模与配置 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-015-0185-3](https://doi.org/10.1007/s10515-015-0185-3) | [link](http://link.springer.com/10.1007/s10515-015-0185-3) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_BurdekKLRKS16` |  |
+| 22 | Semantic tagging and linking of software engineering social content | Ebrahim Bagheri, Faezeh Ensan | 围绕《Semantic tagging and linking of software engineering social content》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0146-2](https://doi.org/10.1007/s10515-014-0146-2) | [link](http://link.springer.com/10.1007/s10515-014-0146-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_BagheriE16` |  |
+| 23 | Test data generation for path coverage of message-passing parallel programs based on co-evolutionary genetic algorithms | Tian Tian 0010, Dunwei Gong | 围绕《Test data generation for path coverage of message-passing parallel programs based on co-evolutionary genetic algorithms》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.1 代码生成、补全与变换 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=1; D2=0; D3=1; D4=0; venue=完全属于软工 | [10.1007/s10515-014-0173-z](https://doi.org/10.1007/s10515-014-0173-z) | [link](http://link.springer.com/10.1007/s10515-014-0173-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_TianG16` |  |
+| 24 | Verifying floating-point programs with constraint programming and abstract interpretation techniques | Olivier Ponsini, Claude Michel, Michel Rueher | 围绕《Verifying floating-point programs with constraint programming and abstract interpretation techniques》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 1.1.1 需求获取与发现；1.1.2 需求分析、协商与优先级；1.1.3 需求质量与歧义控制 | X1=否; D1=2; D2=1; D3=0; D4=0; venue=完全属于软工; cross=是 | [10.1007/s10515-014-0154-2](https://doi.org/10.1007/s10515-014-0154-2) | [link](http://link.springer.com/10.1007/s10515-014-0154-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2016:journals_ase_PonsiniMR16` | 跨域 |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：待人工细分 (15) / 建模/模型驱动 (4) / 维护与演化 (3) / 可靠性/安全 (3) / 测试与验证 (2)
+- 建议优先获取 `PDF` 的论文：`Assisting requirements analysts to find latent concerns with REAssistant`；`Practical verification of decision-making in agent-based autonomous systems`

@@ -1,0 +1,70 @@
+# `SCAM` (`2011`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/scam_conf_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-scam_conf_c](../../SUBMISSION_TIMELINES.md#timeline-scam_conf_c)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：IEEE International Working Conference on Source Code Analysis and Manipulation
+- `CCF` 等级：`C`
+- 类型：`会议`
+- 年份：`2011`
+- 条目数：`21`
+- 主体归属：软件工程
+- `软工归属级别`：`大部分属于软工`
+- `氛围`：`B 🟢`
+- 与本课题的关系：源码分析与变换 / 缺陷修复 / 程序理解邻近
+
+## 3. 关键信息页面
+
+- 年主页：待补
+- 学术索引页：http://dblp.uni-trier.de/db/conf/scam/
+- 官方论文集页：https://ieeexplore.ieee.org/xpl/conhome/6063701/proceeding / http://www.computer.org/csdl/proceedings/scam/2011/4347/00/index.html
+- `CFP`：待补
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (5) / 🟡 保留观察 (12) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (4)
+- 一级总判定分布：软件工程 16 / 跨域/待判定 4 / 程序设计语言与形式化基础 1
+- 软工纳入判定分布：属于软件工程 16 / 不属于软件工程 5
+- 判定来源分布：启发式初判 (21)
+- 人工复核状态分布：未人工复核 (21)
+- 高频软工主路径：3.2.1 静态分析与抽象解释 (5) / 7.1.4 AI 支持的架构、设计与工程决策 (3) / 3.1.4 场景化测试 (2) / 2.2.2 模块化、依赖与解耦 (1) / 4.1.2 重构、重模块化与代码清理 (1) / 6.3.1 实验、案例研究与调查 (1) / 1.3.1 建模语言与元模型 (1) / 7.1.1 代码生成、补全与变换 (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A Comparative Study of Code Query Technologies | Tiago L. Alves, Jurriaan Hage, Peter Rademaker | When analyzing software systems we face the challenge of how to implement a particular analysis for different programming languages. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.2.2 模块化、依赖与解耦 | 2.3.3 组件、包与集成工程；8.2.3 服务系统与 API 生态；3.2.1 静态分析与抽象解释 | X1=否; D1=1; D2=2; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.14](https://doi.org/10.1109/scam.2011.14) | [link](http://ieeexplore.ieee.org/document/6065173/) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2011:conf_scam_AlvesHR11` |  |
+| 2 | Computation of Alias Sets from Shape Graphs for Comparison of Shape Analysis Precision | Viktor Pavlu, Markus Schordan, Andreas Krall | Various shape analysis algorithms have been introduced but their relation in terms of precision often remains unclear as different analyses use different representations of analysis results. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.11](https://doi.org/10.1109/scam.2011.11) | [link](https://ieeexplore.ieee.org/document/6065194/) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2011:conf_scam_PavluSK11` |  |
+| 3 | Counting Bugs is Harder Than You Think | Paul E. Black | Software Assurance Metrics and Tool Evaluation (SAMATE) is a broad, inclusive project at the U.S. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 6.3.4 replication、benchmark 与开放科学；3.1.4 场景化测试；6.4.3 度量、预测与风险模型 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.24](https://doi.org/10.1109/scam.2011.24) | [link](http://ieeexplore.ieee.org/document/6065191/) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2011:conf_scam_Black11` |  |
+| 4 | I2SD: Reverse Engineering Sequence Diagrams from Enterprise Java Beans with Interceptors | Serguei A. Roubtsov, Alexander Serebrenik, Aurélien Mazoyer, Mark van den Brand | An Enterprise Java Beans (EJB) interceptor is a software mechanism that provides for introducing behavior implemented as separate code into the execution of a Java application. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.3.1 建模语言与元模型 | 3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=2; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.5](https://doi.org/10.1109/scam.2011.5) | [link](http://ieeexplore.ieee.org/document/6065174/) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2011:conf_scam_RoubtsovSMB11` |  |
+| 5 | Recovering a Balanced Overview of Topics in a Software Domain | Matthew B. Kelly, Jason S. Alexander, Bram Adams, Ahmed E. Hassan | Domain analysis is a crucial step in the development of product lines and software reuse in general, in which domain experts try to identify the commonalities and variability between different products of a particular domain. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 6.3.1 实验、案例研究与调查；3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.23](https://doi.org/10.1109/scam.2011.23) | [link](http://ieeexplore.ieee.org/document/6065172/) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2011:conf_scam_KellyAAH11` |  |
+| 6 | A Constraint Programming Approach to Conflict-Aware Optimal Scheduling of Prioritized Code Clone Refactoring | Minhaz F. Zibran, Chanchal K. Roy | Duplicated code, also known as code clones, are one of the malicious â€˜code smells' that often need to be removed through refactoring for enhancing maintainability. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.1.2 重构、重模块化与代码清理 | 4.1.5 技术债、克隆与可维护性治理；6.2.1 估算、计划与排程；2.2.4 技术债与设计质量 | X1=否; D1=3; D2=1; D3=1; D4=0; venue=大部分属于软工; cross=是 | [10.1109/scam.2011.21](https://doi.org/10.1109/scam.2011.21) | [link](http://ieeexplore.ieee.org/document/6065169/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_ZibranR11` | 跨域 |
+| 7 | A Study of Cloning in the Linux SCSI Drivers | Wei Wang 0001, Michael W. Godfrey | To date, most research on software code cloning has concentrated on detection and analysis techniques and their evaluation, and most empirical studies of cloning have investigated cloning within single system versions. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1109/scam.2011.17](https://doi.org/10.1109/scam.2011.17) | [link](http://ieeexplore.ieee.org/document/6065168/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_WangG11` | 跨域 |
+| 8 | Are the Clients of Flawed Classes (Also) Defect Prone? | Radu Marinescu 0001, Cristina Marinescu | Design flaws are those characteristics of design entities (e.g., methods, classes) which make them harder to maintain. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=1; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.9](https://doi.org/10.1109/scam.2011.9) | [link](http://ieeexplore.ieee.org/document/6065198/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_MarinescuM11` |  |
+| 9 | Assumption Hierarchy for a CHA Call Graph Construction Algorithm | Jason Sawin, Atanas Rountev | Method call graphs are integral components of many interprocedural static analyses which are widely used to aid in the development and maintenance of software. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.20](https://doi.org/10.1109/scam.2011.20) | [link](http://ieeexplore.ieee.org/document/6065195/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_SawinR11` |  |
+| 10 | Automatic Parallelization of Side-Effecting Higher-Order Scheme Programs | Jens Nicolay, Coen De Roover, Wolfgang De Meuter, Viviane Jonckers | The multi-core revolution heralds a challenging era for software maintainers. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.13](https://doi.org/10.1109/scam.2011.13) | [link](http://ieeexplore.ieee.org/document/6065177/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_NicolayRMJ11` |  |
+| 11 | Equational Reasoning on x86 Assembly Code | Kevin Coogan, Saumya K. Debray | Analysis of software is essential to addressing problems of correctness, efficiency, and security. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证；3.2.1 静态分析与抽象解释 | X1=否; D1=1; D2=2; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.15](https://doi.org/10.1109/scam.2011.15) | [link](http://ieeexplore.ieee.org/document/6065199/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_CooganD11` |  |
+| 12 | Exploring the Development of Micro-apps: A Case Study on the BlackBerry and Android Platforms | Mark D. Syer, Bram Adams, Ying Zou 0001, Ahmed E. Hassan | The recent meteoric rise in the use of smart phones and other mobile devices has led to a new class of applications, i.e., micro-apps, that are designed to run on devices with limited processing, memory, storage and display resources. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 6.3.1 实验、案例研究与调查 | 3.1.4 场景化测试；3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析 | X1=否; D1=2; D2=1; D3=1; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.25](https://doi.org/10.1109/scam.2011.25) | [link](https://ieeexplore.ieee.org/document/6065197/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_SyerAZH11` |  |
+| 13 | Knitting Music and Programming: Reflections on the Frontiers of Source Code Analysis | Nicolas Gold | Source Code Analysis and Manipulation (SCAM) underpins virtually every operational software system. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 3.2.2 动态与混合分析；3.2.3 面向质量属性的分析；3.2.4 分析驱动的理解、重构与综合 | X1=否; D1=1; D2=1; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.10](https://doi.org/10.1109/scam.2011.10) | [link](http://ieeexplore.ieee.org/document/6065192/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_Gold11` |  |
+| 14 | Program Analysis Too Loopy? Set the Loops Aside | Eric Larson | Among the many obstacles in efficient and sound program analysis, loops may be the most prevalent. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 3.2.2 动态与混合分析；3.2.3 面向质量属性的分析；3.2.4 分析驱动的理解、重构与综合 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.22](https://doi.org/10.1109/scam.2011.22) | [link](http://ieeexplore.ieee.org/document/6065193/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_Larson11` |  |
+| 15 | Security Testing of Web Applications: A Search-Based Approach for Cross-Site Scripting Vulnerabilities | Andrea Avancini, Mariano Ceccato | More and more web applications suffer the presence of cross-site scripting vulnerabilities that could be exploited by attackers to access sensitive information (such as credentials or credit card numbers). | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析；3.2.3 面向质量属性的分析 | X1=否; D1=2; D2=1; D3=2; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.7](https://doi.org/10.1109/scam.2011.7) | [link](http://ieeexplore.ieee.org/document/6065200/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_AvanciniC11` |  |
+| 16 | The Effect of Lexicon Bad Smells on Concept Location in Source Code | Surafel Lemma Abebe, Sonia Haiduc, Paolo Tonella, Andrian Marcus | Experienced programmers choose identifier names carefully, in the attempt to convey information about the role and behavior of the labeled code entity in a concise and expressive way. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.1.1 缺陷修复与维护性修正 | 3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.18](https://doi.org/10.1109/scam.2011.18) | [link](http://ieeexplore.ieee.org/document/6065171/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_AbebeHTM11` |  |
+| 17 | Tuning Static Data Race Analysis for Automotive Control Software | Steffen Keul | Implementation of concurrent software systems is difficult and error-prone. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 3.2.2 动态与混合分析；3.2.3 面向质量属性的分析；3.2.4 分析驱动的理解、重构与综合 | X1=否; D1=1; D2=1; D3=2; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.16](https://doi.org/10.1109/scam.2011.16) | [link](http://ieeexplore.ieee.org/document/6065196/) | 🟡 保留观察 | 🟡 可选获取 | `CCF2011:conf_scam_Keul11` |  |
+| 18 | Analyzing the Effect of Preprocessor Annotations on Code Clones | Sandro Schulze, Elmar Jürgens, Janet Feigenspan | The C preprocessor cpp is a powerful and language-independent tool, widely used to implement variable software in different programming languages (C, C++) using conditional compilation. | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工; PL=compilation | [10.1109/scam.2011.12](https://doi.org/10.1109/scam.2011.12) | [link](http://ieeexplore.ieee.org/document/6065170/) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2011:conf_scam_SchulzeJF11` |  |
+| 19 | CheckPointer - A C Memory Access Validator | Michael Mehlich | Check Pointer is a memory access validator for checking spatial and temporal pointer usage errors in multi-threaded applications by tracking meta data and validating pointer dereferences at run-time. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 3.2.2 动态与混合分析；3.2.3 面向质量属性的分析；3.2.4 分析驱动的理解、重构与综合 | X1=否; D1=1; D2=1; D3=0; D4=0; venue=大部分属于软工 | [10.1109/scam.2011.8](https://doi.org/10.1109/scam.2011.8) | [link](https://ieeexplore.ieee.org/document/6065175/) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2011:conf_scam_Mehlich11` |  |
+| 20 | Lightweight Transformation and Fact Extraction with the srcML Toolkit | Michael L. Collard, Michael John Decker, Jonathan I. Maletic | The srcML toolkit for lightweight transformation and fact-extraction of source code is described. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.1 代码生成、补全与变换 | 1.3.2 模型转换、同步与协同；3.2.1 静态分析与抽象解释；3.2.2 动态与混合分析 | X1=否; D1=1; D2=2; D3=0; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.19](https://doi.org/10.1109/scam.2011.19) | [link](http://ieeexplore.ieee.org/document/6065176/) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2011:conf_scam_CollardDM11` |  |
+| 21 | What You See is What You Asked for: An Effort-Based Transformation of Code Analysis Tasks into Interactive Visualization Scenarios | Ahmed Sfayhi, Houari A. Sahraoui | We propose an approach that derives interactive visualization scenarios from descriptions of code analysis tasks. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=0; D4=1; venue=大部分属于软工 | [10.1109/scam.2011.6](https://doi.org/10.1109/scam.2011.6) | [link](http://ieeexplore.ieee.org/document/6065178/) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2011:conf_scam_SfayhiS11` |  |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：维护与演化 (7) / 程序分析 (6) / 测试与验证 (5) / 需求工程 (4) / 经验软件工程 (4)
+- 建议优先获取 `PDF` 的论文：`A Comparative Study of Code Query Technologies`；`Computation of Alias Sets from Shape Graphs for Comparison of Shape Analysis Precision`；`Counting Bugs is Harder Than You Think`；`I2SD: Reverse Engineering Sequence Diagrams from Enterprise Java Beans with Interceptors`；`Recovering a Balanced Overview of Topics in a Software Domain`

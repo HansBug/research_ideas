@@ -1,0 +1,71 @@
+# `SOCA` (`2020`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/soca_journal_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-soca_journal_c](../../SUBMISSION_TIMELINES.md#timeline-soca_journal_c)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：Service Oriented Computing and Applications
+- `CCF` 等级：`C`
+- 类型：`期刊`
+- 年份：`2020`
+- 条目数：`24`
+- 主体归属：软件工程与服务系统工程交叉
+- `软工归属级别`：`部分属于软工`
+- `氛围`：`C 🟡`
+- 与本课题的关系：服务计算与应用为主
+
+## 3. 关键信息页面
+
+- 期刊主页：https://link.springer.com/journal/11761
+- 学术索引页：http://dblp.uni-trier.de/db/journals/soca/
+- 2020 年官方 article page：见下表 `官方落地页` 列
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (0) / 🟡 保留观察 (0) / ⏳ 待补信息 (23) / ⚪ 暂不跟进 (1)
+- 一级总判定分布：跨域/待判定 23 / 软件工程 1
+- 软工纳入判定分布：不属于软件工程 23 / 属于软件工程 1
+- 判定来源分布：启发式初判 (24)
+- 人工复核状态分布：未人工复核 (24)
+- 高频软工主路径：2.1.4 云/服务/平台架构 (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A graph database-based approach utilizing FAHP and directed bipartite graph for service composition | Guodong Fan, Ming Zhu 0011, Jing Li 0092, Chun Wang, Lei Zhao | 围绕《A graph database-based approach utilizing FAHP and directed bipartite graph for service composition》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00298-7](https://doi.org/10.1007/s11761-020-00298-7) | [link](https://link.springer.com/10.1007/s11761-020-00298-7) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_FanZLWZ20` |  |
+| 2 | AI in legal services: new trends in AI-enabled legal services | Marcos Eduardo Kauffman, Marcelo Negri Soares | 围绕《AI in legal services: new trends in AI-enabled legal services》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00305-x](https://doi.org/10.1007/s11761-020-00305-x) | [link](https://link.springer.com/10.1007/s11761-020-00305-x) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_KauffmanS20` |  |
+| 3 | Allocating MapReduce workflows with deadlines to heterogeneous servers in a cloud data center | Jia Wang, Xiaoping Li 0001, Rubén Ruiz, Hanchuan Xu, Dianhui Chu | 围绕《Allocating MapReduce workflows with deadlines to heterogeneous servers in a cloud data center》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00290-1](https://doi.org/10.1007/s11761-020-00290-1) | [link](http://link.springer.com/10.1007/s11761-020-00290-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_WangLRXC20` |  |
+| 4 | An automated framework for evaluating open-source web scanner vulnerability severity | Richard Amankwah, Jinfu Chen 0001, Patrick Kwaku Kudjo, Beatrice Korkor Agyemang, Alfred Adutwum Amponsah | 围绕《An automated framework for evaluating open-source web scanner vulnerability severity》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=1; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00296-9](https://doi.org/10.1007/s11761-020-00296-9) | [link](https://link.springer.com/10.1007/s11761-020-00296-9) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_AmankwahCKAA20` |  |
+| 5 | An equity-based incentive mechanism for persistent virtual world content service | Bingqing Shen, Weiming Tan, Jingzhi Guo, Peng Qin 0001, Bin Wang | 围绕《An equity-based incentive mechanism for persistent virtual world content service》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00297-8](https://doi.org/10.1007/s11761-020-00297-8) | [link](https://link.springer.com/10.1007/s11761-020-00297-8) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_ShenTGQW20` |  |
+| 6 | Building orchestrated microservice systems using declarative business processes | Davi Monteiro Barbosa, Paulo Henrique M. Maia, Lincoln S. Rocha, Nabor C. Mendonça | 围绕《Building orchestrated microservice systems using declarative business processes》开展研究。 | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 8.2.3 服务系统与 API 生态；4.4.1 可观测性、日志与异常检测；4.4.2 事故诊断、回滚与恢复 | X1=否; D1=2; D2=1; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00300-2](https://doi.org/10.1007/s11761-020-00300-2) | [link](https://link.springer.com/10.1007/s11761-020-00300-2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_BarbosaMRM20` | 跨域 |
+| 7 | Composition modeling for manufacturing resource cloud service | Guodong Yi, Hangjian Hu, Shuyou Zhang 0001, Longfei Sun | 围绕《Composition modeling for manufacturing resource cloud service》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00280-y](https://doi.org/10.1007/s11761-019-00280-y) | [link](http://link.springer.com/10.1007/s11761-019-00280-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_YiHZS20` |  |
+| 8 | Could or could not of Grid-Loc: grid BLE structure for indoor localisation system using machine learning | Quanyi Hu, Jie Yang 0057, Peng Qin 0001, Simon Fong 0001, Jingzhi Guo | 围绕《Could or could not of Grid-Loc: grid BLE structure for indoor localisation system using machine learning》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00292-z](https://doi.org/10.1007/s11761-020-00292-z) | [link](https://link.springer.com/10.1007/s11761-020-00292-z) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_HuYQFG20` |  |
+| 9 | Cross-layer impact analysis and adaptation of hierarchical service-based applications | Sridevi Saralaya, Vishwas Saralaya, Rio G. L. D&apos;Souza | 围绕《Cross-layer impact analysis and adaptation of hierarchical service-based applications》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00282-w](https://doi.org/10.1007/s11761-019-00282-w) | [link](http://link.springer.com/10.1007/s11761-019-00282-w) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_SaralayaSD20` |  |
+| 10 | Current and future of software services in smart manufacturing | Hongming Cai 0001, Lihong Jiang, Kuo-Ming Chao | 围绕《Current and future of software services in smart manufacturing》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00293-y](https://doi.org/10.1007/s11761-020-00293-y) | [link](https://link.springer.com/10.1007/s11761-020-00293-y) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_CaiJC20` |  |
+| 11 | Current and future of technologies and services in smart e-learning | Feng Tian 0002, Qinghua Zheng, Kuo-Ming Chao | 围绕《Current and future of technologies and services in smart e-learning》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00288-9](https://doi.org/10.1007/s11761-020-00288-9) | [link](http://link.springer.com/10.1007/s11761-020-00288-9) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_TianZC20` |  |
+| 12 | Data anonymization: a novel optimal k-anonymity algorithm for identical generalization hierarchy data in IoT | Waranya Mahanan, W. Art Chaovalitwongse, Juggapong Natwichai | 围绕《Data anonymization: a novel optimal k-anonymity algorithm for identical generalization hierarchy data in IoT》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00287-w](https://doi.org/10.1007/s11761-020-00287-w) | [link](http://link.springer.com/10.1007/s11761-020-00287-w) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_MahananCN20` |  |
+| 13 | Design of airport security screening using queueing theory augmented with particle swarm optimisation | Mohamad Naji, Ali Braytee, Ahmed Al-Ani, Ali Anaissi, Madhu Goyal, Paul J. Kennedy | 围绕《Design of airport security screening using queueing theory augmented with particle swarm optimisation》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00291-0](https://doi.org/10.1007/s11761-020-00291-0) | [link](http://link.springer.com/10.1007/s11761-020-00291-0) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_NajiBAAGK20` |  |
+| 14 | Enterprise architecture framework evaluation criteria: a literature review and artifact development | Pierre Hadaya, Abderrahmane Leshob, Philippe Marchildon, Istvan Matyas-Balassy | 围绕《Enterprise architecture framework evaluation criteria: a literature review and artifact development》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=0; D4=1; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00294-x](https://doi.org/10.1007/s11761-020-00294-x) | [link](https://link.springer.com/10.1007/s11761-020-00294-x) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_HadayaLMM20` |  |
+| 15 | Fault diagnosis in service-oriented computing through partially observed stochastic Petri nets | Guru Prasad Bhandari, Ratneshwer Gupta | 围绕《Fault diagnosis in service-oriented computing through partially observed stochastic Petri nets》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00279-5](https://doi.org/10.1007/s11761-019-00279-5) | [link](http://link.springer.com/10.1007/s11761-019-00279-5) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_BhandariG20` |  |
+| 16 | Hybrid biogeography-based optimization with enhanced mutation and CMA-ES for global optimization problem | Fuqing Zhao, Songlin Du, Yi Zhang 0096, Weimin Ma, Houbin Song | 围绕《Hybrid biogeography-based optimization with enhanced mutation and CMA-ES for global optimization problem》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00284-8](https://doi.org/10.1007/s11761-019-00284-8) | [link](http://link.springer.com/10.1007/s11761-019-00284-8) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_ZhaoDZMS20` |  |
+| 17 | Multi-objective cooperative control based on evolutionary process optimization of immune algorithm | FengJun Hu 0001, Hexin Lv, Alexander V. Tuzikov | 围绕《Multi-objective cooperative control based on evolutionary process optimization of immune algorithm》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00295-w](https://doi.org/10.1007/s11761-020-00295-w) | [link](https://link.springer.com/10.1007/s11761-020-00295-w) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_HuLT20` |  |
+| 18 | Rethinking the differential evolution algorithm | Hongwei Liu, Xiang Li 0070, Wenyin Gong | 围绕《Rethinking the differential evolution algorithm》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00286-x](https://doi.org/10.1007/s11761-020-00286-x) | [link](http://link.springer.com/10.1007/s11761-020-00286-x) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_LiuLG20` |  |
+| 19 | Review rating prediction using combined latent topics and associated sentiments: an empirical review | Anbazhagan Mahadevan, Michael Arock | 围绕《Review rating prediction using combined latent topics and associated sentiments: an empirical review》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=1; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00278-6](https://doi.org/10.1007/s11761-019-00278-6) | [link](http://link.springer.com/10.1007/s11761-019-00278-6) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_MahadevanA20` |  |
+| 20 | Semantics-based API discovery, matching and composition with linked metadata | Diego Serrano, Eleni Stroulia | 围绕《Semantics-based API discovery, matching and composition with linked metadata》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00301-1](https://doi.org/10.1007/s11761-020-00301-1) | [link](https://link.springer.com/10.1007/s11761-020-00301-1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_SerranoS20` |  |
+| 21 | Social network structure-based framework for innovation evaluation and propagation for new product development | Fateme Akbari, Morteza Saberi, Omar Khadeer Hussain | 围绕《Social network structure-based framework for innovation evaluation and propagation for new product development》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=1; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00289-8](https://doi.org/10.1007/s11761-020-00289-8) | [link](http://link.springer.com/10.1007/s11761-020-00289-8) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_AkbariSH20` |  |
+| 22 | Some new trends of intelligent simulation optimization and scheduling in intelligent manufacturing | Xinyu Li 0001, Chunjiang Zhang | 围绕《Some new trends of intelligent simulation optimization and scheduling in intelligent manufacturing》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-020-00299-6](https://doi.org/10.1007/s11761-020-00299-6) | [link](https://link.springer.com/10.1007/s11761-020-00299-6) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_LiZ20` |  |
+| 23 | WSEmail | Michael J. May, Kevin D. Lux, Carl A. Gunter | 围绕《WSEmail》开展研究。 | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00283-9](https://doi.org/10.1007/s11761-019-00283-9) | [link](http://link.springer.com/10.1007/s11761-019-00283-9) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2020:journals_soca_MayLG20` |  |
+| 24 | Analysis of adversary activities using cloud-based web services to enhance cyber threat intelligence | Hamad Al-Mohannadi, Irfan Awan, Jassim Al Hamar | Abstract The understanding of cyber threats to a network is challenging yet rewarding as it allows an organisation to prevent a potential attack. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/s11761-019-00285-7](https://doi.org/10.1007/s11761-019-00285-7) | [link](http://link.springer.com/10.1007/s11761-019-00285-7) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2020:journals_soca_Al-MohannadiAH20` |  |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：待人工细分 (12) / 程序设计语言/编译 (4) / 系统软件 (3) / 可靠性/安全 (3) / 维护与演化 (2)

@@ -1,0 +1,69 @@
+# `STVR` (`2017`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/stvr_journal_b.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-stvr_journal_b](../../SUBMISSION_TIMELINES.md#timeline-stvr_journal_b)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：Software Testing, Verification and Reliability
+- `CCF` 等级：`B`
+- 类型：`期刊`
+- 年份：`2017`
+- 条目数：`21`
+- 主体归属：软件工程
+- `软工归属级别`：`完全属于软工`
+- `氛围`：`A 🔥`
+- 与本课题的关系：测试 / 验证 / 可靠性与 formal properties 非常贴题
+
+## 3. 关键信息页面
+
+- 期刊主页：https://onlinelibrary.wiley.com/journal/10991689
+- 学术索引页：http://dblp.uni-trier.de/db/journals/stvr/index.html
+- 2017 年官方 article page：见下表 `官方落地页` 列
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (11) / 🟡 保留观察 (10) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (0)
+- 一级总判定分布：软件工程 18 / 跨域/待判定 3
+- 软工纳入判定分布：属于软件工程 18 / 不属于软件工程 3
+- 判定来源分布：启发式初判 (21)
+- 人工复核状态分布：未人工复核 (21)
+- 高频软工主路径：3.1.3 模糊、搜索式、变异与性质驱动测试 (5) / 3.1.4 场景化测试 (4) / 3.3.3 assurance、认证与合规验证 (1) / 3.3.1 面向软工问题的形式化验证 (1) / 7.1.2 AI 支持的测试、分析与修复 (1) / 3.4.1 调试、分诊与根因分析 (1) / 7.1.4 AI 支持的架构、设计与工程决策 (1) / 6.3.3 系统综述、mapping 与 meta-analysis (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | Automatic property-based testing and path validation of XQuery programs | Jesús Manuel Almendros-Jiménez, Antonio Becerra-Terón | Property-based testing has gained popularity in recent years in many areas of software development. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.3 模糊、搜索式、变异与性质驱动测试 | 3.1.4 场景化测试；3.1.1 测试生成与增强；3.1.2 回归测试与测试选择 | X1=否; D1=2; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1002/stvr.1625](https://doi.org/10.1002/stvr.1625) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1625) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_Almendros-Jimenez17` |  |
+| 2 | Bounded model checking of C++ programs based on the Qt cross-platform framework | Felipe R. Monteiro, Mário Garcia, Lucas C. Cordeiro, Eddie Batista de Lima Filho | Summary The software development process for embedded systems is getting faster and faster, which generally incurs an increase in the associated complexity. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.3.1 面向软工问题的形式化验证 | 1.3.3 模型分析、仿真与验证；6.3.4 replication、benchmark 与开放科学；3.3.4 基准、工具评测与可复现验证 | X1=否; D1=2; D2=1; D3=1; D4=1; venue=完全属于软工 | [10.1002/stvr.1632](https://doi.org/10.1002/stvr.1632) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1632) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_MonteiroGCF17` |  |
+| 3 | Causal inference based fault localization for numerical software with NUMFL | Zhuofu Bai, Gang Shu, Andy Podgurski | Summary This paper presents NUMFL, a value‐based causal inference technique for localizing faults in numerical software. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.2 AI 支持的测试、分析与修复 | 3.4.2 缺陷定位、补丁生成与程序修复；3.3.3 assurance、认证与合规验证；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=0; D3=1; D4=1; venue=完全属于软工; cross=是 | [10.1002/stvr.1613](https://doi.org/10.1002/stvr.1613) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1613) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_BaiSP17` | 跨域 |
+| 4 | Color figures considered harmful | Jeff Offutt | This issue contains two papers about test automation. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 6.3.3 系统综述、mapping 与 meta-analysis；3.1.1 测试生成与增强；3.1.2 回归测试与测试选择 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=完全属于软工 | [10.1002/stvr.1656](https://doi.org/10.1002/stvr.1656) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1656) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_Offutt17c` |  |
+| 5 | Editorial for the special issue of STVR on the 8th IEEE International Conference on Software Testing, Verification, and Validation (ICST 2015) | Gordon Fraser 0001, Darko Marinov | The 8th International Conference on Software Testing, Verification, and Validation (ICST 2015) was held on April 13 to 18, 2015, in Graz, Austria. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1002/stvr.1644](https://doi.org/10.1002/stvr.1644) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1644) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_FraserM17` |  |
+| 6 | Editorial: Beware of predatory journals | Jeff Offutt | This issue contains two papers. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1002/stvr.1655](https://doi.org/10.1002/stvr.1655) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1655) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_Offutt17b` |  |
+| 7 | Evaluating code-based test input generator tools | Lajos Cseppento, Zoltán Micskei | Summary In recent years, several tools have been developed to automatically select test inputs from the code of the system under test. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.3 模糊、搜索式、变异与性质驱动测试 | 3.2.1 静态分析与抽象解释；3.1.1 测试生成与增强；3.1.2 回归测试与测试选择 | X1=否; D1=1; D2=0; D3=1; D4=1; venue=完全属于软工; cross=是 | [10.1002/stvr.1627](https://doi.org/10.1002/stvr.1627) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1627) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_CseppentoM17` | 跨域 |
+| 8 | GUICop: Approach and toolset for specification-based GUI testing | Dalal Hammoud, Fadi A. Zaraket, Wes Masri | Summary Oracles used for testing graphical user interface (GUI) programmes are required to take into consideration complicating factors such as variations in screen resolution or colour scheme when comparing observed GUI elements with expected GUI elements. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 3.1.1 测试生成与增强；3.1.2 回归测试与测试选择；3.1.3 模糊、搜索式、变异与性质驱动测试 | X1=否; D1=3; D2=1; D3=1; D4=1; venue=完全属于软工 | [10.1002/stvr.1642](https://doi.org/10.1002/stvr.1642) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1642) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_HammoudZM17` |  |
+| 9 | How to manage a conference special issue | Robert M. Hierons | STVR publishes a small number of special issues each year and has associated policies. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 3.3.1 面向软工问题的形式化验证；1.3.3 模型分析、仿真与验证；1.3.4 基于模型的生成、测试与运行时支持 | X1=否; D1=1; D2=2; D3=2; D4=1; venue=完全属于软工; cross=是 | [10.1002/stvr.1633](https://doi.org/10.1002/stvr.1633) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1633) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_Hierons17` | 跨域 |
+| 10 | QuickChecking static analysis properties | Jan Midtgaard, Anders Møller | Summary A static analysis can check programs for potential errors. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.2.1 静态分析与抽象解释 | 1.2.1 形式化规约与契约；3.1.1 测试生成与增强；3.1.2 回归测试与测试选择 | X1=否; D1=2; D2=1; D3=2; D4=0; venue=完全属于软工; cross=是 | [10.1002/stvr.1640](https://doi.org/10.1002/stvr.1640) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1640) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_MidtgaardM17` | 跨域 |
+| 11 | Test suite completeness and black box testing | Adilson Luiz Bonifácio, Arnaldo Vieira Moura | Model-based testing has been widely studied and successfully applied to generate and verify completeness of test suites. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.2.3 规约质量与一致性 | 1.3.4 基于模型的生成、测试与运行时支持；7.1.1 代码生成、补全与变换；3.1.1 测试生成与增强 | X1=否; D1=3; D2=2; D3=1; D4=0; venue=完全属于软工 | [10.1002/stvr.1626](https://doi.org/10.1002/stvr.1626) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1626) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:journals_stvr_BonifacioM17` |  |
+| 12 | An automated framework to support testing for process-level race conditions | Tingting Yu 0001, Witty Srisa-an, Gregg Rothermel | Summary Race conditions are difficult to detect because they usually occur only under specific execution interleavings. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.3.3 assurance、认证与合规验证 | 3.2.2 动态与混合分析；3.2.3 面向质量属性的分析；3.1.1 测试生成与增强 | X1=否; D1=2; D2=1; D3=2; D4=0; venue=完全属于软工; cross=是 | [10.1002/stvr.1634](https://doi.org/10.1002/stvr.1634) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1634) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_YuSR17` | 跨域 |
+| 13 | Assessment of C++ object-oriented mutation operators: A selective mutation approach | Pedro Delgado-Pérez, Sergio Segura, Inmaculada Medina-Bulo | Summary Mutation testing is an effective but costly testing technique. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.3 模糊、搜索式、变异与性质驱动测试 | 3.1.1 测试生成与增强；3.1.2 回归测试与测试选择；3.1.4 场景化测试 | X1=否; D1=1; D2=0; D3=1; D4=0; venue=完全属于软工 | [10.1002/stvr.1630](https://doi.org/10.1002/stvr.1630) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1630) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_Delgado-PerezSM17` |  |
+| 14 | Debugging-workflow-aware software reliability growth analysis | Marcello Cinque, Domenico Cotroneo, Antonio Pecchia, Roberto Pietrantuono, Stefano Russo 0001 | Summary Software reliability growth models support the prediction/assessment of product quality, release time, and testing/debugging cost. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.4.1 调试、分诊与根因分析 | 6.1.2 过程挖掘、符合性与改进；3.1.1 测试生成与增强；3.1.2 回归测试与测试选择 | X1=否; D1=2; D2=2; D3=2; D4=1; venue=完全属于软工 | [10.1002/stvr.1638](https://doi.org/10.1002/stvr.1638) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1638) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_CinqueCPPR17` |  |
+| 15 | Detecting display energy hotspots in Android apps | Mian Wan, Yuchen Jin, Ding Li 0001, Jiaping Gui, Sonal Mahajan, William G. J. Halfond | Summary The energy consumption of mobile apps has become an important consideration for developers as the underlying mobile devices are constrained by battery capacity. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 3.1.4 场景化测试；1.3.2 模型转换、同步与协同；2.2.3 API、接口与协议设计 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=完全属于软工 | [10.1002/stvr.1635](https://doi.org/10.1002/stvr.1635) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1635) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_WanJLGMH17` |  |
+| 16 | Editorial: Accepting shortened papers hurts science | Jeff Offutt | This issue contains two papers. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=是; D1=0; D2=0; D3=0; D4=0; genre=editorial-like | [10.1002/stvr.1631](https://doi.org/10.1002/stvr.1631) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1631) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_Offutt17` |  |
+| 17 | Impediments for software test automation: A systematic literature review | Kristian Wiklund, Sigrid Eldh, Daniel Sundmark, Kristina Lundqvist | Summary Automated software testing is a critical enabler for modern software development, where rapid feedback on the product quality is expected. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 6.3.3 系统综述、mapping 与 meta-analysis | 3.1.1 测试生成与增强；3.1.2 回归测试与测试选择；3.1.3 模糊、搜索式、变异与性质驱动测试 | X1=否; D1=1; D2=1; D3=1; D4=0; venue=完全属于软工 | [10.1002/stvr.1639](https://doi.org/10.1002/stvr.1639) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1639) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_WiklundESL17` |  |
+| 18 | Is paper reviewing a transaction, a service, or an opportunity? | Jeff Offutt | This issue contains two papers. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.3 模糊、搜索式、变异与性质驱动测试 | 3.2.2 动态与混合分析；6.3.1 实验、案例研究与调查；3.1.1 测试生成与增强 | X1=否; D1=1; D2=1; D3=2; D4=1; venue=完全属于软工 | [10.1002/stvr.1643](https://doi.org/10.1002/stvr.1643) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1643) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_Offutt17a` |  |
+| 19 | Pattern-based GUI testing: Bridging the gap between design and quality assurance | Rodrigo M. L. M. Moreira, Ana C. R. Paiva, Miguel Nabuco, Atif Memon | Summary Software systems with a graphical user interface (GUI) front end are typically designed using user interface (UI) Patterns, which describe generic solutions (with multiple possible implementations) for recurrent GUI design problems. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 2.2.1 设计原则、模式与反模式；8.2.1 Web 与移动应用工程；3.1.1 测试生成与增强 | X1=否; D1=3; D2=2; D3=1; D4=0; venue=完全属于软工 | [10.1002/stvr.1629](https://doi.org/10.1002/stvr.1629) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1629) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_MoreiraPNM17` |  |
+| 20 | Prioritizing manual test cases in rapid release environments | Hadi Hemmati, Zhihan Fang, Mika V. Mäntylä, Bram Adams | Summary Test case prioritization is an important testing activity, in practice, specially for large scale systems. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.2 回归测试与测试选择 | 3.1.4 场景化测试；3.3.3 assurance、认证与合规验证；6.1.1 敏捷、精益与 DevOps 方法 | X1=否; D1=1; D2=1; D3=2; D4=1; venue=完全属于软工 | [10.1002/stvr.1609](https://doi.org/10.1002/stvr.1609) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1609) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_HemmatiFMA17` |  |
+| 21 | Prioritizing MCDC test cases by spectral analysis of Boolean functions | Tolga Ayav | Summary Test case prioritization aims at scheduling test cases in an order that improves some performance goal. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.3 模糊、搜索式、变异与性质驱动测试 | 3.3.3 assurance、认证与合规验证；6.2.1 估算、计划与排程；6.2.2 风险、价值与优先级 | X1=否; D1=1; D2=1; D3=2; D4=0; venue=完全属于软工 | [10.1002/stvr.1641](https://doi.org/10.1002/stvr.1641) | [link](https://onlinelibrary.wiley.com/doi/10.1002/stvr.1641) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:journals_stvr_Ayav17` |  |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：测试与验证 (19) / 建模/模型驱动 (8) / 需求工程 (6) / 形式化方法 (6) / 程序修复 (4)
+- 建议优先获取 `PDF` 的论文：`Automatic property-based testing and path validation of XQuery programs`；`Bounded model checking of C++ programs based on the Qt cross-platform framework`；`Causal inference based fault localization for numerical software with NUMFL`；`Color figures considered harmful`；`Editorial for the special issue of STVR on the 8th IEEE International Conference on Software Testing, Verification, and Validation (ICST 2015)`

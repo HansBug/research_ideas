@@ -1,0 +1,74 @@
+# `RV` (`2019`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/rv_conf_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-rv_conf_c](../../SUBMISSION_TIMELINES.md#timeline-rv_conf_c)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：International Conference on Runtime Verification
+- `CCF` 等级：`C`
+- 类型：`会议`
+- 年份：`2019`
+- 条目数：`25`
+- 主体归属：形式化方法与软件工程交叉
+- `软工归属级别`：`部分属于软工`
+- `氛围`：`A 🔥`
+- 与本课题的关系：运行时验证 / 监测 / 时序性质 / 工具链直接邻近
+
+## 3. 关键信息页面
+
+- 年主页：待补
+- 学术索引页：https://dblp.org/db/conf/rv/index.html
+- 官方论文集页：https://doi.org/10.1007/978-3-030-32079-9
+- `CFP`：待补
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (11) / 🟡 保留观察 (0) / ⏳ 待补信息 (14) / ⚪ 暂不跟进 (0)
+- 一级总判定分布：程序设计语言与形式化基础 17 / 软件工程 8
+- 软工纳入判定分布：不属于软件工程 17 / 跨域但软工主导 6 / 属于软件工程 2
+- 判定来源分布：启发式初判 (25)
+- 人工复核状态分布：未人工复核 (25)
+- 高频软工主路径：3.3.2 运行时验证与运行时监测 (8)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | A Formally Verified Monitor for Metric First-Order Temporal Logic | Joshua Schneider 0001, David A. Basin, Srdan Krstic, Dmitriy Traytel | 围绕《A Formally Verified Monitor for Metric First-Order Temporal Logic》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_18](https://doi.org/10.1007/978-3-030-32079-9_18) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_18) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_0001BKT19` |  |
+| 2 | AllenRV: An Extensible Monitor for Multiple Complex Specifications with High Reactivity | Nic Volanschi, Bernard P. Serpette | 围绕《AllenRV: An Extensible Monitor for Multiple Complex Specifications with High Reactivity》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_24](https://doi.org/10.1007/978-3-030-32079-9_24) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_24) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_VolanschiS19` |  |
+| 3 | An Extension of LTL with Rules and Its Application to Runtime Verification | Klaus Havelund, Doron Peled | 围绕《An Extension of LTL with Rules and Its Application to Runtime Verification》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 1.2.1 形式化规约与契约；4.4.4 持续 assurance 与运行时治理；5.1.1 故障预测与失效分析 | X1=否; D1=2; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_14](https://doi.org/10.1007/978-3-030-32079-9_14) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_14) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_HavelundP19` | 跨域 |
+| 4 | Assumption-Based Runtime Verification with Partial Observability and Resets | Alessandro Cimatti, Chun Tian 0001, Stefano Tonetta | We consider Runtime Verification (RV) based on Propositional Linear Temporal Logic (LTL) with both future and past temporal operators. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.1 可观测性、日志与异常检测；4.4.4 持续 assurance 与运行时治理；1.2.1 形式化规约与契约 | X1=否; D1=2; D2=1; D3=2; D4=1; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_10](https://doi.org/10.1007/978-3-030-32079-9_10) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_10) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_CimattiTT19` | 跨域 |
+| 5 | Comparing Controlled System Synthesis and Suppression Enforcement | Luca Aceto, Ian Cassar, Adrian Francalanza, Anna Ingólfsdóttir | 围绕《Comparing Controlled System Synthesis and Suppression Enforcement》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_9](https://doi.org/10.1007/978-3-030-32079-9_9) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_9) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_AcetoCFI19` |  |
+| 6 | Decentralized Stream Runtime Verification | Luis Miguel Danielsson, César Sánchez 0001 | 围绕《Decentralized Stream Runtime Verification》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.4 持续 assurance 与运行时治理；5.1.1 故障预测与失效分析；5.1.2 容错、韧性与恢复能力 | X1=否; D1=2; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_11](https://doi.org/10.1007/978-3-030-32079-9_11) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_11) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_DanielssonS19` | 跨域 |
+| 7 | Explaining Violations of Properties in Control-Flow Temporal Logic | Joshua Heneage Dawes, Giles Reger | 围绕《Explaining Violations of Properties in Control-Flow Temporal Logic》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_12](https://doi.org/10.1007/978-3-030-32079-9_12) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_12) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_DawesR19` |  |
+| 8 | NuRV: A nuXmv Extension for Runtime Verification | Alessandro Cimatti, Chun Tian 0001, Stefano Tonetta | We present NuRV, an extension of the nuXmv model checker for assumption-based LTL runtime verification with partial observability and resets. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.4 持续 assurance 与运行时治理；1.2.1 形式化规约与契约；1.3.3 模型分析、仿真与验证 | X1=否; D1=2; D2=2; D3=2; D4=1; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_23](https://doi.org/10.1007/978-3-030-32079-9_23) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_23) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_CimattiTT19a` | 跨域 |
+| 9 | Reactive Control Meets Runtime Verification: A Case Study of Navigation | Dogan Ulus, Calin Belta | 围绕《Reactive Control Meets Runtime Verification: A Case Study of Navigation》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.2.1 代码搜索、导航与摘要；6.3.1 实验、案例研究与调查；4.4.4 持续 assurance 与运行时治理 | X1=否; D1=2; D2=0; D3=2; D4=1; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_21](https://doi.org/10.1007/978-3-030-32079-9_21) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_21) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_UlusB19` | 跨域 |
+| 10 | Robustness of Specifications and Its Applications to Falsification, Parameter Mining, and Runtime Monitoring with S-TaLiRo | Georgios Fainekos, Bardh Hoxha, Sriram Sankaranarayanan 0001 | 围绕《Robustness of Specifications and Its Applications to Falsification, Parameter Mining, and Runtime Monitoring with S-TaLiRo》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.4 持续 assurance 与运行时治理；5.1.1 故障预测与失效分析；5.1.2 容错、韧性与恢复能力 | X1=否; D1=2; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_3](https://doi.org/10.1007/978-3-030-32079-9_3) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_3) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_FainekosH019` | 跨域 |
+| 11 | Runtime Verification for Timed Event Streams with Partial Information | Martin Leucker, César Sánchez 0001, Torben Scheffel, Malte Schmitz 0001, Daniel Thoma | Runtime Verification (RV) studies how to analyze execution traces of a system under observation. | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.4 持续 assurance 与运行时治理；1.3.2 模型转换、同步与协同；7.1.1 代码生成、补全与变换 | X1=否; D1=2; D2=0; D3=1; D4=1; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_16](https://doi.org/10.1007/978-3-030-32079-9_16) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_16) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2019:conf_rv_LeuckerSS0T19` | 跨域 |
+| 12 | A Retrospective Look at the Monitoring and Checking (MaC) Framework | Sampath Kannan, Moonzoo Kim, Insup Lee 0001, Oleg Sokolsky, Mahesh Viswanathan 0001 | 围绕《A Retrospective Look at the Monitoring and Checking (MaC) Framework》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_1](https://doi.org/10.1007/978-3-030-32079-9_1) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_1) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_KannanKLS019` |  |
+| 13 | Accelerated Learning of Predictive Runtime Monitors for Rare Failure | Reza Babaee, Vijay Ganesh 0001, Sean Sedwards | 围绕《Accelerated Learning of Predictive Runtime Monitors for Rare Failure》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_7](https://doi.org/10.1007/978-3-030-32079-9_7) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_7) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_BabaeeGS19` |  |
+| 14 | Algorithms for Monitoring Hyperproperties | Christopher Hahn | 围绕《Algorithms for Monitoring Hyperproperties》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_5](https://doi.org/10.1007/978-3-030-32079-9_5) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_5) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_Hahn19` |  |
+| 15 | Efficient Detection and Quantification of Timing Leaks with Neural Networks | Saeid Tizpaz-Niari, Pavol Cerný, Sriram Sankaranarayanan 0001, Ashutosh Trivedi 0001 | 围绕《Efficient Detection and Quantification of Timing Leaks with Neural Networks》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_19](https://doi.org/10.1007/978-3-030-32079-9_19) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_19) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_Tizpaz-NiariC0019` |  |
+| 16 | FastCFI: Real-Time Control Flow Integrity Using FPGA Without Code Instrumentation | Lang Feng 0001, Jeff Huang 0001, Jiang Hu 0001, Abhijith Reddy | 围绕《FastCFI: Real-Time Control Flow Integrity Using FPGA Without Code Instrumentation》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_13](https://doi.org/10.1007/978-3-030-32079-9_13) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_13) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_FengHHR19` |  |
+| 17 | Introspective Environment Modeling | Sanjit A. Seshia | 围绕《Introspective Environment Modeling》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_2](https://doi.org/10.1007/978-3-030-32079-9_2) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_2) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_Seshia19` |  |
+| 18 | Monitorability over Unreliable Channels | Sean Kauffman, Klaus Havelund, Sebastian Fischmeister | 围绕《Monitorability over Unreliable Channels》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_15](https://doi.org/10.1007/978-3-030-32079-9_15) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_15) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_KauffmanHF19` |  |
+| 19 | Neural Predictive Monitoring | Luca Bortolussi, Francesca Cairoli, Nicola Paoletti, Scott A. Smolka, Scott D. Stoller | 围绕《Neural Predictive Monitoring》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_8](https://doi.org/10.1007/978-3-030-32079-9_8) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_8) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_BortolussiCPSS19` |  |
+| 20 | On the Runtime Enforcement of Timed Properties | Yliès Falcone, Srinivas Pinisetty | 围绕《On the Runtime Enforcement of Timed Properties》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_4](https://doi.org/10.1007/978-3-030-32079-9_4) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_4) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_FalconeP19` |  |
+| 21 | Overhead-Aware Deployment of Runtime Monitors | Teng Zhang, Greg Eakman, Insup Lee 0001, Oleg Sokolsky | 围绕《Overhead-Aware Deployment of Runtime Monitors》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=1; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_22](https://doi.org/10.1007/978-3-030-32079-9_22) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_22) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_ZhangELS19` |  |
+| 22 | Predictive Runtime Monitoring for Linear Stochastic Systems and Applications to Geofence Enforcement for UAVs | Hansol Yoon, Yi Chou, Xin Chen 0002, Eric W. Frew, Sriram Sankaranarayanan 0001 | 围绕《Predictive Runtime Monitoring for Linear Stochastic Systems and Applications to Geofence Enforcement for UAVs》开展研究。 | 软件工程 | 跨域但软工主导 | 启发式初判 | 未人工复核 | 3.3.2 运行时验证与运行时监测 | 4.4.4 持续 assurance 与运行时治理；5.1.1 故障预测与失效分析；5.1.2 容错、韧性与恢复能力 | X1=否; D1=2; D2=0; D3=1; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_20](https://doi.org/10.1007/978-3-030-32079-9_20) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_20) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_YoonC0F019` | 跨域 |
+| 23 | Shape Expressions for Specifying and Extracting Signal Features | Dejan Nickovic, Xin Qin, Thomas Ferrère, Cristinel Mateis, Jyotirmoy V. Deshmukh | 围绕《Shape Expressions for Specifying and Extracting Signal Features》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_17](https://doi.org/10.1007/978-3-030-32079-9_17) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_17) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_NickovicQFMD19` |  |
+| 24 | Stream-Based Monitors for Real-Time Properties | Hazem Torfah | 围绕《Stream-Based Monitors for Real-Time Properties》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=0; D4=0; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_6](https://doi.org/10.1007/978-3-030-32079-9_6) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_6) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_Torfah19` |  |
+| 25 | Timescales: A Benchmark Generator for MTL Monitoring Tools | Dogan Ulus | 围绕《Timescales: A Benchmark Generator for MTL Monitoring Tools》开展研究。 | 程序设计语言与形式化基础 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=0; D2=0; D3=1; D4=1; venue=部分属于软工; cross=是 | [10.1007/978-3-030-32079-9_25](https://doi.org/10.1007/978-3-030-32079-9_25) | [link](http://link.springer.com/10.1007/978-3-030-32079-9_25) | ⏳ 待补信息 | ⏳ 未判断 | `CCF2019:conf_rv_Ulus19` |  |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：运行时监测 (12) / 测试与验证 (6) / 形式化方法 (5) / 待人工细分 (4) / 需求工程 (3)
+- 建议优先获取 `PDF` 的论文：`A Formally Verified Monitor for Metric First-Order Temporal Logic`；`AllenRV: An Extensible Monitor for Multiple Complex Specifications with High Reactivity`；`An Extension of LTL with Rules and Its Application to Runtime Verification`；`Assumption-Based Runtime Verification with Partial Observability and Resets`；`Comparing Controlled System Synthesis and Suppression Enforcement`

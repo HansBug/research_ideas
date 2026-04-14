@@ -1,0 +1,69 @@
+# `Internetware` (`2017`) 论文名录
+
+## 1. 文件导航
+
+- 年度总页：[../README.md](../README.md)
+- 计数复核：[../verification.json](../verification.json)
+- 数据文件：[metadata](../metadata/internetware_conf_c.json)
+- 近 `5` 年投稿时间线：[../../SUBMISSION_TIMELINES.md#timeline-internetware_conf_c](../../SUBMISSION_TIMELINES.md#timeline-internetware_conf_c)
+- 说明：本页承载本 venue 的逐篇论文名录，并按 `🟢 -> 🟡 -> ⏳ -> ⚪` 初筛优先级从高到低排序。
+
+## 2. 基本信息
+
+- 全称：Asia-Pacific Symposium on Internetware
+- `CCF` 等级：`C`
+- 类型：`会议`
+- 年份：`2017`
+- 条目数：`20`
+- 主体归属：软件工程与服务系统工程交叉
+- `软工归属级别`：`大部分属于软工`
+- `氛围`：`C 🟡`
+- 与本课题的关系：平台 / 网络化软件 / 运行治理邻近
+
+## 3. 关键信息页面
+
+- 年主页：待补
+- 学术索引页：https://dblp.org/db/conf/internetware/index.html
+- 官方论文集页：http://dl.acm.org/citation.cfm?id=3131704
+- `CFP`：待补
+
+## 4. 本 venue 统计
+
+- 初筛分布：🟢 优先跟进 (7) / 🟡 保留观察 (12) / ⏳ 待补信息 (0) / ⚪ 暂不跟进 (1)
+- 一级总判定分布：软件工程 16 / 跨域/待判定 2 / 系统软件 2
+- 软工纳入判定分布：属于软件工程 16 / 不属于软件工程 4
+- 判定来源分布：启发式初判 (20)
+- 人工复核状态分布：未人工复核 (20)
+- 高频软工主路径：2.1.4 云/服务/平台架构 (11) / 7.1.4 AI 支持的架构、设计与工程决策 (1) / 3.1.4 场景化测试 (1) / 1.1.4 需求追踪、变更与演化 (1) / 6.4.1 代码、提交、issue 与 PR 挖掘 (1) / 4.3.1 版本、配置与构建工程 (1)
+
+## 5. 论文名录
+
+- 说明：完整摘要、初筛理由、`BibTeX` 与软工判定字段已内嵌写入对应 `metadata` 文件。
+
+| 序号 | 标题 | 作者 | 一句话说明 | 一级总判定 | 软工纳入判定 | 判定来源 | 人工复核状态 | 软工主路径 | 软工次路径/标签 | 判定依据 | DOI | 官方落地页 | 初筛 | `PDF` 跟进 | `BibTeX` key | 备注 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | CRSearcher: Searching Code Database for Repairing Bugs | Yingyi Wang, Yuting Chen 0001, Beijun Shen, Hao Zhong 0001 | With the exponentially rising of software development in the past decades, millions of software products have been created. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131720](https://doi.org/10.1145/3131704.3131720) | [link](https://dl.acm.org/doi/10.1145/3131704.3131720) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_WangCSZ17` |  |
+| 2 | Evaluating Software Evolution Based on Pattern Mining | Xiaohui Zhou, Xinyue Zhang, Wenpin Jiao | Software systems need constantly maintaining or adapting to continuously meet the changing business requirements. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 2.2.1 设计原则、模式与反模式；4.1.1 缺陷修复与维护性修正；4.3.1 版本、配置与构建工程 | X1=否; D1=2; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131723](https://doi.org/10.1145/3131704.3131723) | [link](https://dl.acm.org/doi/10.1145/3131704.3131723) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_ZhouZJ17` | 跨域 |
+| 3 | Fast and Precise recovery in Stream processing based on Distributed Cache | Yingying Zheng, Wei Wang 0049, Lijie Xu, Zhen Tang, Zhongshan Ren, Jun Wei 0001, Dan Ye 0004 | Stream processing system (SPS) faces the problem of node failure when running over a long period of time. | 系统软件 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工; cross=是; SYS=cache,latency | [10.1145/3131704.3131724](https://doi.org/10.1145/3131704.3131724) | [link](https://dl.acm.org/doi/10.1145/3131704.3131724) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_ZhengWXTRWY17` |  |
+| 4 | NavyDroid: Detecting Energy Inefficiency Problems for Smartphone Applications | Yi Liu, Jue Wang, Chang Xu 0001, Xiaoxing Ma | Many smartphone applications suffer from energy inefficiency problems, but locating these problems is quite difficult and labor-intensive. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 1.3.1 建模语言与元模型；1.3.3 模型分析、仿真与验证；2.2.1 设计原则、模式与反模式 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131705](https://doi.org/10.1145/3131704.3131705) | [link](https://dl.acm.org/doi/10.1145/3131704.3131705) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_LiuWXM17` | 跨域 |
+| 5 | Scalable Relevant Project Recommendation on GitHub | Wenyuan Xu 0006, Xiaobing Sun 0001, Xin Xia 0001, Xiang Chen 0005 | GitHub, one of the largest social coding platforms, fosters a flexible and collaborative development process. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 6.4.1 代码、提交、issue 与 PR 挖掘 | 2.1.4 云/服务/平台架构；5.3.4 扩展性、吞吐与时延保证；6.3.1 实验、案例研究与调查 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131706](https://doi.org/10.1145/3131704.3131706) | [link](https://dl.acm.org/doi/10.1145/3131704.3131706) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_XuSXC17` | 跨域 |
+| 6 | Towards Release Strategy Optimization for Apps in Google Play | Sheng Shen 0001, Xuan Lu, Ziniu Hu, Xuanzhe Liu | In the appstore-centric ecosystem, app developers have an urgent requirement to optimize their release strategy to maximize user adoption of their apps. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 4.3.1 版本、配置与构建工程 | 2.1.4 云/服务/平台架构；2.2.1 设计原则、模式与反模式；4.3.2 CI/CD 与发布工程 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131710](https://doi.org/10.1145/3131704.3131710) | [link](https://dl.acm.org/doi/10.1145/3131704.3131710) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_ShenLHL17` | 跨域 |
+| 7 | Un-preprocessing: Extended CPP that works with your tools | Yufeng Cheng, Meng Wang 0002, Yingfei Xiong 0001, Zhengkai Wu, Yiming Wu, Lu Zhang 0023 | Many tools directly change programs, such as bug-fixing tools, program migration tools, etc. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 2.1.3 架构演化与重构；3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131715](https://doi.org/10.1145/3131704.3131715) | [link](https://dl.acm.org/doi/10.1145/3131704.3131715) | 🟢 优先跟进 | 🟢 建议获取 PDF | `CCF2017:conf_internetware_ChengWXWWZ17` | 跨域 |
+| 8 | An Empirical Study of Reviewer Recommendation in Pull-based Development Model | Cheng Yang 0004, Xunhui Zhang, Lingbin Zeng, Qiang Fan, Gang Yin, Huaimin Wang 0001 | Code review is an important process to reduce code defects and improve software quality. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 6.3.4 replication、benchmark 与开放科学；6.3.1 实验、案例研究与调查；6.5.2 协作、评审与知识共享 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131718](https://doi.org/10.1145/3131704.3131718) | [link](https://dl.acm.org/doi/10.1145/3131704.3131718) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_YangZZFYW17` | 跨域 |
+| 9 | API Usage Change Rules Mining based on Fine-grained Call Dependency Analysis | Ping Yu 0004, Fei Yang, Chun Cao, Hao Hu 0001, Xiaoxing Ma | Software frameworks are widely used in application development. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 3.2.3 面向质量属性的分析；3.3.3 assurance、认证与合规验证；4.3.1 版本、配置与构建工程 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131707](https://doi.org/10.1145/3131704.3131707) | [link](https://dl.acm.org/doi/10.1145/3131704.3131707) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_YuYCHM17` | 跨域 |
+| 10 | Application-centric SSD Cache Allocation for Hadoop Applications | Zhen Tang, Wei Wang 0049, Yu Huang 0002, Heng Wu 0001, Jun Wei 0001, Tao Huang 0001 | Flash-based Solid State Drive (SSD) is widely used in the virtualization environment, usually as the cache of the hard disk drive-based Virtual Machine (VM) storage, to improve the IO performance. | 系统软件 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工; cross=是; SYS=cache,throughput | [10.1145/3131704.3131708](https://doi.org/10.1145/3131704.3131708) | [link](https://dl.acm.org/doi/10.1145/3131704.3131708) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_TangWHWWH17` |  |
+| 11 | Automatically Generating Task-Oriented API Learning Guide | Zixiao Zhu, Chenyan Hua, Yanzhen Zou, Bing Xie, Junfeng Zhao 0001 | Learning and reusing open source API libraries remain a time consuming process due to the documentation quality and the knowledge gap between API providers and users. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 1.2.3 规约质量与一致性；3.3.4 基准、工具评测与可复现验证；6.3.1 实验、案例研究与调查 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131714](https://doi.org/10.1145/3131704.3131714) | [link](https://dl.acm.org/doi/10.1145/3131704.3131714) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_ZhuHZXZ17` | 跨域 |
+| 12 | Combining Collaborative Filtering and Topic Modeling for More Accurate Android Mobile App Library Recommendation | Huan Yu, Xin Xia 0001, Xiaoqiong Zhao, Weiwei Qiu | The applying of third party libraries is an integral part of many mobile applications. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 3.1.4 场景化测试 | 8.2.1 Web 与移动应用工程；2.1.4 云/服务/平台架构；4.3.1 版本、配置与构建工程 | X1=否; D1=1; D2=2; D3=1; D4=0; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131721](https://doi.org/10.1145/3131704.3131721) | [link](https://dl.acm.org/doi/10.1145/3131704.3131721) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_YuXZQ17` | 跨域 |
+| 13 | Detecting Duplicate Pull-requests in GitHub | Zhixing Li, Gang Yin, Yue Yu 0001, Tao Wang 0006, Huaimin Wang 0001 | The widespread use of pull-requests boosts the development and evolution for many open source software projects. | 跨域/待判定 | 不属于软件工程 | 启发式初判 | 未人工复核 |  |  | X1=否; D1=1; D2=0; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131725](https://doi.org/10.1145/3131704.3131725) | [link](https://dl.acm.org/doi/10.1145/3131704.3131725) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_LiYYWW17` |  |
+| 14 | Document Distance Estimation via Code Graph Embedding | Zeqi Lin, Junfeng Zhao 0001, Yanzhen Zou, Bing Xie | Accurately representing the distance between two documents (i.e. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 6.3.4 replication、benchmark 与开放科学；1.1.4 需求追踪、变更与演化；3.2.3 面向质量属性的分析 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131713](https://doi.org/10.1145/3131704.3131713) | [link](https://dl.acm.org/doi/10.1145/3131704.3131713) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_LinZZX17` | 跨域 |
+| 15 | Framework for Adaptive Computation Offloading in IoT Applications | Shihong Chen, Bichun Liu, Xing Chen 0002, Ying Zhang 0012, Gang Huang 0001 | The internet of things (IoT) attracts great interest in many application domains concerned with monitoring and control of physical phenomena. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 8.2.3 服务系统与 API 生态；2.2.1 设计原则、模式与反模式；4.3.1 版本、配置与构建工程 | X1=否; D1=1; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131717](https://doi.org/10.1145/3131704.3131717) | [link](https://dl.acm.org/doi/10.1145/3131704.3131717) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_ChenLCZ017` | 跨域 |
+| 16 | Learning from Internet: Handling Uncertainty in Robotic Environment Modeling | Yiying Li, Huaimin Wang 0001, Bo Ding, Huimin Che | Uncertainty is a great challenge for environment perception of autonomous robots. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 8.5.3 大模型原生与 agentic 软件系统；4.3.1 版本、配置与构建工程；4.3.2 CI/CD 与发布工程 | X1=否; D1=1; D2=1; D3=1; D4=0; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131712](https://doi.org/10.1145/3131704.3131712) | [link](https://dl.acm.org/doi/10.1145/3131704.3131712) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_LiWDC17` | 跨域 |
+| 17 | LogPruner: A Tool for Pruning Logging Call in Android Apps | Huaqian Cai, Xin Zhou 0008, Shuai Lou, Ying Zhang 0012, Gang Huang 0001 | The prevalence of mobile platforms, especially the large market share of Android, has promoted the popularity of mobile applications (a.k.a. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 3.1.4 场景化测试；3.2.1 静态分析与抽象解释；6.3.1 实验、案例研究与调查 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131711](https://doi.org/10.1145/3131704.3131711) | [link](https://dl.acm.org/doi/10.1145/3131704.3131711) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_CaiZLZ017` | 跨域 |
+| 18 | Refining Traceability Links between Code and Software Documents | Yingkui Cao, Yanzhen Zou, Yuxiang Luo, Bing Xie, Junfeng Zhao 0001 | Recovering traceability links between source code and software document can be very helpful for Software Maintenance and Software Reuse. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 1.1.4 需求追踪、变更与演化 | 2.1.4 云/服务/平台架构；4.1.1 缺陷修复与维护性修正；4.3.1 版本、配置与构建工程 | X1=否; D1=2; D2=2; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131716](https://doi.org/10.1145/3131704.3131716) | [link](https://dl.acm.org/doi/10.1145/3131704.3131716) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_CaoZLXZ17` | 跨域 |
+| 19 | Understanding the Variation of Software Development Tasks: a Qualitative Study | Xin Tan 0003, Hanmin Qin, Minghui Zhou 0001 | In order to reduce cost, get to market faster and utilize global talents, large companies often organize their software development globally (distributed over Internet), a paradigm advocated by Internetware. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 2.1.4 云/服务/平台架构 | 6.3.1 实验、案例研究与调查；4.3.1 版本、配置与构建工程；4.3.2 CI/CD 与发布工程 | X1=否; D1=1; D2=1; D3=1; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131719](https://doi.org/10.1145/3131704.3131719) | [link](https://dl.acm.org/doi/10.1145/3131704.3131719) | 🟡 保留观察 | 🟡 可选获取 | `CCF2017:conf_internetware_TanQZ17` | 跨域 |
+| 20 | AgileRabbit: A Feedback-Driven Offloading Middleware for Smartwatch Apps | Meihua Yu, Yun Ma 0002, Xuanzhe Liu, Gang Huang 0001, Xiangqun Chen | With the rapid development of wearable devices such as smartwatches, we are brought to a new era of wearable computing. | 软件工程 | 属于软件工程 | 启发式初判 | 未人工复核 | 7.1.4 AI 支持的架构、设计与工程决策 | 2.1.4 云/服务/平台架构；3.1.4 场景化测试；7.1.1 代码生成、补全与变换 | X1=否; D1=1; D2=1; D3=0; D4=1; venue=大部分属于软工; cross=是 | [10.1145/3131704.3131709](https://doi.org/10.1145/3131704.3131709) | [link](https://dl.acm.org/doi/10.1145/3131704.3131709) | ⚪ 暂不跟进 | ⚪ 暂不获取 | `CCF2017:conf_internetware_YuML0C17` | 跨域 |
+
+## 6. 本 venue 年度观察
+
+- 主题标签补充：经验软件工程 (11) / 维护与演化 (7) / 可靠性/安全 (6) / 建模/模型驱动 (6) / 需求工程 (4)
+- 建议优先获取 `PDF` 的论文：`CRSearcher: Searching Code Database for Repairing Bugs`；`Evaluating Software Evolution Based on Pattern Mining`；`Fast and Precise recovery in Stream processing based on Distributed Cache`；`NavyDroid: Detecting Energy Inefficiency Problems for Smartphone Applications`；`Scalable Relevant Project Recommendation on GitHub`
