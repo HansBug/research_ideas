@@ -1,0 +1,845 @@
+--- Page 1 ---
+Energy Informatic sAlyousef etal. EnergyInformatics 2018,1(Suppl1):28
+https://doi.org/10.1186/s42162-018-0027-1
+RESEARCH OpenAccess
+Enhancingpowerqualityinelectrical
+distributionsystemsusingasmartcharging
+architecture
+AmmarAlyousef1*†,DominikDanner1†,FriederichKupzog2andHermanndeMeer1
+FromThe7thDACH+ConferenceonEnergyInformatics
+Oldenburg,Germany.11-12October2018
+*Correspondence:
+ammar.alyousef@uni-passau.de
+†AmmarAlyousefandDominik
+Dannercontributedequallytothiswork.
+1UniversityofPassau,Innstraße43,
+94032Passau,Germany
+Fulllistofauthorinformationis
+availableattheendofthearticleAbstract
+Theelectrificationofthemobilitysectorcomeswithmultiplechallengessuchasthe
+lackofinformationonwhen,where,howlongandhowfastchargingprocessesof
+electricvehicleswilltakeplace.Inordertokeepupwithincreasingpowerdemandof
+chargingprocesses,besidesbetterpredictionsalsotheactivecontrolofchargingprocesseswillbenecessarytominimizeinfrastructurecosts.Thisworkdealswithareal-
+timemechanismforsupportingthePowerQuality(PQ)inelectricdistributiongridsin
+termsofcongestionandvoltagemanagement.Inthepaper,weproposeadistributedsmartchargingapproachthatconsidersreal-timeconditionsofthedistributiongrid
+providedbyanevent-drivenarchitecturethatcollectsdatafromdifferentpointsinthe
+grid.Ourapproachadoptsthetrafficlightmodel,whichallowssmoothchangingofthechargingpowertoavoiddrasticchangesofthegridstate.Inordertobereadyfor
+real-worldapplication,thealgorithmisvalidatedbyaseriesofexperimentsontwo
+setups:Puresoftware(co-)simulationandPowerHardwareIntheLoop(PHIL)wherephysicalchargingstationsandelectriccarsarecontrolledinalaboratorysetup.
+Keywords: Smartcharging,Powerquality,Electricvehiclecharging,Chargingstation,
+Voltagecontrol,Trafficlightmodel
+Introduction
+New requirements on low voltage distribution grids have to be fulfilled due to an
+increased number of renewable producers, but also due to electric vehicles as new net-work participators. This goes along with a paradigm shift. It can be expected that with
+increasing connection of electric vehicles supply equipment in distribution networks,
+infrastructuredimensioningcannolongerbebasedonworst-caseconditionsinallcases.State-of-the-art 22 kW charging power (Longo et al. 2016)b yf a re x c e e d st h e4k W
+estimate for a residential grid connection in central Europe. Consequently, more on-
+line monitoring and even active interventions during grid operation will be necessary tomaintain critical boundary conditions such as line voltages and asset loading within safe
+limits.
+Undoubtedly, guaranteed immediate and fast charging can only be realized with suffi-
+cient grid capacities at the connection point, which are e.g. required for public Charging
+©TheAuthor(s).2018 OpenAccess ThisarticleisdistributedunderthetermsoftheCreativeCommonsAttribution4.0
+InternationalLicense( http://creativecommons.org/licenses/by/4.0/ ),whichpermitsunrestricteduse,distribution,and
+reproductioninanymedium,providedyougiveappropriatecredittotheoriginalauthor(s)andthesource,providealinktotheCreativeCommonslicense,andindicateifchangesweremade.
+
+--- Page 2 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page128of428
+Station(s)(CSs).However,fortheexpectedlargenumberofprivateorhomeCSs,a“smart
+approach” that makes use of currently available excess capacities can help to reduce
+grid connection costs. Therefore, this paper proposes a solution for an active network
+operationatthelowvoltagelevel.
+While a wide spectrum of charging management algorithms have been proposed in
+literature already, e.g. (Lopes et al. 2009; Cortés and Martínez 2016;P i p a t t a n a s o m p o r n
+et al.2012;F a n2012;L ie ta l . 2014), most approaches do only consider line loading and
+the resulting scheduling problem. The algorithm developed in this work is intended not
+only to avoid asset overloading but also to improve PQ parameters such as node voltage
+variations.ThisisanalyzedinafieldtestregioninBavaria,Germany ,wherethesystemispracticallyoperatedbyaDistributionSystemOperator(DSO).
+For achieving a reliable implementation for field use of the algorithm in short time,
+we follow a rapid prototyping approach for networked smart grid systems based on co-
+simulationandhardware-in-the-looptesting(Faschangetal. 2013).Thisapproachallows
+seamless and stepwise migration from a simulated environment to a laboratory evalua-
+tion with physical charging stations and e-cars, and finally closed-loop field operation.Key to this approach is the message passing middleware AIT Lablink
+1. The developer of
+the algorithm is always using the same interface to the physical hardware, while Lablink
+routesmessagestosimulated,emulatedorrealcomponents.Inthispaper,simulationandlaboratoryresultsarepresented.
+The remainder of this paper is structured as follows: In “ Related work ”s e c t i o nw e
+discuss related work. The proposed architecture is described in “ Architecture ”s e c t i o n ,
+after that, we introduce the designed algorithms in detail in “ Algorithms ”s e c t i o n .T h e
+results of different scenarios using pure (co-)simulation and PHIL are presented in“Evaluation ” section. Finally, we highlight the future work and conclude the paper in
+“Conclusionandfuturework ”section.
+Relatedwork
+PotentialimpactsofintroducingalargenumberofElectricalVehicle(s)(EVs)tothepower
+distribution network have been studied extensively in the literature and many ideas have
+been introduced to use the (EV) penetration for supporting the grid stability and powerquality.
+Approachesofchargingmanagement
+Wecanclassifysolutionsofchargingmanagementinthefollowingcategories:
+•Challengesintermsofpowerqualityaretackledbythedesignofanewcharging
+connectororacompletelynewdesignofachargingstationwithpowerquality
+compensationforelectricvehiclesasinTanakaetal.( 2012),Restrepoetal.( 2018),
+VahediandAl-Haddad( 2016),Zhongetal.( 2017),Yongetal.( 2015).Incontrast,we
+solvetheproblemusingtheoff-the-shelfhardwareandsoftwareandvalidateour
+proposedarchitecturewithhardwareintheloopsimulation.
+•SchedulingalgorithmshavebeenproposedtoshifttheEVchargingloadtooff-peak
+hours,therebyavoidingbranchcongestionandvoltagedropinthedistribution
+network.Mostexistingworksuggestacentralizedcontroller.Forexample,authorsof
+Chungetal.( 2014)proposemaster-slavecontrolschemeforPlug-inElectrical
+
+--- Page 3 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page129of428
+Vehicle(s)(PEVs)smartcharginginpurposeofincreasingthenumberofPEVsthat
+canbepluggedintoasinglecircuitavoidinggridbottlenecks.Othercentralized
+solutionsareinvestigatedbytheauthorsofLopesetal.( 2009),Deilamietal.( 2011).
+However,asdiscussedinawhitepaper(TaftandMartini 2013),coordinatedcontrol
+atdifferentlevelsofahierarchicaldistributedsystemsuchasthepowergridbecomes
+infeasiblewithsuchcentralizedcontrol.
+•Insteadofusingacentralizedapproach,someauthorsproposeadecentralizedor
+hierarchicalchargingschedule(CortésandMartínez 2016;Riveraetal. 2015;Alonso
+etal.2014;Kongetal. 2016).Mostsolutionsareoff-linealgorithmsthatmake
+decisionsbasedoncollectedgriddata24haheadoftime.Furthermore,theyconsiderreal-timeloadbalancingastheonlygridstabilityconstraintandcompletelyignore
+voltagecontrol.
+•ThedistributedcontrolalgorithmproposedinArdakanianetal.( 2013)adaptsthe
+chargingrateofEVstotheavailablecapacityofthenetworkwhileensuringthat
+networkresourcesareusedefficientlyandeachEVchargerreceivesafairshare.
+Theiralgorithmrequiresaheavyandsynchronouscommunicationoverheadandonlyconsidersthestabilityofthegridintermsofloadbalancing,ignoringvoltage
+controlcompletely.
+ApproachesofChargeControl
+Another way of increasing the penetration of EVs into the power grid is establishing a
+controlled charging process that reacts in real-time on changes of the different local orglobal parameters of the grid. Authors in Lehfuss and Nöhrer ( 2017) discuss three dif-
+ferenttypesofchargecontrolapproaches:local-voltagedriven,central-powerdrivenand
+a combination of both. In contrast, our architecture considers a dynamic change of thecharging power regarding to different situations of the grid in a more advanced way. A
+(PEV) charging policy is proposed in Foster et al. ( 2013) that considers transmission and
+distribution integration issues and reacts to market signals across time scales and sys-tems. Furthermore, voltage support for the distribution network is introduced in terms
+of allowing increased penetrations of distributed Solar Photovoltaic (PV) solar arrays.
+The authors consider only the local voltage near to the CS and ignore the overall state ofthe low voltage grid and the fairness between running charging processes, which are the
+main concerns of our proposedarchitecture. Other solutions propose local smart charg-
+ing algorithms based on a droopcontroller (Martinenas et al. 2017; Álvarez et al. 2016)
+and mitigate line voltage drops and voltage unbalances, without relying on any vehicle-
+to-grid capability. These solutions are limited on estimating the voltage locally without
+consideringthesituationsatothercriticalpointsinthegridwhichprobablyneeddifferentreactionsatcertaintimes.
+Gridconstraintsversusenergymarkets
+TheBundesverbandderEnergie-undWasserwirtschafte.V(BDEW)proposesaroadmap
+(BDEW Bundesverband der Energie- und Wasserwirtschaft eV 2013) for a realization of
+smart grids in Germany in order to ensure stability and efficiency through flexibility ofboth, the networks themselves and their users. This roadmap introduces the concept of
+trafficlightmodeltothesmartgrid,which“governsthefundamentalinteractionbetween
+market and network on the basis of system conditions of green, amber(yellow) and red”.
+
+--- Page 4 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page130of428
+ThisconceptaimstodescribetheenergymarketinwhichDSOsorTransmissionSystem
+Operator(s) (TSOs) may demand local and temporal flexibility depending on their net-
+work situation (amber phase). The authors of BDEW Bundesverband der Energie- und
+Wasserwirtschaft eV ( 2015) describe the traffic light concept in more detail and a pre-
+liminary design of the amber state is proposed. However, DSOs calculate present and
+forecast status of their network segment and allocate one of the three traffic light phases
+accordingly:
+•Green-MarketPhase:Nocriticalnetworksituationsexistandnointerventionofthe
+DSOinthemarket.
+•Amber-InteractionPhase:Potentialoractualnetworkshortageinthedefined
+networksegmentexistsandtheDSOutilizestheflexibilityofferedbymarket
+participantstomitigatethedamage.
+•Red-NetworkPhase:TheDSOmustintervenedirectlytoremedythedirectriskto
+thestabilityofthesystem.
+The authors of Deutsch et al. ( 2014), Medved et al. ( 2016) propose an implementation
+of the yellow state based on forecasts. In case of a predicted power quality problem, the
+market mechanisms are used to buy flexibility for this time window. An updated version
+of the traffic light concept is introduced in Medved et al. ( 2016) which may be used by
+the DSO to control Demand Response (DR) units. The proposed approach depends on
+informationfrompowerflowcalculationbasedonthejointloadscheduleofDRunitsand
+theresidualloads.
+The proposed approach in this paper can be seen as an implementation of the amber
+stateoftheaforementionedtrafficlightmodel,thatdependsonreal-timeconditionsandcreates its own colored states by predefined thresholds. In this way, the flexibility intro-
+duced by e-mobility sector can be used more efficiently considering the requirements of
+boththegridandtherunningchargingprocesses.
+Contribution
+Thelargemajorityofrelatedworkstudiesschedulingforpeakpowerreduction.However,besides line and transformer loading, voltage constraints play a significant role in host-
+ingcapacityrestrictionofEuropeandistributiongrids(Varelaetal. 2017).Therefore,our
+work differs from the aforementioned categories in the following points: We propose acompletely distributed smart charging approach by considering the real-time conditions
+of the grid using an event-driven architecture to collect data from the grid. Additionally,
+our approach considers a smooth change of the charging power capacity to avoid drasticgridstatechanges.Asinputparametersofoursmartchargingsolutionweconsiderboth
+the overloading of grid elements (specifically the transformer and feeder lines) and volt-
+agemagnitudeatcertainpointsinthegrid,e.g.atthechargingstationoratcriticalpoints
+in the grid. Furthermore, a rapid prototyping approach for networked smart systems is
+followed (Faschang et al. 2013) in order to test the proposed architecture and ensure a
+safedeploymentinreal-worldenvironments.
+Architecture
+The objective of the proposed architecture in this paper is to stabilize the grid andits power quality. The proposed mechanism complies with two design criteria. Firstly,
+
+--- Page 5 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page131of428
+it needs to be scalable in terms of number of involved CSs. Secondly, it is based as
+much as possible on locally available data at the CS, such that it can even react in case
+there is a communication problem with the monitoring mechanism of the grid. Hence,
+the proposed architecture is distributed and located on the actuator side which in ourcaseistheCS.
+In order to monitor the power quality, it is essential to measure voltage, current, fre-
+quency,harmonicdistortionandwaveformatdifferentpointsofthegrid(Sankaran 2002).
+Inthispaper,amonitoredpointisreferredtoasaMeasurmentPoint(MP).Inthisregard,
+power quality is indicated by Key Performance Indicator(s) (KPIs), e.g. voltage level or
+overloadingofgridelements,suchasthetransformerorfeederlines.Furthermore,these(KPI)classesarecomputed/measureddirectlyatMPsinreal-time,e.gcalculationofRoot
+Mean Square (RMS) values, or are computed using multiple measured KPI values at
+differentmeasurementpoints,e.g.theminimumvoltageonacertainfeederline.
+As the proposed architecture enables the response to different power quality issues in
+real-time,adatastreaminhighresolutionisrequired(e.gina3sinterval).Ononehand,
+real-timehandlingofbigdatastreamsrequiresadataprocessingarchitecturewhichneedsto be generic, scalable and fault tolerant. On the other hand, the measured KPI values
+are most interesting when they are beyond a certain threshold, e.g. the voltage is greater
+or lower than ±10% of the nominal voltage (Standard 1994). In our architecture shown
+in Fig.1we assume an event-driven streaming service, like Apache KAFKA (Foundation
+2018),tobeexistingasreal-timedatahandlingforeventsfromthepowergrid(Shyamet
+al.2015;Simonov 2013;Fernandezetal. 2014).TheseeventsaretriggeredbyMPsdueto
+unusual KPI values and sent to the Kafka cluster, e.g. using Power Line Communication
+(PLC)ordedicatedInternetaccess.
+However, the collected KPI values are forwarded to controller components, that are
+located at CSs. The responsibility of theses controllers is to indicate the present status
+of the low voltage grid and to choose appropriate actions in order to mitigate stress onthe power grid arising from emerging power quality issues. As depicted in Fig. 1, power
+quality estimation is performed by a component called PQ-Indicator (In this paper, we
+use PQ as an abbreviation of the Power Quality), which responds to triggered events
+Fig.1SchematicSmartChargingArchitecture
+
+--- Page 6 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page132of428
+from Kafka. For example in case of voltage fluctuations, which refer to degradation of
+the power quality, it gradually estimates the power quality and asks the so-called Smart
+Charger (SC) to decreases/increases the charging rate in order to counteract the voltage
+fluctuation and, hence, improve the power quality. This power quality indication, called’PQ-Indic’ ,isdefinedwithinthe range of[ −1,1].Withinthis normalizedrange,(-1)cor-
+responds to either a complete shutdown of the charging process or a reduction to the
+minimumrequiredpowerinordertobeabletocontroltheEVlater.Incontrast,thevalue(+1) represents the maximum power capacity of the CS. The Smart Charger applies a
+smooth or drastic change on the used charging power capacity depending on value the
+PQ-Indic.Thereasonbehindseparatingpowerqualityindicationandcontrollogicisdueto different interests of the involved parties. From the Charging Service Provider (CSP)
+perspective, the PQ-Indicator is a black box, which is configured by the DSO depending
+onthecharacteristicsofeachlowvoltagegridindividually,e.g.applyingdifferentthresh-oldsforvoltageboundaries.Incontrast,theCSPconfigurestheSmartChargeraccording
+toitsbusinessmodel.
+A main requirement of this architecture is continuous charging power capacity limita-
+tion at the charging station during a charging process. The Open Charge Point Protocol
+(OCPP)inversion2.0supportscommunicationbetweenSCandCSusingsmartcharging
+profiles (Open Charge Alliance 2017). This profiles can set constraints to the maximum
+amount of power that is delivered during the charging transaction and enable dynamic
+charging profiles for smart charging purposes. Hence, charging stations are able to react
+on specific behaviors directly without further control signals. Furthermore, the concept
+ofusingsuchchargingprofilesisseenasapromisingdirectionforbetterpowerplanning
+ofchargingprocessesinthefuture sincetheseprofilesaregeneratedbasedonthepowerconstraintsofboththevehicleandthegrid.
+Algorithms
+In this section, we describe the main components of the proposed architecture in detail.Thelogicofeachcomponentisintroduced,includingtheusedalgorithms.
+PQ-indicator
+The goal of the PQ-Indicator is to estimate the grid status based on different KPI valuesat different MPs in the grid. Furthermore, the output of the PQ-Indicator is used by the
+Smart Charger in order to decide about suitable actions of the charging station based
+on real-time measured KPI values. Since most low voltage networks are built as 3-phasesystems, the PQ-Indicator estimates the status of each phase individually. In this regard,
+the grid status estimation process is equal for each phase and the output is a normalized
+valuewithintherange[ −1,1]called PQ-Indic .
+TheinputvalueofthePQ-Indicatorismodeledas m×nmatrix(M
+m×ninEq.1)where
+misthenumberofMPsand nisthenumberofKPIclasses.
+Mm×n=⎡
+⎢⎢⎣v1,1v1,2v1,3...
+v2,1v2,2v2,3...
+............⎤
+⎥⎥⎦∈(R∪{ ⊥ })
+m×n(1)
+wherevj,k∈RisthevalueofKPIclass KkatMPPj.Incasetheinputdatadoesnotinclude
+aKPIvalueataMP,thevalueissetto vj,k=⊥.
+
+--- Page 7 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page133of428
+Using this input matrix, additional KPI classes can be calculated. E.g. the average, min
+or max values of a KPI class Kkover several MPs Pj. The used aggregation function
+g:(R∪{ ⊥ })m→Rignores the ⊥entries of the matrix. The resulting new KPI class is
+denotedas
+Kk=g(vj,k),j=1..m.( 2 )
+Furthermore, we can define a function h:(R∪{ ⊥ })n→Rwhich calculates a new
+KPI class using the existingKPI valuesatthe same MP Pj.TheresultingnewKPIclassis
+denotedas
+/hatwideKj=h(vj,k),k=1..n.( 3 )
+In the remainder of this paper we do not distinguish between composed KPI classes
+Kk(2)or/hatwideKj(3)andtheoriginalKPIclasses Kk,butalwaysrefertothemby Kk.
+Thesituationofthepowergridcanbedistinguishedbetweenverygood,neartocritical
+and critical. In the last case, upcoming problems can be avoided by requesting smooth
+changesinthebehaviorofhighloadssuchasCSs.Hence,thedesignofthePQ-Indicator
+adapts the traffic light model with three colors that specify the electric vehicle chargingcapabilityofthegrid.ThecolorsaredefinedontopofthecalculatedPQ-Indicasdepicted
+inFig.2.
+•Green:Thesituationofthegridisstable.IncreasingordecreasingtheCSs’capacity
+ispossible,butnotrequired.Thechargingstationdeterminesthebestreaction.The
+valueofthePQ-Indiciswithintherangeof (YG,GY),whereYG=−0.3and
+GY=0.3.
+•Yellow:Aslightchangeofthechargingpowerisrequired,sincethepowerqualityof
+thegridisnotoptimalbutstillaboveorbelowacertaincriticalthreshold.Thischangecanbeinformofproactiveincreaseordecreaseofthechargingpower.Inthe
+yellowstate,thegridhashighpriorityandrequirementsofthechargingprocesscan
+betakenintoaccountonlytoacertaindegree.ThePQ-Indicvalueiswithin (RY,YG]
+∪[GY,YR),whereRY=−0.7,YG=−0.3,GY=0.3andYR=0.7.
+•Red:Thesituationofthegridiscriticalandtheloadatthechargingstationmustbe
+reducedorincreasedaccordingtoacertainfactor.TheredcolorisdefinedforaPQ-Indicvaluewithin [ER,RY]∪[YR,RE],whereER=−1,RY=−0.7,YR=0.7
+andRE=1.
+In that regard, the six thresholds, ER
+k,RYk,YGk,GYk,YRk,REk,f o rt h er ed ,y e l l o wa n d
+greenareaaredefinedforeachKPIclass kseparately.Asaguideline,powerqualitystan-
+dards such as EN50160 (Standard 1994) can be used. The values of Kkare translated
+accordingtoapiece-wiselinearinterpolationfunction tk(Eq.4andFig.3)totherangeof
+[−1,1].The PQ-IndickforKPIclass Kkisequalto tk(Kk).
+Fig.2TrafficlightmodelontopofPQ-Indic
+
+--- Page 8 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page134of428
+Fig.3Thetranslationfunction tk(x)thattranslatesKPIvaluestoPQ-Indic
+For simplicity we use the piece-wise linear interpolation function Eq. 4, which pre-
+servestheorderoftheKPIvaluesandmapstherangeofdifferentKPIclassestothesamesmallerrangeof[ −1,1].Thepiece-wisenatureallowsweightingandshiftingoftherange
+ofindividualKPIclasses.
+t
+k(x)=⎧
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩ER ifx∈(−∞,ER
+k)
+RY·(ERk−x)+ER·(x−RYk)
+ERk−RYkifx∈[ERk,RYk]
+YG·(RYk−x)+RY·(x−YGk)
+RYk−YGkifx∈(RYk,YGk]
+GY·(YGk−x)+YG·(x−GYk)
+YGk−GYkifx∈(YGk,GYk)
+YR·(GYk−x)+GY·(x−YRk)
+GYk−YRkifx∈[GYk,YRk)
+RE·(YRk−x)+YR·(x−REk)
+YRk−REkifx∈[YRk,REk]
+RE ifx∈(REk,∞)(4)
+Afterwards, the different PQ-Indickare combined using the following criteria A1and
+A2, which are ordered according to their importance in terms of grid stability. In this
+paperwefocusonthesetwocriteriabecauseexistingchargingstationshavethecapability
+to mitigate overloading and voltage level by limiting the charging power. Nevertheless,
+this list may be extended to include additional criteria such as harmonics and frequencydeviation.
+
+--- Page 9 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page135of428
+Table1ThethresholdsofKPIclassfromcriteria A1
+ERk RYk YGk GYk YRk REk
+Smax y·Smax z·Smax w·Smax x·Smax 0
+Theconstantvalues x≤w≤z≤yarechoseninawaythatthegridelementisoperatedwithinitsphysicalboundariesand/orat
+itsmostefficientrange
+(A1) Overloadinganelementofthegrid
+Powerdistributionequipment,suchastransformersorcables,haveanupper
+thermallimitwhichshouldonlybeexceededforashorttime.Thespecificthresholdscanvarywiththeequipmenttype.Anexamplethatdependsonthe
+maximumallowedapparentcapacity S
+maxisgiveninTable 1.Incaseofa
+transformerthevaluesarechoseninaway,suchthatthetransformerisoperatedbelowitsmaximumapparentpowerandoptimallywithhighestefficiency.
+(A
+2)V o l t a g e l e v e l
+Differentloadandgenerationscenarioscancausethevoltageleveltoincreaseordecreaseincertainareasofthelowvoltagedistributionsystem.Accordingto
+EN50160standard,thisvariationshouldbeintheboundariesof ±10%ofthe
+nominalvoltage UNduring95%oftheweekmeasuredby10-minmeanRMS
+voltagevalues.Asweareestimatingthegridphase-by-phase,thevoltagelevelis
+measuredbetweenthephaseandtheneutral(conductor).Generallydefined
+thresholdsforthevoltageKPIclassareshowninTable 2.
+As the considered criteria have different priorities in terms of grid stability and the
+main concern of the Smart Charger is the local stability as part of the global one, thePQ-Indicator uses a 3-layer hierarchical logic to decide about the (local) grid state as
+depictedinFig. 4.Ashighestpriority,criteria A
+1representsthetransformerloading.For
+this purpose, the translation function tk(x)(in Eq.4) is applied on the measured load of
+the transformer to calculate PQ−IndicA1.I ncasePQ−IndicA1iscoloredred, acriticalload
+reduction or increase is required and the PQ-indicator will ignore criteria A2returning
+PQ−IndicA1as overall PQ-Indic of the grid. Otherwise, the PQ-Indicator will compute
+three more values regarding to the criteria A2describing the voltage in three places in
+the grid: PQ−IndicCS
+A2at the CS, PQ−IndicTran
+A2at the transformer and PQ−IndicCritical
+A2at a
+critical point in the low voltage grid. In order to determine the critical point for each
+charging station, we identify several points with low and high voltage magnitude in the
+lowvoltagegrid and choosethe onewhichismostinfluenced bychangesof the stations’chargingbehavior.
+In the second level, the PQ-Indicator will use Algorithm 1 to indicate the state of
+the grid regarding A
+2.I nc a s e PQ−IndicA2is colored yellow or red, this value is directly
+returned.Otherwise,theoutputiscalculatedbythethirdleveltakingthesituationatthe
+criticalpointintoaccount.Hence,ifthePQ-Indicatthecriticalpointiscoloredyellowor
+red,PQ−IndicCritical
+A2isusedasoutputofthePQ-Indicator,otherwise,thePQ-Indicatthe
+chargingstation/parenleftBig
+PQ−IndicCS
+A2/parenrightBig
+definesthereturnvalue.
+Table2ThresholdsofthevoltageKPIclassfromcriteria A2
+ERk RYk YGk GYk YRk REk
+0.9UN 0.95UN 0.99UN 1.01UN 1.05UN 1.1UN
+
+--- Page 10 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page136of428
+Fig.4HierarchicaldecisionlogicofthePQ-Indicatorbasedonthetrafficlightmodel
+SmartCharger
+According to OCPP 2.0 (Open Charge Alliance 2017), charging stations can handle dif-
+ferent types of the charging profiles. The ChargingStationMaxProfile is usually based
+on a 24 h forecast from the DSO, TxProfiles are used for single charging transactions
+andChargingStationExternalConstraints profile represent limits set from external sys-
+tems. This different profiles are stacked and used by their prioritized stack level. TheComposite Schedule combines the different profile types by calculating the minimum in
+each time interval. During the charging process, our smart charging algorithm controls
+thechargingprocessusingexternalprofilesatahighstacklevel.
+The smart charging algorithm starts once a vehicle is plugged into a connector. The
+algorithm of the Smart Charger is modeled as Finite State Machine (FSM), which stores
+the last PQ traffic light estimation of the gird. In order to differentiate the positive andnegative PQ-Indic value of each color in the aforementioned traffic light model, we split
+thetwostatesredandyellowintotwostatesfromeachcolor.Asaresultthereisalow-red
+state(lightdiagonalredinFig. 5)representingthestateofhavinganegativevalueofred-
+colored PQ-Indic, which requires a load reduction. In addition there is a high-red state
+(darkverticalredinEq. 5)representingthepositivevalueofred-coloredPQ-Indic,which
+requiresaloadincrease.Theyellowstateissplitaccordingly(largegridanddiagonalbrickin Fig.5). Because nowadays charging stations cannot control the charging process per
+phaseand,therefore,thedesignoftheFSMonlyconsiderstheoverallchargingpower,we
+aggregatetheinputPQ-Indicvaluesasfollows:
+agg(PQ
+i)
+i∈{A,B,C}=⎧
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩avg(PQ
+i)
+i∈{A,B,C}if∀i∈{A,B,C}:PQiisgreen
+max(PQi)
+i∈{A,B,C}elseif ∀i∈{A,B,C}:PQiisgreen
+∨PQiishigh-yellow
+∨PQiishigh-red
+min(PQi)
+i∈{A,B,C}otherwise(5)
+
+--- Page 11 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page137of428
+Algorithm1: Indicationofpowerqualityregardingcriteria A2.
+Data:VoltageatCSandTransformeronacertainphase ∈R+
+ER=-1,RY=-0.7,YG=-0.3,GY=0.3,YR=0.7,RE=+1
+Result:PQ−IndicA2∈[−1,1]
+if(PQ −IndicCS
+A2)≤RYthen
+return(PQ−IndicCS
+A2)
+else
+ifPQ−IndicTran
+A2≤YGthen
+if(PQ −IndicCS
+A2)≥YRthen
+return(PQ−IndicCS
+A2.|PQ−IndicTran
+A2|/2)
+else
+if(GY≤PQ−IndicCS
+A2<YR)then
+Return(GY)
+else
+if(YG<PQ−IndicCS
+A2<GY )then
+return(YG)
+else
+return(min(PQ−IndicCS
+A2,PQ−IndicTran
+A2))
+end
+end
+end
+else
+ifPQ−IndicTran
+A2≥GYthen
+ifRY<(PQ −IndicCS
+A2)≤YGthen
+return(YG)
+else
+if(YG<PQ−IndicCS
+A2<GY )then
+return(GY)
+else
+return(max(PQ−IndicTran
+A2,PQ−IndicCS
+A2))
+end
+end
+else
+return(PQ−IndicCS
+A2)
+end
+end
+end
+wherePQiisthe’PQ-Indic’valueofphase i.Weintendtouseaconservativeaggregation
+whenphasesareindifferentcoloredstatessincephasebalancingisperformedbytheCS.In contrast, aggressive aggregation is used when the grid is asking for load increase on
+one or more phases while other states are at least green. In that case a charging increase
+is allowed on all phases, hence we choose the maximum in order to mitigate the biggestproblem first. In the case of green states on all phases, the average perfectly reflects the
+situation.
+Finitestatemachine
+TheFSMusedwithintheSmartChargerisshowninFig. 5anditsdefinitionisdescribed
+in the following section. The FSM consists of seven states that are grouped to threedifferenttypes:
+•Operationalstates:lowred,lowyellow,green,highyellow,andhigh-redstate
+representingthedifferent’PQ-Indic’colorranges.
+
+--- Page 12 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page138of428
+Fig.5FSMoftheSmartChargerbasedonthetrafficlightmodel:Forsimplificationwithintheboxcontaining
+theoperationalstates,onlytheoutgoingandincomingtransitionsofthe“lowred”stateareshown.Allotherstatesareconnectedsimilarlytoeachother.Furthermore,thestatemachinecantransitfromanyoperational
+statestothestandbyandendstate
+•Standbystate:ThegraystatemodelsthechargingstateafterthedesiredStateof
+Charge(SoC)isreached.
+•Endstate(bluestatewithhorizontallines):WithmaximumSoCorunpluggedEVit
+isnotlongerpossibletocontrolthechargingoperation.
+Thetransitions int heFSMar ela be ledbytwoparts: EventandGuard.Int hepr oposed
+FSMwehavethreekindsof eventsthatcantriggerthestatetransition:InputofanewPQ-
+Indic value, unplugging of the vehicle and changing of the SoC of the battery. Each state
+transitioncanhaveaprerequisite,whichismodeledbythelogicalconditionofa guard.If
+the condition of a guard does not match, the FSM remains in the last state. Finally, each
+statetransitioncanhavean actionwhichspecifiestheoutputoftheSmartCharger.Inour
+case,theactiondefinesthenewchargingpoweroftheongoingchargingprocess.
+The low-red state is considered as the start state, since the charging operation will
+startslowlyanditadaptsaconservativeapproachconcerningthegridstability.Thetran-
+sition to the end state occurs whenever the driver unplugs the vehicle or the batteryis fully charged (equals SoC =100). If the desired SoC
+end(defined by the end user) is
+reached, the FSM transits to the charging standbystate (gray state). Within this state the
+SmartChargercanreactoncriticalgridsituationsusingthestillpluggedEV,onlyincasethe ’PQ-Indic’ value is positive red-colored, hence requires increase of charging power
+capacity.
+Transitionsandactions
+In this section, the used capacity of an active charging process at charging station Ciat
+timetis denoted as Ui(t), the maximum capacity is written as Miand the users’ charg-
+ing profile is denoted as Ci(t).I na l lc a s e s ,t h e actionof transitions, which reveals the
+new charging power, should not be bigger than Mi. A safety upper margin is defined by
+μin order to stay aligned with the users charging profile regarding the battery state of
+
+--- Page 13 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page139of428
+health and the charging duration. This safety margin is used as a buffer to compensate
+grid problems that may lead to a short reduction of charging power. Other way round,
+the minimum charging power needs to be set to a value Cminhigher than zero to avoid
+disconnectionofthevehicle.
+The action of the transitions mainly rely on the destination state, which is equal to the
+colorofthenewinputPQ-Indicvalue.Inthefollowing,thesingletransitionsaregivenby
+source →destination .Thesourceanddestinationcanalsobeanasterisk.
+•∗→low-redstate
+IfthenewPQ-Indicvalueiscoloredlow-red,theSmartChargerneedstoreducethe
+chargingpower.Sincethisstateisconsideredtobehighlycriticalforthegrid,the
+resultingactionisdefinedinapolynomialway.Wecalculate δasthepercentageof
+changeinthecurrentlyusedpower.
+δ=(PQ-Indic+1)α
+Ui(t+1)=max/parenleftbig
+δ·Ui(t),Cmin/parenrightbig (6)
+Theparameter αinEq.6needstobegreaterthan1inordertomatchapolynomial
+decrease.Therefore, δ∈[0,0.3 )becausePQ-Indic∈[−1,−0.7].Asaresult,inany
+casethedecreaseofthechargingpowerisgreaterthan70%ofthecurrentlyused
+chargingpower.Theparameter αcanbedefineddependingonthesourceofthetransitionorby
+comparingwiththelastPQ-Indicvalue.
+•∗→(lowandhigh)-yellowstates
+Withintheboundariesoftheyellow-coloredPQ-Indic,thegirdisnotstable,butitis
+nothighlycriticallikeintheredstates.Hence,thetransitionstothisstatecan
+considertheusers’chargingprofile.Thechangeinthechargingpowercapacityiscalculatedbyalinearfunction,whichdependsonthePQ-Indicvalueandcanbe
+parameterizedbythesourcestateofthetransition.
+δ
+1=1+(β1·(PQ-Indic+YG+0.1))
+δ2=1+(β2·(PQ-Indic+GY−0.1))(7)
+Ui(t+1)=/braceleftBigg
+min(δ1·Ui(t),(1+2μ)·Ci(t+1),Mi)PQ-Indic≥GY
+max(δ2·Ui(t),Cmin) PQ-Indic≤YG
+Theparameter β1andβ2inEq.7aretakenfrom Randcaninexamplebeconfigured
+bythesourceofthetransition.However,inanycasethenewchargingpoweris
+limitedbytheminimumof Cminandthemaximumof Mi.
+•∗→greenstate
+Withintheboundariesofthegreen-coloredPQ-Indic,thegirdisstable.Inthis
+regard,alinearincreaseordecreaseofthecurrentlyusedchargingpowerisapplieduntilthechargingprofileplusthesafetymarginisreached.
+λ=(PQ-Indic+GY+0.1)/2
+δ
+1=λ·(1+μ)·Ci(t+1)
+δ2=(Ci(t)−(1+μ)·Ci(t+1))/2(8)
+Ui(t+1)=/braceleftBigg
+min(Ui(t)+δ1,(1+μ)·Ci(t+1))Ui(t)≤(1+μ)·Ci(t+1)
+Ui(t)−δ2 Ui(t)>(1+μ)·Ci(t+1).
+
+--- Page 14 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page140of428
+•∗→high-redstate
+IfthenewPQ-Indicvalueequalsthehigh-redstate,thegridisinahighlycritical
+statusandtheSmartChargermustincreasethechargingpower.Hence,apolynomial
+functionisdefinedfortransitionstothisstate.
+δ=ω·(PQ-Indic)ε+1
+Ui(t+1)=min(δ·Ui(t),Mi)(9)
+Theparameters ωandεinEq.10canbedefineddependingonthesourceofthe
+transitionorbycomparingwiththelastPQ-Indicvalue.Theparameter ωmustat
+leastbelowerthanMi
+Ui(t)andbiggerthan1and εmustbelowerthan1inorderto
+matchapolynomialincrease.Obviously, δisbiggerthanone,because ωisbiggeror
+equalto1andPQ-Indicisapositivevalue.
+•∗→graystate
+Thegraystaterepresentsthestandbyphaseofthechargingprocess.Inthisphase,theSmartChargeronlyresponsestohighlycriticalgridsituationsbyincreasingthe
+chargingrate.Otherwise,thechargingpowerisreducedcontinuouslyuntilitreaches
+Cminagaininalinearway.
+δ=ω·(PQ-Indic)ε+1
+Ui(t+1)=/braceleftBigg
+min(δ·Ui(t),Mi)PQ-Indic≥YR
+max(μ·Ui(t),Cmin)PQ-Indic<YR(10)
+Theparameters εandωinEq.10aresimilarlydefinedlikewithtransitionstothe
+high-redstateand μ∈[0,1).
+Finally,oscillationsbetweentwodifferentstates(lowandhighred)needstobeavoided,
+because this affects the stability of the Smart Charger. Hence, the parameters αandε
+which are used as exponential factors in the aforementioned definitions of both states,
+needtobedifferent.
+Evaluation
+Theobjectiveofthissectionistoevaluatethesmartchargingalgorithmandthereactionof EVs on control commands. The evaluation is carried out using pure (co)-simulationandPHIL.Thesmartchargingalgorithmisevaluatedbasedontheachievedimprovement
+of the power quality in a simulated grid. Furthermore, we compare the charging process
+ofasimulatedEVwitharealandanemulatedEVinordertostudythereactionofEVson
+thecontrolsignalsfromthealgorithm.
+Setup
+For all the following evaluation scenarios, the co-simulation framework AIT Lablink is
+used(Faschangetal. 2013).WithLablinkitispossibletoreplacesoftwaresimulationcom-
+ponents by different PHIL equipment in the laboratory, e.g. a hardware charging stationwith a Type 2 charging connector or either a real or an emulated EV based on a Resistor
+- Indicator - Capacitor (RLC) load model. The smart charging is carried out on the sim-
+ulationofarealisticlowvoltagenetwork,whichislocatedinasmallcityinBavaria.Thisgrid connects 22 households, 21 industries, three PV systems and four charging stations
+toatransformerusing64cables.Themaximumdistancetothetransformerisgivenbya
+cable with the length of 485 meters. As power gird simulation tool we use PowerFactory
+
+--- Page 15 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page141of428
+(DIgSILENT 2018) from DIgSILENT. The simulation is fed with BDEW load profiles for
+industries, realistic load profiles for households (Tjaden et al. 2015) and real PV genera-
+tionprofiles.TheEvent-Engine is simulated by alocally installed Apache KAFKA cluster
+withonlyonenodeanddefaultconfiguration.
+ThehardwarechargingstationcommunicatesthechargingsignalviaaIEC62196Type
+2 connector to the EV emulator and the real EV. This standard supports a Pulse Width
+Modulation (PWM) current signal, which indicates the amount of current that can beprovided by the charging station. Since this value is valid for all three phase, phase-
+balancingisnotpossiblewiththatprotocol.Furthermore,onlyintegercurrentvaluesare
+allowed, hence the charging power capacity can only be controlled in discrete steps. Thereal charging station supports 3-phase charging from 6 to 32 A, resulting in a maximum
+chargingpowerof22kW.
+The grid simulator, Event-Engine, PQ-Indicators, Smart Chargers and the charging
+stations in Fig. 6are implemented as LabLink clients. These clients can communicate
+with each other using a Message Queuing Telemetry Transport (MQTT) message bus.
+The KPI values from the power simulation tool are published to the Event-Engine. ThePQ-Indicator subscribes the KPI values from the Event-Engine, calculates its internal
+equationsandforwardstheoutputtotheSmartCharger,whichproducesachargingsig-
+nal that is either sent to the real charging station hardware or to a simulated chargingstation. In both cases, the measured or calculated power demand of the EV is injected
+intothepowersimulationtoolforthenextsimulationstep.
+TheKPIthresholdsforvoltageandloadingofthetransformerareconfiguredinthePQ-
+Indicator as shown in Table 3. From EN 50160 we know that in low and medium voltage
+networksthevoltagelevelmustbewithin ±10%ofthenominalvoltageduring95%ofthe
+week measured by 10 min mean RMS values (Standard 1994). As the maximum allowed
+voltage deviation includes the medium voltage network and is constantly transmitted to
+the low voltage grid in case no On Load Tap Changer (OLTC) is installed, we decided touseasmallerrangeof ±10 volt (whichis about ±5%)and atime interval ofoneminute.
+Fig.6EvaluationSetup
+
+--- Page 16 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page142of428
+Table3ThethresholdsoftheoverloadingKPIclass(firstpart)andthevoltageKPIclass(secondpart)
+ER1 RY1 YG1 GY1 YR1 RE1
+400kVA 300kVA 150kVA 0kVA 0kVA 0kVA
+ER2 RY2 YG2 GY2 YR2 RE2
+220.94V 222.94V 223.94V 237.94V 238.94V 240.94V
+Due to the setup of our test grid, overloading of the transformer starts at 37.5% of the
+ratedapparentpowerofthetransformer,whichisgivenby400 kVA.
+The parameters of the smart charging algorithm are configured according to Table 4.
+The Smart Charger needs to provide at least a minimum of 1.3 kW (6 A) in order thatthe EV does not disconnect and the maximum is given by the limitation of the hardware
+charging station. For simplicity, we configured the charging profile to be the maximum
+chargingpowerforthewholechargingprocess.Theremainingparametersarechosenin
+a way such that the charging control signal changes smoothly and result in a reasonable
+reactiononthePQ-Indic.
+We simulate a whole working day during the winter in the realistic Bavarian grid with
+four charging stations equipped with our Smart Charger connected to different connec-
+tion points in the grid. As depicted in Fig. 7, one charging station is located as far as
+possible from the transformer at the critical point of the grid in terms of voltage drop
+(C
+2),thesecondchargingstationislocatedatthesecondmainfeederlinethatissupplied
+by the transformer ( C4) and the remaining two charging stations are located near to the
+transformer,likeitisthecaseintherealBavariangrid.
+Analysis
+Inordertoevaluatetheimpactofoursmartchargingalgorithmonthepowerquality,weassumetheworstcasescenario,whereEVsareconnectedtoallchargingstationsandthey
+charge for the whole simulation time period, without disconnection. Furthermore, the
+EVs charge with a constant load over the whole period, e.g. without the saturation phaseof the battery. The result of our smart charging algorithm is compared against two base-
+line scenarios: (I) All charging stations are charging for the whole time period with their
+maximum charging power and(II) No charging station is charging at all . Our evaluation
+answersthefollowingtwoquestions:
+(Q1) Towhichextendcanoursmartchargingalgorithmimprovethevoltagelevelinthe
+gridusingsimulation?
+(Q2) IstheresultoftheSmartChargeralsovalidusingPHILsimulation?
+First, comparing the voltage level at the critical point of our grid using the proposed
+smart charging algorithm against the two baseline scenarios in Fig. 8, it can be seen that
+even the lower bound baseline scenario, with no car charging at all, results in a voltagedrop greater than 3% during the morning and evening peak at 08:00 - 12:15 and 15:45 -
+19:30. As we only consider EV charging and no Vehicle-to-Grid solution, the Smart
+Chargercannotcompensateunder-voltagebydischargingtheEVandthechargingpower
+Table4Parameterconfigurationofthesmartchargingalgorithm
+Cmin Ci(t) Mi αβ 1 β2 με ω
+1.3kW 22kW 22kW 1.2 1.5 1.2 0.1 0.71
+4·/parenleftBig
+1+Mi
+Ui(t)/parenrightBig
+
+--- Page 17 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page143of428
+Fig.7Schematiclocationofthefourchargingstationinthetestedgrid
+is reduced to the minimum at that time. During the other times, the smart charging
+algorithm controls the charging station and keeps the voltage level above the 3% limit.Every time when the voltage threshold is crossed, the Smart Charger sends a reduction
+chargingcontrolsignaltothechargingstationandthevoltagelevelreturnstotheallowed
+range. With the worst case baseline scenario, where all cars are charging simultaneouslywith maximum charging power, the voltage drop resides in a critical level for the whole
+daywithaminimumvalueof213.5V.
+Thesecondcriteriawearetakingintoaccountistheloadingofthetransformer.During
+noononoursimulatedday,thesmartchargingalgorithmreactsontransformeroverload-
+ingsimilarasonvoltagebandwidthviolations.Thesimulatedapparentpower,measuredatthetransformer,isshowninFig. 9andcomparedwiththetwobaselinescenarios.With
+Fig.8VoltagelevelatthecriticalpointintheBavariangridduringawholeday.Theorangelineandthe
+greenlinerepresentthebaselinescenarios,whilethebluelineshowsthevoltagelevelwhenallchargingstationsarecontrolledbyoursmartchargingalgorithm.Thedottedredlineisthelowestallowedvoltagelevelforthealgorithm
+
+--- Page 18 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page144of428
+Fig.9Apparentpoweratthetransformerstationduringawholeday.Theorangeandgreenlinerepresent
+thebaselinescenario,whilethebluelineshowstheapparentpowerwhenallchargingstationsarecontrolledbyoursmartchargingalgorithm
+the worst case baseline scenario the transformer is overloaded 66.7% of the day, whereas
+theSmartChargerreducesthisvalueto1.4%withonlyshortoverloadingperiods.
+Because our charging stations are located at different points in the grid, we also take
+a look at the fairness between the controllers of the charging stations. Figure 10shows
+the active power of all four charging stations and the overall utilization. Within the time
+range 00:00 - 06:30, when the voltage at the critical point is green, the charging stations
+at non-critical locations can charge with nearly their maximum charging power, whilethe charging station at the critical point is limited to a lower level. However, starting at
+06:30 when the critical point is indicated with yellow or red voltage level all charging
+stations react and reduce their charging power accordingly, even so the voltage at the
+otherchargingstationsisstillinthegreenrange.
+Furthermore, we verified our simulation results of the smart charging algorithm using
+PHIL. There are a number of different aspects that need to be considered when move
+f r o ms i m u l a t e dt or e a lc h a r g i n go p e r a t i o n s .F i r s to fa l l ,t h er e a la n de m u l a t e dc a r sh a v e
+a charging initialization phase and the battery runs into a saturation phase at high SoC(Zhangetal. 2006).Inaddition,environmentalcircumstancescaninfluencethecharging
+processandtheminimumacceptedchargingcurrentvarieswiththetypeofthecar.Apart
+from these points, the tested real EV and the emulated EV behave quite similar to thesimulatedoneandbothfollowthecontrolsignalsentfromthehardwarechargingstation
+viaPWMsignal.InFig. 11thesaturationphaseoftheemulatedcarstartsataround22:06,
+while the rest of the time, the emulated car follows the simulated charging curve. Theplot in Fig. 12compares the simulated with the real EV, where only the starting phase,
+efficiency and reaction time differs. These results point out that in general our smart
+chargingapproachisapplicabletorealchargingstationhardwareinthefield.
+
+--- Page 19 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page145of428
+Fig.10Powerofchargingstations.Thecoloredlinesrepresentthepowerofeachsinglechargingstation
+andthegraylinedepictsthesumoftheirchargingpower.Thedottedredlineshowstheratedmaximumpowerofallfourchargingstation
+Fig.11Comparisonofthesimulatedchargingsignalwiththereactionofanemulatedcar.Attheendofthe
+chargingprocesstheemulatedcarreachesitssaturationphaseandreducesitschargingpowergradually
+Fig.12Comparisonofathesimulatedchargingsignalwiththereactionofarealcar.Thetestedrealcar
+followsnearlythesimulatedpower,exceptfromthestartingphasewhichtakessometime.ContrarilytotheFig.11,theSoCofthetestedcarislow,hence,thesaturationphasedoesnotshowinthisfigure
+
+--- Page 20 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page146of428
+Conclusionandfuturework
+In this work, a smart charging architecture based on real-time data stream for triggering
+events in the grid is presented. It is intended to be a scalable, decentralized architecture,
+and it targets the fairness among the different running charging processes as well. Thetrafficlightmodelisappliedtousetheintroducedgridflexibilitytothee-mobilitysector
+inaconvenientway.TheSmartChargershowstheabilitytodrasticallyincreasethequal-
+ity of power with regard to the voltage level and load at the transformer by controllingthe active power used by the charging stations. In the future, other control strategies for
+voltage control can be investigated, for example power factor correction, stationary bat-
+teriesandOLTCmechanismofthetransformers.However,consideringfurtherfactorsofpower quality beyond the voltage such as harmonics and unbalance of load can be seen
+as a promising direction even so existing hardware does not support this functionalities.
+Furthermore, the mathematical stability analysis of the proposed architecture is missingand placed on the top of to-do list in the future. Finally, the fairness among the charging
+processes should be investigated more deeply, e.g. optimizing it by a centralized compo-
+nentwhichhasaglobalviewonthegridandinstructsthelocalSmartChargertoreactin
+awaytoimprovethepowerqualityinthegridintotal.
+Endnote
+1https://www.ait.ac.at/themen/smart-grids/network-operators-and-energy-service-
+providers/ait-lablink/
+Funding
+ThisprojecthasreceivedfundingfromtheEuropeanUnion’sHorizon2020researchandinnovationprogrammeundergrantagreementNo.713864(ELECTRIFIC).Inaddition,thevalidationandtestoftheproposedapproachhasbeenperformedusingtheERIGridResearchInfrastructureandispartofaprojectthathasreceivedfundingfromtheEuropeanUnion’sHorizon2020ResearchandInnovationProgrammeundertheGrantAgreementNo.654113.ThesupportoftheEuropeanResearchInfrastructureERIGridanditspartner’AITAustria’isverymuchappreciated.Furthermore,PublicationcostsforthisarticleweresponsoredbytheSmartEnergyShowcases-DigitalAgendafortheEnergyTransition(SINTEG)programme.
+Availabilityofdataandmaterials
+Thedatasetsusedand/oranalyzedduringthecurrentstudyareavailablefromthecorrespondingauthoronreasonablerequest.
+Aboutthissupplement
+Thisarticlehasbeenpublishedaspartof EnergyInformatics Volume1Supplement1,2018:Proceedingsofthe7th
+DACH+ConferenceonEnergyInformatics.Thefullcontentsofthesupplementareavailableonlineat https://
+energyinformatics.springeropen.com/articles/supplements/volume-1-supplement-1 .
+Authors’contributions
+AAandDDwereresponsibleforproposingthearchitecture,carryingoutsimulations,andreportingontheresults.They
+alsowrotethefirstdraftofthepaper.FKandHdMprovidedresearchdirection,supervision,andfunding.Theyalsohelpedtowritethefinalversionofthepaper.Allauthorsreadandapprovedthefinalmanuscript.
+Competinginterests
+Theauthorsdeclarethattheyhavenocompetinginterests.
+Publisher’sNote
+SpringerNatureremainsneutralwithregardtojurisdictionalclaimsinpublishedmapsandinstitutionalaffiliations.
+Authordetails
+1UniversityofPassau,Innstraße43,94032Passau,Germany.2AITAustrianInstituteofTechnologyGmbH,Giefinggasse2,
+1210Vienna,Austria.
+Published:10October2018
+References
+AlonsoM,AmarisH,GermainJ,GalanJ(2014)Optimalchargingschedulingofelectricvehiclesinsmartgridsbyheuristic
+algorithms.Energies7(4):2449–2475. https://doi.org/10.3390/en7042449
+
+--- Page 21 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page147of428
+ÁlvarezJN,Knezovi ´cK,MarinelliM(2016)Analysisandcomparisonofvoltagedependentchargingstrategiesfor
+single-phaseelectricvehiclesinanunbalanceddanishdistributiongrid.In:201651stInternationalUniversitiesPowerEngineeringConference(UPEC).IEEE,Coimbra.pp1–6. https://doi.org/10.1109/UPEC.2016.8114062 .Accessedon20
+Aug2018. https://ieeexplore.ieee.org/document/8114062/
+ArdakanianO,RosenbergC,KeshavS(2013)Distributedcontrolofelectricvehiclecharging.In:ProceedingsoftheFourth
+InternationalConferenceonFutureEnergySystems.e-Energy’13.ACM,NewYork.pp101–112. https://doi.org/10.
+1145/2487166.2487178 .Accessedon20Aug2018. http://doi.acm.org/10.1145/2487166.2487178
+BDEWBundesverbandderEnergie-undWasserwirtschafteV(2013)BDEWRoadmap,RealisticStepsforthe
+ImplementationofSmartGridsinGermany.Accessedon2Jan2018. https://www.bdew.de/energie/bdew-
+roadmap-smart-grids/
+BDEWBundesverbandderEnergie-undWasserwirtschafteV(2015)SmartGridTrafficLightConcept.Accessedon2Jan
+2018.https://www.bdew.de/media/documents/Stn_20150310_Smart-Grids-Traffic-Light-Concept_english.pdf
+ChungC,ChynowethJ,ChuC,GadhR(2014)Master-slavecontrolschemeinelectricvehiclesmartcharging
+infrastructure.SciWorldJ2014. https://www.hindawi.com/journals/tswj/2014/462312/abs/
+CortésA,MartínezS(2016)Ahierarchicalalgorithmforoptimalplug-inelectricvehiclechargingwithusageconstraints.
+Automatica68:119–131. https://doi.org/10.1016/j.automatica.2016.01.060 .Accessedon20Aug2018
+DeilamiS,MasoumAS,MosesPS,MasoumMAS(2011)Real-timecoordinationofplug-inelectricvehiclechargingin
+smartgridstominimizepowerlossesandimprovevoltageprofile.IEEETransSmartGrid2(3):456–467. https://doi.
+org/10.1109/TSG.2011.2159816 .Accessedon20Aug2018
+DeutschT,KupzogF,EinfaltA,GhaemiS(2014)Avoidinggridcongestionswithtrafficlightapproachandtheflexibility
+operator.ChallengesImplementingActDistribSystManagCIRED1:1–4.Accessedon20Aug2018
+DIgSILENT(2018)DigitalSimulationandNetworkCalculation.Accessedon20Aug2018. www.digsilent.de/en/
+powerfactory.html
+FanZ(2012)Adistributeddemandresponsealgorithmanditsapplicationtophevcharginginsmartgrids.IEEETrans
+SmartGrid3(3):1280–1290. https://doi.org/10.1109/TSG.2012.2185075 .Accessedon20Aug2018
+FaschangM,KupzogF,MosshammerR,EinfaltA(2013)Rapidcontrolprototypingplatformfornetworkedsmartgrid
+systems.In:IECON2013-39thAnnualConferenceoftheIEEEIndustrialElectronicsSociety.IEEE,Vienna.pp8172–8176. https://doi.org/10.1109/IECON.2013.6700500 .Accessedon20Aug2018. https://ieeexplore.ieee.org/
+document/6700500/
+FernandezRC,WeidlichM,PietzuchP,GalA(2014)Scalablestatefulstreamprocessingforsmartgrids.In:Proceedingsof
+the8thACMInternationalConferenceonDistributedEvent-BasedSystems-DEBS’14.ACMPress,NewYork.pp276–281. https://doi.org/10.1145/2611286.2611326 .Accessedon20Aug2018. http://dl.acm.org/citation.cfm?
+doid=2611286.2611326
+FosterJM,TrevinoG,KussM,CaramanisMC(2013)Plug-inelectricvehicleandvoltagesupportfordistributedsolar:
+Theoryandapplication.IEEESystJ7(4):881–888. https://doi.org/10.1109/JSYST.2012.2223534 .Accessedon20Aug
+2018
+FoundationAS(2018)ApacheKafka:ADistributedStreamingPlatform.Accessedon8Jan2018. https://kafka.apache.org/
+KongF,LiuX,SunZ,WangQ(2016)SmartRateControlandDemandBalancingforElectricVehicleCharging.In:2016
+ACM/IEEE7thInternationalConferenceonCyber-PhysicalSystems(ICCPS).IEEE,Vienna.pp1–10. https://doi.org/10.
+1109/ICCPS.2016.7479118 .Accessedon20Aug2018. http://ieeexplore.ieee.org/document/7479118/
+LehfussF,NöhrerM(2017)Evaluationofdifferentcontrolalgorithmwithlow-levelcommunicationrequirementsto
+increasethemaximumelectricvehiclepenetration.CIRED-OpenAccessProcJ2017(1):1750–1754. https://doi.org/
+10.1049/oap-cired.2017.0265 .Accessedon20Aug2018
+LiR,WuQ,OrenSS(2014)Distributionlocationalmarginalpricingforoptimalelectricvehiclechargingmanagement.
+IEEETransPowerSyst29(1):203–211. https://doi.org/10.1109/TPWRS.2013.2278952 .Accessedon20Aug2018
+LopesJAP,SoaresFJ,AlmeidaPMR(2009)Identifyingmanagementprocedurestodealwithconnectionofelectric
+vehiclesinthegrid.In:2009IEEEBucharestPowerTech.IEEE,Bucharest.pp1–8. https://doi.org/10.1109/PTC.2009.
+5282155.Accessedon20Aug2018. https://ieeexplore.ieee.org/document/5282155/
+LongoM,ZaninelliD,ViolaF,RomanoP,MiceliR,CarusoM,PellitteriF(2016)Rechargestations:Areview.In:2016Eleventh
+InternationalConferenceonEcologicalVehiclesandRenewableEnergies(EVER).IEEE,MonteCarlo.pp1–8. https://
+doi.org/10.1109/EVER.2016.7476390 .Accessedon20Aug2018. https://ieeexplore.ieee.org/document/7476390/
+MartinenasS,Knezovi ´cK,MarinelliM(2017)Managementofpowerqualityissuesinlowvoltagenetworksusingelectric
+vehicles:Experimentalvalidation.IEEETransPowerDeliv32(2):971–979. https://doi.org/10.1109/TPWRD.2016.
+2614582.Accessedon20Aug2018
+MedvedT,PrislanB,Zupan ˇciˇcJ,GubinaA(2016)Atrafficlightsystemforenhancingtheutilizationofdemandresponse
+inlvdistributionnetworks.In:2016IEEEPESInnovativeSmartGridTechnologiesConferenceEurope(ISGT-Europe).
+IEEE,Ljubljana.pp1–5. https://doi.org/10.1109/ISGTEurope.2016.7856303 .Accessedon20Aug2018. https://
+ieeexplore.ieee.org/document/7856303/
+OpenChargeAlliance(2017)OCPP2.0Specification. https://www.openchargealliance.org/uploads/files/protected/
+OCPP-2.0.zip
+PipattanasompornM,KuzluM,RahmanS(2012)Analgorithmforintelligenthomeenergymanagementanddemand
+responseanalysis.IEEETransSmartGrid3(4):2166–2173. https://doi.org/10.1109/TSG.2012.2201182 .Accessedon20
+Aug2018
+RestrepoM,MorrisJ,KazeraniM,CañizaresCA(2018)Modelingandtestingofabidirectionalsmartchargerfor
+distributionsystemevintegration.IEEETransSmartGrid9(1):152–162. https://doi.org/10.1109/TSG.2016.2547178 .
+Accessedon20Aug2018
+RiveraJ,GoebelC,JacobsenH-A(2015)Adistributedanytimealgorithmforreal-timeevchargingcongestioncontrol.In:
+Proceedingsofthe2015ACMSixthInternationalConferenceonFutureEnergySystems.e-Energy’15.ACM,NewYork.pp67–76. https://doi.org/10.1145/2768510.2768544 .Accessedon20Aug2018. http://doi.acm.org/10.1145/
+2768510.2768544
+SankaranC(2002)PowerQuality.Theelectricpowerengineeringseries.CRCPress,BocaRaton
+
+--- Page 22 ---
+Alyousef etal. EnergyInformatics 2018,1(Suppl1):28 Page148of428
+ShyamR,GaneshHBB,KumarSS,PoornachandranP,SomanKP(2015)Apachesparkabigdataanalyticsplatformfor
+smartgrid.ProcediaTechnol21:171–178. https://doi.org/10.1016/j.protcy.2015.10.085 .SMARTGRIDTECHNOLOGIES
+SimonovM(2013)Event-drivencommunicationinsmartgrid.IEEECommunLett17(6):1061–1064. https://doi.org/10.
+1109/LCOMM.2013.043013.122798 .Accessedon20Aug2018
+StandardEN(1994)50160:Voltagecharacteristicsofelectricitysuppliedbypublicdistributionsystems.EurStandCLC,
+BTTF68–6
+TaftJ,MartiniPD(2013)Ultra-largescalecontrolarchitecture.In:2013IEEEPESInnovativeSmartGridTechnologies
+Conference(ISGT).IEEE,Washington,DC.pp1–6. https://doi.org/10.1109/ISGT.2013.6497906 .Accessedon20Aug
+2018.https://ieeexplore.ieee.org/document/6497906/
+TanakaT,SekiyaT,TanakaH,HirakiE,OkamotoM(2012)Smartchargerforelectricvehicleswithpowerquality
+compensatoronsingle-phasethree-wiredistributionfeeders.In:2012IEEEEnergyConversionCongressandExposition(ECCE).IEEE,Raleigh.pp3075–3081. https://doi.org/10.1109/ECCE.2012.6342512 .Accessedon20thof
+Aug.2018. https://ieeexplore.ieee.org/document/6342512/
+TjadenT,JosephB,QuaschningV(2015)RepräsentativeelektrischeLastprofilefürWohngebäudeinDeutschlandauf
+1-sekündigerDatenbasis.HTWBerlin.p8. https://doi.org/10.13140/RG.2.1.5112.0080
+VahediH,Al-HaddadK(2016)Anovelmultilevelmultioutputbidirectionalactivebuckpfcrectifier.IEEETransIndElectron
+63(9):5442–5450. https://doi.org/10.1109/TIE.2016.2555279 .Accessedon20Aug2018
+VarelaJ,HatziargyriouN,PuglisiLJ,RossiM,AbartA,BletterieB(2017)Theigreengridproject:Increasinghostingcapacity
+indistributiongrids.IEEEPowerEnergyMag15(3):30–40. https://doi.org/10.1109/MPE.2017.2662338 .Accessedon20
+Aug2018
+YongJY,RamachandaramurthyVK,TanKM,MithulananthanN(2015)Bi-directionalelectricvehiclefastchargingstation
+withnovelreactivepowercompensationforvoltageregulation.IntJElectrPowerEnergySyst64:300–310. https://
+doi.org/10.1016/j.ijepes.2014.07.025 .Accessedon20Aug2018
+ZhangSS,XuK,JowTR(2006)ChargeanddischargecharacteristicsofacommercialLiCoO2-based18650Li-ionbattery.J
+PowerSources160(2):1403–1409. https://doi.org/10.1016/j.jpowsour.2006.03.037 .Accessedon20Aug2018
+ZhongY,XiaM,ChiangH(2017)Electricvehiclechargingstationmicrogridprovidingunifiedpowerqualityconditioner
+supporttolocalpowerdistributionnetworks.IntTransElectrEnergySyst27(3):2262. https://doi.org/10.1002/etep.
+2262.Accessedon20Aug2018
+Submit your manuscript to a 
+journal and beneﬁ  t from:
+7 Convenient online submission
+7 Rigorous peer review
+7 Immediate publication on acceptance
+7 Open access: articles freely available online
+7 High visibility within the ﬁ  eld
+7 Retaining the copyright to your article
+    Submit your next manuscript at 7 springeropen.com

@@ -1,0 +1,510 @@
+--- Page 1 ---
+IEEE CONTROL SYSTEMS LETTERS, VOL. 8, 2024 2937
+A Sliding Mode Control Architecture for
+Autonomous Driving in Highway Scenarios
+Based on Quadratic Artiﬁcial Potential Fields
+Elisabetta Punta ,Senior Member, IEEE , Massimo Canale ,Member, IEEE ,
+Francesco Cerrito ,Graduate Student Member, IEEE , and Valentino Razza ,Member, IEEE
+Abstract —An approach for automated driving in highway
+scenarios based on Super-Twisting (STW) Sliding ModeControl (SMC) methodologies supported by the use ofArtiﬁcial Potential Fields (APF) is presented. The use ofAPF allows us to propose an effective SMC solution basedon the gradient tracking (GT) principle. In this regard, anovel formulation of the APF functions is introduced thatexploits a sequence of attractive quadratic functions. Thissolution simpliﬁes the computation of the ﬁelds and allowsfor trajectory generation with improved regularity proper-
+ties. Extensive simulation tests, as well as comparisons
+with baseline and state of the art solutions, show theeffectiveness of the proposed approach.
+Index Terms —Autonomous vehicles, automotive control,
+variable-structure/sliding-mode control.
+I. INTRODUCTION
+IN RECENT decades, autonomous driving (AD) has gained
+interest as a way to achieve safer and more sustain-
+able transportation systems. An AD system must integratea path planner and path-tracking logic. The path plannerbuilds a collision-free trajectory based on the measurementsof the vehicle sensors. Traditional path-planning algorithmsare graph-based or gradient-based techniques. Among thegraph-based, the most common algorithms are Dijkstra (see,e.g., [1]) and A
+∗(see, e.g., [2]). The main drawbacks of graph-
+based algorithms are the high complexity and computationalcosts. Studies to overcome such limitations can be foundin, e.g., [3],[4]. However, the manageable search space is
+discrete, and the generated path may lead to high jerk values.
+Received 16 September 2024; revised 15 November 2024; accepted
+3 December 2024. Date of publication 16 December 2024; date of
+current version 26 December 2024. This work was supported in part
+by the Project Piano Nazionale di Ripresa e Resilienza (PNRR)-Next Generation Europe, which has funded by the European Union
+and the Italian Ministry of University and Research–DM 117/2023.
+Recommended by Senior Editor C. Manzie.
+(Corresponding author:
+Massimo Canale.)
+Elisabetta Punta is with the Consiglio Nazionale delle Ricerche, CNR-
+IMATI, 27100 Pavia, Italy (e-mail: elisabetta.punta@cnr.it).
+Massimo Canale and Francesco Cerrito are with the Department of
+Control and Computer Engineering, Politecnico di Torino, 10129 Turin,Italy (e-mail: massimo.canale@polito.it; francesco.cerrito@polito.it).
+Valentino Razza are with the Department of Management and
+Production Engineering, Politecnico di Torino, 10129 Turin, Italy (e-mail:valentino.razza@polito.it).
+Digital Object Identiﬁer 10.1109/LCSYS.2024.3518927However, gradient-based techniques can produce a
+collision-free trajectory with a small computation effort. Theymostly rely on the APF algorithm, introduced in [5]for
+industrial and mobile robotics applications. In this approach,repulsive and attractive forces represent, respectively, obstaclesand goals. Exploiting the gradient of the resulting ﬁeld, thedesired trajectory can be evaluated and updated to account forscenario changes (see, e.g., [6]). One of the main drawbacks
+of APF-based algorithms is the suboptimal solution. The APF
+goal is to make the gradient slope zero. Once this objective
+is reached, the algorithm cannot explore new search spaceand may get stuck in a local minimum [7]. Combining APF
+with other path-planning techniques can solve this problem(see[8]). APFs can easily be combined with control algorithms
+aiming to minimize a valued function or follow a descentgradient to design a path-tracking algorithm. While APF-based approaches have shown promise [9], their application
+to general road scenarios is complicated by the signiﬁcantchallenge of obtaining accurate, real-time mathematicalformulations of APFs that can effectively model complex roadgeometries [10]. Furthermore, unlike robotics, automotive
+applications demand strict lane-center tracking and adherenceto prescribed regulations.
+The SMC [11] is a nonlinear control technique aiming to
+drive the system trajectory along a sliding surface, suitablydeﬁned to guarantee stability and desired performances. APFsare integrated into SMC by explicitly considering the ﬁeldgradient in the sliding surface deﬁnition (see, e.g., [12]).
+Several applications of APF combined with SMC are proposedin different ﬁelds in the literature. In [13],[14], SMC and
+APF combinations are proposed for spacecraft maneuvers inthe presence of obstacles.
+In the automotive ﬁeld, some remarkable results of SMC
+and APF are given. Longitudinal control is considered in [15],
+where the stabilization of a vehicle platoon is proposed
+through the time-headway dynamics controller. In [16],t h e
+authors propose an adaptive cruise control with collisionavoidance. The lane-keeping and obstacle avoidance problem
+is considered in [9], where the APFs are generated through
+data from a single camera. The proposed solution deﬁnes APF
+as step slopes while approaching lane boundaries, creating alow potential safe area in the center of the lane. An adaptiveAPF is presented in [17], where the lane-keeping APFs are
+exponential or rapidly changing functions when the vehicle is
+c/circlecopyrt2024 The Authors. This work is licensed under a Creative Commons Attribution-NonCommercial-NoDerivatives 4.0 License.
+For more information, see https://creativecommons.org/licenses/by-nc-nd/4.0/
+
+--- Page 2 ---
+2938 IEEE CONTROL SYSTEMS LETTERS, VOL. 8, 2024
+in the lane center or the proximity of the boundaries, respec-
+tively. SMC methodologies have been recently successfullyemployed in AD through STW algorithm. In particular, in [18],
+an interesting SMC-STW solution based on backstepping isintroduced for path tracking. In the described SMC-STWapproach, since the path is predeﬁned, adaption to trafﬁcconditions is prevented.
+This letter proposes an APF-SMC combined strategy for a
+Level 3 autonomous vehicle in a highway scenario, accordingto driving automation levels from the Society of AutomobileEngineers (see [19]). In such a context, emergency maneuvers
+are not considered. In particular, a novel APF formulation
+is proposed to manage the highway-relevant maneuvers, i.e.,
+lane keeping and lane changing, where a target point ahead isdeﬁned at each sample time. The APFs are combined into aSMC-STW strategy, guaranteeing the control input continuity.The main features of the proposed solution are:
+•we introduce a unique architecture for path planning andpath tracking based on APFs, capable of handling allthe driving functions involved in the highway scenario,i.e., lane keeping, overtaking and distance keeping froma previous slower vehicle;
+•we propose a simpliﬁed APF formulation based onquadratic functions that rely on a single target pointahead, compared to standard approaches based on a
+combination of Gaussian functions. This reduces the
+computational burden and the sensor complexity;
+•the desired lateral reference trajectory is derived from theAPF gradient of such quadratic function, characterizedby speciﬁc regularity properties that are functional forrobustness analysis.
+II. P
+ROBLEM SET-UP
+In this letter, we deal with an automated vehicle, that
+is moving in a highway road in agreement with the SAEautomation Level 3 features. Speciﬁcally, the vehicle executesa variety of standard highway maneuvers, including velocitytracking both in the presence and the absence of a headingvehicle, overtaking maneuvers, and precise lane keeping onstraight and curved roads. We assume that the vehicle isprovided by a full set of proprioceptive and exteroceptivesensors to detect all the relevant variables needed to implement
+the required automated driving maneuvers. To realize the
+automated driving functions discussed above, we introduce thecontrol architecture reported in Fig. 1. Such an architecture,
+implements a SMC that exploits APF to obtain appropriatesliding surfaces for generating suitable trajectories to betracked by the vehicle. In particular, in the scheme of Fig. 1,
+the on-board sensors of the vehicle provide the state ofthe vehicle in terms of the relevant longitudinal and lateralvariables. Moreover, the radar and camera sensors acquire theenvironment information in terms of the surrounding vehicleposition and speed and lane borders and center location. Basedon such information, the APF block, builds and locate the APF
+functions needed to accomplish the lateral driving task and
+generates the yaw angle reference ψ
+ref. A Finite State Machine
+(FSM) handles the implementation of the needed maneuverand generates the speed reference v
+ref. The references ψrefand
+vrefa r eu s e db yt h e Sliding Manifold block to obtain the sliding
+Fig. 1. The proposed control architecture.
+Fig. 2. Single-track Vehicle Model.
+variables σψ,σvemployed by the Sliding Mode Control block
+to compute the control action in terms of steering angle δand
+longitudinal acceleration ax. The following sections, describe
+the technical details of each block.
+III. V EHICLE MODEL
+The vehicle dynamics are described by the single-track
+model reported in Fig. 2(see [20]). Given the absolute ( X,Y)
+frame with the origin ﬁxed at the initial vehicle positionand orientation coinciding with the scenario environmentcoordinate x,y, and the yaw angle ψspecify the position and
+orientation of the vehicle center of gravity, vis the vehicle
+speed decomposed in its longitudinal and lateral componentsdenoted as v
+xandvy, respectively, while δis the steering angle.
+The longitudinal acceleration axand the steering angle δare
+the inputs of the system.
+Based on the just introduced model settings and accounting
+for the actuation dynamics characterized by the time constantτ, the longitudinal behavior of the vehicle is described by
+¨v
+x=1
+τ(−˙vx+ax). (1)
+In this letter, we assume τ=0.5 s. The vehicle lateral
+dynamics are described by equations (2)and(3)that depend on
+the wheel cornering stiffnesses (Cf,Cr), the semi-wheelbases
+(lf,lr), the vehicle mass m, and the vehicle inertia along the
+vertical axis Iz
+˙vy=−Cf+Cr
+mvxvy+Crlr+Cflf
+mvx˙ψ−vx˙ψ+Cf
+mδ, (2)
+¨ψ=Cf+Cr
+Izvxvy+Crl2
+r+Cfl2
+f
+Izvx˙ψ+Cflf
+Izδ. (3)
+Nominal model (2)-(3)parameters, and relevant uncertainties,
+are reported in Table I.
+
+--- Page 3 ---
+PUNTA et al.: SMC ARCHITECTURE FOR AD IN HIGHWAY SCENARIOS 2939
+TABLE I
+VEHICLE PARAMETERS
+Remark 1: A point (Xo,Yo)in the global inertial frame is
+the transform of a point (xo,yo)from the local frame as
+⎡
+⎣Xo
+Yo
+1⎤
+⎦=⎡
+⎣cosψ sinψ x
+−sinψ cosψy
+00 1⎤
+⎦⎡
+⎣xo
+yo
+1⎤
+⎦. (4)
+IV. APF FOR AD P ATHPLANNING
+In the literature, several possible formulations have been
+presented to describe an AD scenario on a highway via APF.
+Often the generated APFs are computationally complex. Themost common approach involves building a total APF asa superposition of the road APF, represented by repulsivewalls instead of the outer lane lines, and the APFs related toobstacles or other cars that act as repulsive points, [21].
+In this letter it is proposed a novel approach to the deﬁnition
+of APFs for highway scenarios.
+It is assumed that at each sampling step, data is acquired
+via sensors and the behavioral logic determines the action tobe performed and builds the appropriate APF. Therefore, ateach sampling step the APF changes and evolves due to theever-changing surrounding environment. Given lane boundary
+points in an absolute ( X,Y) reference frame, a target point
+(X
+target,Ytarget)is deﬁned and computed at each step. This
+target point creates an attractive potential ﬁeld, guiding thevehicle toward the desired path.
+The attractive APF is deﬁned as the quadratic function
+U
+a=1
+2/bracketleftBig/parenleftbig
+Xtarget−X/parenrightbig2+/parenleftbig
+Ytarget−Y/parenrightbig2/bracketrightBig
+(5)
+where (Xtarget,Ytarget)is updated at each step.
+According to the maneuver to perform, the goal point
+(Xtarget,Ytarget)will remain at the centre of the lane (Lane
+Keeping) or will move to an adjacent lane in a certain amount
+of time (Lane Changing).
+The Lane Keeping (LK) feature entails keeping the vehicle
+at the centre of the lane along which the vehicle itself istravelling. The vehicle acquires data regarding the position ofthe lane boundaries in its own ( X,Y) frame and can determine
+the position of the central point of the lanes as well. It ispossible to deﬁne a target point (X
+target,Ytarget), which moves
+along the current lane as the vehicle moves forward. Thepoint (X
+target,Ytarget)is deﬁned as the center of the current
+lane at a ﬁxed longitudinal distance from the vehicle. As thevehicle follows the desired longitudinal dynamics (i.e., travelsalong the lane), the target position (X
+target,Ytarget)changes.
+Even in the presence of a curve (necessarily with a radius of
+curvature R>500m since it is on a highway) the target point
+(Xtarget,Ytarget)will direct the vehicle to follow the correct
+trajectory.The Lane Changing (LC) maneuver is performed whenever
+a vehicle needs to move into an adjacent lane to overtake andre-enter or move to the rightmost lane. The APF deﬁnitionfor LC follows the same premise as the LK one with onesigniﬁcant change. The target point (X
+target,Ytarget)not only
+moves along the direction of travel but also moves into theadjacent lane from the current lane based on the requestedmaneuver. When the vehicle needs to perform the LC maneu-ver, the behavioral logic needs to extract information not onlyabout the current lane, but also about the target lane.
+A. APF Gradient Tracking for Path Following
+The concept of GT-SMC was ﬁrst introduced in [12], where
+the key idea consisted of regarding the gradient lines as the
+desired trajectories. The gradient was interpreted as a desired
+velocity ﬁeld and the controller oriented the vehicle velocityvector co-linear to the gradient.
+The goal of the path tracking controller is to orient the
+vehicle’s longitudinal axis co-linear to the gradient of theattractive APF (5)generated at each time step by the target
+point(X
+target,Ytarget).
+The “attractive force” fagenerated by the APF (5)is
+fa=∇Ua=/bracketleftbigg
+Uax
+Uay/bracketrightbigg
+=/bracketleftbigg/parenleftbig
+Xtarget−X/parenrightbig
+/parenleftbig
+Ytarget−Y/parenrightbig/bracketrightbigg
+(6)
+where ∇Uais the gradient of the attractive APF (5).
+Finally, the desired vehicle orientation, i.e., the desired yaw
+angle ψd, is evaluated as a function of the gradient
+ψd=arctan/parenleftbiggUay
+Uax/parenrightbigg
+. (7)
+B. Behavioral Logic
+A ﬁnite state machine (FSM) chooses the driving task based
+on the detected surrounding environment. In the highwayscenario, the possible tasks are left or right lane change,lane keeping, target velocity tracking, and adapting cruisecontrol (ACC). The outputs of the FSM are the target position(X
+target,Ytarget), used in the APF deﬁnition, and the target
+velocity for the longitudinal controller.
+First, the current lane index /lscript=1,2,..., n/lscriptis evaluated,
+where 1 is the rightmost lane and n/lscriptis the number of available
+lanes, the FSM checks the presence of a slower vehicle aheadon the same lane. If a slower vehicle is present and /lscript< n
+/lscript,
+then the FSM evaluates if the left LC maneuver is suitable,i.e., if moving to /lscript
+tar=/lscript+1. Otherwise, if /lscript>1, a right LC
+maneuver is considered, i.e., if moving to /lscripttar=/lscript−1. The
+LC maneuver can be performed if the target distance dtar=
+d0+tHvxis kept from any vehicle on the target lane /lscripttar,
+where d0is the safety distance and tHis the headway time. If
+no LC maneuver is planned, the FSM activates the LK.
+Given the sensor data for each sample time t0, we evaluate
+the current lane center (xO,yO)in the vehicle local frame at a
+ﬁxed distance ahead, i.e., xO=K, where Kis the lookahead
+distance. For LK maneuvers, the target (Xtarget,Ytarget)point
+is computed from (xO,yO)through (4). On the other hand, the
+LC begins at tini. We freeze the current value /lscriptto design a
+smooth trajectory connecting the lane centers from /lscriptto/lscripttar
+
+--- Page 4 ---
+2940 IEEE CONTROL SYSTEMS LETTERS, VOL. 8, 2024
+in a ﬁxed maneuver time tLC. Thus, for each sampling time
+tini≤t≤tini+tLC, the FSM computes
+dlane=/lscriptW+α
+2/bracketleftbigg
+1−cos/parenleftbigg
+πt−tini
+tLC/parenrightbigg/bracketrightbigg
+(8)
+where α=1o rα=− 1 if moving to the lane at the left or
+the right, respectively and /lscriptWis the lane width. Then, given
+the current value (xO,yO)for lane /lscript, the target position is
+computed applying (4)to(xO,yO+dlane).
+Remark 2: It is worth noting that this letter objective is the
+design of a Level 3 autonomous vehicle, where emergencymaneuvers are demanded of the driver. The LC is performedif the safety distances are guaranteed at the new lane /lscript
+tar.I f
+the scenario undergoes signiﬁcant changes within the next tLC
+seconds, resulting in an emergency situation, it falls outside
+the scope of this letter.
+Together with the APF target position, the reference velocity
+vrefis computed given the current lane /lscript. The FSM considers
+three factors to compute vref: the user-selected velocity vmax,
+the comfort in terms of maximum lateral acceleration ay,max,
+and the ACC maneuver. To preserve the passengers comfort,given the road curvature ρfrom the on-board sensors, we get
+v
+curve=√ρay,max. (9)
+Finally, the ACC mode is activated if a slower vehicle is
+ahead and the LK maneuver is performed. A smooth velocitytrajectory is designed to move from the current speed v
+in
+to the preceding vehicle speed vend. To care about comfort
+performance, we consider a maximum absolute jerk and
+maximum absolute longitudinal acceleration values as jmaxand
+ax,max, respectively. A bang-bang trajectory vlink(t)is evaluated
+fortini≤t≤tACC, where the jerk value −jmaxis kept till
+reaching the acceleration value −ax,max. Then, the acceleration
+is kept constant before applying the maximum jmaxto reach
+0 acceleration and vendvelocity. The value tACCis deﬁned as
+thevlinktrajectory duration.
+Then, the ACC reference velocity is given by
+vACC=/braceleftbiggvlink(t)tini≤t≤tACC,
+d−dtar
+tHt>tACC,(10)
+where dis the distance from the preceding vehicle, and the
+reference speed is given by
+vref=min{vmax,vcurve,vACC}. (11)
+V. S LIDING MODE CONTROL STRATEGY FOR AD
+The proposed controller for the autonomous driving system
+consists of a longitudinal controller that regulates the vehiclespeed and a lateral controller that steers the vehicle to followthe path, both of which are designed based on a second-order SMC, speciﬁcally the Super-Twisting SMC (STW-SMC)strategy, [11],[22].
+A. APF Gradient Tracking STW-SMC: Sliding Output σψ
+The APF Gradient Tracking STW-SMC objective is to steer
+asymptotically to zero the yaw angle tracking error. It is chosen
+the sliding variable σψ=˙eψ+λψeψ, where eψ=ψ−ψd,
+ψdis computed according to (7), and λψ>0 is a positive
+constant parameter of the controller.When a sliding motion is established on the sliding surface
+σψ=˙eψ+λψeψ=0, (12)
+system (3)behaves as a stable ﬁrst order linear system in
+which the positive λψdetermines how quickly the yaw angle
+tracking error converges asymptotically to zero.
+B. Longitudinal Speed STW-SMC: Sliding Output σv
+The goal of the longitudinal speed tracking controller is
+to make the vehicle velocity proﬁle asymptotically follow areference proﬁle v
+ref(t)given by (11) and determined by the
+type of maneuver the vehicle has to perform.
+The sliding variable is deﬁned as σv=˙ev+λvev, where
+ev=vx−vrefandλv>0 is a positive constant parameter of
+the controller. On the corresponding sliding surface
+σv=˙ev+λvev=0, (13)
+the longitudinal velocity of the vehicle vxtracks asymptotically
+the desired reference proﬁle vref.
+C. Lateral and Longitudinal Dynamics STW-SMC
+Consider (1)-(3),(12) and(13), the time derivatives of the
+sliding outputs σψandσvare
+˙σi=hi(t)+kiui,i=ψ,v, (14)
+where hψ=Cf+Cr
+Izvx(˙vy+˙ψ)−(¨ψd+λψ˙ψd),kψ=Cflf
+Iz,uψ=δ
+andhv=(λv−1
+τ)˙vx−(¨vref+λv˙vref),kv=1
+τ,uv=ax. Constant
+bounds Kim,KiM>0 for the gains ki,i=ψ,v, are known
+such that 0 <Kim≤ki≤KiM,i=ψ,v,Table II.
+Remark 3: Consider the highway scenario without emer-
+gency maneuver, vx>0 (Level 3 A V application). ˙vy
+and¨ψare computed from (2)and (3), that are Lipschitz
+continuous functions. The chosen formulation for the APF (5)
+is an analytical polynomial function whose derivatives exist
+for any arbitrary order for a ﬁxed value of (Xtarget,Ytarget).
+Thus, ψdfrom (7)is bounded and differentiable for any
+derivative order almost everywhere. ¨vxis Lipschitz continuous
+from (1).F r o m (11), the reference vrefis the minimum among
+continuous and bounded functions up to the third derivativeorder. In particular, v
+curve is continuously differentiable thanks
+to restrictions from road construction normative regulationsimposing continuity in the curvature ρvariations. Then v
+ref
+is bounded for all its derivatives up to the third order almost
+everywhere, with the exceptions of the switching instants, i.e.,when the min function sets a different reference curve for v
+ref
+in(11).
+Proposition 1: In the deﬁned driving scenario, constants
+Li,i=ψ,vexist and are available to the controllers such that
+Li≥0:|˙hi|≤Li,i=ψ,v, (15)
+˙hψ=Cf+Cr
+Izvx(˙vy−˙vx
+vxvy)+Crl2
+r+Crl2
+f
+Izvx(¨ψ−˙vx
+vx˙ψ)−(ψ(3)
+d+λψ¨ψd)
+and˙hv=(λv−1
+τ)¨vx−(v(3)
+ref+λv¨vref).
+Proof: The driving scenario according to Remark 3implic-
+itly deﬁnes a nonempty compact set D. In such a set D,t h e
+functions ˙hi:D→IR,i=ψ,v, are continuous, then, thanks
+to the Weierstrass Theorem, ˙hi,i=ψ,v, are bounded.
+
+--- Page 5 ---
+PUNTA et al.: SMC ARCHITECTURE FOR AD IN HIGHWAY SCENARIOS 2941
+TABLE II
+CONTROLLERS PARAMETERS
+TABLE III
+MAXIMUM LATERAL ERROR FORM LANECENTER
+Table IIreports the found values of Li,i=ψ,v. The control
+laws ui,i=ψ,v, are designed by the STW-SMC algorithm
+ui=−ci|σi|1
+2sign(σi)+wi, (16)
+˙wi=−bisign(σi),i=ψ,v,
+where σi,i=ψ,v, are the sliding variables in (12) and(13),
+ciKim>1.5L1
+2
+iand biKim>1.1Li,i=ψ,v,a r et h e
+parameters of the two controllers. The continuous control laws
+designed by the STW-SMC algorithm (16) and applied to
+(1)-(3)guarantee the convergence of both σiand˙σi,i=ψ,v,
+to zero in ﬁnite time, [11],[22].
+D. STW Filtering of the Longitudinal Speed Reference
+An STW ﬁltering, [23], of the longitudinal speed reference
+vref(t)given by (11) is introduced to prevent sudden changes
+and variations in the vehicle acceleration, thus improving the
+smoothness of the computed control action axas well as the
+safety and comfort performance for passengers.
+The STW ﬁlter is deﬁned by the auxiliary system ˙z=η
+and s=z−vref(t), implementing the STW continuous
+lawη=− cF|s|1/2sign(s)+wF, with ˙wF=− bFsign(s),
+that steers both sand˙sto 0 in ﬁnite time. Use ηas the
+equivalent ˙vrefeqin(13),[23]. Notice that the STW ﬁlter on
+the longitudinal speed reference described here improves theregularity properties of the desired trajectory.
+VI. N
+UMERICAL SIMULATIONS
+The vehicle performance is evaluated employing (1)-(3)
+implemented in a Simulink model. To evaluate the effectivenessof the proposed solution, extensive simulations were conductedunder both nominal conditions and in the presence of modelparameters uncertainties. All the parameters are detailed inTable I. The variations in the parameters account for different
+conditions, such as the presence of additional passengers andthe deterioration of tire conditions. Furthermore, the proposedapproach is compared against a baseline PI yaw-rate-based
+solution having a similar architecture presented in [24] and a
+state-of-art sliding mode controllers detailed in [25] and[18].
+A 2.8 km two-lane highway road scenario has been
+designed to comprehensively replicate potential driving sce-narios under typical conditions. The path is made of a one-wayroadway with two 3.6 m wide lanes. The geometric layout ofthe simulated environment, depicted in Fig. 3, is designed as
+follows. A straight 823 m path, followed by two 30
+◦turns,
+left then right, of 750 m minimum radius. Then, a 823 m
+Fig. 3. Double-bend scenario.
+straight path ends the scenario. The road path and independent
+vehicles representing the road trafﬁc are simulated through theMatworks Driving Scenario Toolbox.
+The simulation is divided into three sequential sections to
+evaluate the considered maneuvers. In the initial phase, theego-vehicle traversed the ﬁrst straight road, accelerating froman initial speed of approximately 118 km/h to the referencespeed of 130 km/h. Upon approaching the double-curve sec-tion, the ego vehicle encounters three slower vehicles ahead,moving at 80 km/h. The second lane has no approachingvehicles, and the ego can begin the overtaking maneuver bymoving to the left lane. Ahead on the second lane, the egovehicle ﬁnds a car traveling at 110 km/h, already performing
+the overtaking maneuver. Thus, the ego vehicle must activate
+the adaptive cruise control system till the car ahead ends theovertaking. As the leading vehicle returns to the rightmostlane, the ego-vehicle completes the overtaking maneuver and,subsequently, rejoins the rightmost lane.
+During the initial phase of the simulation (t∈(0s,18 s)),
+the vehicle accelerated uniformly to reach the target speed of130 km/h while keeping a constant yaw angle on a straightpath. At t=18 s, the behavioral logic transitioned to
+state 1 (moving left), initiating the overtaking maneuver. Thecontroller acts on the vehicle’s steering angle to execute themaneuver successfully. Additionally, the ego-vehicle dynam-ically adjusted its speed based on both the road curvature
+and the speed of the slower leading vehicle. As illustrated
+inFig.4C, adaptive cruise control maneuver was completed at
+t=29 s, maintaining a consistent safety distance of 57 meters.
+Att=58 s, the vehicle returned to the straight road,
+maintaining a reference speed of 130 km/h. The vehiclesuccessfully completed the overtaking maneuver at t=73 s
+when the safety conditions for rejoining the rightmost lane weremet.
+As shown in Fig. 4, the ﬁlter applied to the reference speed
+effectively reduces the acceleration control action effort andrate. Consequently, the reduction in jerk enhances passengercomfort. Furthermore, Fig.5A, B, and C illustrate that the strip
+related to the applied disturbances is very narrow, indicating
+robust control performance against model uncertainties. As
+shown in Fig. 5A, the applied model uncertainties particularly
+affect the steering angle control input. Nevertheless, due tothe controller’s action, both the vehicle’s yaw angle ( Fig. 5B)
+and its distance from the center lane ( Fig. 5C) are minimally
+impacted. Finally, Fig. 5D illustrates the vehicle’s movement
+to the left lane and its subsequent return to the right lane.In comparison to state-of-the-art approaches [24] and [25],
+the proposed approach demonstrates superior performance by
+
+--- Page 6 ---
+2942 IEEE CONTROL SYSTEMS LETTERS, VOL. 8, 2024
+Fig. 4. Simulation results - Longitudinal dynamics.
+Fig. 5. Simulation results - Lateral dynamics.
+reducing lateral error in both ideal and perturbed scenar-
+ios III. Additionally, it augments control action performanceby decreasing both the effort and rate of the control inputs,thereby enhancing passenger comfort ( Fig. 5A).
+VII. C
+ONCLUSION
+This letter presents an automated driving approach in
+highway scenarios based on SMC methodologies, supportedby quadratic APFs. In this regard, a new formulation of theAPF functions has been introduced that exploits a sequence ofattractive quadratic functions centered on the target points ofthe planned trajectory. In this way the gradient computationis more effective, leading to more accurate trajectory tracking
+and convergence results. Using the STW algorithm to ﬁlter the
+speed reference has improved the smoothness properties of thecomputed control action, increasing the comfort performance.Extensive simulation tests including a sensitivity analysis,together with comparisons with baseline and state of the artsolutions showed the effectiveness and robustness propertiesof the proposed approach.
+R
+EFERENCES
+[1] D. Delling, A. V . Goldberg, A. Nowatzyk, and R. F. Werneck, “PHAST:
+Hardware-accelerated shortest path trees,” J. Parallel Distrib. Comput. ,
+vol. 73, no. 7, pp. 940–952, 2013.
+[2] X. Tang, T. Zhou, J. Yu, J. Wang, and Y . Su, “An improved fusion
+algorithm of path planning for automated guided vehicle in storage
+system,” in Proc. IEEE 4th Int. Conf. Comput. Commun. (ICCC) , 2018,
+pp. 510–514.[3] L. Yeong-Ho, K. Yeong-Jun, J. Da-Un, and W. Ihn-Sik, “Development
+of an integrated path planning algorithm for autonomous driving ofunmanned surface vessel,” in Proc. 20th Int. Conf. Control, Autom. Syst.
+(ICCAS) , 2020, pp. 27–32.
+[4] X. Zhong, J. Tian, H. Hu, and X. Peng, “Hybrid path planning based
+on safe a∗algorithm and adaptive window approach for mobile robot in
+large-scale dynamic environment,” J. Intell. Robot. Syst. , vol. 99, no. 1,
+pp. 65–77, 2020.
+[5] O. Khatib, “Real-time obstacle avoidance for manipulators and mobile
+robots,” in Proc. IEEE Int. Conf. Robot. Autom. , 1985, pp. 500–505.
+[6] P. B. Kumar, H. Rawat, and D. R. Parhi, “Path planning of
+humanoids based on artiﬁcial potential ﬁeld method in unknown envi-
+ronments,” Expert Syst. , vol. 36, no. 2, 2019, Art. no. e12360.
+[7] F. Bounini, D. Gingras, H. Pollart, and D. Gruyer, “Modiﬁed artiﬁcial
+potential ﬁeld method for online path planning applications,” in Proc.
+IEEE Intell. Veh. Symp. (IV) , 2017, pp. 180–185.
+[8] M. Reda, A. Onsy, A. Y . Haikal, and A. Ghanbari, “Path plan-
+ning algorithms in the autonomous driving system: A comprehensivereview,” Robot. Auton. Syst. , vol. 174, Apr. 2024, Art. no. 104630.
+[9] L. Capito, U. Ozguner, and K. Redmill, “Optical ﬂow based visual
+potential ﬁeld for autonomous driving,” in Proc. IEEE Intell. Veh. Symp.
+(IV), 2020, pp. 885–891.
+[10] P. Lin, E. Javanmardi, J. Nakazato, and M. Tsukada, “Potential ﬁeld-
+based path planning with interactive speed optimization for autonomous
+vehicles,” in Proc. 49th Annu. Conf. IEEE Ind. Electron. Soc. (IECON) ,
+2023, pp. 1–6.
+[11] Y . Shtessel, C. Edwards, L. Fridman, and A. Levant, Sliding
+Mode Control and Observation . New York, NY , USA: Springer,
+2014.
+[12] J. Guldner and V . I. Utkin, “Sliding mode control for gradient tracking
+and robot navigation using artiﬁcial potential ﬁelds,” IEEE Trans. Robot.
+Autom. , vol. 11, no. 2, pp. 247–254, Apr. 1995.
+[13] M. Mancini, N. Bloise, E. Capello, and E. Punta, “Sliding mode control
+techniques and artiﬁcial potential ﬁeld for dynamic collision avoidance
+in rendezvous maneuvers,” IEEE Control Syst. Lett. , vol. 4, pp. 313–318,
+2020.
+[14] L. Cao, D. Qiao, and J. Xu, “Suboptimal artiﬁcial potential function
+sliding mode control for spacecraft rendezvous with obstacle avoid-
+ance,” Acta Astronautica , vol. 143, pp. 133–146, Feb. 2018.
+[15] K. B. Devika, G. Rohith, and S. C. Subramanian, “Potential function-
+based string stable controller for heavy road vehicle platoons,” IEEE
+Access , vol. 9, pp. 156274–156282, 2021.
+[16] B. Ganji, A. Z. Kouzani, S. Y . Khoo, and M. Shams-Zahraei, “Adaptive
+cruise control of a HEV using sliding mode control,” Expert Syst. Appl. ,
+vol. 41, no. 2, pp. 607–615, 2014.
+[17] Y . Zhang, K. Liu, F. Gao, and F. Zhao, “Research on path planning and
+path tracking control of autonomous vehicles based on improved APFand SMC,” Sensors , vol. 23, no. 18, p. 7918, 2023.
+[18] D. Ao, W. Huang, P. K. Wong, and J. Li, “Robust backstepping
+super-twisting sliding mode control for autonomous vehicle path follow-
+ing,” IEEE Access , vol. 9, pp. 123165–123177, 2021.
+[19] Taxonomy and Deﬁnitions for Terms Related to Driving Automation
+Systems for On-Road Motor Vehicles , SAE Standard J3016_202104,
+2021.
+[20] R. Rajamani, Vehicle Dynamics and Control (Mechanical Engineering
+Series). New York, NY , USA: Springer, 2011.
+[21] M. Canale and V . Razza, “Automated driving control in highway
+scenarios through a two-level hierarchical architecture,” IEEE Access ,
+vol. 12, pp. 86470–86486, 2024.
+[22] A. Levant, “Universal single-input-single-output (SISO) sliding-mode
+controllers with ﬁnite-time convergence,” IEEE Trans. Autom. Control ,
+vol. 46, no. 9, pp. 1447–1451, Sep. 2001.
+[23] E. Punta, “First and second order sliding mode equivalent signals and
+practical approximability in the implementation,” in Proc. 16th Int.
+Workshop Var. Struct. Syst. (VSS) , 2022, pp. 1–5.
+[24] A. Bonci, A. Di Biase, M. C. Giannini, and S. Longhi, “Yaw rate-based
+PID control for lateral dynamics of autonomous vehicles, design andimplementation,” in Proc. IEEE 28th Int. Conf. Emerg. Technol. Factory
+Autom. (ETFA) , 2023, pp. 1–8.
+[25] G. Tagne, R. Talj, and A. Charara, “Design and comparison of
+robust nonlinear controllers for the lateral dynamics of intelligentvehicles,” IEEE Trans. Intell. Transp. Syst. , vol. 17, no. 3, pp. 796–809,
+Mar. 2016.
+Open Access funding provided by ‘Politecnico di Torino’ within the CRUI CARE Agreement

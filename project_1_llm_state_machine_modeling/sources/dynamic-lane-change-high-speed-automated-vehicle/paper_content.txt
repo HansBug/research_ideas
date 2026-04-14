@@ -1,0 +1,1091 @@
+--- Page 1 ---
+IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018 329
+Dynamic Modeling and Control of High-Speed
+Automated V ehicles for Lane Change Maneuver
+Kai Liu , Jianwei Gong , Member , IEEE ,A r d aK u r t , Member , IEEE , Huiyan Chen,
+and Umit Ozguner , Fellow, IEEE
+Abstract —Lane change maneuver of high-speed automated
+vehicles is complicated, since it involves highly nonlinear vehicle
+dynamics, which is critical for the driving safety and handling
+stability. Addressing this challenge, we present the dynamic mod-
+eling and control of high-speed automated vehicles for lane change
+maneuver. A nonlinear single-track vehicle dynamics model and a
+multisegment lane change process model are employed. Variable
+time steps are utilized for the vehicle model discretization to ensure
+a long enough prediction horizon, while maintaining model ﬁdelity
+and computational feasibility. Accordingly, the control of lane
+change maneuver is addressed in two successive stages. First, by
+considering the lane change maneuver as primarily a longitudinal
+control problem, velocity proﬁles are determined to ensure the
+longitudinal safety of this maneuver. Then, the associated lateral
+control is generated with a model-predictive controller, taking the
+handling stability envelope, coupled tire forces, and environmental
+constraints into account. Simulations demonstrate the real-time
+ability and stable-handling capability of the proposed approach.
+Index T erms —High-speed automated vehicles, lane change ma-
+neuver, model predictive control, variable time-steps.
+I. I NTRODUCTION
+DUE to the advances in sensing and computing technology,
+automated vehicles have evolved signiﬁcantly during
+the last decades. Many advanced driver assistance systems
+(ADAS), such as Adaptive Cruise Control (ACC) and Dynamic
+Stability Control (DSC), have been successfully integrated
+into commercial vehicles [1]. Furthermore, automated driving
+has demonstrated transformative potentials through ventures
+such as the DARPA grand and urban challenge [2], [3], and
+the Google self-driving car [4], etc. Nowadays, research
+Manuscript received August 2, 2017; revised December 2, 2017 and March
+26, 2018; accepted April 14, 2018. Date of publication June 1, 2018; date of
+current version August 23, 2018. This study was supported in part by the Na-
+tional Natural Science Foundation of China under Grants 51275041, 91420203
+and 61703041 and in part by the China Scholarship Council (CSC) and the Fun-
+damental Research Funds for the Central Universities. (Corresponding author:
+Jianwei Gong.)
+K. Liu is with the Intelligent V ehicle Research Center, Beijing Institute of
+Technology, Beijing 100081, China, and also with the Center for Automotive
+Research, The Ohio State University, OH 43212 USA (e-mail: ,leoking1025
+@bit.edu.cn).
+J. Gong and H. Chen are with the Intelligent V ehicle Research Center,
+Beijing Institute of Technology, Beijing 100081, China (e-mail: ,gongjianwei@
+bit.edu.cn; chen_h_y@bit.edu.cn).
+A. Kurt and U. Ozguner are with the Center for Automotive Research, De-
+partment of Electrical Engineering, The Ohio State University, OH 43212 USA
+(e-mail: ,kurt.12@osu.edu; ozguner.1@osu.edu).
+Color versions of one or more of the ﬁgures in this paper are available online
+at http://ieeexplore.ieee.org.
+Digital Object Identiﬁer 10.1109/TIV .2018.2843177efforts from both academia and industry have also targeted the
+high-speed automated vehicles, aiming to improve the driving
+safety and overall trafﬁc efﬁciency [5]. Nevertheless, attaining
+high-speed automated driving still faces many problems.
+In particular, lane change maneuver in such conditions is a
+signiﬁcant challenge.
+Lane change maneuver of high-speed automated vehicles is
+challenging since it involves highly nonlinear vehicle dynamics.
+Therefore, a vehicle model with high ﬁdelity is necessary to ac-
+count for the dynamics related safety concerns, such as sidesilps
+caused by tire deformation and the maximal capabilities of tire-
+road friction. Besides, according to analysis of naturalistic lane
+change data, the duration time of a lane change maneuver mainly
+falls in 3–8 s [6]–[8]. This duration time necessitates a long
+enough prediction horizon to safely anticipate the movement of
+surrounding vehicles for hazard avoidance. Nevertheless, there
+is a dilemma between the model ﬁdelity and time-step scales. On
+one hand, the vehicle model requires a short time-step to remain
+ﬁdelity and fast response to the changes of environments. How-
+ever, utilizing a short time-step for the whole prediction horizon
+would make the computational burden prohibitively heavy for
+real-time implementation. On the other hand, selecting a long
+time-step to realize sufﬁcient prediction horizon with fewer time
+steps would degrade the model ﬁdelity.
+Other than vehicle dynamics modeling, control of high-speed
+automated vehicles for lane change maneuver is another chal-
+lenge. Unlike the lane change of regular-speed automated vehi-
+cles, which is adequate to consider a collision-free trajectory, the
+vehicle handling stability and coupled tire forces become critical
+for driving safety of high-speed autonomated vehicles [9]–[11].
+Thus, the dynamical safety constraints and the collision-free
+bounds should be systematically considered in the lane change
+maneuver [12]. However, these constraints may conﬂict with
+each other which propose further difﬁculties for the control of
+high-speed automated vehicles.
+A. Related W orks
+A wide spectrum of dynamics modeling and control methods
+for lane change maneuver of automated vehicles have appeared
+in the literature [13]–[18]. Although these approaches do
+provide good results in their own respective applications, they
+either focus on relatively simple trafﬁc environments or neglect
+the coupling effect between longitudinal and lateral motion.
+To account for surrounding vehicles and the coupled motions,
+2379-8858 © 2018 IEEE. Personal use is permitted, but republication/redistribution requires IEEE permission.
+See http://www.ieee.org/publications standards/publications/rights/index.html for more information.
+
+--- Page 2 ---
+330 IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018
+[19], [20] presented an effective lane change maneuver-
+ing method for automated vehicles with time-varying speeds.
+However, this method is derived from a kinematic vehicle model
+and didn’t consider the dynamical safety constraints. Besides,
+variable time-steps is used for real-time motion planning [21].
+Recent work has shown that Model Predictive Control (MPC)
+can be used to rigorously handling the multiple vehicle dynam-
+ics and safety constraints [22]. And the stability of this algorithm
+is also well studied [23]–[25]. To address the coupled tire force
+coupling effects, [26], [27] incorporate the Pacejka’s magic for-
+mula tire model in the form of tire-road friction forces to capture
+the yaw dynamics and acceleration constraints. However, no
+active dynamical safety constraints are considered in these ap-
+proaches. Alternatively, [28] proposed an approach to explicitly
+incorporated the stabilization criteria, such as stable handling
+envelope, into the MPC formulations. However, this approach
+still suffers from the underlying challenge that such constraints
+may be overly restrictive or conﬂict with each other, which
+may lead to collisions. By prioritizing collision avoidance, [29]
+proposed a method to systematically weight these sometimes
+conﬂicting objectives. If necessary, they even temporarily vio-
+late the stabilization criteria to avoid collisions. However, these
+applications are based on relatively simple environment settings,
+such as the obstacles are static in these scenarios and neglecting
+other vehicles. Moreover, taking the lane change maneuver as
+an instantaneous event and assuming constant speed during this
+maneuver does not consort with the real world scenarios.
+B. Contributions
+This paper presents the dynamic modeling and control of
+high-speed automated vehicles for lane change maneuver. A
+multi-segment lane change model is used to capture the lane
+change maneuver properties of adjusting the longitudinal posi-
+tion and velocity prior to initializing the lateral motion of this
+maneuver. The dynamical safety constraints are represented by
+the stable handling envelope and coupled tire forces envelope.
+Accordingly, an MPC controller is designed to realize colli-
+sion avoidance while enforcing the dynamical safety constraints.
+Simulations validated the real-time ability and handling stabil-
+ity of the proposed approach. We claim two main contributions
+of this paper:
+The ﬁrst contribution is the variable time-steps for vehicle
+model discretization. The prediction horizon is divided into two
+portions. In the near portion, the vehicle model discretized with
+short time-step accurately captures the vehicle dynamics. In the
+latter portion, the vehicle model discretized with long time-step
+and ﬁrst-order hold (FOH) method provides reduced modeling
+errors over the prediction horizon while mitigating the computa-
+tional burden. In this way, the variable time-steps ensure a long
+enough prediction horizon while maintaining model ﬁdelity and
+computational feasibility.
+Another contribution is stabilization control of high-speed
+automated vehicles for lane change maneuver while accounting
+for and adapting to the surrounding vehicles. The lane change
+maneuver is addressed in two successive stages. First, by con-
+servatively assuming a ﬁxed lateral motion time, a proper lon-Fig. 1. A diagram of dynamical single-track vehicle model.
+gitudinal acceleration proﬁle is determined. Then, the lateral
+control is designed as an MPC problem to systematically me-
+diated the dynamical safety constraints and the environmental
+constraints.
+Throughout the paper, the following assumptions are made:rThe automated vehicle is equipped with low-level control
+systems capable of performing the optimized controls;rSince the decision-making mechanism has been widely
+discussed in previous studies, it is not included in this
+work. The lane change maneuver request and the potential
+inter-vehicle trafﬁc gap are given manually;rWe hypothesize adequate knowledge about the trafﬁc envi-
+ronment, such as relative speed and position of surrounding
+vehicles. This is possible due to the advantages in commu-
+nication forms such as V2V , V2I, etc.
+The remainder of this paper is organized as follows: Section II
+introduces the modeling of vehicle dynamics and lane change
+process. Section III describes the decoupled longitudinal and
+lateral control of high-speed automated vehicles for lane change
+maneuver. Section IV shows the simulation results. Conclusions
+are drawn in Section V.
+II. D YNAMIC MODELING OF LANE CHANGE MANEUVER
+A. Single-Track V ehicle Dynamics Modeling
+Considering a front-wheel driven automated vehicle, a single-
+track vehicle model in combination with a semi-empirical tire
+model is employed, as illustrated in Fig. 1. Table I provides an
+overview of the employed model parameters.
+The vehicle dynamics and relative motion with respect to the
+road curvilinear coordinate system can be described as
+˙vx=ax (1a)
+˙vy=r˙vx+1
+m(Fyf+Fyr) (1b)
+˙r=1
+Iz(lfFyf−lrFyr) (1c)
+˙eψ=r (1d)
+˙ey=vxeψ+vy (1e)
+˙s=vx (1f)
+with the small angle assumptions of eψ≈0andδf≈0.
+
+--- Page 3 ---
+LIU et al. : DYNAMIC MODELING AND CONTROL OF HIGH-SPEED AUTOMA TED VEHICLES 331
+TABLE I
+EMPLOYED MODEL PARAMETERS
+For the tire force terms in (1), a modiﬁed brush tire model
+presented in form (2) by Pacejka is used to approximate the
+effect of tire force coupling.
+Fy=⎧
+⎪⎪⎪⎨
+⎪⎪⎪⎩−Cαtanα+C2
+α
+3ημF z|tanα|tanα···
+−C3
+α
+27ημ2F2ztan3α,|α|<arctan/parenleftBig
+3μFz
+Cα/parenrightBig
+−ημF zsgnα,otherwise
+=fcoupled (α,Fx) (2)
+with the derating factor η(0≤η≤1)be computed as
+η=/radicalbig
+(μFz)2−(Fx)2
+μFz(3)
+Neglecting the lateral load transfer, the vertical loads account
+for the longitudinal load transfer effects are
+Fzf=mglr−mha x
+lf+lr,Fzr=mglf+mha x
+lf+lr(4)
+The tire slip angle in the front ( αf) and rear ( αr) can be
+linearized using small angle approximations:
+αf= arctan/parenleftbiggvy+lfr
+vx/parenrightbigg
+−δf≈vy+lfr
+vx−δf (5a)
+αr= arctan/parenleftbiggvy−lrr
+vx/parenrightbigg
+≈vy−lrr
+vx(5b)
+It’s noted that the single-track model can be decoupled into
+the longitudinal dynamics ( 1a) and ( 1f), and the corresponding
+lateral dynamics, ( 1b)–(1e). The longitudinal dynamics ( 1a) and
+(1f) can thus be formulated as a two-state space model
+˙/pi1=/bracketleftBigg
+01
+00/bracketrightBigg
+/pi1+/bracketleftBigg
+0
+1/bracketrightBigg
+ax (6)
+where /pi1=[s,vx]Tis the longitudinal state vector and axis
+the longitudinal control input.
+As to the lateral dynamics, the nonlinearity of tire forces, con-
+tained in the terms of FyfandFyr, poses a signiﬁcant challengeFig. 2. Brush tire model with linear approximation.
+to real-time optimization. Regarding to this problem, we use
+front tire force ( Fyf) rather than front wheel steer angle ( δf)t o
+describes the vehicle’s lateral behavior. Use of Fyfas the model
+input allows for a linear lateral vehicle model which considers
+front tire coupling effects. And the input Fyfcan be mapped to
+front wheel steering angle δfusing (2) and ( 5a):
+δf=vy+lfr
+vx−f−1
+coupled (Fyf,Fxf) (7)
+The longitudinal front tire force Fxfcan be computed as
+Fxf=max+FR (8)
+where, FRrepresents the dissipative forces such as aerodynamic
+drag and friction force. Because ημappears in (2) as a derated
+surface friction, therefore, Fxfhere serves only to augment the
+surface friction coefﬁcient. Thus, f−1
+coupled(Fyf,Fxf)can be
+implemented as a 2D lookup table.
+The rear lateral tire forces ( Fyr) can be approximated as
+Fyr=¯Cαrαr (9)
+where ¯Cαris the equivalent cornering stiffness at αr=0.T h i s
+relationship linearizes the brush tire force model in the lin-
+ear region of the tire characteristics functions, as illustrated in
+Fig. 2. This linearization will lead to diverging from the actual
+tire forces quite signiﬁcantly at high slip values, however, this
+problem may be mitigated by enforcing a tire slip angle con-
+straint, αr,lim . This approximation is validated by the stability
+constraints as discussed in Section III.
+The equations of (1b) and (1c) can now be rewritten as afﬁne
+functions of the lateral control input, Fyf:
+˙vy=1
+m/bracketleftbigg
+Fyf+¯Cαr/parenleftbiggvy−lrr
+vx/parenrightbigg/bracketrightbigg
+−rvx (10)
+˙r=1
+Iz/bracketleftbigg
+lfFyf−lr¯Cαr/parenleftbiggvy−lrr
+vx/parenrightbigg/bracketrightbigg
+(11)
+Combining (5), (10) and (11), a linear time-varying vehicle
+model in state-space representation can be expressed as
+˙ξ=Aξ+BFyf (12)
+
+--- Page 4 ---
+332 IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018
+Fig. 3. Model discretization in two-time scale prediction horizon.
+with
+A=⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣¯Cαr
+mvx−¯Cαrlr
+mvx−vx 00
+−¯Cαrlr
+Izvx¯Cαrl2
+r
+Izvx00
+01 0 0
+10 vx0⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦B=⎡
+⎢⎢⎢⎢⎢⎢⎢⎢⎣1
+m
+lf
+Iz
+0
+0⎤
+⎥⎥⎥⎥⎥⎥⎥⎥⎦.
+where ξ=/bracketleftbigvyreψey/bracketrightbigTis the lateral state vector and Fyfis
+the lateral control input.
+B. V ariable Time-Steps for Model Discretization
+This work uses two-time scales in the prediction horizon to
+discrete the longitudinal and lateral dynamics model. As il-
+lustrated in Fig. 3, the whole prediction horizon includes Np
+discretized time steps, and it is split into two portions at the Nth
+s
+time step. The initial portion is comprised of small time steps,
+tshort , which equals to the MPC based low-level controller’s
+execution period, to accurately capture near-term vehicle be-
+havior. The latter portion is comprised of larger time steps,
+tlong, to extend the horizon to incorporate upcoming trafﬁcs in
+the long-term.
+For the discretization of lateral dynamics (12), zero-order
+hold (ZOH) and ﬁrst-order hold (FOH) methods are applied
+to the initial portion and latter portion of the prediction hori-
+zon, respectively. For the initial portion k=0,...,N s, the lat-
+eral vehicle model is discretized with tshort and ZOH method.
+By considering the augmented state vector zs=/bracketleftbig
+ξFyf/bracketrightbigT,t h e
+short-term model evolves according to the system:
+/bracketleftBigg˙ξ(k)
+˙Fyf(k)/bracketrightBigg
+=/bracketleftBigg
+AkBk
+00/bracketrightBigg/bracketleftBigg
+ξ(k)
+Fyf(k)/bracketrightBigg
+=Gk
+szs(k) (13)
+where, AkandBkare computed with pre-deﬁned velocity pro-
+ﬁles. This system (15) can be discretized by taking the matrix
+exponential of Gk
+stk
+short
+/bracketleftBigg
+ξ(k+1 )
+Fyf(k+1 )/bracketrightBigg
+=/bracketleftBigg
+Ak
+sBk
+s
+01/bracketrightBigg/bracketleftBigg
+ξ(k)
+Fyf(k)/bracketrightBigg
+(14)with Ak
+s=I+Aktshort and Bk
+s=Bktshort . From the second
+row of (14), the ZOH assumption Fyf(k+1 )= Fyf(k)is ver-
+iﬁed. The ﬁrst row of (14) gives the discrete model:
+ξ(k+1 )= Ak
+sξ(k)+Bk
+sFyf(k) (15)
+Fig. 3 illustrates the comparison of different model discretiza-
+tion methods and an example control input sequence is shown
+in gray. The control input assumed by the discrete model (15) is
+shown in green. We can see that it provides an accurate model
+to match the example control input in gray. This is because the
+lower-controller inherently attempts to hold Fyfconstant over
+onetshort period.
+However, this ZOH discretization assumption does not hold
+fork=Ns+1,...,N p. For these indices, a ZOH discretiza-
+tion would assume that the input Fyfis constant over one tlong
+period, shown in Fig. 3 in red. This is a poor assumption because
+Fyfcan have signiﬁcant variation over one tlong period. A better
+approach for the long time steps is to discrete with a FOH which
+assumes that the input, Fyf, vary linearly between time steps,
+as indicated in blue in Fig. 3 in blue. This provides a better ap-
+proximation by avoiding the restrictive assumption that front lat-
+eral force will be piece-wise-constant over relatively long time
+periods. Hence, the long-term model (k=Ns+1,...,N p)
+can be discretized by considering the augmented state vector
+zl=/bracketleftBig
+ξFyftk
+long˙Fyf/bracketrightBigT
+. The augmented state evolves
+according to the system:
+˙zl(k)=⎡
+⎢⎣AkBk0
+00 1 /tk
+long
+00 0⎤
+⎥⎦zl(k)=Gk
+lzl(k) (16)
+This system can be discretized by taking the matrix exponen-
+tial of Gk
+ltk
+long.
+zl(k+1 )=⎡
+⎢⎣Ak
+lΓk
+1Γk
+2
+011
+001⎤
+⎥⎦⎡
+⎢⎣ξ(k)
+Fyf(k)
+tk
+long˙Fyf(k)⎤
+⎥⎦ (17)
+From the second row of (17) Fyf(k+1 )= Fyf(k)+
+tk
+long˙Fyf(k), which is true if ˙Fyf(k)is constant over tk
+long,
+verifying the FOH assumption. After making the substitutions
+tk
+long˙Fyf(k)=Fyf(k+1 )−Fyf(k), the ﬁrst row of (17)
+gives the long-term discrete model
+ξ(k+1 )= Ak
+lξ(k)+Bk
+1Fyf(k)+Bk
+2Fyf(k+1 ) (18)
+with Bk
+1=Γk
+1−Γk
+2andBk
+2=Γk
+2.
+On the other hand, for the discretization of longitudinal vehi-
+cle model (6), which is a simple double-integrator, FOH method
+is used over the whole prediction horizon. And the discretized
+longitudinal dynamics can be linearly expressed as
+/pi1(k+1 )=/bracketleftBigg
+1t∗
+01/bracketrightBigg
+/pi1(k)+/bracketleftBigg
+t2
+∗/2
+t∗/bracketrightBigg
+ax(k) (19)
+where, t∗denotes the time step length used to discrete (6) and
+the subscript*represents short orlong according to index along
+the prediction horizon.
+
+--- Page 5 ---
+LIU et al. : DYNAMIC MODELING AND CONTROL OF HIGH-SPEED AUTOMA TED VEHICLES 333
+Fig. 4. Modeling of lane change process.
+C. Lane Change Process Modeling
+Without loss of generality, we construct a lane change sce-
+nario of an automated ego vehicle, E, traveling with four sur-
+rounding vehicles on a one-way, two-lane road. As shown in
+Fig. 4, vehicle S1and vehicle S3are the leading and following
+vehicles in the current lane, respectively. V ehicle S2and vehi-
+cleS4are the leading and following vehicles in the target lane,
+respectively.
+To capture the lane change maneuver properties of adjusting
+the longitudinal position and velocity prior to initializing the
+lateral motion of the maneuver, a multi-segment lane change
+process model is proposed, as shown in Fig. 4. In the ﬁrst seg-
+ment, termed as the longitudinal segment , the ego vehicle E
+adjusts its longitudinal distance, position or relative velocity to
+ﬁnd the suitable free space both in front of it and in the target
+lane. In the second segment, termed as lateral segment ,Estarts
+the lateral motion and enters into the target lane. In the third
+segment, termed as lane-keeping segment ,Eadjusts its relative
+velocity and distance to the preceding vehicle while following
+the target lane.
+The longitudinal and lateral acceleration proﬁles during the
+lane change maneuver are deemed as constant shape and si-
+nusoidal curve, respectively. axmax andaymax are the ampli-
+tude of longitudinal and lateral acceleration, respectively. tlon
+andtlatdenote the duration time of the longitudinal segment
+and the lateral segment , respectively. A ﬁxed prediction hori-
+zon for the lane change process is used, i.e. tp=8s.A n d Np
+denotes the discrete time version of the prediction horizon tp.
+The discrete time instants Nlon<N lat≤Npdenote when E
+exits the longitudinal segment and the lateral segment , respec-
+tively. The lane-keeping segment is optional and only exists
+whenNlat<N p.Nlatis deﬁned as
+Nlat=Nlon+nlat (20)
+where Nlon∈{0,1,...,N p−nlat}, and nlatis the discrete
+time version of tlat.
+A ﬁnite state machine (FSM), as shown in Fig. 5, can be ap-
+plied to represent the lane change maneuver ﬂow. There are ﬁve
+states in this FSM, each representing a stage of the lane change
+maneuver. The goal state of the FSM is lane-keeping segment in
+target lane. Lane-keeping segment in current lane is also deemed
+as a goal state for trafﬁc situations in case the lane change ma-
+neuver is suspended.Fig. 5. The ﬁnite state machine for lane change maneuver.
+III. L ONGITUDINAL AND LA TERAL CONTROL OF LANE
+CHANGE MANEUVER
+A. Longitudinal Control
+Assuming the lateral motion of lane change maneuver is
+performed with a sinusoidal acceleration whose amplitude is
+aymax. Then, tlatcan be conservatively deemed as 3 s[30].
+Hence, the lane change maneuver can be perceived as primarily
+a longitudinal trajectory planning problem.
+1) Longitudinal Safety Corridor: In terms of longitudi-
+nal trajectory planning, Emust be able to traverse the
+previously deﬁned three segments while maintaining safety
+margins to all relevant surrounding vehicles. While in the
+longitudinal segment ,Emust be able to maintain safety mar-
+gins to the preceding vehicle S1and trailing vehicle S3. Thus,
+∀k=0···Nlon, the upper and lower bounds on E’s longitudi-
+nal position can be deﬁned as
+smax,k=sS1,k−sm(S1,k) (21a)
+smin,k=sS3,k+sm(S3,k) (21b)
+Once the lateral motion of the lane change maneuver is ini-
+tiated i.e., while in the lateral segement ,Emust be able to
+maintain safety margins to all relevant surrounding vehicles,
+i.e.,S1,S2,S3, andS4. Thus, ∀k=Nlon···Nlat, the upper
+and lower bounds on E’s longitudinal position can thus be
+deﬁned as
+smax,k= min ( sS1,k−sm(S1,k),sS2,k−sm(S2,k))(22a)
+smin,k= max ( sS3,k+sm(S3,k),sS4,k+sm(S4,k))(22b)
+Finally, when entering the adjusting segment ,i tm u s tb e
+able to maintain safety margins to the preceding vehicle S2and
+trailing vehicle S4. Hence, the upper and lower bounds on E’s
+longitudinal position can be deﬁned as
+smax,k=sS2,k−sm(S2,k) (23a)
+smin,k=sS4,k+sm(S4,k) (23b)
+smrepresents the inter-vehicle safety margin, deﬁned as
+sm(Sj,k)=vSj,kτ+/epsilon1,∀k=0···Np,j=1···4 (24)
+where, sSjandvSjdenote the longitudinal position and velocity
+of the jth surrounding vehicle Sj,/epsilon1andτrespectively denote
+the minimum distance and time gap which Emust maintain to
+Sj. By allowing τto be selected over a range from the minimum
+safe value to the maximum driver preferred value, it can be set
+to accommodate different driver styles of surrounding vehicles
+without compromising the safety of the automated ego vehicle,
+
+--- Page 6 ---
+334 IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018
+TABLE II
+DESIGN PARAMETERS FOR LONGITUDINAL MOTION PLANNING
+Fig. 6. Diagram for ﬁnding a feasible longitudinal solution.
+E. Thus, (21)–(24) deﬁne the longitudinal safety corridor for
+longitudinal motion planning.
+2) Longitudinal Motion Planning: The purpose of the lon-
+gitudinal motion planning and control is to determine a proper
+time instance to initialize the lateral motion of lane change ma-
+neuver and an appropriate longitudinal trajectory for the trafﬁc
+situation. The general design parameters for the longitudinal
+motion planning problem are given in Table II.
+Utilizing the discretized longitudinal dynamics model (19)
+and variable time-steps t∗, the reachable set of Ecan crudely
+be approximated as a set of trajectories, RT.RTis generated
+by constant acceleration proﬁles ranging over a discrete interval
+from the maximum to the minimum feasible acceleration which
+satisﬁes E’s physical and design limitations. The discrete in-
+terval is set to be 1% due to the ﬁnite control accuracy of the
+low-level controller. As such, each trajectory, T∈RT, can be
+expressed as a control sequence in terms of E’s longitudinal
+position, sk, velocity, vx,k, and acceleration, ax,k. Thus, for
+a longitudinal lane change trajectory to be feasible, it should
+satisfy the following set of constraints
+smin,k≤sk≤smax,k
+vxmin,k≤vx,k≤vxmax,k
+axmin,k≤ax,k≤axmax,k
+∀k=1,···,Np (25)
+Fig. 6 illustrated the algorithm to ﬁnd a feasible solution.
+A subset of feasible longitudinal lane change trajectories,
+FT∈RT, can thus be created by checking with (25). To allow
+for smooth and comfortable maneuvers, the most appropriate
+time instance to initialize the lateral motion of this maneuver is
+Fig. 7. Methodology to generate the lateral safety corridor.
+selected as the trajectory with corresponding time instance for
+which arg min T∈FT|as|.I f FT=∅, the algorithm cannot ﬁnd
+a feasible trajectory for Eat the current situation. Then the lane
+change is suspended and the automated vehicle should wait for
+a further opportunity.
+B. Lateral Driving Safety Constraints
+1) Lateral Safety Corridor: The lateral safety corridor is
+determined according to the longitudinal trajectory planned in
+the previous section and correlated to the road properties. It
+is represented as time-varying upper and lower bounds on E’s
+lateral deviation ( ey) from the road centerline. The upper and
+lower bounds are deﬁned by the lane boundaries, either given
+by the physical lane markings or virtually generated based on
+E’s route. At each time step, the lateral trajectory of the vehicle
+over the prediction horizon needs to be fully contained within
+this corridor to ensure a safe behavior of E.
+Fig. 7 illustrates the methodology to generate the lateral safety
+corridor. First, based on the constant longitudinal acceleration
+proﬁle, the environment thus can be sampled at discrete points
+along the road centerline, which correspond to the vehicle’s
+future position ksteps into the prediction horizon. Then, the
+feasible lateral gap at each time step kis identiﬁed mainly
+considering the lane boundaries and vehicles effective width.
+Starting at the vehicle’s current position and moving in the
+positive s direction, adjacent feasible gaps are linked throughout
+the prediction horizon to generate the lateral safety corridor.
+Therefore, the lateral safety corridor is deﬁned as a set of lateral
+deviation bounds eymax andeyminand can be compactly written
+as the linear inequality:
+Henvξ(k)≤G(k)
+env (26)
+with
+H env =/bracketleftBigg
+000 1
+000 −1/bracketrightBigg
+,G(k)
+env=/bracketleftBigg
+ek
+ymax−ds
+−ek
+ymin +ds/bracketrightBigg
+.
+ξ(k)indicates the vehicle state at the kth time step into the
+prediction horizon. This provides a convex method of enforc-
+ing environmental constraints on the vehicles position. dsis a
+comfort distance added to the lane marking bounds.
+Note that the longitudinal safety corridor for longitudinal
+motion planning is determined under the assumption that E
+
+--- Page 7 ---
+LIU et al. : DYNAMIC MODELING AND CONTROL OF HIGH-SPEED AUTOMA TED VEHICLES 335
+Fig. 8. Stability handling envelope for vehicle stabilization.
+transverse the lateral segment during a conservative and ﬁxed
+time duration. However, the resulted longitudinal trajectory
+might entail Ebeing positioned in the lateral segment dur-
+ing a longer time interval. Thus, Nlatis redeﬁned based on the
+longitudinal motion planning result, and it is expressed as
+Nlat∗=Nlon+ min ( nmax,nlat∗) (27)
+where nmax is the maximum allowed discrete time for laterally
+performing the lane change maneuver, and nlat∗denotes the
+discrete time intervals during which Eis positioned in the lateral
+segment. In this way, the lateral safety corridor for Eare set with
+respect to the actual time rather than the assumed time during
+which Eis positioned in the lateral segment, thus allowing for
+smooth and safe maneuvers.
+2) Dynamical Safety Constraints: The dynamical safety
+constraints are enforced as bounds on the vehicle’s rear tire
+sideslip angle ( αr) and steady-state yaw rate ( r). These bounds
+restrict the rear tire stays in the linear region and limit the lat-
+eral tire forces. The range of rear tire slip angle is deﬁned from
+the linear tire model used in (11) and converts into a bound on
+vehicle states with (5b)
+−αr,lim≤vy−lrr
+vx≤αr,lim (28)
+To determine an appropriate bound on yaw rate ( r), a steady-
+state analysis is used based on (7b). This ensures that the vehicle
+does not exceed the linear friction region of brush tire model,
+and yields a maximum sustained yaw rate as:
+rss,max =Cαrαr,lim(1+lr/lf)
+mvx(29)
+The bounds (28) and (29) deﬁne a linear time-varying closed
+envelope, as shown in Fig. 8. (28) serves as the basis for bounds
+/circlecopyrt1and/circlecopyrt3, and/circlecopyrt23deﬁnes bounds /circlecopyrt2and/circlecopyrt4. Assuming real-time
+estimation of Cαr,r, andvxare available, the vehicle envelope
+described is easily calculated in real time and can be compactly
+represented as the following linear inequality for each time step
+kinto the prediction horizon:
+−Gk
+sh≤Hk
+shξ(k)≤Gk
+sh (30)
+with
+Hk
+sh=/bracketleftBigg1
+vx(k)−lr
+vx(k)00
+01 0 0/bracketrightBigg
+,Gk
+sh=/bracketleftBigg
+αr,lim
+rk
+ss,max/bracketrightBigg
+.Fig. 9. Friction circle approximation with intersection of n=1 2 half-space.
+V ehicle stability is guaranteed for all states in the envelope.
+That is, at any point within this envelope, a steering command
+exists such that the vehicle can safely remain inside. Exceeding
+these bounds does not necessarily result in instability, but for
+states outside the envelope, there is no guarantee that a control
+input exists to move the system closer to the boundary in the next
+time step. Regions of the state space beyond the side slip bounds
+entail nonlinearity of the rear tire force, which can be difﬁcult
+to control. Regions directly past the yaw rate bounds, however,
+do not entail tire saturation and can lead back to the handling
+envelope without a spin. Often vehicle states ﬁrst exceed the yaw
+rate bound on the way to exceeding the side slip bound, which
+motivates using the yaw rate bound. However, small violations
+of the yaw rate bound by itself can occur without ensuing side
+slip violations, and this behavior is considered acceptable in
+motion control.
+3) Coupled Tire F orce Limitation: The limitation on coupled
+front tire forces can be expressed as friction circle:
+F2
+xf+F2
+yf≤/parenleftbig
+kμFzf/parenrightbig2(31)
+where, k≤1is a coefﬁcient limiting the front tire force reach
+saturation. As illustrated in Fig. 9, the friction circle is modeled
+using the half-space approximation in a quadratic formulation.
+The half-space approximation is expressed as:
+LyFyf+LxFxf≤M (32)
+Ly=⎡
+⎢⎢⎢⎢⎢⎣sin/parenleftbig
+(1)2π
+n−π
+n/parenrightbig
+sin/parenleftbig
+(2)2π
+n−π
+n/parenrightbig
+...
+sin/parenleftbig
+(n)2π
+n−π
+n/parenrightbig⎤
+⎥⎥⎥⎥⎥⎦,Lx=⎡
+⎢⎢⎢⎢⎢⎣cos/parenleftbig
+(1)2π
+n−π
+n/parenrightbig
+cos/parenleftbig
+(2)2π
+n−π
+n/parenrightbig
+...
+cos/parenleftbig
+(n)2π
+n−π
+n/parenrightbig⎤
+⎥⎥⎥⎥⎥⎦,
+andM =⎡
+⎢⎢⎢⎢⎢⎣cos/parenleftbigπ
+n/parenrightbig
+μFzf
+cos/parenleftbigπ
+n/parenrightbig
+μFzf
+...
+cos/parenleftbigπ
+n/parenrightbig
+μFzf⎤
+⎥⎥⎥⎥⎥⎦
+where, ndenotes the number of half-spaces.
+C. MPC F ormulation for Lateral Control
+The primary task of lateral control is to ensure safe vehicle
+operation within the previously deﬁned constraints. This goal
+
+--- Page 8 ---
+336 IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018
+is realized by express the lateral control as an optimal control
+problem to be evaluated over a ﬁnite prediction horizon. At
+each execution of the controller, the optimization problem to be
+solved is formulated as:
+minimize
+ξ,Fyf,k=0,···,NpJ=/summationdisplay
+k/parenleftBig
+υ(k)/parenrightBigT
+γ(k)υ(k)(33a)
++/summationdisplay
+k/parenleftBig
+ξ(k)/parenrightBigT
+Q(k)ξ(k)(33b)
++/summationdisplay
+kσsh/vextendsingle/vextendsingle/vextendsingleS(k)
+sh,opt/vextendsingle/vextendsingle/vextendsingle (33c)
++/summationdisplay
+kσenv/vextendsingle/vextendsingle/vextendsingleS(k)
+env,opt/vextendsingle/vextendsingle/vextendsingle (33d)
+s.t.ξ(k+1)=A(k)
+sξ(k)+B(k)
+sF(k)
+yf,opt
+∀k=0,···,Ns−1 (33e)
+ξ(k+1)=A(k)
+lξ(k)+B(k)
+1F(k)
+yf,opt+B(k)
+2F(k+1)
+yf,opt
+∀k=Ns,···,Np (33f)
+/vextendsingle/vextendsingle/vextendsingleυ(k)/vextendsingle/vextendsingle/vextendsingle≤υ(k)
+max (33g)
+LyF(k)
+yf,opt≤M−LxFxf (33h)
+H envξ(k)≤Gk
+env +S(k)
+env,opt (33i)
+/vextendsingle/vextendsingle/vextendsingleHk
+shξ(k)/vextendsingle/vextendsingle/vextendsingle≤GHk
+sh+S(k)
+sh,opt(33j)
+where υ(k)=F(k)
+yf,opt−F(k−1)
+yf,opt.
+In this formulation, the variables to be optimized are the
+optimal input trajectory ( Fyf,opt) and the slack variables on the
+constraints ( Ssh,opt,Senv,opt). And the tunable parameters are
+γ,Q, and the slack variable costs ( σsh,σenv). The cost function
+consists of four terms: (33 a) establishes the trade-off between
+fast convergence and a smooth input trajectory, (33 b) enforces
+penalty on the vehicle states deviation, (33 c) and (33 d) enforce
+the penalty on the slack variables violations.
+The vehicle dynamics models (33 e) and (33 f), expressed as
+(15) and (19), are discretized with two-time scale prediction
+steps. With υmax denotes the maximum allowable change in
+tire force, constraint (33 g) reﬂects the physical slew rate capa-
+bilities of the vehicle steering system and (33 h) reﬂects the max-
+imum force capabilities of the coupled front tires. Constraints
+(33i) and (33 j) enforce the lateral safety corridor and dynamical
+safety constraints, respectively. These constraints are softened
+with slack variables, Ssh,optandSenv,opt, to ensure a feasible
+solution to the optimization problem (33) always exists. With
+the choice of sufﬁciently large weighting coefﬁcient σshand
+σenv, cost terms (33 c) and (33 d) encourage zero-valued slack
+variables, resulting in optimal vehicle trajectories that adhere to
+both safe driving envelopes whenever possible.
+Ideally, both constraints (33 i) and (33 j) can be met. How-
+ever, these soften constraints ensure optimization feasibility if
+constraints must be violated. And along with the relative size
+ofσshandσenv,( 3 3 i) and (33 j) establish a hierarchy betweenTABLE III
+CONTROLLER AND WEIGHTS SCALING PARAMETERS
+the collision and stabilization. Setting σsh/greatermuchσenv/greatermuch/bardblQ/bardbl∞
+encodes a prioritization of collision avoidance over vehicle sta-
+bility and then over lane tracking. This prioritization allows the
+controller to selectively violate stability criteria if necessary to
+avoid a collision.
+With the parameters and weights given in Table III, the opti-
+mization (33) resolves at each step using a solver generated by
+CVXGEN [31]. As is standard with MPC, only the optimal in-
+put for the ﬁrst step into the prediction horizon, F(0)
+yf,opt, is used.
+F(0)
+yf,optconverts into a steering angle using (7) before applied
+to the vehicle.
+IV . S IMULA TION RESULTS AND DISCUSSIONS
+To study the performance of the proposed lane change maneu-
+ver algorithm, this section presents simulation results regarding
+two aspects of the algorithm. Firstly, the real-time ability of
+the proposed algorithm. Secondly, the capability of handling
+dynamical safety constraints during the lane change maneu-
+ver. Simulated lane change trafﬁc situations are carried out in
+Matlab /CarSim environment.
+A. Real-Time Ability
+To evaluated and validated the real-time ability of the pro-
+posed lane change maneuver algorithm, it is simulated on 1000
+versions of lane change trafﬁc situations. Each test version is
+generated in two steps. First, a lane change trafﬁc situation is
+initialized in such a way that the velocity of each vehicle is
+randomly selected over an interval of [5:30] m/s, and the time
+gap between the four surrounding vehicles to Eis randomly
+selected over an interval of [1:8] s. Then whether there exists a
+minimum time window of 3 s in this randomly initialized situ-
+ation is checked. Only those lane change trafﬁc situations that
+satisfy the minimum time window check are adopted. As these
+testing scenarios are mere to illustrate the performance of the
+proposed lane change maneuver algorithm, the behavior of Sj
+
+--- Page 9 ---
+LIU et al. : DYNAMIC MODELING AND CONTROL OF HIGH-SPEED AUTOMA TED VEHICLES 337
+TABLE IV
+MEAN AND STANDARD DEVIA TION OF COMPUTA TIONAL TIME IN [MS]AND THE
+CAPABILITY OF THE PROPOSED ALGORITHM IN [%]
+are assumed to be constant without performing any lane change
+maneuvers over the prediction horizon.
+The comparison results of the proposed lane change maneuver
+algorithm is shown in Table IV. The mean and standard devi-
+ation of the required computational time for the lane change
+maneuver algorithm is 14.2 ms and 0.31 ms. Then, it can be
+concluded that the required computational time is signiﬁcantly
+small and remains fairly constant, which is suitable for real-time
+application.
+From the table, it can be seen that the algorithm ﬁnds the
+appropriate longitudinal trajectory and corresponding time in-
+stance for initializing the lateral motion of the maneuver in
+approximately 93.5% of the cases. And for approximately 6.5%
+of the cases, it fails to ﬁnd an appropriate time instance, if such
+exist. This failure is most likely a consequence of the constant
+acceleration assumption, where a large shift in the acceleration
+is required to ﬁnd a proper solution.
+Based on the results of longitudinal planning, the algorithm
+ﬁnds a feasible lateral trajectory in approximately 90.5% of the
+cases, and that approximately 9.5% of the cases are unfeasible.
+It only fails to ﬁnd a feasible lateral trajectory, if such exist, in
+about 3% of the cases. The difference is most likely a result
+of neglecting the physical jerk constraints when planning the
+longitudinal trajectory for the lane change maneuver.
+B. Dynamical Safety Concerns
+To study the capability of handling dynamical safety con-
+straints of the proposed algorithm, two comparison lane change
+scenarios are considered, referred to as Scenarios 1 and
+Scenario 2.
+In Scenario 1, all vehicles i.e., E,S1,S2,S3, andS4, initially
+travels at the same longitudinal velocity, 15 m/s. From Fig. 10
+it can be seen that for Eto change lane in the gap between S2
+andS4, its velocity must be reduced for it to align itself with the
+gap. Once Eis positioned in the gap, its velocity will increase in
+order to maintain a safe distance to S2andS4. Hence, Scenario 1
+illustrates the ability of the trajectory planning algorithm for lane
+change maneuvers that require Eto quickly decelerate into the
+lane change gap.
+In Scenario 2, E,S1andS3initially travels at the same lon-
+gitudinal velocity, 15 m/s. And S2andS4are driving at 25 m/s.
+From Fig. 13, it can be seen that for Eto change lane in the
+gap between S2andS4, it must increase its velocity. Hence,
+Scenario 2 illustrates the ability of the trajectory planning al-
+gorithm to plan lane change maneuvers which require Eto
+accelerate into the lane change gap.
+The lateral safety corridor and the corresponding lateral
+trajectory of the lane change maneuver for Scenarios 1 andFig. 10. Longitudinal position, velocity and acceleration of Scenario 1.
+Fig. 11. Lateral position, velocity and acceleration of Scenario 1.
+Fig. 12. Stable handling constraints and coupled tire forces of Scenario 1.
+Scenario 2 are shown in Figs. 11 and 14, respectively. In
+Fig. 11 it can be seen that Eenters the lateral segment
+and lane-keeping segment at time instance 12 and 16, respec-
+tively. Fig. 14 shows that Eenters the lateral segment and
+lane-keeping segment at time instance 2 and 5, respectively.
+
+--- Page 10 ---
+338 IEEE TRANSACTIONS ON INTELLIGENT VEHICLES, VOL. 3, NO. 3, SEPTEMBER 2018
+Fig. 13. Longitudinal position, velocity and acceleration of Scenario 2.
+Fig. 14. Lateral position, velocity and acceleration of Scenario 2.
+Fig. 15. Stable handling constraints and coupled tire forces of Scenario 2.
+The stable handling constraints and coupled tire force limits
+are shown in Figs. 12 and 15. They shows the resulting lateral
+velocity and yaw rate which remain in the stable handling enve-
+lope. They also show the longitudinal and lateral accelerations
+are subjected to the coupled tire force limitations. These two
+examples highlight the advantage of taking dynamical safety
+constraints in to the optimization.V. C ONCLUSION
+This paper presents the dynamic modeling and control of
+high-speed automated vehicles for lane change maneuver.
+V ariable time-steps in prediction horizon and ZOH/FOH
+based discretization method are utilized to ensure a long
+enough prediction horizon for the lane change maneuver while
+maintaining model ﬁdelity and computational feasibility. Then,
+considering the inﬂuence of surrounding vehicles, control
+of the lane change maneuver is addressed in two successive
+stages. First, by considering the lane change maneuver as
+primarily a longitudinal control problem, a velocity proﬁle is
+determined. Then, the associated lateral control is generated
+with a model predictive controller, taking the handling stability
+envelope, coupled tire forces and environmental constraints into
+account. Simulation results demonstrate the real-time ability
+and stable-handling capability of the proposed approach.
+To further improve the proposed lane change maneuver al-
+gorithm, future work will consider a dynamic prediction model
+of other trafﬁc participations, including sensor noises and pre-
+diction uncertainties, in order to test the proposed algorithm in
+real-world trafﬁc situations.
+REFERENCES
+[1] U. Ozguner, T. Acarman, and K. Redmill, Autonomous Ground V ehicles
+(ITS) . Norwood, MA, USA: Artech House, 2011.
+[2] S. Thrun et al. , “Stanley: The robot that won the DARPA grand challenge,”
+J. Field Robot. , vol. 23, no. 9, pp. 661–692, 2006.
+[3] L. Fu, A. Yazici, and U. Ozguner, “Route planning for OSU-ACT au-
+tonomous vehicle in DARPA urban challenge,” in Proc. IEEE Intell. V eh.
+Symp. , 2008, pp. 781–786.
+[4] J. Levinson et al. , “Towards fully autonomous driving: Systems and algo-
+rithms,” in Proc. IEEE Intell. V eh. Symp. , 2011, pp. 163–168.
+[ 5 ] J .H .J e o n et al. , “Optimal motion planning with the half-car dynamical
+model for autonomous high-speed driving,” in Proc. IEEE Amer . Control
+Conf. , 2013, pp. 188–193.
+[6] H. Zhao, C. Wang, Y . Lin, F. Guillemard, S. Geronimi, and F. Aioun, “On-
+road vehicle trajectory collection and scene-based lane change analysis:
+Part I,” IEEE Trans. Intell. Transp. Syst. , vol. 18, no. 1, pp. 192–205, Jan.
+2017.
+[7] W. Yao et al. , “On-road vehicle trajectory collection and scene-based lane
+change analysis: Part II,” IEEE Trans. Intell. Transp. Syst. , vol. 18, no. 1,
+pp. 206–220, Jan. 2017.
+[8] Q. H. Do, H. Tehrani, S. Mita, M. Egawa, K. Muto, and K. Y oneda,
+“Human drivers based active-passive model for automated lane change,”
+IEEE Intell. Transp. Syst. Mag. , vol. 9, no. 1, pp. 42–56, Spring 2017.
+[9] B. Paden, M. p, S. Z. Y ong, D. Yershov, and E. Frazzoli, “A survey of
+motion planning and control techniques for self-driving urban vehicles,”
+IEEE Trans. Intell. V eh. , vol. 1, no. 1, pp. 33–55, Mar. 2016.
+[10] C. Katrakazas, M. Quddus, W.-H. Chen, and L. Deka, “Real-time mo-
+tion planning methods for autonomous on-road driving: State-of-the-art
+and future research directions,” Transp. Res. C, Emerg. T echnol. , vol. 60,
+pp. 416–442, 2015.
+[11] D. Bevly et al. , “Lane change and merge maneuvers for connected and
+automated vehicles: A survey,” IEEE Trans. Intell. V eh. , vol. 1, no. 1,
+pp. 105–120, Mar. 2016.
+[12] J. Funke, M. Brown, S. M. Erlien, and J. C. Gerdes, “Collision avoidance
+and stabilization for autonomous vehicles in emergency scenarios,” IEEE
+Trans. Control Syst. T echnol. , vol. 25, no. 4, pp. 1204–1216, Jul. 2017.
+[13] P . Hidas, “Modelling lane changing and merging in microscopic trafﬁc
+simulation,” Transp. Res. C, Emerg. T echnol. , vol. 10, no. 5, pp. 351–371,
+2002.
+[14] M. Rahman, M. Chowdhury, Y . Xie, and Y . He, “Review of microscopic
+lane-changing models and future research opportunities,” IEEE Trans.
+Intell. Transp. Syst. , vol. 14, no. 4, pp. 1942–1956, Dec. 2013.
+[15] D. Yang, L. Zhu, B. Ran, Y . Pu, and P . Hui, “Modeling and analysis of
+the lane-changing execution in longitudinal direction,” IEEE Trans. Intell.
+Transp. Syst. , vol. 17, no. 10, pp. 2984–2992, Oct. 2016.
+
+--- Page 11 ---
+LIU et al. : DYNAMIC MODELING AND CONTROL OF HIGH-SPEED AUTOMA TED VEHICLES 339
+[16] S. Ulbrich and M. Maurer, “Situation assessment in tactical lane change be-
+havior planning for automated vehicles,” in Proc. Int. Conf. Intell. Transp.
+Syst. , 2015, pp. 975–981.
+[17] H. Tehrani, Q. H. Do, M. Egawa, K. Muto, K. Y oneda, and S. Mita,
+“General behavior and motion model for automated lane change,” in Proc.
+IEEE Intell. V eh. Symp. , 2015, pp. 1154–1159.
+[18] M. Ardelt, C. Coester, and N. Kaempchen, “Highly automated driving
+on freeways in real trafﬁc using a probabilistic framework,” IEEE Trans.
+Intell. Transp. Syst. , vol. 13, no. 4, pp. 1576–1585, Dec. 2012.
+[19] J. Nilsson, J. Silvlin, M. Brannstrom, E. Coelingh, and J. Fredriksson, “If,
+when, and how to perform lane change maneuvers on highways,” IEEE
+Intell. Transp. Syst. Mag. , vol. 8, no. 4, pp. 68–78, Winter 2016.
+[20] J. Nilsson, M. Brnnstrm, J. Fredriksson, and E. Coelingh, “Longitudinal
+and lateral control for automated yielding maneuvers,” IEEE Trans. Intell.
+Transp. Syst. , vol. 17, no. 5, pp. 1404–1414, May 2016.
+[21] K. Hauser, “Adaptive time stepping in real-time motion planning,” in Proc.
+9th Int. W orkshop Algorithmic F ound. Robot. , 2010, pp. 139–155.
+[22] S. J. Anderson, S. C. Peters, T. E. Pilutti, and K. Iagnemma, “An optimal-
+control-based framework for trajectory planning, threat assessment, and
+semi-autonomous control of passenger vehicles in hazard avoidance sce-
+narios,” Int. J. V eh. Auton. Syst. , vol. 8, pp. 190–216, 2010.
+[23] G. D. Nicolao, L. Magni, and R. Scattolini, “Stabilizing receding-horizon
+control of nonlinear time-varying systems,” IEEE Trans. Autom. Control ,
+vol. 43, no. 7, pp. 1030–1036, Jul. 1998.
+[24] H. Chen and F. Allgwer, “A quasi-inﬁnite horizon nonlinear model pre-
+dictive control scheme with guaranteed stability,” in Proc. Eur . Control
+Conf. , Jul. 1997, pp. 1421–1426.
+[25] P . Falcone, F. Borrelli, J. Asgari, H. E. Tseng, and D. Hrovat, “Predictive
+active steering control for autonomous vehicle systems,” IEEE Trans.
+Control Syst. T echnol. , vol. 15, no. 3, pp. 566–580, May 2007.
+[26] E. H. Lim and J. K. Hedrick, “Lateral and longitudinal vehicle control
+coupling for automated vehicle operation,” in Proc. IEEE Amer . Control
+Conf. , 1999, vol. 5, pp. 3676–3680.
+[27] S. M. Erlien, J. Funke, and J. C. Gerdes, “Incorporating non-linear tire
+dynamics into a convex approach to shared steering control,” in Proc.
+IEEE Amer . Control Conf. , 2014, pp. 3468–3473.
+[28] C. E. Beal and J. C. Gerdes, “Model predictive control for vehicle sta-
+bilization at the limits of handling,” IEEE Trans. Control Syst. T echnol. ,
+vol. 21, no. 4, pp. 1258–1269, Jul. 2013.
+[29] J. Funke, M. Brown, S. M. Erlien, and J. C. Gerdes, “Prioritizing collision
+avoidance and vehicle stabilization for autonomous vehicles,” in Proc.
+IEEE Intell. V eh. Symp. , 2015, pp. 1134–1139.
+[30] V . A. Butakov and P . Ioannou, “Personalized driver/vehicle lane change
+models for ADAS,” IEEE Trans. V eh. T echnol. , vol. 64, no. 10, pp. 4422–
+4431, Oct. 2015.
+[31] J. Mattingley and S. Boyd, “CVXGEN: A code generator for embedded
+convex optimization,” Optim. Eng. , vol. 13, no. 1, pp. 1–27, 2012.
+Kai Liu received the B.S. and M.S. degrees in me-
+chanical engineering in 2008 and 2010, respectively,
+from the Beijing Institute of Technology, Beijing,
+China, where he is currently working toward the
+Ph.D. degree in vehicle engineering.
+He is currently a Visiting Scholar with The Ohio
+State University, Columbus, OH, USA. His research
+interests include autonomous driving, vehicle dynam-
+ics modeling, intelligent vehicle systems, and model-
+predictive control.
+Jianwei Gong received the Ph.D. degree in mecha-
+tronic engineering from the Beijing Institute of Tech-
+nology, Beijing, China, in 2002.
+He is currently a Professor with the Intelligent V e-
+hicle Research Center, Beijing Institute of Technol-
+ogy. His research interests include planning, control,
+and human-like driving for autonomous vehicles.
+Arda Kurt received the B.S. and M.S. degrees from
+Bilkent University, Ankara, Turkey, in 2003 and
+2005, respectively, and the Ph.D. degree from The
+Ohio State University (OSU), Columbus, OH, USA,
+in 2011.
+He is currently a Senior Research Associate with
+the Center for Automotive Research, OSU. His re-
+search interests include hybrid-state systems, intel-
+ligent transportation systems, autonomous vehicles,
+driver behavior, and driver-assistance systems.
+Huiyan Chen received the Ph.D. degree from the
+Beijing Institute of Technology, Beijing, China, in
+2004.
+Since 1981, he has been with the Beijing Institute
+of Technology, where he is currently a Professor with
+the Intelligent V ehicle Research Center. His research
+interests include intelligent vehicle and information
+technologies.
+Umit Ozguner received the Ph.D. degree from
+the University of Illinois at Urbana–Champaign,
+Champaign, IL, USA.
+He is currently a Professor of electrical and com-
+puter engineering with The Ohio State University
+(OSU), Columbus, OH, USA, and holds the TRC
+Inc. Chair on Intelligent Transportation Systems.
+Since October 2013, he has been the Director of the
+DoT supported Crash Imminent Safety University
+Transportation Center, OSU. He has authored or
+coauthored more than 400 publications. His research
+interests include intelligent transportation systems, decentralized control, and
+autonomy in large systems.

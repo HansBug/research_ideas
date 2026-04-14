@@ -1,0 +1,3770 @@
+--- Page 1 ---
+Air F orce Institute of T echnology Air F orce Institute of T echnology 
+AFIT Scholar AFIT Scholar 
+Theses and Disser tations Student Gr aduate W orks 
+3-14-2014 
+Feasibility of Onboar d Processing of Heuristic P ath Planning and Feasibility of Onboar d Processing of Heuristic P ath Planning and 
+Navigation Algorithms within SU AS A utopilot Computational Navigation Algorithms within SU AS A utopilot Computational 
+Constr aints Constr aints 
+Charles J. Neal 
+Follow this and additional works at: https:/ /scholar .afit.edu/etd 
+Recommended Citation Recommended Citation 
+Neal, Charles J., "F easibility of Onboar d Processing of Heuristic P ath Planning and Na vigation Algorithms 
+within SU AS A utopilot Computational Constr aints" (2014). Theses and Disser tations . 717. 
+https:/ /scholar .afit.edu/etd/717 
+This Thesis is br ought t o you for fr ee and open access b y the Student Gr aduate W orks at AFI T Scholar . It has been 
+accepted for inclusion in Theses and Disser tations b y an authoriz ed administr ator of AFI T Scholar . For mor e 
+information, please contact AFIT.ENWL.Reposit ory@us.af.mil . 
+
+--- Page 2 ---
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Feasibility of Onboard Processing of Heuristic Path  Planning and Navigation 
+Algorithms within SUAS Autopilot Computational Cons traints 
+ 
+THESIS 
+MARCH 2014 
+ 
+Charles J. Neal, Captain, USAF 
+ 
+ AFIT-ENV-14-M-44  
+ 
+DEPARTMENT OF THE AIR FORCE 
+AIR UNIVERSITY 
+ 
+AIR FORCE INSTITUTE OF TECHNOLOGY 
+  
+Wright-Patterson Air Force Base, Ohio 
+ 
+ DISTRIBUTION STATEMENT A 
+ APPROVED FOR PUBLIC RELEASE; DISTRIBUTION UNLIMITE D. 
+
+
+--- Page 3 ---
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+The views expressed in this thesis are those of the  author and do not reflect the official 
+policy or position of the United States Air Force, Department of Defense, or the United 
+States Government. 
+ 
+
+--- Page 4 ---
+AFIT-ENV-14-M-44 
+  
+ 
+FEASIBILITY OF ONBOARD PROCESSING OF HEURISTIC PATH  PLANNING 
+AND NAVIGATION ALGORITHMS WITHIN SUAS AUTOPILOT 
+COMPUTATIONAL CONSTRAINTS 
+ 
+ 
+THESIS 
+ 
+ 
+Presented to the Faculty 
+ 
+Department of Systems Engineering and Management 
+ 
+Graduate School of Engineering and Management 
+ 
+Air Force Institute of Technology 
+ 
+Air University 
+ 
+Air Education and Training Command 
+ 
+In Partial Fulfillment of the Requirements for the 
+ 
+Degree of Master of Science in Systems Engineering 
+ 
+ 
+ 
+Charles J. Neal, BS 
+ 
+Captain, USAF 
+ 
+ 
+ March 2014  
+ 
+DISTRIBUTION STATEMENT A 
+APPROVED FOR PUBLIC RELEASE; DISTRIBUTION UNLIMITED . 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 5 ---
+AFIT-ENV-14-M-44 
+  
+ 
+FEASIBILITY OF ONBOARD PROCESSING OF HEURISTIC PATH  PLANNING 
+AND NAVIGATION ALGORITHMS WITHIN SUAS AUTOPILOT 
+COMPUTATIONAL CONSTRAINTS 
+ 
+ 
+ 
+ 
+Charles J. Neal, BS 
+Captain, USAF 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+Approved: 
+ 
+ 
+___________________________________ ______________ 
+Dr. John Colombi, AFIT/ENV (Chairman) Date 
+ 
+ 
+___________________________________ ______________ 
+Dr. David Jacques, AFIT/ENV (Member)  Date 
+ 
+ 
+___________________________________ ______________ 
+Maj Brian Stone, AFIT/ENS (Member)  Date 
+ //signed// 
+//signed// 
+//signed// 14 March 2014 
+14 March 2014 
+14 March 2014 
+
+--- Page 6 ---
+AFIT-ENV-14-M-44 
+iv 
+ Abstract 
+This research addresses the flight path optimality of Small Unmanned Aerial 
+Systems (SUAS) conducting overwatch missions for co nvoys or other moving ground 
+targets.  Optimal path planning algorithms have bee n proposed, but are computationally 
+excessive for real-time execution.  Using the Ardui no-based ArduPilot Mega Unmanned 
+Aerial Vehicle (UAV) autopilot system, Hardware-in- the-Loop (HIL) analysis is 
+conducted on default mobile target tracking methods .  Designed experimentation is used 
+to determine autopilot settings that improve perfor mance with respect to path optimality.   
+Optimality is characterized using a weighted combin ation of stand-off range and aircraft 
+roll-rate. Finally, a state-based heuristic navigat ion strategy is designed, developed, and 
+tested that approximates optimal path solutions and  can be used for real-time execution.  
+A 66% improvement in mean performance is achieved o ver default target tracking 
+methods.  Finite state machine improvements are fou nd to be statistically significant and 
+it is concluded that heuristic strategies can be a viable approach to realizing near-optimal 
+SUAS flight paths utilizing onboard processing capa bilities.   
+
+--- Page 7 ---
+AFIT-ENV-14-M-44 
+v 
+  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+To Megan, for her unwavering support  
+ 
+
+--- Page 8 ---
+ 
+vi 
+ Table of Contents 
+Page 
+Abstract .......................................... ................................................... ................................. iv  
+Table of Contents ................................. ................................................... ........................... vi  
+List of Figures ................................... ................................................... .............................. ix  
+List of Tables .................................... ................................................... ............................. xii  
+List of Equations ................................. ................................................... .......................... xiv  
+I.  Introduction .................................. ................................................... ................................2  
+Background ........................................ ................................................... ..........................2  
+Statement of Problem .............................. ................................................... .....................3  
+Research Objective ................................ ................................................... ................. 4  
+Investigative Questions ........................... ................................................... ............... 5  
+Assumptions and Constraints ....................... ................................................... ................6  
+Overview of Methodology ........................... ................................................... ................8  
+Thesis Overview.................................... ................................................... .......................9  
+II. Literature Review ............................. ................................................... ..........................11  
+Chapter Overview .................................. ................................................... ....................11  
+Flight Path Optimization .......................... ................................................... ..................12  
+Effects on SUAS Performance ....................... ................................................... ....... 12  
+Current Efforts ................................... ................................................... .................. 13  
+Approximations of Optimal Solutions ............... ................................................... ... 15  
+Sensor Time-on-Target ............................. ................................................... .................17  
+Summary ........................................... ................................................... .........................19  
+III. Methodology .................................. ................................................... ...........................20  
+Chapter Overview .................................. ................................................... ....................20  
+Materials and Equipment ........................... ................................................... ................21  
+Air Vehicle ....................................... ................................................... ..................... 21  
+Ground Vehicle .................................... ................................................... ................ 22  
+Autopilot ......................................... ................................................... ...................... 22  
+Ground Control Station ............................ ................................................... ............ 24  
+Sensor Gimbal ..................................... ................................................... ................. 25  
+Range Support and Flight Preparation .............. ................................................... .. 26  
+Hardware in the Loop Simulation ................... ................................................... ..... 26  
+Procedures and Processes .......................... ................................................... .................28  
+
+--- Page 9 ---
+ 
+vii 
+ Field Data Collection ............................. ................................................... .............. 28  
+Follow-Me Flight Test ............................. ................................................... ............. 29  
+Increasing Path Optimality by Experimentation ..... ................................................ 29  
+State-Based Navigation Logic ...................... ................................................... ........ 32  
+Summary ........................................... ................................................... .........................33  
+IV. Analysis and Results .......................... ................................................... .......................34  
+Chapter Overview .................................. ................................................... ....................34  
+Initial Firmware Modifications .................... ................................................... ..............34  
+Sensor Gimbal Target Tracking ..................... ................................................... ...... 34  
+Loiter Direction .................................. ................................................... .................. 36  
+Flight Test Results and Data Analysis ............. ................................................... ..........37  
+Analysis of Optimality ............................ ................................................... .............. 38  
+Follow-Me ......................................... ................................................... ................... 39  
+Optimal Settings Experimentation .................. ................................................... ..... 40  
+Finite State Machine First Iteration .............. ................................................... ....... 48  
+Experiment Review and Finite State Machine Second I teration ............................. 52  
+Comparative Results and Investigative Questions ... ............................................... 60  
+Final Firmware Modifications....................... ................................................... .............68  
+Ground Vehicle Class .............................. ................................................... ............. 68  
+Parameter Entries ................................. ................................................... ............... 69  
+Summary ........................................... ................................................... .........................71  
+V.  Conclusions and Recommendations ............... ................................................... ..........73  
+Chapter Overview .................................. ................................................... ....................73  
+Conclusions of Research ........................... ................................................... .................73  
+Follow-Up Action .................................. ................................................... ....................74  
+Real-World Replication of Designed Experiment ..... .............................................. 75  
+Experimental Design to Analyze Finite State Machine  ........................................... 75  
+Replication of Experimentation with Alternate Respo nse ....................................... 76  
+Future Research ................................... ................................................... .......................79  
+Analysis of Optimization Cost Function ............ ................................................... ... 79  
+Stochastic Estimation of Ground Vehicle Path ...... ................................................. 8 0  
+Summary ........................................... ................................................... .........................81  
+REFERENCES ........................................ ................................................... .......................83  
+Appendix A: Rascal Configuration .................. ................................................... ...............85  
+Appendix B: Autopilot and Peripherals Specification s ................................................. ....86  
+Appendix C: Ground Control Station Specifications.. ................................................... ....87  
+Appendix D: Payload Specifications ................ ................................................... ..............88  
+
+--- Page 10 ---
+ 
+viii 
+ Appendix E: Simulated Rascal Definition ........... ................................................... ...........90  
+Appendix F: AP_Mount Revised update_mount_position Function .................................94  
+Appendix G: Ground_Vehicle Library Definition ..... ................................................... .....96  
+Appendix H: Final Proposed ArduPlane Sketch Structu re ................................................ 97  
+Appendix I: Real-World Rascal APM Parameters ...... ................................................... ...98  
+Appendix J: Simulated Rascal APM Parameters ....... ................................................... ...100  
+  
+
+--- Page 11 ---
+ 
+ix 
+ List of Figures 
+ Page 
+ 
+Figure 1: Ground Vehicle Path Used For Testing .... ................................................... ....... 7  
+Figure 2: Example Optimal Path Generation ......... ................................................... ........ 15  
+Figure 3: Welborn Example Flight Path with Sensor A impoint and Footprint ................ 18  
+Figure 4: Rascal SUAS ............................. ................................................... ..................... 21  
+Figure 5: Ground Vehicle .......................... ................................................... .................... 22  
+Figure 6: ArduPilot Mega .......................... ................................................... .................... 23  
+Figure 7: Mission Planner Screenshot .............. ................................................... ............. 24  
+Figure 8: Gimbal with Video Camera ................ ................................................... ............ 25  
+Figure 9: Hardware-in-the-Loop Communications Archi tecture ..................................... 27  
+Figure 10: APM Loiter Navigation .................. ................................................... .............. 31  
+Figure 11: Original and Modified Class Diagrams for  APM Gimbal Mount ................... 36  
+Figure 12: Example Analysis of J i .................................................. .................................. 39  
+Figure 13: Flight Path with Basic Follow-Me Setting s ................................................. ... 40  
+Figure 14: Analysis of J i for Basic Follow-Me Flight ....................... ............................... 40  
+Figure 15: Factor Profiler for First Stage Experime ntal Model ........................................  43  
+Figure 16: Factor Profiler for Second Stage Experim ental Model ................................... 46  
+Figure 17: Flight Path Using Settings Determined by  Experimentation .......................... 47  
+Figure 18: Analysis of J i for Settings Determined by Experimentation ....... .................... 47  
+Figure 19: J i Compared Against Ground Vehicle Turn Rate ........ .................................... 48  
+Figure 20: Highlighted Portion of Flight Test with Increased J i ....................................... 49  
+Figure 21: Finite State Machine Initial Design .... ................................................... .......... 50  
+
+--- Page 12 ---
+ 
+x 
+ Figure 22: Flight Path Using Initial State Machine Logic ............................................. ... 51  
+Figure 23: Analysis of J i for Initial State Machine Logic .................. ............................... 52  
+Figure 24: Half Normal Plot with Significant Terms Labeled ......................................... 5 4  
+Figure 25: Factor Profiler for Combined Regression Model ............................................ 55  
+Figure 26: Flight Path for Optimal Settings from Co mbined Regression Model ............. 56  
+Figure 27: Analysis of J i for Suggested Settings from Combined Regression Mo del ...... 56  
+Figure 28: Slant Range Analysis Generated for Sugge sted Settings Flight Path ............. 57  
+Figure 29: Revised Finite State Machine ........... ................................................... ............ 58  
+Figure 30: Flight Path for Revised Finite State Mac hine .............................................. ... 59  
+Figure 31: Analysis of J i for Revised Finite State Machine ................. ............................ 59  
+Figure 32: Profile of Current State for Final FSM F light ............................................. .... 60  
+Figure 33: Cost Performance for Initial Flight Test s of Main Configurations ................. 62  
+Figure 34: Confidence Intervals for Cost Performanc e of Main Configurations ............. 63  
+Figure 35: Plotted Confidence Intervals for Final F SM Design and Respective Optimal 
+Paths ............................................. ................................................... ........................... 64  
+Figure 36: Sensor Aimpoint for Initial Flight Tests  of Main Configurations ................... 66  
+Figure 37: Screenshot from Real-World Ground Vehicl e Tracking Mission ................... 67  
+Figure 38: Class Diagram for Ground Vehicle ....... ................................................... ....... 69  
+Figure 39: McCarthy Example Flight Path Visualizati on ................................................ . 78  
+Figure 40: McCarthy Example Flight Path Deviation C hart ............................................ 7 8  
+Figure 41: Rascal SUAS Used for Flight Test ....... ................................................... ........ 85  
+Figure 42: APM 2.5 Dimensions [16]................. ................................................... ........... 86  
+Figure 43: Servocity SPT100H Pan-Tilt Gimbal Dimens ional Drawing [17] .................. 89  
+
+--- Page 13 ---
+ 
+xi 
+ Figure 44: HackHD Camera Dimensional Drawing [18] . ................................................ 89  
+Figure 45: Diagram of Modified ArduPlane File Relat ionships ....................................... 97  
+ 
+
+--- Page 14 ---
+ 
+xii 
+ List of Tables  
+ Page 
+ 
+Table 1: Coded Units for First Stage Flight Experim entation ..........................................  41  
+Table 2: Cost Results for First Stage Flight Experi mentation ......................................... . 42  
+Table 3: Analysis of Variance for First Stage Fligh t Experimentation ............................ 42  
+Table 4: Sorted Parameter Estimates for First Stage  Flight Experimentation .................. 43  
+Table 5: Coded Units for Second Stage Flight Experi mentation ...................................... 44  
+Table 6: Cost Results for Second Stage Flight Exper imentation ...................................... 4 4  
+Table 7: ANOVA for Second Stage Flight Experimentat ion ........................................... 45  
+Table 8: Sorted Parameter Estimates for Second Stag e Flight Experimentation.............. 45  
+Table 9: Summary of Cost Results from Initial Tests  and Follow-On Replicates............ 52  
+Table 10: Screener for Factor Inclusion in Combined  Data Regression Model ............... 53  
+Table 11: ANOVA for Combined Data Set with Selected  Factors .................................. 54  
+Table 12: Sorted Parameter Estimates for Combined R egression Model ......................... 54  
+Table 13: Summary of Cost Results after Secondary D ata Analysis and State Machine 
+Design ............................................ ................................................... ......................... 61  
+Table 14: 95% Confidence Intervals for Cost Perform ance of Main Configurations ...... 63  
+Table 15: 95% Confidence Interval for Final FSM and  Associated Optimal Costs ......... 64  
+Table 16: Two Sample t-Test (Unequal Variance) for Final FSM Flights and Associated 
+Optimal Paths ..................................... ................................................... ..................... 65  
+Table 17: Sensor Time-on-Target Performance for Ini tial Flight Tests of Main 
+Configurations .................................... ................................................... .................... 67  
+Table 18: Rascal SUAS Key Specifications .......... ................................................... ........ 85  
+
+--- Page 15 ---
+ 
+xiii 
+ Table 19: Autopilot Specifications ................ ................................................... ................ 86  
+Table 20: Telemetry Modem Specifications .......... ................................................... ........ 86  
+Table 21: Ground Control Station Equipment ........ ................................................... ....... 87  
+Table 22: Payload Components ...................... ................................................... ............... 88  
+ 
+  
+
+--- Page 16 ---
+ 
+xiv 
+ List of Equations 
+ Page 
+ 
+Equation 1 ........................................ ................................................... .............................. 14  
+Equation 2 ........................................ ................................................... .............................. 38  
+ 
+  
+
+--- Page 17 ---
+ 
+2 FEASIBILITY OF ONBOARD PROCESSING OF HEURISTIC PATH  
+PLANNING AND NAVIGATION ALGORITHMS WITHIN SUAS AUTO PILOT 
+COMPUTATIONAL CONSTRAINTS 
+I.  Introduction 
+Background 
+As unmanned systems technology decreases in both si ze and cost, the range of 
+applications grows.  In particular, use of Small Un manned Aerial Systems (SUAS) has 
+seen a disproportionately high amount of growth as the affordability of subcomponents 
+has allowed for an increase in availability to prob able markets.  Applications include, but 
+are not limited to defense, agriculture, law enforc ement, and numerous commercial 
+endeavors.  Yet no matter how complex or adaptive t he payload, the design of any truly 
+purpose-built SUAS must be considered with respect to all subsystems and their 
+contribution to the desired mission.  This design f ocus holds especially true for the 
+navigation logic of the autopilot as increased auto nomy is frequently considered an 
+enabler for proposed applications, particularly tho se in the defense realm. 
+To that end, multiple research efforts at the Air F orce Institute of Technology 
+(AFIT) have culminated in algorithms that provide t heoretical aircraft control for various 
+missions extending beyond the existing functionalit y of most available autopilots.  One 
+such effort is the development of an optimal path p lanning algorithm for tracking and 
+surveillance of a moving ground target [1].  Heuris tic variants of these calculations have 
+been suggested with the potential to be implemented  onboard existing SUAS autopilots 
+allowing for real-time, autonomous execution.  This  work has been proposed and 
+supported by the Air Force Research Laboratory (AFR L) as an enabling capability for 
+
+--- Page 18 ---
+ 
+3 convoy overwatch using SUAS.  While this mission ma y be partially achievable with 
+basic manipulation of autopilot waypoints, a more c ustom approach to navigation logic, 
+capable of implementation onboard the air vehicle, provides potential for increased flight 
+path optimality. 
+Statement of Problem 
+The convoy overwatch scenario proposed by AFRL invo lves the use of a field-
+deployed SUAS to autonomously track and provide int elligence, surveillance, and 
+reconnaissance (ISR) on mobile ground vehicle maneu vers.  Current SUAS convoy ISR 
+operations require a pilot to monitor the air vehic le and a sensor operator (often the pilot 
+in a dual role) to command the payload.  Typically,  these are continuous functions for the 
+duration of the mission, both of which are required  in order to keep the sensor on target 
+and the air vehicle within specified flight paramet ers.  Rather than placing a constant 
+workload on one or more individuals, the proposed f unctionality would allow for 
+autonomous execution of the mission by the SUAS.  A  single operator could launch the 
+air vehicle, input flight parameters (target of int erest, desired stand-off distance, and 
+sensor angles), and focus attention elsewhere until  recovery is required. 
+While this autonomy may be partially realized using  dynamic waypoint 
+capabilities that already exist on some SUAS autopi lots, past work suggests that an 
+optimized path planning approach may result in sign ificant performance increases in 
+terms of target tracking and air vehicle endurance [2].  Current AFIT research by 
+Livermore seeks to design such an approach utilizin g a cost function to minimize air 
+vehicle control effort and maximize time spent with  the sensor at a given stand-off 
+
+--- Page 19 ---
+ 
+4 distance [1].  However, there are indicators that i mplementation of such a function can be 
+infeasible with the resources available onboard a S UAS autopilot [3].  True optimization 
+functions typically require high computing times wh ile real-time execution of the 
+proposed missions will require multiple iterations per second.  Other past research efforts 
+have addressed this issue and suggest that under ce rtain circumstances, optimal routing 
+algorithms can be sufficiently mimicked using more manageable strategies [4].  In order 
+to achieve the desired performance, the specific ch allenge is the design and 
+implementation of a heuristic approximation of the proposed optimization algorithm that 
+is capable of real-time, autonomous execution onboa rd the SUAS. 
+Research Objective 
+The primary objective of this research effort is th e implementation of a heuristic, 
+autonomous autopilot flight mode that replicates, t o the best extent achievable, the 
+performance of an actual path planning optimization  function designed for the proposed 
+convoy overwatch scenario.  Design iterations of th is mode are flight tested with the 
+provided results focused on the achieved versus opt imal performance and the feasibility 
+of integration into operational systems.  The inten t is to provide information and analysis 
+sufficient for AFRL to make informed decisions on c ontinuation of future research and 
+development efforts in the field of optimized track ing using SUAS.  Additionally, 
+implementation is achieved in a manner that conside rs the architecture best suited for 
+enabling future integration of customized autonomou s navigation functions. 
+
+--- Page 20 ---
+ 
+5 Investigative Questions 
+Work focuses on answering the following investigati ve questions sequentially in 
+order to achieve the primary research objective wit h a build-up approach facilitated by 
+flight test resources available to AFIT: 
+1.  What is the target tracking and flight path perform ance of the SUAS when using a 
+basic follow-me mode?  The follow-me mode describes  a very simple approach in 
+which the autopilot is fed a series of target locat ion coordinates at a fixed frequency 
+and updates its current navigation waypoint to matc h.  Most available SUAS 
+autopilots have this capability and it serves as an  intuitive starting point for most 
+target tracking missions.  The reason for character izing tracking and navigation in this 
+mode is that it serves as a comparative baseline fo r evaluating performance of any 
+other tracking algorithm.  Note that for this effor t, qualitative reference to 
+performance or optimality of any flight path is bas ed on the similarity of the path to 
+that which could have conceivably been achieved und er identical conditions as 
+calculated by Livermore’s optimization algorithm.  Details on the measures of 
+optimality are discussed in Chapter 2. 
+2.  What is the best path performance achievable by the  adjustment of existing or readily 
+accessible navigation control without implementatio n of state responsive logic?  The 
+process by which this question is answered is inten ded to make existing navigation 
+functionality achieve the most optimal flight paths  possible with regards to ground 
+target tracking.  It is important to ascertain thes e settings before proceeding to 
+evaluation of states within which varied control lo gic may be appropriate. 
+
+--- Page 21 ---
+ 
+6 3.  What is the achievable SUAS flight path optimality using a state-based, heuristic 
+approximation of the optimization strategy?  The in tent of this question is 
+characterization of the attempted heuristic path pl anning strategy with respect to 
+baseline, adjusted, and true optimal performance. 
+4.  What is the feasibility of implementing heuristic g round target tracking logic that is 
+capable of real-time execution onboard a SUAS autop ilot?  This question is designed 
+to answer the overarching research objective based on answers from all preceding 
+questions.  The feasibility analysis is formulated based on an assessment of the 
+achieved performance during SUAS flight test events  designed to replicate the 
+convoy overwatch scenario. 
+Assumptions and Constraints  
+The proposed convoy overwatch scenario has a wide p otential range of 
+application and complexity, varying from straight l ine path following to highly diverse 
+road networks with high levels of variance in vehic le speed, direction, and altitude.  For 
+this research, a set of assumptions is made to faci litate the planning of achievable 
+experiments with meaningful results than can be con ducted within the constraints of 
+equipment and range time available to AFIT.  The ba seline scenario is that of a SUAS 
+providing overwatch for a ground control station (G CS) located on a mobile ground 
+vehicle of known global positioning system (GPS) co ordinates.  The actual path driven 
+by the ground vehicle for all tests associated with  this effort is shown in Figure 1.  This 
+route was selected based on range availability and safety approvals. 
+
+--- Page 22 ---
+ 
+7  
+Figure 1: Ground Vehicle Path Used For Testing 
+ 
+For any ground tracking scenario, it is assumed tha t a well-designed system is one 
+in which the ground speed of the air vehicle while commanding its optimal cruise throttle 
+setting into maximum expected wind conditions is al so the maximum ground speed that 
+may be reached, either momentary or steady-state, o f the ground target in question.  This 
+speed is characterized for the SUAS used during exp erimentation and the maximum 
+speed of the ground vehicle is constrained accordin gly.  Failing to make this design 
+choice allows for states in which the ground vehicl e may simply outrun the air vehicle.  
+Additionally, this research assumes that altitude v ariance in the ground path is negligible 
+
+
+--- Page 23 ---
+ 
+8 and, based on safety concerns, all SUAS flights are  performed at a fixed altitude of 150 
+meters above ground. 
+Regarding the air vehicle specifically, one constra int placed on the research effort 
+is the use of waypoint navigation instead of fly-by -wire navigation.  It is assumed that 
+any autopilot potentially fielded for target tracki ng missions is capable of waypoint 
+navigation, including the capability to update wayp oints dynamically and perform a fixed 
+loiter should it arrive at a waypoint without recei ving any updates.  All developed logic 
+uses point navigation as opposed to a fly-by-wire a pproach which would involve direct 
+control of flight conditions such as bank, pitch, a nd heading. 
+Finally, it is assumed that any SUAS to be integrat ed with the proposed tracking 
+functionality is capable of operating a sensor gimb al to given pointing angles.  The 
+algorithm developed generates dynamic target coordi nates, but actuation of the gimbal to 
+the desired angle is considered an existing capabil ity of the autopilot or associated 
+peripherals.  Furthermore, it is assumed that error  in the pointing functionality of the 
+gimbal is negligible and no work is done to provide  compensation for pointing 
+inaccuracies. 
+Overview of Methodology 
+The first step in this research is the integration of air and ground vehicle telemetry 
+as inputs to MATLAB optimization scripts that will serve as the primary method of 
+generating optimal flight paths using Livermore’s p roposed cost function.  For a given 
+run, the output is an optimal flight path that coul d have been executed given the physical 
+bounds of the aircraft and environment. 
+
+--- Page 24 ---
+ 
+9 The following step will be development of a heurist ic approach to approximating 
+optimized paths that is capable of being integrated  in Arduino code and run on the APM 
+without introduction of excessive computing delay.  Flight test is designed to evaluate the 
+stock performance, adjusted non state-based perform ance, and finally modified state-
+based performance of the SUAS performing a ground v ehicle tracking mission.  Flight 
+tests are conducted iteratively, with navigation lo gic for each building on the results of 
+the previous.  The goal is to compare achieved opti mality, in terms of cost function value, 
+for the above listed flight conditions against each  associated optimal solution.  Data 
+required for these comparisons includes basic aircr aft telemetry (GPS information, 
+aircraft physical state, control effort, and gimbal  angles) from real-world flights as well 
+as comparable data from MATLAB generated paths.  Di fferences in performance are 
+used to report on the feasibility of achieving near -optimal target tracking missions with 
+high levels of autonomy using existing autopilot co mputing resources.  Additionally, 
+discussion is provided on the architecture required  to implement customized flight modes 
+onboard the APM. 
+Thesis Overview 
+This chapter provides a brief background on SUAS, d escription of the motivation 
+for integrating heuristic tracking strategies onboa rd SUAS autopilots, discussion of the 
+specific research tasks to be addressed, and an ove rview of the equipment and 
+methodology used.  Chapter 2 examines literature an d past work relevant to this effort 
+providing validation of the equipment selection, pr oblem statement, and experimentation 
+methodology.  In addition, further discussion is gi ven to the expectation of performance 
+
+--- Page 25 ---
+ 
+10 differences for SUAS missions under optimal, near-o ptimal, or non-optimal planning 
+methods.  Chapter 3 provides a more in-depth look a t the test methodology with greater 
+emphasis on specific test events.  Chapter 4 presen ts the software design and the results 
+of the research efforts built on data that have bee n collected and processed.  Chapter 5 
+concludes the thesis and discusses implications of this work as well as recommendations 
+for future efforts.  
+  
+
+--- Page 26 ---
+ 
+11 II. Literature Review 
+Chapter Overview 
+The literature review is intended to provide a syno psis of research efforts and 
+findings that are relevant to, or have culminated i n, the challenge of characterizing SUAS 
+heuristic tracking algorithm performance.  While th e motivating requirement for the 
+current research effort has been proposed by AFRL, it is appropriate to mention that other 
+sources allude to the current or future need for op timized ground tracking capabilities.  
+The United States Air Force Unmanned Aircraft Syste ms Flight Plan 2009-2047 lists 
+many UAS currently used in deployed environments as  well as generic capabilities of 
+UAS in different size classes [5].  Only two aircra ft specifically include convoy 
+overwatch in their lists of capabilities, the MQ-1 Predator and the MQ-9 Reaper.  
+However, in its coverage of future applications of SUAS, the UAS Flight Plan lists close-
+in ISR, personal ISR, and auto-sentry.  These missi ons will likely include (as a subset) 
+autonomous tracking of a ground target, whether fri endly or hostile.  In a 2011 RAND 
+Corporation report to the US Army, Peters et al. di scuss the technical and operational 
+feasibility of overwatch missions by UAS [6].  They  argue that large UAS present the 
+most technically feasible options for convoy overwa tch but claim that operational 
+feasibility is highly constrained by the tasking co mplexity and low availability of this 
+aircraft class.  Their final assertion is that feas ibility would be positively impacted if 
+miniaturization of technology enabled vehicle overw atch to be performed by smaller, 
+cheaper UAS. 
+For the remainder of this chapter, topics specific to the current research are 
+addressed.  Coverage is given to the expected benef its of optimized routing followed by 
+
+--- Page 27 ---
+ 
+12 the specifics of current path planning research eff orts.  Past work is discussed on the 
+subject of approximating optimization algorithms in  real-time.  Finally, research is 
+examined that discusses performance characterizatio n of small UAS with regards to 
+metrics and utilities relevant to validating the ex perimentation methodology of this 
+research effort. 
+Flight Path Optimization 
+Characterizing the performance implications of appr oximated optimal path 
+planning solutions warrants discussion of three key  areas.  First is the expected impact of 
+optimization on SUAS performance.  Second is the wo rk currently proposed for 
+achieving the overwatch mission in question.  Last is the challenge of approximating 
+optimal solutions in a heuristic manner.  Prior wor k on each of these topics is examined.  
+Effects on SUAS Performance 
+While the current research effort characterizes per formance primarily with respect 
+to path planning, it is important to note that prev ious work provides preliminary 
+indicators of other potential benefits.  Research c onducted by Lazano examines 
+performance of SUAS autopilot control loops paramet erized to optimize flight endurance 
+and optical sensor effectiveness [2].  A predicted 33% increase in flight endurance is 
+achieved by altering pitch-from-altitude control lo op settings.  The performance 
+difference is attributed to the amount of work requ ired of these control loops when 
+deviating from steady level flight conditions, eith er intentionally or unintentionally, 
+suggesting that the best way to optimize endurance is to minimize altitude holding efforts 
+by the aircraft.  It follows that the cost function  to be utilized in the current research, 
+
+--- Page 28 ---
+ 
+13 which seeks to minimize roll rate and consequently altitude holding effort, can 
+reasonably be expected to have a positive impact on  mission endurance. 
+Lazano continues by examining the surveillance effi ciency of his missions.  It is 
+suggested that considering navigation waypoints sep arate of sensor aimpoint results in 
+decreased surveillance effectiveness and optimality  of the flight path.  He asserts that 
+implementing a gimbaled sensor with path planning b ased on footprint location may be 
+the most significant contributors to ISR effectiven ess for SUAS.  In his research 
+conclusion, with specific regards to “loiter survei llance and moving-target surveillance,” 
+Lazano recommends that “additional research should be conducted to determine 
+improved persistence settings for respective survei llance methods” [2, pp. 95-96]. 
+Current Efforts 
+AFIT research has been conducted to directly addres s the convoy overmatch 
+problem proposed by AFRL.  This effort is presented  by Livermore where he proposes a 
+dynamic path optimization strategy designed to mini mize both error in SUAS distance 
+from the ground target and SUAS control effort [1].   This strategy begins by defining a 
+function which characterizes the cost, J, of any gi ven SUAS flight.  This function is 
+defined in Equation 1 [1]. 
+The cost function aims to minimize the weighted sum  of the control and slant 
+range (SR) error.  The cost function represents the  desire to keep the UAV a 
+certain distance from the ground vehicle while usin g the minimum required 
+control.  In [Equation 1], the first term penalizes  deviation from desired slant 
+range and the second term penalizes the control.  B oth the slant range and control 
+terms are normalized relative to constant values so  that the two terms can be 
+equally weighted relative to each other. [1, p. 36]  
+
+--- Page 29 ---
+ 
+14 Equation 1 
+/g.856 = /g5505 /g4680/g0009 /g5456/g.845/g.844(/g.870) − /g.845/g.844 /g505./g5050/g5046/g5056/g5045/g5050/g505. 
+/g.845/g.844 /g505./g5050/g5046/g5056/g5045/g5050/g505. /g5440/g0870
++ (1 − /g0009) /g5456/g.875(/g.870)
+/g.875/g5040/g5008/g505. /g5440/g0870
+/g468. /g.856/g.870 /g5047/g508.
+/g5047/g5..6 
+Where: 
+/g.870/g5055= /g.858/g.86./g.866/g.855/g.864 /g.858/g.864/g.86./g.859ℎ/g.870 /g.870/g.86./g.865/g.857  
+/g.870/g0868= /g.86./g.866/g.86./g.870/g.86./g.855/g.864 /g.858/g.864/g.86./g.859ℎ/g.870 /g.870/g.86./g.865/g.857  
+/g0009 = /g.870/g.857/g.864/g.855/g.870/g.86./g.874/g.857 /g.875/g.857/g.86./g.859ℎ/g.870  
+/g.845/g.844 = /g.87./g.864/g.855/g.866/g.870 /g.870/g.855/g.866/g.859/g.857  
+/g.875 = /g.870/g.867/g.864/g.864 /g.870/g.855/g.870/g.857  
+ 
+After establishing this cost function, Livermore de velops a MATLAB function 
+that accounts for the path driven by a ground targe t, weather conditions, the starting 
+location of the SUAS, the desired slant range, the umax  specific to the SUAS, as well as 
+speed and turning characteristics specific to the S UAS.  With these inputs, the function 
+attempts to identify the most optimal flight path t hat could have been executed.  The 
+selected path is defined at that with the lowest as sociated cost [1].  An example of 
+Livermore’s path generation based on real world gro und vehicle and weather information 
+is show in Figure 2. 
+
+--- Page 30 ---
+ 
+15  
+Figure 2: Example Optimal Path Generation 
+ 
+Approximations of Optimal Solutions 
+In early AFIT optimization work, Zollars proposes a  dynamic optimization 
+algorithm that determines the best route for a SUAS  attempting to place a sensor footprint 
+on a target of known location and velocity [7].  Wh ile the motivation for his work is 
+different than that of the current effort, he arriv es at a computationally intensive 
+optimization algorithm similar to that being evalua ted at present.  Implementation of 
+Zollars’ work is attempted by Terning, who works to  “specifically look at heuristic, 
+iterative techniques which can quickly calculate fl ight path solutions, implement these 
+
+
+--- Page 31 ---
+ 
+16 solutions on actual UAV systems, and validate the a lgorithm through flight tests” [3, p. 
+3].  Terning concludes that the amount and variance  in execution time makes Zollars’ 
+technique infeasible for direct application in real -time circumstances: 
+Because the code execution time proved unpredictabl e, it proved impossible to 
+extrapolate out the future position of the aircraft  to a point where the flight path 
+commands would actually be executed. If, for exampl e, we knew with relative 
+certainty that it would take 10 seconds to compute an optimal flight path, we 
+could effectively extrapolate the future location o f the UAV, and optimize for that 
+point. If, however, the calculation time is unpredi ctable and highly variant, no 
+prediction can be made. The other option would be t o force a return after a certain 
+number of seconds. This would essentially guarantee  an erroneous result of 
+unknown tolerance if the optimization routine was e xited prematurely, so this 
+option was abandoned. [3, p. 20] 
+Terning’s final solution is an iterative approach t hat evaluates various coordinates along 
+the vector of the ground target based on present in formation about both the target and the 
+air vehicle.  When the calculated time-of-arrival b ecomes equal for both entities (or 
+nearly equal as predefined by a threshold parameter ), the evaluated location becomes the 
+new navigation point for the SUAS.  The GCS softwar e executes this calculation 
+repetitively, each time updating the navigation poi nt.  Terning demonstrates his heuristic 
+approach using a hardware-in-the-loop (HIL) simulat ion and provides strong evidence 
+that an iterative approximation of an optimization based on cost functions can be 
+achieved in real-time with worthwhile results. 
+ A similar strategy is seen in research presented b y Boire, who builds on the work 
+of Seibert et al. and attempts to achieve an implem entation of the aforementioned rover-
+relay architecture [4].  Boire notes that for an in stantaneous set of aircraft states (both 
+rover and relay SUAS) it is a simple midpoint calcu lation to determine the optimal 
+location at which the relay should be positioned.  However, when attempting to account 
+
+--- Page 32 ---
+ 
+17 for future states based on the motion of both SUAS,  the optimization function becomes 
+complex enough that an approximation is the most fe asible approach to real-time 
+implementation.  He arrives at a strategy of repeti tively calculating and commanding an 
+instantaneously optimal solution, including a futur e position compensation factor for the 
+rover SUAS.  The cyclical nature of the approach ma kes it similar to Terning’s work. 
+However Boire’s method differs in that the calculat ion itself is not recursive.  The 
+strategy is implemented in the proposed GCS softwar e and demonstrated in simulation.  
+Findings indicate that his solution is able to achi eve a range increase for the rover SUAS 
+close to that expected of the optimal solution, pro viding further evidence that heuristic 
+approximations can effectively emulate their optima l counterparts if designed properly. 
+Sensor Time-on-Target 
+In addition to the development of SUAS path plannin g strategies, it is of equal 
+importance for the current research effort to valid ate achieved performance.  The primary 
+challenge is ensuring that the sensor maintains per sistent coverage of the ground target in 
+question.  For this research, it is sufficient to q uantify the percentage of flight time during 
+which the sensor field of view encompassed the targ et. 
+Welborn encounters the same issue in his research a ttempts to quantify achievable 
+ISR for the Raven SUAS [8].  His approach builds on  a basic MATLAB script originally 
+built by Lozano for visualizing a sensor aimpoint a nd footprint [2].  Welborn modifies 
+the script to characterize dynamic flight telemetry  and provide statistical output for time 
+on target.  Because his work utilizes real telemetr y files and hard-coded sensor angles, the 
+generated time on target is theoretical for a real world flight, which helps account for 
+
+--- Page 33 ---
+ 
+18 sensor mounting error that may be present in the ac tual video.  Additionally, adjustment 
+of inputs allow for performance analysis of alterna tive sensor configurations without 
+requiring extra flights.  Welborn’s utility is used  for calculating achieved time on target 
+for all flight tests executed in the current resear ch effort.  The generated visualization of 
+sensor aimpoint and footprint assists in characteri zing flight conditions contributing to 
+gimbal performance.  Modifications to the utility i nclude telemetry input format, dynamic 
+sensor angles from telemetry (to account for a gimb aled camera), and dynamic ground 
+target location (to account for a moving target).  Figure 3 shows an example ISR flight 
+visualization generated using Welborn’s utility for  a fixed body camera. 
+ 
+ 
+Figure 3: Welborn Example Flight Path with Sensor A impoint and Footprint 
+ 
+
+
+--- Page 34 ---
+ 
+19 Summary 
+The literature review examines prior work that has culminated in, contributed to, 
+or provided justification for the current research effort.  Initial focus is given to 
+documentation supporting the requirement for an opt imized mobile ground target 
+tracking function.  SUAS work at AFIT is then revie wed to justify some of the key 
+equipment selections made prior to executing flight  test.  Research on the potential 
+effects of optimized path planning is discussed tha t further supports the thesis motivation.  
+This is followed by a more thorough examination of efforts to optimize the convoy 
+overwatch mission as well as past work to approxima te similar path planning functions.  
+Finally, coverage is given to supporting work provi ding performance validation and 
+analysis utilities directly relevant to the experim entation portion of this research.  
+
+--- Page 35 ---
+ 
+20 III. Methodology 
+Chapter Overview 
+The methodology chapter describes the process used to answer the stated 
+investigative questions associated with the researc h objective.  Those questions are as 
+follows: 
+• What is the target tracking and flight path perform ance of the SUAS when 
+using a basic follow-me mode? 
+• What is the best path performance achievable by the  adjustment of existing or 
+readily accessible navigation control without imple mentation of state 
+responsive logic? 
+• What is the achievable SUAS flight path optimality using a state-based, 
+heuristic approximation of the optimization strateg y? 
+• What is the feasibility of implementing heuristic g round target tracking logic 
+that is capable of real-time execution onboard a SU AS autopilot? 
+Each of the investigative questions is designed to augment its predecessor, cumulatively 
+arriving at a feasibility assessment regarding SUAS  autonomous mobile target tracking.  
+The determination of feasibility is justified by ch aracterizing the spectrum of achievable 
+performance and recording how heuristic approximati on compares to worst and best case 
+scenarios. 
+ Documentation of the methodology begins with a dis cussion of the materials and 
+equipment to be used for the research effort.  This  is followed by examination of the 
+procedures followed in order for experimentation to  provide the data required to analyze 
+current performance and design an improved navigati on strategy. 
+ 
+
+--- Page 36 ---
+ 
+21 Materials and Equipment 
+The traditional components of a SUAS include the ai r vehicle, payload, ground 
+control station, communications, launch and recover y hardware, and ground support 
+equipment [9].  These components can be divided int o various subcomponents unique to 
+the system and its mission.  The conclusions of thi s research effort are based primarily on 
+data gathered from flight test.  For that reason, i t is appropriate to review the components 
+and subcomponents of the SUAS used in testing that most directly impact or constrain the 
+data collected.  Those components include the air v ehicle, autopilot, ground control 
+station, and sensor gimbal.  
+Air Vehicle 
+The air vehicle used for this testing is the Sig Ra scal 110.  This aircraft is a 
+commercial-off-the-shelf (COTS) hobbyist RC aircraf t that has been modified for use as 
+an AFIT SUAS test platform.  Modifications include upgrades to battery and power-plant 
+for increased reliability and endurance, as well as  installation of an autopilot.  The Rascal 
+is conducive to AFIT flight research due to its ava ilability and current status as an 
+approved airframe for USAF test on the Atterbury ra nge.  Figure 4 shows the Rascal in 
+use during flight test at Camp Atterbury.  See Appe ndix A for detailed specifications. 
+ 
+Figure 4: Rascal SUAS 
+
+
+--- Page 37 ---
+ 
+22 Ground Vehicle 
+ The ground vehicle used for all flight test associ ated with this effort is a military 
+HMMWV troop carrying vehicle.  This selection is ba sed on safety approval 
+considerations and range availability.  As configur ed, the vehicle allows for a driver and 
+ground station operator in the cab of the vehicle w ith the safety pilot seated in the rear to 
+maintain view of the SUAS.  The HMMWV used for test ing is shown in Figure 5. 
+ 
+Figure 5: Ground Vehicle 
+ 
+Autopilot 
+Many COTS SUAS autopilots are available on the mark et with wide variance in 
+cost and capability.  The autopilot currently in us e for AFIT research is the ArduPilot 
+Mega (APM) version 2.5.  The APM is built as a vari ant of the Arduino electronics 
+prototyping board.  In addition to being low-cost, the APM has been selected because it is 
+an open source platform.  All firmware being run on board is available in community 
+repositories rather than being treated as proprieta ry to an originating designer, which 
+makes the APM conducive to research efforts requiri ng custom code. 
+The APM is similar in size, computing power, and fl ight functionality to those 
+autopilots currently used in many fielded systems [ 9].  This similarity helps ensure 
+
+
+--- Page 38 ---
+ 
+23 transferability of the results, as the proposed con voy overwatch scenario is primarily a 
+defense application.  The APM is designed to operat e a variety of ground or air vehicles 
+based on the firmware being run.  For this research  effort, the ArduPlane Arduino sketch 
+is used, which is designed primarily for powered, f ixed wing aircraft.  Peripherals to the 
+APM include a transceiver for telemetry and real-ti me control, a GPS receiver, a 
+barometric pitot-static unit for airspeed and altit ude measurements, and a magnetometer 
+for heading measurement augmentation.  Figure 6 dep icts the APM with key components 
+labeled [10].  Reference Appendix B for detailed sp ecifications. 
+ 
+Figure 6: ArduPilot Mega 
+
+
+--- Page 39 ---
+ 
+24 Ground Control Station 
+The GCS selected includes a laptop running Microsof t Windows, a telemetry 
+transceiver matching that onboard the aircraft, and  the APM Mission Planner software.  
+This software is also open source and provides the functions required to monitor the 
+SUAS in real-time and provide any required control updates.  Like the APM, Mission 
+Planner is highly representative of ground control software found in many fielded 
+systems.  The similarity contributes to the utility  of findings while the fact that it is open 
+source allows for modification of functionality.  I n addition to the standard GCS 
+configuration, a GPS receiver is integrated with th e laptop to provide information on the 
+ground vehicle location and velocity while moving.  A screenshot of the Mission Planner 
+software used for this research effort is shown in Figure 7.  For details on the specific 
+GCS setup used for this effort, reference Appendix C. 
+ 
+Figure 7: Mission Planner Screenshot 
+
+
+--- Page 40 ---
+ 
+25 Sensor Gimbal 
+The payload integrated onboard the Rascal is mounte d on a two-axis (pan-tilt) 
+gimbal comprised of all COTS components with stabil ization actuation provided by the 
+autopilot.  The frame is built on two RC servos.  T he pan servo allows for ±180 ° rotation 
+from its center position.  The tilt servo is capabl e of +10° and -90° rotation from the 
+horizontal plane of the SUAS.  For this effort, all  servo commands are generated directly 
+by the APM.  Minor code modifications allow the aut opilot to actively update look angle 
+(and subsequent servo positions) while flying in a dynamic ground vehicle tracking 
+mode.  Chapter 4 provides a more detailed discussio n of all firmware modifications. 
+The camera used is the HackHD board camera.  The Ha ckHD is a high-definition 
+(1080p) color camera with a standard lens mount so that the optics can be altered to meet 
+specific mission needs.  In addition, the camera su pports onboard recording of video to a 
+micro-SD flash memory card which allows for post-pr ocessing of full quality video and 
+makes real-time transmission optional for testing p urposes.  Figure 8 shows the integrated 
+camera and gimbal system mounted to the Rascal in f light configuration.  Reference 
+Appendix D for detailed payload specifications. 
+ 
+Figure 8: Gimbal with Video Camera 
+
+
+--- Page 41 ---
+ 
+26 Range Support and Flight Preparation 
+All SUAS flight tests for this research are conduct ed at the SUAS airstrip located 
+at Camp Atterbury Joint Maneuver Training Center in  Indiana.  All flight tests require 
+AFIT support in scheduling range time and providing  necessary coordination with Camp 
+Atterbury.  In addition, AFIT policy dictates that a Form 5028 be submitted prior to any 
+flight testing.  This form outlines specific equipm ent configurations and actual flight test 
+points to be executed.  Approval of the Form 5028 m ay only be attained after 
+presentation in both a Test Review Board (TRB) and a Safety Review Board (SRB). 
+Hardware in the Loop Simulation 
+In addition to flight test data collected on real-w orld equipment, the effort 
+leverages the APM capability to execute some of the  flight test in a hardware-in-the-loop 
+(HIL) simulated scenario.  This allows for collecti on of a higher number of test points 
+than otherwise possible with fewer safety and logis tical considerations.  HIL simulation 
+works by connecting the APM to the GCS computer ove r a serial port.  In addition to the 
+Mission Planner software, a simulated flight enviro nment, FlightGear, is run using a 
+model version of the Rascal airframe.  FlightGear u ses a model called JSBSim for 6-
+degree-of-freedom flight dynamics simulation as wel l as aircraft parameter definitions 
+[11].  Figure 9 depicts the communications architec ture for running HIL simulations.  
+Note that in this configuration, the APM is running  all navigation logic in an identical 
+fashion to real-world flight.  Only processes respo nsible for reading sensor data are aware 
+that state information should be obtained from the serial port rather than actual sensors.  
+Because of the object oriented nature of the firmwa re, the source of this information is 
+hidden when passed to navigation processes.   
+
+--- Page 42 ---
+ 
+27  
+Figure 9: Hardware-in-the-Loop Communications Archi tecture 
+ 
+In addition to the default HIL configuration descri bed, pre-scripted GPS 
+information can be output on a local virtual serial  port, enabling the use of follow-me 
+mode in Mission Planner.  Scripting the GPS data to  match the profile of the HMMWV 
+executing the selected real-world ground path, as w ell as using a modeled version of the 
+actual air vehicle being used, allows HIL flights f or the effort to match real-world flight 
+performance to a high extent.  Reference Appendix E  for the definition file used to 
+instantiate the simulated Rascal used in this effor t. 
+ 
+ 
+
+
+--- Page 43 ---
+ 
+28 Procedures and Processes 
+The findings of this research effort are formed on data aggregated from real world 
+SUAS flight telemetry as well as emulated flight pa ths based on real air vehicle 
+characteristics.  Work required to collect this dat a begins with characterization of ground 
+target tracking performance using the unmodified fo llow-me mode.  Performance in this 
+this configuration serves as a baseline.  Next, exp erimentation is done to determine the 
+best settings for all navigation logic pertinent to  the proposed path planning strategy.  
+Finally, a finite state machine approach to path pl anning is constructed with design based 
+on analysis of flights flown at the aforementioned best settings.  
+Field Data Collection 
+For flight test (both real-world and HIL simulation ), field data is collected in the 
+form of aircraft and ground vehicle telemetry.  APM  Mission Planner can record certain 
+information directly to telemetry log (TLOG) files for later analysis or simulated re-
+creation of the flight.  For this effort, the TLOG format is used to collect all aircraft data 
+on the GCS laptop.  Specific TLOG information of in terest includes air vehicle GPS 
+location data, aircraft attitude, gimbal servo outp uts, inertial sensor readings, wind 
+conditions, and ground target location data. 
+For optimal paths calculated in MATLAB, the same da ta is generated with the 
+exception of ground vehicle location, which must be  treated as an input to the function in 
+order for the paths to remain applicable to specifi c real-world conditions.  Air vehicle 
+GPS location, attitude, and gimbal control will all  be output by the utility and inertial 
+readings can be derived from aircraft state informa tion.   
+
+--- Page 44 ---
+ 
+29 Follow-Me Flight Test 
+The initial attempt at a real world, moving ground target tracking effort is 
+achieved with the APM follow-me mode.  Follow-me is  used as the performance baseline 
+for comparison of all subsequent tracking attempts.   This functionality is already partially 
+implemented in the APM and Mission Planner software .  The existing function sends a 
+new waypoint to the SUAS at a fixed frequency.  The  waypoint is simply the location of 
+the GCS (based on a GPS reciever) at the time of th e message and does not project to a 
+future intercept point based on velocity.  If the a ircraft arrives before the waypoint 
+changes, it will enter a loiter about that point. 
+Flights are conducted with the aircraft placed in f ollow-me mode and the GCS 
+located on the ground vehicle.  The ground profile driven is the pre-selected path 
+introduced in Chapter 1.  Air vehicle altitude is f ixed at 150 meters as determined by 
+airspace constraints and local terrain.  The missio n is executed at different SUAS loiter 
+radius settings but the data of interest is that co llected at the radius determined to be 
+nearest optimal in subsequent experimentation.  Rec orded field data includes ground 
+vehicle profile, aircraft telemetry, and ground tar get video. 
+Increasing Path Optimality by Experimentation 
+In order to develop navigation logic in the form of  a finite state machine that is 
+responsive to real-time SUAS conditions, the existi ng performance is examined to 
+identify which states warrant alternative behavior.   However, rather than performing this 
+analysis on data from the unmodified follow-me mode , it is first important to adjust any 
+relevant system settings to achieve the most optima l flight paths possible.  Flight data 
+
+--- Page 45 ---
+ 
+30 garnered from these settings result in a more appro priate determination of state 
+definitions. 
+Examination of the existing APM fixed-wing aircraft  firmware yields three 
+parameters which directly have roles in the navigat ion logic that impacts the 
+minimization of roll rate and the maximization of e ffort to stay at a specified standoff 
+distance.  These parameters are the loiter radius i tself, loiter range, and navigation point. 
+Loiter radius is the actual horizontal distance fro m the ground target point that the 
+aircraft will attempt to maintain.  For a fixed tar get point, this represents a circular loiter.  
+When inside or on the loiter radius, updates to des ired heading (which are subsequently 
+fed into lower level control loops) account for the  ratio of the current distance from target 
+to the desired distance.  The level of effort appli ed to achieve that distance, which is 
+expressed as the magnitude of change to the desired  heading for any one instance of the 
+control loop, directly represents a balance between  control effort and slant range. 
+Loiter range is an additional distance beyond the l oiter radius, inside which the 
+SUAS will begin a gradual transition from straight flight towards the target point to 
+circular, tangential flight around the target point .  This is a fixed distance, rather than a 
+proportion of the loiter radius, and is designed to  allow for smooth entry into loiters with 
+minimal overshoot.  Similar to the effects of loite r radius, control effort is directly based 
+on a ratio representing relative position inside th e range, meaning that the range itself can 
+impact the optimality of any given flight.  Modific ations, discussed in Chapter 4, are 
+required to parameterize loiter range, as it is har d coded at 60 meters in the default 
+firmware.  Figure 10 demonstrates the role of both loiter radius and range in the APM 
+navigation logic. 
+
+--- Page 46 ---
+ 
+31  
+Figure 10: APM Loiter Navigation 
+ 
+Finally, the point to which the aircraft is navigat ing must be considered.  Under 
+normal circumstances, this point is only affected b y motion of the ground vehicle.  
+However, Terning’s work [3] shows that forward proj ecting the location of a moving 
+ground target affects the behavior of a SUAS when a ttempting to intercept a point.  
+Additional APM firmware modifications include the a ddition of a lead time parameter to 
+account for the possibility of impacting the perfor mance of a ground target tracking 
+mission.  For any lead time greater than zero, the SUAS will navigate to a point directly 
+forward of the ground vehicle based on the number o f seconds input and the vehicle’s 
+velocity. 
+
+
+--- Page 47 ---
+ 
+32 HIL simulation and range safety limitations are use d to identify a safe range of 
+potential settings for all three parameters in ques tion.  This allows for design of 
+experiments (DOE) planned tests executed in two sta ges.  The first stage accounts for all 
+three factors tested across their entire range of v alues to identify which factors have a 
+significant impact on flight cost (optimality) as w ell as providing an initial assessment of 
+the settings that should be used.  A computer gener ated central composite design (CCD) 
+is used because quadratic effects and two-factor in teractions are predicted.  The second 
+stage provides finer granularity in a smaller test space to validate the initial findings and 
+arrive at the final recommendations for settings. A gain, a computer generated CCD is 
+used. 
+State-Based Navigation Logic 
+After completion of a designed experiment to optimi ze the performance of 
+follow-me mode, a more appropriate analysis of flig ht data is conducted.  This allows for 
+the identification of states in which there is room  for improvement in terms of ground 
+target tracking flight path optimality.  Analysis o f flight data collected at the 
+recommended settings identifies the most noteworthy  states with suboptimal 
+performance.  To account for these scenarios, a fin ite state machine is designed that 
+allows the SUAS to execute alternate navigation whe n the appropriate conditions are met.  
+Modifications made to the APM firmware allow for th e implementation of the proposed 
+state machine.  After integration, flight test is c onducted to verify improved SUAS path 
+performance.   
+ 
+ 
+
+--- Page 48 ---
+ 
+33 Summary 
+The methodology chapter examines the work performed  to answer the technical 
+investigative questions requisite to produce a feas ibility report on achieving efficient 
+ground target tracking missions through heuristic p ath planning strategies.  Initial 
+discussion is on the specific hardware used for tes ting and how each piece contributes to 
+the research effort.  Next, procedures and processe s are explained.  Focus is given to the 
+necessary order of testing as well as justification  for each test, concluding with an 
+overview of the achieved state-based strategy.  
+
+--- Page 49 ---
+ 
+34 IV. Analysis and Results 
+Chapter Overview 
+The analysis and results chapter discusses all data  that was collected following the 
+methodology outlined in Chapter 3.  This discussion  begins with an overview of code 
+modifications initially required for the autopilot to perform the convoy overwatch 
+mission.  Following is an examination of actual fli ght data from each of the three phases 
+of test (follow-me, optimal settings experimentatio n, and finite state machine 
+implantation) to include justifications of associat ed navigation logic choices.  Final 
+examination is focused on additional firmware modif ications required to achieve the 
+documented performance.  
+Initial Firmware Modifications 
+The initial research phase was used to base-line ex isting performance, however 
+certain firmware modifications were necessary to en able the experimentation and 
+improvement phases.  Changes were made to address t wo notable shortcomings of the 
+stock ArduPlane firmware.  First is a lack of auton omous sensor gimbal control for a 
+moving target.  Second is a fixed loiter direction for all modes using loiter-based 
+navigation logic. 
+Sensor Gimbal Target Tracking 
+While the APM autopilot has a follow-me navigation function, it proved 
+insufficient to meet the basic requirements of the convoy overwatch mission in its default 
+form.  Most notable was the immaturity of the AP_Mo unt library.  The library is used to 
+define the AP_Mount class which, when instantiated as an object by the main ArduPlane 
+
+--- Page 50 ---
+ 
+35 thread (known as an Arduino sketch), represents a s ensor gimbal on the aircraft.  Methods 
+associated with this class are used for the executi on of all sensor gimbal motion. 
+In its unmodified state, the AP_Mount class is desi gned to accommodate two 
+basic functions.  First is single or multiple axis stabilization about an earth-fixed pointing 
+angle, designed primarily to minimize image motion from the aircraft.  The second is a 
+pointing function designed to keep the sensor fixed  on a single ground location while the 
+aircraft is in motion.  This function is based sole ly on point-and-click user inputs from the 
+Mission Planner interface, with specialized telemet ry link packets for updating 
+commands.  Execution of a convoy overwatch mission in this configuration would 
+require a dedicated operator and be inherently inac curate due to the point-and-click 
+update method. 
+To accommodate the desired autonomy, modifications were made to allow all 
+ArduPlane processes access to global knowledge of t he ground vehicle location.  Once 
+the ground vehicle location was available, it could  be used to calculate the desired 
+pointing angle within the update_mount_position met hod in the AP_Mount class.  
+Modifications to this method introduced two input p arameters.  First was the location of 
+the ground vehicle, replacing the previously intern al location calculation.  The second 
+was a boolean, used as a flag to inform AP_Mount of  the status of follow-me mode 
+where true indicated use of the modified function.  This allowed retention of the default 
+functionality should an operator wish to override t he gimbal or if follow-me mode was 
+stopped.  Figure 11 depicts class diagrams for both  the default and modified AP_Mount 
+class with the modified function highlighted.  Refe rence Appendix F for the revised 
+update_mount_position function. 
+
+--- Page 51 ---
+ 
+36  
+Figure 11: Original and Modified Class Diagrams for  APM Gimbal Mount 
+ 
+Loiter Direction 
+Early familiarization flights with the APM found th at the default ArduPlane 
+firmware (version 2.68 available from community APM  repository) [12] only allowed for 
+loitering behavior in a righthand direction (clockw ise when viewing from above).  This 
+was the case for loiter mode, full auto mode with a  loiter waypoint, and guided mode 
+(utilized by follow-me mode). 
+Although the fixed loiter direction did not preclud e the use of follow-me mode, it 
+was clear from the familiarization flights that the  aircraft would often make unnecessary 
+
+
+--- Page 52 ---
+ 
+37 control efforts (in the form of turns greater than 90° in heading change) in order to enter a 
+righthand loiter even if already in a tangential or ientation to the desired radius requiring 
+no effort to enter a lefthand loiter.  It was decid ed that allowing the air vehicle to loiter 
+either direction based on real-time conditions woul d provide the greatest opportunity to 
+match the generated optimal path. 
+A relative bearing function was introduced to the f irmware navigation file, 
+allowing the loiter logic to determine the angle fr om the current heading of the aircraft to 
+the ground target.  This function provided an asses sment of how much effort would be 
+associated with entering a loiter in either directi on.  The loiter could be changed from 
+righthand to lefthand by reversing the sign of the calculated Δ NavBearing  introduced in 
+Chapter 2, Figure 10, based upon the relative dista nce of the aircraft to the ground target, 
+loiter radius line, and loiter range line.  Note th at for this research effort, tests executed in 
+the original follow-me mode were intended to baseli ne unmodified performance 
+(excepting sensor gimbal actuation) so dynamic loit er directions were not activated for 
+phase one flights.  They were used for all subseque nt tests. 
+Flight Test Results and Data Analysis 
+Flight test for the research effort began after all  pertinent settings had been 
+identified, experimentation was designed, and requi site firmware modifications were 
+made.  Familiarization efforts and tests of initial  modifications were all executed in real-
+world flight tests.  For the planned test phases, t he range was made available for two 
+separate date ranges. 
+
+--- Page 53 ---
+ 
+38 The primary objective of the first event was collec tion of all flight data points 
+associated with designed experimentation to determi ne optimal settings.  The loss of the 
+primary aircraft on takeoff and hardware integratio n problems with backup aircraft 
+resulted in collection of all data points using a s imulated Rascal in a HIL environment.  
+The second test event was intended to serve primari ly as a demonstration of the final 
+proposed navigation logic, but was limited due to w eather.  Three flights were executed 
+but only the first, a replicate of basic follow-me mode, was done so within the wind limits 
+of the Rascal airframe.  To account for these condi tions, all presented data analysis was 
+done on flights executed in a HIL environment.  Res ults from real-world flights are 
+shown for reference, but to ensure consistency, HIL  flights are used anywhere a statistical 
+inference is required. 
+Analysis of Optimality 
+The objective of experimentation and design for thi s effort was the minimization 
+of the objective cost function (cost) associated wi th flights executed in real-time by the 
+autopilot.  Analysis necessary to achieve the desig n work required not only the cost 
+associated with a given flight, but an observation of instantaneous contribution to cost 
+versus time.  To measure cost contribution for a di screte point, the derivative of 
+Livermore’s proposed cost function [1] was taken an d defined in Equation 2 as Ji. 
+Equation 2 
+/g.856/g5056= /g0009 /g5456/g.845/g.844 /g5056− /g.845/g.844 /g505./g5050/g5046/g5056/g5045/g5050/g505. 
+/g.845/g.844 /g505./g5050/g5046/g5056/g5045/g5050/g505. /g5440/g0870
++ (1 − /g0009) /g5456/g.875/g5056
+/g.875/g5040/g5008/g505. /g5440/g0870
+ 
+Where: 
+/g.86. = /g.87./g.870/g.855/g.870/g.857 /g.855/g.870 /g.855/g.875/g.870/g.870/g.857/g.866/g.870 /g.870/g.86./g.865/g.857  
+/g0009 = /g.870/g.857/g.864/g.855/g.870/g.86./g.874/g.857 /g.875/g.857/g.86./g.859ℎ/g.870  
+/g.845/g.844 = /g.87./g.864/g.855/g.866/g.870 /g.870/g.855/g.866/g.859/g.857  
+/g.875 = /g.870/g.867/g.864/g.864 /g.870/g.855/g.870/g.857  
+
+--- Page 54 ---
+ 
+39 Note that defining Ji in such a manner allowed each flight to be profile d over time 
+to provide more information than total cost alone.  Flights could now be divided into 
+segments of time based on a selected threshold for J i to determine a relationship between 
+flight conditions and contribution to cost.  Charts  like the example in Figure 12 were used 
+for analysis and validation of all flight tests. 
+ 
+Figure 12: Example Analysis of J i 
+ 
+Follow-Me 
+Phase one of flight tests for the research effort w as characterization of baseline 
+cost performance for comparison with subsequent des ign work.  An initial flight was 
+conducted for the purpose of flight path analysis a nd cost profiling.  Three additional 
+replicate flights were flown to validate results.  Figure 13 shows the flight path with these 
+settings (which results in a cost, J, of 9.732) as well as the associated optimal route  while 
+Figure 14 depicts the achieved cost profile.  These  flights were all conducted with a 
+desired slant range of 212m, which equates to a 150 m radius when flying at an altitude of 
+150m. 
+
+
+--- Page 55 ---
+ 
+40  
+Figure 13: Flight Path with Basic Follow-Me Setting s 
+ 
+ 
+Figure 14: Analysis of J i for Basic Follow-Me Flight 
+ 
+Optimal Settings Experimentation 
+After characterizing performance of the unmodified follow-me mode, the first 
+designed experiment was executed.  This experiment consisted of 16 flights with loiter 
+
+
+--- Page 56 ---
+ 
+41 radius, loiter range, and lead time at varied setti ngs coded for analysis in the consequent 
+regression model.  Each of the flights was conducte d with the air vehicle in starting 
+conditions as similar as achievable by the operator .  The simulated ground vehicle drove 
+an identically repeatable preprogrammed course repr esenting the course available on the 
+Camp Atterbury test range.  The HIL wind model was stochastic with the average defined 
+as 3.1 m/s (found as real-world average during fami liarization flights).  Identical settings 
+were used for all flights.   Note that the combined  starting conditions are used for flights 
+conducted in all three research phases, and are not  exclusive to the experimentation 
+portion of the work.  Table 1 shows the coded level s for the first stage CCD experiment.  
+High, low, and center values are denoted with a +, -, or 0, respectively.  Axial values are 
+denoted with either an “a” or “A.”  Table 2 summari zes the response results of these 
+flights.  Treatment labels are a concatenation of c oded levels for loiter range, radius, and 
+lead time in order, with 0 representing all center values. 
+Table 1: Coded Units for First Stage Flight Experim entation 
+ Coded Level Loiter Range (m) Loiter Radius (m) Lead Ti me (s) 
+a 40 50 0
+- 58 67 1.1 
+0 120 125 5
++ 182 183 8.9 
+A 200 200 10 Associated Engineering Units 
+
+--- Page 57 ---
+ 
+42 Table 2: Cost Results for First Stage Flight Experi mentation 
+ 
+Once the data was collected, a regression model cou ld be built using the statistical 
+model generated in conjunction with the experimenta l design.  The effects of 
+experimental factors (radius, range, and lead time)  in the model were found to be 
+significant (p-value < .05) as presented in Table 3 .  The model terms are presented in  
+Table 4 sorted in order of estimate magnitude. 
+Table 3: Analysis of Variance for First Stage Fligh t Experimentation 
+ 
+ Flight (Test Point) Treatment Cost ( J, α=.95) 
+1 +++ 4.323 
+2 a00 9.651 
+3 --+ 25.999 
+4 00a 55.478 
+5 0 44.775 
+6 -++ 7.750 
+7 0 46.970 
+8 A00 148.387 
+9 +-+ 111.477 
+10 ++- 7.066 
+11 +-- 143.779 
+12 00A 47.530 
+13 -+- 9.099 
+14 0a0 50.445 
+15 0A0 29.020 
+16 --- 109.754 
+Source Degrees of 
+Freedom Sum of 
+Squares Mean 
+Square F Statistic 
+Model 5 26057.933 5211.59 5.3697 
+Error 10 9705.456 970.55 Prob > F 
+Total 15 35763.390 0.0118 
+
+--- Page 58 ---
+ 
+43 Table 4: Sorted Parameter Estimates for First Stage  Flight Experimentation 
+ 
+Note that the experiment indicated only loiter radi us and loiter range to be 
+statistically significant at the /g0009 = .05  level.  A factor profile, shown in Figure 15, was 
+generated based on the model to help select the rec ommended settings.  The resultant 
+recommendations were to set loiter radius to its hi ghest setting and range to its lowest, 
+which for this experiment translated to a radius of  200m and a range of 40m.  It was 
+decided to select 150m as the recommendation for ra dius, based on the real-world safety 
+requirement that the pilot must maintain visual con tact with the SUAS.  Lead time was 
+suggested to be set at zero, even though it was not  significant. 
+ 
+Figure 15: Factor Profiler for First Stage Experime ntal Model Term Estimate Std Error t Ratio Prob > |t| 
+Loiter Radius -34.5023 9.262 -3.73 0.0039 
+Loiter Range 25.8644 9.262 2.79 0.019 
+Loiter Range * Loiter Radius -15.6204 11.0145 -1.42 0.1 865 
+Loiter Radius * Lead Time 13.9956 11.0145 1.27 0.2326 
+Lead Time -11.524 9.262 -1.24 0.2418 
+
+
+--- Page 59 ---
+ 
+44 To validate the results and increase confidence in recommended settings, a second 
+stage experiment with finer granularity was designe d around the 150m radius and 40m 
+range test space.  Due to the lack of significance,  lead time was excluded from this 
+experiment in all but one center point replicate an d set to zero for all flights.  Coded units 
+for the CCD are shown in Table 5 and cost results a fter completion are shown in Table 6. 
+Table 5: Coded Units for Second Stage Flight Experi mentation 
+ 
+Table 6: Cost Results for Second Stage Flight Exper imentation 
+  
+Once flights were conducted, a second regression mo del was built using the 
+generated model on which the experimental design wa s based.  Analysis of second 
+model, shown in Table 7, finds that the included te rms do have a statistically significant 
+impact (p-value < .05) on the cost of a flight. Coded Level Loiter Range (m) Loiter Radius (m) 
+a 18 108 
+- 20 110 
+0 40 130 
++ 60 150 
+A 62 152 Associated Engineering Units 
+Flight (Test Point) Treatment Cost ( J, α=.95) 
+1 0A 19.288 
+2 -+ 17.185 
+3 A0 25.146 
+4 0 30.076 
+5 0 21.442 
+6 -- 27.742 
+7 +- 22.606 
+8 a0 31.880 
+9 0a 21.574 
+10 ++ 23.250 
+
+--- Page 60 ---
+ 
+45 Table 7: ANOVA for Second Stage Flight Experimentat ion 
+ 
+Parameter estimates for this model, shown sorted in  Table 8, only indicated the 
+significance of /g.864/g.867/g.86./g.870/g.857/g.870 /g.870/g.855/g.856/g.86./g.875/g.87. /g0870 at the /g0009 = .05  level, resulting in the quadratic profile 
+seen in Figure 16.  The profiler, in agreement with  the first stage experiment, suggested a 
+high setting for the loiter radius.  Due to safety limitations, the highest recommendation 
+for radius remained 150m.  Loiter range, although n ot statistically significant, still 
+showed a negative regression parameter estimate in agreement with the first stage model. 
+The lowest non-axial loiter range treatment used in  the second test, 20m, became the 
+recommended setting. 
+Table 8: Sorted Parameter Estimates for Second Stag e Flight Experimentation 
+ 
+ Source Degrees of 
+Freedom Sum of 
+Squares Mean 
+Square F Statistic 
+Model 4 167.586 41.90 7.3047 
+Error 4 22.942 5.74 Prob > F 
+Total 8 190.528 0.0400 
+Term Estimate Std Error t Ratio Prob > |t| 
+Loiter Radius * Loiter Radius -6.8416 1.594 -4.29 0.012 7 
+Loiter Range * Loiter Radius 2.8003 1.197 2.34 0.0795 
+Loiter Radius -1.9571 0.952 -2.06 0.1091 
+Loiter Range -1.0010 0.952 -1.05 0.3525 
+
+--- Page 61 ---
+ 
+46  
+Figure 16: Factor Profiler for Second Stage Experim ental Model 
+ 
+After both stages of experimentation were complete,  demonstration flights were 
+done at the final recommended settings of 150m loit er radius, 20m loiter range, and no 
+lead time.  One initial flight was done for analysi s purposes, with two additional 
+replicates for validation.  These were treated sepa rately from the test point at these 
+settings flown during experimentation, which served  as a third replicate at the suggested 
+settings.  Figure 17 shows the demonstration flight  path ( J = 15.185) as well as the 
+associated optimal route while Figure 18 depicts th e achieved cost profile.  Note that 
+optimal flight paths are calculated based on real w ind data telemetry from each associated 
+test.  The result is that even though starting cond itions were common for all flights in the 
+research effort, calculated optimal paths are not a ll identical. 
+
+
+--- Page 62 ---
+ 
+47  
+Figure 17: Flight Path Using Settings Determined by  Experimentation 
+ 
+ 
+Figure 18: Analysis of J i for Settings Determined by Experimentation 
+ 
+
+
+--- Page 63 ---
+ 
+48 Finite State Machine First Iteration 
+After completing experimentation, arriving at recom mended settings, and 
+profiling associate cost performance, design was do ne on a heuristic approach to further 
+improve performance.  It is important to note that the ArduPlane firmware is written as an 
+Arduino sketch, using a combination of C++ librarie s and traditional Arduino code for 
+main processes.  Arduino sketches are run as loops,  using conditional statements to vary 
+behavior and timing.  Therefore, the natural way to  implement heuristic logic is to assess 
+the system state iteratively and execute the desire d reaction using switch conditions, 
+which allows cases to be defined and run selectivel y.  When examining any single 
+process loop, the implementation of mutually exclus ive selective cases is the equivalent 
+of a finite state machine (FSM). 
+To design such a state machine for the purpose of m inimizing cost during convoy 
+overwatch missions, states were defined in which al ternate behavior is required.  In 
+Figure 19, the Ji profile for the demonstration of experimentally su ggested settings was 
+plotted over the turn rate of the ground vehicle be ing driven.  It was found that both of 
+the time segments with large increases in J i are immediately preceded by substantial turns 
+made by the ground vehicle. 
+ 
+Figure 19: J i Compared Against Ground Vehicle Turn Rate 
+
+
+--- Page 64 ---
+ 
+49 Also of note is that while both large increases in Ji followed periods of high 
+ground vehicle turn rate, not all ground vehicle tu rns result in Ji growth.  Figure 20 shows 
+the air and ground vehicle paths highlighting the p eriod of time encapsulating the second 
+large peak in Ji, from time = 235-280s.  It was found that both per iods of increased cost 
+correspond to a common situation in which the groun d vehicle turned such that it was 
+heading in a divergent direction from the air vehic le.  Even when the aircraft commanded 
+a full effort turn, the time required to return to the desired slant range resulted in large 
+cost contributions if these two headings were initi ally opposite. 
+ 
+Figure 20: Highlighted Portion of Flight Test with Increased J i 
+ 
+
+
+--- Page 65 ---
+ 
+50 To account for this scenario, an FSM was constructe d which allowed for tighter 
+turns in the event that the air vehicle was both co nducting a full effort turn and Ji 
+increased past a given threshold.  In this addition al state, a multiplier was used to 
+temporarily decrease the output throttle setting, c ausing a reduced turn radius.  The 
+designed FSM is diagrammed in Figure 21. 
+ 
+Figure 21: Finite State Machine Initial Design 
+ 
+The initial demonstration of the FSM was flown with  Jthreshold  set to 0.04 and the 
+throttle multiplier at 0.75.  Jthreshold  was selected based on the evaluated Ji profile in an 
+attempt to detect true peaks and avoid unnecessary state transition based on minor 
+oscillation.  The throttle multiplier was selected as a conservative value meant to 
+
+
+--- Page 66 ---
+ 
+51 noticeably decrease the associated turn radii witho ut causing excessive control behavior 
+or risking stalled conditions.  The flight path for  the initial demonstration, as well as the 
+calculated optimal path, is shown in Figure 22, ach ieving a cost of 5.110.  The 
+accompanying Ji profile is shown in Figure 23.  In addition, two r eplicate flights were 
+executed. 
+ 
+Figure 22: Flight Path Using Initial State Machine Logic 
+ 
+
+
+--- Page 67 ---
+ 
+52  
+Figure 23: Analysis of J i for Initial State Machine Logic 
+ 
+Experiment Review and Finite State Machine Second I teration 
+After completion of all three flight test phases (f ollow-me, experimentation, and 
+FSM design), including replicates, cost data was co mbined and compared.  Table 9 shows 
+these results, to include averages.  Note that real -world tests of each mode were included 
+for reference, but not included in statistical anal ysis. 
+Table 9: Summary of Cost Results from Initial Tests  and Follow-On Replicates 
+ 
+The most noteworthy observation from these results is that the settings 
+determined to be most optimal through experimentati on in fact achieved worse 
+performance than basic follow-me settings.  In addi tion, flights at these settings had a 
+much wider cost variance than either follow-me or F SM, signifying inconsistent 
+performance.  This inconsistency, coupled with degr aded average performance compared 
+Basic Follow-Me NonHeuristic 
+Optimal Settings Finite State Machine 
+Replicate Environment Cost (J, α=.95) Cost (J, α=.95) C ost (J, α=.95) 
+Initial Test HIL 9.732 15.185 5.110 
+Rep 1 HIL 6.747 4.964 3.100 
+Rep 2 HIL 5.656 3.325 3.598 
+Rep 3 HIL 4.915 N/A N/A 
+CCD Test Point HIL N/A 17.185 N/A 
+Flight Test Real World 9.171 6.701 8.285 
+7.244 9.472 5.023 
+6.762 10.165 3.936 Average 
+Average (HIL Only) 
+
+--- Page 68 ---
+ 
+53 to follow-me, indicates that analysis of initial ex perimental data failed to properly 
+characterize key effects. 
+The data from flight experimentation was reassessed  by combining all 26 original 
+test points in non-coded form (engineering units) a nd creating a traditional regression 
+model.  Note that lead time was zero for all second  stage flights.  Terms were considered 
+to the three factor interaction level and screened before inclusion in the model.  Table 10 
+shows the screener results with considered terms, b ased on contrast, highlighted.  This 
+was validated by Figure 24, a half normal plot indi cating potential term significance. 
+Table 10: Screener for Factor Inclusion in Combined  Data Regression Model 
+ 
+ Term Contrast t-Ratio Individual 
+p-Value 
+Radius -23.0789 -7.24 0.0002 
+Range 20.7977 6.52 0.0003 
+Lead Time -7.2107 -2.26 0.0368 
+Radius * Radius -3.0166 -0.95 0.3333 
+Radius * Range -9.6744 -3.03 0.0121 
+Range * Range 5.7567 1.81 0.0825 
+Radius * Lead Time 7.0742 2.22 0.0394 
+Range * Lead Time -0.8153 -0.26 0.8067 
+Lead Time * Lead Time -3.5546 -1.11 0.2591 
+Radius * Radius * Radius 6.7533 2.12 0.0472 
+Radius * Radius * Range -13.3488 -4.19 0.0031 
+Radius * Range * Range -6.4166 -2.01 0.0563 
+Range * Range * Range -2.0162 -0.63 0.5529 
+Radius * Radius * Lead Time -4.067 -1.28 0.2009 
+Radius * Range * Lead Time -1.4136 -0.44 0.6699 
+Range * Range * Lead Time 0.2447 0.08 0.9440 
+Radius * Lead Time * Lead Time -8.105 -2.54 0.0235 
+Range * Lead Time * Lead Time 1.3055 0.41 0.6965 
+Lead Time * Lead Time * Lead Time 1.8446 0.58 0.5856 
+
+--- Page 69 ---
+ 
+54  
+Figure 24: Half Normal Plot with Significant Terms Labeled 
+ 
+The terms proposed in the screener were used to con struct a new, more complex, 
+regression model with a value 0.931 for /g.844/g5008/g505./g5057/g5048/g5046/g5047/g5050/g505. /g0870.  Table 11 validates that the models 
+effect on cost was significant and the final model estimates are shown in Table 12. 
+Table 11: ANOVA for Combined Data Set with Selected  Factors 
+ 
+Table 12: Sorted Parameter Estimates for Combined R egression Model 
+ 
+Source Degrees of 
+Freedom Sum of 
+Squares Mean 
+Square F Statistic 
+Model 10 39498.222 3949.82 34.6455 
+Error 15 1710.102 114.01 Prob > F 
+Total 25 41208.325 <.0001 
+Term Estimate Std Error t Ratio Prob > |t| 
+Range 0.591026 0.064623 9.15 <.0001 
+(Radius-126.923)*(Radius-126.923)*(Range-89.231) -0. 000189 0.000026 -7.19 <.0001 
+(Range-89.231)*(Range-89.231) 0.004299 0.000859 5.01 0. 0002 
+(Radius-126.923)*(Radius-126.923)*(Radius-126.923) - 0.000617 0.000149 -4.14 0.0009 
+(Radius-126.923)*(LeadTime-3.269) 0.455661 0.112129 4. 06 0.0010 
+LeadTime -2.641159 0.690165 -3.83 0.0017 
+Radius 2.944517 0.773584 3.81 0.0017 
+(Radius-126.923)*(LeadTime-3.269)*(LeadTime-3.269) - 0.114114 0.031304 -3.65 0.0024 
+(Radius-126.923)*(Range-89.231)*(Range-89.231) -0.00 0072 0.000080 -0.90 0.3808 
+(Radius-126.923)*(Range-89.231) -0.000718 0.004953 -0. 14 0.8867 
+
+--- Page 70 ---
+ 
+55 A factor profiler, shown in Figure 25, was construc ted for the new model to help 
+graphically determine the best combination of setti ngs.  The results of the new model 
+were in fact different from the first iteration of experimental data analysis.  The 
+recommended settings from the combined regression a nalysis were a 100m loiter radius, 
+a 65m loiter range, and a 3s lead time.  In this ca se, all three were determined to be 
+significant at the /g0009 = .05  level. 
+ 
+Figure 25: Factor Profiler for Combined Regression Model 
+ 
+Demonstration flights were conducted with the lead time reintroduced at 3s, loiter 
+range increased to 65m, proposed FSM functionality disabled, and loiter radius left at 
+150m.  Note that the suggested setting of 100m was not used to allow for comparison 
+with results from existing tests.  The flight path achieved a cost of J = 2.799 and is shown 
+in Figure 26.  The associated Ji profile is shown in Figure 27.  Three additional r eplicates 
+were flown for validation. 
+
+
+--- Page 71 ---
+ 
+56  
+Figure 26: Flight Path for Optimal Settings from Co mbined Regression Model 
+ 
+ 
+Figure 27: Analysis of J i for Suggested Settings from Combined Regression Mo del 
+ 
+Following flight test of resultant settings from th e second experimental analysis, a 
+second iteration of FSM design was proposed.  Defin ition of states requiring alternate 
+behavior was not as intuitive as the first design d ue to an overall increase in performance 
+
+
+--- Page 72 ---
+ 
+57 with most peaks in Ji not exceeding 0.01.  Figure 28 depicts an analysis  of slant range for 
+the demonstration flight where it is seen that most  increases in J i correlated to periods 
+during which the aircraft spent inordinate amounts of time off of the desired slant range.   
+  
+Figure 28: Slant Range Analysis Generated for Sugge sted Settings Flight Path 
+  
+This relationship was expected given that α, as def ined in Equation 1, was set to 
+0.95 for all of Livermore’s optimization functions used in this effort [1], heavily favoring 
+slant range.  However, when compared to the actual flight path, the analysis helps 
+demonstrate that flight times with poor slant range  performance are typically those in 
+which the SUAS overcame the ground vehicle while bo th were traveling in relatively 
+straight paths with common headings.  Under these c ircumstances, it was found that the 
+air vehicle occasionally found itself unable to com mit to either a full turnaround or 
+increased effort to regain the desired slant range.  
+A second iteration FSM was proposed that, when appr opriate, attempted to 
+diminish the effects of this scenario by scaling th e level of effort being used to maintain 
+slant range.  This design, with all associated tran sition logic is diagramed in Figure 29. 
+
+
+--- Page 73 ---
+ 
+58  
+Figure 29: Revised Finite State Machine 
+ 
+The second iteration FSM was implemented on the APM  with Jthreshold  = 0.003 
+and control effort buffer set to 35m, representing a ±23% change over a desired radius of 
+150m.  Like the initial FSM, Jthreshold  was selected based on the Ji profile in an attempt to 
+execute state transitions when necessary but not ex cessively.  The control effort buffer 
+was set to a conservative value intended to effect measurable changes without causing 
+unsafe behavior if flown in real-world test.  A dem onstration flight was conducted, 
+
+
+--- Page 74 ---
+ 
+59 followed by three additional replicates.  The demon stration flight path is shown in Figure 
+30, with cost of 2.35.  The Ji profile for the flight is shown in Figure 31. 
+ 
+Figure 30: Flight Path for Revised Finite State Mac hine 
+ 
+ 
+Figure 31: Analysis of J i for Revised Finite State Machine 
+ 
+
+
+--- Page 75 ---
+ 
+60 For the final replicate flight utilizing the revise d FSM design, a debugger was 
+added to the firmware allowing for analysis of whic h states were active over the course of 
+the flight.  This is profiled in Figure 32. 
+ 
+Figure 32: Profile of Current State for Final FSM F light 
+ 
+While the profile shows that the best setting for s tate transition conditions may 
+require further experimentation, it does validate t hat all three states were entered at 
+various points throughout the course of flight.  Th e fact that the majority of the time was 
+spent in the standard tracking state does indicate that both alternate states were effective 
+in their goals of returning the SUAS to a condition  with low Ji and low slant range error. 
+Comparative Results and Investigative Questions 
+Once all replicate flights were executed with telem etry data appropriately 
+recorded, comparative analyses were conducted both to measure improvement in cost and 
+validate applicability to the convoy overwatch scen ario.  Table 13 presents a summary of 
+cost results for initial demonstration flights and replicates flown in all three stages of the 
+research effort.  For this analysis, note that only  the second iteration of experimentally 
+suggested settings and FSM design were considered. 
+
+
+--- Page 76 ---
+ 
+61 Table 13: Summary of Cost Results after Secondary D ata Analysis and State 
+Machine Design 
+ 
+ 
+These sets of results were specifically intended to  answer the first three 
+investigative questions listed for this effort, res tated below: 
+• What is the target tracking and flight path perform ance of the SUAS when 
+using a basic follow-me mode? 
+• What is the best path performance achievable by the  adjustment of existing or 
+readily accessible navigation control without imple mentation of state 
+responsive logic? 
+• What is the achievable SUAS flight path optimality using a state-based, 
+heuristic approximation of the optimization strateg y? 
+• What is the feasibility of implementing heuristic g round target tracking logic 
+that is capable of real-time execution onboard a SU AS autopilot? 
+Basic follow-me flights, flights at the experimenta lly suggested settings, and the 
+proposed FSM flights were all conducted in direct r esponse to first three investigative 
+questions, respectively.  A visual depiction of the  achieved performance differences is 
+shown in Figure 33, in which the Ji profile for all three initial flight demonstration s are 
+overlapped along with associated average Ji for each. 
+ Basic Follow-Me DOE Suggested 
+Settings - V2 Finite State 
+Machine - V2 
+Replicate Environment Cost (J, α=.95) Cost (J, α=.95) C ost (J, α=.95) 
+Initial Test HIL 9.732 2.699 2.350 
+Rep 1 HIL 6.747 5.249 1.966 
+Rep 2 HIL 5.656 2.799 2.513 
+Rep 3 HIL 4.915 1.985 2.361 
+6.762 3.183 2.298 
+52.9% 66.0%Average 
+% Improvement over Follow-Me 
+
+--- Page 77 ---
+ 
+62  
+Figure 33: Cost Performance for Initial Flight Test s of Main Configurations 
+ 
+The final investigative question was more complex.  From a technical standpoint, 
+two items were required to subjectively assess the viability of heuristic approximation of 
+optimal control: first was a measure of performance  increase significance and second was 
+validation that the proposed strategy remains capab le of meeting mission requirements. 
+Basic costs, both individuals and averages, are pre sented in Table 13, above.  
+However, this does not provide an indication of the  significance of achieved results.  In 
+order to claim that performance increases can truly  be expected from the presented 
+settings and heuristic design, confidence intervals  based on the collected samples were 
+compared.  Table 14 shows 95% confidence intervals calculated for the true mean 
+performance expected at each of the three demonstra ted firmware configurations.  The 
+samples used to calculate these intervals were the initial flights and replicates collected at 
+each stage of the effort.  For all three configurat ions n is equal to four replications. 
+
+
+--- Page 78 ---
+ 
+63 Table 14: 95% Confidence Intervals for Cost Perform ance of Main Configurations  
+ 
+Figure 34 depicts the same confidence intervals gra phically.  This figure is 
+important because it demonstrates that there was no  overlap between the basic follow-me 
+and final FSM configurations.  The lack of overlap means that the true average 
+performance was in fact been improved over the basi c follow-me performance.  The same 
+could not be said for the experimentally suggested settings.  However, theses settings 
+were intended primarily to provide the requisite an alysis for arriving at the final FSM. 
+ 
+Figure 34: Confidence Intervals for Cost Performanc e of Main Configurations Firmware Configuration Achieved Cost (J) 
+Sample Average -t 0.05,3 *(s/n 0.5 ) + t 0.05,3 *(s/n 0.5 )
+Basic Follow-Me 6.762 3.393 10.132 
+Final Experimental Suggested Setting 3.183 0.917 5.449
+Final FSM Design 2.298 1.926 2.669 
+
+
+--- Page 79 ---
+ 
+64 Next, flights conducted with the final FSM could be  compared to their respective 
+optimal paths (theoretically calculated in MATLAB) to determine differences in 
+performance.  Table 15 shows data from all four fli ghts using the proposed firmware with 
+each associated optimal cost, including a 95% confi dence interval conducted on each set 
+of four J values.  These confidence intervals are d epicted graphically in Figure 35. 
+Table 15: 95% Confidence Interval for Final FSM and  Associated Optimal Costs 
+ 
+ 
+ 
+Figure 35: Plotted Confidence Intervals for Final F SM Design and Respective 
+Optimal Paths Replicate Final FSM Achieved 
+Cost Associated Optimal 
+Path Cost 
+Initial Test 2.350 1.449 
+Rep 1 1.966 1.842 
+Rep 2 2.513 1.329 
+Rep 3 2.361 0.838 
+Sample Average 2.298 1.364 
++ t 0.05,3 *(s/n 0.5 ) 2.669 2.023 
+-t 0.05,3 *(s/n 0.5 ) 1.926 0.706 
+
+
+--- Page 80 ---
+ 
+65 Note that using the four replicates conducted, over lapping confidence intervals 
+were found for the achieved and optimal costs.  Whi le this was a good indicator that 
+achieved performance was close to the optimal, the overlap was relatively narrow so a 
+more conservative hypothesis test was conducted.  A  one tailed t-test was used based on 
+the sample sizes and the assumption that the FSM co uld not perform better than the 
+optimal.  The results of this test are shown in Tab le 16. 
+Table 16: Two Sample t-Test (Unequal Variance) for Final FSM Flights and 
+Associated Optimal Paths 
+ 
+With tstat  > t critical , this test rejected the hypothesized difference of  zero and 
+indicated that the final FSM did in fact perform wo rse than the optimal at the α = 0.05 
+level.  This was expected as the calculated optimal  is based on perfect future knowledge 
+of the ground vehicle path and the proposed FSM is a real-time heuristic making no cost 
+assessments of predicted scenarios. 
+Finally, to validate that the proposed solution was  capable of meeting convoy 
+overwatch mission requirements, sensor time-on-targ et was evaluated for the follow-me, 
+DOE suggested, and final FSM settings.  The HIL env ironment allowed a virtual sensor 
+gimbal to be added to the SUAS, enabling theoretica l time-on-target to be evaluated in an Final FSM Achieved 
+Cost Associated Optimal 
+Path Cost 
+Mean 2.2975 1.3643 
+Variance 0.054362087 0.171317413 
+Observations 4 4
+Hypothesized Mean Difference 0
+df 5
+t Stat 3.928788685 
+P(T<=t) one-tail 0.005541883 
+t Critical one-tail 2.015048373 
+
+--- Page 81 ---
+ 
+66 identical fashion to real world flights.  Figure 36  depicts sensor aimpoint for all three 
+respective demonstration flights while Table 17 pro vides associated percentages for both 
+the actual HackHD lens (160° field of view) and an optional 16.9° lens. 
+ 
+Figure 36: Sensor Aimpoint for Initial Flight Tests  of Main Configurations 
+ 
+
+
+--- Page 82 ---
+ 
+67 Table 17: Sensor Time-on-Target Performance for Ini tial Flight Tests of Main 
+Configurations 
+ 
+Findings show that all three configurations maintai ned the sensor on target for 
+effectively the entire flight using the default Hac kHD lens.  If a very narrow field of view 
+had been used (25mm lens), there would have been a decrease in performance for the 
+proposed FSM to 92%.  Further analysis shows that i f a smaller ground sample distance 
+was desired, the final FSM design could have been f lown with a field of view as low as 
+45° while still maintaining 100% time-on-target (as suming the same aspect ratio as the 
+25mm lens).  The conclusion is that using the FSM d id not sacrifice mission requirements 
+to any significant degree in order to achieve incre ased flight path optimality.  Figure 37 
+shows a screenshot taken from the gimbal mounted vi deo collected during the real-world 
+FSM flight test. 
+ 
+Figure 37: Screenshot from Real-World Ground Vehicl e Tracking Mission Flight Percent Time-on-Target with 
+Stock 160° Lens Percent Time-on-Target with 
+Optional 25mm 16.9° Lens 
+Basic Follow-Me 100% 100% 
+DOE Suggested Settings V2 99% 92% 
+FSM Final Design 100% 92% 
+
+
+--- Page 83 ---
+ 
+68 Final Firmware Modifications 
+Many modifications to the ArduPlane firmware were r equired for this research 
+effort.  The version used as a baseline was V2.68.  From there, changes were made to the 
+primary loop, the navigation process file, the tele metry management process file, and 
+control mode response routines.  Most noteworthy ho wever, was the introduction of a 
+new library and parameter modifications for control .  Reference Appendix H for the final 
+proposed ArduPlane firmware structure. 
+Ground Vehicle Class 
+To achieve the proposed heuristic behavior as well as conduct all described 
+experimentation, it was necessary for the SUAS auto pilot to access certain information 
+regarding the ground vehicle being tracked.  Becaus e C++ and Arduino are object 
+oriented languages, the most direct way of calculat ing, organizing, and presenting this 
+data was to create a ground vehicle class, labeled Ground_Vehicle.  Doing so allowed the 
+main ArduPlane process to instantiate an object, no tated GV, and when required call 
+certain public attributes and methods.  Using telem etry from the GCS, GV can be 
+regularly updated to provide all pertinent informat ion on the actual ground vehicle.  This 
+includes a safety check, GV.active, that allows the  system to know if updates are no 
+longer being received from the ground vehicle (even  if a link with the GCS is still 
+present) and failsafe to existing navigation logic.   The Ground_Vehicle class was 
+implemented using the traditional C++ library desig n [13], consisting of a header file 
+called by ArduPlane, and an implementation file con taining all logic associated with the 
+defined methods.  Figure 38 depicts a diagram showi ng the Ground_Vehicle class.  
+Reference Appendix G for the associated C++ header.  
+
+--- Page 84 ---
+ 
+69  
+Figure 38: Class Diagram for Ground Vehicle 
+Parameter Entries 
+The number of flights required for this effort, eve n with most being conducted in 
+HIL, was not feasible if every configuration change  had required firmware adjustment, 
+recompilation, uploading to the APM, power cycling,  redoing the aircraft preflight, and 
+reinitiating flight test.  In order to conduct all requisite flights, especially during the 
+experimentation stage of research, it was essential  that the operator have real-time control 
+over all factors.  To address this challenge, chang es made to the ArduPlane firmware, 
+when possible, were parameterized and transmitted t o the GCS upon connection.  The 
+final firmware version associated with this effort includes the following parameters in 
+addition to the default configuration file.  For fu ture replication of any work, Appendices 
+I and J define the parameter sets used for both rea l-world and HIL flights, respectively. 
+
+
+--- Page 85 ---
+ 
+70 Target Tracking Mode 
+Tracking mode is a flag allowing the operator to en able or disable certain 
+functionality.  If desired, all code modifications associated with this effort could be 
+turned off, resulting in reversion to entirely stoc k behavior.  The second option is that 
+only those changes listed in the initial modificati ons section (sensor gimbal tracking, and 
+dual direction loiter) be enabled.  The final optio n is to enable all altered functions, which 
+was used during experimentation and FSM flights. 
+Lead Time 
+The lead time value is the number of seconds used w hen calculating a forward 
+projected ground vehicle location.  This was a key experimental parameter requiring real-
+time adjustment.  The input value for lead time is passed into the GV object and handled 
+internally, after which a public structure, labeled  lead_location could be read and used for 
+navigation. 
+Loiter Range 
+While using the loiter range for smooth transition to circular flight is a stock 
+function, it was not made accessible to the operato r by default.  The range was a hard 
+coded private attribute internal to the navigation process.  Parameterization of this 
+attribute allowed for the experimentation portion o f the research to be executed as 
+designed. 
+Loiter Direction 
+Allowing the loiter direction to be selected dynami cally was an enabling function 
+for the ground target tracking mission.  However, t his required that a defining parameter 
+
+--- Page 86 ---
+ 
+71 be passed into the navigation process whenever a fi xed loiter was required.  This 
+parameter allows direction specification for static  loiter scenarios. 
+Ji Threshold 
+This parameter can be called by the navigation proc ess and compared against the 
+current J i whenever assessing state-based behavior. Current Ji is a public attribute of GV 
+used as a metric for state transition conditions in  the proposed FSM design.   
+Control Effort Buffer 
+The control effort buffer, parameterized in meters,  can be called when changing 
+the level of effort applied to reach a desired slan t range.  This change was required for the 
+alternate states proposed in the final FSM. 
+ 
+Summary 
+The analysis and results chapter expanded on the fl ight test methodology 
+presented in Chapter 3 and describes in detail the results associated with each step.  Initial 
+discussion focused on firmware modifications made t o enable the planned test 
+procedures, including sensor gimbal target tracking  and dynamic loiter direction.  Next, 
+results from the three planned test methodology pha ses were presented.  Analysis was 
+given as justification for performing a second iter ation of the last two phases.  These 
+phases include settings experimentation and design of an FSM approach to heuristically 
+approximate the proposed optimal path planning stra tegy.  Flight data collected using the 
+final recommended navigation logic was analyzed mor e extensively, providing evidence 
+of statistically significant performance improvemen ts.  All test data was then presented 
+
+--- Page 87 ---
+ 
+72 alongside the investigative questions by which each  test was justified.  Finally, an 
+overview of the firmware modifications required to implement all proposed changes was 
+discussed with focus on new object oriented structu res and all entities implemented for 
+user control.  Chapter 5 will discuss the implicati ons of these findings with attention to 
+how results conclude the research objective, as wel l as recommendations for future work. 
+  
+
+--- Page 88 ---
+ 
+73 V.  Conclusions and Recommendations 
+Chapter Overview 
+The final chapter concludes the research effort by expanding upon the data 
+presented in Chapter 4 to discuss final implication s as well as recommendations for 
+follow-up action and future research.  Conclusions focus on the stated research objective 
+of approximating optimal flight path solutions for SUAS tracking of a mobile ground 
+target.  Follow-up actions are recommendations for work that could be done to augment 
+the effort in order to validate or improve the achi eved results.  Finally, future research 
+refers to potential work that could make use of the  presented flight results or navigation 
+strategy for other investigative purposes. 
+Conclusions of Research 
+The effort presented a research objective and four associated investigative 
+questions.  The first three questions formed the st ages of research and focused on the 
+characterization of achievable optimality for basic  follow-me, DOE suggested, and state-
+based firmware configurations.  Optimality was char acterized using methods proposed by 
+Livermore [1] for missions requiring a SUAS to trac k and monitor a moving ground 
+target.  The data collected during these stages is presented in Chapter 4 and it was 
+concluded that each firmware setting, in the order conducted, achieved better average 
+results than the previous. 
+The research objective was to achieve final impleme ntation of the proposed 
+strategy for approximation of optimal performance.  The firmware was proposed and 
+successfully implemented in the third stage of the effort.  The final investigative question 
+
+--- Page 89 ---
+ 
+74 was designed to characterize the implications of th e applied firmware by describing the 
+feasibility of achieving approximated optimality in  real-world systems requiring 
+autonomous mobile ground target tracking.  To answe r this question, the achieved cost of 
+all executed flights was considered.  The effort us ed data from a total of 47 flights at 
+various settings: 16 for the first stage experiment , 10 for the second stage experiment, 4 
+using default follow-me, 3 at the initial DOE sugge sted settings, 3 with the initial FSM, 4 
+at the revised DOE suggested settings, 4 demonstrat ions of the final FSM, and 3 real-
+world flights.  With regards to cost, the first qua rtile for all flights was found to be J = 
+4.915.  The highest cost achieved by any of the fou r demonstration flights utilizing the 
+final FSM was J = 3.178.  In other words, flights with the final pr oposed firmware design 
+fell within the best 25% of all results.  Furthermo re, while statistical analysis showed that 
+the final FSM did not match the performance of the MATLAB generated optimal paths, it 
+was found that cost was significantly improved over  the baseline follow-me functionality.  
+The relatively low cost of these flights coupled wi th the considerable performance 
+increases over default capabilities indicate that n ear-optimal flight paths are operationally 
+feasible using a real-time heuristic strategy imple mented onboard the APM autopilot. 
+Follow-Up Action 
+Follow-up action describes potential efforts that c ould be done to improve on the 
+documented results.  These efforts would provide in creased confidence in the presented 
+findings and directly support the stated research o bjective. 
+
+--- Page 90 ---
+ 
+75 Real-World Replication of Designed Experiment 
+One of the largest tradeoffs made in accomplishing this effort was the logistical 
+inability to execute all flight tests using real-wo rld equipment.  All conducted simulation 
+used a real APM physically connected to the GCS run ning both Mission Planner and the 
+aircraft environment simulation software.  The code  being run was the actual APM 
+firmware, as opposed to emulated software on the GC S.  All navigation logic of concern 
+in this effort was run without differentiation betw een real-world and simulated input 
+states.  This means that the experimental results a re representative of real APM 
+performance. 
+However, this does make it difficult to verify that  the exact settings used are those 
+that would work specifically on the real-world Rasc al aircraft. For that reason, there 
+would be some benefit to repeating the experimentat ion and demonstration portion of the 
+effort in a real-world environment if possible.  If  constraints do not allow the entire 26 
+CCD flights to be executed, conducting smaller expe riments to simply verify the factor 
+limits and basic effects would also help to validat e findings. 
+In addition, replication of experimentation should consider the possibility of using 
+varied ground paths.  The stated constraints for th is effort allowed for only one path, 
+which was selected to represent a range of tracking  scenarios.  However, this does not 
+conclusively characterize universal performance.  V alidation of findings may be aided by 
+examining a more exhaustive assortment of ground ta rget paths. 
+Experimental Design to Analyze Finite State Machine  
+Designed experimentation was used in this effort to  arrive at suggestions for 
+existing (or easily modified) settings, which was c onsequently used for state analysis.  
+
+--- Page 91 ---
+ 
+76 The final suggested FSM however, introduced two new  factors ( Ji threshold and control 
+effort buffer) that were only flown at values concl uded from initial analysis.  If not 
+resource constrained, it would be highly beneficial  to perform a final DOE accounting for 
+all pertinent parameters: loiter radius, loiter ran ge, lead time, Ji threshold, and control 
+effort buffer. 
+Lessons learned from the first attempt at analysis of experimental results showed 
+that it can be difficult to detect and model both c urvature and interrelationships of these 
+parameters in a setting as complex as SUAS flight.  Therefore, it would be suggested to 
+begin with a screening experiment to determine whic h factors are truly significant and the 
+approximate portion of the test space containing th e best values for each.  This could be 
+conducted in a relatively efficient manner by begin ning with a factorial (2 k) or fractional 
+factorial (2 k-p) experiment using only a high and low setting for each factor.  These types 
+of experiments are commonly used for screening and have the potential to provide useful 
+results when many factors are present and number of  test points is limited [14].  After 
+such a screener is conducted, more complex experime ntation could be conducted in a 
+narrower test space (with potentially fewer factors ) to arrive at final suggested settings.  It 
+is possible that such an effort could better utiliz e the proposed navigation logic and 
+achieve even better cost results. 
+Replication of Experimentation with Alternate Respo nse 
+While the proposed FSM did result in significant pe rformance increases, it was 
+observed that the achieved path often had very litt le overlap with the associated optimal.  
+Technically, the cost of a flight is the best measu re of optimality, which is why J was 
+selected as the primary response for all analysis i n this effort.  However, it is possible that 
+
+--- Page 92 ---
+ 
+77 any further improvement over the proposed FSM may r equire consideration of horizontal 
+deviation from the true optimal path. 
+The challenge of characterizing two dimensional pat h deviation between any two 
+sets of aircraft flight data was discussed by McCar thy in his attempt to analyze close-
+formation flight capability for SUAS [15].  Specifi cally, he was attempting to achieve 
+formation flight using a dynamic waypoint update st rategy.  When addressing the 
+feasibility of such an approach, McCarthy recognize d that adherence to waypoint paths 
+requires comparative characterization to identify t he best achieved autopilot parameter 
+set.  His solution was a MATLAB script capable of c omparing two location matrices and 
+charting XY deviation against a normalized time vec tor.  This deviation, while not a 
+direct measure of the optimality with which the cur rent effort is concerned, still provides 
+useful comparative information regarding the simila rity of any two flight paths.  Figure 
+39 shows an example two dimensional path comparison  generated by McCarthy.  Figure 
+40 is the associated chart showing horizontal path deviation.  Parameterization of this 
+deviation and use as an alternate or secondary resp onse in experimentation may allow 
+even more significant cost improvements with a heur istic real-time strategy. 
+ 
+
+--- Page 93 ---
+ 
+78  
+Figure 39: McCarthy Example Flight Path Visualizati on 
+ 
+ 
+Figure 40: McCarthy Example Flight Path Deviation C hart 
+ 
+
+
+--- Page 94 ---
+ 
+79 Future Research 
+Future research suggests alternate efforts that may  benefit from the documented 
+results.  These suggestions are for work that does not directly support the stated research 
+objective, but rather focuses on new objectives in related areas. 
+Analysis of Optimization Cost Function 
+This effort attempted to achieve the lowest possibl e objective cost function value, 
+as defined by Livermore [1], in a heuristic, real-t ime fashion.  However, no investigation 
+was given to the value of the cost function as a me asurement of convoy overwatch 
+performance.  Future work in the field of flight pa th optimization, specifically flights 
+aimed at mobile target tracking, would benefit from  validation of the cost metric through 
+the application of systems engineering principles. 
+To achieve this validation, a true requirements eli citation should be conducted for 
+the convoy overwatch mission including, but not lim ited to, input from those conducting 
+the ground missions as well as those performing int elligence processing.  The results of 
+such an effort would include, as a subset, any tech nical requirements associated with 
+conducting convoy overwatch with a SUAS.  Any given  flight path alternatives, 
+theoretical or real-world, can be compared against the key performance parameters 
+associated with such requirements and rank ordered using traditional decision analysis.  
+Ranking in such a manner can help validate the cost  function used for this effort as the 
+achieved J values, when sorted, should align with the decisio n analysis results.  
+Furthermore, any future proposed cost function can be validated in the same manner. 
+
+--- Page 95 ---
+ 
+80 Stochastic Estimation of Ground Vehicle Path 
+The final recommendation for future research focuse s on prediction of the path of 
+the ground vehicle.  In the case of this research e ffort, it is assumed that operations are 
+occurring in an environment where future knowledge of the ground path is not feasible.  
+The implementation of the lead time functionality a ccounts for only the current ground 
+vehicle heading and speed to predict a linear futur e location.   
+In Livermore’s work, he finds that it is unnecessar y to know the entire future path 
+of the ground vehicle to arrive at a feasible optim al path.  He presents a strategy by which 
+the optimization function is called repeatedly (at 1.5Hz) considering the current states of 
+the air and ground vehicle as well as the future pa th for only a specified period of time 
+(labeled as the look-ahead).  The notional air vehi cle executes the first 0.667s of the 
+returned flight path before reevaluating.  He finds  that using a look-ahead as low as 4 
+seconds for the future ground path knowledge result s in an overall flight effectively 
+identical in path and cost to a single iteration of  the optimization function considering the 
+full future path [1]. 
+If future efforts or constraint changes allow for u pdates to the Ground_Vehicle 
+library that provide an estimation of the future pa th for as little as 4 seconds, it is possible 
+that real-time execution of Livermore’s path planni ng strategy could be implemented in a 
+non-heuristic fashion.  If the period of time is sm all enough, work could be done to 
+implement a nonlinear optimization C++ library into  the ArduPlane firmware to most 
+thoroughly emulate Livermore’s strategy.  Conversel y, if true onboard optimization 
+libraries prove computationally excessive, simple f unctions can be written to consider a 
+fixed number of look-ahead flight paths and return the lowest cost option as either a 
+
+--- Page 96 ---
+ 
+81 waypoint array or direct control sequence.  Both op tions have the potential to realize 
+significant performance benefits in terms of onboar d approaches to optimal path 
+planning. 
+Summary 
+The presented research evaluated the feasibility of  achieving heuristic path 
+planning strategies running in real-time onboard a SUAS performing a convoy overwatch 
+mission.  The proposed strategy was designed to emu late, to the best extent possible, an 
+existing flight path optimization function built fo r post-processing assuming full future 
+ground vehicle information.  Work began by evaluati ng the default behavior of the APM 
+autopilot.  Minor modifications were made to parame terize existing settings as well as 
+add basic functionality that previous research sugg ested to be important.  Changes 
+included adjustments to the sensor gimbal control l ibrary, addition of a dynamic loiter 
+direction, and the ability to lead the ground vehic le by a given time period. 
+Next, a two stage designed experiment was conducted  to arrive at the best 
+achievable combination of settings (with regards to  flight path optimality).  A time 
+analysis of instantaneous contributions to optimali ty ( Ji) was performed and a finite state 
+machine approach to navigation logic was proposed t o further increase performance.  The 
+suggested FSM was integrated into the APM flight fi rmware and tested in a six-degree-
+of-freedom hardware in the loop environment.  It wa s found that achieved optimality 
+demonstrated a statistically significant improvemen t over the default follow-me 
+performance.  The effort concludes that real-time h euristic approximations to optimal 
+
+--- Page 97 ---
+ 
+82 path planning do present a viable alternative to th e high computational and equipment 
+costs associated with implementing a true optimal s olution. 
+  
+
+--- Page 98 ---
+ 
+83 REFERENCES 
+ 
+[1]  R. Livermore, "Optimal UAV Path Planning for Tracki ng a Moving Ground Vehicle 
+with a Gimbaled Camera," Air Force Institute of Tec hnology, Wright Patterson 
+Air Force Base, 2014. 
+[2]  B. D. Lozano, "Improving Unmanned Aircraft Persista nce by Enhancing Endurance 
+and Effective Surveillance Using Design of Experime nts and Regression 
+Analysis," Air Force Institute of Technology, Wrigh t-Patterson Air Force Base, 
+2011. 
+[3]  N. A. Terning, "Real-Time Navigation and Flight Pat h Generation for Tracking 
+Stop-and-Go Targets with Miniature Air Vehicles," A ir Force Institute of 
+Technology, Wright-Patterson Air Force Base, 2008. 
+[4]  J. P. Boire, "Autonomous Routing of Unmanned Aerial  Vehicle (UAV) Relays to 
+Mimic Optimal Trajectories in Real Time," Air Force  Institue of Technology, 
+Wright-Patterson Air Force Base, 2011. 
+[5]  Headquarters, United States Air Force, "United Stat es Air Force Unmanned Aircraft 
+Systems Flight Plan 2009-2047," Washington DC, 2009 . 
+[6]  RAND Corporation, Arroyo Center, "Unmanned Aircraft  Systems for Logistics 
+Applications," RAND Corporation, Santa Monica, 2011 . 
+[7]  M. D. Zollars, "Optimal Wind Corrected Flight Path Planning for Autonomous 
+Micro Air Vehicles," Air Force Institute of Technol ogy, Wright-Patterson Air 
+Force Base, 2007. 
+[8]  J. W. Welborn, "Calibration and Extension of a Disc rete Event Operations 
+Simulation Modeling Multiple Un-Manned Aerial Vehic les Controlled by a 
+Single Operator," Air Force Institute of Technology , Wright-Patterson Air Force 
+Base, 2013. 
+[9]  J. Gundlach, Designing Unmanned Aircraft Systems: A  Comprehensive Approach, 
+Reston: American Institute of Aeronautics and Astro nautics, 2012.  
+
+--- Page 99 ---
+ 
+84 [10] "ArduPilot instructional graphics source," DIYDrone s, 28 November 2012. [Online]. 
+Available: https://code.google.com/p/ardupilot-mega /wiki/APM2_Graphics. 
+[Accessed 1 August 2013]. 
+[11] J. Berndt, "JSBSim: An Open Source, Platform-Indepe ndent, Flight Dynamics 
+Model in C++," 2011. [Online]. Available: 
+jsbsim.sourceforge.net/JSBSimReferenceManual.pdf. [ Accessed 17 February 
+2014]. 
+[12] "diydrones/ardupilot · GitHub," [Online]. Available : 
+https://github.com/diydrones/ardupilot. [Accessed 9  March 2014]. 
+[13] S. Monk, Programming Arduino Next Steps: Going Furt her with Sketches, New 
+York: McGraw-Hill Education, 2014.  
+[14] D. Montgomery, Design and Analysis of Experiments, Hoboken, NJ: John Wiley & 
+Sons, 2013.  
+[15] P. A. McCarthy, "Characterization of UAV Performanc e and Development of a 
+Formation Flight Controller for Multiple Small UAVs ," Air Force Institute of 
+Technology, Wright-Patterson Air Force Base, 2006. 
+[16] "3DRobotics - Learn," 3DRobotics, 2013. [Online]. A vailable: 
+http://3drobotics.com/learn/#APM_26_Autopilot. [Acc essed 11 February 2014].  
+[17] "SPT100 Pan & Tilt System," Servocity, 2014. [Onlin e]. Available: 
+http://www.servocity.com/html/spt100_pan___tilt_sys tem.html. [Accessed 11 
+February 2014]. 
+[18] "HackHD - Technical Specifications," HackHD, 2013. [Online]. Available: 
+http://www.hackhd.com/tech.php. [Accessed 11 Februa ry 2014]. 
+ 
+ 
+ 
+
+--- Page 100 ---
+ 
+85 Wingspan 110 in. 
+Wing Area 1522 sq. in. 
+Length 75.75 in. 
+Flying Weight ≈ 12 lbs. 
+Propeller APC 18x8E 
+Motor Himax HC6330-200 
+Electronic Speed Control Castle 120A HV 
+Flight Batteries Turnigy 5000 mAh LiPo 
+Autopilot ArduPilot Mega 2.5 
+Cruise Airspeed 15 m/s 
+Aileron Servos Hitec HS-6635HB 
+Aileron Deflection ±27° 
+Elevator Servo Hitec HS-5485HB 
+Elevator Deflection ±19° 
+Rudder Servo Hitec HS-5485HB 
+Rudder Deflection ±12° 
+Maximum Roll Rate 100°/sec. Appendix A: Rascal Configuration 
+ 
+Figure 41: Rascal SUAS Used for Flight Test 
+ 
+Table 18: Rascal SUAS Key Specifications 
+ 
+  
+
+
+--- Page 101 ---
+ 
+86 Appendix B: Autopilot and Peripherals Specification s 
+ 
+Figure 42: APM 2.5 Dimensions [16] 
+ 
+Table 19: Autopilot Specifications 
+ 
+Table 20: Telemetry Modem Specifications 
+ 
+Autopilot ArduPilot Mega 
+Hardware Version 2.5 
+Software Version 2.68 with modifications 
+Processor Atmel 2560 
+Gyro + Accelerometer InvenSense MPU-6000 
+Magnetometer Honeywell HMC5883L 
+Barometric Sensor Measurement Specialties MS5611-01B A03 
+GPS Receiver uBlox LEA-6H 
+Airspeed Sensor Freescale MPXV7002 
+Telemetry Modem 3DRobotics Radio Set 
+Modem Brand 3DRobotics 
+Frequency 915 MHz 
+Transmission Type Frequency Hopping Spread Spectrum 
+Data Connection 6 Pin DF13 
+Maximum Output Power 100 mW 
+Rx Sensitivity -117 dBm 
+Transmission Connector RP-SMA 
+Supply Voltage 3.7-6 VDC 
+Size 26.7 x 55.5 x 13.3mm 
+
+--- Page 102 ---
+ 
+87 Computer HP EliteBook 8560w 
+Ground Control Software APM Mission Planner 
+Software Version 1.2.76 
+Telemetry Modem 3DRobotics Radio Set 
+GPS Receiver GlobalSat BU-353 
+Ground Vehicle HMMWV Troop Carrier Configuration Appendix C: Ground Control Station Specifications 
+Table 21: Ground Control Station Equipment 
+ 
+  
+
+--- Page 103 ---
+ 
+88 Appendix D: Payload Specifications 
+Table 22: Payload Components 
+ 
+ Model Servocity SPT100H 
+Pan Servo Hitec HS-785HB 
+Pan Rotation ±180° 
+Pan Pulsewidth Range 1390-1625 
+Tilt Servo Hitec HS-5485HB 
+Tilt Rotation +10°, -90° 
+Tilt Pulsewidth Range 1000-2000 
+Model HackHD 
+Resolution 1080P 
+Pixel Count 9MP 
+Framerate 30 FPS 
+Aspect Ratio 16:9 
+Storage onboard microSD 
+Lens Mount M12 
+Video Output Composite 480P 
+Supply Voltage 3.7-5 VDC 
+Frequency 5.8 GHz 
+Transmitter ImmersionRC TX_5G8_600 
+Tx Power 600 mW 
+Supply Voltage 6-25 VDC 
+Receiver Iftron Yellowjacket Diversity 
+Supply Voltage 6-15 VDC 
+Rx Sensitivity -91 dBm Gimbal 
+Camera 
+Transmission 
+
+--- Page 104 ---
+ 
+89  
+Figure 43: Servocity SPT100H Pan-Tilt Gimbal Dimensi onal Drawing [17] 
+ 
+ 
+Figure 44: HackHD Camera Dimensional Drawing [18] 
+  
+
+
+--- Page 105 ---
+ 
+90 Appendix E: Simulated Rascal Definition 
+<? xml  version ="1.0" ?>  
+<? xml-stylesheet  
+href ="http://jsbsim.sourceforge.net/JSBSim.xsl"  
+type ="text/xsl" ?>  
+<fdm_config  name ="rascal"  version ="2.0"  release ="BETA"  
+ xmlns:xsi ="http://www.w3.org/2001/XMLSchema-instance"  
+ 
+xsi:noNamespaceSchemaLocation ="http://jsbsim.sourceforge.n 
+et/JSBSim.xsd" > 
+ 
+    <fileheader>  
+        <author>  Author Name </author>  
+        <filecreationdate>  Creation Date 
+</filecreationdate>  
+        <version>  Version </version>  
+        <description>  Models a rascal </description>  
+    </fileheader>  
+ 
+    <metrics>  
+        <wingarea  unit ="FT2" > 10.57 </wingarea>  
+        <wingspan  unit ="FT" > 9.17 </wingspan>  
+        <chord  unit ="FT" > 1.15 </chord>  
+        <htailarea  unit ="FT2" > 1.69 </htailarea>  
+        <htailarm  unit ="FT" > 3.28 </htailarm>  
+        <vtailarea  unit ="FT2" > 1.06 </vtailarea>  
+        <vtailarm  unit ="FT" > 0 </vtailarm>  
+        <location  name ="AERORP"  unit ="IN" > 
+            <x>  37.4 </x>  
+            <y>  0 </y>  
+            <z>  0 </z>  
+        </location>  
+        <location  name ="EYEPOINT"  unit ="IN" > 
+            <x>  20 </x> 
+            <y>  0 </y>  
+            <z>  5 </z>  
+        </location>  
+        <location  name ="VRP"  unit ="IN" > 
+            <x>  0 </x>  
+            <y>  0 </y>  
+            <z>  0 </z>  
+        </location>  
+    </metrics>  
+ 
+    <mass_balance>  
+        <ixx  unit ="SLUG*FT2" > 1.95 </ixx>  
+        <iyy  unit ="SLUG*FT2" > 1.55 </iyy>  
+        <izz  unit ="SLUG*FT2" > 1.91 </izz>  
+        <ixy  unit ="SLUG*FT2" > 0 </ixy>  
+        <ixz  unit ="SLUG*FT2" > 0 </ixz>  
+        <iyz  unit ="SLUG*FT2" > 0 </iyz>  
+        <emptywt  unit ="LBS" > 13 </emptywt>  
+        <location  name ="CG"  unit ="IN" > 
+            <x>  36.4 </x>  
+            <y>  0 </y>  
+            <z>  4 </z>  
+        </location>  
+    </mass_balance>  
+ 
+    <ground_reactions>  
+        <contact  type ="BOGEY"  name ="LEFT_MLG" > 
+            <location  unit ="IN" > 
+                <x>  33.1 </x>  
+                <y>  -12.9 </y>  
+                <z>  -13.1 </z>  
+            </location>  
+            <static_friction>  0.8 </static_friction>  
+            <dynamic_friction>  0.5 </dynamic_friction>  
+            <rolling_friction>  0.1 </rolling_friction>  
+            <spring_coeff  unit ="LBS/FT" > 480 
+</spring_coeff>  
+            <damping_coeff  unit ="LBS/FT/SEC" > 100 
+</damping_coeff>  
+            <max_steer  unit ="DEG" > 0.0 </max_steer>  
+            <brake_group>  NONE </brake_group>  
+            <retractable> 0</retractable>          </contact>  
+        <contact  type ="BOGEY"  name ="RIGHT_MLG" > 
+            <location  unit ="IN" > 
+                <x>  33.1 </x>  
+                <y>  12.9 </y>  
+                <z>  -13.1 </z>  
+            </location>  
+            <static_friction>  0.8 </static_friction>  
+            <dynamic_friction>  0.5 </dynamic_friction>  
+            <rolling_friction>  0.1 </rolling_friction>  
+            <spring_coeff  unit ="LBS/FT" > 480 
+</spring_coeff>  
+            <damping_coeff  unit ="LBS/FT/SEC" > 100 
+</damping_coeff>  
+            <max_steer  unit ="DEG" > 0.0 </max_steer>  
+            <brake_group>  NONE </brake_group>  
+            <retractable> 0</retractable>  
+        </contact>  
+        <contact  type ="BOGEY"  name ="TAIL_LG" > 
+            <location  unit ="IN" > 
+                <x>  68.9 </x>  
+                <y>  0 </y>  
+                <z>  -13.1 </z>  
+            </location>  
+            <static_friction>  8.0 </static_friction>  
+            <dynamic_friction>  5.0 </dynamic_friction>  
+            <rolling_friction>  0.1 </rolling_friction>  
+            <spring_coeff  unit ="LBS/FT" > 480 
+</spring_coeff>  
+            <damping_coeff  unit ="LBS/FT/SEC" > 100 
+</damping_coeff>  
+            <max_steer  unit ="DEG" > 360.0 </max_steer>  
+            <brake_group>  NONE </brake_group>  
+            <retractable> 0</retractable>  
+        </contact>  
+    </ground_reactions>  
+ 
+    <propulsion>  
+        <engine  file ="Zenoah_G-26A" > 
+            <location  unit ="IN" > 
+                <x>  36 </x>  
+                <y>  0 </y>  
+                <z>  0 </z>  
+            </location>  
+            <orient  unit ="DEG" > 
+                <roll>  0.0 </roll>  
+                <pitch>  0 </pitch>  
+                <yaw>  0 </yaw>  
+            </orient>  
+            <feed> 0</feed>  
+            <thruster  file ="18x8" > 
+                <location  unit ="IN" > 
+                    <x>  1 </x>  
+                    <y>  0 </y>  
+                    <z>  0 </z>  
+                </location>  
+                <orient  unit ="DEG" > 
+                    <roll>  0.0 </roll>  
+                    <pitch>  0.0 </pitch>  
+                    <yaw>  0.0 </yaw>  
+                </orient>  
+                <p_factor> 1.0 </p_factor>  
+            </thruster>  
+        </engine>  
+        <tank  type ="FUEL" >    <!-- Tank number 0 -->  
+            <location  unit ="IN" > 
+                <x>  36.36 </x>  
+                <y>  0 </y>  
+                <z>  -1.89375 </z>  
+            </location>  
+            <capacity  unit ="LBS" > 1.5 </capacity>  
+            <contents  unit ="LBS" > 1.5 </contents>  
+        </tank>  
+    </propulsion>  
+ 
+
+--- Page 106 ---
+ 
+91     <flight_control  name ="FCS: rascal" > 
+     <channel  name ="All" > 
+ 
+        <summer  name ="Pitch Trim Sum" > 
+            <input> fcs/elevator-cmd-norm </input>  
+            <input> fcs/pitch-trim-cmd-norm </input>  
+            <clipto>  
+                <min> -1</min>  
+                <max> 1</max>  
+            </clipto>  
+        </summer>  
+ 
+        <aerosurface_scale  name ="Elevator Control" > 
+            <input> fcs/pitch-trim-sum </input>  
+            <range>  
+                <min> -0.35 </min>  
+                <max> 0.3 </max>  
+            </range>  
+            <output> fcs/elevator-pos-rad </output>  
+        </aerosurface_scale>  
+ 
+        <aerosurface_scale  name ="Elevator Normalized" > 
+            <input> fcs/elevator-pos-rad </input>  
+            <domain>  
+                <min> -0.3 </min>  
+                <max>  0.3 </max>  
+            </domain>  
+            <range>  
+                <min> -1</min>  
+                <max>  1</max>  
+            </range>  
+            <output> fcs/elevator-pos-norm </output>  
+        </aerosurface_scale>  
+ 
+        <summer  name ="Roll Trim Sum" > 
+            <input> fcs/aileron-cmd-norm </input>  
+            <input> fcs/roll-trim-cmd-norm </input>  
+            <clipto>  
+                <min> -1</min>  
+                <max> 1</max>  
+            </clipto>  
+        </summer>  
+ 
+        <aerosurface_scale  name ="Left Aileron Control" > 
+            <input> fcs/roll-trim-sum </input>  
+            <range>  
+                <min> -0.35 </min>  
+                <max> 0.35 </max>  
+            </range>  
+            <output> fcs/left-aileron-pos-rad </output>  
+        </aerosurface_scale>  
+ 
+        <aerosurface_scale  name ="Right Aileron Control" > 
+            <input> -fcs/roll-trim-sum </input>  
+            <range>  
+                <min> -0.35 </min>  
+                <max> 0.35 </max>  
+            </range>  
+            <output> fcs/right-aileron-pos-rad </output>  
+        </aerosurface_scale>  
+ 
+        <aerosurface_scale  name ="Left aileron Normalized" > 
+            <input> fcs/left-aileron-pos-rad </input>  
+            <domain>  
+                <min> -0.35 </min>  
+                <max>  0.35 </max>  
+            </domain>  
+            <range>  
+                <min> -1</min>  
+                <max>  1</max>  
+            </range>  
+            <output> fcs/left-aileron-pos-norm </output>  
+        </aerosurface_scale>  
+ 
+        <aerosurface_scale  name ="Right aileron 
+Normalized" > 
+            <input> fcs/right-aileron-pos-rad </input>  
+            <domain>  
+                <min> -0.35 </min>                  <max>  0.35 </max>  
+            </domain>  
+            <range>  
+                <min> -1</min>  
+                <max>  1</max>  
+            </range>  
+            <output> fcs/right-aileron-pos-norm </output>  
+        </aerosurface_scale>  
+ 
+        <summer  name ="Rudder Command Sum" > 
+            <input> fcs/rudder-cmd-norm </input>  
+            <input> fcs/yaw-trim-cmd-norm </input>  
+            <clipto>  
+                <min> -1</min>  
+                <max> 1</max>  
+            </clipto>  
+        </summer>  
+ 
+        <aerosurface_scale  name ="Rudder Control" > 
+            <input> fcs/rudder-command-sum </input>  
+            <range>  
+                <min> -0.35 </min>  
+                <max> 0.35 </max>  
+            </range>  
+            <output> fcs/rudder-pos-rad </output>  
+        </aerosurface_scale>  
+ 
+        <aerosurface_scale  name ="Rudder Normalized" > 
+            <input> fcs/rudder-pos-rad </input>  
+            <domain>  
+                <min> -0.35 </min>  
+                <max>  0.35 </max>  
+            </domain>  
+            <range>  
+                <min> -1</min>  
+                <max>  1</max>  
+            </range>  
+            <output> fcs/rudder-pos-norm </output>  
+        </aerosurface_scale>  
+     </channel>  
+    </flight_control>  
+ 
+    <aerodynamics>  
+        <axis  name ="DRAG" > 
+            <function  name ="aero/coefficient/CD0" > 
+                
+<description> Drag_at_zero_lift </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                      <table>  
+                          <independentVar> aero/alpha-
+rad </independentVar>  
+                          <tableData>  
+                              -1.5700 1.5000 
+                              -0.2600 0.0560 
+                              0.0000 0.0280 
+                              0.2600 0.0560 
+                              1.5700 1.5000 
+                          </tableData>  
+                      </table>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/CDi" > 
+                <description> Induced_drag </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> aero/cl-squared </property>  
+                    <value> 0.0400 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/CDbeta" > 
+                
+<description> Drag_due_to_sideslip </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                      <table>  
+
+--- Page 107 ---
+ 
+92                           <independentVar> aero/beta-
+rad </independentVar>  
+                          <tableData>  
+                              -1.5700 1.2300 
+                              -0.2600 0.0500 
+                              0.0000 0.0000 
+                              0.2600 0.0500 
+                              1.5700 1.2300 
+                          </tableData>  
+                      </table>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/CDde" > 
+                
+<description> Drag_due_to_Elevator_Deflection </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> fcs/elevator-pos-
+norm </property>  
+                    <value> 0.0300 </value>  
+                </product>  
+            </function>  
+        </axis>  
+ 
+        <axis  name ="SIDE" > 
+            <function  name ="aero/coefficient/CYb" > 
+                
+<description> Side_force_due_to_beta </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> aero/beta-rad </property>  
+                    <value> -1.0000 </value>  
+                </product>  
+            </function>  
+        </axis>  
+ 
+        <axis  name ="LIFT" > 
+            <function  name ="aero/coefficient/CLalpha" > 
+                
+<description> Lift_due_to_alpha </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                      <table>  
+                          <independentVar> aero/alpha-
+rad </independentVar>  
+                          <tableData>  
+                              -0.2000 -0.7500 
+                              0.0000 0.2500 
+                              0.2300 1.4000 
+                              0.6000 0.7100 
+                          </tableData>  
+                      </table>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/CLde" > 
+                
+<description> Lift_due_to_Elevator_Deflection </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> fcs/elevator-pos-
+rad </property>  
+                    <value> 0.2000 </value>  
+                </product>  
+            </function>  
+        </axis>  
+ 
+        <axis  name ="ROLL" > 
+            <function  name ="aero/coefficient/Clb" > 
+                
+<description> Roll_moment_due_to_beta </description>  
+                <!-- aka dihedral effect -->  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>                      <property> aero/beta-rad </property>  
+                    <value> -0.1000 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Clp" > 
+                
+<description> Roll_moment_due_to_roll_rate </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> aero/bi2vel </property>  
+                    <property> velocities/p-aero-
+rad_sec </property>  
+                    <value> -0.4000 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Clr" > 
+                
+<description> Roll_moment_due_to_yaw_rate </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> aero/bi2vel </property>  
+                    <property> velocities/r-aero-
+rad_sec </property>  
+                    <value> 0.1500 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Clda" > 
+                
+<description> Roll_moment_due_to_aileron </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> fcs/left-aileron-pos-
+rad </property>  
+                      <table>  
+                          
+<independentVar> velocities/mach </independentVar>  
+                          <tableData>  
+                              0.0000 0.1300 
+                              2.0000 0.0570 
+                          </tableData>  
+                      </table>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cldr" > 
+                
+<description> Roll_moment_due_to_rudder </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> fcs/rudder-pos-
+rad </property>  
+                    <value> 0.0100 </value>  
+                </product>  
+            </function>  
+        </axis>  
+ 
+        <axis  name ="PITCH" > 
+            <function  name ="aero/coefficient/Cmalpha" > 
+                
+<description> Pitch_moment_due_to_alpha </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/cbarw-ft </property>  
+                    <property> aero/alpha-rad </property>  
+                    <value> -0.5000 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cmde" > 
+                
+<description> Pitch_moment_due_to_elevator </description>  
+                <product>  
+
+--- Page 108 ---
+ 
+93                     <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/cbarw-ft </property>  
+                    <property> fcs/elevator-pos-
+rad </property>  
+                      <table>  
+                          
+<independentVar> velocities/mach </independentVar>  
+                          <tableData>  
+                              0.0000 -0.5000 <!-- was -
+1.1 --> 
+                              2.0000 -0.2750 
+                          </tableData>  
+                      </table>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cmq" > 
+                
+<description> Pitch_moment_due_to_pitch_rate </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/cbarw-ft </property>  
+                    <property> aero/ci2vel </property>  
+                    <property> velocities/q-aero-
+rad_sec </property>  
+                    <value> -12.0000 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cmadot" > 
+                
+<description> Pitch_moment_due_to_alpha_rate </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/cbarw-ft </property>  
+                    <property> aero/ci2vel </property>  
+                    <property> aero/alphadot-
+rad_sec </property>  
+                    <value> -7.0000 </value>  
+                </product>  
+            </function>  
+        </axis>  
+ 
+        <axis  name ="YAW" > 
+            <function  name ="aero/coefficient/Cnb" > 
+                
+<description> Yaw_moment_due_to_beta </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> aero/beta-rad </property>                      <value> 0.1200 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cnr" > 
+                
+<description> Yaw_moment_due_to_yaw_rate </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> aero/bi2vel </property>  
+                    <property> velocities/r-aero-
+rad_sec </property>  
+                    <value> -0.1500 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cndr" > 
+                
+<description> Yaw_moment_due_to_rudder </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> fcs/rudder-pos-
+rad </property>  
+                    <value> -0.0500 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cnda" > 
+                <description> Adverse_yaw </description>  
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <property> fcs/left-aileron-pos-
+rad </property>  
+                    <value> -0.0300 </value>  
+                </product>  
+            </function>  
+            <function  name ="aero/coefficient/Cndi" > 
+                
+<description> Yaw_moment_due_to_tail_incidence </description 
+> 
+                <product>  
+                    <property> aero/qbar-psf </property>  
+                    <property> metrics/Sw-sqft </property>  
+                    <property> metrics/bw-ft </property>  
+                    <value> 0.0007 </value>  
+                </product>  
+            </function>  
+        </axis>  
+    </aerodynamics>  
+</fdm_config> 
+ 
+ 
+  
+
+--- Page 109 ---
+ 
+94 Appendix F: AP_Mount Revised update_mount_position F unction 
+/// This one should be called periodically 
+void  AP_Mount :: update_mount_position (struct  Location *guided_WP_target , bool  
+guided_mode_bool ) 
+//added input arguments Jul13, ref. AP_Mount.h  -cj n 
+{ 
+#if MNT_RETRACT_OPTION == ENABLED 
+    static  bool  mount_open = 0;     // 0 is closed 
+#endif 
+ 
+    switch (( enum  MAV_MOUNT_MODE )_mount_mode .get ())  
+    { 
+#if MNT_RETRACT_OPTION == ENABLED 
+    // move mount to a "retracted position" or to a pos ition where a fourth servo can 
+retract the entire mount into the fuselage 
+    case  MAV_MOUNT_MODE_RETRACT : 
+    { 
+        Vector3f vec = _retract_angles .get ();  
+        _roll_angle  = vec .x; 
+        _tilt_angle  = vec .y; 
+        _pan_angle   = vec .z; 
+        break ; 
+    } 
+#endif 
+ 
+    // move mount to a neutral position, typically poin ting forward 
+    case  MAV_MOUNT_MODE_NEUTRAL : 
+    { 
+        Vector3f vec = _neutral_angles .get ();  
+        _roll_angle  = vec .x; 
+        _tilt_angle  = vec .y; 
+        _pan_angle   = vec .z; 
+        break ; 
+    } 
+ 
+    // point to the angles given by a mavlink message 
+    case  MAV_MOUNT_MODE_MAVLINK_TARGETING : 
+    { 
+        Vector3f vec = _control_angles .get ();  
+        _roll_control_angle  = radians (vec .x);  
+        _tilt_control_angle  = radians (vec .y);  
+        _pan_control_angle   = radians (vec .z);  
+        stabilize ();  
+        break ; 
+    } 
+ 
+    // RC radio manual angle control, but with stabiliz ation from the AHRS 
+    case  MAV_MOUNT_MODE_RC_TARGETING : 
+    { 
+#if MNT_JSTICK_SPD_OPTION == ENABLED 
+        if  (_joystick_speed ) {                  // for spring loaded joysticks 
+            // allow pilot speed position input to come directl y from an RC_Channel 
+            if  (_roll_rc_in &&  (rc_ch [_roll_rc_in -1]))  { 
+                _roll_control_angle +=  rc_ch [_roll_rc_in -1]->norm_input ()  * 0.00001  * 
+_joystick_speed ; 
+                if  (_roll_control_angle < radians (_roll_angle_min *0.01 ))  
+_roll_control_angle = radians (_roll_angle_min *0.01 );  
+                if  (_roll_control_angle > radians (_roll_angle_max *0.01 ))  
+_roll_control_angle = radians (_roll_angle_max *0.01 );  
+            } 
+            if  (_tilt_rc_in &&  (rc_ch [_tilt_rc_in -1]))  { 
+                _tilt_control_angle +=  rc_ch [_tilt_rc_in -1]->norm_input ()  * 0.00001  * 
+_joystick_speed ; 
+                if  (_tilt_control_angle < radians (_tilt_angle_min *0.01 ))  
+_tilt_control_angle = radians (_tilt_angle_min *0.01 );  
+                if  (_tilt_control_angle > radians (_tilt_angle_max *0.01 ))  
+_tilt_control_angle = radians (_tilt_angle_max *0.01 );  
+
+--- Page 110 ---
+ 
+95             } 
+            if  (_pan_rc_in &&  (rc_ch [_pan_rc_in -1]))  { 
+                _pan_control_angle +=  rc_ch [_pan_rc_in -1]->norm_input ()  * 0.00001  * 
+_joystick_speed ; 
+                if  (_pan_control_angle < radians (_pan_angle_min *0.01 ))  _pan_control_angle 
+= radians (_pan_angle_min *0.01 );  
+                if  (_pan_control_angle > radians (_pan_angle_max *0.01 ))  _pan_control_angle 
+= radians (_pan_angle_max *0.01 );  
+            } 
+        } else  { 
+#endif 
+            // allow pilot position input to come directly from  an RC_Channel 
+            if  (_roll_rc_in &&  (rc_ch [_roll_rc_in -1]))  { 
+                _roll_control_angle = angle_input_rad (rc_ch [_roll_rc_in -1],  
+_roll_angle_min , _roll_angle_max );  
+            } 
+            if  (_tilt_rc_in &&  (rc_ch [_tilt_rc_in -1]))  { 
+                _tilt_control_angle = angle_input_rad (rc_ch [_tilt_rc_in -1],  
+_tilt_angle_min , _tilt_angle_max );  
+            } 
+            if  (_pan_rc_in &&  (rc_ch [_pan_rc_in -1]))  { 
+                _pan_control_angle = angle_input_rad (rc_ch [_pan_rc_in -1],  _pan_angle_min , 
+_pan_angle_max );  
+            } 
+#if MNT_JSTICK_SPD_OPTION == ENABLED 
+        } 
+#endif 
+        stabilize ();  
+        break ; 
+    } 
+ 
+#if MNT_GPSPOINT_OPTION == ENABLED 
+    // point mount to a GPS point given by the mission planner 
+    case  MAV_MOUNT_MODE_GPS_POINT : 
+    { 
+        if (_gps ->fix ) { 
+ //if in guided mode, calls calc_GPS_target_angle wi th guided 
+waypoint location 
+   if  (guided_mode_bool == 1) { 
+    calc_GPS_target_angle (guided_WP_target );  
+    } 
+    else  { 
+    calc_GPS_target_angle (& _target_GPS_location );  
+    } 
+            stabilize ();  
+        } 
+        break ; 
+    } 
+#endif 
+ 
+    default : 
+        break ; 
+    } 
+  
+
+--- Page 111 ---
+ 
+96 Appendix G: Ground_Vehicle Library Definition 
+/************************************************** **** 
+Ground_Vehicle.h:   library for ground vehicle clas s 
+Author:             Neal, Charles 
+Date:               January 2014 
+Purpose:            keeps track of ground vehicle b eing 
+                    updated using follow-me mode. 
+*************************************************** ****/  
+ 
+#ifndef Ground_Vehicle_h 
+#define Ground_Vehicle_h 
+ 
+#include "Arduino.h" 
+#include <AP_Common.h> 
+#include <AP_Math.h> 
+ 
+class  Ground_Vehicle 
+{ 
+  public : 
+ 
+    //Constructor 
+    Ground_Vehicle (Location start_location , int  start_time );  
+ 
+    //Update all GV attributes 
+    void  update_gv (Location new_location , int  new_time , Location AC_location , int  
+desired_radius , float  alt , float  lead_time );  
+ 
+    //Call frequently to update the active flag 
+    void  update_gv_active (int  check_time );  
+ 
+    // Public Attributes 
+    Location        current_location ; 
+    Location        lead_location ; 
+    int              time ;   //milliseconds from millis() 
+    int              d_t ;    //milliseconds 
+    int              heading_cd ; //centi-degrees 
+    float            speed ;  //m/s 
+    float            turn_rate ;  //deg/s 
+    float            standoff ;   //meters 
+    float            close_rate ; //m/s 
+    float            J ; 
+    float            J_total ; 
+    bool             active ; 
+   
+  private : 
+ 
+    // Private Attributes 
+    struct  Location _last_location ; 
+    int              _last_time ; 
+    float            _last_standoff ; 
+    float            _d_location ; 
+    int              _last_heading ; 
+    float            _slant_range ; 
+    float            _slant_range_desired ; 
+    float            _lat_temp ; 
+    float            _lng_temp ; 
+ 
+};  
+ 
+#endif  
+ 
+  
+
+--- Page 112 ---
+ 
+97 
+Appendix H: Final Proposed ArduPlane Sketch Structure 
+  
+Figure 45: Diagram of Modified ArduPlane File Relationships Arduplane.pde 
+l J defines Ground Vehicle.b 
+J g: Global Variable Navigation.pde 
+r=--1 mediwn_loop: 
+function Enumeration I ~ navigate: implements 
+function I Ground Vebi cle.cpp I debug: 
+GV: Ground_ Vehicle int calls 
+-H update _gv _active: J nmt_follow: references I update _loiter. J function instantiates int I function , 
+J update_gv : J lead_ time_ s: I relative_bearing: I~ I function float I function instantiates 
+l Jdefines loiter_ range: AP Mount.b 
+int 
+camera _mount: AP _Mount 
+implements 
+instantiates loiter_dir: 
+float I AP Mount.C)!J! I ....._ H update_mount_position: J 
+defines J Paramet ers.h J functlon 
+j_ threshold: I float 
+implements 
+offset: I guided_ WP _target: J int I Parameters.J!de I location 
+I FSM_state_rad ius: J 
+GCS Mavlink.pde int 
+defines n handleMessage: I calls I d_hdg_to_tgtWP: J function I float referencesAlpdates 
+commands.pde 
+I send_ vfr _ hud: 
+J----I guided_WP: J references J set_guided_ WP: J function l location 
+I function 
+references 
+calls J fast_loop: J L function 
+calls 
+
+--- Page 113 ---
+ 
+98 Appendix I: Real-World Rascal APM Parameters 
+AA_J_THRESHOLD,0.04 
+AA_LOITER_DIR,1 
+AA_LOITER_RANGE,20 
+AA_MNT_FOLLOW,2 
+AA_THRT_RATIO,0.75 
+AAA_DEBUG,0 
+AHRS_BARO_USE,0 
+AHRS_GPS_GAIN,1 
+AHRS_GPS_USE,1 
+AHRS_RP_P,0.3 
+AHRS_TRIM_X,-0.017 
+AHRS_TRIM_Y,0.076 
+AHRS_TRIM_Z,0 
+AHRS_WIND_MAX,0 
+AHRS_YAW_P,0.3 
+ALT_CTRL_ALG,0 
+ALT_HOLD_FBWCM,0 
+ALT_HOLD_RTL,10000 
+ALT_MIX,1 
+ALT_OFFSET,0 
+ALT2PTCH_D,0.2 
+ALT2PTCH_I,0.2 
+ALT2PTCH_IMAX,600 
+ALT2PTCH_P,1.75 
+AMP_OFFSET,0 
+AMP_PER_VOLT,27.32 
+ARSP2PTCH_D,0 
+ARSP2PTCH_I,0.1 
+ARSP2PTCH_IMAX,500 
+ARSP2PTCH_P,0.65 
+ARSPD_ENABLE,1 
+ARSPD_FBW_MAX,22 
+ARSPD_FBW_MIN,6 
+ARSPD_OFFSET,3517.628 
+ARSPD_RATIO,1.994 
+ARSPD_USE,0 
+BATT_CAPACITY,1760 
+BATT_CURR_PIN,-1 
+BATT_MONITOR,0 
+BATT_VOLT_PIN,-1 
+CAM_TRIGG_TYPE,0 
+CMD_INDEX,0 
+CMD_TOTAL,2 
+COMPASS_AUTODEC,1 
+COMPASS_DEC,-0.099 
+COMPASS_LEARN,1 
+COMPASS_OFS_X,-57.363 
+COMPASS_OFS_Y,-8.322 
+COMPASS_OFS_Z,85.877 
+COMPASS_USE,1 
+ELEVON_CH1_REV,0 
+ELEVON_CH2_REV,0 
+ELEVON_MIXING,0 
+ELEVON_REVERSE,0 
+ENRGY2THR_D,0 
+ENRGY2THR_I,0 
+ENRGY2THR_IMAX,20 
+ENRGY2THR_P,1 
+FBWB_ELEV_REV,0 
+FENCE_ACTION,0 
+FENCE_CHANNEL,0 
+FENCE_MAXALT,0 
+FENCE_MINALT,0 
+FENCE_TOTAL,0 
+FLAP_1_PERCNT,0 
+FLAP_1_SPEED,0 FLAP_2_PERCNT,0 
+FLAP_2_SPEED,0 
+FLTMODE_CH,8 
+FLTMODE1,10 
+FLTMODE2,2 
+FLTMODE3,2 
+FLTMODE4,2 
+FLTMODE5,0 
+FLTMODE6,0 
+FORMAT_VERSION,13 
+FS_GCS_ENABL,0 
+FS_LONG_ACTN,0 
+FS_SHORT_ACTN,0 
+GND_ABS_PRESS,98367.6 
+GND_TEMP,27.274 
+HDNG2RLL_D,0.1 
+HDNG2RLL_I,0.15 
+HDNG2RLL_IMAX,600 
+HDNG2RLL_P,1.5 
+INPUT_VOLTS,4.68 
+INS_ACCOFFS_X,1.227 
+INS_ACCOFFS_Y,-7.232 
+INS_ACCOFFS_Z,4.337 
+INS_ACCSCAL_X,1 
+INS_ACCSCAL_Y,1 
+INS_ACCSCAL_Z,1 
+INS_GYROFFS_X,-0.012 
+INS_GYROFFS_Y,0.033 
+INS_GYROFFS_Z,0.029 
+INS_MPU6K_FILTER,0 
+INS_PRODUCT_ID,88 
+INVERTEDFLT_CH,0 
+KFF_PTCH2THR,0 
+KFF_PTCHCOMP,0.125 
+KFF_RDDRMIX,0.4 
+KFF_THR2PTCH,0 
+LAND_FLARE_ALT,3 
+LAND_FLARE_SEC,2 
+LAND_PITCH_CD,0 
+LIM_PITCH_MAX,2500 
+LIM_PITCH_MIN,-2500 
+LIM_ROLL_CD,4000 
+LOG_BITMASK,0 
+MAG_ENABLE,1 
+MANUAL_LEVEL,0 
+MIN_GNDSPD_CM,0 
+MNT_ANGMAX_PAN,17999 
+MNT_ANGMAX_ROL,4500 
+MNT_ANGMAX_TIL,1000 
+MNT_ANGMIN_PAN,-18000 
+MNT_ANGMIN_ROL,-4500 
+MNT_ANGMIN_TIL,-9000 
+MNT_CONTROL_X,0 
+MNT_CONTROL_Y,0 
+MNT_CONTROL_Z,0 
+MNT_JSTICK_SPD,0 
+MNT_MODE,1 
+MNT_NEUTRAL_X,0 
+MNT_NEUTRAL_Y,-2200 
+MNT_NEUTRAL_Z,12 
+MNT_RC_IN_PAN,0 
+MNT_RC_IN_ROLL,0 
+MNT_RC_IN_TILT,0 
+MNT_RETRACT_X,0 
+MNT_RETRACT_Y,0 
+MNT_RETRACT_Z,0 
+
+--- Page 114 ---
+ 
+99 MNT_STAB_PAN,1 
+MNT_STAB_ROLL,1 
+MNT_STAB_TILT,1 
+PTCH2SRV_D,0.23 
+PTCH2SRV_I,0.25 
+PTCH2SRV_IMAX,700 
+PTCH2SRV_P,2.3 
+RC1_DZ,30 
+RC1_MAX,1861 
+RC1_MIN,1143 
+RC1_REV,1 
+RC1_TRIM,1200 
+RC10_DZ,0 
+RC10_FUNCTION,0 
+RC10_MAX,1900 
+RC10_MIN,1100 
+RC10_REV,1 
+RC10_TRIM,1500 
+RC11_DZ,0 
+RC11_FUNCTION,0 
+RC11_MAX,1900 
+RC11_MIN,1100 
+RC11_REV,1 
+RC11_TRIM,1500 
+RC2_DZ,30 
+RC2_MAX,2014 
+RC2_MIN,990 
+RC2_REV,-1 
+RC2_TRIM,1200 
+RC3_DZ,3 
+RC3_MAX,1939 
+RC3_MIN,989 
+RC3_REV,1 
+RC3_TRIM,990 
+RC4_DZ,30 
+RC4_MAX,2015 
+RC4_MIN,989 
+RC4_REV,1 
+RC4_TRIM,1200 
+RC5_DZ,0 
+RC5_FUNCTION,6 
+RC5_MAX,1625 
+RC5_MIN,1390 
+RC5_REV,-1 
+RC5_TRIM,1500 
+RC6_DZ,0 
+RC6_FUNCTION,7 
+RC6_MAX,2000 
+RC6_MIN,1000 
+RC6_REV,1 
+RC6_TRIM,1500 
+RC7_DZ,0 
+RC7_FUNCTION,0 
+RC7_MAX,1499 
+RC7_MIN,1498 
+RC7_REV,1 
+RC7_TRIM,1499 
+RC8_DZ,0 
+RC8_FUNCTION,0 
+RC8_MAX,1761 
+RC8_MIN,989 
+RC8_REV,1 
+RC8_TRIM,1758 
+RC9_DZ,0 
+RC9_FUNCTION,0 RC9_MAX,1900 
+RC9_MIN,1100 
+RC9_REV,1 
+RC9_TRIM,1500 
+RLL2SRV_D,0.2 
+RLL2SRV_I,0.1 
+RLL2SRV_IMAX,500 
+RLL2SRV_P,2 
+RSSI_PIN,-1 
+RST_MISSION_CH,0 
+RST_SWITCH_CH,0 
+RUDDER_STEER,0 
+SCALING_SPEED,15 
+SERIAL3_BAUD,57 
+SR0_EXT_STAT,2 
+SR0_EXTRA1,10 
+SR0_EXTRA2,10 
+SR0_EXTRA3,2 
+SR0_PARAMS,50 
+SR0_POSITION,3 
+SR0_RAW_CTRL,1 
+SR0_RAW_SENS,2 
+SR0_RC_CHAN,2 
+SR3_EXT_STAT,1 
+SR3_EXTRA1,1 
+SR3_EXTRA2,1 
+SR3_EXTRA3,1 
+SR3_PARAMS,50 
+SR3_POSITION,1 
+SR3_RAW_CTRL,1 
+SR3_RAW_SENS,1 
+SR3_RC_CHAN,1 
+STICK_MIXING,1 
+SYS_NUM_RESETS,13 
+SYSID_MYGCS,255 
+SYSID_SW_TYPE,0 
+SYSID_THISMAV,1 
+TELEM_DELAY,0 
+THR_FAILSAFE,1 
+THR_FS_VALUE,950 
+THR_MAX,100 
+THR_MIN,0 
+THR_PASS_STAB,0 
+THR_SLEWRATE,35 
+THR_SUPP_MAN,0 
+THROTTLE_NUDGE,1 
+TRIM_ARSPD_CM,1200 
+TRIM_AUTO,0 
+TRIM_PITCH_CD,0 
+TRIM_THROTTLE,65 
+VOLT_DIVIDER,3.56 
+WHEELSTEER_D,0 
+WHEELSTEER_I,0 
+WHEELSTEER_IMAX,0 
+WHEELSTEER_P,0 
+WP_LOITER_RAD,150 
+WP_RADIUS,40 
+XTRK_ANGLE_CD,4500 
+XTRK_GAIN_SC,80 
+XTRK_MIN_DIST,50 
+XTRK_USE_WIND,1 
+YW2SRV_D,0.1 
+YW2SRV_I,0 
+YW2SRV_IMAX,0 
+YW2SRV_P,1.5 
+  
+
+--- Page 115 ---
+ 
+100 Appendix J: Simulated Rascal APM Parameters 
+AA_J_THRESHOLD,0.003 
+AA_LEAD_TIME_S,3 
+AA_LOITER_DIR,1 
+AA_LOITER_RANGE,65 
+AA_MNT_FOLLOW,2 
+AA_OFFSET_IN2OUT,35 
+AA_OFFSET_OUT2IN,35 
+AAA_DEBUG,0 
+AHRS_BARO_USE,0 
+AHRS_GPS_GAIN,1 
+AHRS_GPS_USE,1 
+AHRS_RP_P,0.4 
+AHRS_TRIM_X,0 
+AHRS_TRIM_Y,0 
+AHRS_TRIM_Z,0 
+AHRS_WIND_MAX,0 
+AHRS_YAW_P,0.4 
+ALT_CTRL_ALG,0 
+ALT_HOLD_FBWCM,0 
+ALT_HOLD_RTL,10000 
+ALT_MIX,1 
+ALT_OFFSET,0 
+ALT2PTCH_D,0 
+ALT2PTCH_I,0.1 
+ALT2PTCH_IMAX,500 
+ALT2PTCH_P,0.65 
+AMP_OFFSET,0 
+AMP_PER_VOLT,27.32 
+ARSP2PTCH_D,0 
+ARSP2PTCH_I,0.1 
+ARSP2PTCH_IMAX,500 
+ARSP2PTCH_P,0.65 
+ARSPD_ENABLE,0 
+ARSPD_FBW_MAX,22 
+ARSPD_FBW_MIN,6 
+ARSPD_OFFSET,1120.364 
+ARSPD_RATIO,1.994 
+ARSPD_USE,0 
+BATT_CAPACITY,1760 
+BATT_CURR_PIN,2 
+BATT_MONITOR,0 
+BATT_VOLT_PIN,1 
+CAM_TRIGG_TYPE,0 
+CMD_INDEX,0 
+CMD_TOTAL,0 
+COMPASS_AUTODEC,1 
+COMPASS_DEC,-0.071 
+COMPASS_LEARN,1 
+COMPASS_OFS_X,4.372 
+COMPASS_OFS_Y,12.571 
+COMPASS_OFS_Z,-17.435 
+COMPASS_USE,1 
+ELEVON_CH1_REV,0 
+ELEVON_CH2_REV,0 
+ELEVON_MIXING,0 
+ELEVON_REVERSE,0 
+ENRGY2THR_D,0 
+ENRGY2THR_I,0 
+ENRGY2THR_IMAX,20 
+ENRGY2THR_P,0.5 
+FBWB_ELEV_REV,0 
+FENCE_ACTION,0 
+FENCE_CHANNEL,0 
+FENCE_MAXALT,0 
+FENCE_MINALT,0 
+FENCE_TOTAL,0 FLAP_1_PERCNT,0 
+FLAP_1_SPEED,0 
+FLAP_2_PERCNT,0 
+FLAP_2_SPEED,0 
+FLTMODE_CH,8 
+FLTMODE1,10 
+FLTMODE2,11 
+FLTMODE3,5 
+FLTMODE4,2 
+FLTMODE5,2 
+FLTMODE6,0 
+FORMAT_VERSION,13 
+FS_GCS_ENABL,0 
+FS_LONG_ACTN,0 
+FS_SHORT_ACTN,0 
+GND_ABS_PRESS,97488.42 
+GND_TEMP,32.23528 
+HDNG2RLL_D,0.1 
+HDNG2RLL_I,0.02 
+HDNG2RLL_IMAX,500 
+HDNG2RLL_P,1 
+INPUT_VOLTS,4.68 
+INS_ACCOFFS_X,27.988 
+INS_ACCOFFS_Y,-0.098 
+INS_ACCOFFS_Z,-82.307 
+INS_ACCSCAL_X,1 
+INS_ACCSCAL_Y,1 
+INS_ACCSCAL_Z,1 
+INS_GYROFFS_X,0 
+INS_GYROFFS_Y,0 
+INS_GYROFFS_Z,0 
+INS_MPU6K_FILTER,0 
+INS_PRODUCT_ID,0 
+INVERTEDFLT_CH,0 
+KFF_PTCH2THR,0 
+KFF_PTCHCOMP,0.35 
+KFF_RDDRMIX,0.25 
+KFF_THR2PTCH,0 
+LAND_FLARE_ALT,3 
+LAND_FLARE_SEC,2 
+LAND_PITCH_CD,0 
+LIM_PITCH_MAX,2000 
+LIM_PITCH_MIN,-2000 
+LIM_ROLL_CD,4500 
+LOG_BITMASK,334 
+MAG_ENABLE,1 
+MANUAL_LEVEL,0 
+MIN_GNDSPD_CM,0 
+MNT_ANGMAX_PAN,17999 
+MNT_ANGMAX_ROL,4500 
+MNT_ANGMAX_TIL,8000 
+MNT_ANGMIN_PAN,-17999 
+MNT_ANGMIN_ROL,-4500 
+MNT_ANGMIN_TIL,-8000 
+MNT_CONTROL_X,0 
+MNT_CONTROL_Y,-40 
+MNT_CONTROL_Z,90 
+MNT_JSTICK_SPD,0 
+MNT_MODE,1 
+MNT_NEUTRAL_X,0 
+MNT_NEUTRAL_Y,0 
+MNT_NEUTRAL_Z,0 
+MNT_RC_IN_PAN,0 
+MNT_RC_IN_ROLL,0 
+MNT_RC_IN_TILT,0 
+MNT_RETRACT_X,0 
+
+--- Page 116 ---
+ 
+101 MNT_RETRACT_Y,0 
+MNT_RETRACT_Z,0 
+MNT_STAB_PAN,1 
+MNT_STAB_ROLL,0 
+MNT_STAB_TILT,1 
+PTCH2SRV_D,0.15 
+PTCH2SRV_I,0.2 
+PTCH2SRV_IMAX,700 
+PTCH2SRV_P,2 
+RC1_DZ,30 
+RC1_MAX,1911 
+RC1_MIN,1096 
+RC1_REV,-1 
+RC1_TRIM,1200 
+RC10_DZ,0 
+RC10_FUNCTION,0 
+RC10_MAX,1900 
+RC10_MIN,1100 
+RC10_REV,1 
+RC10_TRIM,1500 
+RC11_DZ,0 
+RC11_FUNCTION,0 
+RC11_MAX,1900 
+RC11_MIN,1100 
+RC11_REV,1 
+RC11_TRIM,1500 
+RC2_DZ,30 
+RC2_MAX,1903 
+RC2_MIN,1092 
+RC2_REV,-1 
+RC2_TRIM,1200 
+RC3_DZ,3 
+RC3_MAX,1900 
+RC3_MIN,1085 
+RC3_REV,1 
+RC3_TRIM,1086 
+RC4_DZ,30 
+RC4_MAX,1898 
+RC4_MIN,1086 
+RC4_REV,-1 
+RC4_TRIM,1200 
+RC5_DZ,0 
+RC5_FUNCTION,7 
+RC5_MAX,2000 
+RC5_MIN,1000 
+RC5_REV,1 
+RC5_TRIM,1552 
+RC6_DZ,0 
+RC6_FUNCTION,6 
+RC6_MAX,2000 
+RC6_MIN,1000 
+RC6_REV,1 
+RC6_TRIM,1498 
+RC7_DZ,0 
+RC7_FUNCTION,0 
+RC7_MAX,1498 
+RC7_MIN,1497 
+RC7_REV,1 
+RC7_TRIM,1498 
+RC8_DZ,0 
+RC8_FUNCTION,10 
+RC8_MAX,1900 
+RC8_MIN,1100 
+RC8_REV,1 
+RC8_TRIM,1901 
+RC9_DZ,0 RC9_FUNCTION,0 
+RC9_MAX,1900 
+RC9_MIN,1100 
+RC9_REV,1 
+RC9_TRIM,1500 
+RLL2SRV_D,0.08 
+RLL2SRV_I,0.2 
+RLL2SRV_IMAX,1000 
+RLL2SRV_P,1.75 
+RSSI_PIN,-1 
+RST_MISSION_CH,0 
+RST_SWITCH_CH,0 
+RUDDER_STEER,0 
+SCALING_SPEED,15 
+SERIAL3_BAUD,57 
+SR0_EXT_STAT,2 
+SR0_EXTRA1,10 
+SR0_EXTRA2,10 
+SR0_EXTRA3,2 
+SR0_PARAMS,50 
+SR0_POSITION,3 
+SR0_RAW_CTRL,50 
+SR0_RAW_SENS,2 
+SR0_RC_CHAN,2 
+SR3_EXT_STAT,0 
+SR3_EXTRA1,0 
+SR3_EXTRA2,0 
+SR3_EXTRA3,0 
+SR3_PARAMS,0 
+SR3_POSITION,0 
+SR3_RAW_CTRL,0 
+SR3_RAW_SENS,0 
+SR3_RC_CHAN,0 
+STICK_MIXING,1 
+SYS_NUM_RESETS,26 
+SYSID_MYGCS,255 
+SYSID_SW_TYPE,0 
+SYSID_THISMAV,1 
+TELEM_DELAY,0 
+THR_FAILSAFE,1 
+THR_FS_VALUE,950 
+THR_MAX,100 
+THR_MIN,0 
+THR_PASS_STAB,0 
+THR_SLEWRATE,20 
+THR_SUPP_MAN,0 
+THROTTLE_NUDGE,1 
+TRIM_ARSPD_CM,2500 
+TRIM_AUTO,0 
+TRIM_PITCH_CD,0 
+TRIM_THROTTLE,65 
+VOLT_DIVIDER,3.56 
+WHEELSTEER_D,0 
+WHEELSTEER_I,0 
+WHEELSTEER_IMAX,0 
+WHEELSTEER_P,0 
+WP_LOITER_RAD,150 
+WP_RADIUS,45 
+XTRK_ANGLE_CD,5500 
+XTRK_GAIN_SC,60 
+XTRK_MIN_DIST,50 
+XTRK_USE_WIND,1 
+YW2SRV_D,0.7 
+YW2SRV_I,0.01 
+YW2SRV_IMAX,0 
+YW2SRV_P,0.75 
+
+--- Page 117 ---
+ 
+  
+ 
+REPORT DOCUMENTATION PAGE  Form Approved  
+OMB No. 0704-0188  
+The public  reporting  burden for  this  collection   of  information  is estimated  to  average 1 hour  per response, including  the  time for  reviewing  instructions, searching existing  data sources, 
+gathering and maintaining the data needed, and comp leting and reviewing the collection of information.    Send comments regarding this burden estimate or any other aspect of this collection of 
+information,  including  suggestions  for reducing the burden, to Department  of Defense, Washington  Headquarters Services, Directorate  for Information   Operations and Reports (0704-0188),  
+1215  Jefferson  Davis Highway,  Suite 1204,  Arlin gton,  VA   22202-4302.  Respondents should be aware that  notwithstanding any other provision of law,  no person shall be sub ject to any 
+penalty for failing to comply with  a collection of  information  if it does not display a currently va lid OMB control number.  
+PLEASE DO NOT RETURN YOUR FORM TO THE ABOVE ADDRESS.  
+1.  REPORT DATE (DD-MM-YYYY)  
+27-03-2014  2.  REPORT TYPE  
+Master's Thesis  3.  DATES COVERED (From - To)  
+Aug 2012 - Mar 2014  
+4.  TITLE AND SUBTITLE  
+Feasibility of Onboard Processing of Heuristic Path  Planning and Navigation  
+Algorithms within SUAS Autopilot Computational Cons traints  5a.  CONTRACT  NUMBER  
+5b.  GRANT  NUMBER  
+5c.  PROGRAM  ELEMENT  NUMBER  
+6.  AUTHOR(S)  
+Neal, Charles J, Capt  5d.  PROJECT  NUMBER  
+5e.  TASK  NUMBER  
+5f.   WORK  UNIT  NUMBER  
+7.  PERFORMING ORGANIZATION NAME(S) AND ADDRESS(ES)  
+Air Force Institute of Technology  
+Graduate School of Engineering and Management (AFIT /EN)  
+2950 Hobson Way  
+Wright-Patterson AFB  OH  45433-7765  8.  PERFORMING  ORGANIZATION  
+REPORT NUMBER  
+AFIT-ENV-14-M-44  
+9.  SPONSORING/MONITORING AGENCY NAME(S) AND ADDRESS(ES)  
+AFRL/RQQA  
+2210 8th Street  
+Bldg 146, Room 300  
+Wright-Patterson AFB, OH 45433  
+COMM 937-713-7038; Email: derek.kingston@us.af.mil  10.  SPONSOR/MONITOR'S  ACRONYM(S)  
+AFRL  
+11.  SPONSOR/MONITOR'S  REPORT  
+NUMBER(S)  
+12. DISTRIBUTION/AVAILABILITY STATEMENT  
+Distribution Statement A  
+Approved for Public Release; Distribution Unlimited  
+13. SUPPLEMENTARY NOTES  
+This work is declared a work of the U.S. Government  and is not subject to copyright protection in the United States.  
+14. ABSTRACT  
+This research addresses the flight path optimality of Small Unmanned Aerial Systems (SUAS) conducting overwatch missions for 
+convoys or other moving ground targets.  Optimal pa th planning algorithms have been proposed, but are computationally excessive for 
+real-time execution.  Using the Arduino-based ArduP ilot Mega Unmanned Aerial Vehicle (UAV) autopilot system,  
+Hardware-in-the-Loop (HIL) analysis is conducted on  default mobile target tracking methods.  Designed experimentation is used to 
+determine autopilot settings that improve performan ce with respect to path optimality.   Optimality is  characterized using a weighted 
+combination of stand-off range and aircraft roll-ra te. Finally, a state-based heuristic navigation str ategy is designed, developed, and tested 
+that approximates optimal path solutions and can be  used for real-time execution.  A 66% improvement i n mean performance is achieved 
+over default target tracking methods.  Finite state  machine improvements are found to be statistically  significant and it is concluded that 
+heuristic strategies can be a viable approach to re alizing near-optimal SUAS flight paths utilizing on board processing capabilities.  
+15. SUBJECT TERMS  
+UAV, SUAS, autopilot, optimal path planning, mobile  target tracking, convoy overwatch, heuristic appro ximation, finite state 
+machine, hardware-in-the-loop, flight test  
+16. SECURITY CLASSIFICATION OF:  17.  LIMITATION  OF  
+ABSTRACT  
+ 
+UU  18.  NUMBER  
+OF 
+PAGES  
+116 19a. NAME OF RESPONSIBLE PERSON  
+Dr. John M. Colombi AFIT/ENV  a.  REPORT  
+ 
+U b.  ABSTRACT  
+ 
+U c.  THIS  PAGE  
+ 
+U 19b. TELEPHONE NUMBER (Include area code)  
+(937) 255-3636 x3347   john.colombi@afit.edu  
+Standard Form 298 (Rev. 8/98)  
+Prescribed by ANSI Std. Z39.18   

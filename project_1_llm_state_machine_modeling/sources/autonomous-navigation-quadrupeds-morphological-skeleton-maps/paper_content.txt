@@ -1,0 +1,1079 @@
+--- Page 1 ---
+TYPEOriginalResearch
+PUBLISHED 31 July 2025
+DOI10.3389/frobt.2025.1601862
+OPENACCESS
+EDITEDBY
+Ziliang Kang,
+Massachusetts Institute of Technology,
+United States
+REVIEWEDBY
+Ruiheng Zhang,
+Beijing Institute of Technology, China
+Kaoru Yamamoto,
+Kyushu University, Japan
+Jiajie Qiu,
+Massachusetts Institute of Technology,
+United States
+*CORRESPONDENCE
+Luka Peternel,
+l.peternel@tudelft.nl
+RECEIVED 28 March 2025
+ACCEPTED 04 June 2025
+PUBLISHED 31 July 2025
+CITATION
+Becoy AJ, Khomenko K, Peternel L and
+Rajan RT (2025) Autonomous navigation of
+quadrupeds using coverage path planning
+with morphological skeleton maps.
+Front. Robot. AI 12:1601862.
+doi: 10.3389/frobt.2025.1601862
+COPYRIGHT
+© 2025 Becoy, Khomenko, Peternel and
+Rajan. This is an open-access article
+distributed under the terms of the Creative
+Commons Attribution License (CC BY) . The
+use, distribution or reproduction in other
+forums is permitted, provided the original
+author(s) and the copyright owner(s) are
+credited and that the original publication in
+this journal is cited, in accordance with
+accepted academic practice. No use,
+distribution or reproduction is permitted
+which does not comply with these terms.Autonomous navigation of
+quadrupeds using coverage path
+planning with morphological
+skeleton maps
+Alexander James Becoy1,2, Kseniia Khomenko1, Luka Peternel1*
+and Raj Thilak Rajan2
+1Department of Cognitive Robotics, Faculty of Mechanical Engineering, Delft University of
+Technology, Delft, Netherlands,2Department of Microelectronics, Faculty of Electrical Engineering,
+Mathematics and Computer Science, Delft University of Technology, Delft, Netherlands
+Thisarticleproposesanovelmethodofcoveragepathplanningforthepurpose
+of scanning an unstructured environment autonomously. The method uses the
+morphological skeleton of a prior 2D navigation map via SLAM to generate
+a sequence of points of interest (POIs). This sequence is then ordered to
+create an optimal path based on the robot’s current position. To control the
+high-level operation, a finite state machine (FSM) is used to switch between
+two modes: navigating toward a POI using Nav2 and scanning the local
+surroundings. We validate the method in a leveled, indoor, obstacle-free, non-
+convex environment, evaluating time efficiency and reachability over five trials.
+The map reader and path planner can quickly process maps of widths and
+heights ranging between [196,225] pixels and [185,231] pixels in 2 .52ms and
+1.7ms, respectively. Their computation time increases with 22 .0ns/pixel and
+8.17 μs/pixel, respectively. The robot managed to reach 86.5% of all waypoints
+acrossthefiveruns.Theproposedmethodsuffersfromdriftoccurringinthe2D
+navigation map.
+KEYWORDS
+quadruped, autonomous navigation, unstructured environment, coverage path
+planning,robotoperatingsystem2
+1 Introduction
+Due to advancements in technology and miniaturization, surface (or ground) robots,
+such as wheeled and legged robots, have been increasingly adopted for diverse operations
+in harsh and unstructured environments in the past decade. One of the key challenges
+in such environments is the lack of infrastructure to support diverse operations. These
+environments include, for example, disaster response ( Chiou et al., 2022 ;Lin et al., 2022 ;
+Solmazetal.,2024 ),miningoperations( ParedesandFleming-Muñoz,2021 ;Aietal.,2024 ),
+spaceexploration( Jiangetal.,2022 ;Candalotetal.,2024 ;Armetal.,2019 ;Rajanetal.,2024 ),
+surveillance in remote locations ( Miller et al., 2020 ;Chagoya et al., 2024 ), or hazardous
+industriessuchasnuclearpowerplantmaintenance( Chenetal.,2022 ;Sharmaetal.2024 ).
+Insuchcomplexenvironments,leggedrobotsaremoreversatileandrobustthanother
+surfacerobots,suchaswheeledrovers,andtheycanadaptivelynavigateuneven,rugged,or
+softterrain.Leggedrobotscancoverrelativelylargerspatialareasbychoosingsafefootholds
+withintheirrangeofmotionandrapidlyrespondingtoadjusttheirkinematicconfiguration
+Frontiers in Robotics and AI 01 frontiersin.org
+
+--- Page 2 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE1
+Commercially available quadrupedal robots from different companies: (a)Boston Dynamics Spot. (b)ANYbotics ANYmal D. (c)Unitree
+Robotic Go2 Edu.
+(Yin et al., 2023 ) to achieve their objectives. The number of
+legs in a legged robot determines its movement efficiency and
+ability to maintain stability ( Nitulescu et al., 2016 ). Compared
+to bipedal humanoids, quadrupedal robots demonstrate a greater
+load capacity and improved stability due to their broader base of
+support.Ontheotherhand,quadrupedspossesssimplerstructures
+and control mechanisms than hexapodal and octopodal robots
+(Fan et al., 2024 ;Chai et al., 2022 ). For this reason, quadrupedal
+robots are ideal for tasks involving the safe navigation of complex
+3Denvironmentsfor(sub-)surfaceexploration.
+Several quadrupedal robots are already commercially available
+in the market. We compare three notable examples, namely, Boston
+Dynamics’Spot,ANYbotics’ANYmal,andUnitreeRobotics’Go2Edu,
+as shown in Figure 1, regarding attributes related to the access of
+development, operation durability, and affordability, as provided in
+Table 1.BothSpotandANYmalhavegarneredsignificantpopularity
+andhavemadesubstantialcontributionstoresearchandengineering
+(Portela et al., 2024 ;Zimmermann et al., 2021 ) compared to Go2
+Edu. However, their operational runtime is limited, and their cost is
+considerablyhigher.Go2hasthreemodes:Air,Pro,andEdu,costing
+1,600USD,2,800USD,and12,500USD,respectively.However,only
+the Edu mode allows for software development, which is necessary
+for custom implementations, including other necessary features.
+Furthermore, Go2 Edu has a dedicated Robot Operating System
+2 (ROS 2) integration that allows rapid development and testing.
+With a factor of two to three in running time, experiments can be
+conducted over a long session, and the robot can provide sufficient
+battery capacity to power additional sensors. This paper focuses
+on the development of software architecture for path planning and
+navigationspecifictoGo2Edu.
+The goal of this research is to enable quadrupedal robots
+to map terrain using coverage path planning. To achieve
+this, quadrupeds require sensors—most commonly cameras
+(Zhang et al., 2022 ;Zhang et al., 2025a ;Zhang et al., 2025b ) and
+LiDAR(Boumanetal.,2022 ;Niuetal.,2024 ).Inordertoscanwith
+these sensors, the robot needs to move to various points of interest
+(POIs), which requires coverage path planning and navigation
+methods.Theseareexaminedintherelatedworkssectionbelow.1.1 Related works
+Several studies have recently explored the development of
+software infrastructure for the Unitree Robotics’ Go2 Edu robot.
+Mei et al. (2024) developed a reinforcement learning method to
+enable the Go2 Edu robot to navigate narrow pipes using visual
+inputs from a depth camera. The navigation process is relatively
+straightforward due to the grid-like structure of the pipes, where
+each pipe is aligned in a straight path, with occasional protrusions
+serving as obstacles. Guo et al. (2024) developed a high-level path
+planningusingalargelanguagemodel,namely,OpenAI’sChatGPT-
+4o,whichallowstheinterpretationofhumanverbalcommandsand
+translates them into a list of executable instructions. The system
+integrates a depth camera with a segmentation model to effectively
+perceivetheenvironment.Inaddition, Chengetal.(2024) developed
+a motion controller for the Go2 Edu robot to traverse complex
+and unstructured environments using proprioceptive sensing and
+collisionestimationonly.
+Autonomous navigation using quadrupedal robots is crucial
+for exploring complex environments; however, research on 2D
+coveragepathplanningislimited. Lyetal.(2023) achievedcoverage
+pathplanningforloco-manipulationthroughanintegratedend-to-
+end pipeline combining perception, optimization, and whole-body
+motionplanningwithRGB-Dcamerainputs. Boumanetal.(2022)
+presented a 2D coverage path planner for investigating unknown
+andunstructuredenvironmentswhileaccountingfortime-bounded
+and dynamic constraints and traversability risk. The advantage of
+these approaches is that they guarantee timely execution when
+the mission is time-bound, and they find a good optimal tradeoff
+between the maximum area coverage and the path traveled. The
+drawback of these approaches is that they are focused on time
+constraints;therefore,theydonotworkwhenthetaskhasavariable
+execution time and requires time to be defined in advance. In
+contrast,ourapproachenablesplanningforvariabletimes.
+Some navigation methods already enable planning for variable
+times. Recently, Niu et al. (2024) developed a novel autonomous
+exploration method that uses a topological skeleton of the
+environment’sgeometryviaLiDAR,alongwithafinitestatemachine
+Frontiers in Robotics and AI 02 frontiersin.org
+
+--- Page 3 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+TABLE1 Comparisonofcommerciallyavailablequadrupedalrobots.
+Feature Spot ANYmal D Go2 Edu
+Manufacturer BostonDynamics ANYbotics UnitreeRobotics
+Dimensions(L/W/H,mm) 1,100×500×191 930×530×890 700×310×400
+Maximumwalkingspeed(m/s) 1.6 1.3 3.7
+Averagerunningtime(min) 90 90–120 120–240
+IntegratedLiDAR No Yes Yes
+Integratedopticalcamera Yes Yes Yes
+Integrateddepthcamera Yes Yes No
+Connectivity Wi-Fi,Ethernet Wi-Fi,4G Wi-Fi,Bluetooth,4G,Ethernet
+Customsoftwaredevelopment Supported(SDK,APIs) Supported(ROSintegration,APIs) Supported(SDK,ROSintegration)
+Estimatedcost(1,000USD) 74.5 150 12.5
+(FSM) to enable an exploratory strategy. This was demonstrated
+on a quadrupedal robot in an unstructured environment. These
+approaches have the advantage of being very adaptable in an
+unknown environment due to the use of a state machine that
+continuously checks for undiscovered areas within the map. The
+main difference between this work and our approach is that their
+method for obtaining topological skeletons uses wave propagation
+and Voronoi diagrams, while our method uses a morphological
+technique by treating the environment as an image. The impact of
+thisisthatthemorphologicaltechniquesimplifiesthemappingand
+isthuscomputationallymoreefficient.
+Furthermore, all the above methods of coverage path planning
+have specific map generation algorithms that are an integral part
+of the whole approach. Therefore, they are less modular, making it
+difficult to replace them with developing state-of-the-art mapping
+algorithms.Incontrast,ourapproachcanworkwithdifferenttypes
+ofmappingalgorithms,thusmakingitmoremodular.
+1.2 Contribution
+In this work, we address the gap in the state of the art through
+thefollowingkeycontributions.
+1. We develop a control framework based on a finite state
+machine that switches between different operation modes to
+enableautonomousnavigationandenvironmentalinspection.
+2. Using a prior 2D navigation map of the surroundings, the
+framework rapidly generates an efficient path based on the
+morphological skeleton of the map, which ensures coverage
+fromsmalltolargeareas.
+3. We validate the developed system through on-field
+experiments involving navigational tasks using the Unitree
+RoboticsGo2Edurobotinanindoorenvironment.
+4. We designed an extended interface that enables the Unitree
+Robotics Go2 Edu to integrate with the control framework
+usingROS2.5. The whole application is open source and available at https://
+github.com/asil-lab/go2-autonomous-navigation
+2 Materials and equipment
+2.1 Hardware specifications
+TheUnitreeRoboticsGo2Edufeaturesthreedegreesoffreedom
+(DOFs)perleg,consistingofhip,thigh,andcalfhingejoints(from
+base to foot). It is equipped with an inertial measurement unit
+(IMU), an HD wide-angle camera, and foot-end force sensors. The
+robotoffersabatterylifeof2–4 handsupportsfastcharging1.
+For navigation and perception, the Go2 Edu is fitted with the
+Unitree L1—a 4D LiDAR (3D position + 1D greyscale) based on
+laser time-of-flight (TOF)—mounted on its mouth. This LiDAR
+providesa360° ×90°fieldofview(FOV),ameasurementaccuracy
+of±2.0 cm, and a scanning distance of up to 30 m with 90%
+reflectivity.ItintegratesanIMUwitha3-axisaccelerometerand3-
+axis gyroscope, has a proximal blind spot of 0.05 m, and features
+a sampling frequency of 43,200 points per second. Additionally, it
+operates with a circumferential scanning frequency of 11 Hz and
+a vertical scanning frequency of 180 Hz2. The integrated LiDAR
+sensor is also used for collision detection, which facilitates the
+differentiationbetweenfreeandoccupiedspacesintheenvironment
+based on height. Additionally, it enables the generation of a 2D
+mapfornavigationduringrun-timeandself-localizationabilitywith
+respecttoenvironmentalfeaturesandthecurrentstateofthemap.
+Furthermore,therobotincludesanexpansiondockthathouses
+an NVIDIA Jetson Orin, providing computing power of 40–100
+1Go2 SDK Development Guide - About Go2 https://support.unitree.
+com/home/en/developer/about_Go2
+2 4DLidarL1ApplicationScenarios4DLidarL1Efficacy—UnitreeRobotic
+https://www.unitree.com/LiDAR
+Frontiers in Robotics and AI 03 frontiersin.org
+
+--- Page 4 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+TOPS. It also comes with a manual two-handed joystick controller
+for user operation. Additionally, in order to monitor the robot
+remotely, a TP-Link TL-WR802N Nano WLAN Router is added
+to establish a wireless connection between the robot and the
+operator’scomputer.
+Finally, we also integrated external sensors on the robot
+to measure ambiance characteristics such as temperature,
+humidity, and light intensity. The integration of these sensors is
+discussed in Supplementary Material A , but their usage is outside
+thescopeofthisworkandis,therefore,notdetailedinthispaper.
+2.2 Software specifications
+The Unitree Robotics Go2 Edu robot has a dedicated software
+development kit (SDK), which allows custom implementations to
+be programmed. This SDK uses a data distribution service (DDS)
+asthenetworkingmiddleware,whichenablesreliableandreal-time
+dataexchangebetweentheprogramandtherobot3.
+Using DDS, a ROS application ( Macenski et al., 2022 ) is
+also implemented to facilitate seamless communication between
+distributed robotic components, thus ensuring real-time data
+exchange, scalability, and interoperability across diverse hardware
+andsoftwareplatforms.
+In particular, we use ROS 2 due to its additional benefits
+compared to ROS 1, such as decentralization, simplicity, and user-
+friendliness. We use the ROS 2 Foxy on Ubuntu 20.04 to develop
+ourproposedframeworkasthesespecificationsarewell-established
+fortheUnitreeRoboticsGo2Edurobot.
+2.3 SLAM
+For the robot to determine its location within the environment
+while simultaneously creating a map, we use simultaneous
+localization and mapping (SLAM). SLAM allows the robot to
+dynamically create a map based on the history of information and
+localize the robot as a function of both the current measurement
+and the map simultaneously ( Stachniss et al., 2016 ). In our case,
+a 2D map is sufficient because the robot can only navigate on the
+ground surface in the xandydirections (excluding orientation
+in thezdirection). It is worth mentioning that Go2 Edu already
+comes with its own SLAM implementation. However, at the time
+of the development, it was not readily available due to the lack of
+documentation. Moreover, we aim to maintain modularity so that
+this implementation can be applied to other quadruped platforms,
+with only the software modules bridging the proposed method
+and the robot needing adaptation. Therefore, we use Macenski’s
+SLAM_Toolbox to create a 2D map using a sequence of 2D laser
+scans as input ( Macenski and Jambrecic, 2021 ). A 2D laser scan
+measures the distance to obstacles based on reflections detected by
+therobot’slaserscanneratspecificanglesandtimeintervals.Using
+aradiallaserscanner,itcanmeasurethelayoutofthesurroundings
+aroundtherobotsimultaneouslyinonemeasurementtime-step.
+3Go2 SDK Development Guide - SDK Concepts https://support.unitree.
+com/home/en/developer/SDK_Concepts
+FIGURE2
+Pipeline diagram of filtering the point cloud for SLAM and 3D scanning
+per measurement update.
+Despite the strengths of Macenski’s SLAM implementation, the
+integrated sensor that measures the geometry of the surroundings
+is a LiDAR that outputs data as a 3D point cloud. To make
+these data interpretable by the SLAM_Toolbox, we process the
+LiDARmeasurementstoidentifytheobstaclesthattherobotcannot
+navigatethrough.Toachievethistask,wedevelopadataprocessing
+pipeline using the Point Cloud Library (PCL) ( Rusu and Cousins,
+2011),whichtransformstheinput3Dpointcloud/point_cloud/raw
+intothedesired2Dlaserscans/scan.Anoverviewofthispipelineis
+shownin Figure 2.Notably,thispipelinealsooutputsanotherpoint
+cloud/point_cloud/sampled, which is later used for environment
+scanning,asdescribedin Supplementary Material C .
+2.4 Navigation
+We use the Nav2 framework ( Macenski et al., 2023 ) to ensure
+thattherobotcanplanandnavigatetowardadesiredpose(position
+and orientation) in the environment, which is also completely
+compatiblewiththeSLAM_Toolboxdiscussedpreviously.Usingthe
+2D navigation map provided by SLAM, the Nav2 framework can
+plan and navigate a path as a function of the destination’s pose,
+Frontiers in Robotics and AI 04 frontiersin.org
+
+--- Page 5 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+the robot’s current pose, and the robot’s kinematic constraints with
+respecttoitssurroundings.A2Dposeisdefinedas x≔[x y ψ]T,
+wherexandydefine the longitudinal and lateral displacements,
+andψis the orientation of the robot about the z-axis (vertical
+displacement).
+TheNav2frameworkincludesanarrayoftoolssuchasplanners,
+recoveries, and controllers. It is outside the scope of this paper
+to experiment with different tools. Therefore, we mainly used the
+defaultconfigurationwithminoradjustmentsthatcorrespondtothe
+robot’s kinematics. Since the robot’s movement can be controlled
+using 2D velocities ̇x, ̇y,̇θas inputs, we can consider the robot to
+behave similarly to a differential wheeled robot. With this in mind,
+wecanuseNav2’sdefaultplanner NavFnPlanner .
+Finally, since the Nav2 framework requires a desired pose as
+an input, it serves as a local planner and navigator. Therefore, in
+order to achieve autonomy in the robot, we require a higher-level
+navigation approach capable of identifying and selecting ROIs to
+navigatewithintheenvironment.
+3 Methods
+In this work, we propose a novel framework for the Unitree
+Robotics Go2 Edu robot for navigation in unstructured and
+unpredictable environments. Figure 3presents a system overview
+highlightingthekeymodules.Thekeymodulesthatareresponsible
+for the autonomous navigation are highlighted in red. To create
+a graph of ROIs, the map reader examines the SLAM-generated
+map and transforms it into a topological skeleton based on
+its geometry ( Section 3.1 ). Path planning is informed by the
+graph, which creates an efficient path of ROIs, referred to
+as waypoints, that the robot must follow during navigation
+(Section 3.2 ). To control the high-level operation, a state machine
+(Section 3.3 ) is used to switch between actions, e.g., it checks
+when/whether each waypoint is complete, whether a fallback
+strategy is needed, and whether human operator input is detected.
+The communication between the modules is carried out via ROS
+2 using an extended interface. More information on the extended
+interfacecanbefoundin Supplementary Material B .
+3.1 Map reader
+Toeffectivelycovertheenvironment,therobotmustfollowapath
+thatensuresittraverseseverycornerofthespace.Thispathshouldalign
+withthetrajectoryoftheoccupiedareas,e.g.,corridors.Thisapproach
+is generally effective under the assumption that the environment is
+confinedwithinabounded,occupiedspace,suchasanindoorsetting.
+In order to create the path, we process the 2D navigation map as an
+8-bitarrayusingthealgorithm,asshownin Algorithm 1 .M,H,and
+Wdenotethemapandthemap’sheightandwidth,respectively.The
+mapisdividedintocellsusingthemapresolution Rinm/pixel.Each
+ofthesecellsisanelementin M,mij,whichonlycontainsoneofthe
+threetypesofspace: occupied,free,andunknown,representedbythe
+integers0,255,and128,respectively.
+First,anindoorenvironmentisconsidered.Insuchcases,most
+unknown cells inside the map are located outside the boundaries
+of the occupied area, e.g., beyond the walls. This is becauseSLAM initially represents the environment as a grid of unknown
+cells before any exploration occurs. Furthermore, unknown cells
+often persist between occupied and free regions as a result of
+occlusions encountered during raycasting-based measurements,
+such as those performed using LiDAR, as shown in Figure 6a.
+Consequently, this unknown space cannot be reached by the robot
+andcanbetreatedaspartoftheboundaries—i.e.,asoccupiedspace,
+asshownin Figure 6b .
+Toestablishasmoothconnectionbetweenoccupiedcellsaffected
+by noise in the map, a Gaussian filter ( D’Haeyer, 1989 ) is applied
+using a standard deviation parameter σ∈ℕ, as shown in Figure 6c.
+Subsequently, in order to restore the binary representation of the
+occupiedandfreecells,thefilteredresultisbinarizedusingathreshold
+parameter κ∈[0,255].Acellwithavaluegreaterthan κisclassifiedas
+afreecell;otherwise,itisdesignatedasanoccupiedcell.
+Duetoresidualnoiseandthepresenceoftransparentobstacles,
+suchaswindows,theremaybefreecellsthatareunreachabletothe
+robot.Tomitigatethisissue,weassumethatthenavigablespacefor
+therobotcorrespondstothelargest2Dcontour.First,thecontours
+within the map are found using the marching cubes algorithm
+(LorensenandCline,1998 ).Themapisthenreconstructedbyfilling
+the largest 2D contour with a value of 255, as shown in Figure 6d .
+It is worth noting that by filling only the largest contour, obstacles
+withinthatcontourarenottakenintoaccount.
+To ensure that the robot maintains a safe distance from the
+occupied space during navigation, the free space in the map is
+reducedusingamorphologicalfiltercallederosion( Khosravyetal.,
+2017), as shown in Figure 6e. Erosion uses a structuring element
+K, also referred to as a kernel, which determines the width to be
+removed. For the sake of simplicity, we consider a square matrix
+of 1s as our structuring element: K=1k1T
+k, wherekdetermines the
+length of the vector and k=1,2,3,…. The larger the kvalue, the
+larger the safe distance. In addition, the safe distance decreases as
+Rdecreases. Therefore, k∝R. This also removes narrow passages
+thatproveimpassablefortherobot.
+The remaining free space is reduced to a thin one-pixel-
+wide representation containing Opixels, which corresponds to the
+topological skeleton of the map’s geometry, as shown in Figure 6f.
+Inapracticalscenario,thetimecomplexityof2Dskeletonizationis
+mainlyproportionaltothetotalnumberofpixelsinanimage Pasit
+iteratesuntiltheobjectbecomesonepixelwide.Therefore,itcanbe
+considered O(P)(ZhangandSuen,1984 ).
+The 2D skeleton map MSis then flattened into an unordered
+set that describes the x- andy-positions of every 2D point by
+transformingthepixelcoordinatesintoreal-worldcoordinatesusing
+theorigin oandresolution Rofthe2Dnavigationmap.Onlythose
+pixels for which mS,ij=255are considered in this transformation.
+Consideringthattheskeletoncontains Opixels,itfollowsthatthere
+areOwaypointsin V.Werefertoeverysuch2Dpointdefinedbythe
+skeletonas waypoints ,whicharedenotedas vi∈ℝ2,where0≤i≤O.
+Thewaypointsserveaspointsofinterestfortherobottovisit.
+3.2 Path planning
+In order to scan the whole environment, the robot should
+perform the scanning procedure for each waypoint. Therefore, the
+objective is to determine a path that includes every waypoint the
+Frontiers in Robotics and AI 05 frontiersin.org
+
+--- Page 6 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE3
+System overview of the proposed autonomous navigation with scanning capabilities in an unstructured environment. Green, hardware modules; blue,
+SLAM and Nav2 modules; red, autonomous navigation modules; purple, supplementary modules; and yellow, human agent.
+1: Input:Navigation map, i.e., M∈ℕH×W
+2: Input:Hyperparameters σ,κ,K,o∈ℝ2,R
+3: V←ç
+4: fori∈{1,…,H}do
+5:    forj∈{1,…,W}do
+6:        if[M]ij<255then
+7:           [M]ij=0
+8:        end if
+9:    end for
+10: end for
+11: M←GaussianFilter( M′,σ)
+12: fori∈{1,…,H}do
+13:    forj∈{1,…,W}do
+14:        if[M]ij>κthen
+15:           [M]ij=1
+16:        end if
+17:    end for
+18: end for
+19: C←argmax|ci|FindContours (M)
+20: M←FillAreaByContour (C)
+21: M←Erode(M∣K)
+22: MS←Skeletonize (M)
+23: fori∈{1,…,H}do
+24:    forj∈{1,…,V}do
+25:        if[M]ij=255then
+26:           V←V∪{R[i j]T+o}
+27:        end if
+28:    end for
+29: end for
+30: return V
+Algorithm1.The8-bit2DnavigationmapMisprocessedintoanunordered
+setofwaypoints V,whereeachelementisawaypoint v∈ℝ2.robot must visit while optimizing for time efficiency. Ultimately,
+this can be considered a Traveling Salesman Problem (TSP), which
+we approach by formulating a fast and efficient path-planning
+algorithm. It takes a connected acyclic graph Gas the input and
+outputs a path P, which is the ordered set of waypoints. In other
+words, Pisasequenceofvertices vitraversedbytherobot.
+In order to construct the graph G, we treat the unordered
+set of waypoints V, obtained from the map reader, as the set of
+vertices. Each vertex in Vuniquely corresponds to the coordinate
+vector of a waypoint and can, for the sake of simplicity, be denoted
+asvi∈ℝ2, ∀i=1 …,O. Each vertex is then connected to other
+vertices if they are neighbors around the map’s resolution R. This
+should resemble the skeleton representation of the map, where the
+connectionsdefinetheedges Eofthegraph G.
+Algorithm 2 outlines the procedure for obtaining an efficient
+pathP∗for coverage exploration of the whole environment. First,
+there are dead ends found in the skeleton representation of the
+map. For the robot to cover the whole environment, we can utilize
+these dead ends. Each dead end is identified as a leaf vertex vleaf∈
+Vleafand is typically defined with degree 1. Assuming the graph
+Gis connected and acyclic, complete coverage of the map can be
+achieved by ensuring that the robot visits every leaf vertex in Vleaf
+in sequence. Since all other vertices in the graph lie on the paths
+connecting the leaves, traversing to each leaf inherently requires
+passingthroughtheintermediatevertices.Asaconsequence,visiting
+allleafverticesimpliesthattheentiregraphhasbeentraversed.
+After identifying all leaf vertices, the leaf vertex closest to the
+robot’s current 2D position x0is selected as the initial source
+leaf vertex vleaf,startusingAlgorithm 3 . For every source leaf vertex
+vleaf,start, we find the next nearest unvisited leaf vertex as the target
+vleaf,targetusingFindNearestLeaf,asdefinedin Algorithm 3 .Wefind
+the shortest path P′between the source vleaf,sourceand the target
+vleaf,targetgiven the graph G. To achieve this, we use the method
+FindShortestPath, which essentially utilizes Dijkstra’s algorithm.
+This algorithm has a time complexity of O(|E|+|V|log|V|), where
+Frontiers in Robotics and AI 06 frontiersin.org
+
+--- Page 7 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+1: Input:Define graph G(V,E)
+2: Hyperparameters: R,D,x0
+3: Vleaf,total←ç
+4: forvi∈Vdo
+5:    ifdegree(vi)=1then
+6:         Vleaf,total←Vleaf,total∪{vi}
+7:     end if
+8: end for
+9: Vleaf,visited←ç
+10: P←ç
+11: vleaf,start←FindNearestLeaf (x0,Vleaf,total)
+12: while|Vleaf,visited|<|Vleaf,total|do
+13:     Vleaf,visited←Vleaf,visited∪{vleaf,start}
+14:     vleaf,target←
+FindNearestLeaf (vleaf,start,Vleaf,total\Vleaf,visited)
+15:     P′←FindShortestPath (vleaf,start,vleaf,target∣G)
+16:    forv′
+i∈P′do
+17:        ifv′
+i∉Pthen
+18:           P←P∪{v′
+i}
+19:        end if
+20:    end for
+21:     vleaf,start←vleaf,target
+22: end while
+23: P∗←ç
+24: fork←0 to⌊|P|−1
+D/R⌋do
+25:     P∗←P∗∪[P]D
+Rk
+26: end for
+27: return P∗
+Algorithm 2.A fast and efficient approach to planning a path P∗, withL
+vertices, using the unordered set of waypoints obtained from the map
+reader V,mapresolution R,waypointresolution D,andtherobot’sstarting
+2Dposition x0.
+|V|and|E|denotethetotalnumberofverticesandthetotalnumber
+ofedgesinthegraph,respectively( Barbehenn,1998 ).
+Once P′is found, each vertex v′
+i∈P′is appended into P.
+Unless some vertex v′
+ireappears as a path of a different path P′,
+revisiting and scanning this position is unnecessary and should
+be avoided to conserve time and computational resources. Once
+iteratedoverall v′
+iinP′,vleaf,startisinsertedintoasetofvisitedleaf
+vertices Vleaf,visited,andvleaf,targetbecomes the next source vleaf,start.
+Not only is the shortest path useful for appending viintoPbut
+also for ensuring a feasible and unobstructed trajectory through
+occupiedspaces.
+This is iterated until all leaf vertices have been added and P
+is complete. Nevertheless, because the original distance between
+everytwowaypointsisapproximatelyequaltothemap’sresolution,
+a significant amountof time is spent on scanning with minimal
+displacement.Consideringthattherobothasalargescanningrange
+capability of 30 m, which allows it to scan distances greater than
+themapresolution,wecanincreasethedistancebetweeneverytwo
+waypointstosomearbitrarydistance Dbyreducing Pbyafactorof
+D/R,whereD≥R.Thisisachievedbyselectingevery D/Rthelement
+inP.3.3 State machine
+To achieve autonomy that enables the robot to visit the
+waypoints and perform a scanning procedure in succession, an
+activitydiagramisformulated,asshownin Figure 4a.Wecangroup
+two or more activities as a singular state if the transitions are
+consecutive without interruptions, e.g., a decision node. This state
+will perform all activities in their respective order. On the other
+hand, each decision node becomes a state that checks whether its
+control variable has reached a specified threshold. Each state has a
+conditionlesstriggerthatautomaticallytransitionsthecurrentstate
+tothenextspecifiedstateattheendofitsaction.
+WithaFSM,wecanachievethedesiredautonomousnavigation
+based on the triggers by handling the sequence of actions. The
+implemented state machine diagram is shown in Figure 4b . Each
+stateisexplainedasfollows:
+•In State: Load Map, an existing 2D navigation map is loaded
+into SLAM, allowing the robot to localize itselfwith respect
+to the map’s metadata (meter-per-pixel resolution, width and
+height both in pixels, and origin as (x,y)in meters) and the
+robot’s concurrent surroundings using 2D laser scans. After
+this map is loaded, it is then analyzed to generate a list of
+waypoints,eachin (x,y)coordinates,fortherobottovisitusing
+themapreader.Anoptimalrouteisthenplannedtovisitallof
+thesewaypoints,whichreorderstheoriginallistusingthepath
+planner. Finally, it automatically transitions to the next state,
+State:CheckWaypoints.
+•State:CheckWaypointsallowsthesystemtoiterateoverthelist
+ofwaypoints.Iftherearewaypointsremaining,itremovesthe
+waypointinthefirstentryofthelistandstoresitasthecurrent
+destination, and it transitions to State: Check Destination. If
+thereisnowaypointleft,ittransitionstoState:Home.
+•In State: Check Destination, the state machine determines
+whether the robot is already at the current destination with
+some acceptable offset. This is carried out by determining
+whether the Euclidean distance between the robot’s 2D pose
+xand a destination’s pose xdesis less than or equal to a
+set tolerance δ, where x,xdes,δ∈ℝ3,since the poses are
+defined along the x- andy-axes and the yaw orientation
+ψwith respect to the /map frame. If the condition is true, it
+transitions to State: Scan. Otherwise, it transitions to State:
+Move. It is worth noting that the path planner does not
+accountfortheorientation ψ.However,thisorientationislikely
+a necessary requirement of the scanning procedure, which
+ensures that the robot is aligned with the desired orientation,
+asdescribedin Supplementary Material C .
+•In State: Move, the robot is actuated to navigate toward
+the desired destination. Navigation is considered successful
+when the Euclidean distance between the robot’s current
+posexand the target destination xdesis less than or equal
+to a predefined threshold δ. Alternatively, if the navigation
+processexceedsaspecifiedtimeoutduration Ttimeout,itisalso
+terminated. In either case, the system transitions back to the
+Check Destination state. However, if the system detects an
+interruption by a human operator via the joystick controller
+mid-operation, the system promptly cancels the ongoing
+actionandimmediatelytransitionstoState:ManualControl.
+Frontiers in Robotics and AI 07 frontiersin.org
+
+--- Page 8 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE4
+Comparison of (a)the activity diagram for autonomous coverage path planning and (b)its corresponding FSM diagram. (a)Activity diagram describing
+the autonomous coverage path planning given a prior 2D navigation map. (b)FSM diagram based on the activity diagram.
+•In State: Scan, the robot performs the procedure to scan
+the local environment, which is detailed in Supplementary
+Material C .Onceitiscompleted,ittransitionstoState:Check
+Waypoints.
+•State:ManualControlallowsthehumanoperatortotakeover
+therobot’snavigationandmoveittowardthedestination.This
+should happen in a case when the robot is traversing difficult
+terrains or when the navigation framework is stuck at findingtherightsolution.ThisstatetransitionstoState:Scanoncethe
+operatorpressesabuttononthecontroller.
+•In State: Home, the robot travels back to its starting position.
+Oncetherobotarrivesatthestartingposition,itliesdownon
+thegroundandwaitsfornewcommands.
+To sum up, the proposed framework for navigation consists
+of three key modules: the map reader to extract POIs using the
+2D navigation map as waypoints, the path planner to order the
+Frontiers in Robotics and AI 08 frontiersin.org
+
+--- Page 9 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+1: Function FindNearestLeaf
+2: Input:x0∈ℝ2andV′
+leaf
+3: vleaf,nearest←0
+4: d←∞
+5: forvleaf,i∈V′
+leafdo
+6:    if|vleaf,i−x0|<dthen
+7:         vleaf,nearest←vleaf,i
+8:         d←|vleaf,i−x0|
+9:    end if
+10: end for
+11: return vleaf,nearest
+12: End Function
+Algorithm3.Amethodtofindthenearestleafvertex vleaf,targetfromasetof
+selectedleafnodes V′
+leaftoagivensource x0usingEuclideandistances.
+waypoints as an efficient route given the robot’s current position,
+and the state machine to enable the robot to navigate toward every
+waypointandscanconsecutively.
+4 Results
+To demonstrate the proposed framework and evaluate how
+well it performs, we conducted the experiment in a level, indoor,
+obstacle-free,non-convexenvironment.Forevaluation,weusedthe
+twofollowingmetrics:
+1. Timeefficiency:thetimerequiredtoprocessthemaptocreate
+apathandreacheachwaypointconsecutively.
+2. Reachability:thenumberofwaypointsthattherobotcanreach
+overthetotalnumberofwaypointsplannedin%.
+The Go2 Edu robot was initially manually controlled via a
+wirelesscontrollertogeneratea2DnavigationmapusingtheSLAM
+module.Theexperimentwasthenconducted,andthewholeprocess
+was repeated over five trials. The SLAM module’s map resolution
+was set to 0.10 m. The point cloud buffer time was set to 0.25 s.
+Thelaserscan’sminimalandmaximalrangesweresetto0.50 mand
+30.0 m, respectively. The smoothing standard deviation was set to
+three.Thecrispificationthresholdwassetto128.Theerosionkernel
+Kwas set to 10 x 10 pixels. The waypoint-to-waypoint distance D
+in path planning was set at 1.00 m. The robot’s maximum x-, y-,
+and yaw velocities were set to 1.00 m/s, 0.50 m/s, and 0.80 rad/s,
+respectively. The 2D navigation position and orientation tolerance
+were set to 0.05 m and 0.08 rad, respectively, with a navigation
+timeout of 10.0 s to replan. The scanning procedure module was
+disabledtodemonstratethenavigationaltasks.
+4.1 SLAM, map reader, and path planning
+Beforepresentingthemainresults,wefirstvalidatetheaccuracy
+of the 2D navigation maps generated by the SLAM module. The
+average map is derived by normalizing over the five 2D navigation
+maps obtained from five trials, as illustrated in Figure 5. The width
+and height of these maps range between [196,225] and [185,231]
+FIGURE5
+Derivation by normalizing over the five 2D navigation maps obtained
+from five trials, where the inner corner of the left wing of the room is
+taken as the origin, which is denoted as a red point. All five maps are
+translated and rotated around the red point accordingly.
+pixels, respectively. We take the inner corner of the left- wing
+(upper left triangle of the map) of the room as the origin to align
+the maps in position and orientation accordingly. Analysis of the
+averaged map reveals that the right wing exhibits a wider range of
+shades of gray about the occupied space, suggesting that this part
+oftheenvironmentisslightlytiltedrelativetoitsactualorientation.
+Nonetheless, this does not severely affect the map reader, path
+planning, and navigation as the robot mainly localizes itself in its
+immediatesurroundingsandthetopologicalskeletonofthemapcan
+stillbefound.Forinstance,asshownin Figure 6,themapreadercan
+still create waypoints mainly using the map’s geometry, which also
+enables the robot to visit the corners by producing branches from
+themainpathtothesecorners.
+Toevaluatethetimeefficiencyofthemapreader,werecordthe
+durationrequiredtoprocesseachmapacrossfivetrials,considering
+a total of N=100instances. We vary the weights in terms of
+the dimension per map. To facilitate a clearer representation in
+the plot, we use the product of the dimensions, H×W,in pixels.
+As shown in Figure 7a, we can observe that the average time taken
+forthemapreaderrangesfrom2.34 msto2.70 msoverthefivetrials,
+with an average standard deviation of approximately 0.30 ms. We
+can also observe that the mean time increases by 22.0 ns for every
+additionalpixelinthemap.Forinstance,withamapofsize H×W=
+106pixels,theexpectedmeantimeis Tread≈23.6 ms.
+To remain within a maximum time taken of 1.0 s, the map
+should not be larger than the size of H×W=45.4×106 pixels.
+Assuming a square map with a map resolution of 0.10 m, this
+maximum map has a length of 673.4 m. Hence, our proposed map
+reader is fast for relatively small to large map sizes (ranging up to
+45.4×106pixels)withinaleadtimeof Tread=1.0 s,especiallywhen
+themapreaderisonlyrunoncetoproducethewaypointsgiventhe
+map’sgeometry.
+Frontiers in Robotics and AI 09 frontiersin.org
+
+--- Page 10 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE6
+Demonstration of the map reader’s pipeline using the 2D navigation map of trial 5 as input. (a)Original map. (b)Adjusted map. (c)Fuzzied map. (d)
+Contour map. (e)Eroded map. (f)Skeleton map.
+Frontiers in Robotics and AI 10 frontiersin.org
+
+--- Page 11 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE7
+Comparison of the mean time taken for (a)map reader and (b)path planner over five trials. (a)Mean time taken for map reader over five trials, iterated
+over N = 100 plotted in blue dots, with standard deviation in 1 σas the vertical blue line. Trend line is 22.0 ns/pixel. (b)Mean time taken for path planner
+over five trials, iterated over N = 500 plotted in blue dots, with standard deviation in 1 σas the vertical blue line. Trend line is 8.17  μs/pixel.
+To determine the path planner’s time efficiency, we repeat the
+same process with the evaluation of the map reader over N=500
+iterations per trial. Instead, we vary the weights in terms of the
+number of waypoints per map. In Figure 7b , we can observe that
+the mean time taken ranges between 1.40 ms and 2.00 ms. The
+variances can be explained by the additional time required to find
+the next nearest leaf vertex from a source vertex as it searches the
+listsequentially.Accordingtothetrendline,theleadtimeincreases
+by8.17 μsforeveryadditionalwaypoint.Therefore,accordingtothe
+trendline,itmeansthatforamapwith1,000waypoints,theplanning
+time becomes Tplan≈6.18 ms, and for a map of 106waypoints, the
+planningtimeis Tplan≈8.17 s.
+To stay within a lead time of 1.0 s, the number of waypoints
+should not be larger than 1.219×105. The bottleneck appears if the
+mapresolution Rbecomessmallasitincreasesthenumberofpixels
+per meter in a map. This can substantially increase the number of
+waypoints by a factor of R/R′, whereR′is the new map resolution
+andR′<R. Nonetheless, the path planner can be considered fast
+for a small to large number of waypoints, given a reasonable map
+resolution R. It is also worth noting that it also runs only once to
+producethenecessarypath.
+To verify the path planner’s performance, we first evaluate
+the logic of whether it works as intended. Using one trial as
+an example, we observe that the path planner has created an
+optimal path in terms of time, based on the given waypoints
+and the robot’s current 2D position, as shown in Figure 8a.
+Furthermore,accordingto Figure 8b ,wecanobservethatthemean
+waypoint–waypoint distance is approximately 1.00 m, given the
+previouslysetwaypointresolution D.Thevariancecanbeexplained
+by the fact that the robot skips waypoints that have already been
+visited as it is unnecessary to scan the same position twice. This
+results in the robot having to travel distances of 1.00 m or more
+for some intervals. In contrast to traveling a longer distance, the
+robot can also visit the next waypoint in a shorter distance. This
+is because the path splicing happens at the end of the algorithm,
+whereby it results in a probability that two waypoints are less than
+thesetwaypointresolution.Nevertheless,thisdoesnotheavilyaffectnavigation,andtheaveragewaypointdistanceisalmostidenticalto
+thesetwaypointresolution D.
+4.2 Navigational performance
+Todeterminetherobot’snavigationalperformance,weevaluate
+itaccordingtothetwoaforementionedmetrics,asshownin Table 2.
+Inaddition, Figure 9showsthetimetakenforeachwaypointoverall
+trials.Wecanobservethattherobotisabletoreach86.5%ofthetotal
+waypointsacrossalltrials,withamediantimeof5.38 sperwaypoint.
+Asshownin Figure 9,thiswasachievedinanaveragetimeof8.525 s,
+withastandarddeviationof11.4 s.
+We can see several outliers where the robot took time ranging
+from 10.0 s to a few minutes to complete the navigation to the
+adjacent waypoint, for instance, at waypoint 17 in trial 1. This
+can be explained by Nav2 trying to create a local path that ends
+precisely within the desired tolerances in position and orientation,
+and because the robot requires a minimal input velocity in order
+to move, it overshoots the target, causing Nav2 to replan the local
+path. This can result in the robot becoming stuck indefinitely and
+requires assistance from a human operator. For some of these
+outliers,rangingfrom30 s,humanassistanceiseventuallyrequired
+to reposition the robot correctly within the desired position and
+orientationtolerance.
+Furthermore, Table 2shows that in trials 3 and 5, the robot
+failed to reach all of the waypoints. This is mainly due to map
+drifts that occur over time and the fact that the SLAM module
+was still operating by mapping the robot’s surroundings online.
+Thiscanberecognized,e.g.,astwoidenticalhallwaysslightlytilted
+relative to one another, as shown in Figure 10. Due to the drift in
+the navigation map, since the coordinates of the waypoints remain
+the same, SLAM adjusts the 2D navigation map such that the later
+waypoints appear in places that the robot cannot reach, such as in
+the walls. Drift usually occurs because we only use relative sensors
+to localize itself with respect to the surroundings, e.g., IMU, leg
+encoders, and LiDAR. This can cause the uncertainty to increase
+overtime,whichisinherentinodometry.
+Frontiers in Robotics and AI 11 frontiersin.org
+
+--- Page 12 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE8
+Demonstrations of path planner’s performance. (a)An efficient path to explore the whole environment from the robot’s starting position (green) to the
+farthest waypoint (blue) while visiting all other waypoints (black). Each arrow (red) denotes the direction from the source to the target. (b)Mean
+distance between every two connected waypoints generated by the path planning per trial, as defined by the waypoint resolution D.
+5 Discussion
+Coverage path planning allows mobile robots such as
+quadrupeds to explore the whole environment. This is especiallyuseful for applications such as surveillance, inspection, and
+search and rescue. Nevertheless, limited work has been carried
+out on autonomous navigation using coverage path planning on
+quadrupeds. Therefore, we developed an open-source framework
+Frontiers in Robotics and AI 12 frontiersin.org
+
+--- Page 13 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+TABLE2 Reachabilityandtimetakenforeachtrial,includingkeyobservations.
+Trial Reachability (%) Total time (s) Median time per waypoint (s) Observations
+1 100.0 443.2 5.40 Humanassistancerequiredatwaypoint17
+2 100.0 397.0 5.30 Humanassistancerequiredatwaypoint36
+3 82.61 287.2 5.40 Significantmapdriftoccurredafter3 min,suchthat
+theremainingeightwaypointswereunreachable
+(displacedintotheoccupiedspace)
+4 100.0 322.3 5.40 Robotstalledatwaypoints6,10,18,23,28,35,and
+37–39duetoreplanning
+5 48.72 160.1 5.40 Significantmapdriftoccurredafter2 min,suchthat
+theremaining19waypointswereunreachableasthey
+displacedintotheoccupiedspace
+FIGURE9
+Time taken in seconds for the robot to reach each possible unique waypoint over five trials. Gray dots describe waypoints that the robot has not been
+able to reach. The outliers occurred due to Nav2 getting stuck at replanning, such that the navigation terminates within narrow desired tolerances, or
+due to map drift.
+Frontiers in Robotics and AI 13 frontiersin.org
+
+--- Page 14 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+FIGURE10
+Drift in the map where the hall is doubled. The drift occurred
+10 min after the autonomous navigation started in trial 3.
+using ROS 2 that enables a Unitree Robotics Go2 quadruped to
+autonomously navigate and visit every corner using a prior 2D
+navigation map. It utilizes a map reader to extract a graph of 2D
+waypoints using the topological skeleton of the map and a path
+planner to create an efficient path with respect to time and the
+startingposition.Astatemachineisusedtoiterateovertheordered
+listofwaypointsandnavigatetheminsuccession.
+Themapreaderandthepathplannercanquicklyprocessmaps
+with widths and heights ranging from 196,225 pixels to 185,231
+pixels in 2.52 ms and 1.7 ms, respectively. Their computation times
+increasewith22.0 ns/pixeland8.17 μs/pixel,respectively.Inaclosed
+and unstructured environment, the robot managed to reach 86.5%
+of all waypoints over five runs. The failure can be explained due to
+driftsoccurringin themapsovertimebecauseSLAM still operates
+online. Map drifts can be mitigated using absolute sensors such
+as global positioning system (GPS) and ultra-wideband anchors.
+Another issue that our path planning does not take into account
+is obstacles inside the large free space. This can be mitigated by
+subtractingthecontoursofsaidobstaclesfromthelargefreespace.
+Skeletonization will account for the creation of waypoints around
+these occupied spaces. However, the presence of obstacles may
+necessitate adjustment to the path planner as they can give rise to
+cyclicalgraphs.
+Compared to the state-of-the-art methods that use time-
+constrained planning ( Bouman et al., 2022 ;Ly et al., 2023 ) and
+do not enable variable task execution times, our approach is
+not constrained by a predefined time. While a time-constrained
+approach is useful when the mission time is predefined, the
+variable-time approach provides a more adaptable solution when
+operating with limited knowledge. Unlike alternative state-of-the-
+art approaches that enable time-variable exploration ( Niu et al.,2024),ourapproachismorecomputationallyefficientduetotheuse
+of a morphological technique to extract the topological skeleton of
+the map. Even though the experimental conditions were different,
+a rough comparison of the map generation magnitude based on
+theresultsfromeachpapershowsanorder-of-magnitudedifference
+(millisecondsvs.microseconds).
+Nevertheless, the proposed method is primarily suited for
+known and static environments, rendering it unsuitable for real-
+world applications with irregular and moving obstacles within the
+environment and varying elevations. Future work will, therefore,
+focus on extending the proposed method to incorporate real-time
+autonomous coverage exploration in unknown 3D environments,
+particularly under diverse environmental conditions and in the
+presence of irregular and dynamic obstacles. Additionally, the
+influence of variations in key parameters will be systematically
+investigated. Moreover, the study will also investigate and aim
+to improve drift issues commonly encountered in SLAM. Finally,
+the proposed approach will be systematically compared with
+existing 2D coverage path planning methods to evaluate its relative
+performanceandadvantages.
+Data availability statement
+The raw data supporting the conclusions of this article will be
+madeavailablebytheauthors,withoutunduereservation.
+Author contributions
+AJB: Software, Methodology, Writing – review and editing,
+Supervision, Investigation, Conceptualization, Writing – original
+draft, Funding acquisition, Data curation, Visualization,
+Formal Analysis, Project administration, Resources, Validation.
+KK: Methodology, Writing – review and editing, Software,
+Investigation,Supervision,Fundingacquisition,Conceptualization,
+Visualization, Resources, Validation, Data curation, Formal
+Analysis, Project administration. LP: Project administration,
+Formal Analysis, Validation, Visualization, Methodology, Data
+curation, Conceptualization, Writing – original draft, Software,
+Writing – review and editing, Funding acquisition, Supervision,
+Resources,Investigation.RR:Conceptualization,Resources,Formal
+Analysis, Funding acquisition, Validation, Visualization, Project
+administration,Writing–originaldraft,Investigation,Supervision,
+Datacuration,Methodology,Writing–reviewandediting,Software.
+Funding
+Theauthor(s)declarethatfinancialsupportwasreceivedforthe
+research and/or publication of this article. The work was partially
+supportedbytheTUDelftMoonshot.
+Conflict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or financial relationships that could be
+construedasapotentialconflictofinterest.
+Frontiers in Robotics and AI 14 frontiersin.org
+
+--- Page 15 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+Generative AI statement
+The author(s) declare that no Generative AI was used in the
+creationofthismanuscript.
+Publisher’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their affiliated
+organizations, or those of the publisher, the editors and thereviewers.Anyproductthatmaybeevaluatedinthisarticle,orclaim
+thatmaybemadebyitsmanufacturer,isnotguaranteedorendorsed
+bythepublisher.
+Supplementary material
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.3389/frobt.2025.
+1601862/full#supplementary-material
+References
+Ai, X., Xu, C., Li, B., and Xia, F. (2024). Robot-as-A-sensor: forming a sensing
+network with robots for underground mining missions , doi:10.48550/arXiv.
+2405.00266
+Arm, P., Zenkl, R., Barton, P., Beglinger, L., Dietsche, A., Ferrazzini, L.,
+et al. (2019). “Spacebok: a dynamic legged robot for space exploration,” in
+2019 international conference on robotics and automation (ICRA) , 6288–6294.
+doi:10.1109/ICRA.2019.8794136
+Barbehenn, M. (1998). A note on the complexity of dijkstra’s algorithm for graphs
+withweightedvertices. IEEETrans.Comput. 47,263.doi: 10.1109/12.663776
+Bouman,A.,Ott,J.,Kim,S.-K.,Chen,K.,Kochenderfer,M.J.,Lopez,B.,etal.(2022).
+“Adaptivecoveragepathplanningforefficientexplorationofunknownenvironments,”
+in2022IEEE/RSJInternationalConferenceonIntelligentRobotsandSystems(IROS),
+11916–11923.doi: 10.1109/IROS47612.2022.9982287
+Candalot, A., Hashim, M.-M., Hickey, B., Laine, M., Hunter-Scullion, M., and
+Yoshida, K. (2024). Soft gripping system for space exploration legged robots . 144, 156.
+doi:10.1007/978-3-031-71301-9_14
+Chagoya, J., Patel, S., Koduru, C., Kovarovics, A., Tanveer, M. H., and
+Voicu, R. C. (2024). Data collection, heat map generation for crack detection
+using robotic dog fused with flir sensor. SoutheastCon 2024, 824–829.
+doi:10.1109/SoutheastCon52093.2024.10500184
+Chai, H., Li, Y., Song, R., Zhang, G., Zhang, Q., Liu, S., et al. (2022). A survey
+of the development of quadruped robots: joint configuration, dynamic locomotion
+controlmethodandmobilemanipulationapproach. Biomim.Intell.Robotics 2,100029.
+doi:10.1016/j.birob.2021.100029
+Chen, Z., Wu, H., Chen, Y., Cheng, L., and Zhang, B. (2022). Patrol robot
+path planning in nuclear power plant using an interval multi-objective
+particle swarm optimization algorithm. Appl. Soft Comput. 116, 108192.
+doi:10.1016/j.asoc.2021.108192
+Cheng, Y., Liu, H., Pan, G., Liu, H., and Ye, L. (2024). “Quadruped robot
+traversing 3d complex environments with limited perception,” in 2024 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS), 9074–9081.
+doi:10.1109/IROS58592.2024.10801507
+Chiou, M., Epsimos, G.-T., Nikolaou, G., Pappas, P., Petousakis, G., Mühl, S., et al.
+(2022). “Robot-assisted nuclear disaster response: report and insights from a field
+exercise,”in2022IEEE/RSJInternationalConferenceonIntelligentRobotsandSystems
+(IROS),4545–4552.doi: 10.1109/IROS47612.2022.9981881
+D’Haeyer,J.P.(1989).Gaussianfilteringofimages:aregularizationapproach. Signal
+Process.18,169–181.doi: 10.1016/0165-1684(89)90048-0
+Fan,Y.,Pei,Z.,Wang,C.,Li,M.,Tang,Z.,andLiu,Q.(2024).Areviewofquadruped
+robots: structure, control, and autonomous motion. Adv. Intell. Syst. , 6, 2300783.
+doi:10.1002/aisy.202300783
+Guo, J., Wang, Z., and Bai, W. (2024). Learning quadrupedal robot locomotion for
+narrowpipeinspection.arXiv,doi: 10.48550/arXiv.2412.13621
+Jiang, Z., Cao, X., Huang, X., Li, H., and Ceccarelli, M. (2022). Progress and
+development trend of space intelligent robot technology. Space Sci. and Technol. 2022,
+2022.doi: 10.34133/2022/9832053
+Khosravy, M., Gupta, N., Marina, N., Sethi, I. K., and Asharif, M. R. (2017).
+Morphological filters: an inspiration from natural geometrical erosion and dilation .
+Cham: Springer International Publishing, 349–379. doi: 10.1007/978-3-319-
+50920-4_14
+Lin, T.-H., Huang, J.-T., and Putranto, A. (2022). Integrated smart
+robot with earthquake early warning system for automated inspection and
+emergency response. Nat. hazards 110, 765–786. doi: 10.1007/s11069-021-
+04969-2Lorensen,W.E.,andCline,H.E.(1998). Marchingcubes:ahighresolution3Dsurface
+construction algorithm . New York, NY, USA: Association for Computing Machinery,
+347–353.doi: 10.1145/280811.281026
+Ly, K. T.,Munks, M., Merkt, W., and Havoutis, I. (2023). “Asymptoticallyoptimized
+multi-surface coverage path planning for loco-manipulation in inspection and
+monitoring,” in 2023 IEEE 19th International Conference on Automation Science and
+Engineering(CASE),1–7.doi: 10.1109/CASE56687.2023.10260625
+Macenski, S., Foote, T., Gerkey, B., Lalancette, C., and Woodall, W. (2022). Robot
+operatingsystem2:design,architecture,andusesinthewild. Sci.Robotics 7,eabm6074.
+doi:10.1126/scirobotics.abm6074
+Macenski,S.,andJambrecic,I.(2021).Slamtoolbox:slamforthedynamicworld. J.
+OpenSourceSoftw. 6,2783.doi: 10.21105/joss.02783
+Macenski,S.,Moore,T.,Lu,D.V.,Merzlyakov,A.,andFerguson,M.(2023).Fromthe
+desksofROSmaintainers:asurveyofmodernandcapablemobileroboticsalgorithms
+intherobotoperatingsystem2. RoboticsAut.Syst. ,doi:10.1016/j.robot.2023.104493
+Mei,Y.,Wang,Y.,Zheng,S.,andJin,Q.(2024).QuadrupedGPT:towardsaversatile
+quadrupedagentinopen-endedworlds. arXiv,doi:10.48550/arXiv.2406.16578
+Miller,I.D.,Cladera,F.,Cowley,A.,Shivakumar,S.S.,Lee,E.S.,Jarin-Lipschitz,L.,
+etal.(2020).Minetunnelexplorationusingmultiplequadrupedalrobots. IEEERobotics
+AutomationLett. 5,2840–2847.doi: 10.1109/LRA.2020.2972872
+Nitulescu, M., Ivanescu, M., Hai Nguyen, V. D., and Manoiu-Olaru, S.
+(2016). “Designing the legs of a hexapod robot,” in 2016 20th International
+Conference on System Theory, Control and Computing (ICSTCC), 119–124.
+doi:10.1109/ICSTCC.2016.7790651
+Niu, H., Ji, X., Zhang, L., Wen, F., Ying, R., and Liu, P. (2024). A skeleton-
+based topological planner for exploration in complex unknown environments ,
+doi:10.48550/arXiv.2412.13664
+Paredes, D., and Fleming-Muñoz, D. (2021). Automation and robotics in
+mining: jobs, income and inequality implications. Extr. Industries Soc. 8, 189–193.
+doi:10.1016/j.exis.2021.01.004
+Portela,T.,Cramariuc,A.,Mittal,M.,andHutter,M.(2024). Whole-bodyend-effector
+posetracking ,doi:10.48550/arXiv.2409.16048
+Rajan, R. T., Menicucci, A., Noroozi, A., Sachdeva, P., and Verhoeven, C. (2024).
+“Lunar zebro â€ an autonomous moon rover,” in IAF space exploration symposium .
+doi:10.52202/078357-0039
+Rusu, R. B., and Cousins, S. (2011). “3D is here: point cloud library (PCL),” in
+IEEEInternationalConferenceonRoboticsandAutomation(ICRA),Shanghai,China.
+doi:10.1109/ICRA.2011.5980567
+Sharma,U.,Medasetti,U.S.,Deemyad,T.,Mashal,M.,andYadav,V.(2024).Mobile
+robot for security applications in remotely operated advanced reactors. Appl. Sci. 14,
+2552.doi: 10.3390/app14062552
+Solmaz, S., Innerwinkler, P., Wãjcik, M., Tong, K., Politi, E., Dimitrakopoulos, G.,
+et al. (2024). “Robust robotic search and rescue in harsh environments: an example
+and open challenges,” in 2024 IEEE international symposium on robotic and sensors
+environments(ROSE) ,1–8.doi: 10.1109/ROSE62198.2024.10591144
+Stachniss, C., Leonard, J. J., and Thrun, S. (2016). Simultaneous localization and
+mapping.Cham:SpringerInternationalPublishing,1153–1176.doi: 10.1007/978-3-319-
+32552-1_46
+Yin,Y.,Zhao,Y.,Xiao,Y.,andGao,F.(2023).Footholdsoptimizationforleggedrobots
+walkingoncomplexterrain. Front.Mech.Eng. 18,26.doi: 10.1007/s11465-022-0742-y
+Zhang, R., Cao, Z., Huang, Y., Yang, S., Xu, L., and Xu, M. (2025a). Visible-infrared
+person re-identification with real-world label noise. IEEE Trans. Circuits Syst. Video
+Technol.35,4857–4869.doi: 10.1109/TCSVT.2025.3526449
+Frontiers in Robotics and AI 15 frontiersin.org
+
+--- Page 16 ---
+Becoy et al. 10.3389/frobt.2025.1601862
+Zhang, R., Xu, L., Yu, Z., Shi, Y., Mu, C., and Xu, M. (2022). Deep-irtarget: an
+automatictargetdetectorininfraredimageryusingdual-domainfeatureextractionand
+allocation. IEEETrans.Multimedia 24,1735–1749.doi: 10.1109/TMM.2021.3070138
+Zhang,R.,Yang,B.,Xu,L.,Huang,Y.,Xu,X.,Zhang,Q.,etal.(2025b).Abenchmark
+andfrequencycompressionmethodforinfraredfew-shotobjectdetection. IEEETrans.
+GeoscienceRemoteSens. 63,1–11.doi: 10.1109/TGRS.2025.3540945Zhang, T. Y., and Suen, C. Y. (1984). A fast parallel algorithm for thinning digital
+patterns27
+Zimmermann, S., Poranne, R., and Coros, S. (2021). “Go fetch! - dynamic
+grasps using boston dynamics spot with external robotic arm,” in 2021 IEEE
+International Conference on Robotics and Automation (ICRA), 4488–4494.
+doi:10.1109/ICRA48506.2021.9561835
+Frontiers in Robotics and AI 16 frontiersin.org

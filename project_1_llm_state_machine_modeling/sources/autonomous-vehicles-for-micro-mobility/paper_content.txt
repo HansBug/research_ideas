@@ -1,0 +1,2104 @@
+--- Page 1 ---
+Autonomous Intelligent
+SystemsChristensen etal. AutonomousIntelligentSystems            (2021) 1:11 
+https://doi.org/10.1007/s43684-021-00010-2
+ORIGINAL ARTICLE OpenAccess
+Autonomousvehiclesformicro-mobility
+HenrikChristensen,DavidPaz*,HengyuanZhang,DominiqueMeyer,HaoXiang,YunhaiHan,
+YuhanLiu,AndrewLiang,ZhengZhongandShiqiTang
+Abstract
+Autonomousvehicleshavebeenenvisionedformorethan100years.Oneofthefirstsuggestionswasafrontcoverof
+ScientificAmericabackin1916.Today,itispossibletogetcarsthatdriveautonomouslyforextendeddistances.We
+arealsostartingtoseemicro-mobilitysolutions,suchastheNurovehiclesforpizzadelivery.Buildingautonomouscars
+thatcanoperateinurbanenvironmentswithadiversesetofroad-usersisfarfromtrivial.Early2018theContextual
+RoboticsInstituteatUCSanDiegolaunchedanefforttobuildafullstackautonomousvehicleformicro-mobility.The
+motivationswerediverse:i)developmentofasystemforoperationinanenvironmentwithmanypedestrians,ii)
+designofasystemthatdoesnotrelyondensemaps(orHD-mapsastheyaresometimesnamed),iii)designstrategies
+tobuildtrulyrobustsystems,andiv)aframeworktoeducatenext-generationengineers.Inthispaper,wepresentthe
+researcheffortofdesign,prototyping,andevaluationofsuchavehicle.Fromtheevaluation,severalresearchdirections
+areexploredtoaccountforshortcomings.Lessonsandissuesforfutureworkareadditionallydrawnfromthiswork.
+Keywords: Autonomousvehicles,Intelligentsystems,Micro-mobility
+1http://www.cs.cmu.edu/\protect\unhbox\voidb@x\penalty\@M\tjochem/
+nhaa/Journal.html1 Introduction
+Designofautonomousvehiclesisnotaneweffort.Oneof
+the earliest efforts was led by Dickmanns at the Universi-
+taetderBundeswehrinMunich.Dickmannsdevelopedan
+autonomous navigation stack based on computer vision
+techniques using the VaMoRs vehicle; early publications
+are from 1986 [ 1] and the project is summarized in [ 2].
+About the same time, the US launched its Autonomous
+Land Vehicle (ALV) program as part of the Strategic
+Computing Initiative [ 3]. By 1995, Carnegie Mellon Uni-
+versitycompleteda2,850miletripfromPittsburghtoSan
+Diego; 98.2% of the trip was driven autonomously1.S u b -
+sequently, programs such as the European Prometheus
+(1987-1995) and the DARPA Grand Challenge programs
+(2004-2007) generated a lot of attention around the tech-
+nology, which in turn has provided key people to launch
+effortsatWaymo[ 4],Toyota[ 5],Zoox[6],Aurora[ 7],etc.
+Althoughtremendousimprovementsandstate-of-the-art
+developments have been introduced in recent years, in
+*Correspondence: dpazruiz@ucsd.edu
+UniversityofCalifornia,SanDiego,LaJolla,California92093,USAmany cases the driving is on major roads and freeways
+with limited interaction with other road-users beyond
+cars. Today, autonomous navigation at scale and in urban
+scenarioslargelyremainsanopenchallenge.
+To quantify the challenges associated with last-mile
+autonomousnavigationandmicromobility,wedecidedto
+deploy a set of vehicles for urban operation. Rather than
+trying to build our own vehicles, our team acquired off-
+the-shelf vehicles and had them retrofitted for computer
+control. Our focus is on the sensor suite, sensor calibra-
+tion and fusion, perception with minimal maps, robust
+path planning and execution on a standard platform. We
+utilize two GEM e6 golf carts. Given that our campus
+already has 25+ GEM vehicles, it is a known entity and
+easy to service for personnel in the vehicle pool. The cars
+were retrofitted for computer operation using a CAN bus
+solution and standard Linux software. The retrofit was
+performed by AutonomousStuff. For initial experiments,
+both the Baidu Apollo system [ 8]a n dt h eT i e rI VA u t o -
+ware system [ 9] were considered. The Autoware software
+stack is based on the ROS-1 and Ubuntu Linux. Most of
+theteamhadROSexperienceandassuchitwasapathof
+theleastdevelopmentresistance.
+©TheAuthor(s),2021,correctedpublication2021 OpenAccess ThisarticleislicensedunderaCreativeCommonsAttribution4.0
+InternationalLicense,whichpermitsuse,sharing,adaptation,distributionandreproductioninanymediumorformat,aslongas
+yougiveappropriatecredittotheoriginalauthor(s)andthesource,providealinktotheCreativeCommonslicence,andindicate
+ifchangesweremade. Theimagesorotherthirdpartymaterialinthisarticleareincludedinthearticle’sCreativeCommons
+licence,unlessindicatedotherwiseinacreditlinetothematerial. Ifmaterialisnotincludedinthearticle’sCreativeCommons
+licenceandyourintendeduseisnotpermittedbystatutoryregulationorexceedsthepermitteduse,youwillneedtoobtain
+permissiondirectlyfromthecopyrightholder. Toviewacopyofthislicence,visit http://creativecommons.org/licenses/by/4.0/ .
+
+--- Page 2 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page2of35
+Fig.1TheGEMe6vehiclesandtheassociatedsensorlayout
+Wepresentacomprehensivedescriptionandanalysisof
+thedesign,implementation,andevaluationofvehiclesfor
+urban operation. We will provide a more detailed view of
+the initial design in Section 2. The main lessons / short-
+comings from the deployment are analyzed in Section 3
+and various approaches to address these challenges are
+presented in Section 4. We outline a number of research
+challengesforthefutureinSection 5.
+2 Initialbuild
+In this section, the initial architecture designs are intro-
+duced given the requirements from Section 1.T h e s e
+include a description of the development platforms, soft-
+ware containerization, sensing methodologies, as well as
+the detection, decision making, and control strategies.
+The section concludes with additional details on closed-
+loop testing and system verification to ensure real-time
+capabilities.
+2.1 Systems,sensors,andsoftwaretools
+The development platforms consist of two six-seat GEM
+e6 golf carts (Fig. 1(a)); these were retrofitted with drive-
+by-wire (DBW) systems, computing modules, logging
+devices,andmultiplesuitesofrangingandvisionsensors.
+The DBW systems provide each vehicle platform with
+two-way communication to execute control commands
+while simultaneously providing actuator and motor sta-
+tus reports for close-loop control. The interfaces include
+steeringwheelanglecontrol,angularvelocity,brakingand
+acceleration input, and provide status reports for speed,
+DBW enable/disable signal, as well as steering, accel-
+erator, and brake states. The instructions delegated to
+the DBW system are generated after considering percep-
+tion, decision-making, and high-level control commands
+which are performed from the main onboard computer:
+each primary system consists of an Intel Xeon E3-1275Processorwith32GBRAMandanNVIDIAGTX1080Ti
+GPU.Additionalsystem,logger,andsensordetailscanbe
+foundin[ 10].
+2.1.1 Sensors
+Each vehicle was retrofitted with multiple Mako G319
+cameras, Velodyne VLP-16 LiDARs, and Bosch Ultra-
+sonic sensors. An overview of each sensor configuration
+is shown in Fig. 1(b). Intrinsic calibration was performed
+manually for each camera using a standard checkerboard
+[11] to determine the projection characteristics between
+the camera and image frames. On the other hand, extrin-
+sic calibration was performed between each camera-
+LiDAR pair by manually identifying correspondences in
+the camera and LiDAR frames. Camera-LiDAR calibra-
+tionisanessentialprocesstoleverageprojectivegeometry
+techniques. Additional calibration tools were later devel-
+opedasdescribedinSection 4.1to partially automate the
+extensivecalibrationprocess.
+2.1.2 Logging
+To facilitate offline data post-processing and analysis, a
+dataloggerwasdesignedforcapturingstatusreportsfrom
+each of the vehicles’ actuators, system enable/disable sig-
+nals, nominal GPS and ego-vehicle pose updates, and
+control inputs. Given that raw sensor data can require
+high bandwidth and storage requirements, sensor data is
+separately recorded using the ROSBAG file format [ 12].
+The Linux Epoch timestamps are utilized to provide a
+reference between the logger and bag file data stored.
+This logging device is based on Flask and a RESTful API
+that was designed by serializing the reported vehicle sig-
+nals over an Ethernet connection; these signals are then
+recorded in an SQLite database within a Raspberry Pi
+module. The modular design provides a plug-and-play
+approachfordataloggingthatisautomaticallyinitiated.
+
+--- Page 3 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page3of35
+2.1.3 Softwaretoolsandcontainerization
+An important software strategy incorporated into the
+design of the system involves software containerization
+using Docker. This strategy is motivated by initial chal-
+lenges encountered when integrating software packages
+and drivers within a single computing platform. Vari-
+ous open-source packages and libraries initially utilized
+in the design of the algorithms often required dependen-
+cies that were incompatible with one another. To address
+incompatibilityconstraints,softwarepackagesandrelated
+toolswereseparatedintomultiplecontainerswithvarious
+imagedefinitions,asshowninFig. 2.Anadditionalbenefit
+ofsoftwarecontainerizationinvolvescross-platformcom-
+patibility,suchasdifferentoperatingsystems;thisenables
+flexible software development across various types of
+platforms and was essential during development of our
+software.
+2.2 TheROS/autowareframework
+Designing complex software stacks for autonomous
+driving requires design considerations for robust
+communication across various hardware, software,
+sensor, and actuator components. Given the complexityof a full-scale vehicle system, abstraction and modularity
+become essential design considerations during devel-
+opment and verification. To facilitate this process, our
+approachforthedesignofoursystemleveragestheRobot
+Operating System (ROS) [ 12]a n dA u t o w a r e[ 9]. ROS is
+an open-source suite of librariesandtools that enable the
+design of various robotic applications and provides com-
+munication across various types of software, sensor, and
+actuator modules. A particular ROS based framework
+that was utilized as part of the foundation of our work is
+Autoware. The Autoware package suite includes a collec-
+tionofopen-sourcemodulesthatprovidecertainfeatures
+forlocalization,mapping,perception,andplanning.
+In this section,we cover the hierarchical designaspects
+ofoursoftwarestackthatextendfromAutowareandROS.
+A high-level design diagram of the system is shown in
+Fig.3.
+2.2.1 Perception
+Perception is a key component within the hierarchical
+architecture introduced; it provides the states of poten-
+tial obstacles to be able to effectively follow vehicles in
+front of the ego-vehicle and prevent collisions in the
+Fig.2InitialsystemorganizationusingcontainerizedversionsofAutowareandvariousROSpackages
+
+--- Page 4 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page4of35
+Fig.3Hierarchicalautonomousdrivingstackcomprisedoflocalization,perception,globalplanner,motionplanner,andcontrolmodules
+motion planning phase. Our perception module includes
+LiDARbaseddetectionandclusteringtechniques,aswell
+ascamera-LiDARfusiontechniquestoprovidecontextual
+informationfromimagerepresentations.
+LiDARDetectionandTracking
+Recent developments in learning-based 3D object detec-
+tion leverage LiDAR data to regress 3D bounding
+boxes for vehicles and pedestrians [ 13]. Although robust
+methodologies have been deployed with real-time char-
+acteristics, most of these depend on LiDAR sensors with
+higherspatialresolutionsuchas32-channelor64-channel
+LiDARs. Instead, our approach uses traditional object
+clustering for object detection with a 16-channel Velo-
+dyne LiDAR that provides 360◦horizontal field of view
+and±15◦verticalfieldofview.
+AnimportantconsiderationwhiledesigningthisLiDAR
+based clustering approach for detection is that relevant
+obstacle information may be combined with objects with
+minimal interest, such as road surfaces. Therefore, with-
+out removing road surface data, it becomes non-trivial
+to distinguish obstacles during planning. The approach
+utilized in this work for segmenting obstacles from road
+surfacesinvolvesgroundremoval.Autowareleveragesthis
+approach by identifying the LiDAR’s pitch angle, defining
+aplanenormaltotheground,andeliminatingpointsthat
+fall below a threshold. However, this approach generates
+a high-rate of false detections for regions that are non-
+planar, such as steep hills. Therefore, rather than leverag-
+ing a single plane fitting methodology, our approach usesmulti-plane definitions to separate ground points from
+potential obstacles using the Random Sample Consensus
+(RANSAC) algorithm [ 14]. Figure 4provides a visualiza-
+tion of the approach, and a visualization of the clustering
+approach is shown in Fig. 5—where the turquoise point
+cloud corresponds to LiDAR points above the ground
+and the yellow scans correspond to the ground plane. For
+obstacle detection, the LiDAR data that corresponds to
+potential obstacles is then clustered based on the relative
+distanceandnearestneighborstoperformtheassociation
+andextractindividualobjects.
+After extracting individual clusters, each object is asso-
+ciated across time to reason about an object’s states that
+depend on temporal information; this includes velocity
+and acceleration. This association is performed using a
+Kalman Filter tracker based on each object’s cluster cen-
+troidandbykeepingtrackoftimestampinformationover
+time.Whilethisapproachworks wellfortrackingsmaller
+shape objects, variations in performance are observed
+for large objects such as large vehicles depending on the
+relative orientation and shape characteristics given that
+the centroid of each cluster can change. Furthermore,
+the performance of LiDAR based detection methods can
+depend on the spatial resolution of the sensor and max-
+imum perception range. Methods for addressing these
+shortcomingsareintroducedinSection 4.2.
+Camera-LiDARFusion
+While LiDAR sensors can provide range information
+with high accuracy for various objects in the scene,
+
+--- Page 5 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page5of35
+Fig.4Recursivegroundplanefilteringfromclosetofarforcurvedroads.Thesolidarrowsreflectsthenormaldirectionoftheplanesanddash
+arrowsreflectstheinitialguessnormal
+the decision-making process needed to perform complex
+maneuvers often requires contextual information such
+as object classification and texture information. This is
+information that can be readily accessible from image
+and learning based methods but becomes non-trivial to
+extract from raw LiDAR data. Hence, to further enhance
+ourLiDARbaseddetection,weleverageacamera-LiDAR
+fusionapproach.
+Toidentifyrepresentativeobjectsandfeaturesinacam-
+era frame from the LiDAR perspective and vice versa,
+a calibration process is performed. Calibration seeks to
+identify the geometric relationship between two or more
+frames of reference. This extrinsic relationship ( T∈
+SE(3))canbecapturedbymatchingfeaturesintheframes
+of interest and solving the Perspective-n-Point problem
+(PnP) [15]. The generated camera-LiDAR relationships
+c a nb ev i s u a l i z edi nF i g. 6, where the relative transforma-
+tion between the LiDAR Land a camera Cicorresponds
+toCiTL.
+Fig.5Clustersofpointsareseparated(inturquoise)fromtheground
+pointsfiltered(inyellow)To match features between each camera-LiDAR pair, a
+visualizationtoolkitfromAutowarewasutilizedtomanu-
+allyidentifyfeaturesintheimageframeandLiDARframes
+simultaneously.
+With these extrinsic properties, a projective geometry
+a p p r o a c hc a nb eu t i l i z e dt op r o j e c tL i D A Rc l u s t e r sg e n -
+erated by the detection module into image frame. The
+relationship between a LiDAR cluster Xjand its corre-
+sponding representation in image iin terms of pixels is
+given by xj=Ki·CiTL·Xj,w h e r eKicorresponds to
+camerai’s intrinsic parameters that describe projection
+characteristics.Oncethecorrespondingpixelcoordinates
+foreachclusterareestimated,learningbasedmulti-object
+detectors such as YOLOv3 [ 16] can be used to apply
+classificationlabelsasshowninFig. 7.
+The intrinsic parameters for each camera are man-
+ually identified using a standard checkerboard calibra-
+tion toolkit [ 11]. Given the extensive calibration pro-
+cess required by our approach, techniques for partially
+automatingthisprocessareexploredinSection 4.1.
+In the next section, ego-vehicle localization ( BTM)i s
+leveraged to unify static map elements and perception
+objects within the same reference frame. Given that the
+ego-vehicle’s pose is continuously updating, BTMis a
+moving frame. Finally, the map frame Mis used to repre-
+sent obstacles and perform avoidance maneuvers during
+motionplanning.
+2.2.2 Mappingandlocalization
+Simultaneouslocalizationandmapping(SLAM)isatopic
+that has been studied extensively in the robotics com-
+munity using vision and LiDAR methods [ 17,18]. This
+enablesroute andmotionplanningstrategiesthatrequire
+theagent’sposeestimateto executethenextaction,mak-
+ingitanecessarymoduleinanautonomousstack.
+Our work utilizes the concepts of Three-Dimensional
+Normal Distributions Transform (NDT) [ 19]f o rm a p -
+pingandlocalization.Inthemappingprocess,weperform
+a data collection process at the UC San Diego campus
+by driving along the routes of interest and recording
+LiDAR data. This data is then used to generate dense
+
+--- Page 6 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page6of35
+Fig.6Relativetransformationfromthemapframetothevehicleframe(baselink) BTM,fromthevehicleframetotheLiDARframe LTB,andfromthe
+LiDARframetothecamera iframeCiTL
+point cloud maps using the Point Cloud Library (PCL)
+implementation [ 20] for NDT. A Voxel 3D Grid filter is
+additionally applied to downsample the generated point
+cloud.Avisualizationofthedownsampled3Dpointcloud
+g e n e r a t e df r o mt h ec a m p u si ss h o w ni nF i g . 8(a); this
+map corresponds to approximately 3.9 miles of drivable
+road segments and requires 485MB of storage compared
+to 2.7GB before downsampling. With this map, NDT is
+alsoappliedtolocalizetheego-vehiclewithrespecttothe
+map using LiDAR based scan matching, this can be visu-
+alized in Fig. 8(b). This effectively provides continuous
+ego-vehicleposeestimateswithrespecttothemap’sorigin
+(BTM)asdiscussedintheprevioussection(Fig. 6).
+While understanding the pose of the vehicle over
+time is necessary for point-to-point navigation, addi-
+tional contextual information is needed for estimating
+short term control actions. This includes identifying lanemarkings, traffic signals and centerlines for various sce-
+narios including intersection navigation and lane follow-
+ing. To facilitate this process, our team incorporated
+additional map features with respect to the point cloud
+map. These annotations are often referred to as Vec-
+tor or High-Definition (HD) maps. Similar maps have
+been released in various open-source datasets [ 21,22]
+over the years with extensive manual labels such as park-
+ing areas, exact 3D traffic signal locations, lane types,
+and sidewalks. In comparison, we simplify maps and
+only annotate centerlines, stop lines, crosswalks, and
+speed limits as shown in Fig. 9. Despite reducing the
+number of features annotated, the manual annotation
+and verification process for the UCSD campus took a
+week. In Section 3.2.3, we discuss the limitations with
+this approach and introduce alternative methodologies in
+Section4.3.
+
+--- Page 7 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page7of35
+Fig.7Camera-LiDARfusionwithclusterclassification.Theboundingboxesontheleftcolumn(aandc)providelabelsfortheLiDARclustersshown
+ontheright(bandd)byusingprojectionoverlap
+2.2.3 Globalandmotionplanning
+Byunderstandingtheposeoftherobotovertime,aglobal
+plan can be generated given a target location and the
+predefined road networks introduced in Section 2.2.2.
+This plan is represented by sequences of polylines and
+describes the trajectories that need to be traversed to
+reach the destination of interest. Given that this plan
+is defined within the same reference frame as the ego-
+vehicle pose, it can be utilized for motion planning anddecision making by considering static map elements, and
+pedestriansandvehiclesnearby.Tofacilitatethisprocess,
+we employ a modified version of the OpenPlanner [ 23]
+introducedaspartoftheAutowarestack.
+OpenPlanner consists of two core submodules which
+include a global planner and a motion planner. In the
+global planning phase, an optimal shortest path between
+the pose of the vehicle and a destination is calculated
+recursively if the endpoints within the road network
+Fig.8Adownsampledpointcloudmapforcampus(a)andlocalizationusingscanmatching(b)
+
+--- Page 8 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page8of35
+Fig.9Vector/High-Definition(HD)mapsdisplayedontopofthepointcloudmapsfortwocampusareas.Weannotatecenterlines,stoplines,
+crosswalksandspeedlimits
+gr a p ha r ec o n n ec t ed ;t h i si sr e p r e s e n t edasat r a j ec t o ryi n
+Fig.10(a). Finally, in the motion planner module, traffic
+rulesandobstacleavoidancestrategiesareenforcedwhile
+the ego-vehicle uses the reference trajectory provided by
+theglobalplannertoreachitsdestination;theFiniteState
+Machine (FSM) associated with this process is shown in
+Fig.10(b).
+To enable robust navigation while enforcing speed lim-
+its, following other vehicles, and making planned stops,
+various modifications were performed to the Forward,
+Follow, and StopSign states. This was a necessary step
+to ensure that the ego-vehicle would react independently
+of the road conditions and geometry. Initially, the Open-
+Plannerlogicwasdesignedwiththeassumptionthatmost
+roadsareplanarthussimplifyingthephysicalconstraints.
+SpeedKeeping
+While the logic associated with speed keeping is straight-
+forward, there are additional considerations performed
+within the Forward state of the FSM. This state specifi-
+cally considers the vehicle’s current speed, speed limits,
+andtheDBWenablesignaltogenerateatargetspeed.The
+target speed converges to the speed limit imposed by theroadsegmentunlessthereisamaximumspeedsetforthe
+entire mission. The logic associated with this rate of con-
+vergence is dictated by the acceleration rates aacceland
+adecel,showninAlgorithm1;theseareconstantstunedfor
+comfortintermsofm/s2.
+An important design consideration involves target
+speed relaxation when the DBW system is disengaged
+to prevent windup effects from the controller. This can
+prevent erratic behavior when the system is being re-
+engaged and an acceleration or brake command is being
+set after large errors were accumulated within the con-
+troller.Thetriggerisshownwithinthefirstconditionalof
+Algorithm 1. A visualization of the signal generated dur-
+ing the Forward state can be visualized in Fig. 14;w h e r e
+the red control signal up to timestep 93 corresponds to
+theoutputgeneratedbyouralgorithmandthebluesignal
+correspondstothespeedofthevehicle.Additionaldetails
+on the design of the controller employed are covered in
+Section2.2.4.
+ObstaclesandPlannedStops
+The states that account for vehicle following and planned
+stops correspond to Follow and StopSign, respectively. In
+Fig.10Plannedglobaltrajectorybasedonvectormap(a)andtheFiniteStateMachineforthemotionplanner(b)
+
+--- Page 9 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page9of35
+Algorithm 1: The target speed generated during
+motion planning is a function of the vehicle’s cur-
+rentspeed,previoustargetspeed,aswellastheDBW
+enable/disable signal to generate smooth and com-
+fortableacceleration/decelerationsignals.
+Data:drive-by-wireenablesignal auto_enabled ,
+vehiclespeed v,previoustargetspeed v_prev
+Result:targetspeed v_target
+1v_target =v;
+2ifauto_enabled then
+3v_target =v_prev;
+4end
+5ifv_target >speed_limit +/Delta1then
+6a=adecel;
+7else
+8a=aaccel;
+9end
+10v_target =v_target +a·dt
+contrasttoourapproachforspeedkeepingwithintheFor-
+ward state, the estimated acceleration and target speed
+generated during vehicle following and planned stops is
+dynamic by nature and requires an accurate formulation
+to stop within a specific distance for planned stops or to
+match the speed of the vehicle in front of the ego-vehicle.
+Evidently, this depends on the conditions of the road and
+weightofthevehicle.Whileexperimentswereperformed
+with obstacle avoidance maneuvers, due to limited eval-
+uation and testing, this state was not incorporated in the
+initial version of our experiments. For this reason, this
+stateisomittedfromtheFSM.
+Forbothstrategies,thedecision-makingprocessisiniti-
+atedbyidentifyingthedistancetothewaypointofinterest
+wp.FromFig. 11,itcanbeobservedthatforvehiclefollow-
+ing,wpcorrespondstothewaypointclosesttotherearof
+the object of interest wobstacle(Fig.11(a)) and for planned
+stops,wpcorrespondstothecenterofthestopline wstopline
+(Fig.11(b)).AlthoughtheEuclideandistancebetweenthe
+waypointclosesttothefrontoftheego-vehicle( wego)and
+wpcan be estimated, this distance estimate may not be
+representative of the distance that the vehicle will ulti-
+mately traverse. Instead, the approach employed uses the
+complete trajectory to aggregate the pairwise distances
+between adjacent waypoints starting from wego(i)a n d
+endingat wp(j);this estimate can be computed iteratively
+byEq.(1)
+dtarget=j/summationdisplay
+k=i/radicalBig/parenleftbig
+wk+1−wk/parenrightbig/latticetop/parenleftbig
+wk+1−wk/parenrightbig
+.( 1 )
+With the distance estimate ( dtarget), a linear kinemat-
+ics approach is utilized to identify the acceleration rateneeded to ensure that the ego-vehicle stops at the loca-
+tion of interest or reaches the speed of the vehicle ahead.
+Thefollowingexpressionapproximatestheacceleration a
+needed to reach the desired speed vfwithin the distance
+dtargetgiven the current speed of the vehicle vego.F u r -
+t h e r m o r e ,b yn o t i n gt h a tap l a n n e ds t o pi sas p e c i a lc a s e
+whenvfis zero and for vehicle following vfcorresponds
+to the speed of the vehicle ahead, the same kinematics
+formulationcanbeapplied.
+2a·dtarget=/parenleftBig
+v2
+f−v2
+ego/parenrightBig
+⇒a=/parenleftBig
+v2
+f−v2
+ego/parenrightBig
+/2·dtarget.(2)
+A final consideration in the design of our approach
+involves the state transition triggers. While the accelera-
+tion described above can be utilized to update the target
+speedvtargetthat will be delegated to our downstream
+controller, one must first determine the state transition
+l o g i ct ob ea b l et oe n t e rt h eF o l l o wa n dS t o p S i g ns t a t e s .
+To formulate this trigger, we first characterize the aver-
+age braking performance of our vehicles by performing
+a sequence of complete stops to measure the quality and
+braking performance under various scenarios including
+hillsandflatroads.Bymeasuringinitialspeed,finalspeed,
+and distance traversed, an estimate for average acceler-
+ation can be identified: abrake. This constant can jointly
+be applied with equation Eq. ( 3) to approximate the dis-
+tancerequiredtoreach vfgiventheego-vehiclespeed vego.
+This distance denotes dtriggerc a nt h e nb eu s e dt ot r i g g e r
+thestatetransitionlogic.Thestatetransitionlogicisthen
+triggered when dtrigger >dtarget.A saf i n a ln o t et h a ti s
+specifictotheStopSignstate,oncethevehicleperformsa
+completestop,theStopSignWaitstateisenteredforthree
+secondsarerequiredbylaw,beforecontinuing.
+dtrigger =/vextendsingle/vextendsingle/vextendsinglev2
+f−v2
+ego/vextendsingle/vextendsingle/vextendsingle
+2·abrake.( 3 )
+In practice, this approach performs well in a variety of
+scenarios including steep inclines with additional passen-
+gers onboard. A visualization of the speed signal gener-
+ated by the planner for planned stop can be visualized
+in Fig.14after timestep 93, where the red signal corre-
+sponds to the target speed generated by the planner and
+the blue signal to the actual vehicle speed after our con-
+trollermatchesthetargetspeed.Thedetailsforthedesign
+ofourcontrollerarecoveredinthenextsection.
+2.2.4 Trajectoryfollowingandcontrol
+The final output from the motion planner consists of
+speed encoded waypoints that account for speed limits,
+stop lines, and obstacles ahead of the ego-vehicle. With
+this trajectory, we employ the Pure Pursuit path tracking
+algorithm [ 24] to estimate the radius of curvature needed
+
+--- Page 10 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page10of35
+Fig.11Theselectionofthewaypointofinterest wpforvehiclefollowing(a)andplannedstops(b)
+to stay on the path. Furthermore, the radius of curvature
+is used in conjunction with the bicycle kinematics model
+andthevehiclespecificsteeringrackratiotocalculatethe
+tire and steering angles of the vehicle. Finally, a Propor-
+tional Integral Derivative (PID) controller is employed to
+determine the accelerator and brake control inputs given
+thetargetspeedsetduringmotionplanning.
+SteeringAngleandAngularVelocity
+Pure Pursuit uses a simple tunable parameter referred to
+as the lookahead distance ( l) to identify a moving target
+(x,y)alongthetrajectory.Byfollowingthegeometricrela-
+tionship shown in Fig. 12(a) and Eq. ( 4), the curvature of
+the arc (1 /R) that joins the moving target with respect to
+the rear axle of the vehicle can be estimated. This expres-
+sion implies that the radius of the arc simply differs by a
+distance dfrom the xcomponent of the target point. In
+practice,thelookaheaddistancemustbetunedtoachieve
+good performance. Small values of lcan cause extensiveoscillations in steering whereas larger values may reduce
+theerrorgradually.
+x+d=R,
+x2+y2=l2,
+R2=y2+d2
+⇒R=l2/2x.(4)
+Additionally,tomodeltherelationshipbetweenthecur-
+vatureofthearcandthetireangle( θW)ofthevehicle,the
+bicyclemodelisappliedusingvehiclespecificdimensions
+(Fig.12(b)). The rack ratio is then used to estimate the
+steeringangleinputforcontrolEq.( 5).
+tanθW=LW/radicalBig
+R2−L2
+CW,
+θs=Cracktan−1⎛
+⎝LW /radicalbigg/parenleftBig
+l2
+2x/parenrightBig2
+−LCW⎞
+⎠.(5)
+
+--- Page 11 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page11of35
+Fig.12PurePursuit(a)andbicyclemodel(b)
+Before the steering control input can be executed, the
+velocity that corresponds to the estimated steering wheel
+angle must be determined. This is a secondary control
+input that is provided to the DBW system while execut-
+ing the steering control input and must be characterized
+depending on the driving conditions. Our approach is
+modeled after the notion that minimal steering should be
+performed when the vehicle is driving at higher speeds.
+Ontheotherhand,ifthevehicleisdrivingslow,maximum
+flexibilitycanbeprovidedtoincreasemaneuverability.To
+modelthisrelationship,thespeedofthevehicleisusedto
+formulate an angular velocity estimate using the vehicle-
+speed to max-speed ratio ( vcurrent/vmax·β) as shown in
+Eq. (6) When the ego-vehicle is operating at low speeds,
+thisratioapproacheszeroandmaximumangularvelocity
+is permitted. In contrast, when the vehicle is operating at
+speedsclosetoitslimit,theratioapproachesone,andthe
+angular velocity permitted approaches zero. In practice,
+βis simply a constant slightly larger than one to prevent
+a zero angular velocity and vmaxis set to be 25mph (40.2
+km/h); this speed corresponds to the maximum vehicle
+speed and is delimited by its manufacturer. Additionally,
+thecampusspeedlimitis25mph.
+w=wmax/bracketleftbigg
+1−vcurrent
+vmax·β/bracketrightbigg
+.( 6 )
+AccelerationandBraking
+As previously discussed, the final output generated from
+themotionplannerincludesadesiredspeedlimitinaddi-
+tion to the trajectory. While the trajectory waypoints are
+useful for estimating steering wheel control inputs, the
+targetspeedcanbeusedtodeterminetheacceleratorand
+brakecontroldependingontheerrorbetweenthecurrent
+speed and the target speed e(t). In contrast to steeringwheel control, the DBW receives unitless inputs for brak-
+ing and acceleration. Thus, making it ideal for controllers
+suchasthePIDcontroller.
+In this work, we employ two traditional PID controllers
+to estimate braking and acceleration control inputs. The
+iterative process of a PID controller is formulated using
+the error e(t)between the target speed and the current
+vehicle’sspeedasreportedbyodometry.Foracceleration,
+the error is defined by e(t)accel=e(t), whereas for brak-
+ing, the error is its negative e(t)brake=−e(t). The overall
+process is shown in Fig. 13and the control equation is
+showninEq.( 7).
+u(t)=Kpe(t)+Ki/integraldisplayt
+0e(τ)dτ+Kdde(t)
+dt.( 7 )
+Two additional considerations performed while imple-
+mentingthePIDcontrollersinvolvethewindupeffectand
+integralsumthresholding.DuringDBWdisengagements,
+itispossiblethatthedesiredspeedandthecurrentspeed
+diverge. As a result, this can lead to excessive integral
+sums if a maximum threshold is not set and the DBW
+system may set a maximum acceleration or brake com-
+mand while re-engaging the system depending on if the
+error is positive or negative. To prevent this from occur-
+ring, the integral sum is reset to zero when the vehicle’s
+speed is relatively close to zero and the maximum feasi-
+blecontrolinputisusedtothresholdandpreventthesum
+from reaching high numerical values. Finally, additional
+steps are taken in the motion planner: if a disengagement
+is reported by the DBW system, the planner will auto-
+matically reset the target speed to prevent large errors
+from occurring and increment or decrement gradually
+based on the current speed if the system re-engages. By
+thresholding the integral sum and informing the planner
+on the state of the DBW, this effectively prevents adverse
+
+--- Page 12 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page12of35
+Fig.13ThePIDcontrollerforbrakingandaccelerationcontrol
+windup effects. A visualization of the ego-vehicle per-
+forming acceleration, speed keeping, and braking under
+theapproachintroducedisshowninFig. 14.
+2.3 Verificationandearlytesting
+Animportantaspectthroughoutthe development,verifi-
+cation, and testing phases involves safety. To ensure that
+propertestingprocedureswere followed,ourteamdevel-
+oped in simulation using OpenPlanner and verified in
+non-publicroadsforsixmonths.TheROSandOpenPlan-
+nerframeworkfacilitateddata-drivensimulationtoverify
+that the planner entered the correct navigation states
+given perception and localization information. Addition-
+ally, a simple kinematics model was employed to verify
+basicfunctionalitysuchasmapdefinitionsandglobalplan
+generation. This approach facilitated the initial imple-
+mentationandhelpeddebugcomplexcases.
+For live testing, safety precautions were considered by
+using an emergency stop button (Fig. 15) and by enabling
+direct manual override using the steering wheel or brake
+pedal. In the next section, our approach is evaluated in
+an autonomous mail delivery scenario. While our sys-
+tem was evaluated offline and in non-public roads prior
+to initial deployment, the safety drivers that participated
+in the pilot deployment participated in a training pro-
+gramprovidedbytheUCSDRiskManagementoffice.The
+deployment and testing associated with this pilot pro-
+gramwasperformedincollaborationandwithapprovalof
+UCSDfacilities,policestation,andthemailingcenter.
+3 Lessonsfromfirstlong-termtest
+To gain a better understanding of the capabilities and
+overall robustness of our system, our team conducted a
+project on autonomous mail delivery over the course of
+four-monthsincollaborationwiththeUCSanDiegomail-
+ing center. To facilitate mail delivery applications, one
+of the vehicles introduced in Section 2was retrofittedwith a ramp and hamper fasteners (Fig. 16). The field
+experiments were performed with the same safety driver
+throughout the deployment period between summer and
+fall2019.
+3.1 Disengagementsfromautonomousmaildelivery
+By fall 2019, our vehicle had engaged in a total of 89.9km
+or equivalently 6.9 hours in autonomous mode. As intro-
+ducedinSection 2.1.2,varioussignalswererecordedusing
+aloggingdeviceincludinglocalizationinformation,target
+speed, vehicle control signals for steering, braking, accel-
+eration,andtheDBWenable/disablesignal.Secondly,the
+ROSBAG file format was used to record raw sensor data
+including image and LiDAR data. Finally, disengagement
+details were labeled by the engineer onboard of the vehi-
+cle for every intervention performed by the safety driver.
+The overall robustness of the system is characterized by
+using mean-distance between interventions and mean-
+time between interventions [ 25]. This is performed by
+usingtheDBWenablesignaltoseparatethetotaldistance
+traveled and total uptime in autonomous and manual
+modes. To further understand the dependability of the
+system on the safety driver, the manual and autonomous
+segmentsareseparatedasshowninEqs.( 8)to(11),where
+MDBIAandMTBI Ameasuretheoverallrobustnessofthe
+systemovertime.Ontheotherhand,MDBI MandMTBI M
+describetheaveragedistanceandtimeforwhichthesafety
+driver performed manual interventions. This effectively
+normalizes the number of disengagements in terms of
+time and distance whilst simultaneously describing the
+dependabilityofthesystemonhumandrivers.
+MDBIA=TotalAutoDistance
+NumberofInterventions.( 8 )
+MTBIA=Total Auto Uptime
+NumberofInterventions.( 9 )
+
+--- Page 13 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page13of35
+Fig.14Thetargetspeedgeneratedinm/sbythemotionplannerandthevehicle’sspeedareshowninblueandred,respectively.Bothsignalsarea
+functionoftimeinsecond
+MDBIM=TotalManualDistance
+NumberofInterventions. (10)
+MTBIM=Total Manual Uptime
+NumberofInterventions. (11)
+With the metrics introduced, the statistics for the sum-
+mer and fall quarters are summarized in Table 1and the
+overall across both quarters is shown in Table 2.F r o m
+theoveralldisengagementstatistics,onecaninferthatthe
+vehicle drove autonomously an average of 380m between
+a disengagement, where each disengagement performed
+by the safety driver corresponded to approximately 23m
+of manual driving. This is equivalent to driving for 106sbetween a disengagement, where each disengagement
+corresponds to approximately 12s of manual driving.
+Additionally, summer and fall quarter campus trends are
+reflected in the performance. During summer, the pedes-
+trian and vehicle activity is considerably less compared
+to fall quarter. This explains the difference in terms of
+performance given the complexity. The disengagement
+reciprocalsarealsoprovidedineachofthetables.Ideally,
+thesevaluesshouldapproachalimitofzero;meaningthat
+zerointerventionswereencountered.
+Lastly,togainacomprehensiveunderstandingoffailure
+modes, the concept of intervention maps was introduced
+tocapturespatialdependenciesandtrendsthatMDBIand
+
+--- Page 14 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page14of35
+Fig.15Theemergencybuttonforsafetyconsideration
+MTBI may be unable to capture. An intervention map
+incorporates the disengagement data into a 2D map rep-
+resentation of the routes traversed during autonomous
+navigation. This is accomplished by discretizing the state
+of the vehicle overtime with a 1 ×1m2grid resolution
+and when a disengagement occurs, the disengagement
+count for the closest matching cell is incremented. The
+intervention map that corresponds to our two-quarter
+mail delivery project is shown in Fig. 17. All disengage-
+ment grids shown in this figure are normalized based on
+the grid with maximum disengagement value to convey
+density.
+3.2 Lessons
+In this section, various lessons are drawn from the dis-
+engagement data previously introduced. While there are
+various engineering related efforts that can increase the
+overall robustness of our approach, we focus on the core
+limitations experienced that are active research efforts.
+This includes lessons on perception, scalability and scene
+understandingforrobustnavigation.
+Fig.16TheretrofittedvehicleformaildeliveryTable1 MDBIandMTBIDisengagementSummaryforsummer
+andfall2019
+Summer2019 MDBI MDBI−1MTBI MTBI−1
+Autonomous 414.201 0.0024 113.82 0.00878
+Manual 24.00 0.0416 12.77 0.07829
+Fall2019
+Autonomous 283.08 0.0035 84.44 0.0118
+Manual 19.25 0.0519 11.54 0.0866
+3.2.1 Sensorfusionfordetection
+By introducing fusion-based perception methodologies
+in our software stack, additional contextual information
+can be provided for downstream tasks that depend on an
+object’sclassificationandposethatisoftenacriticalcom-
+ponentfordecisionmakingandultimatelyrobustnaviga-
+tion. Nevertheless, in the processes of fusing features and
+objects across various sensor frames, considerable prepa-
+rationoverheadwasencountered.Thiscorrespondstothe
+process of characterizing sensor properties: intrinsic and
+extrinsiccalibration.Aspreviouslyintroduced,theformer
+describes the camera projection properties and the lat-
+ter the transformation between a sensor pair. However,
+thiscalibrationprocesswasperformedmanuallyandperi-
+odically to ensure that vibration did not generate severe
+compound errors during projection. This presents a hur-
+dle in the development and testing process in terms of
+continuous maintenance. For this reason, online calibra-
+tionsystemsforparameterestimationareofgreatinterest;
+researchdirectionsinthisareaareexploredinSection 4.1.
+Another challenge encountered in the process of evalu-
+atingourperceptionsysteminvolvesdetectionandtrack-
+ingoflargemovingobjectssuchascars,trucks,andbuses.
+As introduced in Section 2.2.1, our approach employs a
+clustering-basedapproachforobjectdetection.Whilethis
+technique works well for smaller agents such as pedes-
+trians, the approach does not readily capture the cen-
+troid,shape,andorientationcharacteristicsofrectangular
+objects. This can make state estimation a non-trivial task
+depending on the perspective of the object even if it is
+stationary.
+As a step towards improved centroid and shape esti-
+mation, an L-shape fitting approach [ 10]w a se x p l o r e d
+that leverages RANSAC to identify the best fit orthogo-
+nal lines given a vehicle cluster detection. This method
+assumes that at least two sides of a vehicle are detected
+Table2MDBIandMTBIoveralldisengagementsummary
+Overall MDBI MDBI−1MTBI MTBI−1
+Autonomous 380.42 0.0026 106.25 0.0094
+Manual 22.77 0.0439 12.46 0.08028
+
+--- Page 15 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page15of35
+Fig.17Theinterventionmap
+from the LiDAR perspective and the longer side corre-
+sponds to the longitudinal axis of the vehicle. However,
+in practice this assumption again depends on perspective
+and may initialize a track with swapped lateral and longi-
+tudinalaxes.ThisfailuremodecanbevisualizedinFig. 18,
+wheretheL-shapedetectionapproachincorrectlyassigns
+the orientation of a vehicle with track B. In contrast, the
+pedestrianwithtrackAisconstantlydetectedandtracked
+as it crosses in front of the ego-vehicle. Given the impor-
+tance of detection and state estimation for various agents
+in a scene, learning based methods for sensor fusion are
+exploredinSection 4.2.
+3.2.2 Longtermforecasting,intentrecognition,and
+interactions
+From Fig. 17, it is evident that intersections are among
+the areas with higher number of disengagements. Addi-
+tionally, road segments marked as Unstructured corre-
+spond to areas that are highly dynamic and often involve
+complex interactions with road users. In fact, predictionrelated interactions are among the primary reasons that
+disengagementswereperformedduringourmaildelivery
+missions. These specific interactions are further analyzed
+by reviewing the logs provided by the engineer onboard
+of the self-driving vehicle throughout the four-month
+deployment period. The scenarios considered part of this
+subsetofdisengagementsinvolveerrorsduetoinaccurate
+behavior forecasting of other agents in the scene that as a
+resultpropagatedincorrectcontrolactionsbytheplanner
+and controller. From these logs, a subset of our original
+intervention map is generated as shown in Fig. 19,w h e r e
+the green regions correspond to areas with at least one
+disengagement related to prediction failures. Evidently,
+intersectionsareamongtheareaswithhigherfailurerates
+giventhattheseofteninvolvenegotiatingright-of-way.
+An important note involves recent developments in
+prediction. Even though prediction has been studied
+extensively in recent years in the form of trajectory
+prediction including methods that leverage Genera-
+tive Adversarial Networks (GAN) [ 26–30], Conditional
+
+--- Page 16 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page16of35
+Fig.18Theclustering-basedmethodworkswellforpedestrians(A)butnotforvehicles(B).L-shapeestimationmightfliptheedgeswhenan
+observationisincomplete.Inthefigure,agenttracksarerepresentedbyyellowtrajectories
+Variational Autoencoders (CVAE) [ 31,32], Graph Con-
+volutional Networks (GCN) [ 33], and Self-Attention [ 34],
+less efforts have been made to understand intent and
+interactions that can potentially involve communication.
+AnexampleisillustratedinFig. 20,wheretwocyclistsare
+negotiating the right-of-way with another vehicle agent
+and the safety driver of our self-driving vehicle. Since
+gestures are a natural way of conveying intent, there are
+design considerations when it comes to the development
+of intelligent vehicle systems that operate with or without
+a driver. In the example highlighted, the cyclist assumes
+that our safety driver has control of the vehicle leading
+to a gap between the design of prediction strategies and
+execution.In addition to reducing the gap between the design of
+prediction strategies and execution, additional research
+directions involve interactions with law-enforcement,
+emergency vehicles, and construction personnel. An
+example of an interaction with construction workers in a
+dynamic environment is illustrated in Fig. 21that corre-
+sponds to images captured from the front and side-view
+camerasduringadatacollectionmission.Inthisscenario,
+aconstructionworkeriscontrollingtwo-waytrafficalong
+a closed lane. From a navigation perspective, the system
+must revise its current plan by dynamically generating
+a new trajectory to account for the traffic cones, whilst
+simultaneously following instructions from the construc-
+tion workers: the construction worker shown overrides
+Fig.19Predictionrelatedinterventions(ingreen)
+
+--- Page 17 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page17of35
+Fig.20Exampleofinteractionsbetweenabicyclistandothervehicles(left),andbetweenbicyclistandsafetydriver(right).Thisintersection
+correspondstolocationBinFig. 19.Theimageswerecapturedbytheforwardfacingcamerasfromtheego-vehicle
+the existing navigation plan that entails making a stop at
+the intersection by using a ‘SLOW’ traffic sign followed
+by a hand gesture to wave the vehicle through. While it
+may be possible to define additional states for construc-
+tion logic and employ learning-based techniques as part
+of a state-based planner, ensuring that the approach will
+generalize outside of the training distribution presents a
+newsetofchallenges.
+3.2.3 Staticmapsindynamicenvironments
+As previously introduced, our design strategy for navi-
+gation leverages road network definitions annotated at
+a centimeter-level that involved an extensive annota-
+tion process. While this HD map approach simplifies
+the complexity of trajectory identification for navigation,
+it presents several limitations in terms of scalability in
+dynamic environments. Since the annotations assume a
+static environment, drastic changes such as construction
+sitescanimpacttheoriginaldefinitions.
+To provide further context, two examples in which the
+original map was affected by construction are shown inFigs.22and23.F i g u r e22corresponds to a mailing route
+that extends from a main road onto a large walkway; this
+route was shifted by a construction fence at the time
+the trajectory was generated. Not only do these changes
+imply that a new trajectory must be redefined as a result,
+but they can additionally impact the robustness of the
+localizationalgorithmgiventhatthepointcloudmapmay
+contain missing features. A similar area that was affected
+by construction corresponds to Fig. 23, in which a three-
+way intersection along a mailing route of interest was
+converted into a round-about. For this scenario specially,
+the vehicle would be unable to navigate given the drastic
+changes to the road network and a new definition would
+be needed as well. While the UC San Diego campus cov-
+ers a smaller area compared to large scale autonomous
+drivingapplications,thedynamiccharacteristicsofurban
+environments present a scalability challenge that must be
+furtherexplored.Thisisanareaofinterestthatisinvesti-
+gated in Sections 4.3and4.4by introducing an approach
+for dynamic trajectory generation without reliance on
+complexHDmaps.
+Fig.21Exampleofaninteractionwithaconstructionworker(b)thatdirectsopposingtrafficusingasinglelanenearaconstructionsite(a).
+Navigatingincomplexenvironmentsrequiresdynamicmethodsthatmaynotalignwithpriormaps
+
+--- Page 18 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page18of35
+Fig.22Afence(ingreen)wasremovedandtheroute(inblue)needstobeadjusted
+3.2.4 Closedloopsimulationandtesting
+Although the simulation strategies employed can pro-
+vide aid in early development and assist during case
+specific improvements, there is a gap between simula-
+tion and the real-world as well as scalability implications
+for data-driven methods. For fully simulated method-
+ologies, accounting for non-linearities from real-world
+interactions becomes a non-trivial task and may not
+be a realistic approximation; examples include render-
+ing photorealistic images and even simulating LiDAR
+data. While data-driven methods may be an excellent
+alternative, the approach quickly presents scalability con-
+straints when small perturbations to the original data are
+neededoradditionalcaseswithinthesamecategoryareof
+interest.
+This presents a new direction in terms of sim-
+ulation for reducing the gap between simulated
+representations whilst simultaneously increasing the
+scalability. Although there are more considerations such
+as generating realistic agent-to-agent interactions, we
+begin a search for different simulation strategies in
+Section4.5.
+4 Addressingthechallenges
+To address the challenges discussed in the previous
+section, we study further into these problems. In thissection, we present our research in automatic calibra-
+tion,sensorfusion,semanticmapping,dynamictrajectory
+generation,andbuildingadigitaltwin.
+4.1 Automaticcalibration
+One of our greatest challenges was posed by calibra-
+tion. The calibration process provides intrinsic parame-
+tersofthecameraandextrinsicparametersoftherelative
+transformation between camera and LiDAR. These are
+fundamental for the detection, mapping tasks, and our
+sensor fusion approach. Both of the parameters need to
+be calibrated frequently as intrinsics change with tem-
+perature and extrinsics are affected by vibration. We
+start with a calibration board for intrinsic calibration
+and a hand-picked association based method for extrin-
+siccalibration.Theseapproachesaretime-consumingand
+labor-intensive. Accordingly, efforts have been made to
+design automatic or semi-automatic calibration methods.
+In this section, we present our approach for intrinsic
+auto-calibration using traffic signs and extrinsic semi-
+automaticcalibrationwithablackboard.
+4.1.1 Cameraintrinsicauto-calibration
+Camera intrinsic calibration is essential to relate image
+pixelswith3Dfeaturepointsinthecameraframe.Forthe
+applications, the accuracy of camera intrinsic parameters
+Fig.23Anintersection(a)wasconvertedintoaround-about(b)
+
+--- Page 19 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page19of35
+determines the performance of depth estimation, speed
+inference,andscenereconstruction.
+Therehavebeenmaturealgorithmsforestimatingcam-
+era intrinsic parameters. For example, Zhang’s method
+basedoncheckerboard[ 11]iswidelyused.Althoughauto-
+matic calibration for intelligent vehicles on the road is
+still an unsolved problem, we first question, is continu-
+ousautomaticcalibrationnecessary?Froma4.69 midrive
+around the UC San Diego campus, the results indicate
+a variation of 6.5% for the intrinsic parameters. Thus,
+makingautomaticcalibrationnecessary.
+One key challenge in auto-calibration lies in identify-
+ing adequate 2D-3D correspondences. Previous research
+efforts have focused on retrieving or constructing struc-
+tures in the environment with known dimensions. For
+instance, road lines or carefully designed grid markings
+are common choices from which corners or vanishing
+points are extracted [ 35–37]. However, these structures
+are either variable in sizes and vulnerable to external
+influences, or are uncommon in urban environments.
+It is therefore reasonable to require that the reference,
+fromwhichthecorrespondencesaregenerated,hasubiq-
+uitous existence and standard size. Initially, we studied
+vehicle license plates, but vast experiments found large
+calibrationerrorswithlicenseplatepointsextractedfrom
+KITTI [38] dataset’s video recordings. It was observed
+thatlicenseplatesweresmallandblurryinimages(dueto
+vehicle motion); therefore, they introduced lots of uncer-
+tainty. On the contrary, we find traffic signs everywhere;
+these are relatively large and remain stationary. Before
+leveraging these references, we measured their distribu-
+tion in a typical urban area to ensure sufficient features
+arepresent..Figure 24showsthedistributionofstopsigns
+along a UCSD campus loop. There are 43 stop signs over
+ad i s t a n c eo f7 . 4 7 mi, and on average 195.5 detections/mi
+were estimated by using a benchmark object detection
+model[39].Asitislaterverified,theamountofstopsigns
+alongcanachievefrequentandaccurateauto-calibration.
+Experimentsshowedthattheestimationaccuracyof2D
+feature points plays an important role in getting reason-
+ableintrinsicparameters,andoftenadeviationunobserv-
+ablebyhumaneyescanleadtoabsurdcalibrationresults.
+[40] suggests that line segments can be used to compen-
+sateforthepixelpositionnoises.Therefore,wedesigneda
+pipelinetoextractsub-pixelaccuratecornerpointsoftraf-
+fic signs and use them for auto-calibration. As a concrete
+example,allourstudieswerebasedonstopsigns.Starting
+with an image frame, we detect and crop out stop signs
+(if any) with a deep neural network using Mask RCNN
+[41]. We then apply a modified canny edge detector [ 42]
+togettheoctagoncontour.Thesecontourpointsarepro-
+cessed by a RANSAC algorithm repeatedly, fitting eight
+line functions as the eight edges. If these are intersected
+in order, the estimated corner points achieve sub-pixelaccuracy. Unlike 2D points, relative 3D coordinates can
+be looked up directly from the government’s traffic sign
+manual. Finally, we complete the automatic system with
+Zhang’splanarobjectcalibrationmethod.
+Duringapplications,wecollectsequencesofpointpairs
+and calibrate one batch at a time. The two processes
+- data collection and batch calibration - can be asyn-
+chronous,andthusachievereal-timespeed.Itis,however,
+not straightforward to determine the batch size: a bigger
+batch will produce better intrinsic parameters (proven by
+experiments), but require more storage and longer time
+interval between updates. As an alternative, we intro-
+duced a Kalman filter to incorporate temporal data, and
+tocarryoutcontinuousupdates.
+This pipeline worked well in general, but sudden large
+errors appeared occasionally. While, these errors were
+reduced by the Kalman filter as more data was collected,
+this was because the estimated corner points deviated
+from the ground truth positions due to bad illumination.
+Therefore, we proposed two solutions for increasing the
+system robustness. First, after fitting the eight edges, the
+line positions are refined locally according to the image
+gradientintheperpendiculardirection.Second,wecheck
+theshapeformedbytheeightfittedlinesandmakesureit
+is an octagon. These extra steps proved to be effective for
+speedinguptheconvergenceofcalibrationupdates.
+The final system is shown in Fig. 25. Although stop
+signs are used to characterize the calibration process, the
+system can be easily adapted to various traffic signs or
+landmarks.Moredetailscanbefoundin[ 43].
+As t o ps i g nd a t a s e tw a sa l s ob u i l tf o re x p e r i m e n t s .
+The images were collected by one of our experimental
+autonomous vehicles (Fig. 1(b)) when driving through
+UCSD campus. We stored PNG images to preserve high-
+qualitycompression.Twocamerasonboardofthevehicle
+were used and each detected 1,507 and 1,330 stop sign
+candidatesusingMaskR-CNN,respectively.
+Wecompareourresultswiththeground-truthintrinsic
+parameters (GT) obtained from checkerboard calibration
+beforehand. The selected scale-free metric is the relative
+errorofeachfocallengthEq.( 12).Itshouldbenotedthat
+for both of the stop sign candidate sets, the line refine-
+ment module was turned off. Experiments showed that
+the line refinement was helpful when the detected stop
+signswerefewer.Thus,linerefinementisstillnecessaryif
+the system is running in a region where the stop signs are
+rarely detected. The system selected 444 (Camera1) and
+844 (Camera2) candidate stop signs ready for calibration.
+System results with Kalman Filters are shown in Figs. 26
+and27.
+RelativeErrorof f=f−fGT
+fGT, (12)
+
+--- Page 20 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page20of35
+Fig.24Ademonstrationofacampusloopandthestopsigndistribution.Theblue,green,andredtrajectoriescorrespondtothethreeroutesthe
+vehicledroveinsequence
+Our approach converges to the correct parameters as
+showninthefigures.A5%relativeerrorisachievedforthe
+driver-side camera. We also intuitively demonstrate the
+effect of the relative error using a simple example of dis-
+tance measurement. Suppose the principal point is fixed
+atthecenteroftheimageplane.Ifanalgorithmmeasures
+the distance between an object and the camera, which
+is calibrated using our system, the measurement error
+(assuming the algorithm itself does not introduce addi-
+tional error) is equal to the relative error of the estimated
+focal lengths. Take the driver-side camera as an example,an object estimated at 50m away will be located between
+47.62 and 52.63m (50m
+1±5%). This error range is acceptable
+forsafereactioninurbanareaswitha25mph(11.175m/s)
+speedlimit:emergencybrakingexperimentsfrom25mph
+to0mphindicatethatondownhillroads,27.7m(4.4s)are
+neededduringemergencystopsusingourvehicles.
+4.1.2 Camera-LiDARextrinsicsemi-auto-calibration
+Camera-LiDAR extrinsic calibration calculates the trans-
+formation between LiDAR and camera. This transforma-
+tion is important in sensor fusion tasks. For example, in
+
+--- Page 21 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page21of35
+Fig.25Ademonstrationofthecameraintrinsicauto-calibrationframework
+Fig.26CalibrationResultsofDriver-sideFrontCamera
+Fig.27CalibrationResultsofPassenger-sideFrontCamera
+
+--- Page 22 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page22of35
+low-level fusion, the transformation is needed to project
+theLiDARpointcloudintotheimagetoretrieveitscolor.
+In high-level fusion, the transformation is necessary to
+matchobjectsdetectedinanimageframewiththeobjects
+detectedintheLiDARdata.
+The calculation of the transformation is a straightfor-
+ward problem. The challenge lies in specifying the cor-
+responding features from the two sensors. Extrinsic cali-
+brationmethodscanbebroadlydividedintotarget-based
+or targetless approaches. While targetless approaches are
+more flexible, they often still have requirements of the
+environments,suchasvisualorgeometricaltextures[ 44].
+Hence we pursuit the target-based approach. Such tar-
+gets are usually hand crafted, such as chessboard, sphere
+[45]o rb o a r dw i t hA Rt a g s[ 46]. We use a simple black
+rectangleboardthatiseasytoobtainforthisprocess.
+Some approaches involve manual feature selection. For
+example,in[ 46],LiDARpointsaremanuallygroupedinto
+e d g e ss ot h a tc o r n e r sc a nb ec a l c u l a t e d .T h eo p e n - s o u r c e
+toolprovidedbyAutoware2weusedinitiallyalsorequires
+manual work. The tool provides a visualization for the
+pointcloudandimageframes,andrequiresustomanually
+select the corresponding points. We need to align a spe-
+cial landmark with the point cloud to make sure that we
+can tell the correct pair of points. Since the LiDAR point
+cloudissparse,thealignmentisnoteasy.Furthermore,to
+ensure the robustness, we had to repeat the process for
+more than 9 point pairs for various distances, which took
+alongtime.What’sworse,thetransformationmaychange
+after one run of the vehicle due to vibration, the calibra-
+tion takes up most of the time during our field-testing.
+Hence, we were in urgent need of designing a process to
+reduce the time for extrinsic calibration. The work clos-
+est to our approach is [ 47], where they also only requires
+a plain board. They use line detectors for images and the
+pointcloudsandformulateanoptimizationproblemwith
+asetofconstraints.
+Itisrelativelyeasytodetect2Dfeaturesinimages,such
+ascornersandedges.ThisisnotthecaseforLiDAR.The
+Velodyne VLP-16 we equipped our sensor suite with is
+very sparse vertically; thus, it is blind to horizontal edges
+and points. Instead, we use rotated boards without hori-
+zontal edges for calibration, similar in [ 46]. As shown in
+Fig.28, this is achieved by rotating the board to 30-60
+degrees, so that all four edges have multiple intersections
+withhorizontallines.Theseintersectionscanbeautomat-
+ically picked from the data. With enough intersections
+along an edge, we can calculate the edge equation. Given
+all four edge equations, we can then calculate four cor-
+ner points in 3D and the corresponding corner points in
+2Dcanbecalculatedfromacannyedgedetector,followed
+2https://github.com/Autoware-AI/autoware.ai/tree/1.8.0/ros/src/sensing/
+fusion/packages/autoware_camera_lidar_calibrator
+Fig.28Oneofourteammembersholdingtheboardinthe
+calibrationprocess.LiDARpointsareprojectedontotheimageusing
+thecalculatedextrinsicparameters.ThecolorofLiDARpointsisbased
+ondistance
+by intersection points of edges. For a pair of image and
+pointclouddata,wecanextractatmostfourcorrespond-
+ingpoints,andthuswemovetheboardaroundtoincrease
+thedatapairsforrobustness.
+In practice, we calibrate the system using a black board
+against an off-white wall to make sure the edge detectors
+workwithoutinterferencefromthebackground.Wemove
+the board to various poses in the intersection of the field
+of view of the camera and LiDAR. An ROS node runs the
+calibration program repeatedly until we are satisfied with
+the number of point pairs and reprojection error. A typi-
+cal calibration process involves more than 60 point pairs
+that can be collected within a minute. Since we can easily
+get more point pairs than we need, a RANSAC variation
+m-estimator sample consensus (MSAC) [ 48]w a su s e dt o
+improvetherobustness.
+Figure28shows our team member holding the board
+in the calibration process. After obtaining the extrin-
+sic parameters, we color the LiDAR points by depth
+and project them into the image based on the estimated
+extrinsic parameters. The data collected for calibration
+can also be used to visualize the calibration results qual-
+itatively. As we can see, the LiDAR points align well with
+the board. Typically, a reprojection error between 2 to 4
+pixels is obtained. For reference, a 3px error for our cam-
+era data, with 1920px in width and a 60◦horizontal field
+of view, means less than 0.1 degree error. For an object at
+50 meters away, this could result in 8 cm error, which is
+acceptable.However,welaterfoundthatthisreprojection
+errorcouldbemisleadingabouttheactualperformanceof
+thesystem.
+
+--- Page 23 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page23of35
+Thesystemsometimesdemonstratesmuchlargererrors
+than expected. We determined that the data collected
+occasionally posed challenges for the optimization. As
+s h o w ni nF i g . 29, where the ground truth camera loca-
+tion is given by the gray box. When we move the board
+around, the depth range can be limited by the sparsity
+of LiDAR scans. If we go too far, sufficient LiDAR scans
+may not intersect with the board’s edges. Now, suppose
+ourmovementisnearline2andmatchedkeypointswere
+identified. Due to the error in the key point localization,
+we might finally estimate the red camera pose shown in
+dash lines. This estimated pose, despite being off both in
+translationandrotation,givesalowreprojectionerrorfor
+keypoints on line 2. But the error gets much larger for a
+longerdistance,suchasforpointsontheline1.
+Ideally,thiscouldberesolvedbycollectingdataforvar-
+iousdistanceranges.Butaswementioned,thesparsityof
+LiDARringscanlimitthedistance.Whennolargerboard
+is available, we can perform RANSAC multiple times and
+pick the result that visually aligns well for various dis-
+tance ranges. Alternatively, we consider the fact that the
+optimizationchallengecomesfromadriftbothintransla-
+tionandrotationthatreducesthereprojectionerror.Since
+the camera has rather low translational movement after
+vibration,wecanfixthetranslationandonlyoptimizethe
+rotation.
+4.2 Sensorfusionforrobusttracking
+Our sensor configuration implies that sensor fusion is
+necessary for robust tracking. The sparsity of the Velo-
+dyne VLP-16 LiDAR makes it challenging to detect
+objectsbeyond30metersrobustly.Thisisespeciallyhard
+for tracking vehicles. The clustering-based method [ 49]does not reflect the true center of vehicle and sometimes
+causessuddenshifts.Ontheotherhand,theL-shapeesti-
+mation approach discussed in Section 3.2.1was not able
+to perform robustly for challenging scenes when there
+are only a few points projected on the vehicle. Currently,
+thestate-of-the-artperceptionmethodsareheavilybased
+on deep learning [ 50], [51], which generate much better
+predictions for the centers and dimensions of bounding
+boxes. However, they require a large amount of labeled
+data that is not provided for our collected data. For
+this reason, we investigate related topics on open-source
+datasets. The nuScenes dataset [ 21] was chosen as it
+includes radar, which provides potential for radar related
+fusionresearch.
+Fusing multiple complementary sensors has been a
+popular research topic in autonomous driving. They are
+expected to improve the robustness and reduce the cost
+[52]. Fusion can happen in various stages [ 53]. Low-level
+fusion often involves highly coupled system design. For
+example, objects detected in cameras retrieve its depth
+fromLiDARdata[ 54],orprojectingLiDARdataintocam-
+era to get its color [ 55]. High-level fusion are modular at
+the expense of loosing some information. In [ 56], LiDAR,
+radar and camera objects are detected first then fused
+with an Extended Kalman Filter (EKF). More recently,
+deep learning based fusion achieve great performance
+[57], [58], [55]. But these black box models are hard to
+interpret.
+Our first attempt was on fusing the LiDAR detected
+3D bounding box with radar detected point targets using
+an EKF based approach [ 56]. We conducted experiments
+on a small subset of the nuScenes dataset for cars only.
+AndevaluatebasedontheAverageMulti-ObjectTracking
+Fig.29Thetwocamerapositionshastheirkeypointsmatchwellontheline2butmismatchfortheline1
+
+--- Page 24 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page24of35
+Table3TrackingresultsoftheLiDARandradarEKFbasedfusion
+Modalityandfusionmethod AMOTA ↑ AMOTP ↓
+v0:LiDAR 0.4957 1.0021
+v1:LiDAR+radarupdatestate 0.4460 1.2872
+v2:LiDAR+radarupdatescore 0.5091 1.0020
+v3:LiDAR+radarupdatehits 0.4992 0.9675
+Accuracy (AMOTA) and Average Multi-Object Track-
+ing Precision (AMOTP) [ 59]. We follow the tracking-by-
+detection paradigm and use the detection from [ 51]. We
+thenimplementtheLiDAR-basedtrackingfollowing[ 60],
+andincorporatedradartothetracker.However,asshown
+inTable3,addingtheradartoupdatethestateoftheEKF
+trackers (v1) decreases the performance of the tracker.
+Thiscontradictsourintuitionthataddinginformationcan
+only be more helpful. Data analysis was performed to
+investigatetheissue.
+The result lies in the fact that radar data does not
+reflect the center of the object. As shown in Fig. 30,t h e
+L i D A Rd e t e c t i o ni sl i k eab e l ls h a p ec u r v ea r o u n dt h e
+ground truth. However, this is not the case for radar. The
+peak of the curve for radar was one meter off the center.
+TheExtendedKalmanFiltermeasurementmodelassumes
+the measurement is a Gaussian distribution around the
+ground truth. Given that the radar data does not satisfy
+thisassumption,weobservethattheresultbecomesworse
+whenaddingtheradar.Given that the radar objects is not informative about
+the center location, a follow-up question would be, does
+it reflect the existence of the object? State-of-the-art
+LiDAR-basedobjectdetectorsoftenproducesalotoffalse
+positives. Hence, it would be valuable if radar objects can
+help eliminate some false positives. During our exper-
+iment, we determine that in some cases radar helps
+improve the accuracy of tracking by providing existence
+information, such as confidence score or hits (times of
+measurements being matched to a track). For example,
+when a radar detection is matched with an existing track,
+weupdatetheconfidencescoreofthetrack(v2)orupdate
+itshits(v3)topreventitfrombeingeliminated.Compared
+to direct state fusion that decreases the performance,
+these strategies increase the performance. However, the
+increment was negligible. This is because the radar only
+provides weak evidence of existence. As shown in the
+Fig.31, many cases there are ground truth annotations
+but no radar objects. And given that track management
+system already eliminates most false positives using tem-
+poral consistency, this weak evidence from radar cannot
+contributemuch.
+Based on our experiments, incorporating radar mea-
+surements from nuScenes does not contribute much to
+the system. Similar results was also reported in [ 21],
+where learning based methods were explored. However,
+this does not mean that radar systems have no value for
+autonomous vehicles. Notice that our evaluation has a
+limitedrangeupto50meters.Thisisashortrangewhere
+Fig.30Detectioncentertogroundtruthcenterdistancedistributionforcars
+
+--- Page 25 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page25of35
+Fig.31Visualizationofradarpoints(ingreen)andgroundtruthboundingboxes(inred)
+LiDARpointcloudcanbedenseenough.Butthevalueof
+radarisitslongrangeperceptioncapability,whichcannot
+beevaluatedbasedonthecurrentdataset(whichisanno-
+tated based on LiDAR). This is a common challenge for
+radar-basedperception systems. Additionally,radar tech-
+nology is also receiving improvements in terms of spatial
+resolutionandsignal-to-noiseratio.
+4.3 Semanticmapping
+High-definition (HD) maps can provide detailed struc-
+tured information about the environment such as road
+topology, crosswalks, and stop signs. Many currentautonomous driving systems depend on those detailed
+maps to help vehicles reason about the surrounding road
+elements and to make intelligent decisions accordingly.
+However, given the fast changing nature of the envi-
+ronment, maps become easily outdated, and it becomes
+expensive and laborious to maintain the maps [ 61]. Sev-
+eral works have been proposed to learn the road graph
+topology such as [ 62,63]. Besides the topology of map,
+detailed features of HD map are also required for robust
+sensing and localization. Among all the features of HD
+maps, semantic attributes are crucial for accurate and
+robust mapping, providing an abstraction from the raw
+
+--- Page 26 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page26of35
+Fig.32ProbabilisticSemanticMappingpipeline
+imagedataandabundantdetailsaboutthestaticenviron-
+ment. To tackle this problem, several methods have been
+proposed to automate/semi-automate this process. In
+[64], a hierarchical Conditional Random Fields approach
+wascombinedwithpairwisepotentialminimization.Sen-
+gupta et al. [ 65] incorporate stereo pairs for depth image
+estimation. Westfechtel et al. [ 66]u s e dL i D A R - b a s e d
+SLAM to build a large scale 3D semantic map. Random
+forest and deep learning methods were also applied to
+reclassifythelabel.
+Incorporating the road priors can benefit more robust
+semantic mapping and provides a better way of cap-
+turing the uncertainties. Inspired by this, we have pro-
+posed a probabilistic semantic mapping approach [ 61].
+Our pipeline for building the semantic maps is shown in
+Fig.32.W efirstuseDeepLab V3Plus[ 67]todo2Dseman-
+tic segmentation and associate semantic pixels with the
+corresponding 3D LiDAR points by using the extrinsics
+between camera and LiDAR. After the semantic associ-
+ation step, we use the proposed semantic mapping algo-
+rithm to update the bird’s eye view (BEV) semantic belief
+byusingconfusionmatrixandLiDARintensityprior.The
+confusion matrix is utilized to estimate the uncertainty
+of the semantic segmentation networks, while the LiDAR
+intensity is used to capture the infrastructure prior as the
+roadelementshavedifferentreflectivities.Theupdaterule
+for semantic mapping follows the classical filtering algo-
+rithm with additional consideration of the above priors.
+Fordetailsofthealgorithm,pleaserefertotheprobabilis-
+ticsemanticmappingpaper[ 61].
+We tested the above algorithm using our campus envi-
+ronment with several challenging scenarios including
+junctions, hills, and construction sites. The generated
+globalmapusingourbestmodelisshowninFig. 33.
+Quantitative results are shown in Table 4.T h eV a n i l l a
+approach does not consider any mentioned priors andonlyupdatesthebeliefwithuniformprobability.Vanilla+I
+considers the LiDAR intensity prior. CFN uses the con-
+fusion matrix as the probability to update the belief.
+Finally, CFN+I considers, both the intensity and the con-
+fusion matrix. As we can see, adding LiDAR intensity
+can improve baseline’s accuracy and IoU of lane marks
+as the intensity is a strong indicator of potential lane
+marks.Also,theconfusionmatrixwillbenefittheestima-
+tionofcrosswalksandlanemarksbyalargemargin.Inthe
+next section, we explore the applications of probabilistic
+semanticmapsfordynamictrajectorygenerationinurban
+environmentstoexplorealternativetoHDmaps.
+4.4 Dynamictrajectorygeneration(TridentNet)
+Classical global planner, behavior planner and local plan-
+ner pipeline usually has high dependency on HD maps
+Fig.33TheBEVofgeneratedsemanticmapofacampusenvironment
+
+--- Page 27 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page27of35
+Table4Quantitativeevaluationofprobabilisticsemantic
+mappingalgorithm.RD,CW,LMrefertoroads,crosswalks,lane
+marksrespectively
+MethodsIoUmIoUAccuracy
+RD CW LM RD CW LM
+Vanilla 0.715 0.537 0.135 0.462 0.797 0.577 0.180
+Vanilla+I 0.712 0.510 0.163 0.462 0.789 0.548 0.234
+CFN 0.671 0.605 0.301 0.526 0.708 0.696 0.652
+CFN+I 0.669 0.588 0.298 0.518 0.705 0.676 0.657
+which have poor scalability as the environment is con-
+stantly evolving due to events such as construction and
+roadclosure.Aswehavediscussedintheprevioussection,
+maintainingtheHDmapisexpensiveandlaborious.Thus,
+reducing the dependency of detailed map is required for
+morerobustnavigationandplanning.Moreover,lowering
+the barrier to entry by making the technological require-
+ments more accessible is essential to the advancement
+of autonomous driving, as the benefits are dependent
+on widespread adoption of the technology. To tackle the
+challenges, several end-to-end learning based methods
+have been proposed to learn control actions based on
+coarse directional cues and current perceived environ-
+ment.Heckeretal.[ 68]usedacoarsemapcombinedwith
+LSTM to estimate steering and speed controls. Amini et
+al. [69] built a variational network to learn the point-to-
+pointnavigationandlocalizationbasedonnoisyGPSdata
+andcoarsemaps.However,asthecontrolactionsarecou-
+pled with vehicle-specific configurations, the approach
+may not scale and apply to other vehicle platforms.
+To decouple path planning from control, we focus on
+dynamically generating trajectories that can be used incombination with existing path tracking and kinematics
+modelsasdescribedinSection 2.2.4.Giventhatthetrajec-
+tories may be multi-modal as there exist several paths to
+reachthedestinationgiventhegoalanddynamicenviron-
+ment, we propose a conditional generative model called
+TridentNet[ 70]togeneratedynamictrajectoriesutilizing
+onlyaglobalplanbasedoncoarseOpenStreetMap(OSM)
+[71]andalocalprobabilisticsemanticmapasdescribedin
+Section4.3.
+The proposed pipeline is shown in Fig. 34.I n s t e a d
+of using detailed HD maps to generate the navigation
+waypoints, a coarse OSM is used to provide high-level
+directional cues. More specifically, our global planner
+implementation will output the shortest path from the
+current pose to the destination by using only the road
+g r a p ho fO S M .W et h e nu s ear a s t e rm a s kt oe m b e d
+those directional cues. Since the OSM may not be able
+to capture complete contextual information including
+road markings, the probabilistic map is used; this map
+can be updated with the semantic belief as car per-
+ceives new observations of the environment [ 61]. Convo-
+lutionalNeuralNetworksareusedtolearnfeatureembed-
+dingsofrasterizeddirectionalcuesandlocalprobabilistic
+maps.Afterwards,aConditionalVariationalAutoencoder
+(CVAE) [ 72] is utilized to generate multiple trajectory
+hypotheses. The latent variables of the CVAE are capable
+ofcapturingdifferentdrivingmodesgiventhedirectional
+representations.Duringtraining,multiplelatentvariables
+are sampled, and during inference, the latent variable
+with the highest confidence score is used to generate
+the planned trajectory. This trajectory can then be pro-
+cessed by the downstream path tracking algorithm and
+controller. Additional details about the methods can be
+foundinTridentNet[ 70].
+Fig.34ArchitectureofTridentNet
+
+--- Page 28 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page28of35
+Table5EvaluationresultsofTridentNetoncollectedUCSD
+dataset
+UCSanDiegoDataset
+Model ADE FULLADEHALFFDE MDE
+TridentNet- H10-S31.056245 0 .336941 2 .447714 2 .494614
+TridentNet- H15-S2 2.341875 0.753802 6.127183 6.177646
+To evaluate the performance, we adopt Average Dis-
+placement Error (ADE) and Final Displacement Error
+(FDE), which is commonly used in trajectory predic-
+tionliterature[ 73].Additionally,MaximumDisplacement
+Error (MDE) is used to measure the worst waypoint pre-
+dicted along a trajectory. The results for two different
+modelsareshowninTable 5.Thefirstmodel,TridentNet-
+H10-S3,isconfiguredtodynamicallygeneratetrajectories
+that are represented by 10 waypoints spaced 3 mapart;
+ontheotherhand,TridentNet- H15-S2uses15wa ypoints
+spaced by 2 mapart. As the initial set of waypoints are
+more likely to be executed by the ego-vehicle, those way-
+points are critical for robust and safe navigation. To this
+end, ADE HALFis used to evaluate short-term perfor-
+mance.Whilebothofthemodelscangeneratetrajectories
+up to 30 m,H10-S3 decodes less waypoints compared
+toH15-S2, and as a result reduces potential compound
+errors. Test samples generated from H10-S3 can be seen
+inFig.35.
+Our proposed models show low relative error in terms
+of ADE HALF. Thus, indicating their potential capabilities
+of capturing short-term intent and generating accurate
+planned paths while eliminating dependencies on man-
+ually labeled HD maps. Additionally, our results present
+future research directions on obstacle avoidance, motion
+planning, and closing the gap with perception modules
+suchasprediction.4.5 Buildingadigitaltwin
+Testing and verification for systems that are intended to
+operateinsafetycriticalscenariosisindispensable.During
+the development process, our team used a combination
+of fully simulated modules and data-driven techniques
+to verifylocalization,perception,andplanning strategies.
+This provided early indication on how the various com-
+ponents would perform separately and jointly. However,
+in various cases, it was determined that fully simulated
+data did not provide a comprehensive representation of
+real scenarios. While it is possible to collect new data
+withafull-scalevehicle,thispresentsaconsiderableover-
+head and may not scale if manual annotation is involved,
+or a larger number of related test samples are needed.
+This motivates the direction for building a digital model
+for simulation that not only provides the convenience of
+fully simulated methods but additionally provides rep-
+resentative data that matches real-world testing. In this
+section,wediscusseffortstoevaluatelargerscaledatacol-
+lection methods, as a means to create synthetic models
+representativeoftherealworld,foralgorithmictesting.
+4.5.1 Fromworldtoworldmodel
+Mapcreationforautonomousdrivinghighlightstheneed
+for temporal model representations of the world to be
+sufficiently close to the real-world to ensure safe naviga-
+tion. Rapidly changing road conditions, from construc-
+tion works to lane re-painting and vegetation growth on
+nearby embankments, all emphasize the requirement for
+scalable map generation techniques. Google Streetview
+[74] was one of the first efforts to leverage road vehi-
+cle mounted sensors to acquire map data at scale. With
+the requirements of fleets of vehicles to map every street
+across nations, the complexity and delays involved to
+track changes have made Google Maps a best-effort solu-
+tion to resolve map creation. Alternative efforts, such as
+those to crowd-source sensor data [ 75], have emphasized
+Fig.35Testsamplesgeneratedby H10-S3areshownforlanefollowing(a),anintersectionright-turn(b),andanintersectionleft-turn(c).Ground
+truthwaypointsshowninblueandpredictedwaypointsareshowningreen
+
+--- Page 29 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page29of35
+the pain-points associated with geo-referencing and data
+requirementsofdatacollection.WebelievethatHDMaps
+are unsustainable at scale, but that high-level road infor-
+mation may be a reasonable prior, paired with dynamic
+trajectorygeneration,asdiscussedinSection 4.4.Assuch,
+weinvestigatetheoptionsofusingaerialdataformapand
+modelcreation.
+On the UC San Diego campus, we tackled scalability
+of map data collection across a campus-wide effort by
+usingUnmannedAerialVehicles(UAV)inconjunctionto
+vehicle mounted sensors. Through RTK-GPS referenced
+aerial image collection with a Phantom 4-RTK platform,
+a collection of over 1,400 images across 2 flights resulted
+in 0.38 km2coverage with a Ground Sampling Distance
+(GSD) of 1.8cm/pixel, shown in Figs. 36and37.A l ld a t a
+georeferencingwascompletedusingaerialposeestimates
+derived from RTK based timing correction to GPS to
+achieve <2cmlocalizationaccuracyinaglobalcoordinate
+system. While the data collected was a progressive incre-
+ment towards larger area scanning, it was concluded that
+aerial-based map data collection efforts provide a valid
+and feasible path towards state and nationwide timely
+referencemapcreation.
+The benefits of efficient, large-area data acquisitions
+did not come without difficulties. Firstly, bringing multi-
+altitudeUAVandsatellitedatatogetherresultedinfeature
+discontinuities such as lane markings. Geo-referencing
+withstate-of-artRTKsystemsprovidedlocalizationaccu-
+racies to sub 5-cm for UAV data, which was still too
+large to ensure perfect alignment. It was also found
+that many public map contents also adhered to georef-
+erencing standards on the order of 50cm, as observed
+in Fig.38. Additionally, dense multi-view reconstruction
+techniques for image based reconstructions commonly
+use depth filtering to reduce reconstruction noise. Arti-
+facts such as power-lines, poles and traffic signs were all
+subjecttooccasionalfiltering,hencebeingremovedfrom
+Fig.36UCSanDiegoengineeringcampus3Dpointcloudfrom
+geo-referencedUAVimagingthe reconstructions. While there are methods to han-
+dlethin-featuresinmulti-viewreconstructions[ 76],these
+areoftenmissinginopen-sourcereconstructionlibraries.
+The findings highlighted important considerations when
+attempting to use only real-world aerial data for map
+creation in the scope of autonomous vehicles. Table 6
+summarizes the approximate spatial resolutions and geo-
+referencing capabilities associated with different scales of
+data acquisition systems including UAV [ 77], aerial and
+satellite maps [ 78] as well as ground vehicle [ 79]b a s e d
+mapcreationsystems.Whilesomeoverlap,itcanbeseen
+that manned aircraft with high spatial imaging resolu-
+tionsystemsoffersbothhighspatialdensity(GSD)aswell
+as strong geo-referencing, with the benefit of being even
+morescalablethanUAVbasedmapping.Futureimprove-
+mentsinsensorypackagesandplatformswillyieldfurther
+optionsforscalable,real-worlddatacapturemethodsthat
+are applicable to map creation for autonomous ground
+vehicles.
+4.5.2 Syntheticdrivendata
+The lack of readily available ground-truth data from sen-
+sory perspectives in real-world data encourages the cre-
+ationoffullysyntheticdata.Suchsyntheticmodelscanbe
+real-world based (derived from captured data but fitted
+to pre-defined geometric primitives) or designed fiction-
+a l l y .A sas t e pt o w a r d st h i se n d ,v a r i o u sa u t o n o m o u s
+driving simulators were explored including CARLA [ 80]
+and LGSVL [ 81]. These provide tools and methodologies
+for close loop testing with existing autonomous driving
+frameworksthatincludemapcustomizationtools,physics
+engines, sensor models, as well as simulated road users.
+Although both simulators provide highly customizable
+toolkits for map generation, CARLA incorporates direct
+APIsupportfortheRoadRunnermappingsoftwarewhich
+facilitates georeferenced road network mapping in addi-
+tion to a suite of configurable sensor types as shown
+in Fig.39. RoadRunner utilizes a combination of aerial
+imagery, elevation maps, and point clouds to generate
+road network definitions that account for various geome-
+tries and elevation characteristics. Leveraging the UAV
+data captured and publically available satellite imagery,
+a digital twin was initially generated with complete road
+networks for approximately 70% of the UC San Diego
+campus; three parts of campus are shown in Figs. 40(a),
+40(c), and40(e). All data was referenced to a local Carte-
+siancoordinatesystemwithaglobaloffset.
+Althoughtheinitialroadnetworkdefinitionforcampus
+can be applied for verification across planning strategies
+given the ROS bridge support for our navigation stack,
+thegapbetweenthesimulatedperceptionandrealsensor
+data persists. Additionally, generating realistic simula-
+tion scenarios relies on accurate representation of road
+furniture, buildings, vegetation, traffic signs, etc. Having
+
+--- Page 30 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page30of35
+Fig.37UCSanDiegoengineeringcampus2Dorthogonalviewwithmarkedstopsignsfromgeo-referencedUAVimaging
+developed campus wide semantic models as described in
+Section4.3and experimented with semantic scene mod-
+elsfordynamictrajectorygenerationtoaddressscalability
+limitations (Section 4.4), we first explore a semantic rep-
+resentation strategy. This representation is portrayed in
+Figs.40(b),40(d), and40(f) following the color map from
+our work on semantic mapping. Given that our approach
+for dynamictrajectory generationoperateswith semantic
+representations, this presents an opportunity for testing
+and verification, but also in terms of generating unseen
+scenarios during navigation that can be useful during
+training machine learning based models. Secondly, for
+use-casesthedependonphotorealisticrepresentations,as
+shown in Figs. 36and37, an active research direction
+Fig.38Semi-transparentoverlayofUAVcaptured,geo-referenced
+orthomosaicimagedataoverGooglesatelliteimageryofintersection
+attheUCSanDiegoengineeringcampus.Inconsistenciesof
+pedestriancrossingsemphasizetheissuesassociatedwith
+geo-referencing,andtemporaldataagreement,inadditiontostrong
+scaledifferencesinvolves incorporating photorealistic 3D models through
+theprocessofsurfacereconstruction.
+5 Lessonsandissuesforthefuture
+The design of the vehicles for urban mobility has made
+it clear that there are still a number of challenges for the
+future.Thechallengesspanthefullsystemarchitecture.
+Driving in an area with a lot of pedestrians requires the
+ability to detect other road-users and predict their intent.
+The present system is good at detecting pedestrians, but
+the prediction of future motion is at best 1-3 seconds,
+which is not enough to safely avoid a collision if a person
+stepsontotheroad.
+A similar problem is experienced with cars. The vision
+and LiDAR systems are only line of sight. In traffic,
+the system only sees the car immediately in front of it.
+Consequently, we are slowly evaluating use of radar sys-
+tems from several providers to determine the best way to
+improvesituationalawareness.Theradarsalsohaveoper-
+ating long-range, which is needed to be able to detect
+other cars at intersections. Entering a busy street from a
+side street requires detection of cars at least 450 ft / 150
+m away. In addition, longer range detection and tracking
+is desirable to allow for robust intent recognition over a
+periodof10+seconds.
+An interesting issue that has not yet been fully studied
+in the system architecture includes both, hardware and
+Table6Approximatereal-worldgeospatialmapdatasource
+comparisonsforGSDandgeo-referencingaccuracies
+DataSources GSD(cm/pix) Geo-Referencing(cm)
+UAV 1-10 5
+Satellite 20-100 50+
+MannedAircraft 5-20 10
+GroundVehicle 1-10 5
+
+--- Page 31 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page31of35
+Fig.39SyntheticstereopanoramiccameradatageneratedwithCARLA.Fromtoptobottom:RGBimagesofcameras,bottom-left:respectivedepth
+maps,bottom-right:respectivesemanticsegmentationmaps
+software components. Recently, a proliferation of high-
+performance embedded systems have entered the market
+suchastheNVIDIAJetsonNanoandtheQualcommRB5
+system.Thesystemscaninterfaceto4+cameras,andhave
+embedded GPUs. The systems can perform 10+ trillion
+operations per second. As such, an interesting question
+is how to partition the system to have much of the pro-
+cessing carried out at the edge. One could imagine a
+systemthatisafederationofembeddedsystemsintercon-
+nected by high-speed Ethernet, which would reduce the
+needforcablingandallowformuchhigherflexibility,but
+debuggingsuchsystemsismuchharder.Findingtheright
+balanceisanopenresearchchallenge.
+The role of maps is another interesting question. Most
+AV companies rely on HD-maps, which poses a chal-
+lenge in terms of updating and maintenance. We have
+adopted a more minimalistic approach with a hierarchyof map representations of high-level topological graphi-
+cal models (such as Open Street Maps) over local maps
+toinstantaneousmodelsthatareupdatedinreal-time.At
+the same time there is a need for a semantic dimension
+as well to characterize the relative location of sidewalks,
+trafficsigns,crosswalks,....Thesemanticmodelsprovide
+a strong prior on the interpretation of the environment
+which in term allow for prediction of the layout of the
+environmentandthebehavior/intentofotherroad-users.
+Finding the right balance between these prior and online
+maprepresentationsisaninterestingresearchquestionin
+itsownright.
+The value of a digital twin is another issue that we have
+onlystartedtoexplore.Therearenumeroususe-casesfor
+such a system. It is possible to simulate the system and
+explore many issues for behavior verification, for train-
+ingofMLmodelstobootstrapmodelspriortoreal-world
+
+--- Page 32 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page32of35
+Fig.40VariousBEVroadnetworkdefinitionsfortheUCSanDiegocampus.Ontheleftcolumn((a)(c)and(e)),theroadnetworksaregenerated
+usingstandardroadtexturesprovidedbyRoadRunner.Thecorrespondingsemanticmapsareshownin(b)(d),and(f)
+f i n e - t u n i n g .T h et w i ns y s t e mc a na l s ob eu s e df o rp o s t -
+mission analysis of system behavior. As we use the ROS
+system, the default data-viewer is RViz, which is great,
+but it lacks a lot of the tools for analysis. In addition,
+the digital twin is interesting for level 4-5 systems as it
+is possible to augment the digital twin system with an
+AR/VR embedding that would allow remote supervision
+and tele-operation, which has numerous advantages for
+training and monitoring of systems during deployment.
+Obviously,theremotemonitoringposesnewchallengesin
+termsofadequate/robustcommunicationlinkstoensure
+safe operation and the design of robust control methods
+inthepresenceofvariabletime-delays.
+Finally, there is a need to consider new techniques for
+software engineering. The present design with a mixture
+of Python and C++/ROS is very flexible but it is diffi-
+cult to have a robust framework for debugging and to
+provide any form of safety guarantee. Design of mass
+scale autonomous systems will require mature software
+toolswithanabilitytodesign,simulate,code-generateand
+debug systems at multiple levels of abstraction. We arefar from such a system, and it is very much a research
+challengeforthefuture.
+The effort at UC San Diego in the Autonomous Vehicle
+Laboratoryisaninterestingstart,andwehavemadeseri-
+ous progress both in terms of systems realization and in
+terms of long-term evaluation. At the same time, we are
+justgettingstarted.TherearemanymoreM.Sc.andPh.D.
+thesestobewrittenbeforeweareattheend.Inparallel,we
+are trying to transition some of our results to industry to
+demonstrateimpactbeyondtheacademicenvironment.
+Acknowledgements
+WeacknowledgethesupportfromDr.ToddHyltonandmembersofthe
+AutonomousVehicleLabatUCSanDiegothathavesharedvaluableinput
+throughoutthecourseofourresearch,specificallyco-authorsin[ 10,25,61].
+WethankProf.FalkoKuester,EricLoandJonathanKlingspon,attheUCSan
+DiegoDronelab,forprovidingaccesstothedatainSection. 4.5.Wealso
+appreciatethepartnershipandcollaborationwithUCSanDiegofacilities,
+mailingcenter,andpolicestationforsupportingourresearch.
+Authors’contributions
+Dr.HenrikI.Christensendirectedtheprojectdescribedinthismanuscript.
+DavidPaz’maincontributionsincludeSections2,3,4.3,and4.4;additional
+effortsandinputwereprovidedinSections4.1,and4.5.HengyuanZhang’s
+
+--- Page 33 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page33of35
+maincontributionsincludeSections2.2,4.1,4.2,and4.3;additionaleffortsand
+inputwereprovidedinSections2,3,and4.4.DominiqueMeyercontributed
+significantlytoSection4.5;healsoprovidedvaluableinputinSections2,3.
+HaoXiang’smaincontributionsincludeSection4.3;hehasalsoprovided
+valuableinputtoSection4.4.YunhaiHanandYuhanLiucontributed
+significantlytoSection4.1.AndrewLiang,ZhengZhong,andShiqiTang’s
+maincontributionsincludeSections2.3,3.2.2,and4.5,respectively.The
+authorsreadandapprovedthefinalmanuscript.
+Funding
+TheefforthasbeenfundedbyUCSanDiegothroughtheContextualRobotics
+InstitutewithsupportfromQualcomm.
+Availabilityofdataandmaterials
+ThedatasetsassociatedwithSections 4.1.1and4.4andrelatedsearchefforts
+canbeaccessedfrom http://avl.ucsd.edu .
+Codeavailability
+Variouscoderepositoriesfromthisworkcanbefoundat https://github.com/
+AutonomousVehicleLaboratory .
+Declarations
+Competinginterests
+Theauthorsdonothaveanyexternalengagementrelatedtothisproject.
+Received:3August2021 Accepted:14September2021
+References
+1. E.D.Dickmanns,A.Zapp,in MobileRobots,SPIE ,ed.by WolfeW.J.,
+MarquinaN.ACurvature-basedSchemeforImprovingRoadVehicle
+GuidancebyComputer Vision,vol.727,(Bellingham,1987),pp.161–168
+2. E.Dickmanns, DynamicVisionforPerceptionandControlofMotion .
+(SpringerVerlag,Heidelberg,2007)
+3. M.A.Turk,D.G.Morgenthaler,K.D.Gremban,M.Marra,VITS-AVision
+SystemforAutonomousLandVehicleNavigation.IEEETrans.Pattern
+Anal.Mach.Intell. 10(3),342–361(1988)
+4. B.Marr,KeymilestonesofWaymo-Google’sself-drivingcars(2018).
+https://forbes.com/sites/bernardmarr/2018/09/21/key-milestones-of-
+waymo-googles-self-driving-cars .Accessed02Oct2021
+5. I.Bonifacic,ToyotaisdevelopingautonomoustaxiswithhelpfromAurora
+(2021).Engadget. https://www.engadget.com/toyota-aurora-denso-
+autonomous-vehicle-partnership-191500404.html .Accessed02Oct2021
+6. A.Palmer,AmazonZooxunveilsself-drivingrobotaxi(2020).CNBC,
+https://cnbc.com/2020/12/14/amazons-self-driving-company-zoox-
+unveils-autonomous-robotaxi.html .Accessed02Oct2021
+7. A.Adler,Auroraclosesinonproductionversionofself-drivingtruck
+technology(2021).FreightWaves, https://www.freightwaves.com/?p=
+358829.Accessed02Oct2021
+8. Baidu-Apollo-team,Apollo:Opensourceautonomousdriving(2017).
+https://github.com/ApolloAuto/apollo .Accessed02Oct2021
+9. S.Kato,E.Takeuchi,Y.Ishiguro,Y.Ninomiya,K.Takeda,T.Hamada,An
+openapproachtoautonomousvehicles.IEEEMicro. 35(6),60–68(2015).
+https://doi.org/10.1109/MM.2015.133
+10. D.Paz,P.-J.Lai,S.Harish,H.Zhang,N.Chan,C.Hu,S.Binnani,H.
+Christensen,in FieldandServiceRobotics .Lessonslearnedfromdeploying
+autonomousvehiclesatUCSanDiego,(Tokyo,JP,2019)
+11. Z.Zhang,Aflexiblenewtechniqueforcameracalibration.IEEETrans.
+PatternAnal.Mach.Intell. 22(11),1330–1334(2000)
+12. M.Quigley,K.Conley,B.Gerkey,J.Faust,T.Foote,J.Leibs,R.Wheeler,A.
+Ng,inICRAWorkshoponOpenSourceSoftware .ROS:anopen-source
+RobotOperatingSystem,vol.3,(2009)
+13. A.H.Lang,S.Vora,H.Caesar,L.Zhou,J.Yang,O.Beijbom,in 2019IEEE/CVF
+ConferenceonComputerVisionandPatternRecognition(CVPR) .PointPillars:
+Fastencodersforobjectdetectionfrompointclouds,(2019),
+pp.12689–12697. https://doi.org/10.1109/CVPR.2019.01298
+14. M.Fischler,R.Bolles,Randomsampleconsensus:aparadigmformodel
+fittingwithapplicationstoimageanalysisandautomatedcartography.
+Commun.ACM. 24,381–395(1981)15. V.Lepetit,F.Moreno-Noguer,P.Fua,EPnP:AnaccurateO(n)solutionto
+thePnPproblem.Int.J.Comput.Vis. 81,155(2009). https://doi.org/10.
+1007/s11263-008-0152-6
+16. J.Redmon,A.Farhadi,YOLOv3:AnIncrementalImprovement.ArXiv
+abs/1804.02767(2018)
+17. C.Campos,R.Elvira,J.Rodríguez,J.Montiel,J.D.Tardós,ORB-SLAM3:An
+accurateopen-sourcelibraryforvisual,visual-inertialandmulti-map
+SLAM.ArXivabs/2007.11898(2020)
+18. J.Zhang,S.Singh,in Robotics:ScienceandSystems .LOAM:Lidarodometry
+andmappinginreal-time,(2014)
+19. M.Magnusson,Thethree-dimensionalnormal-distributionstransform—
+anefficientrepresentationforregistration,surfaceanalysis,andloop
+detection.PhDdissertation,Örebrouniversitet(2009)
+20. R.B.Rusu,S.Cousins,in IEEEInternationalConferenceonRoboticsand
+Automation(ICRA) .3Dishere:PointCloudLibrary(PCL),(Shanghai,China,
+2011)
+21. H.Caesar,V.Bankiti,A.H.Lang,S.Vora,V.E.Liong,Q.Xu,A.Krishnan,Y.
+Pan,G.Baldan,O.Beijbom,in 2020IEEE/CVFConferenceonComputerVision
+andPatternRecognition(CVPR) .nuScenes:Amultimodaldatasetfor
+autonomousdriving,(2020). https://doi.org/10.1109/CVPR42600.2020.
+01164
+22. C.Ming-Fang,L.John,S.Patsorn,S.Jagjeet,B.Slawomir,H.Andrew,D.
+Wang,C.Peter,L.Simon,R.Deva,H.James,in 2019IEEE/CVFConferenceon
+ComputerVisionandPatternRecognition(CVPR) .Argoverse:3Dtracking
+andforecastingwithrichmaps,(2019),pp.8740–8749
+23. H.Darweesh,E.Takeuchi,K.Takeda,Y.Ninomiya,A.Sujiwo,Y.Morales,N.
+Akai,T.Tomizawa,S.Kato,Opensourceintegratedplannerfor
+autonomousnavigationinhighlydynamicenvironments.J.Robot.
+Mechatron. 29,668–684(2017). https://doi.org/10.20965/jrm.2017.p0668
+24. R.C.Coulter,Implementationofthepurepursuitpathtrackingalgorithm.
+Tech.rep.Carnegie-MellonUNIVPittsburghPARoboticsINST(1992)
+25. D.Paz,P.-J.Lai,N.Chan,Y.Jianf,H.I.Christensen,in International
+ConferenceonIntelligentRobotsandSystems(IROS) .Autonomousvehicle
+benchmarkingusingunbiasedmetrics(IEEE/RSJ,LasVegas,NV,2020a)
+26. A.Gupta,J.Johnson,L.Fei-Fei,S.Savarese,A.Alahi,2018,in 2018IEEE/CVF
+ConferenceonComputerVisionandPatternRecognition .SocialGAN:
+SociallyAcceptableTrajectorieswithGenerativeAdversarialNetworks,
+pp.2255–2264. https://doi.org/10.1109/CVPR.2018.00240
+27. T.Fernando,S.Denman,S.Sridharan,C.Fookes,in ComputerVision–ACCV
+2018,ed.byC.V.Jawahar,H.Li,G.Mori,andK.Schindler.GD-GAN:
+GenerativeAdversarialNetworksforTrajectoryPredictionandGroup
+DetectioninCrowds(SpringerInternationalPublishing,Cham,2019),
+pp.314–330
+28. J.Amirian,J.Hayet,PettréJ,in 2019IEEE/CVFConferenceonComputer
+VisionandPatternRecognitionWorkshops(CVPRW) .SocialWays:Learning
+multi-modaldistributionsofpedestriantrajectorieswithGANs,(2019),
+pp.2964–2972
+29. A.Sadeghian,V.Kosaraju,A.Sadeghian,N.Hirose,H.Rezatofighi,S.
+Savarese,in 2019IEEE/CVFConferenceonComputerVisionandPattern
+Recognition(CVPR) .SoPhie:AnattentiveGANforpredictingpaths
+complianttosocialandphysicalconstraints,(2019),pp.1349–1358.
+https://doi.org/10.1109/CVPR.2019.00144
+30. V.Kosaraju,A.Sadeghian,R.Martín-Martín,I.Reid,H.Rezatofighi,S.
+Savarese,in AdvancesinNeuralInformationProcessingSystems,Curran
+Associates,Inc. ,ed.byH.Wallach,H.Larochelle,A.Beygelzimer,F.d’
+Alché-Buc,E.Fox,andR.Garnett.Social-bigat:Multimodaltrajectory
+forecastingusingbicycle-ganandgraphattentionnetworks,vol.32,
+(2019).https://proceedings.neurips.cc/paper/2019/file/
+d09bf41544a3365a46c9077ebb5e35c3-Paper.pdf
+31. T.Salzmann,B.Ivanovic,P.Chakravarty,M.Pavone,Trajectron++:
+Dynamically-feasibletrajectoryforecastingwithheterogeneousdata
+(2020).https://arxiv.org/pdf/2001.03093.pdf
+32. X.Feng,Z.Cen,J.Hu,Y.Zhang,in 2019IEEEIntelligentTransportation
+SystemsConference(ITSC) .Vehicletrajectorypredictionusing
+intention-basedconditionalvariationalautoencoder,(2019),
+pp.3514–3519. https://doi.org/10.1109/ITSC.2019.8917482
+33. A.Mohamed,K.Qian,M.Elhoseiny,C.Claudel,in 2020IEEE/CVFConference
+onComputerVisionandPatternRecognition(CVPR) .Social-STGCNN:A
+socialspatio-temporalgraphconvolutionalneuralnetworkforhuman
+trajectoryprediction,(2020),pp.14412–14420. https://doi.org/10.1109/
+CVPR42600.2020.01443
+
+--- Page 34 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page34of35
+34. J.Gao,C.Sun,H.Zhao,Y.Shen,D.Anguelov,C.Li,C.Schmid,in 2020
+IEEE/CVFConferenceonComputerVisionandPatternRecognition(CVPR) .
+VectorNet:Encodinghdmapsandagentdynamicsfromvectorized
+representation,(2020),pp.11522–11530. https://doi.org/10.1109/
+CVPR42600.2020.01154
+35. A.Ribeiro,L.Dihl,C.Jung,in InternationalConferenceonSystems,Signals
+andImageProcessing .Automaticcameracalibrationfordriverassistance
+systems,(2006),pp.173–176
+36. L.Lu,X.Lu,S.Ji,C.Tong,in IntelligentInformationProcessingVII .Atraffic
+cameracalibrationmethodbasedonmulti-rectangle(Springer,Berlin,
+Heidelberg,2014),pp.230–238
+37. H.Wang,Y.Cai,G.Lin,W.Zhang,Anovelmethodforcameraexternal
+parametersonlinecalibrationusingdottedroadline.Adv.Robot. 28,
+1033–1042(2014). https://doi.org/10.1080/01X00000.6918642014.902329
+38. A.Geiger,P.Lenz,C.Stiller,R.Urtasun,Visionmeetsrobotics:TheKITTI
+dataset.Int.J.Robot.Res.(IJRR). 32(11),1231–1237(2013)
+39. Y.Wu,A.Kirillov,F.Massa,W.-Y.Lo,R.Girshick,Detectron2(2019). https://
+github.com/facebookresearch/detectron2 .Accessed02Oct2019
+40. C.B.Madsen,H.I.Christensen, Chapter1.Modellingandtestingthestability
+ofedgesegments:Lengthandorientation .(WorldScientificPress,
+Singapore,1995),pp.1–15
+41. K.He,G.Gkioxari,P.Dollár,R.Girshick,in 2017IEEEInternationalConference
+onComputerVision(ICCV) .MaskR-CNN,(2017),pp.2980–2988. https://doi.
+org/10.1109/ICCV.2017.322
+42. R.GromponevonGioi,G.Randall,ASub-PixelEdgeDetector:an
+ImplementationoftheCanny/DevernayAlgorithm.ImageProcess.On
+Line.7,347–372(2017). https://doi.org/10.5201/ipol.2017.216
+43. Y.Han,Y.Liu,D.Paz,H.Christensen,Auto-calibrationmethodusingstop
+signsforurbanautonomousdrivingapplications.ArXivabs/2010.07441
+(2021).https://doi.org/2010.07441
+44. C.Park,P.Moghadam,S.Kim,S.Sridharan,C.Fookes,Spatiotemporal
+Camera-LiDARcalibration:Atargetlessandstructurelessapproach.IEEE
+Robot.Autom.Lett. 5,1556–1563(2020)
+45. J.Kümmerle,T.Kühner,in 2020IEEEInternationalConferenceonRobotics
+andAutomation(ICRA) .UnifiedintrinsicandextrinsiccameraandLiDAR
+calibrationunderuncertainties,(2020),pp.6028–6034. https://doi.org/10.
+1109/ICRA40945.2020.9197496
+46. A.Dhall,K.Chelani,V.Radhakrishnan,K.M.Krishna,LiDAR-Camera
+Calibrationusing3D-3DPointcorrespondences.ArXive-prints
+1705.09785(2017)
+47. S.Mishra,G.Pandey,S.Saripalli,in 2020IEEEIntelligentVehiclesSymposium
+(IV).Extrinsiccalibrationofa3D-LIDARandacamera,(2020),
+pp.1765–1770
+48. P.Torr,A.Zisserman,MLESAC:Anewrobustestimatorwithapplicationto
+estimatingimagegeometry.Comput.Vis.ImageUnderst. 78,138–156
+(2000)
+49. R.B.Rusu,Semantic3Dobjectmapsforeverydaymanipulationinhuman
+livingenvironments.PhDthesis,ComputerSciencedepartment,
+TechnischeUniversitaetMuenchen,Germany(2009)
+50. T.Yin,X.Zhou,P.Krähenbühl,in ProceedingsoftheIEEE/CVFConferenceon
+ComputerVisionandPatternRecognition .Center-based3Dobject
+detectionandtracking,(2021),pp.11784–11793
+51. B.Zhu,Z.Jiang,X.Zhou,Z.Li,G.Yu,Class-balancedgroupingand
+samplingforpointcloud3Dobjectdetection.ArXivabs/1908.09492
+(2019)
+52. J.V.Brummelen,M.O’Brien,D.Gruyer,NajjaranH,Autonomousvehicle
+perception:Thetechnologyoftodayandtomorrow.Transp.Res.CEmerg.
+Technol.89,384–406(2018). https://doi.org/10.1016/j.trc.2018.02.012
+53. J.Elfring,R.Appeldoorn,S.Dries,M.Kwakkernaat,Effectiveworld
+modeling:Multisensordatafusionmethodologyforautomateddriving.
+Sensors(Basel,Switzerland). 16,1668(2016)
+54. A.Rangesh,M.M.Trivedi,Noblindspots:Full-surroundmulti-object
+trackingforautonomousvehiclesusingcamerasandlidars.IEEETrans.
+Intell.Veh. 4(4),588–599(2019). https://doi.org/10.1109/TIV.2019.2938110
+55. Z.Ding,Y.Hu,R.Ge,L.Huang,S.Chen,Y.Wang,J.Liao,1stplacesolution
+forWaymoopendatasetchallenge-3Ddetectionanddomain
+adaptation.ArXivabs/2006.15505(2020)
+56. H.Cho,Y.Seo,B.V.K.V.Kumar,R.R.Rajkumar,in 2014IEEEInternational
+ConferenceonRoboticsandAutomation(ICRA) .Amulti-sensorfusion
+systemformovingobjectdetectionandtrackinginurbandriving
+environments,(2014),pp.1836–1843. https://doi.org/10.1109/ICRA.2014.
+690710057. C.R.Qi,W.Liu,C.Wu,H.Su,L.J.Guibas,in 2018IEEE/CVFConferenceon
+ComputerVisionandPatternRecognition .FrustumPointNetsfor3Dobject
+detectionfromRGB-Ddata,(2018),pp.918–927. https://doi.org/10.1109/
+CVPR.2018.00102
+58. D.Xu,D.Anguelov,A.Jain,in 2018IEEE/CVFConferenceonComputerVision
+andPatternRecognition .Pointfusion:Deepsensorfusionfor3Dbounding
+boxestimation,(2018),pp.244–253
+59. X.Weng,J.Wang,D.Held,K.Kitani, 3DMulti-ObjectTracking:ABaseline
+andNewEvaluationMetrics ,(2020),pp.10359–10366
+60. H.-k.Chiu,A.Prioletti,J.Li,J.Bohg,Probabilistic3dmulti-objecttracking
+forautonomousdriving.ArXivabs/2001.05673(2020)
+61. D.Paz,P.J.Lai,N.Chan,Y.Jianf,H.I.Christensen, Probabilisticsemantic
+mappingforurbanautonomousdrivingapplications (IEEE,2020),
+pp.2059–2064
+62. N.Homayounfar,W.C.Ma,J.Liang,X.Wu,J.Fan,R.Urtasun,in Proceedings
+oftheIEEE/CVFInternationalConferenceonComputerVision .Dagmapper:
+Learningtomapbydiscoveringlanetopology,(2019),pp.2911–2920
+63. N.Homayounfar,W.-C.Ma,S.K.Lakshmikanth,R.Urtasun,in Proceedings
+oftheIEEEConferenceonComputerVisionandPatternRecognition .
+Hierarchicalrecurrentattentionnetworksforstructuredonlinemaps,
+(2018),pp.3417–3426
+64. S.Sengupta,P.Sturgess,L.Ladick `y,P.H.Torr,in 2012IEEE/RSJInternational
+ConferenceonIntelligentRobotsandSystems .Automaticdensevisual
+semanticmappingfromstreet-levelimagery(IEEE,2012),pp.857–862
+65. S.Sengupta,E.Greveson,A.Shahrokni,P.H.Torr,in 2013IEEEInternational
+ConferenceonroboticsandAutomation .Urban3Dsemanticmodelling
+usingstereovision(IEEE,2013),pp.580–585
+66. T.Westfechtel,K.Ohno,R.P.B.Neto,S.Kojima,S.Tadokoro,in 2019IEEE
+IntelligentTransportationSystemsConference(ITSC) .Fusionofcameraand
+lidardataforlargescalesemanticmapping(IEEE,2019),pp.257–264
+67. L.-C.Chen,Y.Zhu,G.Papandreou,F.Schroff,H.Adam,in ComputerVision-
+ECCV2018.LectureNotesinComputerScience ,ed.byV.Ferrari,M.Hebert,C.
+Sminchisescu,andY.Weiss.Encoder-decoderwithatrousseparable
+convolutionforsemanticimagesegmentation,vol.11211(Springer,2018)
+68. S.Hecker,D.Dai,L.VanGool,in Proceedingsoftheeuropeanconferenceon
+computervision(ECCV) .End-to-endlearningofdrivingmodelswith
+surround-viewcamerasandrouteplanners,(2018),pp.435–453
+69. A.Amini,G.Rosman,S.Karaman,D.Rus,in 2019InternationalConference
+onRoboticsandAutomation(ICRA) .Variationalend-to-endnavigationand
+localization(IEEE,2019),pp.8958–8964
+70. D.Paz,H.Zhang,H.I.Christensen, TridentNet:Aconditionalgenerative
+modelfordynamictrajectorygeneration ,(Singapore,2021)
+71. M.Haklay,P.Weber,Openstreetmap:User-generatedstreetmaps.IEEE
+PervasiveComput. 7(4),12–18(2008)
+72. K.Sohn,X.Yan,H.Lee,in Proceedingsofthe28thInternationalConference
+onNeuralInformationProcessingSystems .Learningstructuredoutput
+representationusingdeepconditionalgenerativemodels,vol.2(MIT
+Press,Cambridge,2015),pp.3483–3491
+73. T.Yang,Z.Nan,H.Zhang,S.Chen,N.Zheng,in 2020IEEEIntelligent
+VehiclesSymposium(IV) .Trafficagenttrajectorypredictionusingsocial
+convolutionandattentionmechanism(IEEE,2020),pp.278–283
+74. D.Anguelov,C.Dulong,D.Filip,C.Frueh,S.Lafon,R.Lyon,A.Ogale,L.
+Vincent,J.Weaver,Googlestreetview:Capturingtheworldatstreetlevel.
+Computer. 43(6),32–38(2010)
+75. P.Zhang,M.Zhang,J.Liu,Real-timeHDmapchangedetectionfor
+crowdsourcingupdatebasedonmid-to-high-endsensors.Sensors. 21(7),
+2477(2021)
+76. Y.Zhang,X.Yuan,Y.Fang,S.Chen,UAVlowaltitudephotogrammetryfor
+powerlineinspection.ISPRSInt.J.GEO-Inf. 6(1),14(2017)
+77. E.Remzi,E.Alkan,A.Aydin,AcomparativeanalysisofUAV-RTKand
+UAV-PPKmethodsinmappingdifferentsurfacetypes.Eur.J.For.Eng.
+7(1),12–25(2020)
+78. L.Barazzetti,F.Roncoroni,R.Brumana,M.Previtali,Georeferencing
+accuracyanalysisofasingleworldview-3imagecollectedovermilan.
+XXIIIISPRSCongress. 38,429–434(2016)
+79. P.Daruthep,N.Sutthisangiam,in 202022ndInternationalConferenceon
+AdvancedCommunicationTechnology(ICACT) .Developmentofautomated
+processingforhigh-definitionmappingsystem(IEEE,2020),pp.507–510
+80. A.Dosovitskiy,G.Ros,F.Codevilla,A.Lopez,V.Koltun,in Proceedingsofthe
+1stAnnualConferenceonRobotLearning .CARLA:Anopenurbandriving
+simulator,(2017),pp.1–16
+
+--- Page 35 ---
+Christensen etal. AutonomousIntelligentSystems            (2021) 1:11 Page35of35
+81. G.Rong,B.Shin,H.Tabatabaee,Q.Lu,S.Lemke,M.Mozeiko,E.Boise,G.
+Uhm,M.Gerow,S.Mehta,E.Agafonov,T.H.Kim,E.Sterner,K.Ushiroda,M.
+Reyes,D.Zelenkovsky,S.Kim,in 2020IEEE23rdInternationalConferenceon
+IntelligentTransportationSystems(ITSC) .LGSVLSimulator:Ahighfidelity
+simulatorforautonomousdriving,(2020),pp.1–6
+Publisher’sNote
+SpringerNatureremainsneutralwithregardtojurisdictionalclaimsin
+publishedmapsandinstitutionalaffiliations.

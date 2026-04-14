@@ -1,0 +1,943 @@
+--- Page 1 ---
+TYPEOriginalResearch
+PUBLISHED 31 March 2023
+DOI10.3389/frobt.2023.1137750
+OPENACCESS
+EDITEDBY
+Yuanchang Liu,
+University College London, United
+Kingdom
+REVIEWEDBY
+Yugang Liu,
+Royal Military College of Canada
+(RMCC), Canada
+Wenwen Liu,
+Nanjing University of Information
+Science and Technology, China
+*CORRESPONDENCE
+Bahman Nouri Rahmat Abadi,
+bahman.nourirahmatabadi@
+manchester.ac.uk
+SPECIALTYSECTION
+This article was submitted to Field
+Robotics, a section of the journal
+Frontiers in Robotics and AI
+RECEIVED 04 January 2023
+ACCEPTED 13 March 2023
+PUBLISHED 31 March 2023
+CITATION
+Nouri Rahmat Abadi B, West A, Peel H,
+Nancekievill M, Ballard C, Lennox B,
+Marjanovic O and Groves K (2023),
+CARMA II: A ground vehicle for
+autonomous surveying of alpha, beta
+and gamma radiation.
+Front. Robot. AI 10:1137750.
+doi: 10.3389/frobt.2023.1137750
+COPYRIGHT
+© 2023 Nouri Rahmat Abadi, West, Peel,
+Nancekievill, Ballard, Lennox, Marjanovic
+and Groves. This is an open-access
+article distributed under the terms of the
+Creative Commons Attribution License
+(CC BY). The use, distribution or
+reproduction in other forums is
+permitted, provided the original author(s)
+and the copyright owner(s) are credited
+and that the original publication in this
+journal is cited, in accordance with
+accepted academic practice. No use,
+distribution or reproduction is permitted
+whichdoesnotcomplywiththeseterms.CARMA II: A ground vehicle for
+autonomous surveying of alpha,
+beta and gamma radiation
+Bahman Nouri Rahmat Abadi1*, Andrew West1, Harriet Peel1,
+Matthew Nancekievill1, Christopher Ballard2, Barry Lennox1,
+Ognjen Marjanovic1and Keir Groves1
+1Manchester Centre for Robotics and AI, University of Manchester, Manchester, United Kingdom,
+2Sellafield Ltd., Carlisle, United Kingdom
+Surveying active nuclear facilities for spread of alpha and beta contamination
+is currently performed by human operators. However, a skills gap of qualified
+workers is emerging and is set to worsen in the near future due to
+under recruitment, retirement and increased demand. This paper presents an
+autonomousgroundvehiclethatcansurveynuclearfacilitiesforalpha,betaand
+gammaradiationandgenerateradiationheatmaps.Newmethodsforpreventing
+the robot from spreading radioactive contamination using a state-machine and
+radiation costmaps are introduced. This is the first robot that can detect alpha
+and beta contamination and autonomously re-plan around the contamination
+without the wheels passing over the contaminated area. Radiation avoidance
+functionality is proven experimentally to reduce alpha and beta contamination
+spread as well as gamma radiation dose to the robot. The robot’s survey area is
+definedusingacustomdesigned,graphicallycontrolledareacoverageplanner.It
+wasconcludedthattherobotishighlysuitedtocertainmonotonousroomscale
+radiation surveying tasks and therefore provides the opportunity for financial
+savings, to mitigate a future skills gap, and provision of radiation surveys that
+are more granular, accurate and repeatable than those currently performed by
+human operators.
+KEYWORDS
+autonomous ground vehicle, ROS, radiation detection, costmap, state machine,
+experimental
+1 Introduction
+Recent global concerns over energy cost and security of supply have refocused interest
+in nuclear energy as a reliable, low carbon energy source, that can often be domestically
+generated ( HM Government, 2022 ). In the United Kingdom, new large-scale nuclear
+power reactors are being constructed and there are plans for a fleet of Small Modular
+Reactors (SMRs) to come online in the 2030s ( HM Government, 2020 ). In addition to
+the construction of new nuclear facilities, the United Kingdom has many legacy facilities
+that no longer produce power and are going through post operational clean out and
+decommissioning. Sellafield Ltd’s site in West Cumbria is the largest and most complex of
+these facilities by far and has been home to several generations of nuclear reactors; some
+of the early reactors were built to produce materials for nuclear weapons (1940s) and later
+reactors (from 1956) produced power for businesses and homes ( HM Government, 2019 ).
+Frontiers in Robotics and AI 01 frontiersin.org
+
+--- Page 2 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+One of the key concerns surrounding both the construction of
+newnuclearfacilitiesanddecommissioningoldfacilitiesisfinancial
+cost. Current estimates for completing the new large scale nuclear
+power plant, Hinkley Point C, which is under construction in
+the United Kingdom, stands at £25–26 billion and is planned to
+startproducingenergyin2027( Financial-Times,2022 ).Meanwhile,
+SellafieldcurrentlycoststheUnitedKingdomgovernmentover£2.3
+billion per year and the most recent estimate from the Nuclear
+Decommissioning Authority (NDA) is that decommissioning of
+Sellafield will take 100 years and cost approximately £110billion in
+total(un-discounted)( Nuclear Decommissioning Authority,2022 ).
+Something that is common to both Nuclear decommissioning and
+thebuildingofnewnuclearpowerplantsintheUnitedKingdomis
+that,costandtimescaleofprojectsgenerallyincreaseastheprojects
+progress.Forexample,thefirstestimateforthecostofHinkleyPoint
+C given in 2016 was £18billion (now risen to 25–26billion) with a
+date for starting generating power of 2025 (now delayed to 2027)
+(BBC-News,2017 ).
+One of the bottlenecks that can lead to time and cost overruns
+istheavailabilityofsuitablytrainedradiationsafetyexperts,termed
+health physics surveyors or monitors ( HM Government, 2015 ). In
+both decommissioning and building of new nuclear facilities, there
+are a large number of tasks that require clearance from health
+physicspersonnel,suchasroutineinspectionactivitiesandmoving
+of personnel and material. Health physics surveyors are in fact
+required,usuallybylaworregulation( HealthandSafety Executive,
+2018),duringallphasesofanuclearfacilitie’slife,i.e.,construction,
+operation and decommissioning ( Tsitsimpelis et al., 2019 ). Poor
+availability of health physics monitoring can affect scheduling
+of work and cause bottlenecks, especially if surveyors are also
+performingreactivework.
+Currently, within the nuclear industry, there is a shortage of
+qualified health physics personnel and this is only set to worsen in
+thecomingyears.Itisestimatedthat50percentoftheexistinghealth
+physicspersonnelwillretireinthenext10–15 years,andthisisnot
+presently matched by recruitment and training of new staff. This is
+compoundedbythepredictedincreaseindemandforhealthphysics
+monitoringacrossthenuclearsector( Bryant,2021 ).
+1.1 Using robots to reduce costs and
+improve radiation surveys
+Apotentialsolutiontotheproblemofhealthphysicsresourcing,
+and a way to reduce costs, is the use of robotic systems to perform
+basic, repetitive health physics surveying tasks, therefore freeing
+up valuable human specialist time to focus on more sophisticated
+tasks, such as interpreting data or surveying more complex areas.
+Asignificantproportionoftheworkofahealthphysicssurveyoris
+dull and repetitive, for example, holding a probe at a fixed distance
+from a flat surface and moving it at a fixed velocity until an area
+has been fully covered by the probe; such tasks are well suited to
+automation. Robotic systems are currently being developed, which
+are capable of performing such tasks autonomously. Because the
+robots have localisation and mapping systems, they are able to
+provide accurate location tagged radiation measurements in the
+formofdatasetsandheatmaps.Thiscapabilitymeansthataccuracy
+and repeatability of measurements can be improved compared toa human operator. In addition, surveys can be performed more
+frequently and meticulously due to the reduced need for health
+physics surveyor resource. Developing and using such robotic
+systems also significantly improves human safety by providing an
+interface between the workforce and the work face, where there
+is potential for exposure to higher than background levels of
+radiation.
+1.2 Literature review
+Mobile robots in a variety of forms and levels of autonomy
+are commonly used within nuclear facilities. These robots have
+been developed and deployed for a variety of purposes, such
+as decommissioning ( Marturi et al., 2017 ;Marques et al., 2021 ;
+Monk et al., 2021 ;West et al., 2021 ) and monitoring ( Li et al.,
+2018;Groves et al.,2019 ;Anderson et al.,2020 ;Connor et al.,2020 ;
+White et al., 2020 ,2021;Abd Rahman et al., 2022a ). A number of
+these systems have been trialled and evaluated in active nuclear
+facilitiessuchastheFukushimaDaiichinuclearpowerplantinJapan
+(Nagatani et al., 2013 ;Nancekievill et al., 2018 ) and the Dounreay
+site in the United Kingdom ( Bird et al., 2022 ;Nancekievill et al.,
+2023). This research is focused specifically on autonomous ground
+based robots for radiation monitoring and the remainder of this
+sectionprovidesabriefreviewoftherelevantliterature.
+Theearliestresearchintotheuseofautonomousgroundvehicles
+for radiation mapping found by the authors was by Cortez et al.
+(2008). This work focused on detecting gamma rays and locating
+point sources. However, at the time of that work mobile robot
+autonomy was not as well developed as it is today and the robot
+requiredpriorknowledgeaboutthephysicalenvironmentandcould
+notavoiddynamicobstacles.
+Since the work of Cortez et al. (2008) , there has been a breadth
+of work in the area and the most relevant research found by the
+authors has been summarised in Table 1. A large fraction of these
+publications( Hosmar et al.,2017 ;McDougall et al.,2018 ;Huo et al.,
+2020;Kishimoto et al., 2021 ) focus on using gamma radiation
+information,whichwascollectedbyanautonomousgroundvehicle,
+as an input to solve the inverse problem of localising gamma point
+sources. For instance, Hosmar et al. (2017) implemented a fully
+autonomous robot, capable of localising a gamma source. This
+robot did not require prior knowledge of the environment and was
+experimentally validated using a two Cs-137 sources with different
+intensities. Although solving this inverse problem is an interesting
+research area, it is not the focus of the research reported in this
+paper.Thisresearchisfocusedonperformingautonomousradiation
+surveysofalpha,betaandgammasourceswhilereducingradiation
+dosetotherobotaswellascontaminationspread.
+Other research works have focused on constructing a map of
+gamma radiation within an environment while minimising the
+radiationdosereceivedbytherobot( Groves et al.,2021 ;West et al.,
+2022). Including radiation information within the navigation
+system’s costmaps to give the robot the ability to avoid regions
+with high radiation was first developed by Groves et al. (2021) and
+was later proven to reduce the dose that the robot received by
+West et al. (2022) . This approach works by introducing additional
+pathplanningcosttotraverseareaswithelevatedgammaradiation
+doserate.Inthepresentwork,thiscostmapapproachtominimising
+Frontiers in Robotics and AI 02 frontiersin.org
+
+--- Page 3 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+TABLE1 Overviewofresearchworkconcerningtheuseofautonomousgroundvehiclestosurveyforradiation.
+References Physical
+mappingStatic
+obstacle
+avoidanceDynamic
+obstacle
+avoidanceGamma
+mappingLocalising
+gamma
+point
+sourcesGamma
+avoidanceAlpha/beta
+mappingAlpha/beta
+avoidance
+Cortez et al.(2008) No No No Yes No No No No
+Zakaria et al.(2017) No No No Yes No No No No
+Kim et al.(2017) Yes Yes Yes Yes No No No No
+Hosmar et al.(2017) No No No Yes Yes No No No
+McDougall et al.(2018) Yes Yes Yes Yes Yes No No No
+Bird et al.(2018) Yes Yes Yes No No No Yes No
+Huo et al.(2020) Yes No No Yes Yes No No No
+Abd Rahman et al.(2020) Yes Yes Yes Yes No No No No
+Kishimoto et al.(2021) No No No Yes Yes Yes No No
+Groves et al.(2021) Yes Yes Yes Yes No Yes No No
+West et al.(2022) Yes Yes Yes Yes No Yes No No
+Abd Rahman et al.(2022b) Yes Yes Yes Yes No No No No
+Liu et al.(2022) Yes Yes Yes No No No Yes Yes
+CARMAII Yes Yes Yes Yes No Yes Yes Yes
+thegammaradiationdosetotherobotisadopted.However,because
+the focus is on environments where health physics monitoring
+is required, high levels of gamma radiation are not expected so
+gamma avoidance functionality would only impact navigation in
+unexpectedcircumstances.
+The first autonomous ground vehicle that was designed
+specifically with health physics surveying in mind was the first
+versionofCARMA(continuousautonomousradiation-monitoring
+assistant)( Bird et al.,2018 ).Thisroboticsystemwasequippedwith
+a ThermoFisher Scientific DP6 probe to survey the environment
+for alpha and beta radioactive contamination and a ThermoFisher
+Scientific RadEye G-10 personal dosimeter for measuring gamma
+radiation. The robot was able to survey unknown environments
+for alpha, beta and gamma radiation and generate a radiation
+heatmap of the environment. Although the robot had rudimentary
+alpharadiationavoidancecapabilities,therobot’smechanicaldesign
+prevented it from being able to detect alpha contamination before
+the robot had driven over the contaminated area, which made the
+radiationavoidancesystemunsuitableforuseinpracticalsituations;
+this shortcoming was highlighted by the authors at the time.
+Contamination spread due to fine particulate powders similar to
+thoseinnuclearenvironmentscanbereadilytransportedbywheels,
+tracks or feet, being very difficult to clean completely from robot
+parts, thereby rendering the platform itself partially contaminated
+(Bird et al.,2022 ).
+Thefocusofthecurrentresearchandthereasonfordeveloping
+CARMA II is to address the shortcomings of the first version of
+CARMAandprovidetheresearchrequiredtoproducearobotthat
+can relieve the load on health physics personnel both now and in
+the future. The final column in Table 1shows the functionality of
+CARMAIIsothatitcanbedirectlycomparedtoitspredecessors.2 Contributions
+Inthissectionthecontributionsmadebythisworkcomparedto
+the state of the art are listed. First, the main research contributions
+are listed and second, functional improvements to the system are
+presented.
+2.1 Research contributions
+•The development and practical demonstration of a mobile
+robot that can detect alpha and beta contamination
+and autonomously reverse and then navigate around
+the contamination patch without its wheels becoming
+contaminated.
+•A state machine that controls the robot’s behaviour at
+a high level and facilitates a range of new functionality,
+including integration of the waypoint planner alpha and beta
+contaminationavoidance.
+•Thecombinationofalpha,betaandgammaradiationaswellas
+obstacles into a single costmap that can be used by the robot’s
+navigationsystem.
+2.2 Functional improvements
+•The development of a coverage based waypoint planner that is
+integrated into the navigation system and allows high level of
+controlbytheuser, viaagraphicalinterface.
+•Front and rear dynamic obstacle avoidance using two depth
+cameras.
+Frontiers in Robotics and AI 03 frontiersin.org
+
+--- Page 4 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE1
+The hardware that has been developed for the CARMA II platform at the University of Manchester.
+•A full hardware redesign including a control base-station
+and variable height probe for detecting alpha and beta
+radiation.
+3 Hardware architecture
+CARMA II was developed in the Robotics for Extreme
+Environments Laboratory at The University of Manchester and is
+depicted in Figure 1. The CARMA II robotic platform presented
+inthisresearchisamodifiedClearpathJackal( Clearpath-Robotics,
+2015). Its hardware has been designed to make it suitable for
+autonomous monitoring and characterisation of indoor, nuclear
+facilities. Equipped with a ThermoFisher Scientific RadEye G-
+10 personal dosimeter and ThermoFisher Scientific RadEye SX
+connected to a DP8 probe, it can detect alpha, beta, and gamma
+radiation. Since alpha and beta radiation have low permeability in
+air, the DP8 probe is mounted low and its height is adjustable. The
+DP8 probe is mounted to the front of the robot so that alpha and
+beta contamination can be detected before the robot’s wheels come
+into contact with radioactive contamination and potentially spread
+it. CARMA II’s on-board navigation sensor package consists of a
+VelodyneVLP16LiDAR,twoIntelRealsenseD435idepthcameras,
+fourwheelencoders,andanInertialMeasurementUnit(IMU).The
+CARMA II Li-Ion battery pack is placed in a convenient drawer to
+enable the battery to be removed, replaced, and charged with ease.
+Table 2summarisesthisinformationandprovidessomeadditional
+specificationsoftherobot.
+To control CARMA II, a base-station was designed and
+built as depicted in Figure 2. The base-station consists of a
+24” 4K display, a 2.4 GHz Wi-Fi router with three antenna, an
+embeddedPC,awirelessemergencystopandajoystickformanual
+driving. The CARMA II robotic platform and the base-station
+communicate wirelessly viathe router in the base-station. Wirelesscommunications are used for sending commands from the base-
+stationtotheplatformandfortransmittingdatafromtheCARMA
+II platform to the base-station, prior to it being displayed on the
+screen.
+4 Software
+The software controlling CARMA II was developed using the
+robotoperatingsystem(ROS)framework.Thesoftwareisarranged
+into several ROS packages, some of which are standard packages
+available in ROS and some are custom packages developed by
+researchersattheUniversityofManchester.Therobotcanberunin
+manual or autonomous mode and the required packages for either
+casearedepictedin Figure 3.Thehighlightedpackagesinredwere
+developedattheUniversityofManchester.
+TABLE2 CARMAIIhardwarespecifications.
+Baseplatform Jackal(Clearpath)
+Alpha/Betasensors One ThermoFisher Scientific RadEye SX
+connectedtoaDP8
+Gammasensor OneThermoFisherScientificRadEyeG-10
+Externalnavigationalsensors One Velodyne VLP 16 LiDAR, Two intel
+realsensed435depthcameras
+Internalnavigationalsensors FourwheelencodersandoneIMU
+Communicationinterface EncryptedWi-Fi
+Externaldimensions 450 mm×500 mmx400 mm
+Weight 25 kg
+Run-time Upto4 h
+Velocity Upto1.0 m/s
+Frontiers in Robotics and AI 04 frontiersin.org
+
+--- Page 5 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE2
+The base-station developed to control the CARMA II platform.
+FIGURE3
+The ROS packages used on CARMA II and the base-station (packages in red text were developed for CARMA II).
+Inmanualmode,CARMAIIisdrivenusingajoystickcontroller
+asshownin Figure 2.Manualmodeisgenerallyusedformovingthe
+robot around for convenience, or to generate the map that is used
+by the on-board autonomous algorithms. In both autonomous and
+manualmodes,thephysicalmapisgeneratedby slam-toolbox1.
+1http://wiki.ros.org/slam_toolbox .In autonomous mode, the area to be scanned by the robot,
+herein termed the coverage area, can be selected by an operator at
+the base-station, using the waypoint-planner package, developed in
+this research. To move the robot autonomously between waypoints
+generatedbythe waypoint-planner ,thestandardROSpackage move-
+base-flex2wasused.However,additionalcostmaplayerswereadded
+2http://wiki.ros.org/move_base_flex .
+Frontiers in Robotics and AI 05 frontiersin.org
+
+--- Page 6 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE4
+The schematic model of the sensors and packages for the radiation-aware navigation and mapping.
+to the costmap produced by move-base-flex using the radeyeand
+radiation-layer packages ( West et al., 2022 ). Parameters related to
+standardandcustompackagescanbeconfiguredusingthe dynamic-
+reconfigure3package. For example, the user can set parameters for
+adjustingtheshapeofthecoverageareaandthethresholdatwhich
+therobotavoidscontamination.
+In what follows, details regarding the packages used for
+navigation, radiation detection, and selecting coverage area are
+provided.
+4.1 Navigation sensors
+The 3D point cloud data from the two depth cameras is
+converted into 2D laser scans, using the pointcloud-to-laserscan4
+package. The velodyne-pointcloud5package publishes laser scan
+data, which is combined with the laser scans derived from the
+depthcameras,usingthe laser-multi-merger nodefromthe ira-laser-
+tools6package. The combined laserscan message is then delivered
+to the SLAM algorithm alongside data from the IMU and Wheel
+encoders.
+4.2 Integrating information from radiation
+sensors
+The schematic model of the radiation detectors and the related
+packages for radiometric mapping are shown in Figure 4. The
+radeye7package,whichisadriverfortheRadEyeG-10andRadEye
+SX and was developed as part of this research and publishes data
+3http://wiki.ros.org/dynamic_reconfigure .
+4http://wiki.ros.org/pointcloud_to_laserscan .
+5http://wiki.ros.org/velodyne_pointcloud .
+6http://wiki.ros.org/ira_laser_tools .
+7https://github.com/EEEManchester/radeye .from the radiation sensors using a standard ROS message8(West
+and Smith, 2021 ) which contains the radiometric information and
+timeofobservation.
+Theradiation-layer9package adds data from the radiation
+sensors to the costmap that is used by the navigation system. The
+level of risk to the robot from measured radiation is expressed in
+a costmap so that CARMA II can avoid radiation in the same way
+in which it avoids obstacles. Different parameters such as radiation
+thresholds and inflation radius can be tuned by the user for better
+performance in radiation informed navigation. The concept of the
+layered costmap with radiation layers is detailed in our previous
+work (West et al., 2022 ) and is not a contribution of this paper. In
+the case of CARMA II, the modified radiation-layer package takes
+into account alpha, beta and gamma radiation and integrates these
+measurementsintotherelevantcostmaps.
+4.3 Packages for navigation
+4.3.1 Waypoint planning
+To allow custom shaped areas to be autonomously monitored
+thewaypoint-planner10package was written to generate a path of
+concentricsquaresthataredefinablebytheuserthroughaseriesof
+draganddropinteractivemarkers.Thenumberofmarkersandinner
+loopscanbeselectedusing dynamic-reconfigure package.Usingthis
+methodcustomisedareascanbeselectedformonitoring.
+InFigure 5,thewaypoint-planner withfourinteractivemarkers
+and two inner loops is demonstrated. Figure 5A is a schematic
+representation while Figure 5B is a screenshot from the graphical
+interface.Todeterminethepositionofthewaypoints,thegeometric
+center of the interactive markers, denoted as c, is first calculated
+by taking the arithmetic mean of the marker’s position in the x
+8https://github.com/EEEManchester/radiation_msgs .
+9https://github.com/EEEManchester/radiation_layer .
+10https://github.com/EEEManchester/waypoint_planner .
+Frontiers in Robotics and AI 06 frontiersin.org
+
+--- Page 7 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE5
+(A): Waypoint planner schematic diagram with four markers and two
+loops,pj
+i: Theith waypoint in the jth loop, c: The geometric center of
+the interactive markers, (B): Screenshot of the waypoint planner with
+four markers and two loops in the visualiser; the user movable markers
+are the grey boxes and the waypoint planner’s path is the blue line.
+andydirections. Radial lines are then drawn from point cto each
+interactivemarker.Consideringthenumberofloops,thepositionof
+waypointsineachradiallinedistributedequallybetweenpoint cand
+thecorrespondinginteractivemarkerisobtainedandtheconcentric
+loopsareplottedasdepictedin Figure 5A .
+Once all waypoints are determined, they are formed into a list.
+Inthewaypoint-planner algorithm,eachwaypointisdenotedby pj
+i,
+in which iindicates the waypoint number in the jth loop, referred
+to asLj. The first point in the list is p1
+0the subsequent waypoints
+in the list are formed by moving clockwise around the inner loop
+untilthefinalpointintheloop, p1
+4inFigure 5A .Thenextwaypoint
+is the start point of the second loop p2
+0. This process continues
+until all waypoints have been assembled into the list. The waypoint
+list is then published using the standard ROS message ( geometry-
+msgs/PoseArray.msg11)andtherobotisreadytobegintheprocessof
+navigatingtothewaypointsinturn.
+4.3.2 State machine
+Thestate-machine node was written to implement the custom
+behaviours required for CARMA II such as reverse motion and
+11http://wiki.ros.org/geometry_msgs .
+FIGURE6
+Flow diagram showing the operation of the state machine that
+controls the navigation of CARMA II. The three states are represented
+by the rounded boxes with state names highlighted in green, events
+that trigger transitions are highlighted in purple, transitions are
+represented by the black arrows and decisions during transition are
+represented by the diamonds.
+re-planning on detection of alpha or beta contamination, return
+home when battery is low and the ability to re-plan if waypoints
+are unreachable. The flowchart of the state machine is presented in
+Figure 6.
+WhenCARMAIIisstartedupitentersthe waitingforcall state,
+where CARMA II holds its current position. While in this state the
+operator uses the waypoint planner’s graphical interface to plot the
+coverageareaofCARMAII.Tobeginthesurvey,aROSservicecallis
+usedtotriggerthe servicecall event.Thiseventcausesthe waitingfor
+callstate to publish the list of waypoints, sets the current waypoint
+to first waypoint in the published list, and then transitions to the
+movingtocurrentwaypoint state.
+In themoving to current waypoint state, CARMA II uses the
+costmapscombinedwithglobalandlocalplannerstocontrolmotion
+of the robot toward the current waypoint while avoiding obstacles
+andregionswithhighradiationlevels.Whileinthisstate,CARMA
+II continuously monitors for the events: Waypoint unreachable ,low
+battery,waypoint reached ,alpha or beta radiation above threshold .
+If any of these events occur, CARMA II exits this state and enters
+a transition, as detailed in Figure 6. In the case that the current
+waypoint is not reachable, for example, if the waypoint is placed
+inside an obstacle or a newly discovered radiation patch, the next
+Frontiers in Robotics and AI 07 frontiersin.org
+
+--- Page 8 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+waypoint will be sent as a goal location for path planning and
+navigation. If battery drops below a preset threshold, or the user
+triggersthe gohomecall eventtherobotbrieflyleavesthe movingto
+currentwaypoint stateandchangesthecurrentwaypointtothehome
+location before re-entering the state. If waypoint is reached this
+triggerstwodecisions.IfCARMAIIhasreachedthefinalwaypoint
+in the goal list, the current waypoint is updated to be the home
+location. If the waypoint that has been met is the home waypoint,
+CARMAIItransitionstothe waitingforcall state.
+When the RadEye SX reports levels of alpha or beta radiation
+that is above a given threshold, the alpha or beta radiation above
+threshold eventistriggeredandtherobottransitionstothe reversing
+state. In this state, CARMA II will reverse a fixed distance and the
+radiation costmap will be automatically updated. The local planner
+then modifies the path of the robot to reach the current waypoint
+while avoiding the area that was found to have high levels of alpha
+orbetaradiation.Thereversingdistanceisafunctionoftheforward
+velocityoftherobot,therateofthereportingsensorandtherobot’s
+maneuverability. To avoid the wheels becoming contaminated, the
+forward velocity of the robot ( vm/s) is a function of the distance
+between the robot’s wheels and the probe ( dm), and the refresh
+interval of the sensor ( ts):v<d/t m/s, For a RadEye SX with an
+updaterateof1 Hzandforwardvelocityof0.2 m/s,therobotshould
+reverseatleasttwicethedistancecoveredpersensorreading(0.4 m)
+to avoid re-triggering the sensor. To include a sensible safety factor
+and allow the robot to more easily plan and manoeuvre around
+the new radiation patch, this is minimum distance is increased
+to 1.0 m in this study. When the reversing motion is completed
+CARMA II exits the reversing state and transitions to the moving
+to waypoint state. It is important to note that the current waypont
+is not incremented after reversing. If the current waypoint has
+become blocked by radiation, the waypoint unreachable event will
+be triggered as soon as the robot re-enters the moving to waypoint
+stateandthecurrentwaypointwillthenbeincremented.
+Avoidance of gamma radiation has no associated states in the
+state machine and is implemented viadirect interaction with the
+radiation costmap. It was deemed unnecessary to have special
+motions, such as the reversing motion, for gamma radiation. This
+is because, due to its high penetration, gamma radiation can be
+easily detected and does not carry the same contamination risks
+as alpha and beta. Moreover, the method used has already been
+proven to be effective in a previous publication by the authors
+(West et al.,2022 ).
+Thestate-machine node was implemented using the SMACH
+package and was integrated with the ROS navigation stack: Move-
+base-flex. In addition to the go home service call, the monitoring
+process can be hard stopped by an operator using the emergency
+stopbuttononthetopofCARMAIIorthewirelessemergencystop
+buttonnexttothebase-station.
+5 Physical evaluation and discussion
+To assess the performance of the CARMA II and its state
+machine in avoiding spread of alpha contamination, as well as its
+compatibilitywithgammaradiationavoidance,asetofexperimentswas conducted. Simulated alpha and gamma radiation sources
+were used, the positions of which were known to the authors, but
+unknown to the robot during each experiment. As alpha and beta
+contamination have a short path length in air, the robot can only
+observe this when the detector is in close proximity of radioactive
+material.Forgammaradiation,observedintensityfollowsaninverse
+square relationship with distance, i.e., being very close to a source
+leads to dramatically higher observed intensity, therefore, any
+increaseindistancefromasourcewillyielddiminishedaccumulated
+dose.
+For each run, the robot was instructed to perform a coverage
+path consisting of four concentric polygons, with the inner most
+polygonbeingthefirsttobecompletedandtheouterbeingthelast
+to be completed, with a connecting edge between the polygons at
+onevertexasdiscussedpreviouslyin Section 4.3.1 .Thestartofthe
+coverageisalignedwith(0,0)ineachfigure.
+5.1 Detection and avoidance of alpha
+radiation
+Inthefirstexperiment,theabilityoftherobottodetectandavoid
+exposure to alpha contamination was investigated, as mediated by
+the developed state machine. As the robot utilises localisation, the
+position of any measured alpha contamination can be referenced
+to a specific coordinate for end users, as shown in Figure 7A . The
+rectangular footprint of the contamination estimate is due to the
+dimensionsofthedetectoritself.
+Figure 7B shows the path the robot takes whilst carrying
+out its autonomous navigation, with the width of the coloured
+trace corresponding to the width of the robot. When the robot
+passes over the region of alpha contamination the change
+in color represents possible spread of mobile contamination
+due to its contact with the wheels. As is demonstrated, such
+undesirable spread of contamination could be considerable
+depending on the conditions of the radiation material and the
+environment.
+When the robot encounters an increase in alpha radiation
+intensity above a threshold, the previously described state machine
+(Section 4.3.2 ) successfully enacts an autonomous reverse motion
+and plans a path which navigates around the suspected area to
+continueitscoverage.In Figure 7C ,thisisdemonstratedbythepath
+of the robot not intersecting with the location of measured alpha
+radiation (red region), with the reverse and avoidance highlighted
+ingreen.
+It is observed in Figure 7C that CARMA II does not always
+track a straight line between waypoints. This can be due to the
+costmaps generated by radiation detectors or obstacle detection,
+but is most often related to the behaviour of the local trajectory
+planner. As the robot reaches each waypoint, it does not adjust
+its heading to point towards the next waypoint before moving
+forwards. Rather the robot begins to move and adjusts it’s heading
+while progressing forwards. This can cause apparent skewing of
+the actual path relative to the straight line path and can in some
+cases cause some deviation as can be seen on the top left side of
+Figure 7C .
+Frontiers in Robotics and AI 08 frontiersin.org
+
+--- Page 9 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE7
+A four loop coverage path in the presence of measurable alpha contamination. (A)shows the generated path of the robot with estimated location of
+alpha contamination, (B)shows the actual path of the robot with possible spread of mobile contamination, with the width of the robot chassis
+indicated by the thickness of the path, (C)shows the robot reversing and maneuvering around the observed contamination due to the state machine
+logic in this work.
+5.2 Detection and avoidance of gamma
+radiation
+Inthisexperiment,theextentofcoveragewasinvestigatedwith
+the functionality of gamma radiation avoidance enabled. A mock
+gamma radiation point source was placed in the vicinity of L3
+of the robot coverage pattern as shown in Figure 8A . The robot
+performed an autonomous survey for alpha contamination whilst
+also monitoring gamma field intensity. Figure 8A also shows the
+map of gamma radiation generated by the robot as it performs
+its inspection, whilst also having radiation avoidance enabled. This
+map could be used by stakeholders to plan future human or robot
+inspectiontasks.
+With additional situational awareness, the robot was capable
+of reducing its total accumulated gamma exposure by 13% whilst
+maintaining its coverage plan for the majority of the survey.
+This reduction in exposure can be increased or decreased based
+on the user-specified thresholds, with the compromise of more
+complete or incomplete coverage, respectively. Figure 8D shows
+how gamma dose rate is significantly diminished around L3whenthe robot has avoidance enabled compared to when avoidance is
+not enabled. For loops L2andL4, there is also reduced exposure
+at the peak of the expected dose, demonstrating the compromise
+the robot takes to maintain the coverage path as a priority.
+Figures 8B, C show how the paths for loops L2andL4are very
+similar, exhibiting only small displacement away from the gamma
+source, whereas for L3the robot takes more significant evasive
+action.
+5.3 Simultaneous detection and avoidance
+of alpha and gamma radiation
+The performance of CARMA II was finally investigated in a
+mixed radiation field of both alpha contamination and a gamma
+pointsource,toassesstherobot’scapabilitytomanagebothevasion
+schemesduringthesamesurveymission.
+Figure 9B shows the robot autonomously following the path
+generated in Figure 9A . The robot takes no additional action to
+avoid either the alpha contamination nor the gamma point source,
+Frontiers in Robotics and AI 09 frontiersin.org
+
+--- Page 10 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE8
+Coverage survey of four loops with no alpha radiation present but measurable gamma. (A)generated coverage path with location of gamma point
+source along path along with the interpolated gamma radiation field estimated by the robot, (B)actual robot path with no situational awareness of
+gamma radiation which brings it into close proximity, (C)the robot plans a path around the gamma source to decrease unnecessary exposure, (D)the
+difference in gamma radiation exposure during the entire autonomous survey.
+with the possible contamination spread highlighted in light red as
+the footprint of the robot chassis passes over the contamination
+point.
+In contrast, Figure 9C shows avoidance of both alpha and
+gamma sources by the state-machine and additional path planning
+cost, respectively. The alpha contamination is correctly avoided by
+performingareversemotionandmaintainingaminimumdistance
+from the measured contamination location. For gamma avoidance,
+the path taken by the robot is modified to be further away from
+the source with respect to the default case when it is in very close
+proximity.
+As was the case in Experiment 2, in Figure 9D the peak dose
+rate associated with the robot in close proximity to the gamma
+source is decreased for the avoiding case, with total accumulated
+dose being decreased as a result. As additional path planning cost
+is linearly proportional to dose rate, it is important to note that
+only when the dose rate is above a certain threshold, based on
+numerous factors, does the robot take any considerable action
+West et al.(2022) .Thisensuresthatcoverageisprioritised,withonly
+the significant threat to the health of the robot leading to a safer
+route.5.4 Discussion
+The experiments that were completed show that the developed
+roboticsystemcanautonomouslydetectdifferenttypesofradiation
+in hazardous nuclear environments and, more importantly, is able
+to respond to different types of radiation that are encountered. By
+manoeuvring away from and around mobile alpha contamination,
+the environment is protected from further radioactive material
+spread,andbykeepinganincreaseddistancefromharmfulgamma
+radiation, the robot can protect itself from possible damage to
+circuitryandmaterials.Thisavoidancebehaviourformspartofthe
+autonomousinspectionthatCARMAIIiscapableof.
+Avoidance of gamma radiation sources create a beneficial
+deviation in the coverage path, whilst not introducing unnecessary
+alteration which may compromise coverage. This response can
+be tuned viacosting thresholds in the path planner. As gamma
+radiation intensity follows an inverse distance square relationship,
+increased distance from a source is greatly beneficial when in very
+closeproximity.Thereductioninaccumulateddoseandappropriate
+costing thresholds must be made as a cost benefit analysis by
+stakeholders, based on robot radiation tolerance and return on
+Frontiers in Robotics and AI 10 frontiersin.org
+
+--- Page 11 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+FIGURE9
+Survey of an environment utilising a four loop coverage path, with alpha and gamma radiation sources present. (A)the intended coverage path, with
+the measured radiation intensity by the end of the survey with avoidance enabled for alpha and gamma, (B)path taken by robot in blue when not aware
+of ionising radiation risks, with possible spread of mobile alpha contamination as a consequence, (C)robot path with broader alterations to the
+coverage path in green as a result of radiation awareness, (D)dose rate measured by the robot during the surveys.
+investment metrics. The more cautious, the less radiation damage
+willoccurattheexpenseofincompletecoverage.
+Once a preliminary survey of an unknown or dynamic
+environment is made, future inspection missions can be tailored
+to assess the situation in more detail, rather than provide a broad
+overview.Thiscanfillinanygapsindatacollectionduetoavoidance,
+and help refine estimates of possible radiation locations. As shown
+inFigures 7A ,9A, the extent of alpha contamination is convolved
+with the dimensions of the paddle detector, and a secondary phase
+assessmentprocessneedstobedevelopedtoascertainthetrueextent
+ofanycontamination.
+By including radiation avoidance, more specifically alpha and
+betaavoidance,alimitationtothespeedofinspectionisintroduced.
+Radiationsensingtypicallyhasalowupdaterateintheorderof1 Hz,
+therefore, between a confirmed detection of highly localised alpha
+andbetacontaminationandthisbeingreportedtotherobot,1 smay
+haveelapsed.Thoughthealphaandbetadetectioninstrumentation
+isdeliberatelyplacedaheadoftherobotchassis,thisonlyaffordsthe
+robotashortwindowofpredictiononfutureconditions.Theslowerthe robot, the more time it has to react, however, this is a waste of
+other resources such as robot battery capacity. Assuming that the
+sensor update period is t seconds, and the forward distance of the
+sensorisd metres,thentoavoidcontaminationofwheelsandother
+ground contacting features, the robot must limit its linear velocity,
+v<d/t m/s,toensure,thatwithinfrequentsensorupdates,therobot
+cannot traverse too much area as this would increase the risk of
+contactwithcontamination.ForCARMAIIthesensorswereplaced
+approximately0.25 maheadoftherobotchassis,withapublishrate
+of1 Hzforthesensor.Therefore,CARMAIIislimitedto ≤0.2 m/s
+withthissensorconfiguration.
+CARMAIIhasdemonstratedthatitcanundertakemonotonous
+room scale inspection tasks, generating a map of possible alpha
+and gamma contamination for health physics surveyors. Once
+possible radioactive materials have been identified, humans can
+act accordingly and plan to perform more specific and targeted
+inspection based on maps produced by CARMA II. Furthermore,
+anygapsincoveragewhicharisearecompletelyknowntoend-users
+and can be addressed with subsequent robot or human inspection
+Frontiers in Robotics and AI 11 frontiersin.org
+
+--- Page 12 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+tasks.UseofradiationawareroboticsystemssuchasCARMAIIcan
+greatlyincreasetheproductivityofhealthphysicssurveyors.
+6 Deployments and future plan
+To gain feedback from end users, an early prototype version of
+CARMA II was deployed at the Sellafield site in an arena that had
+knownregionsofalphacontamination.Themainaimofdeployment
+wastotestCARMAII’ssoftwaresystemsanditsradiationdetection
+abilitiesinarealenvironmentusingrealradiationsources.CARMA
+II successfully performed the first ever autonomous radiometric
+survey on the Sellafield site, during which it identified a known
+sourceofalphacontaminationandplacedthisinthecorrectposition
+on the map that it generated. Following feedback from end users,
+CARMA underwent a full hardware redesign to make the robot
+morerobust,facilitatefastbatteryswappingandallowtheDP8probe
+tohaveadjustableheight.
+ThenewversionofCARMAII,aspresentedinthispaper,isnow
+ready for testing on the Sellafield site, with the first deployments
+planned for early 2023. During the deployment period there will
+be continual feedback and improvements made to the robot. The
+intention is that CARMA II will be part of “business as usual” for
+Sellafield in the coming years and it will be a standard tool that is
+availabletoaidHealthPhysicspersonnel.
+7 Conclusion
+This article has provided the necessary background research to
+facilitatetheuseofautonomousgroundvehiclesforsurveyingfloor
+areasinnuclearfacilitiesforalpha,betaandgammacontamination.
+Unlike previous robots, CARMA II has the ability to map and
+avoid alpha, beta and gamma radiation simultaneously. Although
+this is a novel feature, the true benefit of CARMA II is its ability
+to detect alpha and beta contamination and subsequently re-plan
+its path to avoid the contaminated area. This reduces the risk of
+spreading contaminated radioactive material during the survey,
+which until now has been a key differentiating feature of using
+human operators over robotic systems. The developed system’s
+functionality and ability to simultaneously survey for, and avoid
+alpha, beta and gamma radiation was demonstrated in a series
+of experiments using a physical robot within a representative
+environment.Data availability statement
+The datasets presented in this study can be found in the online
+Figshare repositories https://doi.org/10.48420/21864987.v1 and the
+code developed is available in the GitHub repository, available on
+request.
+Author contributions
+Conceptualization, KG, AW, OM, BL, and CB; developing
+the robotic platform, MN and KG; software, AW, BN, and KG;
+performing experiments, BN; supervision, KG and OM; preparing
+the manuscript; BN, KG, CB, and AW; editing the manuscript; BL,
+OM,CB,andMN.Allauthorshavereadandagreedtothepublished
+versionofthemanuscript.
+Funding
+This research was funded by the Engineering and Physical
+Sciences Research Council (EPSRC) under grants: EP/P01366X/1;
+EP/V026941/1; and by an EPSRC impact acceleration account
+secondment scheme titled: Mobile Robots for Generic
+Characterisation of Nuclear Facilities, which was jointly funded
+bySellafieldLtd.,TheUniversityofManchesterandEPSRC.
+Conflict of interest
+AuthorCBwasemployedbySellafieldLtd.
+Theremainingauthorsdeclarethattheresearchwasconducted
+in the absence of any commercial or financial relationships that
+couldbeconstruedasapotentialconflictofinterest.
+Publisher’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their affiliated
+organizations, or those of the publisher, the editors and the
+reviewers. Any product that may be evaluated in this article, or
+claim that may be made by its manufacturer, is not guaranteed or
+endorsedbythepublisher.
+References
+Abd Rahman, N. A., Sahari, K. S. M., and Hamid, N. A. (2022a). An autonomous
+clutter inspection approach for radiological survey using mobile robot. IEEE Trans.
+AutomationSci.Eng. ,1–14.doi: 10.1109/tase.2022.3180345
+Abd Rahman, N. A., Sahari, K. S. M., Hamid, N. A., and Hou, Y. C. (2022b). A
+coverage path planning approach for autonomous radiation mapping with a mobile
+robot.Int.J.Adv.RoboticSyst. 19,172988062211164.doi: 10.1177/17298806221116483
+AbdRahman,N.A.,Sahari,K.S.M.,Jalal,M.F.A.,Rahman,A.A.,AbdAdziz,M.I.,
+andHassan,M.Z.(2020).Mobilerobotforradiationmappinginindoorenvironment.
+IOPConf.Ser.Mater.Sci.Eng. 785,012021.doi: 10.1088/1757-899X/785/1/012021
+Anderson, R. B., Pryor, M., Abeyta, A., and Landsberger, S. (2020). Mobile robotic
+radiationsurveyingwithrecursivebayesianestimationandattenuationmodeling. IEEE
+Trans.AutomationSci.Eng. 19,410–424.doi: 10.1109/tase.2020.3036808BBC-News (2017). BBC-News. Available at, https://www.bbc.co.uk/news/business-
+40479053 .
+Bird, B., Griffiths, A., Martin, H., Codres, E., Jones, J., Stancu, A., et al. (2018).
+A robot to monitor nuclear facilities: Using autonomous radiation-monitoring
+assistance to reduce risk and cost. IEEE Robotics Automation Mag. 26, 35–43.
+doi:10.1109/mra.2018.2879755
+Bird,B.,Nancekievill,M.,West,A.,Hayman,J.,Ballard,C.,Jones,W.,etal.(2022).
+Vega—A small, low cost, ground robot for nuclear decommissioning. J. Field Robotics
+39,232–245.doi: 10.1002/rob.22048
+Bryant, P. A. (2021). The role of radiation protection societies in tackling the skills
+shortageanddevelopmentofyoungprofessionalsandresearchers. J.RadiologicalProt.
+41,S79–S88.doi: 10.1088/1361-6498/abf815
+Frontiers in Robotics and AI 12 frontiersin.org
+
+--- Page 13 ---
+Nouri Rahmat Abadi et al. 10.3389/frobt.2023.1137750
+Clearpath-Robotics (2015). Clearpath-robotics. Available at, https://
+clearpathrobotics.com/jackal-small-unmanned-ground-vehicle/ .
+Connor, D. T., Wood, K., Martin, P. G., Goren, S., Megson-Smith, D., Verbelen, Y.,
+etal.(2020).Radiologicalmappingofpost-disasternuclearenvironmentsusingfixed-
+wing unmanned aerial systems: A study from chornobyl. Front. Robotics AI 6, 149.
+doi:10.3389/frobt.2019.00149
+Cortez, R. A., Papageorgiou, X., Tanner, H. G., Klimenko, A. V., Borozdin, K. N.,
+Lumia,R.,etal.(2008).Smartradiationsensormanagement. IEEERoboticsAutomation
+Mag.15,85–93.doi: 10.1109/mra.2008.928590
+Financial-Times (2022). Financial-times. Available at, https://www.ft.com/content/
+7cebc600-3bad-48f7-9b33-11fc7cedac32 .
+Groves, K., Hernandez, E., West, A., Wright, T., and Lennox, B. (2021). Robotic
+explorationofanunknownnuclearenvironmentusingradiationinformedautonomous
+navigation. Robotics10,78.doi: 10.3390/robotics10020078
+Groves, K., West, A., Gornicki, K., Watson, S., Carrasco, J., and Lennox, B. (2019).
+Mallard:Anautonomousaquaticsurfacevehicleforinspectionandmonitoringofwet
+nuclearstoragefacilities. Robotics8,47.doi: 10.3390/robotics8020047
+Health and Safety Executive (2018). Working with ionising radiation. Ionising
+RadiationsRegulations2017.Tech.rep .UnitedKingdom:HealthandSafetyExecutive.
+HMGovernment(2022). Britishenergysecuritystrategy.Tech.Rep .UnitedKingdom:
+HMGovernment.
+HM Government (2019). “Nuclear provision: The cost of cleaning up britain’s
+historicnuclearsites,”in Tech.rep. (UnitedKingdom:HMGovernment).
+HM Government (2015). Sustaining our nuclear skills. Tech. rep . United Kingdom:
+HMGovernment.
+HM Government (2020). Tech. rep. United Kingdom: HM Government.The ten-
+pointplanforagreenindustrialrevolution
+Hosmar, M. E., Nokleby, S. B., and Waller, E. (2017). “Experimental testing of
+an autonomous radiation mapping robot,” in Proceedings of the 2017 CCToMM M3
+symposium (Montreal:QC). Canada.25–26.
+Huo, J., Liu, M., Neusypin, K. A., Liu, H., Guo, M., and Xiao, Y. (2020).
+Autonomous search of radioactive sources through mobile robots. Sensors20, 3461.
+doi:10.3390/s20123461
+Kim, D., Woo, H., Ji, Y., Tamura, Y., Yamashita, A., and Asama, H. (2017). 3d
+radiationimagingusingmobilerobotequippedwithradiationdetector.InIEEE/SICE
+International Symposium on System Integration (SII), 11-14 December 2017, Taipei,
+Taiwan.
+Kishimoto, T., Woo, H., Komatsu, R., Tamura, Y., Tomita, H., Shimazoe, K.,
+et al. (2021). Path planning for localization of radiation sources based on principal
+componentanalysis. Appl.Sci. 11,4707.doi: 10.3390/app11104707
+Li, B., Zhu, Y., Wang, Z., Li, C., Peng, Z.-R., and Ge, L. (2018). Use of multi-
+rotor unmanned aerial vehicles for radioactive source search. Remote Sens. 10, 728.
+doi:10.3390/rs10050728
+Liu, X., Cheng, L., Yang, Y., Yan, G., Xu, X., and Zhang, Z. (2022). An alpha/beta
+radiation mapping method using simultaneous localization and mapping for nuclear
+powerplants. Machines 10,800.doi: 10.3390/machines10090800Marques,L.,Vale,A.,andVaz,P.(2021).State-of-the-artmobileradiationdetection
+systemsfordifferentscenarios. Sensors21,1051.doi: 10.3390/s21041051
+Marturi, N., Rastegarpanah, A., Rajasekaran, V., Ortenzi, V., Bekiroglu, Y., Kuo, J.,
+et al. (2017). Towards advanced robotic manipulations for nuclear decommissioning.
+RobotsOperatingHazard.Environ. 2017,1.doi: 10.5772/intechopen.69739
+McDougall, R., Nokleby, S. B., and Waller, E. (2018). Probabilistic-based robotic
+radiation mapping using sparse data. J. Nucl. Eng. Radiat. Sci. 4. doi:10.1115/1.
+4038185
+Monk, S. D., West, C., Bandala, M., Dixon, N., Montazeri, A., Taylor, C. J., et al.
+(2021). A low-cost and semi-autonomous robotic scanning system for characterising
+radiologicalwaste. Robotics10,119.doi: 10.3390/robotics10040119
+Nagatani, K., Kiribayashi, S., Okada, Y., Otake, K., Yoshida, K., Tadokoro, S.,
+et al. (2013). Emergency response to the nuclear accident at the fukushima daiichi
+nuclear power plants using mobile rescue robots. J. Field Robotics 30, 44–63.
+doi:10.1002/rob.21439
+Nancekievill,M.,Allison,F.,Groves,K.,Lennox,B.,andSimpson,J.(2023).Robotic
+surveyofalegacyradioactiveductonthedounreaysite. Nucl.Future 19,46–50.
+Nancekievill, M., Jones, A., Joyce, M., Lennox, B., Watson, S., Katakura, J., et al.
+(2018). Development of a radiological characterization submersible rov for use at
+fukushimadaiichi. IEEETrans.Nucl.Sci. 65,2565–2572.doi: 10.1109/tns.2018.2858563
+Nuclear Decommissioning AuthorityNuclear Decommissioning Authority (2022).
+Nuclear decommissioning authority: Annual report and accounts 2021 to 2022 . United
+Kingdom:Tech.Rep.
+Tsitsimpelis,I.,Taylor,C.J.,Lennox,B.,andJoyce,M.J.(2019).Areviewofground-
+based robotic systems for the characterization of nuclear environments. Prog. Nucl.
+energy111,109–124.doi: 10.1016/j.pnucene.2018.10.023
+West, A., and Smith, A. (2021). “ROS messages for nuclear sensing,” in Proceedings
+of decommissioning environmental science and remote Technology 2021 (American:
+AmericanNuclearSociety).
+West, A., Tsitsimpelis, I., Licata, M., Jazbec, A., Snoj, L., Joyce, M. J., et al.
+(2021). Use of Gaussian process regression for radiation mapping of a nuclear
+reactor with a mobile robot. Sci. Rep. 11, 13975–14011. doi: 10.1038/s41598-021
+-93474-4
+West, A., Wright, T., Tsitsimpelis, I., Groves, K., Joyce, M. J., and Lennox,
+B. (2022). Real-time avoidance of ionising radiation using layered costmaps
+for mobile robots. Front. Robotics AI 9, 862067. doi: 10.3389/frobt.2022.
+862067
+White, S. R., Megson-Smith, D. A., Zhang, K., Connor, D. T., Martin, P.
+G., Hutson, C., et al. (2020). Radiation mapping and laser profiling using
+a robotic manipulator. Front. Robotics AI 7, 499056. doi: 10.3389/frobt.2020.
+499056
+White, S. R., Wood, K. T., Martin, P. G., Connor, D. T., Scott, T. B., and Megson-
+Smith,D.A.(2021).Radioactivesourcelocalisationviaprojectivelinearreconstruction.
+Sensors21,807.doi: 10.3390/s21030807
+Zakaria, A. H., Mustafah, Y. M., Abdullah, J., Khair, N., and Abdullah, T. (2017).
+Development of autonomous radiation mapping robot. Procedia Comput. Sci. 105,
+81–86.doi: 10.1016/j.procs.2017.01.203
+Frontiers in Robotics and AI 13 frontiersin.org

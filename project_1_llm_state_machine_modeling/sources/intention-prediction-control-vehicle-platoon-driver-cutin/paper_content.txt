@@ -1,0 +1,1644 @@
+--- Page 1 ---
+ 
+ 1 
+ 
+Abstract—Vehicle platoon s (VPs)  are group s of vehicles driving 
+together with a short inter -vehicle gap and a harmonized velocity . 
+For a long period, the VPs and human -driven vehicles (HDVs) will 
+coexist in mixed  traffic flow, where the cut -in maneuver of the 
+HDVs towards the VPs can be frequently expected.  In this paper, 
+to handle  such cut -ins, we propose a n intention  prediction -based 
+control method  for the VPs by considering the tradeoff  between  
+the platoon integrity  and traffic  safety . Particular ly, the proposed 
+method  is designed to prevent  as many  cut-ins as possible  while 
+taking care of the road  safety . It consists of  a cut-in prediction 
+part, including intention and trajectory prediction algorithm s, 
+and a finite state machine (FSM) -based predictive control part, 
+including a high -level FSM and a low -level predictive control . 
+Driver -in-the-loop experiments were conducted in the VP -based  
+driving scenarios to  train the intention prediction algorithm  and 
+test the proposed method. We show the results detailing the 
+control behavior of the proposed method in a no cut -in test, a 
+mandatory cut -in test, and three discretionary cut -in tests. The 
+results demonstrate  that the proposed method can predict the 
+cut-in intention of human drivers in real time. Besides,  according 
+to the prediction results,  the proposed method can prevent cut-ins 
+for the VPs  while taking care of the road  safety.  
+Index Terms —Vehicle p latoons, cut -in, intention prediction,  
+predictive control . 
+I. INTRODUCTION  
+EHICLE platoon s (VPs)  are group s of vehicles driving  
+together with  a short inter -vehicle gap and a harmonized 
+velocity , which are enabled by vehicle automation, as well as 
+vehicle -to-vehicle or vehicle -to-infrastructure  communications.  
+Organizing multiple vehicles into a vehicle platoon  (VP) is 
+shown to be effective in increasing traffic throughput and 
+mitigating traffic jam [1] , [2]. Besides, the VPs have  potential 
+to improve the road safety and driving comfort [ 3], [4]. In 
+addition, the vehicles of a platoon can decrease exhaust 
+emissi ons and fuel consumption [ 5], [6]. Due to  its advantages 
+in intelligent transportation  systems , the VP has attracted 
+considerable attention in the academic and industry fields . 
+To obtain the expected benefits of the VPs, a major challenge  
+is to deploy them  in real traffic environment. The deployment   
+ 
+ 
+Manuscript received  June 13, 2022, revised October 1, 2022, December 1, 
+2022, and January 1 7, 2023 , accepted January 2 2, 2023 . This work was 
+supported  by A*STAR under its RIE2020 Advanced Manufacturing and 
+Engineering (AME) Industry Alignment Fund C Pre -Positioning (IAF -PP) 
+(LOA Award A19D6a0053).  (Corresponding author: Rong  Su) 
+The authors are with the School of Electrical and Electronic  Engineering, 
+Nanyang Technologi cal University, Singapore 639798 (e -mail:  
+yun.lu@ntu.edu.sg; lingying.huang@ntu.edu.sg;  jiarong.yao@ntu.edu.sg ; 
+rsu@ntu.edu.sg).  
+  
+of the VP s will be gradual due to the need of supporting road 
+infrastructures [7], user acceptance [8], and suitable regulations 
+and legislation frameworks [9].  It will take a long time to  let 
+them have dedic ated areas or lanes.  Before that, they have to 
+share road with conventional human -driven vehicles (HDVs) in 
+mixed traffic flow for a long period [ 10]. In this context, the 
+HDVs can produce irregular driving behavior towards the VPs, 
+which may influence the  performance of the VPs [ 11]. Thus, it 
+is necessary for the VPs to address the interaction s with the 
+HDVs.  
+Cut-in maneuver  of the HDVs is an inter-vehicle interaction 
+that can be frequently expected.  In the cut -in scenario s, the 
+lane-changing vehicle  moves into the space ahead of a nearby 
+following vehicle in the target  lane. The following vehicle may 
+adjust its following gap to respond  to the cut -in via emergency 
+acceleration or braking , which increases fuel consumption and 
+affects traffic efficiency  [12]. Furthermore, t he cut -in maneuver  
+is potentially dangerous and may  lead to traffic  collisions.  In 
+particular,  such maneuver appears to be unavoidable  in mixed  
+traffic and is regarded as a common hazard for the  VPs [ 11]. It 
+can affect the integrity of  the VPs, which makes platooning 
+difficult.   
+For single vehicles, including the autonomous vehicles (AVs) 
+and HDVs equipped with advanced driver assistance systems, 
+great efforts have been made to handle the cut -in maneuver of 
+the surrounding HDVs.  Chen et al. [13] built a human -centered 
+control method based on the driver behavior prediction for the 
+AVs to follow the reference trajectory while cooperating with 
+the cut -in vehicle. In [ 14], a human -like car-following (CF)  
+model was built for the AVs by consid ering the cut -in behavior 
+of other vehicles in mixed traffic. Chen et al.  [15] established 
+an intelligent speed control strategy and a reinforcement 
+learning method  for the AVs to handle  uncertain cut -in 
+scenarios.  In [16], a behavior estimation method was built to 
+recognize and predict the cut -in intention for the CF control in 
+the autonomous driving. Choi  et al.  [17] designed a cut -in 
+warning system by using multiple rotational images of 
+surround view monitoring cameras.  Lyu et al.  [18] developed  a 
+cut-in collision warning model to improve  the effectiveness of 
+advanced driver assistance systems  in cut-in scenarios.   
+For the VPs,  however, the methods built for single vehicles 
+to address  the cut -ins may not be suitable, due to the difference  
+between  the control objectives  of the VPs and single vehicles.  
+Different from a single vehicle, the VP has the control objective 
+of maintaining the platoon integrity, which conflicts with the 
+cut-in objective  of the HDVs.  Recently , a few studies have been 
+carried  out for the VPs to handle the cut -ins. Milané s  et al.  [19] Intention Prediction -Based  Control for 
+Vehicle Platoon to Handle Driver Cut -in 
+ Yun Lu, Member, IEEE , Lingying Huang, Jiarong Yao, Rong Su, Senior  Member, IEEE  
+V 
+
+--- Page 2 ---
+ 
+ 2 
+designed  an algorithm for the VP to manage the transiti ons in 
+response to  the cut-ins from other  vehicles . They tested the 
+algorithm by using  a string of four cooperative adaptive cruise  
+control  vehicles in real traffic condition. In [ 20], a control 
+method was developed for the VPs to decrease the effect  of 
+vehicle cut -ins. Kazemi  et al.  [21] established  a cooperative 
+adaptive cruise control system by using  a learning -based 
+stochastic model predi ctive control (MPC), which can address 
+the cut -in maneuvers of the HDVs.  In [22], an MPC method 
+was built to control a dynamic VP while handling possible 
+cut-in/out maneuvers.  Yao et al.  [23] developed  a decentralized 
+lane-change -aware trajectory optimizat ion model  for trajectory 
+smoothing of the connected automated vehicles at a signalized 
+intersection . The model integrated  the strategies of yielding to 
+mandatory lane change and restraining discretionary lane 
+change . Liu et al.  [24] built a sensor fusion algorithm based on 
+the radar and vision data for the VPs  to recognize  the cut -in 
+vehicles.   
+When handling  the cut-ins of the HDVs, the control method 
+for the VP s faces a tradeoff between the platoon integrity  and 
+road safety . On the one side, preventing the cut-ins is beneficial  
+to the integrity and performance of the VPs, but may result in  
+vehicle acciden t and traffic congestion . On the other side, 
+yielding  to the cut -ins could improve driving safety and the 
+overall traffic flow, but may  break up the VP and lower  its fuel 
+efficiency [ 10]. To achieve the benefits of the VPs and take care 
+of the traffic safety at the same time,  it is important  to consider  
+such tradeoff in the controller  design of the VPs.  However, to 
+the best of our knowledge, no study has  designed control 
+scheme  for the VPs  to address  the cut -ins by considering  such 
+tradeoff . 
+Furthermore , the existing control methods built for the VPs 
+to address  the cut -ins do not incorporate the prediction  of the 
+driver intention.  The significance of integrating such prediction 
+in the control method is twofold : 1) it can help the VP  better 
+assess the potential cut -ins, and thus improve  the road safety; 2) 
+it enables the VP to respond  to the cut -ins as early as possible , 
+and thus  to be more active when facing the cut -ins. 
+Thus, to address the cut -ins of the HDVs, this paper proposes 
+a novel method for the VPs by incorporating the prediction of 
+the driver intention and considering the tradeoff between the 
+platoon integrity and road saf ety. In particular, the proposed 
+method is developed to prevent as many cut -ins as possible 
+while taking care of the road safety.  It consists of a cut -in 
+prediction part and a finite state machine (FSM) -based 
+predictive control part. In the cut -in prediction part, a new 
+support vector machine (SVM) -based algorithm is designed to 
+predict the cut-in intention of human drivers; a trajector y 
+prediction algorithm  is used to predict the trajectory of the 
+HDV . In the FSM -based predictive control part, a novel FSM 
+and novel MPC algorithms are built to implement the control 
+objectives of the proposed method.  The main contributions  of 
+this study a re as follow s: 1) it address es the cut -ins for the VP 
+by considering the tradeoff between the platoon integrity and 
+road safety; 2) it handle s the cut -ins for the VP  by incorporating 
+the prediction of the driver intention; 3) it designs a novel 
+SVM -based a lgorithm to predict driver cut -in intention towards a platoon; 4) it designs a novel control method based on the 
+FSM and MPC to prevent as many cut -ins as possible for the 
+platoon while taking care of the road safety;  5) it verifies the 
+effectiveness of th e proposed scheme with driver -in-the-loop 
+experiments in the VP -based driving scenarios.  
+The remainder of this paper is organized  as follows. Section 
+II presents  the architecture of the proposed method . Sections III 
+and IV introduce the cut -in prediction part and the FSM -based 
+predictive  control  part, respectively. Section V describes the 
+driver -in-the-loop experiments for testing the proposed method , 
+whose results are presented in Section V I. Finally, Section V II 
+provides the discussion and conclusion of this paper.  
+ 
+Fig. 1. Structure of the intention prediction -based control method.  
+II. SYSTEM ARCHITECTURE  
+The intention  prediction -based control method  is proposed 
+for the VPs to handle the cut -in maneuvers of the HDVs.  Note 
+that how  often a VP encounters the cut -ins should depend on 
+the traffic condition , e.g., traffic flow.  As shown in Fig. 1, the 
+proposed method  consists of two parts : 1) cut -in prediction, 
+which predicts the cut -in intention of human drivers and the 
+trajector y of the HDV ; 2) FSM -based predictive control, which 
+implements the control objective of the proposed method  with 
+three control strategies, i.e., CF, cut -in prevention, and cut -in 
+yielding strategies. The working procedure of the proposed 
+method is as follows. The cut -in prediction part first predicts 
+the cut -in intention of the nearby HDVs according to the states 
+of the HDVs and the relative states between the VP and HDVs. 
+Then , the prediction part predicts the trajectories  of the HDVs  
+in a prediction horizon.  Next, according to the predicted results, 
+the VP states, and the surroundings, the FSM -based predictive 
+control part employs the FSM to choose  a control strategy from 
+the CF, cut -in prevention, and cut -in yielding  strategies . Finally, 
+to implement the sele cted control strategy, the control part 
+conducts the longitudinal control of the VP by using an MPC 
+controller.  
+A. Cut-in Prediction  
+The cut -in prediction  part is built for the proposed method  to 
+better assess the potential cut -ins and respond  to the cut -ins as 
+early as possible. This part  includes  two algorithms : cut -in 
+intention  and vehicle trajectory  prediction  algorithms . In the 
+intention prediction algorithm , the cut -in intention of the 
+
+--- Page 3 ---
+ 
+ 3 
+nearby HDVs is predicted by using  the SVM , which is  a 
+supervised learning method that has been widely employed  to 
+predict  driver intention [ 25], [26]. Particular ly, the algorithm  is 
+built to predict whether the nearby HDVs intend to perform 
+cut-in towards the platoon . The vehicle trajectory prediction 
+algorithm predicts the trajectory of the HDV in a prediction 
+time step.  The trajectory is characterized by the lateral and 
+longitudinal displacement s of the vehicle , which are calculated  
+by using  a preview model and a longitudinal dynamic model , 
+respective ly. The predict ed results  are used in the FSM -based 
+predictive control part for selecting a control strategy from the 
+CF, cut-in prevention, and cut -in yielding  strategies . 
+B. FSM -Based Predictive Control  
+The FSM -based predictive control part is built to implement 
+the control objective of the proposed method , which is to 
+prevent as many  cut-ins as possible for the VP while taking care 
+of the road safety.  This part  is divided into  two levels : a 
+high-level FSM  and a low-level  predictive control . The FSM 
+decides the control strategy used in the low -level predictive 
+control. The FSM has three states , i.e.,  CF, cut-in prevention, 
+and cut -in yielding  states , which correspond to the three control 
+strateg ies of the VP , respectively . The t ransitions be tween these 
+states  are managed by using the predicted cut -in intention, the 
+predicted  vehicle  trajectory with respect to the VP, and the 
+surrounding information. The low -level predictive control has 
+three control strategies: the CF, cut -in prevention, and cut-in 
+yielding strategies.  They  are implemented via the MPC method 
+as it can integrate multiple objectives into an optimization  
+problem and adapt to the disturbances and uncertainties with a 
+receding horizon strategy [ 27], [28]. In the CF strategy, the 
+driving  objective of the VP is to maintain a  defined distance 
+from the preceding vehicle while ensuring  the ride comfort. In 
+the cut -in prevention strategy, the control objective  of the VP  is 
+to shorten the platoon gap while maintaining the ride comfort  
+and driving safety. In the cut -in yielding strategy, the control 
+objective of the VP is to create a safe distance from  the cut -in 
+vehicle while keeping  the ride comfort.  
+Feature Extraction
+SVM Classifier 
+TrainingEpoch Extraction
+Feature Extraction
+SVM 
+ClassificationEpoch Training 
+Driver DataStreaming 
+Driver Data
+Prediction ResultTraining Using
+Data  
+Acquisition
+Preprocessing
+Feature 
+Extraction
+Classification
+SVM 
+Classification
+Prediction PerformanceWindow Length 
+Selection
+Feature  Selection
+ 
+Fig. 2. Algorithm flow of the cut -in intention prediction.  III. CUT-IN PREDICTION  
+In Section  III-A, we present  the details of using an algorithm  
+to predict the cut -in intention of the nearby  HDV . In Section 
+III-B, we describe  how to apply a lateral preview model and a 
+longitudinal dynamic model to predict the trajector y of the 
+HDV . 
+A. Cut-in Intention Prediction  
+The aim of the intention prediction is to know whether the 
+nearby HDVs intend to conduct cut -in towards the VP. Thus, 
+the intention prediction problem can be regarded as a binary 
+classification problem. As shown in  Fig. 2, t he algorithm of the 
+intention  prediction consists  of training and using  procedures . 
+The offline training procedure is employed to calculate the 
+parameters and the prediction performance of the algorithm. 
+The online using  procedure is applied to d ecode the streaming 
+driving data into the prediction result in real time. The two 
+procedures include four parts: data acquisition, preprocessing, 
+feature extraction, and classification.  
+1) Data Acquisition  
+Driver -in-the-loop experiment is conducted to collec t driver 
+data in the mixed traffic flow , which includes the VP and HDV . 
+The collected driving data include the lateral, longitudinal, and 
+yaw data.  The experimental platform is built by using a driving 
+simulator, simulated vehicles, and a virtual scene.  In the 
+experiment, the drivers are asked to perform cut -in towards the 
+VP and lane -retention to obtain two classes of training samples.  
+The training driver data are  recorded with labels of the cut -in 
+intention , whereas the streaming driver data are collected  
+without knowing their co rresponding intention s a priori.  
+Remark  1: In real world, the driving  data are collected with 
+automotive sensing, which can be divided into  self-sensing, 
+localization, and surrounding -sensing [ 29]. Self -sensing uses 
+proprioceptive sensors, such as odometers and  gyroscopes , to 
+measure the state s of the ego car. Localization, using external 
+sensors such as GPS, determines the global and local position 
+of the ego car. Surrounding -sensing uses exteroceptive sensors , 
+such as sonar, radar , and cameras, to perceive  road information 
+and the state s of other vehicles.  The VP can detect the states of 
+the HDV by using exteroceptive sensors in real world.  
+2) Preprocessing  
+In the decoding process, epochs of the driving data with 
+certain time window length are extracted as single units to be 
+translated into the prediction results. In the training procedure, 
+the epochs are extracted from  the instant when the cut -in 
+intention is labelled.  We try differ ent time window lengths and 
+select one for us e. In the using procedure,  we adopt the selected 
+time window length and update the epochs by using the 
+historical driving data of the current time step . 
+ 
+Fig. 3. Target vehicles related to the cut -in task.  
+
+--- Page 4 ---
+ 
+ 4 
+3) Feature  Extraction  
+We extract t he features of the epochs to distinguish different 
+classes  of driving data.  The selected  features consist of the 
+features related to the  states  of the nearby HDV and the relative 
+states between the  HDV and VP.  Note that , in the VP, we only 
+focus on the target leader  (TL)  and target  follower  (TF) related 
+to the cut -in task. As shown in Fig. 3, the TL and TF refer to the 
+front and rear vehicles of the target gap, respectively.  The 
+features related to the states of the HDV include its yaw angles,  
+lateral and  longitudinal velocit ies, and lateral and  longitudinal 
+acceleration s at the initial and final instants of the epoch, along 
+with their increment s in the selected time window length. The 
+features assoc iated with  the relative states between the HDV 
+and VP consist of  the relative velocities and longitudinal 
+distances between the HDV and TF and the time headway and 
+inverse time -to-collision  between the HDV and TL at the initial 
+and final instants of the epoch, and their increment s in the 
+selected time window length.  The time headway and inverse 
+time-to-collision  are defined as  
+hl
+hDTHWv
+         (1) 
+hl
+hlvTTCiD
+         (2) 
+where  
+hv is the longitudinal velocity of the HDV, 
+hlD  is the 
+relative distance between the HDV and TL, and 
+hlv  is the 
+relative velocity between the two vehicles.  
+4) Classification  
+A binary classif ier is built to handle the binary classification 
+problem.  Particularly, we build  the classifier  by using the SVM  
+with a radial basis function as the kernel function . The classifier 
+is described as  
+2
+1exp( )M
+ii
+iy w g x x b
+   
+      (3) 
+where M denotes the number of the support vector, 
+iw  is the 
+weight of the ith support vector, 
+ix  is the ith support vector, 
+x  
+is a vector  of the extracted features,  including the time headway  
+and inverse time -to-collision  computed in (1) and (2),  and b is 
+the bias of the classifier . In the training procedure, the LIBSVM 
+software  library developed by Chang and Lin [ 30] is used to 
+determine the parameters of the classifier .  
+Remark  2: We use the SVM to develop the binary classifier  
+due to the following reasons. The SVM has the advantage of 
+producing more robust models than  traditional learning 
+methods by minimizing the upper bound of  the generalization 
+error [ 31]. Besides, the SVM can  extract pattern from noisy 
+data without prior knowledge before  training [ 32]. 
+B. Vehicle Trajectory Prediction  
+The trajectory of the HDV  is predicted so that the proposed 
+method  can know its driving tendency and then according ly 
+decide the control strategy of the VP. The prediction of the  
+vehicle  trajectory is separated  into the prediction s of the lateral 
+and longitudinal displacement s of the vehicle . We apply  the method described in [13] to predict the lateral 
+position of the veh icle. The lateral position is predicted based 
+on the driver preview behavior of previewing  the future desired 
+path in a preview interval. The preview point  of the driver 
+model  can be calculated as  
+0 phy y v e
+         (4) 
+where 
+0y  is the current lateral position of the  vehicle , 
+py is the 
+lateral position of the vehicle at the preview point,  
+ denotes 
+the preview time, and 
+e  represents  the yaw angle error, which 
+is computed as  
+hd e
+           (5) 
+where 
+h  is the yaw angle of the vehicle  and 
+d  is the desired 
+yaw angle.   
+Based on the equation (4) , the prediction model of the  lateral  
+vehicle  position  can be  described as  
+( 1) ( ) (0) (0)kk
+h h hy y Tv e
+, 
+0, , 1p kN
+      (6) 
+where 
+()k
+hy  is predicted lateral position  of the vehicle  at time 
+step k, 
+(0)
+hy , 
+(0)
+hv, and 
+(0)e  are the measured values at the current 
+time step, T is the sampling time, and 
+pN  is preview horizon.   
+Remark  3: Note that the drivers may first prepare to cut-in 
+and then execute cut -in after generating the cut -in intention [ 33]. 
+They desire to drive in the original and target lanes in the cut -in 
+preparation and  execution phases, respectively . In other words, 
+the preview point is on the centerline of the original and target 
+lanes in the two phases, respectively. In the same spirit of [ 18], 
+we set the threshold value of the lane -change offset rate as 0.15 
+m/s to represent the beginning of the cut -in execution phase.  
+Assuming  the HDV  drives with the long itudin al acceleration 
+of the current time step in the prediction horizon, we formulate 
+the prediction model of the longitudinal vehicle position  as 
+2
+( 1) ( ) (0) (0)
+2kk
+h h h hTs s Tv a  
+, 
+0, , 1p kN
+     (7) 
+where 
+()k
+hs is the predicted longitudinal displacement of the 
+vehicle at time step k and 
+(0)
+ha  is its longitudinal acceleration at 
+the current time step.  
+Remark  4: The lateral speed and longitudinal acceleration are 
+assumed to be constant in a prediction  horizon. The assumption  
+(also used in [ 13] and [ 34]) is considered reasonable because 
+the prediction horizon is a few seconds ahead and the speed  and 
+acceleration  update at each time step, which decrease the 
+influence of the assumption errors.  
+IV. FSM -BASED PREDICTIVE CONTROL  
+The overall objective of the FSM -based predictive control is 
+to prevent as many  cut-ins as possible for the VP while taking 
+care of the road safety.  In Section IV-A, we explain how to 
+build the high-level FSM . In Section IV -B, we describe the 
+algorithms of the low -level predictive control.  
+
+--- Page 5 ---
+ 
+ 5 
+ 
+Fig. 4. Architecture of the high -level FSM.  
+A. High -Level FSM  
+The high -level FSM is built to select control strategy for the 
+VP to handle the cut-ins. As shown in Fig. 4, the FSM consists 
+of three states : the CF, cut-in prevention, and cut -in yielding  
+states . In the  CF state, the followers  of the VP perform  CF to 
+maintain a defined distance from the preceding vehicle. In the  
+cut-in prevention  state, the VP shortens the platoon gap to 
+prevent the cut -ins of the HDV. In the cut -in yielding state,  the 
+VP yield s to the cut -in vehicle by creating a safe distance.  
+The state transitions are managed according to  the predicted 
+cut-in intention,  the surrounding information, and  the predicted 
+trajectory of the HDV  with respect to the  VP. The predicted 
+cut-in intention indicates whether the nearby  HDV  intend s to 
+conduct cut -in towards the VP. According to the surrounding 
+information,  we classify th e cut -in motivation  into the 
+mandatory and discretionary cut -ins. The mandatory cut -ins 
+refer to the situation where drivers must perform cut -ins to 
+leave the current lane, e.g., to use an on -ramp to enter a freeway 
+or to avoid obstacles  [35]. The discretionary cut -ins refer to the 
+situation where drivers conduct cut -ins to move into a target 
+lane with a more desirable  driving condition.  The predicted 
+vehicle trajectory is used to calculate whether the HDV  is in the 
+defined preventable  range.  When the vehicle was predicted to 
+drive across the lane marks and ha ve a vehicle -length lead  over 
+the TF, it was considered in the unpreventable range. Otherwise, 
+it was considered in the preventable range.  Note that the  HDV  
+predicted to drive in the unpre ventable range is regarded as a 
+cut-in vehicle.  
+In the CF state, the FSM can be switched to the cut -in 
+prevention and yielding states. If the nearby HDV is predicted 
+to have no cut -in intention, the FSM remains in the CF state. If 
+it is predicted to have the discretionary  cut-in intention  and the 
+cut-in vehicle is predicted to drive  in the preventable  range, the 
+FSM is switched to the cut -in prevention state. If the HDV 
+suggests the mandatory cut -in intention, the FSM is switched to 
+the cut -in yielding sta te. If it indicates  the discretionary cut -in 
+intention and is predicted to drive  in the un preventable  range , 
+the FSM is switched to the cut -in yielding state.  
+In the cut -in prevention state, the FSM can be switched to the 
+CF and cut -in yielding states.  If the cut-in vehicle remains  in 
+the preventable  and detectable  range, the FSM remains in the 
+cut-in prevention state.  If the cut -in vehicle does not perform 
+cut-in and is out of the detectable range, the FSM is switched to 
+the CF state. If the cut -in veh icle is predicted to drive  in the 
+unpreventable  range, the FSM is switched to the cut -in yielding 
+state.  In the cut -in yielding state, if the cut -in vehicle reaches the 
+target lane, the FSM is switched to the CF state. Otherwise, the 
+FSM remains in the cut -in yielding state.  
+B. Low-Level Predictive Control  
+The low -level predictive control is developed  to implement 
+the control strateg y decided in  the high -level FSM.  Particular ly, 
+three MPC algorithms are formulated based on the  control 
+strategies of the  CF, cut -in prevention, and cut -in yielding , 
+respectively . In the algorithms, the vehicle longitudinal model s 
+are applied  as the prediction models.  
+1) Vehicle Longitudinal Model  
+In the VP,  the TF is controlled t o address the cut -ins of the 
+HDV s. The controlled vehicle, i.e., the TF, is expected to 
+imperfectly track its desired acceleration. We describe  its 
+dynamic model with a first -order lag as  
+a a u
+           (8) 
+where  u and a represent  the desired and actual longitudinal 
+accelerations of the controlled vehicle , respectively , and τ is the 
+time lag [ 36]. 
+Integrating  forward difference approximations, t he model in 
+(8) can be rewritten as  
+( 1) ( ) ( )k k kx Ax Bu
+, 
+10
+01
+0 0 1T
+AT
+T
+
+
+, 
+0
+0 B
+T
+
+ .      (9) 
+where 
+( ) ( ) ( ) ( )[ , , ]k k k k Tx s v a  is the state variable of the controlled  
+vehicle at time step k. s and v are the absolute position and 
+longitudinal velocity of the controlled  vehicle , respectively.  
+The preceding vehicle of the controlled vehicle can be either 
+the TL or cut -in vehicle. We assume the preceding vehicle  has a 
+constant acceleration in the prediction horizon. Its longitudinal 
+model can be expresse d as 
+( 1) ( )kk
+i T ix A x
+, 
+{ , }i c l  
+212
+01
+0 0 1TTT
+AT
+
+
+.         (10) 
+where 
+[ , , ]T
+c c c cx s v a  and 
+[ , , ]T
+l l l lx s v a  are the state variable s of 
+the cut-in vehicle and TL, respectively. 
+cs  and 
+ls  are the 
+absolute position s; 
+cv and 
+lv  denote the longitudinal velocit ies; 
+ca
+ and 
+la  represent the longitudinal  acceleration s. 
+2) Predictive Control for CF 
+To implement the CF strategy,  the MPC algorithm is 
+designed to include a CF and a smooth control objective. We 
+add penalties on the longitudinal acceleration and its increment 
+in the cost function  to realize the smooth control objective . The 
+CF objective is  achieved by introducing penalties on the 
+deviation from a desired inter -vehicle  gap and the relative 
+velocity between the controlled  vehicle and its preceding 
+vehicle  in the cost function . The penalties are formulated as  
+
+--- Page 6 ---
+ 
+ 6 
+11
+( ) ( ) ( ) 2 ( ) ( ) 2
+1 1 1
+0( ( ) ( ) )N
+k k k k k
+dr
+kJ S S v
+  
+    (11) 
+where 
+()kS  and 
+()k
+dS  are the inter -vehicle distance and  desired 
+distance at time step k, respectively,  
+()k
+rv is the relative velocity 
+between the control vehicle and its preceding vehicle, 
+()
+1k  and 
+()
+1k
+ are the weights penalizing the distance deviation and 
+relative velocity, respectively, and 
+1N  denotes  the control 
+horizon as well as the prediction horizon of the MPC  algorithm.  
+We compute  the inter-vehicle distance, relative velocity , and 
+desired distance as  
+( ) ( ) ( )k k k
+i S s s
+         (12) 
+ 
+( ) ( ) ( )k k k
+riv v v             (13) 
+ 
+( ) ( )kk
+d i d sS v t D , i = c or l       (14) 
+where td is the desired tim e gap and Ds represents the desired 
+standstill distance , which are set according to the defined 
+platoon gap.  In (12) –(14),  i equals to c and l when the preceding 
+vehicle  of the TF  is the cut -in vehicle  and TL, respectively.  
+Remark  5: There are two major spacing policies for platoons: 
+constant time -gap policy and constant distance policy. This 
+study uses constant time -gap policy because it can ensure string 
+stability by just using on -board information [ 37], [38] and it 
+accords with driver behaviors to some  extent [ 39]. 
+Based on the above descriptions, the control algorithm for 
+CF is formulated as 
+11
+( ) ( ) ( ) 2 ( ) ( ) 2 ( ) ( ) 2 ( ) ( ) 2
+1 1 1 1
+0min ( ( ) ( ) + ( ) ( ) )N
+k k k k k k k k k
+drukS S v u u   
+   
+ (15a)  
+s.t.  
+( 1) ( ) ( )k k kx Ax Bu            (15b)  
+( 1) ( )kk
+i T ix A x
+     
+or i c l       (15c)  
+( ) ( ) ( 1)k k ku u u  
+            (15d)  
+()
+min maxku u u
+  
+1 0, , 1kN
+        (15e)  
+(0)
+0 xx
+                  (15f)  
+(0)
+0 ccxx
+               (15g)  
+(0)
+0 llxx
+               (15h)  
+where 
+()
+1k  and 
+()
+1k  are the weights penalizing the longitudinal  
+acceleration and its increment at time step k, respectively, and 
+0x
+, 
+0cx, and 
+0lx  represent the current states of the controlled 
+vehicle, cut -in vehicle, and TL, respectively. The e quations 
+(15b) and (15c) are the longitudinal models of the controlled 
+vehicle and its preceding vehicle, respectively. The constraint  
+(15d) is applied  to compute the increment of the longitudinal 
+acceleration. The constraint (15 e) is the physical constraint. 
+The constraints (15f)–(15h) ensure the states of the vehicles are 
+initialized as the measured v alues of the current time step.  
+3) Predictive Control for  Cut-in Prevention  
+To implement the cut -in prevention strategy, the control 
+algorithm is built to shorten the platoon gap while maintaining 
+the ride comfort and driving safety.  We introduce penalties on the distance and relative velocity between the TL and TF to 
+shorten the platoon gap. We add penalties on the longitudinal 
+acceleration and its increment to maintain the longitudinal ride 
+comfort. To keep the driving safety, we limit the distance 
+between the TL and TF with a minimum s peed -dependent 
+distance strategy and a minimum time-to-collision  strategy:  
+22( ) ( )NN
+l THD sS v t d
+          (16) 
+ 
+2
+2()
+()N
+l
+TTC N
+rlStv             (17) 
+where 
+llS s s  and 
+rl lv v v  are the distance and relative 
+velocity between the TL and TF, respectively,  
+THDt and 
+TTCt  are 
+the defined minimum time headway and time-to-collision , 
+respectively, ds is the minimum standstill distance, and N2 
+denotes the prediction horizon of the control algorithm. Note 
+that 
+THDt  and ds are set according to the defined safety distance.  
+Integrating (16) and (17), we can derive  
+2 2 2( ) ( ) ( )max{ , }N N N
+l THD s rl TTCS v t d v t
+     (18) 
+According to  the above descriptions,  we can formulate the 
+optimization problem for cut-in prevention as  
+2
+221
+( ) ( ) 2 2 ( ) ( ) 2 ( ) ( ) 2
+2 2 2 2 2,0min ( ) ( ) + ( ( ) ( ) )+N
+NN k k k k
+l rlukS v u u
+     
+  
+ (19a)  
+s.t.  
+( 1) ( ) ( )k k kx Ax Bu            (19b)  
+( 1) ( )kk
+l T lx A x
+               (19c)  
+2 2 2( ) ( ) ( )max{ , }N N N
+l THD s rl TTCS v t d v t    
+     (19d)  
+( ) ( ) ( 1)k k ku u u  
+            (19e)  
+()
+min maxku u u
+  
+2 0, , 1kN
+        (19f)  
+0
+                (19g)  
+(0)
+0 xx
+                (19h)  
+(0)
+0 llxx
+                (19i)  
+where  
+2 and 
+2  are the weights penalizing the distance and 
+relative velocity between the TL and TF at time step 
+2N , 
+respectively, 
+()
+2k  and 
+()
+2k  are the weights penalizing the 
+longitudi nal acceleration and its increment at time step k, 
+respectively, and 
+2  is the weight penalizing the slack variable 
+
+, which enables the constraint (19d) to be imposed as a soft 
+constraint . In the cost function (19a), the first two terms are 
+used to shorten the platoon gap; the third and fourth terms are 
+applied  to maintain the ride comfort. The constraint  (19d) is 
+derived by adding the slack variable into (18) . The constraint 
+(19g) limits the value range of the slack variable.  
+4) Predictive Control for Cut -in Yielding  
+To im plement the cut -in yielding strategy, the MPC -based 
+algorithm is designed to include a yielding objective, a smooth 
+control objective, and a safety objective.  The yielding objective 
+is realized by adding  penalties on the deviation from a desired 
+inter-vehicle distance  and the relative velocity  between the TF 
+and cut -in vehicle in the cost function. The smooth control 
+
+--- Page 7 ---
+ 
+ 7 
+objective is achieved by adding penalties on  the longitudinal 
+acceleration and its increment in  the cost function. To achieve 
+the safety objective, we limit the distance between the TF and 
+cut-in vehicle with the minimum speed -dependent distance 
+strategy and the minimum time-to-collision strategy. W e 
+formulate the control algorithm for cut-in yielding as:  
+3
+3 3 31
+( ) ( ) ( ) 2 2 ( ) ( ) 2 ( ) ( ) 2
+3 3 3 3 3,0min ( ) ( ) + ( ( ) ( ) )+N
+N N N k k k k
+c d rcukS S v u u
+     
+    
+(20a)  
+s.t.  
+( 1) ( ) ( )k k kx Ax Bu            (20b)  
+( 1) ( )kk
+c T cx A x
+               (20c)  
+3 3 3( ) ( ) ( )max{ , }N N N
+c THD s rc TTCS v t d v t    
+     (20d)  
+( ) ( ) ( 1)k k ku u u  
+            (20e)  
+()
+min maxku u u
+  
+3 0, , 1kN
+        (20f)  
+0
+                 (20g)  
+(0)
+0 xx
+               (20h)  
+(0)
+0 clxx
+                (20i)  
+where 
+ccS s s  and 
+rc cv v v  are the distance and relative 
+velocity between the  TF and cut -in vehicle, respectively, 
+3N  is 
+the prediction horizon, 
+3  and 
+3  are the weights penalizing 
+the distance and relative velocity at time step 
+3N , respectively, 
+()
+3k
+ and 
+()
+3k  are the weights penalizing the longitudinal  
+acceleration and its increment at ti me step k, respectively,  and 
+3
+ denotes  the weight penalizing the slack variable 
+ , which 
+enables the constraint ( 20d) to be imposed as a soft constraint . 
+In the cost function (20a), the first two terms are used to 
+achieve the yielding objective; the third and fourth terms are 
+applied  to obtain the smooth control objective. The constraint 
+(20d) is built for the safety objective . 
+The optimization problems  including  (15), (19), and (20) can 
+be reformulated as the convex quadratic programming ( CQP) 
+problem, which is expressed as  
+1min ( )2TT
+zq z z Hz z c
+       (21a) 
+s.t.  
+Ez d              (21b) 
+where z is the optimization variable , H is a positive semidefinite 
+matrix , c and d are real vectors, and E is a real matrix . The CQP 
+problem is solved at each sampling instant with the latest 
+measurements. Any  local optimal solution  of the CQP problem  
+is the global one [ 40]. We only use the fir st signal of the optimal 
+solution during the next sampling interval.   
+Remark  6: In the same spirit of [27] and [28], t he safety 
+constraints are set as soft constraints to guarantee safety as 
+much as possible and avoid infeasibility of the optimization 
+problem. Originally, t he safety constraints  are built as hard 
+constraints , which  could  be violated because the safety cannot 
+be guaranteed in arbitrary situations. To avoid  infeasibility of 
+the optimization problems, we change the hard constraints into 
+the soft constraints by using  the slack variables . Besides, we 
+add penalties on the slack variables in the cost function and set the penalty weights as large values so that th e algorithms are  
+solved with the smallest possible slack variables for minimum 
+loosening the constraints. In this way, the soft constraints can 
+guarantee safety as much as possible.  
+Remark  7: The s afety constraint is not included in the control 
+algorithm for CF , but is included in the control algorithms for 
+cut-in prevention and yielding . When the (potential) cut -ins are 
+detected, the FSM will switch from the CF state to the cut -in 
+prevention or yielding states. Thus, the fused algorithm can 
+guarantee safe ty as much as possible for handling the cut -ins. 
+V. DRIVER -IN-THE-LOOP  EXPERIMENT  
+The driver -in-the-loop experiment s were conducted  under 
+the VP -based  driving  scenarios to train the intention prediction 
+algorithm and test the proposed method . We introduce  the 
+experimental setup  and procedure in S ection s V-A and B, 
+respectively.  
+ 
+Fig. 5. Experimental platform.  
+TABLE I  
+CONTROLLER PARAMETERS  
+Parameter  Symbol  Value  Unit 
+Weights penalizing distance  
+1 , 
+2, 
+3 2 - 
+Weights penalizing relative velocity  
+1 , 
+2, 
+3 2 - 
+Weights penalizing longitudinal acceleration  
+1, 
+2, 
+3 1 - 
+Weights penalizing acceleration increment  
+1 , 
+2, 
+3 20 - 
+Weights penalizing slack variable  
+2 , 
+3 100 - 
+Prediction horizons  
+1N , 
+2N , 
+3N 8 - 
+Sampling time  T 0.25 s 
+Desired time gap  
+dt  0.6 s 
+Desired standstill distance  
+sD  4.5 m 
+Maximum longitudinal acceleration  
+maxu  2.5 
+2m/s  
+Minimum longitudinal acceleration  
+minu  -2.5 
+2m/s  
+Minimum time  headway  
+THDt  0.3 s 
+Minimum standstill distance  
+sd  2 m 
+Minimum time -to-collision  
+TTCt  1 s 
+ 
+A. Experimental Setup  
+As shown in Fig. 5, the experimental platform consisted of a 
+driving simulator,  simulated vehicles, and a virtual scene, 
+which were connected by using  Matlab/Simulink. The driving  
+simulator from the Logitech Company provided pedals and a 
+steering  wheel for subjects to issue driving signals. The 
+simulated vehicle controlled  by users  was implemented via the 
+joint simulation of the Simulink and CarSim. The virtual scene 
+
+--- Page 8 ---
+ 
+ 8 
+was written  with virtual reality modeling language  (VRML) , 
+which  can help create interactive 3D scenes, and displayed via 
+Simulink 3D  Animation.  In the virtual scene, we displayed the 
+front and rear views of the HDV, along with its speedometer for 
+presenting its velocity.  Eight subjects (including five males and 
+three females) aged 27–34 years voluntarily participated in the 
+experiment without monetary compensation. They all had valid 
+driver licenses for passenger cars. Their driving experience 
+ranged from three to ten years with the average being 5. 9 years.  
+Fig. 6 shows the experimental scene. The parameters of the 
+MPC controllers are listed in Table I.  
+Virtual 
+Scene
+JoystickSimulated 
+Vehicle
+ 
+Fig. 6. Experimental scene.  
+Remark  8: The penalty weights in Table I are determined 
+according to the priority of the penalties in the cost functions. 
+The large r the penalty weight, the higher the priority of the 
+corresponding penalty. In particular , the weights penalizing the 
+slack variable are set to be the largest for encouraging the 
+optimization problem to be solved without loosening the safety 
+constraints; t he weights penalizing the increment of the 
+longitudinal acceleration are taken as the second largest to 
+ensure that the smooth control objective has priority over other 
+driving objectives.  
+B. Experimental Procedure  
+The experiment included two parts: 1) the participant s were 
+asked to perform  some driving  tasks to train the intention 
+prediction algorithm;  2) driver -in-the-loop testing studies were 
+conducted  to test the proposed method . We explained the 
+experimental purposes and procedures  to the subjects befor e 
+the start of the experiment. T hey were given about fifteen 
+minutes of practice to get familiar with the  driving simulator 
+and virtual scene .  
+ 
+Fig. 7. Discretionary driving  scenario . 
+In the training phase , a discretionary driving scenario was 
+employed to collect driver data related to the lane -retention and 
+cut-in maneuvers. We asked the subjects to drive the HDV to 
+perform the lane -retention or cut -in maneuvers in the scenario. As shown in Fig. 7, the scena rio was designed to include four 
+vehicles on a two -lane (in the same direction) road. The four 
+vehicles were made up of an HDV, a leading vehicle, and the 
+TL and TF of a platoon . The leading vehicle was used to 
+provide a reference for the HDV to perform the lane-retention  
+maneuver . Its initial velocity was taken to be equal to the larger 
+one of the HDV and target vehicles.  Its initial position was set 
+to be in front of the TL and HDV . The velocities of the leading 
+vehicle and target v ehicles were set to b e constant  in the driving 
+process. We set two different initial velocities (i.e., 20 and 30 
+m/s) for the target vehicles.  The initial velocity of the HDV was 
+set to be -2, -1, 0, 1, and 2 m/s relative to the target vehicles.  We 
+selected ten different initi al longitudinal  positions for the HDV: 
+one and two  vehicle length s away from, one and two  vehicle 
+length s ahead of , and the same as  one target vehicle (i.e., the TL 
+or TF). We chose  the time gaps of 0.8 and 0.6 s for the target 
+vehicles driving at 20 and 30 m/s, respectively. We obtained 
+100 sub -scenarios by using  different com bination of the 
+settings  of the HDV and target vehicles . 
+Remark  9: Five time s five-fold cross validation was used to 
+evaluate the performance of the intention prediction algorithm. 
+Table II shows the prediction accuracy of the algorithm under 
+different time window lengths of the driving data. It refers to 
+the accuracy of the algori thm in predicting whether the nearby 
+vehicles intend to conduct cut -in towards the VP. Increasing the 
+time window length improves the accuracy (as shown in Table 
+II) but  increases the response time of the algorithm  at the same 
+time. The time window length is chosen based on the tradeoff 
+between the accuracy and response time. It was taken  as 2 s in 
+the testing phase.  
+TABLE I I 
+PREDICTION  ACCURACY OF THE INTENTION PREDICTION  ALGORITHM  
+Time window 
+length (s)  Accuracy (%)  
+Cut-in Lane-retention  Mean  
+0.5 86.9 84.1 85.5 
+1.0 86.7 88.3 87.5 
+1.5 88.6 90.0 89.3 
+2.0 89.6 90.9 90.3 
+2.5 89.8 90.8 90.3 
+3.0 91.6 92.4 92.0 
+3.5 91.6 92.5 92.1 
+4.0 93.4 92.8 93.1 
+ 
+Fig. 8. Mandatory driving scenario.  
+In the testing phase,  we employed  the discretionary driving 
+scenario and a mandatory driving scenario to test the proposed 
+method . Fig. 8 presents the mandatory driving scenario.  In the 
+experiment, the subjects  were given a cut-in or a lane-retention 
+intention in the beginning and asked to  control  the HDV as they 
+
+--- Page 9 ---
+ 
+ 9 
+would normally do in real -world driving environment.  The TF  
+was controlled by the proposed method  to handle the cut -ins of 
+the HDV. The testing results are described in Section VI.  
+VI. RESULTS  
+A. No Cut -in Test 
+We conducted the no cut -in test in the discretionary driving 
+scenario, where  the initial velocit ies of the HDV and target 
+vehicles  were 30 m/s and the initial  longitudinal  positon s of the 
+HDV  and TF  were the  same . In this test, the driver controlled 
+the HD V without the cut -in intention.  
+Remark  10: We show  the FSM state of the proposed method  
+to present  the driving strategy of the TF. The state value is set 
+equal to 2 and 3 when the TF works in the cut -in prevention and 
+yielding strategies , respectively ; it is set equal to 1 and 4 when 
+the TF works in the CF strategy following the TL and cut -in 
+vehicle, respectively . That is, w hen the state value equals to 4, 
+the HDV has completed the cut -in toward s the target vehicles.  
+The FSM state equals to 1 in the n o cut -in test. That is, the TF 
+works in the CF strategy following the TL all the time, which 
+suggests the proposed method successfully infers the intention 
+of the HDV.  Figs. 9 (a) and (b) show the profiles of the 
+longitudinal displacement and velocity of t he vehicles in the no 
+cut-in test , respectively . We see that, despite the HDV drives  
+past the gap between the target vehicles, the TF drives at a 
+constant velocity for maintaining a constant platoon gap.  
+ 
+(a) 
+ 
+(b) 
+Figs. 9. Profiles of (a) longitudinal displacement and (b) velocity of the HDV 
+and target vehicles  in the no cut -in test . 
+B. Mandatory  Cut-in Test 
+We conducted the mandatory cut -in test in the mandatory 
+driving scenario, where  the initial longitudinal positons of the 
+HDV and TF were the same and  the initial velocities of the 
+three  vehicles were 30 m/s.  In the test, the driver controlled the HDV with the cut -in intention to avoid collision . 
+Fig. 10 presents  the FSM state of the proposed method  in the 
+mandatory  cut-in test. We see that the FSM state is switched 
+from the CF state (following the TL) to the cut -in yielding state 
+at 2.4 s , when  the proposed method  detects the cut -in intention 
+of the HDV. Next, t he FSM state is switche d to the CF state 
+(following the cut -in vehicle)  at 5.4 s, when  the cut -in vehicle 
+reaches the target lane.  
+ 
+Fig. 10. FSM state of the proposed method in the mandatory cut -in test.  
+Figs. 11 (a) , (b), and (c)  show  the profiles of the longitudinal 
+displacement , lateral displacement,  and longitudinal velocity of 
+the HDV and target vehicles in the mandatory cut -in test , 
+respectively . We see that the HDV  speeds up to overtake the TF 
+and then slows down to perform the cut-in and follow the TL. 
+The TF  keeps a constant velocity to follow the TL in the 
+beginning, then slows down to yield  to the HDV after detecting 
+its cut -in intention , and finally speeds u p to follow the cut -in 
+vehicle.  
+ 
+(a) 
+ 
+(b) 
+ 
+(c) 
+Figs. 11. Profiles of (a) longitudinal displacement , (b) lateral displacement, and 
+(c) longitudinal velocity  of the HDV and target vehicles in the  mandatory cut -in 
+test. 
+0 5 10 15 20100200300400500600
+Time (s)Longitudinal displacement (m)
+  
+TF
+HDV
+TL
+0 5 10 15 203030.53131.532
+Time (s)Longitudinal velocity (m/s)
+  
+HDV
+Target vehicles
+0 2 4 6 8 10012345
+Time (s)FSM state
+0 2 4 6 8 100100200300
+Time (s)Longitudinal displacement (m)
+  
+TF
+HDV
+TL
+0 2 4 6 8 1001234
+Time (s)Lateral displacement (m)  
+HDV
+Target vehicles
+0 2 4 6 8 102628303234
+Time (s)Longitudinal velocity (m/s)  
+TF
+HDV
+TL
+
+--- Page 10 ---
+ 
+ 10 
+C. Discretionary Cut-in Test 
+We conducted the discretionary  cut-in tests under three kinds 
+of situations : cut-in within  the preventable range, beyond the 
+preventable range, and from within to beyond the preventable 
+range. The tests were conducted in the discretionary driving 
+scenario , where the initial velocities of the three vehicles were 
+30 m/s.  In the scenario related  to the discretionary  cut-in within 
+and from within to beyond the preventable range, the initial 
+longitudinal positons of the HDV and TF were the same; in the 
+scenario related  to the cut -in beyond the preventable range, the 
+initial l ongitudinal positon of the HDV was two vehicle lengths 
+ahead of the TF.  
+1) Cut-in within  Preventable Range  
+Fig. 1 2 presents  the FSM state of the proposed method  in 
+handl ing the discretionary cut -in within the preventable range. 
+We see the FSM state is switched from the CF state (following 
+the TL) to the cut -in prevention state at 2. 2 s, when the 
+proposed method  detects the cut -in intention of the HDV.  The 
+FSM state remains in  the cut -in prevention state as the HDV is 
+in the detectable range.  
+ 
+Fig. 12. FSM state of the proposed method in the discretionary cut -in (within 
+the preventable range) test.  
+ 
+(a) 
+ 
+(b) 
+Figs. 13. Profiles of (a) longitudinal displacement and (b) velocity  of the HDV 
+and target vehicles in the discretionary cut -in (within the preventable range) 
+test. 
+Figs. 1 3 (a) and (b)  illustrate  the profiles of the longitudinal 
+displacement and velocity of the vehicles in  the discretionary  cut-in (within the prev entable range)  test, respectively . We see 
+that the HDV speeds up to conduct the cut -in maneuver in the 
+beginning  and then slows down to give up the cut -in. The TF 
+keeps a constant distance from the TL in the beginning, then 
+shortens  the platoon gap by accelerating and  decelerating, and 
+finally keeps  the shortened gap with a constant velocity.  In Fig. 
+13 (a), we see that there is no obvious difference between the 
+longitudinal displacement of the HDV and TF. The reason for 
+this is that the HDV drives besi de the TF in the driving process.  
+2) Cut-in beyond Preventable Range  
+Fig. 14 illustrate s the FSM state of the proposed method  in 
+handling the discretionary cut -in beyond the preventable range. 
+We see the FSM state is switched from the CF state (following 
+the TL) to the cut -in yielding state at 2. 2 s, when the cut -in 
+intention of the HDV is detected and the vehicle is beyond the 
+preventable range . Then, the FSM state is switched to the CF 
+state (following the cut -in vehicle) at 3.8 s, when the cut -in 
+vehicle re aches the target lane.  
+ 
+Fig. 14. FSM state of the proposed method in the discretionary cut -in (beyond 
+the preventable range) test.  
+ 
+(a) 
+ 
+(b) 
+ 
+(c) 
+Figs. 15. Profiles of (a) longitudinal displacement, (b) lateral displacement, and 
+(c) longitudinal velocity  of the HDV and target vehicles  in the discretionary 
+cut-in (beyond the preventable range) test.  
+0 5 10 150123
+Time (s)FSM state
+0 5 10 15100200300400500
+Time (s)Longitudinal displacement (m)
+  
+TF
+HDV
+TL
+0 5 10 1528303234
+Time (s)Longitudinal velocity (m/s)  
+TF
+HDV
+TL
+0 2 4 6 8 10012345
+Time (s)FSM state
+0 2 4 6 8 100100200300
+Time (s)Longitudinal displacement (m)
+  
+TF
+HDV
+TL
+0 2 4 6 8 1001234
+Time (s)Lateral displacement (m)  
+HDV
+Target vehicles
+0 2 4 6 8 102728293031
+Time (s)Longitudinal velocity (m/s)  
+TF
+HDV
+TL
+
+--- Page 11 ---
+ 
+ 11 
+Figs. 15 (a), (b), and (c)  show  the profiles of  the longitudinal 
+displacement , lateral displacement,  and longitudinal velocity of 
+the vehicles in the discretionary  cut-in (beyond the preventable 
+range) test , respectively . We see the HDV speeds up and makes 
+lateral movement to perform the cut-in towards the VP in the 
+beginning . Then , it completes the cut -in maneuver and adjusts 
+its velocity to follow the TL. The TF keeps a constant distance 
+from the TL in the beginning , then slows down to yield  to the 
+HDV , and finally adjust s the velocity to follow the HDV.  
+ 
+Fig. 16. FSM state of the proposed method in the discretionary cut -in (from 
+within to beyond the preventable range) test.  
+ 
+(a) 
+ 
+(b) 
+ 
+(c) 
+ 
+(d) 
+Figs. 17. Profiles of (a) longitudinal displacement, (b) lateral displacement, (c) 
+longitudinal velocity, and  (d) longitudinal acceleration  of the HDV and target 
+vehicles  in the discretionary cut -in (from within to beyond the preventable 
+range) test.  3) Cut-in from within to beyond Preventable Range  
+Fig. 16 shows the FSM state of the proposed method  in 
+addressing the discretionary cut -in from within to beyond the 
+preventable range.  We see the FSM state is swit ched from the 
+CF state (following the TL) to the cut -in prevention state at 2.4 
+s, when  the HDV  is detected to have a cut -in intention  and 
+within the preventable range. Then, the FSM state is switched 
+to the cut -in yielding state at 3.9 s when  the HDV is beyond the 
+preventable range. Finally, the FSM state is switched to the CF 
+state (following the cut -in vehicle) at 5.7 s, when the HDV 
+reaches the target lane.  
+Figs. 1 7 (a), (b), (c), and (d) show the profiles of the 
+longitudinal displacement, lateral displacement, longitudinal 
+velocity, and longitudinal acceleration of the vehicles in the 
+discretionary  cut-in (from within to beyond the preventable 
+range) test, respectively.  We see that the HDV speeds up to 
+overtake the TF in the beginning . Then , even though the TF 
+speeds up to shorten the platoon gap,  the HDV  continues to 
+speed up and  make s lateral movement . After that, it completes 
+the cut -in maneuver and slows down to follow the TL. The TF 
+maintains  a constant distance from the TL in the begin ning. 
+Then, it accelerates to shorten the platoon gap. Next, it 
+decelerates to yield  to the HDV. Finally, it adjusts the velocity 
+to follow the HDV.  According to the acceleration profile, the 
+acceleration constraints are not violated in the whole driving 
+process.  Note that, since simple kinematic models are used to 
+simulate the target vehicles in the simulation environment, the 
+speed of the TF can be indifferentiable at certain points, 
+especially at the state transition points.  
+VII. DISCUSSION  AND CONCLUSION  
+To address the cut-in maneuver of the HDVs, this paper has 
+proposed an intention prediction -based control method  for the 
+VPs by considering the tradeoff between the platoon integrity  
+and traffic safety. Particularly, the proposed method is built to 
+prevent as many  cut-ins as possible while taking care of the 
+road safety.  It includes  a cut -in prediction part , consisting of  a 
+cut-in intention  prediction algorithm  and a vehicle trajectory 
+prediction algorithm,  and an FSM -based predictive control part , 
+which  includ e a high -level FSM and a low -level predictive 
+control . Driver -in-the-loop experiments were conducted in the 
+VP-based driving scenarios to  train the intention prediction 
+algorithm  and test the proposed method. According to five 
+times five -fold cross v alidation, the algorithm  achieves an 
+average accuracy of 93.1% as the time window length of the 
+driving data increases  to 4 s.  We show the results of a no cut -in 
+test, a mandatory cut -in test, and three discretionary cut -in tests. 
+In the results,  we analyz e the control process of the proposed 
+method according to its FSM state and the states of the HDV 
+and target vehicles.  The results show that the proposed method 
+can predict the cut -in intention of human drivers in real time. 
+Besides, it can prevent cut -ins for the VP while taking care of 
+the road safety according to  the results  of the prediction 
+algorithms . 
+Several issues about the proposed method should be noted.  
+Firstly, it focuses on the decision making and vehicle control  
+parts of the autonomous driving process . Perception delays, 
+0 2 4 6 8 10012345
+Time (s)FSM state
+0 2 4 6 8 100100200300
+Time (s)Longitudinal displacement (m)
+  
+TF
+HDV
+TL
+0 2 4 6 8 1001234
+Time (s)Lateral displacement (m)  
+HDV
+Target vehicles
+0 2 4 6 8 102628303234
+Time (s)Longitudinal velocity (m/s)  
+TF
+HDV
+TL
+0 2 4 6 8 10-3-2-10123
+Time (s)Longitudinal acceleration (m/s2)
+  
+TF
+HDV
+TL
+
+--- Page 12 ---
+ 
+ 12 
+errors, and failures, which are typically handled in  vehicle 
+perception  part, are out of scope for this study. In practice, a 
+combination of multiple sensors, such as inertial measurement 
+units, odometers, and cameras, can be  used to improve  the 
+perception accuracy, reliability, and robustness [ 29]. In the case 
+of faulty perception, fault detection and isolation systems 
+should be first used to detect and identify perception failures 
+and then safet y measures , such as pull over , should be 
+conducted to ensure the road safety [ 29]. 
+Second ly, the proposed method was tested under simulation 
+environment, where ideal perception was assumed. However, 
+in real scenarios, perception delays and errors of surroundings 
+and vehicle states may exist, even when  advanced sensing 
+techniques and computer vis ion algorithms are deployed  [41]. 
+Before applying the proposed method in real scenarios, we 
+should test it with a real vehicle in real environments.  
+Third ly, the intention prediction algorithm may fail to predict 
+the intention of human drivers. The followi ng two cases  can 
+happen. First, an HDV without cut -in intention is detected as a 
+cut-in vehicle ; the FSM enters the cut -in prevention or yielding 
+states to respond to the false alarm. This case can result in the 
+unnecessary response of the VP. A possible r emediation of this 
+case is to make adaptive adjustment of the VP according to the 
+subsequence states of the predicted vehicle.  Our future work 
+will focus on this direction. Second, a cut -in vehicle is detected 
+as an HDV without cut -in intention; the FSM re mains in the CF 
+state until the cut -in vehicle is predicted to drive across the lane 
+mark.  This case is potentially dangerous . We apply  the vehicle 
+trajectory prediction algorithm to address  this issue. Once the 
+vehicle is predicted to drive across the lan e mark by the 
+trajectory prediction algorithm, the FSM is switched from the 
+CF state to the cut -in yielding state for the road safety.  
+Fourthly, the proposed method controls the VP based on the 
+prediction of the driver  intention and vehicle trajectory. The 
+prediction can help the VPs better assess the potential cut -ins 
+and respond to the cut -ins as early as possible.  Particularly, the 
+FSM -based control part switches control strategies based on the 
+results of the predict ion algorithms.  The intention prediction 
+algorithm performs well with the average accuracy up to 93.1%. 
+Since  a higher prediction accuracy  of the intention prediction 
+algorithm can enable the FSM -based control part to perform 
+more accurate control and work  more efficiently, our future 
+work should further improve the prediction accuracy of the 
+driver  intention.  
+ACKNOWLEDGMENT  
+The authors would like to thank  the volunteers  for their 
+participation in the experiments.   
+REFERENCES  
+[1] R. Hall and C. Chin, “Vehicle s orting for platoon formation: Impacts on 
+highway entry and throughput,” Transportation Research Part C: 
+Emerging Technologies , vol. 13, no. 5 –6, pp. 405 –420, Dec. 2005.  
+[2] J. Lioris, R. Pedarsani, F. Y . Tascikaraoglu, and P. V araiya , “Platoons of 
+connected vehicles can double throughput in urban roads,” 
+Transportation Research Part C: Emerging Technologies , vol. 77, pp. 
+292–305, Apr. 2017.  
+[3] L. Xu, L. Wang, G . Yin, and H. Zhang, “Communication information  structures and contents for en hanced safety of highway vehicle platoons,” 
+IEEE Transactions on Vehicular Technology , vol. 63, no. 9, pp. 
+4206 –4220, Nov.  2014.  
+[4] K. C. Dey, L. Yan, X. Wang, Y . Wang, H. Shen, M. Chowdhury, L. Yu, C. 
+Qiu, and V . Soundararaj, “A review of communication, driv er 
+characteristics, and controls aspects of cooperative adaptive cruise control 
+(CACC),” IEEE Transactions on Intelligent Transportation Systems , vol. 
+17, no. 2,  pp. 491 –509, Feb. 2016.  
+[5] K. Liang, J. Mårtensson, and K. H. Johansson, “Heavy -duty vehicle  
+platoon formation for fuel efficiency,” IEEE Transactions on Intelligent 
+Transportation Systems , vol. 17, no. 4, pp. 1051 –1061, Apr. 2016.  
+[6] B. Wang, and R. Su, “A distributed platoon control framework for 
+connected automated vehicles in an urban traffic network ,” IEEE 
+Transactions on Control of Network Systems , online . 
+[7] H. Farah, S. M. Erkens, T. Alkim, and B. van Arem, “Infrastructure for 
+automated and connected driving: State of the art and future research 
+directions,” Road vehicle automation 4 , pp. 187 –197, 2018.  
+[8] T. Zhang, D. Tao, X. Qu, X. Zhang, R. Lin, and W. Zhang, “The roles  of 
+initial trust and perceived risk in public’s acceptance of automated  
+vehicles,” Transportation research part C: emerging technologies , vol. 98, 
+pp. 207 –220, Jan. 2019.  
+[9] S. E. Shlad over, “Connected and automated vehicle systems: Introduction 
+and overview,” Journal of Intelligent Transportation Systems , vol. 22, pp. 
+190–200, May 2018.  
+[10] M. Aramrattana, T. Larsson, C. Englund, J. Jansson, and A. Nåbo, “A 
+simulation study on effects of pl atooning gaps on drivers of conventional 
+vehicles in highway merging situations,” IEEE Transactions on 
+Intelligent Transportation Systems , vol. 23, no. 4, pp. 3790 –3796, Dec. 
+2020.  
+[11] J. Axelsson, “Safety in vehicle platooning: A systematic literature 
+review, ” IEEE Transactions on Intelligent Transportation Systems , vol. 
+18, no. 5, pp. 1033 –1045, May. 2017.  
+[12] X. Wang, M. Yang, and D. Hurwitz, ‘‘Analysis of cut -in behavior based 
+on naturalistic driving data,’’ Accident Analysis & Prevention , vol. 124, 
+pp. 127 –137, Mar. 2019.  
+[13] Y . Chen, C. Hu, and J. Wang, “Human -centered trajectory tracking 
+control for autonomous vehicles with driver cut -in behavior prediction,” 
+IEEE Transactions on Vehicular Technology , vol. 68, no. 9, pp. 
+8461 –8471, Sep. 2019.  
+[14] R. Fu, Z. Li, Q. Sun , and C. Wang, ‘‘Human -like car -following model for 
+autonomous vehicles considering the cut -in behavior of other vehicles in 
+mixed traffic,’’ Accident Analysis & Prevention , vol. 132, pp.105260, Nov. 
+2019.  
+[15] Q. Chen, W. Zhao, L. Li, C. Wang, and F. Chen, “ES -DQN: A learning 
+method for vehicle intelligent speed control strategy under uncertain 
+cut-in scenario,” IEEE Transactions on Vehicular Technology , vol. 71, no. 
+3, pp. 2472 –2484, Mar. 2022.  
+[16] Y . Zhang, Q. Lin , J. Wang, S. Verwer, and J. M. Dolan, “Lane -change 
+intention estimation for car -following control in autonomous driving,” 
+IEEE Transactions on Intelligent Vehicles , vol. 3, no. 3, pp. 276 –286, Sep. 
+2018.  
+[17] K.  Choi, H.  G .  Jung,  “Cut -in  vehicle  warning  system  exploiting  
+multiple  rotational  images  of  SVM  camera”, Expert  Systems  with  
+Application , vol. 125, pp. 81 -99, Jul. 2019.  
+[18] N. Lyu, J. Wen, Z. Duan, and C. Wu, “Vehicle trajectory prediction and 
+cut-in collision warning model in a connected ve hicle environment,” 
+IEEE Transactions on Intelligent Transportation Systems , vol. 23, no. 2, 
+pp. 966 –981, Feb. 2022.  
+[19] V . Milanés and S. E. Shladover, “Handling cut -in vehicles in strings  of 
+cooperative adaptive cruise control vehicles,” Journal of Intellige nt 
+Transportation Systems , vol. 20, no. 2, pp. 178 –191, 2016.  
+[20] S. Bang and S. Ahn, “Control of connected and autonomous vehicles  with 
+cut-in movement using spring mass damper system,” Transportation 
+Research Record , vol. 2672, no. 20, pp. 133 –143, Dec. 2018 . 
+[21] H. Kazemi, H. N. Mahjoub, A. Tahmasbi -Sarvestani, and Y . P. Fallah,  “A 
+learning -based stochastic MPC design for cooperative adaptive cruise  
+control to handle interfering vehicles,” IEEE Transactions on Intelligent 
+Vehicles , vol. 3,  no. 3, pp. 266 –275, Se p. 2018.  
+[22] M. H. Basiri, B. Ghojogh, N. L. Azad, S. Fischmeister, F. Karray, and  M. 
+Crowley, “Distributed nonlinear model predictive control and metric  
+learning for heterogeneous vehicle platooning with cut -in/cut -out 
+maneuvers,” in 2020 59th IEEE Conference  on Decision and Control 
+(CDC) . IEEE, pp. 2849 –2856, 2020.  
+[23] H. Yao and X. Li, “Lane -change -aware connected automated vehicle 
+trajectory optimization at a signalized intersection with multi -lane roads,” 
+
+--- Page 13 ---
+ 
+ 13 
+Transportation Research Part C: Emerging Technologies , vol. 129, 
+p.103182, Aug. 2021.  
+[24] M. Liu, S. Rathinam, M. Lukuc, and S. Gopalswamy, “Fusing radar and 
+vision data for cut -in vehicle identification in platooning applications,” 
+SAE International Journal of Advances and Current Practices in Mobility , 
+vol. 2,  no. 6, pp.3044 –3050, 2020.  
+[25] P. Kumar, M. Perrollaz, S. Lefevre, and C. Laugier, “Learning -based 
+approach for online lane change intention prediction,” In  2013 IEEE 
+Intelligent Vehicles Symposium (IV) , pp. 797 –802, Jun. 2013.  
+[26] Y . Lu, and L. Bi, “Human behavior  model -based predictive control of 
+longitudinal brain -controlled driving,” IEEE Transactions on Intelligent 
+Transportation Systems , vol. 22, no. 3, pp. 1361 –1374, Mar.  2021.  
+[27] A. Gray, M. Ali, Y . Gao, J. K. Hedrick, and F. Borrelli, “A unified  
+approach to th reat assessment and control for automotive active safety,”  
+IEEE Transactions on Intelligent Transportation Systems , vol. 14, no. 3, 
+pp. 1490 –1499,  Sep. 2013.  
+[28] Y. Lu, L. Bi, and H. Li, “Model predictive -based shared control for 
+brain -controlled driving,” IEEE Transactions on Intelligent 
+Transportation Systems , vol. 21, no. 2, pp. 630 –640, Feb. 2020.  
+[29] J. Van Brummelen, M.  O’Brien, D. Gruyer, and H. Najjaran, 
+“Autonomous vehicle perception: The technology of today and 
+tomorrow,” Transportation research part C: emerging technologies , vol. 
+89, pp. 384 –406, Apr. 2018.  
+[30] C. C. Chang and C. J. Lin. LIBSVM—A Library for Support Vector 
+Machines . Accessed: 2001. [Online]. Available:  
+http://www.csie.ntu.edu.tw/~cjlin/libsvm/  
+[31] J. P. Marques de Sá , Pattern Recognition: Concep ts, Methods and  
+Applications . Berlin, Germany: Springer -Verlag, 2012.  
+[32] S. Amari and S. Wu, “Improving support vector machine classifiers by  
+modifying kernel functions,” Neural Netw. , vol. 12, no. 6, pp. 783 –789, 
+Jul. 1999.  
+[33] Y . Lu, B. Wang, L. Huang, N. Zhao,  and R. Su, “Modeling of driver cut -in 
+behavior towards  a platoon,” IEEE Transactions on Intelligent 
+Transportation Systems , early access, Sep. 2022.  
+[34] R. Dang, J. Wang, S. E. Li, and K. Li, “Coordinated adaptive cruise  
+control system with lane -change assist ance,” IEEE Transactions on 
+Intelligent Transportation Systems , vol. 16, no. 5, pp. 2373 –2383, Oct. 
+2015.  
+[35] Y . Ali, Z. Zheng, and M. M. Haque, “Modelling lane -changing execution 
+behaviour in a connected environment: A grouped random parameters 
+with heterogen eity-in-means approach,” Communications in 
+Transportation Research , vol. 1, Dec. 2021, Art. no. 100009.  
+[36] V . Bageshwar, W. Garrard, and R. Rajamani, “Model predictive control  of 
+transitional maneuvers for adaptive cruise control vehicles,” IEEE 
+Transactions on Vehicular Technology , vol. 53, no. 5, pp. 1573 –1585, Sep. 
+2004.  
+[37] D. Swaroop, J. K. Hedrick, C. C. Chien, and P. Ioannou, “A comparision 
+of spacing and headway control laws for automatically controlled 
+vehicles,” Vehicle System Dynamics , vol. 23, no. 1, pp. 597 –625, 1994.  
+[38] A. Ali, G . Garcia, and P. Martinet, “The flatbed platoon towing model for 
+safe and dense platooning on highways,” IEEE Intelligent Transportation 
+Systems Magazine , vol. 7, no. 1, pp. 58 –68, Jan. 2015.  
+[39] Y . Zheng, S. E. Li, J. Wang, D. Cao,  and K. Li, “Stability and scalability of 
+homogeneous vehicular platoon: Study on the influence of information 
+flow topologies,” IEEE Transactions on Intelligent Transportation 
+Systems , vol. 17, no. 1, pp. 14 –26, Jan. 2016.  
+[40] S. Boyd and L. Vandenberghe, Convex Optimization . Cambridge, U.K.:  
+Cambridge Univ. Press, 2004.  
+[41] A. B. Hillel, R. Lerner, D. Levi, and G . Raz, “Recent progress in road and 
+lane detection: A survey,” Machine Vision and Applications , vol. 25, no. 3, 
+pp. 727 –745, Apr. 2014  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Yun Lu (S’19 -M’20) received the Ph. D. 
+degree in mechanical engineering from 
+Beijing Institute of Technology, Beijing, 
+China, in 2020.  
+He is currently a Research Fellow 
+with the School of Electrical and 
+Electronic Engineering, Nanyang 
+Technological University, Singapore.  
+From Jan. 2019 to Mar. 2020, he was a 
+visiting scholar with the Department of Mechanical 
+Engineering, University of Michigan, Ann Arbor, MI , USA. 
+His research interests include human behavior modeling, 
+platoon control, driver assista nce system,  machine learning,  
+and brain -control driving.  He is an author of several refereed 
+journal articles in the IEEE TRANSACTIONS ON 
+INTELLIGENT TRANSPORTATION SYSTEMS and IEEE 
+TRANSACTIONS ON NEURAL SYSTEMS AND 
+REHABILITATION ENGINEERING. He was sele cted as an 
+outstanding graduate in Beijing in 2020.  
+ 
+ 
+ 
+ 
+ 
+Lingying Huang  received her B.S. 
+degree in Electrical Engineering and 
+Automation from Southeast University, 
+JiangSu, China, in 2017, and the Ph.D  
+degree in Electrical and Computer 
+Engineering from Hong Kong 
+University of Science and Technology, 
+Hong Kong, in 2021.  
+She is currently a Research fellow at 
+the School of Electrical and Electronic Engineering, Nanyang 
+Technological University. From July 2015 to August 2015, she 
+had a summer program in Georgia Tech Univerisity, USA.  Her 
+current research interests include intelligent vehicles, 
+cyber -physical system security/privacy, networked state 
+estimation, event -triggered mechanism and distributed 
+optimization.  
+ 
+ 
+ 
+ 
+Jiarong Yao  received the B.S. degree in 
+traffic engineering in 2016 and the Ph.D. 
+degree in department of comprehensive 
+traffic information and control 
+engineering in 2021, both from Tongji  
+University. Now she is a research fellow 
+in School of Electrical and Electronic 
+Engineering, Nanyang Technological 
+University. Her main research interest is 
+traffic control and Intelligent 
+Transportation Systems.  
+ 
+ 
+ 
+ 
+ 
+ 
+
+
+--- Page 14 ---
+ 
+ 14 
+Rong Su  (M’11 –SM’14) obtained his 
+Bachelor of Engineering degree from 
+University of Science and Technology 
+of China, and Master of Applied Science 
+degree and PhD degree from University 
+of Toronto, respectively. He was 
+affiliated with University of Waterloo 
+and Technical University of Eindho ven 
+before he joined Nanyang Technological 
+University in 2010. Dr Su's research 
+interests include multi -agent systems, 
+discrete -event system theory, model -based fault diagnosis, 
+cyber security analysis and synthesis, control and optimization 
+of complex net works with applications in flexible 
+manufacturing, intelligent transportation, human -robot 
+interface, power management and green buildings. In the 
+aforementioned areas he has more than 270 journal and 
+conference publications, 1 monograph, 16 granted/filed 
+patents.  
+Dr Su is a senior member of IEEE, and an associate editor for 
+Automatica (IFAC), Journal of Discrete Event Dynamic 
+Systems, and Journal of Control and Decision. He was the 
+Chair of the Technical Committee on Smart Cities in the IEEE 
+Control System s Society in 2016 -2019. Currently, he is a 
+co-chair of Technical Committee on Automation in Logistics in 
+the IEEE Robotics and Automation Society. Dr Su is a 
+co-author of several best conference/journal paper awards, e.g., 
+2021 Hsue -shen Tsien Paper Award from IEEE/CAA Journal of 
+Automatica Sinica and the Best Paper Award in the 15th 
+International Conference on Advanced Systems in Public 
+Transport (CASPT2022). He is a Distinguished Lecturer for 
+2020 Chinese Conference on Decision and Control (CCDC'20) 
+and a n IEEE Distinguished Lecturer for IEEE Robotics and 
+Automation Society.  
+

@@ -1,0 +1,1086 @@
+--- Page 1 ---
+RoboticsandAutonomousSystems161(2023)104353
+Contents lists available at ScienceDirect
+RoboticsandAutonomousSystems
+journal homepage: www.elsevier.com/locate/robot
+Human-in-the-looplayeredarchitectureforcontrolofawearable
+ankle–footrobot
+UrielMartinez-Hernandeza,∗,SinaFirouzyb,PouyanMehryarc,LinMengd,CraigChildsd,
+ArjanBuisd,AbbasA.Dehghani-Sanijb
+aDepartmentofElectronicandElectricalEngineering,FacultyofEngineeringandDesign,UniversityofBath,Bath,BA27AY,UK
+bSchoolofMechanicalEngineering,UniversityofLeeds,Leeds,LS29JT,UK
+cHealthcareInnovationCentre,SchoolofHealthandLifeSciences,TeessideUniversity,Middlesbrough,TS13BX,UK
+dDepartmentofBiomedicalEngineering,UniversityofStrathclyde,Glasgow,G11XQ,UK
+a r t i c l e i n f o
+Articlehistory:
+Received8September2020
+Receivedinrevisedform7September2022
+Accepted27December2022
+Availableonline2January2023
+Keywords:
+Layeredarchitectures
+Autonomoussystems
+Bayesianinference
+Sensorimotorcontrola b s t r a c t
+Intelligentwearableroboticsisapromisingapproachforthedevelopmentofdevicesthatcaninteract
+withpeopleandassistthemindailyactivities.Thisworkpresentsanovelhuman-in-the-looplayered
+architecturetocontrolawearablerobotwhileinteractingwiththehumanbody.Theproposedcontrol
+architectureiscomposedofhigh-,mid-andlow-levelcomputationalandcontrollayers,togetherwith
+wearablesensors,forthecontrolofawearableankle–footrobot.Thehigh-levellayerusesBayesian
+formulationandacompetingaccumulatormodeltoestimatethehumanpostureduringthegaitcycle.
+Themid-levellayerimplementsaFiniteStateMachine(FSM)topreparethecontrolparametersforthe
+wearablerobotbasedonthedecisionsfromthehigh-levellayer.Thelow-levellayerisresponsiblefor
+theprecisecontrolofthewearablerobotovertimeusingacascadeproportional–integral–derivative
+(PID)controlapproach.Thehuman-in-the-looplayeredarchitectureissystematicallyvalidatedwith
+thecontrolofa3Dprintedwearableankle–footrobottoassistthehumanfootwhilewalking.The
+assistanceisappliedliftingupthehumanfootwhenthetoe-offeventisdetectedinthewalkingcycle,
+andtheassistanceisremovedallowingthehumanfoottomovedownandcontactthegroundwhen
+theheel-contacteventisdetected.Overall,theexperimentsinofflineandreal-timemodes,undertaken
+forthevalidationprocess,showthepotentialofthehuman-in-the-looplayeredarchitecturetodevelop
+intelligentwearablerobotscapableofmakingdecisionsandrespondingfastandaccuratelybasedon
+theinteractionwiththehumanbody.
+©2022TheAuthor(s).PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBYlicense
+(http://creativecommons.org/licenses/by/4.0/).
+1. Introduction
+Wearable robots have been developed for decades for the
+interactionwithhumansandassistanceinapplicationssuchas
+manufacturing,telecontrol,telepresence,healthcareandcompan-
+ionrobotics[1–3].Inrecentyears,wearableroboticshasshown
+rapid progress due to the advances in sensor technology and
+machinelearning,whichhaveallowedthedesignoflightweight
+andportablerobotswithmultiplesensorsandcapableofmaking
+decisions[4–6].Wearablerobotshavetobeabletointeractsafely
+withthehumanbodyandassistitthroughaccuratedecisions
+andprecisecontrolofrobotactions.Theserequirementscanbe
+achievedbythedevelopmentofhierarchicalcontrolarchitectures
+thatallowtherobottosense,makedecisions,setcontrolparam-
+etersandobservetheresultsofitsactionswhileinteractingwith
+thehumanbody.
+∗Correspondingauthor.
+E-mailaddress: u.martinez@bath.ac.uk(U.Martinez-Hernandez).Inthiswork,ahuman-in-the-looplayeredarchitectureispre-
+sentedtoallowawearableankle–footrobottosense,makeaccu-
+ratedecisionsandreliablycontrolitsinteractionwiththehuman
+footduringwalkingactivities.Layeredarchitectureshaveshown
+theirpotentialforlearningandcontrolinareasofroboticssuchas
+mobileandbioinspiredrobotics[7–10],andofferapromisingap-
+proachforrobotsthatneedtointeractandassistthehumanbody.
+Theproposedcontrolarchitecture,composedofhigh-,mid-and
+low-levellayers,iscapableofprocessingdataatdifferentlevelsof
+abstraction[11,12].Thehigh-levellayerusesaprobabilisticfor-
+mulationfortherecognitionofthelocomotionactivityperformed
+bythehuman[13,14].Thislayeremploysangularvelocitydata
+fromaninertialmeasurementunit(IMU)attachedontheshank
+ofthesubject.Themid-levellayerusesafinitestatemachine
+(FSM)tosetthenextstateandcontrolparametersofthewearable
+robot during the walking activity. The low-level layer imple-
+ments a cascade proportional–integral–derivative (PID) control
+approachfortheactualcontroloftheankle–footrobotattached
+tothehumanleg.Theselayersaresynchronisedtoensurethe
+https://doi.org/10.1016/j.robot.2022.104353
+0921-8890/ ©2022TheAuthor(s). PublishedbyElsevierB.V.ThisisanopenaccessarticleundertheCCBYlicense(http://creativecommons.org/licenses/by/4.0/).
+
+--- Page 2 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+reliablecontrolofthewearableankle–footrobotandsafeinter-
+actionwiththehumanbody.Thewearablerobot,controlledwith
+theproposedhuman-in-the-looplayeredarchitecture,hasbeen
+designedusing3DprintingtechnologyandanarrangementofDC
+motorsandacapstanwheeltointeractwiththehumanfoot.
+Validation of thehuman-in-the-loop layered architecture is
+based on the assistance applied by the wearable robot to the
+humanfootwhilethesubjectiswalking.Thisprocessrequiresthe
+robottosenseandrecognisethewalkingactivityandgaitevents
+(toe-offandheelcontact)alongthegaitcycle.Theseprocesses
+employangularvelocitydatafromanIMUwornbyparticipants
+ontheirshankwhilewalking.Then,theoutputisemployedby
+the wearable ankle–foot robot to assist or lift up the human
+footwhenthetoe-offeventisdetected,andreleaseormovethe
+humanfootdownwhentheheelcontacteventisdetected.These
+experiments are systematically performed in offline and real-
+timemodes.Inofflinemode,therecognitionofwalkingactivity
+and gait events has shown to be fast and accurate. The real-
+timemodeevaluatesthecapabilityofthewearableankle–foot
+robottointeractandassistthehumanfoot.Thisexperimenthas
+shownthattherobotcancontrolitsactionsandusefeedback
+fromthestateofthehumanbodytoassistthehumanfootat
+the appropriate time while the human is walking. Overall, all
+theexperimentsshowthecapabilityofthehuman-in-the-loop
+layered architecture for control of wearable robots and safely
+andreliablyinteractwiththehumanbody.Thus,thesemethods
+canbeusedforthedevelopmentofintelligentandsafesystems
+forinteractionandassistancetohumansindailyactivities.This
+worksubstantiallyextends,withnovelsoftwareandhardware
+componentsandvalidationprocesses,ourpreviousworkin[15],
+whereasimplifiedankle–footdevicewasdevelopedusingrigid
+metallicmaterials,onelargeandheavyDCmotor,onePIDcon-
+troller,limitedcontrolsignals,implementedinanArduinoboard,
+bulky,heavierandlessergonomic.
+The rest of this work is organised as follows: the related
+workonrecognitionandcontrolmethodsforwearablerobotsis
+presentedinSection2.Theproposedcontrolarchitectureispre-
+sentedinSection3.Theexperimentsandresultsaredescribedin
+Section4.ThediscussionandconclusionsaregiveninSections5
+and6,respectively.
+2. Related work
+Inrecentyearsalargevarietyofwearablerobotsforinterac-
+tionandassistancetohumanshavebeendevelopedacrossthe
+globe.Theserobotshavebenefitedfromtheadvancesinsensor
+technology,machinelearningmethodsandsoftmaterials[16,17].
+Wearablerobots,whichhavebeenmainlyappliedinhealthcare,
+manufacturingandtelecontrol,needtobecapableofcontrolling
+itsactionsthroughaccurateandfastsensingandrecognitionof
+humanmovements[1,18].
+Sensingandrecognitionofhumanactivitieshavebeeninves-
+tigatedwithdifferentroboticplatformsandsensingmodalities.
+Heuristicsandsixelectromyography(EMG)sensorsattachedon
+themusclesofparticipantswereusedtorecogniselevel-ground
+walking, ramp ascent and descent activities [19]. Information
+fromfloorreactionforce,hipandkneejointangleswasanalysed
+usingaFiniteStateMachine(FSM)todetectsitting,standingand
+level-groundwalkingforcontroloftheHAL-3robotplatform[20].
+Thesemethodscanrecogniseactivitiesofdailyliving(ADLs),but
+theydonotaccountfortheuncertaintyinsensormeasurements,
+whichmakethesemethodssusceptibletofailforsmallchanges
+in the environment [13]. Computational intelligence offers ro-
+bust algorithms for perception, decision-making and learning,
+whichareessentialforthedevelopmentofaccuraterecognition
+processesinrobotics.ArtificialNeuralNetworks(ANN)andFuzzyLogic(FL)have
+beenusedfortherecognitionofADLssuchaswalking,running,
+stair ascent and descent with different sensors, e.g., EMG and
+IMU,andtheyhaveachievedaccuraciesrangingfrom88.8%to
+99%[21,22].Accuraciesrangingfrom99.67%to99.87%wereob-
+tainedfortherecognitionoffourlocomotionactivitiescombining
+IMUandpressuresensors[23].FusionofANNandFLimproved
+theidentificationofmultipleADLsovertheuseofANNandFL
+alone[24].SupportVectorMachines(SVM)withneuromuscular
+andmechanicalsensorswereabletorecognisewalkingactivities
+and gait phases with accuracies ranging from 77.3% to 99.0%
+[25,26]. Probabilistic methods are capable of handling sensor
+noiseanduncertaintyindecision-makingprocesses[27].Exam-
+plesofthesemethodsincludeHiddenMarkovModels(HMM),
+Dynamic Bayesian Networks (DBN), Gaussian Mixture Models
+(GMM)andGaussianProcesses(GP),whicharebecomingpopular
+forrecognitionandcontrolinrobotics[28,29].HMMshavebeen
+usedfortherecognitionofgaitcyclephases(stanceandswing)
+andin-shoefootpressuresensors[30].DBNandGPmethods,
+together with wearable sensors, have been able to recognise
+multiplehumanactivitiesperformedwithupperandlowerlimbs
+withaccuraciesrangingfrom86.0%to99.87%[14,31].GMMshave
+beenusedfortherecognitionofthreewalkingactivitieswith
+91.3%to100%accuracy[32,33].
+Wearablerobots,togetherwithcontrolmethodsandmulti-
+ple sensors, have been used to interact and assist the human
+bodywhileperformingdailyactivities.Examplesoftheserobot
+include assistance to sit and stand, grasping and walking on
+flatsurfaces,rampsandstairs.Recognitionandassistanttosit,
+standandsit-to-standtransitionhavebeeninvestigatedwitha
+kneeexoskeletonusingSVMclassifiers,atorquecontrollerand
+IMUs[34].Hipassistancehasbeenstudiedusingsoftwearable
+robotscomposedoftextiles,foot-switches,encodersandtorque
+control[35].Awearablerobotandcontrolstrategieshavebeen
+investigated for assistance to posture stability using angle in-
+formationfromthejointsandtheWiiplatformtomonitorthe
+CentreofMassofthewearer[16].Controlofankle–footrobots
+has been investigated to assist the human foot based on the
+state of the body posture during the gait cycle. For instance,
+controlofanankle–footrobot,builtwithpneumaticactuators
+andIMUs,wasimplementedusingtheCentralPatternGenera-
+tor(CPG)approach[36].Proportional–integral–derivative(PID)
+controllerswereusedtocontrolanankle–footrobotbuiltwith
+softactuatorsandencoders[37,38].AcombinationofPIDmeth-
+odswithencodersandfootswitcheshavebeenemployedfor
+thedetectionandcontroloflowerlimbrobotsbuiltusingsoft
+materials,flatpneumaticactuatorsandBodencables[39].This
+approachhasalsobeenusedinthedevelopmentofupperlimb
+robotsandwearablehiprobots[40–42].WeemployedIMUdata,
+a probabilistic classifier and one PID controller to develop a
+preliminaryandsimplifiedankle–footrobotin[15].Thisdevice
+wasdesignedwithlimitedcontrolsignals,onelargeandheavy
+motor,rigidmetallicmaterialsandconstrainedreal-timeimple-
+mentationmakingitbulky,lessergonomicandlimitedcompared
+toourcurrentdesignpresentedinthispaper.Alltheserobots
+haveshownrapidprogressusingmultiplesensors,lightweight
+materials and advanced methods for recognition and control.
+Interestingly,mostwearablerobotsstillrelyontheuseoffoot
+switches,potentiometersandheuristicmethodsforrecognition
+andcontrolprocesses.Additionally,theserobotslackthecontrol
+architecture for reliable execution of the processes performed
+atdifferentlevelsofabstraction(high-,mid-andlow-levelpro-
+cesses),whichareessentialinroboticsystemsforsafeinteraction
+withthehumanbody.Thus,thelackofthesecapabilitiesmakes
+theserobotssusceptibletofailuretoevenslightchangesinthe
+environment.
+2
+
+--- Page 3 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+Fig. 1.Human-in-the-looplayeredarchitectureforcontrolofawearableankle–footrobot.
+Fig. 2.Data collection using an IMU from three walking activities. (A)
+level-groundwalking,(B)rampascentand(C)rampdescent.
+Inthisresearchwork,ahuman-in-the-looplayeredarchitec-
+tureisproposedforthecontrolofawearableankle–footrobot
+whileinteractingwiththehumanbody.Thislayeredarchitec-
+tureallowsthewearablerobottosense,makedecisions,setthe
+controlparametersandcontrolitsactionsusingasetofhigh-,
+mid-,andlow-levellayerspreciselysynchronised.Thisapproach
+isimplementedinawearableankle–footrobotdevelopedusing
+3Dprintingtechnology,softcomponentsandminiatureactuators,
+toassistthehumanfootduringwalkingactivities.Thewearable
+robotprovidesreliableassistancetothehumanfoot(liftthefoot
+up) when the toe-off event is detected during the gait cycle.
+Whentheheelcontacteventisdetected,noassistanceisrequired
+and the robot allows the human foot to move freely without
+interferingwiththenaturalfootmovement.Thesensormodules,
+computationalandcontrolmethods,andthewearableankle–foot
+robotaredescribedinSection3.
+3. Methods
+Theproposedhuman-in-the-looplayeredarchitectureforcon-
+trolofawearableankle–footrobotiscomposedofhigh-,mid-
+and low-level layers. These layers process data from an IMU
+moduletodetectwalkingandgaitevents,setthecontrolsignals
+andcontroltheankle–footrobottointeractwiththefootofthe
+subjectwhilewalking(Fig.1).
+3.1. Datacollectionandprocessing
+TwelvehealthymalesubjectswererecruitedfromtheSchool
+ofMechanicalEngineeringattheUniversityofLeeds,tocollect
+datafortrainingandtestingthemethodspresentedinthiswork.
+Thesubjectswerefreefromgaitabnormalities;theiragesranged
+between24and34yearsold,heightsbetween1.74mand1.79m,
+andweightsbetween77.6kgand85kg.Angular velocity signals were collected from a 9-DoF IMU
+attachedtothelowerlegofparticipants(Fig.2).Sensorsignals
+weresentwirelesslytoacentralcomputer.Piezoresistiveinsole
+sensorswereusedtodetectthebeginningofthegaitcycleas
+part of the data collection. Participants walked at their self-
+selectedspeedwithtenrepetitionsofthreewalkingactivities;
+level-groundwalking,rampascentanddescent.Forlevel-ground
+walking,aflatsurfacewasemployed,whileametallicrampwith
+an8.5degslopewasusedforrampascent/descentasshownin
+Fig.2.Angularvelocitysignalswerecollectedatasamplingrate
+of100Hz,andstoredfortrainingandtestingthemethodsfor
+recognitionofwalkingactivityandgaitperiodstocontrolthe
+assistiverobotasdescribedinSection3.3.
+Themeasurementsfromthethreewalkingactivitiesareshown
+inFig.3(a).Meanangularvelocitiesandstandarddeviationsare
+shownbysolidanddashedlines,respectively.Angularvelocities
+from each gait cycle were used to construct the histograms
+requiredfortherecognitionmethod.Inthiswork,thegaitcycle
+wasdividedintostancephase(initialcontact,loadingresponse,
+midstance,terminalstance,pre-swing)andswingphase(initial
+swing,midswingandterminalswing).Fig.3(b)showsanexam-
+pleoftheconstructedhistogramsfortherecognitionofwalking
+andgaitperiods.
+3.2. Wearableankle–footrobot
+Awearableankle–footrobotisbuilttovalidatethehuman-
+in-the-looplayeredarchitecture.TheComputer-AidedDrawing
+(CAD)modelandrealwearablerobotareshowninFig.4.The
+devicehasbeendesignedanddevelopedtofitthelowerlegusing
+3Dprintingtechnology(Object1000fromStratasysInc).Theer-
+gonomicdesignandconstructionmakesthisdevicelightweight,
+comfortableanddurable.
+TwoMaxonECXbrushlessDC(BLDC)motorsaremountedon
+thewearabledeviceandcombinedwithagearboxwitharatioof
+25:1.Thenominaltorqueoutputfromeachgearboxis76mNm,
+appliedatspeedsupto800rpmtoliftupthehumanfootwhile
+walking. The gearbox shafts, connected to an arrangement of
+bevelgears,transferthemotiontoahorizontalrigidshaft.The
+shaftperformsasacapstanconnectedtoastrap(tendon),which
+isconnectedtothewearer’sshoebyabuckle.Therotationofthe
+capstanwindsinthestraptopulltheuser’sfootupwardsduring
+theassistancemode.Thecapstanunwindsthestrapallowingthe
+robottomovedownthewearer’sfootduringthereleasemode.
+ForsynchronisedcommunicationandcontroloftheBLDCmotors,
+twomotordriversESCON50/54andanFPGA-basedmyRIOboard
+3
+
+--- Page 4 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+Fig. 3.Angularvelocityfromlevel-groundwalking,rampascentanddescentwalkingactivities.Solidanddashed-linesshowthemeanandstandarddeviation.(A)
+Gaitcyclesegmentedintoeightperiods,whichareprocessedtoknowthestateofthehumanbodyduringthegaitcycle.(B)Histogramsforrecognitionofwalking
+andgaitphase.Thegaitperiodscomposedthestance(period1toperiod5)andswing(period6toperiod8)phasesofthegaitcycle.
+Fig. 4.3Dprintedwearableankle–footrobotcomposedofminiatureDCmotors,
+capstanshaftandbevelgears.(A)CADmodeloftheassistivedeviceand(B)real
+wearablerobotattachedonthehumanleg.
+areemployed.Themotordriversperformproportional–integral
+(PI) current control, and provide feedback on the state of the
+motorincludingcurrent(andtherefore,torque)andspeed.The
+myRIOboardisemployedforsynchronisedandreal-timecontrol
+ofbothmotorsviaaPIDspeedcontrolalgorithmasexplained
+in Section 3.5. The lightweight and ergonomic structure, ma-
+terials and actuation approach, and real-time implementation
+andcontrolusinganFPGAboardforthiswearabledeviceare
+improvementsoverthepreliminarydesignofourpreviouswork
+in[15].
+3.3. High-levelrecognitionofwalkingandgaitperiods
+ABayesianapproachtogetherwithacompetingaccumulators
+approachisdevelopedforthehigh-levellayertorecognisethe
+walkingactivityandgaitperiods.Theapproachupdatesthepos-
+teriorprobabilityfromtheproductofthepriorandlikelihood.
+Sensormeasurementsandperceptualclassesarerepresentedby
+zandcn∈C,respectively.Eachperceptualclass cnisdefined
+bya(uk, vl)pair,whereukwithk=1,2, . . . ,Kandvlwith
+l=1,2, . . . ,Larethewalkingactivitiesandgaitperiods.The
+Bayesianapproachisasfollows:
+P(cn|zt)=P(zt|cn)P(cn|zt−1)
+P(zt|zt−1)(1)whereP(cn|zt)andP(zt|cn)aretheposteriorprobabilityandlike-
+lihoodattimet.Thepriorprobabilityat t−1isP(cn|zt−1).The
+variableukwithK=3arethethreewalkingactivities,while vl
+withL=8aretheeightgaitperiodsusedforrecognition.The
+gaitperiodscanbeusedtodeterminewhenthehumanison
+thestanceandswingphases.Thepriorprobabilityisuniformly
+distributedattime t=0,P(cn)=P(cn|z0)=1
+N,wherez0are
+sensormeasurementsand Nisthenumberof( uk, vl)pairs.For
+timet>0,thepriorprobabilityisupdatedbytheposterior
+probabilityestimatedat t−1.
+Angular velocities are obtained at each time step from the
+IMU,Ssensors =1, attached to the lower leg of participants.
+HistogramsfromIMUdata,(Fig.3B),areusedfortheconstruction
+ofthemeasurementmodelfortheBayesianmethod.Thismodel
+isusedtoestimatethelikelihoodofaperceptualclass, cn,given
+anobservationzt,asfollows:
+Ps(b|cn)=hs,n(b)
+∑Nbins
+b=1h(b)(2)
+wherehs,n(b) is the sample count in bin bfor sensorsover
+all training data in class cn. The model bins angular velocity
+signals intoNbins=100 intervals. The values are normalised
+tohaveprobabilitiesin [0,1].Eq.(2)estimatesthelikelihoodof
+observationztoverallsensors,asfollows:
+logP(zt|cn)=Ssensors∑
+s=1logPs(ws|cn)
+Ssensors(3)
+where wsisthesamplefromsensor sandP(zt|cn)isthelike-
+lihood ofzt, given a class cn. Normalised values are ensured
+withthemarginalprobabilitiesconditionedonprevioussensor
+observationsasfollows:
+P(zt|zt−1)=N∑
+n=1P(zt|cn)P(cn|zt−1) (4)
+Theposteriors,( uk, vl),arethejointdistributionsofthewalk-
+ingactivities,uk,andgaitperiods, vl.Thebeliefsoverindividual
+walkingactivityandgaitperiodclassesaregivenbythemarginal
+posteriors,asfollows:
+P(uk|zt)=L∑
+l=1P(uk, vl|zt),P(vl|zt)=K∑
+k=1P(uk, vl|zt)(5)
+TheBayesianprocessimplementsacompetingaccumulator
+approachtomakedecisions.TheBayesianupdateprocessstops
+4
+
+--- Page 5 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+Fig. 5.Human-in-the-looplayeredarchitectureforcontrolofawearableankle–footrobot.Thehigh-levellayerusesaBayesianapproachtogetherwithacompeting
+accumulatormethodfortherecognitionofwalking.Themid-levellayerusesanFSMtopreparethecontrolparametersofthewearablerobot.Thelow-levellayer
+isresponsiblefordeliveringtheactualcontrolofthewearablerobotusingacascadePIDcontrolapproach.
+oncethebeliefaccumulatedbyoneoftheclassesexceedsthe
+beliefthreshold β,whichcanbesettoavalueintherangeof0.0
+and0.99.Then,adecisionismadewiththe maximumaposteriori
+(MAP),toestimatethewalkingactivityandgaitperiodclasses,as
+follows:
+ifanyP(uk, vl|zt)> βthen
+ˆuk=argmax
+ukP(uk|zt),ˆvl=argmax
+vlP(vl|zt)(6)
+where ˆvkandˆvlaretheestimatedwalkingactivityandgaitperiod
+pair.Theparameter βisiterativelyupdatedwithvaluesfrom
+0.0to0.99andincrementsof0.01toanalysetheireffectonthe
+adjustmentoftherecognitionaccuracyandspeedatsametime.
+TheBayesianprocessisimplementedinthehigh-levellayerof
+thehierarchicalarchitectureasshowninFig.5.
+3.4. Mid-levellayercontrolforsynchronisation
+Thewalkingactivityandgaitperiodestimatedfromthehigh-
+levellayerareusedbythemid-levellayertodeterminewhether
+thewearablerobotneedstobein‘assistive’,‘hold’or‘release’
+mode(Fig.5).Thetransitionbetweenthe‘assistive’,‘hold’and
+‘release’modesofthewearablerobotiscontrolledbythe‘toe-
+off’,‘hold’and‘heelcontact’statesinaFSM,respectively.Ineach
+state, the control parameters are prepared for controlling the
+ankle–footwearablerobot.
+Theoutputfromthemid-levellayer,fedintothelow-level
+layer,takesoneofthreevalues: −1,0and1,whichcorrespond
+to‘heelcontact’,‘hold’and‘toe-off’states,respectively.Thede-
+siredmotors’speed,whichisemployedbythelow-levellayer,
+iscalculatedbymultiplyingthemid-leveloutputbyafixedvalue
+obtainedasexplainedinSection3.5.Themotorspeedcanbezero,
+positiveornegativewhenthemid-levellayeroutputs0,1or −1,
+respectively.Thesesignalsandthelow-levellayer,describedin
+Section3.5,controlthemotoractionsofthewearablerobotto
+assist(liftup)thehumanfootattheappropriatetime.Themid-
+levellayeralsosendsthetargetangularvelocitytocontrolthe
+motorsofthewearabledevice.Allthesesignalsarerequiredto
+ensurethatthewearableankle–footrobotreliablyinteractsand
+assiststhehumanfoot.
+Whenthetoe-offeventisrecognisedbythehigh-levellayer,
+the FSM enters the ‘toe-off’ state, and sends a positive speed
+commandtothelow-levelcontroller.Thiscausesthehumanfoot
+tobeliftedup(‘assistive’mode)bythewearablerobotuntilthe
+targetpositionisreached.Then,theFSMentersthe‘hold’state,
+andthemotors’speedbecomeszero,holdingthehumanfoot(‘hold’mode)atthetargetposition.Oncethehigh-levellayer
+predictstheheel-contactevent,themid-layerentersthe‘heel
+contact’state,andsendsanegativespeedsignaltothelow-level
+layer. This causes a downward movement of the human foot
+(‘release’mode)untilthetargetloosepositionisreached.Then,
+theFSMentersthe‘hold’stateandthewholeprocessisrepeated
+continuouslyduringthewalkingcycle.
+Thestatemachinedoesnotsimplyfollowapredefinedpro-
+cedure,butmakesdecisionsbasedontherecognitionfromthe
+high-level layer and the current state of the wearable robot.
+Thismeansthatifthecurrentrobotstateis‘release’mode(the
+footisallowedtomovedownwards),andthehigh-levellayer
+detects the toe-off event before the loose position is reached,
+thenthemid-levellayerimmediatelyentersthe‘toe-off’stateto
+assistthehumanfoot.Similarly,ifthemid-levellayerisinthe
+‘assistive’state(liftingthefootup)andtheheelcontactevent
+isdetectedbeforereachingthetargetposition,thenmid-level
+layerimmediatelyentersthe‘heelcontact’statetoreleasethe
+humanfoot.Thisapproachallowscomplianceofthemid-level
+layeraccordingtothesignalsfrombothsources,thehigh-level
+layerandthestateofthewearablerobot.
+3.5. Low-levellayerforrobotcontrol
+The low-level controller, responsible for the control of the
+wearableankle–footrobot(seeSection3.2andFig.4),usesa
+cascadePIDcontroller(Fig.5).Thisapproachtracksthemotors’
+targetspeedsignalsentbythemid-levellayer.Themotors’target
+velocityvalue, ˙θd,requiredforthe‘assistive’and‘release’modes,
+wasdeterminedbyiterativetuninganalysisofthecontrolsystem
+untilastableresponsewasachieved.ThiscascadePIDapproach,
+usedtocontrolboththespeedandcurrentofthearrayofmini
+BLDCmotors,isanovelandimprovedcomponentoverthesingle
+PID position control implemented in our previous preliminary
+workin[15].
+Thevelocityerror, e˙θ,iscomputedbysubtractingtheactual
+velocity, ˙θ, from the desired velocity ˙θd. The velocity error is
+fedintotheouterloop(Fig.5),whichisaPIDspeedcontroller
+thatcreatesthedesiredcurrentvalue, id,fortheleftandright
+motors of the wearable ankle–foot device. The idvalue is fed
+into the two inner loops, composed of PI current controllers,
+each for one of the motors. Sending the same target current
+commandsimultaneouslytobothmotors,ensuresthattheycon-
+tributeequallytotheactuationeffortduringassistancetothe
+humanfoot.Theequalcontributionofbothmotorsavoidsthe
+unbalancedactuationandoverheatingthatcanbepresentedif
+5
+
+--- Page 6 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+one of the motors applies a larger effort than the other one.
+Bothmotorsprovidecurrentfeedback, ilandir,whichtogether
+withthecurrenterrors, eilandeir,arefedintothePIcurrent
+controllers.ThetwoPIcurrentcontrollersareindependent,while
+asinglePIDspeedcontrollerisusedforbothmotors.Thiscascade
+controlapproachissuitablebecausetheshaftsofthemotorsare
+connectedtoeachother,andtherefore,theyrotateatthesame
+angularvelocity.Theequationsdescribingthelow-levelcontrol
+algorithmareasfollows:
+e˙θ=˙θd−˙θ (7)
+id=Kpe˙θ+Ki(∫t
+0e˙θdt)
++Kdde˙θ
+dt(8)
+Thevelocityerrorisdefinedby e˙θ,whileKp,KiandKdarethe
+coefficientsofthePIDcontroller.ThePIandPIDcoefficientswere
+tunedpriortousingthewearablerobot.ThePIcoefficientswere
+tunedwithanautomaticalgorithmprovidedbythemotorcontrol
+manufacturer. The PID controller was tuned using a system-
+aticiterativetuningprocessinsteadofclassicaltuningmethods
+likeZiegler/Nichols,whichrequireperiodicinputcommandsthat
+couldbeharmfulforthesubjectwhileinteractingwiththewear-
+able ankle–foot robot. The integral and derivative coefficients
+wereinitiallysettozero,andtheproportionalcoefficient(Eq.(8))
+was determined with the device operating without any load.
+Next,theproportionalcoefficientwasgraduallyincreaseduntil
+signsofinstabilitywereobserved.Thelargeststablevaluewas
+chosen for the proportional gain. A similar iterative approach
+wasusedfortheintegralgainwithseveraliterationsperformed
+slightlyincreasingthederivativegaintofindthelargeststable
+value.Then,KpandKiwereincreasedastheexistenceofthe
+actionfromthe Kdcoefficientallowsforlargerproportionaland
+integralgainswithoutcausinginstability.Thisprocessprovided
+asetofcoefficientsforfastandstableresponse.
+Thehigh-,mid-andlow-levellayershavebeenimplemented
+intoahierarchicalarchitecture(Figs.1and5)inordertosynchro-
+nisealltheprocessesandensureareliableandaccuratecontrol
+ofthewearablerobot.Thisaspectisimportantgiventhatthe
+robotphysicallyinteractsandassistthehumanbody.Thislayered
+architectureisdescribedinSection3.6.
+3.6. Hierarchicallayeredarchitectureforrobotcontrol
+Allthemethodsusedbythehigh-,mid-andlow-levellayers
+areimplementedinthelayeredarchitecture(Figs.1and5).This
+hierarchicallayeredarchitectureallowsthesynchronisationand
+communicationoftheprocessingmodulesrequiredfortherobust
+controlofthewearableankle–footrobot.Thesensordatafrom
+theIMUmoduleisreceivedandprocessedbythehigh-levellayer.
+Thislayerestimatesthewalkingactivityandgaitperiodwith
+theBayesianperceptionapproach.Theseresultsaresenttothe
+mid-levellayer,whichusingtheFSM,setsthenextrobotstate
+andtargetmotorspeedsignalstothelow-levelcontroller.Then,
+thetargetspeedistrackedbythelow-levellayer,usingPIDand
+PIcontrollersinacascadecontrolconfiguration,forthedelivery
+oftheactualcontrolofthewearableankle–footrobotwhilethe
+humanwalks.
+Thewearableankle–footrobotmovestothe‘assistive’mode
+(liftupthehumanfoot)whenthetoe-offeventisdetectedby
+thehigh-levellayerwhilethehumaniswalking.Theassistance
+isdeactivatedandtherobotmovestothe‘release’mode(the
+footmovesdownwards)whentherecognitionmethoddetects
+theheelcontactevent.Thelow-levelcontrolleralsousesmotor
+positionfeedbackwhilethehumanwalkstoavoidpullingthe
+user’sfoottoofarupward,andthus,ensuringasafeperformance
+atalltimesofthewearableankle–footrobot.4. Results
+Thissectiondescribesthethreeexperimentsperformedand
+theresultsobtainedwiththehuman-in-the-looplayeredarchi-
+tectureandwearableankle–footrobot.First,therecognitionof
+walking,gaitperiodsandgaiteventswasperformedusingdata
+fromanIMU.Second,thecontroloftherobotwastestedwitha
+subjectwearingtheankle–footrobot,usingsensordatafroman
+IMUattachedonthelegofanothersubjectperformingawalking
+activity.Third,thecontrolofthewearablerobotwastestedwitha
+subjectwearingboththeankle–footrobotandIMUsensorwhile
+performingawalkingactivity.
+4.1. Recognitionofwalkingactivity
+First,theaccuracyforrecognitionofwalkingwiththeproba-
+bilisticapproachisevaluated.Forthetrainingandtestingphases
+oftherecognitionmethod,IMUdatawascollectedfrompartici-
+pantswhilewalking(seeFigs.2and3).
+Thedecisionthreshold β,withiterativeincrementstepsof
+0.01,wasemployedtocontroltheBayesianupdatingprocessand
+adjustatthesametimeboththerecognitionaccuracyandspeed
+ofwalkingactivities,asshowninFig.6.Theplotsshowthemean
+resultsobtainedbyperforming10,000iterationsordecisionsfor
+eachincrementvalueinthedecisionthreshold.Therecognition
+ofwalkingactivityshowsmeanerrorsof21%(79%accuracy)and
+0.13%(99.87%accuracy)fordecisionthresholds β=0.0and
+β=0.99,respectively(Fig.6A).Theserecognitionaccuracies
+wereachievedwithameanof1and24sensorsamplesfor β=
+0.0and β=0.99(Fig.6B).Thus,thehigh-levellayerneededa
+meanof24datasamplestoestimatethewalkingactivitywith
+99.87%accuracy.Thisanalysisisimportantgiventhatrobotsneed
+tomakeaccuratedecisionsbutalsotorespondintheappropriate
+time.
+Recognitionofstanceandswingphaseswasanalysedtoesti-
+matethestateofthehumanbodywhilewalking.Thisanalysis
+useddatafromtheeightgaitperiodsofthegaitcycle,where
+stancephaseiscomposedofgaitperiods1to5(initialcontact,
+loading response, mid stance, terminal stance, pre-swing) and
+swing phase of gait periods 6 to 8 (initial swing, mid swing,
+terminalswing),respectively(Fig.3(a)).Therecognitionachieved
+meanerrorsof7%(93%accuracy)and0.8%(99.20%accuracy)for
+β=0.0and β=0.99,respectively(Fig.6A).Ameanof13
+datasampleswereneededforrecognitionofgaitperiodswith
+accuracyof99.20%(Fig.6B).
+TheconfusionmatricesinFig.6C,Dshowtherecognitionof
+eachwalkingactivity,gaitperiodandgaitphase.Levelground-
+walking,rampascentanddescentwererecognisedwith100%,
+100% and 99.60% accuracy, respectively. Gait periods 1 to 8
+achieved99.1%,100%,99.4%,100%,99.9%,98.3%,98.9%and98.3%
+accuracy,respectively.Stanceandswingphaseswererecognised
+with99.68%(meanofperiods1to5)and98.5%(meanofperiods
+6to8)accuracy.Gaitphaserecognitionwasalsoevaluatedin
+real-time with subjects walking on a treadmill and a motion
+capturesystem.Thesubjectswalkedattheircomfortablespeeds
+forapproximately1min,whilewearinganIMUontheirshanks.
+Theestimationofstanceandswingphaseswasvalidatedwith
+a12cameraVICONmotioncapturesystem(ViconMXGiganet,
+OxfordMetricsLtd.,UK)usingreflectivemarkersonthelower
+limbsegments[49].Themeanrecognitionaccuraciesfromboth,
+thehigh-levelrecognitionandthemotioncapturesystem,were
+95.78%and95.71%forthestanceandswingphase,respectively.
+Otherworkshavealsoshownaccuraterecognitionoflocomotion
+activities using a variety of wearable sensors including EMGs,
+IMUs,goniometersandfootswitches,andcomputationalmeth-
+ods such as DBN, LSTM, SVM, LDA with recognition accuracy
+6
+
+--- Page 7 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+Fig. 6.Recognitionofwalkingactivitiesandgaitperiods.(A)Meanrecognitionerrorof0.13%and0.8%forwalkingactivityandgaitperiod,respectively.(B)Mean
+decisiontimeof24and13datasamplesforthehighestrecognitionaccuracyofwalkingactivityandgaitperiod,respectively,with β=0.99.(C)Recognitionaccuracy
+ofindividualwalkingactivities:(1)level-groundwalking,(2)rampascent,(3)rampdescent.(D)Recognitionaccuracyofgaitperiodswith(1)initialcontact,(2)
+loadingresponse,(3)midstance,(4)terminalstance,(5)pre-swing,(6)initialswing,(7)midswingand(8)terminalswing,andstanceandswingphases.
+Table 1
+Comparisonofstate-of-the-artcomputationalmethodsforrecognitionofwalkingactivitiesandrecognitionofgaitperiods.
+Method Activity #Sensors Sensortype Activityrecognition Gaitperiodrecognition
+Accuracy(%) Decisiontime
+(ms)Accuracy(%) Decisiontime
+(ms)
+SVM[25] LGW,RARD,
+Stairs9 EMG,loadcell 99 150 97 –
+DBN[31] LGW,RALD,
+Stairs13 IMU,loadcell 98 300 95.25 –
+LDA+DBN[43] LGW,RARD,
+Stairs13 IMU,loadcell
+goniometer99.5 300 – –
+GMM[32] LGWStanding
+Sitting4 IMU,loadcells
+goniometers100 100 – –
+Ensemble[5] LGW,RARD,
+Stairs9 IMU 97.60 – – –
+BayesianLDA[44] LGW,RARD,SD,
+SA4 sEMG,position
+force96.10 – 99.20 –
+ANN[45] LGW 5 IMU,pressure
+footinsoles– – 95.24 –
+kNN[46] LGW 5 pressurefoot
+insoles– – 81.43 –
+LSTM[47] LGW,RA,RDSA,
+SD,Stop5 IMU 96.10 – – –
+CNN+LSTM[48] LGW,RA,RDSA,
+Sitting3 IMU 96.37 – – –
+Ourapproach LGW,RARD 1 IMU 99.87 240 99.20 130
+ranging from93% to100% anddecision time from150 msto
+300ms,asshowninTable1.However,onlyafewworks,includ-
+ingourproposedmethod,haveinvestigatedapproachesforthe
+recognitionofbothwalkingactivityandgaitperiodsachieving
+walkingaccuraciesbetween96.10%and99.87%andgaitperiod
+accuraciesbetween81.43%and99.20%.
+4.2. Responseofthewearablerobotwithhuman-in-the-loop
+Thecontrolandresponseofthewearablerobotwasvalidated
+withaHuman-in-the-Loopapproachimplementedintwoscenar-
+ios.Inthefirstscenario,asubjectwaswearinganIMUmodule
+on his lower limb while walking at his self-selected speed to
+readsensordataandperformthewalkingrecognitionprocess.
+Asecondsubjectwaswearingtheankle–footrobotwhilesitting
+on a stool, with his foot relaxed, to get his foot lifted up or
+assistedbythewearablerobot(Fig.7A).Thisexperimentallowed
+theanalysisofthecapabilityofthehuman-in-the-looplayered
+architecturetocontrolthewearablerobotinastaticmode(no
+walking).Thelayeredarchitecturerecognisesthewalkingactivity
+(high-level layer) performed by the subject wearing the IMU
+module.Inthisexperiment,thedecisionthresholdof β=0.99wasselectedtoachievehighrecognitionaccuracyaccordingto
+theresultsobtainedfromtheanalysisinSection4.1.Theoutput
+signalisusedtosetthecontrolparametersandnextstate(mid-
+levellayer)oftherobot.Theinformationisusedbythelow-level
+layertosendthecontrolsignalsinordertoliftup(assist)or
+movedownwards(release)thefootofthesubjectwearingthe
+ankle–footrobot.ThesystemresponseinFig.7Bshowsthesignal
+sent by the mid-level layer, normalised motor angle feedback
+and output assistive power, represented by blue, orange and
+greencolours,respectively.Thesesignalswereobtainedwhilethe
+subjectwearingtheIMUmodulewaswalking.Thesignalsfrom
+themid-levellayerare −1,0and1,whichrepresentthe‘release’,
+‘hold’and‘assistive’statesofthewearablerobot,respectively.
+These signals prepare the robot to lift up (assist) and move
+downwards(release)thehumanfootwhenthetoe-offandheel
+contacteventsarerecognised,respectively.Therobotkeepsthe
+footupatcertainposition(‘hold’)beforetheheelcontactevent
+isdetectedandmovetothereleasestate.
+Thecommandsignalshowstherecognitionofheelcontact
+andtoe-offfromthesubjectwearingtheIMUmodule.Theoutput
+powerwascalculatedbymultiplyingthemotors’currentbytheir
+7
+
+--- Page 8 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+Fig. 7.Validationofthehuman-in-the-looplayeredarchitectureforcontrolofawearableankle–footrobot.Scenario1,asubjectwearstheankle–footrobotand
+anothersubjectwearstheIMUmodulewhilewalking.(A)ThesubjectontheleftwearstheIMUwhilewalking.Thesubjectontherightwearstheankle–foot
+robot,whilesittingonachairforreal-timeassistance.(B)Outputsignalsfromtheexperimentwiththewearablerobot.(top)Commandsenttocontrolthewearable
+robot.Thedotted-anddashed-linesshowthereleaseandassistanceappliedtothehumanfootwhentheheelcontactandtoe-offeventsaredetected.(middle)
+Normalisedmotoranglefeedbackfromthewearablerobot.(bottom)Outputpowerfromthewearablerobotforassistancetothehumanfoot. (Forinterpretation
+ofthereferencestocolourinthisfigurelegend,thereaderisreferredtothewebversionofthisarticle.)
+Fig. 8.Validationofthehuman-in-the-looplayeredarchitectureforcontrolofawearableankle–footrobot.Scenario2,asubjectwearsboththeankle–footrobotand
+theIMUmodulewhilewalking.(A)Theparticipantswalkedattheirself-selectedspeedwhilewearingtherobotandsensor.(B)Outputsignalsfromtheexperiment
+withthewearablerobot.(top)Commandsenttocontrolthewearablerobot.Thedotted-anddashed-linesshowthereleaseandassistanceappliedtothehuman
+footwhentheheelcontactandtoe-offeventsaredetected,respectively,bythehigh-levellayer.(middle)Normalisedmotoranglefeedbackfromthewearablerobot.
+(bottom)Outputpowerfromthewearablerobotforassistancetothehumanfoot.
+torqueconstant,andmultiplyingtheresultbytheirangularve-
+locity.Anefficiencyfactorof85%forthegearingmechanismwas
+usedinthecalculation(basedonthemanufacturer’sdatasheet).
+The output power increases when the foot is lifted up or as-
+sistedbywearableankle–footrobot(Fig.7B).Theassistanceis
+represented by the large output power peak that follows the
+‘assist’low-levelcommandandnormalisedmotoranglevalueof
+1correspondingtotheuser’sfootinthetargetupperposition.A
+lowoutputpowerpeakfollowsthe‘release’low-levelcommand
+representingthewearablerobotmovingtheuser’sfoottothe
+targetlooseposition.Thislowoutputpowerisrequiredtobreak
+theinertiaandfrictionofthemotors.
+Inthesecondscenariofortheevaluationofthehuman-in-
+the-looplayeredarchitecture,asubjectwasaskedtoattachthe
+wearable sensor on his lower limb and put on the wearable
+ankle–footrobot(Fig.8A).Thisexperimentallowedtheanalysis
+ofthecapabilityofthecompletesystemtoliftup(assist)and
+movedownwards(release)thehumanfootwhenthetoe-offand
+heelcontacteventsaredetectedwhilewalking.The subject wore the ankle–foot robot on one leg and the
+IMUonthecontralateralleg.Thesubjectwasaskedtowalkat
+his self-selected speed, relax his muscles and avoid lifting up
+hisfootduringthetoe-offorswingphaseofthegaitcycle.This
+experimentpermittedtheobservationoftherobotresponsein
+termsoftheoutputpowerandpositionfeedbackwhileliftingup
+(assist)andmovingdownwards(release)thehumanfoot.Fig.8B
+showsthecommandsignal,normalisedmotoranglefeedbackand
+outputpowerofthewearablerobot.
+When the tow-off event was detected, the wearable robot
+enteredthe‘assistive’modeliftingupthehumanfoottoatarget
+upperposition.Theassistancepowerusedbytherobotandthe
+normalisedmotoranglefeedbackincreasedwhileliftingupthe
+foot.Oncethefootisatthetargetupperposition,therewasa
+shortperiodoftimewherethefootwassteady(‘hold’mode)
+beforemovingthefootdownwardstothetargetlooseposition.
+Whentheheelcontactwasdetected,therobotenteredtothe
+‘release’mode,allowingtheuser’sfoottomovedownwardstoa
+looseposition.Similartothepreviousexperiment,inthe‘release’
+8
+
+--- Page 9 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+modealowoutputpowerwasrequiredtoovercometheinertia
+andfrictionofthemotorsandgears.Thispowerwaslowerthan
+theoneneededforliftingupthefoot.Thenormalisedmotorangle
+alsodecreasedwhilemovingdownwardsthehumanfoottoallow
+ittocontactthefloor.
+5. Discussion
+Inthisresearch,ahuman-in-the-looplayeredarchitecturefor
+awearableankle–footrobotcontrolwaspresentedasaproof-of-
+conceptforinteractionandassistancetothehumanbody.The
+controlarchitecturewascomposedofhigh-,mid-andlow-level
+layers.Layeredarchitecturesallowthedevelopmentofdevices
+capableoflearningandsafelyinteractingwiththehumanbody
+andtheenvironment[7,50].
+Thehigh-levellayerimplementedaBayesianformulation,to-
+getherwithacompetingaccumulatorapproach,tomakedeci-
+sionsandestimatethewalkingactivity,gaitperiodandgaitphase
+performedbythehuman.Thisprocessinglayeremployeddata
+fromanIMUsensorattachedontheshankofthesubject.This
+recognition process showed to be capable of making accurate
+andfastdecisionsbyadjustingadecisionthresholdmanually.
+Highaccuratedecisionsrequiredalargenumberofsamplescom-
+paredtolowaccuratedecisions,whichisexpectedgiventhat
+thesystemsneedsmoresensordataorevidencetoreducethe
+uncertainty of its decision. This trade-off between speed and
+accuracy,commonlyobservedindecisionmakingsystems,can
+be set according to the application requirements by selecting
+thedecisionthresholdvaluetobeemployedbythecompeting
+accumulativeapproach.Inthiswork,thedecisionthresholdwas
+set manually, however, we plan to investigate approaches to
+makethisparametercapableofadaptingautonomouslyovertime
+toachievespecificrequirements,aspartofourfuturework.The
+proposedrecognitionmethodiscapableofrecognisingwalking
+activity,gaitperiodsandphases,whichisanenhancedfeature
+comparedtootherstate-of-the-artmethodsthatrecogniseonly
+walkingactivity[31,48].Ourmethodwasabletoachievehigh
+recognitionaccuracyusing1wearablesensorcomparedtoother
+advancedmethodsthatrequiredbetween5and13sensorsto
+achievesimilaraccuracy[5,44,47].
+The mid-level layer implemented an FSM to set the next
+robotcontrolmode(‘hold’,‘assistive’,‘release’)triggeredbythe
+detectionsignalfromthehigh-levellayer.Thisprocessprepared
+theparameterstocontrolthewearablerobot.Thesecontrolpa-
+rameters were employed by the lower-level layer, which was
+implementedwithacascadePIDcontrolapproachfortheprecise
+controlofthewearableankle–footrobot.
+Thehuman-in-the-looplayeredarchitecturewastestedusing
+awearableankle–foot,whichwasdevelopedtoliftupandmove
+downwards the human foot when the toe-off and heel con-
+tacteventsaredetectedduringthewalkingcycle.Thewearable
+ankle–footrobotwasdesignedandfabricatedusinglightweight
+andsoftmaterialswith3Dprintingtechnology.Therobotactu-
+ationsystemusedanarrangementofminiaturemotors,bevel
+gearsandcapstanshaft,whichcontrastswithprevioussystems
+builtwithlargeandheavymotors,andpneumaticactuators[51,
+52].Astrap,attachabletoanyfootsizeallowedtherobottolift
+up(assist)andmovedownwards(release)thehumanfoot.The
+wearableankle–footrobotdonotincludeheavycomponentsand
+ballscrewsaspartoftheactuationprocess,whichareusuallyin-
+cludedinwearablerobotsthatmakethemuncomfortableforthe
+user[53].Thereal-timeexperiments,systematicallyperformedto
+testtheproposedlayeredarchitecture,showedthatthewearable
+ankle–footrobotiscapableofmakingaccuratedecisions,setthe
+control signals for the next robot state and control the robot
+actionsfortheinteractionandassistancetothehumanfootwhilewalking. This proof-of-concept wearable ankle–foot robot has
+thepotentialtobeusedindifferentapplications,forinstance,
+toassistpeopleduringwalkingtoreduceenergyconsumption,
+assist patients with foot-drop impairments, rehabilitation and
+telerobotics.Thesizeofthewearabledevicemightrequiretobe
+updatedforthespecificpersonandapplicationbuttheoverall
+designandcontrolapproachremainthesame.Weareparticularly
+interestedinrecruitingpatientstoevaluatethewearableankle–
+footsystemforassistancetofoot-dropimpairment,whichispart
+ofourfutureworkplan.
+Overall,thisworkoffersanalternativemethodsforthereliable
+controlofwearablerobotsthatinteractwiththehumanbody.
+Thisapproachoffersrobustcomputationalmethodsforaccurate
+andfastrecognitionofwalkingandgaitevents.Thewearable
+robotrequiresoneIMUonly,whichoptimisesenergyandweight.
+The control and recognition methods are implemented in an
+FPGAforfastdataprocessing.Thefollowinglimitationshavebeen
+identifiedinthecurrentversionoftheproposedhuman-in-the-
+looplayeredarchitecture:adaptivedecision-makingtoresponse
+tochangingwalkingspeeds,autonomousselectionofdecision
+thresholdforthedecision-makingprocess,adaptiverobotcom-
+pliancethroughadmittancecontrolmethods.Thesearetheiden-
+tifiedchallengesandlimitationsthatweplantoinvestigateand
+addressinthefuturework.
+6. Conclusion
+Thisworkpresentedahuman-in-the-looplayeredarchitec-
+tureforcontrolofawearableankle–footrobot.Thisarchitecture
+composed of high-, mid- and low-level layers, interconnected
+andpreciselysynchronised,allowedthewearablerobottoread
+datafromsensorsattachedonthehumanbody,makeaccurate
+decisions,setcontrolparametersandcontroltherobotactionsto
+reliablyinteractwithandassistthehumanfootwhilewalking.
+Thewearablerobotemployedtovalidatethelayeredarchitecture
+wasdevelopedusinga3Dprintingtechnologyandanovelactu-
+ationsystem.Theaccuracyandprecisecontrolofthewearable
+robot,performedbythelayeredarchitecture,ensureasafeand
+reliable robot performance while interaction with the human
+body. For validation, experiments in simulation and real-time
+environmentsweresystematicallyperformedthroughtheanal-
+ysisofrecognitionaccuracyforwalkingeventsandthecontrol
+andresponseofthewearablerobotwhileassistingthehuman
+foot.Overall,theexperimentsdemonstratedthattheproposed
+human-in-the-looplayeredarchitectureissuitableforthedevel-
+opmentofsmartwearablerobotscapableofsafelyinteractingand
+assistingthehumanbody.
+Declaration of competing interest
+Theauthorsdeclarethattheyhavenoknowncompetingfinan-
+cialinterestsorpersonalrelationshipsthatcouldhaveappeared
+toinfluencetheworkreportedinthispaper.
+Data availability
+Datawillbemadeavailableonrequest.
+Acknowledgements
+This work was supported by the Engineering and Physical
+Sciences Research Council (EPSRC), UK for the ‘Wearable soft
+roboticsforindependentliving’project(EP/M026388/1)andthe
+RoyalSociety,UKforthe‘Touchingandfeelingtheimmersive
+world’project(RGS/R2/192346).
+9
+
+--- Page 10 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+References
+[1] A.T. Asbeck, S.M.M. De Rossi, I. Galiana, Y. Ding, C.J. Walsh, Stronger,
+smarter,softer:Next-generationwearablerobots,Robot.Autom.Mag.IEEE
+21(4)(2014)22–33.
+[2] C. Rognon, S. Mintchev, F. Dell’Agnola, A. Cherpillod, D. Atienza, D.
+Floreano,Flyjacket:Anupperbodysoftexoskeletonforimmersivedrone
+control,IEEERobot.Autom.Lett.3(3)(2018)2362–2369.
+[3] U.Martinez-Hernandez,L.W.Boorman,T.J.Prescott,Multisensorywearable
+interfaceforimmersionandtelepresenceinrobotics,IEEESens.J.17(8)
+(2017)2534–2541.
+[4] Y.Mengüç,Y.-L.Park,H.Pei,D.Vogt,P.M.Aubin,E.Winchell,L.Fluke,L.
+Stirling,R.J.Wood,C.J.Walsh,Wearablesoftsensingsuitforhumangait
+measurement,Int.J.Robot.Res.33(14)(2014)1748–1764.
+[5] E.Fullerton,B.Heller,M.Munoz-Organero,Recognisinghumanactivityin
+free-livingusingmultiplebody-wornaccelerometers,IEEESens.J.17(16)
+(2017)5290–5297.
+[6] H.Huang,T.A.Kuiken,R.D.Lipschutz,Astrategyforidentifyinglocomotion
+modes using surface electromyography, IEEE Trans. Biomed. Eng. 56 (1)
+(2009)65–73.
+[7] R.A.Brooks,Intelligencewithoutrepresentation,ArtificialIntelligence47
+(1–3)(1991)139–159.
+[8] L.Fraser,B.Rekabdar,M.Nicolescu,M.Nicolescu,D.Feil-Seifer,G.Bebis,
+A compact task representation for hierarchical robot control, in: 2016
+IEEE-RAS16thInternationalConferenceonHumanoidRobots(Humanoids),
+IEEE,2016,pp.697–704.
+[9] T.J.Prescott,P.Redgrave,K.Gurney,Layeredcontrolarchitecturesinrobots
+andvertebrates,Adapt.Behav.7(1)(1999)99–127.
+[10] R.Simmons,T.Smith,M.B.Dias,D.Goldberg,D.Hershberger,A.Stentz,R.
+Zlot,Alayeredarchitectureforcoordinationofmobilerobots,in:Multi-
+RobotSystems:FromSwarmstoIntelligentAutomata,Springer,2002,pp.
+103–112.
+[11] A. De Santis, B. Siciliano, A. De Luca, A. Bicchi, An atlas of physical
+human–robotinteraction,Mech.Mach.Theory43(3)(2008)253–270.
+[12] R.A. Brooks, A robust layered control system for a mobile robot, IEEE J.
+Robot.Autom.2(1)(1986)14–23.
+[13] S.Thrun,W.Burgard,D.Fox,ProbabilisticRobotics,MITPress,2005.
+[14] U. Martinez-Hernandez, I. Mahmood, A.A. Dehghani-Sanij, Simultaneous
+Bayesianrecognitionoflocomotionandgaitphaseswithwearablesensors,
+IEEESens.J.18(3)(2018)1282–1290,http://dx.doi.org/10.1109/JSEN.2017.
+2782181.
+[15] U.Martinez-Hernandez,A.Rubio-Solis,V.Cedeno-Campos,A.A.Dehghani-
+Sanij, Towards an intelligent wearable ankle robot for assistance to
+foot drop, in: 2019 IEEE International Conference on Systems, Man and
+Cybernetics(SMC),IEEE,2019,pp.3410–3415.
+[16] V.Rajasekaran,J.Aranda,A.Casals,J.L.Pons,Anadaptivecontrolstrategy
+forposturalstabilityusingawearablerobot,Robot.Auton.Syst.73(2015)
+16–23.
+[17] D. Novak, R. Riener, A survey of sensor fusion methods in wearable
+robotics,Robot.Auton.Syst.73(2015)155–170.
+[18] J.L. Pons, Wearable Robots: Biomechatronic Exoskeletons, John Wiley &
+Sons,2008.
+[19] L.Peeraer,B.Aeyels,G.VanderPerre,DevelopmentofEMG-basedmode
+and intent recognition algorithms for a computer-controlled above-knee
+prosthesis,J.Biomed.Eng.12(3)(1990)178–182.
+[20] H. Kawamoto, Y. Sankai, Comfortable power assist control method for
+walking aid by HAL-3, in: Systems, Man and Cybernetics, 2002 IEEE
+InternationalConferenceon,4,IEEE,2002,pp.6–pp.
+[21] J.Staudenmayer,D.Pober,S.Crouter,D.Bassett,P.Freedson,Anartificial
+neural network to estimate physical activity energy expenditure and
+identifyphysicalactivitytypefromanaccelerometer,J.Appl.Physiol.107
+(4)(2009)1300–1307.
+[22] A.M.Khan,Y.-K.Lee,T.-S.Kim,Accelerometersignal-basedhumanactivity
+recognitionusingaugmentedautoregressivemodelcoefficientsandarti-
+ficialneuralnets,in:EngineeringinMedicineandBiologySociety,2008.
+EMBS2008.30thAnnualInternationalConferenceoftheIEEE,IEEE,2008,
+pp.5172–5175.
+[23] K. Yuan, A. Parri, T. Yan, L. Wang, M. Munih, Q. Wang, N. Vitiello, A
+realtimelocomotionmoderecognitionmethodforanactivepelvisorthosis,
+in: Intelligent Robots and Systems (IROS), 2015 IEEE/RSJ International
+Conferenceon,IEEE,2015,pp.6196–6201.
+[24] S.E. Hussein, M.H. Granat, Intention detection using a neuro-fuzzy EMG
+classifier,Eng.Med.Biol.Mag.IEEE21(6)(2002)123–129.
+[25] H. Huang, F. Zhang, L.J. Hargrove, Z. Dou, D.R. Rogers, K.B. Englehart,
+Continuous locomotion-mode identification for prosthetic legs based on
+neuromuscular–mechanicalfusion,IEEETrans.Biomed.Eng.58(10)(2011)
+2867–2875.
+[26] J.Wannenburg,R.Malekian,Physicalactivityrecognitionfromsmartphone
+accelerometerdataforusercontextawarenesssensing,IEEETrans.Syst.
+ManCybern.:Syst.47(12)(2016)3142–3149.[27] U.Martinez-Hernandez,T.J.Dodd,T.J.Prescott,Feelingtheshape:Active
+exploration behaviors for object recognition with a robotic hand, IEEE
+Trans. Syst. Man Cybern.: Syst. 48 (12) (2018) 2339–2348, http://dx.doi.
+org/10.1109/TSMC.2017.2732952.
+[28] U. Martinez-Hernandez, T.J. Dodd, M.H. Evans, T.J. Prescott, N.F. Lepora,
+Activesensorimotorcontrolfortactileexploration,Robot.Auton.Syst.87
+(2017)15–27.
+[29] J. Ferreira, J. Lobo, P. Bessiere, M. Castelo-Branco, J. Dias, A Bayesian
+framework for active artificial perception, IEEE Trans. Cybern. 43 (2)
+(2013)699–711.
+[30] S. Mohammed, A. Same, L. Oukhellou, K. Kong, W. Huo, Y. Amirat,
+Recognitionofgaitcyclephasesusingwearablesensors,Robot.Auton.Syst.
+75(2016)50–59.
+[31] A.J. Young, A.M. Simon, N.P. Fey, L.J. Hargrove, Intent recognition in
+a powered lower limb prosthesis using time history information, Ann.
+Biomed.Eng.42(3)(2014)631–641.
+[32] H.A.Varol,F.Sup,M.Goldfarb,Multiclassreal-timeintentrecognitionof
+apoweredlowerlimbprosthesis,IEEETrans.Biomed.Eng.57(3)(2010)
+542–551.
+[33] F.R.Allen,E.Ambikairajah,N.H.Lovell,B.G.Celler,Classificationofaknown
+sequenceofmotionsandposturesfromaccelerometrydatausingadapted
+Gaussianmixturemodels,Physiol.Meas.27(10)(2006)935.
+[34] X.Liu,Z.Zhou,J.Mai,Q.Wang,Real-timemoderecognitionbasedassistive
+torquecontrolofbionickneeexoskeletonforsit-to-standandstand-to-sit
+transitions,Robot.Auton.Syst.119(2019)209–220.
+[35] A.T.Asbeck,K.Schmidt,C.J.Walsh,Softexosuitforhipassistance,Robot.
+Auton.Syst.73(2015)102–110.
+[36] D.Y. Li, A. Becker, K.A. Shorter, T. Bretl, E.T. Hsiao-Wecksler, Estimating
+systemstateduringhumanwalkingwithapoweredankle-footorthosis,
+IEEE/ASMETrans.Mechatronics16(5)(2011)835–844.
+[37] P.K.Jamwal,S.Q.Xie,S.Hussain,J.G.Parsons,Anadaptivewearableparallel
+robotforthetreatmentofankleinjuries,IEEE/ASMETrans.Mechatronics
+19(1)(2014)64–75.
+[38] J.A. Saglia, N.G. Tsagarakis, J.S. Dai, D.G. Caldwell, Control strategies for
+patient-assisted training using the ankle rehabilitation robot (ARBOT),
+IEEE/ASMETrans.Mechatronics18(6)(2013)1799–1808.
+[39] D.Rus,M.T.Tolley,Design,fabricationandcontrolofsoftrobots,Nature
+521(7553)(2015)467.
+[40] Y.-L.Park,J.Santos,K.G.Galloway,E.C.Goldfield,R.J.Wood,Asoftwearable
+robotic device for active knee motions using flat pneumatic artificial
+muscles, in: Robotics and Automation (ICRA), 2014 IEEE International
+Conferenceon,IEEE,2014,pp.4805–4810.
+[41] P.Polygerinos,Z.Wang,K.C.Galloway,R.J.Wood,C.J.Walsh,Softrobotic
+gloveforcombinedassistanceandat-homerehabilitation,Robot.Auton.
+Syst.73(2015)135–143.
+[42] C.Zhu,W.Sheng,Wearablesensor-basedhandgestureanddailyactivity
+recognitionforrobot-assistedliving,IEEETrans.Syst.ManCybern.-A:Syst.
+Hum.41(3)(2011)569–573.
+[43] A.J. Young, L.J. Hargrove, A classification method for user-independent
+intentrecognitionfortransfemoralamputeesusingpoweredlowerlimb
+prostheses,IEEETrans.NeuralSyst.Rehabil.Eng.24(2)(2015)217–225.
+[44] S. Kyeong, W. Shin, M. Yang, U. Heo, J.-r. Feng, J. Kim, Recognition of
+walkingenvironmentsandgaitperiodbysurfaceelectromyography,Front.
+Inf.Technol.Electron.Eng.20(3)(2019)342–352.
+[45] S.Potluri,A.B.Chandran,C.Diedrich,L.Schega,Machinelearningbased
+human gait segmentation with wearable sensor platform, in: 2019 41st
+AnnualInternationalConferenceoftheIEEEEngineeringinMedicineand
+BiologySociety(EMBC),IEEE,2019,pp.588–594.
+[46] A.Rattanasak,P.Uthansakul,M.Uthansakul,T.Jumphoo,K.Phapatanaburi,
+B. Sindhupakorn, S. Rooppakhun, Real-time gait phase detection using
+wearable sensors for transtibial prosthesis based on a kNN algorithm,
+Sensors22(11)(2022)4242.
+[47] F.Sherratt,A.Plummer,P.Iravani,UnderstandingLSTMnetworkbehaviour
+ofIMU-basedlocomotionmoderecognitionforapplicationsinprostheses
+andwearables,Sensors21(4)(2021)1264.
+[48] S.K. Challa, A. Kumar, V.B. Semwal, A multibranch CNN-BiLSTM model
+forhumanactivityrecognitionusingwearablesensordata,Vis.Comput.
+(2021)1–15.
+[49] J.ZeniJr.,J.Richards,J.Higginson,Twosimplemethodsfordetermining
+gaiteventsduringtreadmillandovergroundwalkingusingkinematicdata,
+GaitPost.27(4)(2008)710–714.
+[50] M.R.Tucker,J.Olivier,A.Pagel,H.Bleuler,M.Bouri,O.Lambercy,J.del
+RMillán,R.Riener,H.Vallery,R.Gassert,Controlstrategiesforactivelower
+extremityprostheticsandorthotics:areview,J.Neuroeng.Rehabil.12(1)
+(2015)1.
+[51] Y.-L. Park, B.-r. Chen, D. Young, L. Stirling, R.J. Wood, E.C. Goldfield, R.
+Nagpal,etal.,Designandcontrolofabio-inspiredsoftwearablerobotic
+device for ankle-foot rehabilitation, Bioinspiration Biomim. 9 (1) (2014)
+016007.
+10
+
+--- Page 11 ---
+U.Martinez-Hernandez,S.Firouzy,P.Mehryaretal. RoboticsandAutonomousSystems161(2023)104353
+[52] K.A. Shorter, G.F. Kogler, E. Loth, W.K. Durfee, E.T. Hsiao-Wecksler, A
+portablepoweredankle-footorthosisforrehabilitation,J.Rehabil.Res.Dev.
+48(4)(2011).
+[53] D.P. Ferris, K.E. Gordon, G.S. Sawicki, A. Peethambaran, An improved
+poweredankle–footorthosisusingproportionalmyoelectriccontrol,Gait
+Posture23(4)(2006)425–428.
+Uriel Martinez-Hernandez receivedtheB.Eng.degree
+inCommunicationsandElectronicsfromtheNational
+PolytechnicInstitute,Mexico,in2005.Heobtainedthe
+M.Sc. degree in Computer Science from the Centre
+for Research and Advanced Studies, Mexico, in 2008.
+HereceivedthePh.D.degreefromtheDepartmentof
+AutomaticControlandSystemsEngineering,University
+ofSheffield,Sheffield,U.K.,in2015.HewasaResearch
+AssociateandResearchFellowatSheffieldRobotics,the
+University of Sheffield and the School of Mechanical
+Engineering,theUniversityofLeeds,respectively.Heis
+currentlyaLecturer(AssistantProfessor)inRoboticsandAutonomousSystems
+attheDepartmentofElectronicsandElectricalEngineering,andtheCentrefor
+AutonomousRobotics(CENTAUR),UniversityofBath,U.K.Hisresearchinterests
+includeactivesensingandperceptionwithtouchandvision,wearableassistive
+robotics,machinelearningforautonomousrobotsandhuman–robotinteraction.
+Sina Firouzyreceived his Ph.D. degree from the De-
+partmentofMechanicalEngineeringattheUniversity
+of Leeds, UK, in 2018. He is currently a Research
+Fellow in Robotics at the University of Portsmouth,
+UK.Hisresearchinterestsincludedynamicanalysisand
+simulation,designandcontrolinRobotics.
+Pouyan Mehryar obtained his Master of Engineering
+(M.Eng.) with first-class honours in Mechanical and
+Medical Engineering from the University of Hull. He
+receivedhisPh.D.degreefromtheinstituteofDesign,
+RoboticsandOptimisation(iDRO),SchoolofMechanical
+EngineeringattheUniversityofLeeds,UK,in2018.Af-
+terobtaininghisPh.D.,HewasaPostdoctoralResearch
+FellowandappointedasapostdoctoralTeachingFellow
+attheSchoolofMechanicalEngineering,theUniversity
+ofLeeds.HeiscurrentlyaPostdoctoralResearcherat
+theHealthcareInnovationCentreoftheTeessideUni-versitybasedinTheWeldingInstitute,Cambridge,UK.Hisresearchinterestslie
+intheareasofbiomechanics,clinicalmovementanalysis,rehabilitationrobotics,
+artificialintelligence,multibodydynamics,tissueengineeringandregenerative
+medicine.
+Lin Mengreceived the Ph.D. degree from the divi-
+sionofBiomedicalEngineering,UniversityofGlasgow,
+Glasgow, U.K., in 2016. She is currently an Associate
+professoratTianjinInternationalJointResearchCenter
+for Neural Engineering, Academy of Medical Engi-
+neeringandTranslationalMedicine,TianjinUniversity,
+Tianjin, China. Her research interests include motion
+analysis, wearable sensing technologies and assistive
+robotics.
+Craig ChildsreceivedthePh.D.degreefromtheUni-
+versityofAalborg,Denmark.HeiscurrentlyaResearch
+Fellow at the Biomedical Engineering Department at
+the University of Strathclyde, Glasgow, UK. He is a
+ClinicalScientistregisteredwiththeHCPC.Hisresearch
+interestsincludemotionanalysis,gaitstability,virtual
+realityfeedback,wearablesensorsandaccessibility.
+Arjan Buisreceived the Ph.D. degree from the Uni-
+versity of Strathclyde. He is currently an Associate
+professorattheBiomedicalEngineeringdepartmentat
+the University of Strathclyde, Glasgow, UK. He is a
+biomedicalengineerandSr,prosthetist&Orthotist.His
+research interests include the body device interface,
+wearable sensing technologies and assistive robotics.
+He has published over 100 journal and conference
+papers.
+Abbas A. Dehghani-Sanij received the Ph.D. degree
+fromtheUniversityofLeeds,Leeds,U.K.Heiscurrently
+ProfessorofBio-MechatronicsandMedicalRoboticsin
+theSchoolofMechanicalEngineeringattheUniversity
+of Leeds. His research interests include robotics, bio-
+mechatronics,intelligentcontrol,sensorsandactuators
+forthedevelopmentofintelligentsystems/devices.He
+has published more than 150 journal and conference
+papers.
+11

@@ -1,0 +1,2464 @@
+--- Page 1 ---
+••••••••••••••••• ••••••••••••••Autonomous Driving in Urban
+Environments: Boss and the
+Urban Challenge
+Chris Urmson, Joshua Anhalt, Drew Bagnell,
+Christopher Baker, Robert Bittner,M. N. Clark, John Dolan, Dave Duggins,
+Tugrul Galatali, Chris Geyer,
+Michele Gittleman, Sam Harbaugh,Martial Hebert, Thomas M. Howard,
+Sascha Kolski, Alonzo Kelly,
+Maxim Likhachev, Matt McNaughton,Nick Miller, Kevin Peterson, Brian Pilnick,Raj Rajkumar, Paul Rybski, Bryan Salesky,
+Young-Woo Seo, Sanjiv Singh, Jarrod Snider,
+Anthony Stentz, William “Red” Whittaker,Ziv Wolkowicki, and Jason Ziglar
+Carnegie Mellon University
+Pittsburgh, Pennsylvania 15213e-mail: curmson@ri.cmu.edu
+Hong Bae, Thomas Brown, Daniel Demitrish,
+Bakhtiar Litkouhi, Jim Nickolaou,
+Varsha Sadekar, and Wende Zhang
+General Motors Research and Development
+Warren, Michigan 48090
+Joshua Struble and Michael Taylor
+Caterpillar, Inc.Peoria, Illinois 61656
+Michael Darms
+Continental AG
+Auburn Hills, Michigan 48326
+Dave Ferguson
+Intel ResearchPittsburgh, Pennsylvania 15213
+Received 22 February 2008; accepted 19 June 2008
+Journal of Field Robotics 25(8), 425–466 (2008) C/circlecopyrt2008 Wiley Periodicals, Inc.
+Published online in Wiley InterScience (www.interscience.wiley.com). •DOI: 10.1002/rob.20255
+
+--- Page 2 ---
+426 •Journal of Field Robotics—2008
+Boss is an autonomous vehicle that uses on-board sensors (global positioning system,
+lasers, radars, and cameras) to track other vehicles, detect static obstacles, and localize
+itself relative to a road model. A three-layer planning system combines mission, behav-ioral, and motion planning to drive in urban environments. The mission planning layer
+considers which street to take to achieve a mission goal. The behavioral layer determines
+when to change lanes and precedence at intersections and performs error recovery maneu-vers. The motion planning layer selects actions to avoid obstacles while making progress
+toward local goals. The system was developed from the ground up to address the require-
+ments of the DARPA Urban Challenge using a spiral system development process witha heavy emphasis on regular, regressive system testing. During the National Qualiﬁca-
+tion Event and the 85-km Urban Challenge Final Event, Boss demonstrated some of its
+capabilities, qualifying ﬁrst and winning the challenge.
+C/circlecopyrt2008 Wiley Periodicals, Inc.
+1. INTRODUCTION
+In 2003 the Defense Advanced Research Projects
+Agency (DARPA) announced the ﬁrst Grand Chal-
+lenge. The goal was to develop autonomous vehi-
+cles capable of navigating desert trails and roads athigh speeds. The competition was generated as a re-
+sponse to a congressional mandate that a third of
+U.S. military ground vehicles be unmanned by 2015.Although there had been a series of ground vehi-
+cle research programs, the consensus was that exist-
+ing research programs would be unable to deliverthe technology necessary to meet this goal (Commit-
+tee on Army Unmanned Ground Vehicle Technology,
+2002). DARPA decided to rally the ﬁeld to meet this
+need.
+The ﬁrst Grand Challenge was held in March
+2004. Though no vehicle was able to complete the
+challenge, a vehicle named Sandstorm went the far-
+thest, setting a new benchmark for autonomous ca-pability and providing a template on how to win the
+challenge (Urmson et al., 2004). The next year, ﬁve ve-
+hicles were able to complete a similar challenge, withStanley (Thrun et al., 2006) ﬁnishing minutes ahead
+of Sandstorm and H1ghlander (Urmson et al., 2006)
+to complete the 244-km race in a little under 7 h.
+After the success of the Grand Challenges,
+DARPA organized a third event: the Urban Chal-
+lenge. The challenge, announced in April 2006, calledfor autonomous vehicles to drive 97 km through an
+urban environment, interacting with other moving
+vehicles and obeying the California Driver Hand-book. Interest in the event was immense, with 89
+teams from around the world registering interest in
+competing. The teams were a mix of industry and
+academics, all with enthusiasm for advancing au-
+tonomous vehicle capabilities.To compete in the challenge, teams had to pass
+a series of tests. The ﬁrst was to provide a credible
+technical paper describing how they would imple-ment a safe and capable autonomous vehicle. Based
+on these papers, 53 teams were given the opportu-
+nity to demonstrate ﬁrsthand for DARPA their abilityto navigate simple urban driving scenarios including
+passing stopped cars and interacting appropriately
+at intersections. After these events, the ﬁeld was fur-ther narrowed to 36 teams who were invited to par-
+ticipate in the National Qualiﬁcation Event (NQE) in
+Victorville, California. Of these teams, only 11 would
+qualify for the Urban Challenge Final Event (UCFE).
+This article describes the algorithms and mech-
+anism that make up Boss (see Figure 1), an au-
+tonomous vehicle capable of driving safely in trafﬁc
+at speeds up to 48 km/h. Boss is named after Charles“Boss” Kettering, a luminary ﬁgure in the automotive
+industry, with inventions as wide ranging as the all-
+electric starter for the automobile, the coolant Freon,and the premature-infant incubator. Boss was devel-
+oped by the Tartan Racing Team, which was com-
+posed of students, staff, and researchers from sev-eral entities, including Carnegie Mellon University,
+General Motors, Caterpillar, Continental, and Intel.
+This article begins by describing the autonomousvehicle and sensors and then moves on to a discus-
+sion of the algorithms and approaches that enabled it
+to drive autonomously.
+The motion planning subsystem (described in
+Section 3) consists of two planners, each capable of
+avoiding static and dynamic obstacles while achiev-
+ing a desired goal. Two broad scenarios are consid-
+ered: structured driving (road following) and un-structured driving (maneuvering in parking lots).
+For structured driving, a local planner generates
+trajectories to avoid obstacles while remaining in its
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 3 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •427
+Figure 1. Boss, the autonomous Chevy Tahoe that won the 2007 DARPA Urban Challenge.
+lane. For unstructured driving, such as entering/
+exiting a parking lot, a planner with a four-
+dimensional search space (position, orientation, di-
+rection of travel) is used. Regardless of which plan-ner is currently active, the result is a trajectory that,
+when executed by the vehicle controller, will safely
+drive toward a goal.
+The perception subsystem (described in
+Section 4) processes and fuses data from Boss’s
+multiple sensors to provide a composite model of theworld to the rest of the system. The model consists
+of three main parts: a static obstacle map, a list of
+the moving vehicles in the world, and the location of
+Boss relative to the road.
+The mission planner (described in Section 5) com-
+putes the cost of all possible routes to the next mission
+checkpoint given knowledge of the road network.
+The mission planner reasons about the optimal pathto a particular checkpoint much as a human would
+plan a route from his or her current position to a desti-
+nation, such as a grocery store or gas station. The mis-sion planner compares routes based on knowledge
+of road blockages, the maximum legal speed limit,
+and the nominal time required to make one maneu-ver versus another. For example, a route that allows
+a higher overall speed but incorporates a U-turn may
+actually be slower than a route with a lower overallspeed but that does not require a U-turn.
+The behavioral system (described in Section 6)
+formulates a problem deﬁnition for the motion plan-ner to solve based on the strategic information pro-
+vided by the mission planner. The behavioral subsys-
+tem makes tactical decisions to execute the mission
+plan and handles error recovery when there are prob-lems. The behavioral system is roughly divided into
+three subcomponents: lane driving ,intersection han-
+dling ,a n d goal selection . The roles of the ﬁrst two sub-
+components are self-explanatory. Goal selection is re-
+sponsible for distributing execution tasks to the other
+behavioral components or the motion layer and forselecting actions to handle error recovery.
+The software infrastructure and tools that enable
+the other subsystems are described in Section 7. The
+software infrastructure provides the foundation upon
+which the algorithms are implemented. Additionally,the infrastructure provides a toolbox of components
+for online data logging, ofﬂine data log playback, and
+visualization utilities that aid developers in buildingand troubleshooting the system. A run-time execu-
+tion framework is provided that wraps around algo-
+rithms and provides interprocess communication, ac-cess to conﬁgurable parameters, a common clock, and
+a host of other utilities.
+Testing and performance in the NQE and UCFE
+are described in Sections 8 and 9. During the develop-
+ment of Boss, the team put a signiﬁcant emphasis on
+evaluating performance and ﬁnding weaknesses toensure that the vehicle would be ready for the Urban
+Challenge. During the qualiﬁers and ﬁnal challenge,
+Boss performed well, but made a few mistakes.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 4 ---
+428 •Journal of Field Robotics—2008
+Despite these mistakes and a very capable ﬁeld of
+competitors, Boss qualiﬁed for the ﬁnal event and
+won the Urban Challenge.
+2. BOSS
+Boss is a 2007 Chevrolet Tahoe modiﬁed for au-
+tonomous driving. Modiﬁcations were driven by the
+need to provide computer control and also to supportsafe and efﬁcient testing of algorithms. Thus, modi-
+ﬁcations can be classiﬁed into two categories: those
+for automating the vehicle and those that made test-
+ing either safer or easier. A commercial off-the-shelf
+drive-by-wire system was integrated into Boss withelectric motors to turn the steering column, depress
+the brake pedal, and shift the transmission. The third-
+row seats and cargo area were replaced with electron-ics racks, the steering was modiﬁed to remove excess
+compliance, and the brakes were replaced to allow
+faster braking and reduce heating.
+Boss maintains normal human driving controls
+(steering wheel and brake and gas pedals) so that
+a safety driver can quickly and easily take controlduring testing. Boss has its original seats in addi-
+tion to a custom center console with power and net-
+work outlets, which enable developers to power lap-tops and other accessories, supporting longer and
+more productive testing. A welded tube roll cage
+was also installed to protect human occupants in the
+event of a collision or rollover during testing. For un-
+manned operation a safety radio is used to engageautonomous driving, pause, or disable the vehicle.
+Boss has two independent power buses. The
+stock Tahoe power bus remains intact with its 12-V dc battery and harnesses but with an upgraded
+high-output alternator. An auxiliary 24-V dc power
+system provides power for the autonomy hardware.The auxiliary system consists of a belt-driven alter-
+nator that charges a 24-V dc battery pack that is in-
+verted to supply a 120-V ac bus. Shore power, in theform of battery chargers, enables Boss to remain fully
+powered when in the shop with the engine off. Ther-
+mal control is maintained using the stock vehicle air-conditioning system.
+For computation, Boss uses a CompactPCI chas-
+sis with 10 2.16-GHz Core2Duo processors, eachwith 2 GB of memory and a pair of gigabit Ether-
+net ports. Each computer boots off of a 4-GB ﬂash
+drive, reducing the likelihood of a disk failure. Two
+of the machines also mount 500-GB hard drives for
+data logging. Each computer is also time synchro-nized through a custom pulse-per-second adaptor
+board.
+Boss uses a combination of sensors to provide
+the redundancy and coverage necessary to navigate
+safely in an urban environment. Active sensing is
+used predominantly, as can be seen in Table I. The de-cision to emphasize active sensing was primarily due
+to the team’s skills and the belief that in the Urban
+Challenge direct measurement of range and targetvelocity was more important than getting richer, but
+more difﬁcult to interpret, data from a vision system.
+The conﬁguration of sensors on Boss is illustrated in
+Figure 2. One of the novel aspects of this sensor con-
+ﬁguration is the pair of pointable sensor pods locatedabove the driver and front passenger doors. Each pod
+contains an ARS 300 radar and ISF 172 LIDAR. By
+pointing these pods, Boss can adjust its ﬁeld of re-gard to cover crossroads that may not otherwise be
+observed by a ﬁxed-sensor conﬁguration.
+3. MOTION PLANNING
+The motion planning layer is responsible for execut-
+ing the current motion goal issued from the behav-
+iors layer. This goal may be a location within a road
+lane when performing nominal on-road driving, a lo-
+cation within a zone when traversing through a zone,
+or any location in the environment when performingerror recovery. The motion planner constrains itself
+based on the context of the goal to abide by the rules
+of the road.
+In all cases, the motion planner creates a path
+toward the desired goal and then tracks this path
+by generating a set of candidate trajectories that fol-low the path to various degrees and selecting from
+this set the best trajectory according to an evaluation
+function. This evaluation function differs dependingon the context but includes consideration of static
+and dynamic obstacles, curbs, speed, curvature, and
+deviation from the path. The selected trajectory canthen be directly executed by the vehicle. For more
+details on all aspects of the motion planner, see
+Ferguson, Howard, and Likhachev (2008, submitted).
+3.1. Trajectory Generation
+A model-predictive trajectory generator originallypresented in Howard and Kelly (2007) is responsible
+for generating dynamically feasible actions from an
+initial state xto a desired terminal state. In general,
+this algorithm can be applied to solve the problem
+of generating a set of parameterized controls u(p,x)
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 5 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •429
+Table I. Description of the sensors incorporated into Boss.
+Sensor Characteristics
+Applanix POS-LV 220/420 GPS/IMU (APLX) •Submeter accuracy with Omnistar VBS corrections
+•Tightly coupled inertial/GPS bridges GPS outages
+SICK LMS 291-S05/S14 LIDAR (LMS) •180/90 deg ×0.9 deg FOV with 1/0.5-deg angular resolution
+•80-m maximum range
+Velodyne HDL-64 LIDAR (HDL) •360×26-deg FOV with 0.1-deg angular resolution
+•70-m maximum range
+Continental ISF 172 LIDAR (ISF) •12×3.2 deg FOV
+•150-m maximum range
+IBEO Alasca XT LIDAR (XT) •240×3.2 deg FOV
+•300-m maximum range
+Continental ARS 300 Radar (ARS) •60/17 deg ×3.2 deg FOV
+•60-m/200-m maximum range
+Point Grey Fireﬂy (PGF) •High-dynamic-range camera
+•45-deg FOV
+Figure 2. The mounting location of sensors on the vehicle; refer to Table I for abbreviations used in this ﬁgure.
+that satisfy state constraints C(x) whose dynamics
+can be expressed in the form of a set of differentialequations f:
+·x=f[x,u(p,x)]. (1)
+To navigate urban environments, position and
+heading terminal state constraints are typically re-
+quired to properly orient a vehicle along the road.
+The constraint equation x
+Cis the difference betweenthe target terminal state constraints and the integral
+of the model dynamics:
+xC=[xCyCθC]T, (2)
+C(x)−xC−/integraldisplaytf
+0·x(x,p)dt=0. (3)
+The ﬁdelity of the vehicle model directly cor-
+relates to the effectiveness of a model-predictive
+planning approach. The vehicle model describes
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 6 ---
+430 •Journal of Field Robotics—2008
+the mapping from control inputs to state response
+(changes in position, orientation, velocity, etc.). Se-
+lecting an appropriate parameterization of controlsis important because it deﬁnes the space over which
+the optimization is performed to satisfy the boundary
+state constraints.
+The vehicle model used for Boss combines a cur-
+vature limit (the minimum turning radius), a curva-
+ture rate limit (a function of the maximum speed atwhich the steering wheel can be turned), maximum
+acceleration and deceleration, and a model of the con-
+trol input latency. This model is then simulated using
+a ﬁxed-timestep Euler integration to evaluate the con-
+straint equation.
+The control inputs are described by two param-
+eterized functions: a time-based linear velocity func-
+tion v
+cmdand an arc-length-based curvature function
+κcmd:
+u(p,x)=[vcmd(p,t)+κcmd(p,s)]T. (4)
+The linear velocity proﬁle takes the form of a
+constant proﬁle, linear proﬁle, linear ramp proﬁle,or a trapezoidal proﬁle (Figure 3). The local motion
+planner selects the appropriate parameterization for
+particular applications (such as parking and distancekeeping).
+The response to the curvature command function
+by the vehicle model deﬁnes the shape of the tra-jectory. The proﬁle consists of three dependent pa-
+rameters ( κ
+0,κ1,a n d κ2) and the trajectory length s f.
+A second-order spline proﬁle was chosen because itcontains enough degrees of freedom (four) to sat-
+isfy the boundary state constraints (three). The initial
+spline knot point κ
+0is ﬁxed during the optimization
+process to a value that generates a smooth orsharp tra-
+jectory and will be discussed later:
+pfree=[κ1κ2sf]T. (5)As described, the system retains three parameter-
+ized freedoms: two curvature command spline knot
+points ( κ1,κ2) and the trajectory length s. The duality
+of the trajectory length sfand time tfcan be resolved
+by estimating the time that it takes to drive the en-
+tire distance through the linear velocity proﬁle. Timewas used for the independent variable for the linear
+velocity command function because of the simplicity
+of computing proﬁles deﬁned by accelerations (linearramp and trapezoidal proﬁles). Arc length was used
+for the curvature command function because the tra-
+jectory shape is less dependent on the speed at which
+trajectories are executed.
+Given the three free parameters and the three
+constraints in our system, we can use various opti-
+mization techniques to solve for the parameter values
+that minimize our constraint equation. An initial es-timate of the parameter values is deﬁned using a
+precomputed approximate mapping from state space
+to parameter space in a lookup table. The parame-ter estimates are iteratively modiﬁed by linearizing
+and inverting the differential equations describing
+the equations of motion. A correction factor is gen-erated by taking the product of the inverted Jacobian
+and the boundary state constraint error. The Jacobian
+is model invariant because it is determined numeri-cally through central differences of simulated vehicle
+actions:
+x
+F(p,x)=/integraldisplaytf
+0·x(x,p)dt, (6)
+C(x,p)=xC−xF(p,x), (7)
+/Delta1p=−/bracketleftbiggδC(x,p)
+δp/bracketrightbigg−1
+C(x,p). (8)
+The control parameters are modiﬁed until the
+residual of the boundary state constraints is within
+acceptable bounds or until the optimization diverges.
+Figure 3. Velocity proﬁles used by the trajectory generator.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 7 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •431
+If the boundary state constraints are infeasible to
+reach given a particular parameterization (e.g., inside
+the minimum turning radius), the optimization is ex-pected to diverge. The resulting trajectory is returned
+as the best estimate and is evaluated by the motion
+planner.
+3.2. On-Road Navigation
+During on-road navigation, the motion goal from the
+behavioral system is a location within a road lane.
+The motion planner then attempts to generate a tra-
+jectory that moves the vehicle toward this goal loca-
+tion in the desired lane. To do this, it ﬁrst constructsa curve along the centerline of the desired lane. This
+represents the nominal path that the center of the ve-
+hicle should follow. This curve is then transformedinto a path in rear-axle coordinates to be tracked by
+the motion planner.
+To robustly follow the desired lane and to avoid
+static and dynamic obstacles, the motion planner gen-
+erates trajectories to a set of local goals derived from
+the centerline path. The local goals are placed at aﬁxed longitudinal distance down the centerline path
+but vary in lateral offset from the path to provide sev-
+eral options for the planner. The trajectory genera-tion algorithm is used to compute dynamically fea-
+sible trajectories to these local goals. For each goal,
+two trajectories are generated: a smooth trajectory
+and a sharp trajectory. The smooth trajectory has the
+initial curvature parameter ﬁxed to the curvature ofthe forward-predicted vehicle state. The sharp tra-
+jectory has the initial curvature parameter set to an
+offset value from the forward-predicted vehicle stateto produce a sharp initial action. The velocity pro-
+ﬁle used for each of these trajectories is computed
+based on several factors, including the maximum ve-locity bound given from the behavioral subsystem,
+the speed limit of the current road segment, the maxi-
+mum velocity feasible given the curvature of the cen-terline path, and the desired velocity at the goal (e.g.,
+zero if it is a stop line).
+Figure 4 provides an example of smooth and
+sharp trajectories (light and dark) generated to the
+same goal poses. The smooth trajectories exhibit con-
+tinuous curvature control throughout; the sharp tra-jectories begin with a discontinuous jump in curva-
+ture control, resulting in a sharp response from the
+vehicle.
+The resulting trajectories are then evaluated
+against their proximity to static and dynamic obsta-
+Figure 4. Smooth and sharp trajectories. The trajectory
+sets are generated to the same endpoints but differ in theirinitial commanded curvature.
+cles in the environment, as well as their distance from
+the centerline path, their smoothness, and various
+other metrics. The best trajectory according to these
+metrics is selected and executed by the vehicle. Be-cause the trajectory generator computes the feasibil-
+ity of each trajectory using an accurate vehicle model,
+the selected trajectory can be directly executed by the
+vehicle controller.
+Figure 5 provides an example of the local planner
+following a road lane. Figure 5(a) shows the vehicle
+navigating down a two-lane road (lane boundaries
+shown in blue, current curvature of the vehicleshown in pink, minimum turning radius arcs shown
+in white) with a vehicle in the oncoming lane.
+Figure 5(b) shows the extracted centerline path fromthe desired lane (in red). Figure 5(c) shows a set of
+trajectories generated by the vehicle given its current
+state and the centerline path and lane boundaries.From this set of trajectories, a single trajectory is se-
+lected for execution, as discussed above. Figure 5(d)
+shows the evaluation of one of these trajectoriesagainst both static and dynamic obstacles in the envi-
+ronment, and Figure 5(f) shows this trajectory being
+selected for execution by the vehicle.
+3.3. Zone Navigation
+During zone navigation, the motion goal from behav-iors is a pose within a zone (such as a parking spot).
+The motion planner attempts to generate a trajectory
+that moves the vehicle toward this goal pose. How-ever, driving in unstructured environments, such as
+zones, signiﬁcantly differs from driving on roads. As
+mentioned in the preceding section, when traveling
+on roads the desired lane implicitly provides a pre-
+ferred path for the vehicle (the centerline of the lane).
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 8 ---
+432 •Journal of Field Robotics—2008
+(a)
+ (b)
+ (c)
+(d)
+ (e)
+ (f)
+Figure 5. A single timeframe following a road lane from the DARPA Urban Challenge. Shown is the centerline path
+extracted from the lane (b), the trajectories generated to track this path (c), and the evaluation of one of these trajectoriesagainst both static and dynamic obstacles (d and e).
+In zones there are no driving lanes, and thus the
+movement of the vehicle is far less constrained.
+To efﬁciently plan a smooth path to a distant goal
+pose in a zone, we use a lattice planner that searchesover vehicle position ( x,y), orientation θ, and speed
+v. The set of possible local maneuvers considered for
+each ( x,y,θ,v ) state in the planner’s search space is
+constructed ofﬂine using the same vehicle model as
+used in trajectory generation, so that it can be accu-
+rately executed by the vehicle. This planner searchesin a backward direction, from the goal pose out into
+the zone, and generates a path consisting of a se-
+quence of feasible high-ﬁdelity maneuvers that arecollision-free with respect to the static obstacles ob-
+served in the environment. This path is also biased
+away from undesirable areas within the environment,
+such as curbs and locations in the vicinity of dynamic
+obstacles.
+To efﬁciently generate complex plans over large,
+obstacle-laden environments, the planner relies on
+an anytime, replanning search algorithm known asAnytime D
+∗(Likhachev, Ferguson, Gordon, Stentz, &
+Thrun, 2005). Anytime D∗quickly generates an ini-
+tial, suboptimal plan for the vehicle and then im-proves the quality of this solution while deliberationtime allows. At any point in time, Anytime D
+∗pro-
+vides a provable upper bound on the subotpimality
+of the plan. When new information concerning the
+environment is received (for instance, a new static ordynamic obstacle is observed), Anytime D
+∗is able to
+efﬁciently repair its existing solution to account for
+the new information. This repair process is expeditedby performing the search in a backward direction, be-
+cause in such a scenario, updated information in the
+vicinity of the vehicle affects a smaller portion of thesearch space so that less repair is required.
+To scale to very large zones (up to 0.5 ×0.5 km),
+the planner uses a multiresolution search and ac-tion space. In the vicinity of the goal and vehicle,
+where very complex maneuvering may be required,
+the search considers states of the vehicles with 32
+uniformly spaced orientations. In the areas that are
+not in the vicinity of the goal or a vehicle, the searchconsiders only the states of the vehicle with 16 uni-
+formly spaced orientations. It also uses a sparse set of
+actions that allow the vehicle to transition betweenthese states. Because coarse- and dense-resolution
+variants share the same dimensionality and, in par-
+ticular, have 16 orientations in common, they seam-lessly interface with each other, and the resulting
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 9 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •433
+Figure 6. Replanning when new information is received. As Boss navigates toward its desired parking spot (lattice path
+shown in red, trajectories to track path in various colors), it observes more of one of the adjacent vehicles and replans a paththat brings it smoothly into the spot.
+solution paths overlapping both coarse and dense ar-
+eas of the space are smooth and feasible.
+To ensure that a path is available for the vehicle
+as soon as it enters a zone, the lattice planner begins
+planning for the ﬁrst goal pose within the zone while
+the vehicle is still approaching the zone. By planninga path from the entry point of the zone in advance, the
+vehicle can seamlessly transition into the zone with-
+out needing to stop, even for very large and complex
+zones. In a similar vein, when the vehicle is in a zone
+traveling toward a parking spot, we have a secondlattice planner computing a path from that spot to the
+next desired location (e.g., the next parking spot to
+reach or an exit of the zone). When the vehicle reachesits intended parking spot, the vehicle then immedi-
+ately follows the path from this second planner, again
+eliminating any time spent waiting for a plan to begenerated.
+The resulting plan is then tracked by the local
+planner in a similar manner to the paths extractedfrom road lanes. The motion planner generates a set
+of trajectories that attempt to follow the plan while
+also allowing for local maneuverability. However, incontrast to when following lane paths, the trajecto-
+ries generated to follow the zone path all attempt toterminate on the path. Each trajectory is in fact a con-
+catenation of two short trajectories, with the ﬁrst of
+the two short trajectories ending at an offset positionfrom the path and the second ending back on the
+path. By having all concatenated trajectories return
+to the path, we signiﬁcantly reduce the risk of havingthe vehicle move itself into a state that is difﬁcult to
+leave.
+Figure 6 illustrates the tracking of the lattice plan
+and the replanning capability of the lattice planner.
+These images were taken from a parking task per-formed during the NQE (the top-left image shows
+the zone in green and the neighboring roads in blue).
+The top-right image shows the initial path plannedfor the vehicle to enter the parking spot indicated by
+the white triangle. Several of the other spots were oc-
+cupied by other vehicles (shown as rectangles of var-ious colors), with detected obstacles shown as red ar-
+eas. The trajectories generated to follow the path are
+shown emanating from our vehicle. (Notice how eachtrajectory consists of two sections, with the ﬁrst leav-
+ing the path and the second returning to the path.) As
+the vehicle gets closer to its intended spot, it observesmore of the vehicle parked in the right-most park-
+ing spot (bottom-left image). At this point, it realizes
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 10 ---
+434 •Journal of Field Robotics—2008
+that its current path is infeasible and replans a new
+path that has the vehicle perform a loop and pull in
+smoothly. This path was favored in terms of time overstopping and backing up to reposition.
+The lattice planner is ﬂexible enough to be used
+in a large variety of cases that can occur during on-road and zone navigation. In particular, it is used dur-
+ing error recovery when navigating congested inter-
+sections, to perform difﬁcult U-turns, and to get thevehicle back on track after emergency defensive driv-
+ing maneuvers. In such cases, the behaviors layer is-
+sues a goal pose (or set of poses) to the motion plan-
+ner and indicates that it is in an error recovery mode.
+The motion planner then uses the lattice planner togenerate a path to the set of goals, with the lattice
+planner determining during its planning which goal
+is easiest to reach. In these error recovery scenariosthe lattice planner is biased to avoid areas that could
+result in unsafe behavior (such as oncoming lanes
+when on roads).
+4. PERCEPTION
+The perception system is responsible for providinga model of the world to the behavioral and motion
+planning subsystems. The model includes the mov-
+ing vehicles (represented as a list of tracked objects)and static obstacles (represented in a regular grid)
+and localizing the vehicle relative to, and estimating
+the shape of, the roads it is driving on.
+4.1. Moving Obstacle Detection and Tracking
+The moving obstacle detection and tracking subsys-tem provides a list of object hypotheses and their
+characteristics to the behavioral and motion planning
+subsystems. The following design principles guidedthe implementation:
+•No information about driving context is used
+inside the tracking algorithm.
+•No explicit vehicle classiﬁcation is per-
+formed. The tracking system provides
+information only about the movement stateof object hypotheses.
+•Information about the existence of objects is
+based on sensor information only. It is pos-sible for some objects to be predicted, but
+only for short time intervals, as a compensa-
+tion for known sensor parameters. Detection
+dropouts caused by noise, occlusions, and
+other artifacts must be handled elsewhere.xT,,,,, avyx xT,,,,, yxyxyx x
+x(a) (b )
+Figure 7. The two models used by the tracking system: a
+reduced bicycle model with a ﬁxed shape (a) and a pointmodel without shape information (b).
+•Object identiﬁers are not guaranteed to be
+stable. A new identiﬁer does not necessarily
+mean that it is a new object.
+•Well-deﬁned and distinct tracking models are
+used to maximize the use of information pro-
+vided by heterogeneous sensors.
+•Motion prediction exploits known road ge-
+ometry when possible.
+•Sensor-speciﬁc algorithms are encapsulated
+in sensor-speciﬁc modules.
+Figure 7 shows the two tracking models used
+to describe object hypotheses. The box model repre-
+sents a vehicle by using a simpliﬁed bicycle model
+(Kaempchen, Weiss, Schaefer, & Dietmayer, 2004)
+with a ﬁxed length and width. The point model pro-vides no estimate of extent of the obstacle and as-
+sumes a constant-acceleration model (Darms, Rybski,
+& Urmson, 2008a) with adaptive noise dependent onthe length and direction of the velocity vector. Provid-
+ing two potential tracking models enables the system
+to represent the best model of tracked objects sup-ported by the data. The system is able to switch be-
+tween these models as appropriate.
+The system classiﬁes object hypotheses as either
+moving ornot moving and either observed moving ornot
+observed moving , so that each hypothesis can be in one
+of four possible states. The moving ﬂag is set if theobject currently has a velocity that is signiﬁcantly dif-
+ferent from zero. The observed moving ﬂag is set once
+the object has been moving for a signiﬁcant amountof time (on the order of 0.4 s) and is not cleared un-
+til the vehicle has been stopped for some larger sig-
+niﬁcant amount of time (on the order of 10 s). The
+four states act as a well-deﬁned interface to the other
+software modules, enabling classes of tracked objects
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 11 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •435
+Sensor LayerFusion Layer
+Measurement
+Proposals,
+Movement Observation)Object Hypothesis Set
+Local Classification & Proposal Generation
+Association
+Local Target Validation
+Feature ExtractionObject Management
+Estimation & Prediction
+Model SelectionGlobal Classification
+Validated
+FeaturesFeaturesRoad World Model &
+Instantaneous Map Global Target Validation
+RWM Checking
+Sensor LayerFusion Layer
+Measurement
+Proposals,
+Movement Observation)Object Hypothesis Set
+Local Classification & Proposal Generation
+Association
+Local Target Validation
+Feature ExtractionObject Management
+Estimation & Prediction
+Model SelectionGlobal Classification
+Validated
+FeaturesFeaturesRoad World Model &
+Instantaneous Map Global Target Validation
+RWM Checking
+(Observations , (Observations ,
+Figure 8. The moving obstacle detection and tracking system architecture.
+to be ignored in speciﬁc contexts (e.g., not observed
+moving object hypotheses that are not fully on a road
+can be ignored for distance-keeping purposes, as theylikely represent vehicles parked at the side of the
+road or other static obstacles (Darms, Baker, Rybski,
+& Urmson, 2008).
+Figure 8 illustrates the architecture of the track-
+ing system. It is divided into two layers, a sensor layer
+and a fusion layer (Darms & Winner, 2005). For each
+sensor type (e.g., radar, scanning laser, etc.), a special-
+ized sensor layer is implemented. For each physicalsensor on the robot a corresponding sensor layer in-
+stance runs on the system. The architecture enables
+new sensor types to be added to the system withminimal changes to the fusion layer, and other sen-
+sor modules, such as new physical sensors, can be
+added without any modiﬁcations to source code. Thefollowing paragraphs describe the path from sensor
+raw data to a list of object hypotheses.
+Each time a sensor receives new raw data, its cor-
+responding sensor layer instance requests a predic-
+tion of the current set of object hypotheses from the
+fusion layer. Features are extracted out of the mea-sured raw data with the goal of ﬁnding all vehicles
+around the robot (e.g., edges from laser scanner data;
+MacLachlan, 2005). Artifacts caused by ground detec-
+tions or vegetation, for example, are suppressed by
+validating features in two steps. In the ﬁrst step val-idation is performed with sensor-speciﬁc algorithms,
+e.g., using the velocity measurements inside a radar
+module to distinguish a static ground return froma moving vehicle. The second step is performed via
+a general validation interface. The validation per-
+formed inside the fusion layer uses only non-sensor-speciﬁc information. It performs checks against the
+road geometry and against an instantaneous obstacle
+map, which holds untracked three-dimensional (3D)
+information about any obstacles in the near range.
+The result is a list of validated features that poten-tially originate from vehicles.
+The validated features are associated with the
+predicted object hypotheses using a sensor-type-speciﬁc association algorithm. Afterward, for each
+extracted feature (associated or not), multiple possi-
+ble interpretations as a box or point model are gen-erated using a sensor-type-speciﬁc heuristic, which
+takes the sensor characteristics into account [e.g., res-
+olution, ﬁeld of view (FOV), detection probabilities].The compatibility of each generated interpretation
+with its associated prediction is computed. If an inter-
+pretation differs signiﬁcantly, or if the feature couldnot be associated, the sensor module initializes a new
+object hypothesis. In case of an associated feature, a
+new hypothesis can replace the current model hy-pothesis (box or point model). Note that for each fea-
+ture, multiple new hypotheses can be generated. A
+set of new object hypotheses is called a proposal.
+For each associated feature the interpretation that
+best ﬁts the prediction is used to generate an observa-tion. An observation holds all of the data necessary
+to update the state estimation for the associated ob-
+ject hypothesis in the fusion layer. If no interpretation
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 12 ---
+436 •Journal of Field Robotics—2008
+Figure 9. The moving obstacle detection system predicts the motion of tracked vehicles. In parking lots (left) predictions
+are generated by extrapolating the tracking ﬁlter. For roads (right) vehicles are predicted to move along lanes.
+is compatible, then no observation is generated and
+only the proposal exists. As additional information
+for each extracted feature becomes available, the sen-sor module can also provide a movement observa-
+tion. The movement observation tells the fusion layer
+whether an object is currently moving. This infor-
+mation is based only on sensor raw data (e.g., via
+an evaluation of the velocity measurement inside theradar module).
+The proposals, observations, and movement ob-
+servations are used inside the fusion layer to updatethe object hypotheses list and the estimated object
+states. First the best tracking model (box or point)
+is selected with a voting algorithm. The decision isbased on the number and type of proposals provided
+from the different sensors (Darms, Rybski, & Urmson,
+2008b). For objects that are located on roads, the roadshape is used to bias the decision.
+Once the best model is determined, the state esti-
+mate is either updated with the observation providedby the sensor layer or the model for the object hy-
+pothesis is switched to the best alternative. For unas-
+sociated features, the best model of the proposal is
+added to the current list of object hypotheses. With
+the update process complete, object hypotheses thathave not been observed for a certain amount of time
+are removed from the list.
+Finally, a classiﬁcation of the movement state for
+each object hypothesis is carried out. It is based on the
+movement observations from the sensors and a statis-
+tical test based on the estimated state variables. Themovement observations from sensors are prioritized
+over the statistical test, and movement observations
+that classify an object as not moving overrule move-ment observations that classify an object as moving
+(Darms et al., 2008).
+The result is an updated list of object hypothe-
+ses that are accompanied by the classiﬁcation of the
+movement state. For objects that are classiﬁed as
+moving and observed moving, a prediction of the
+state variables is made. The prediction is based on
+logical constraints for objects that are located on theroad. At every point where a driver has a choice
+to change lanes (e.g., at intersections), multiple hy-
+potheses are generated. In zones (parking lots, forexample), the prediction is solely based on the esti-
+mated states of the hypothesis (see Figure 9).
+4.2. Static Obstacle Detection and Mapping
+The static obstacle mapping system combines data
+from the numerous scanning lasers on the vehicle
+to generate both instantaneous and temporally ﬁl-
+tered obstacle maps. The instantaneous obstacle mapis used in the validation of moving obstacle hypothe-
+ses. The temporally ﬁltered maps are processed to re-
+move moving obstacles and are ﬁltered to reduce thenumber of spurious obstacles appearing in the maps.
+Whereas several algorithms were used to generate
+obstacle maps, only the curb detection algorithm ispresented here.
+Geometric features (curbs, berms, and bushes)
+provide one source of information for determin-ing road shape in urban and off-road environments.
+Dense LIDAR data provide sufﬁcient information to
+generate accurate, long-range detection of these rel-
+evant geometric features. Algorithms to detect these
+features must be robust to the variation in features
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 13 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •437
+found across the many variants of curbs, berms,
+ditches, embankments, etc. The curb detection algo-
+rithm presented here exploits the Haar wavelet todeal with this variety.
+To detect curbs, we exploit two principle insights
+into the LIDAR data to simplify detection. First, theroad surface is assumed to be relatively ﬂat and
+slow changing, with road edges deﬁned by observ-
+able changes in geometry, speciﬁcally in height. Thissimpliﬁcation means that the primary feature of a
+road edge reduces to changes in the height of the
+ground surface. Second, each LIDAR scan is pro-
+cessed independently, as opposed to building a 3D
+point cloud. This simpliﬁes the algorithm to considerinput data along a single dimension. The curb detec-
+tion algorithm consists of three main steps: prepro-
+cessing, wavelet-based feature extraction, and post-processing.
+The preprocessing stage provides two important
+features: mitigation of false positives due to occlu-sions and sparse data, and formatting the data for fea-
+ture extraction. False geometric cues can result from
+striking both foreground and background objects orbe due to missing data in a scan. Foreground ob-
+jects are typically detected as obstacles (e.g., cones,
+telephone poles) and do not denote road edges. Tohandle these problems, points are initially clustered
+by distance between consecutive points. After clus-
+tering, small groups of points are removed from the
+scan. A second pass labels the points as dense or
+sparse based on the distances between them. Thedense points are then linearly resampled in order to
+produce an input sequence of 2
+nheights.
+The wavelet-based feature extraction step ana-
+lyzes height data through a discrete wavelet trans-
+form using the Haar wavelet (Daubechies, 1992). The
+Haar wavelet is deﬁned by the mother wavelet andscaling function:
+/Psi1(t)=⎧
+⎪⎨
+⎪⎩1i f 0 ≤t<
+1
+2,
+−1i f1
+2<t< 1,
+0 otherwise ,(9)
+ϕ(2jt−i)=⎧
+⎨
+⎩1i f0 ≤t<1,
+j> 0∧0≤i≤2j−1.
+0 otherwise ,
+(10)
+The Haar transform results in a sequence of coef-
+ﬁcients representing the scaled average slopes of theinput signal within various sampling windows (Shih
+& Tseng, 2005). Because each sampling window is
+half the size of the previous window, these windowssuccessively subdivide the signal into higher resolu-
+tion slopes or detail levels.
+The feature extraction step (see Figure 10) takes
+the Haar coefﬁcients, y, and considers them by win-
+dow sizes, going from largest to smallest window.
+The algorithm classiﬁes points as road points (class 1)or nonroad points, and works as follows:
+1. Collect coefﬁcients for the current detail
+level, i.
+2. Label each coefﬁcient with the label of the
+coefﬁcient at detail level i−1, which repre-
+sents the same portion of the signal.
+3. Calculate ˆ y
+roadusing these labels.
+4. Relabel coefﬁcients by absolute distance
+from ˆyroad, where the distance threshold for
+detail level iis given as di. In other words,
+points are labeled by the function
+class,(y[n],i)=/braceleftBigg
+1i fy[n]−ˆyroad|≥di
+0 otherwise.(11)
+5. Continue to detail level i+1.
+Postprocessing applies a few extra heuristics to
+eliminate false positives and detect some additional
+nonroad points. Using the dense/sparse labeling
+from preprocessing, nonroad labels in sparse sections
+are moved from the sparse points to the neighbor-
+ing dense point closest to the vehicle. Because allLIDARs on the vehicle look downward, the closer
+point corresponds to the higher surface (e.g., berm,
+wall) creating the geometric cue. Afterward, sparsepoints are removed from the classiﬁcation list. The re-
+sulting list represents the locations of the likely road
+and surrounding geometric cues. Figure 11 illustratesthe performance of the algorithm in a typical on-road
+scene from the Urban Challenge.
+4.3. Roadmap Localization
+Boss is capable of either estimating road geometry or
+localizing itself relative to roads with known geome-try. Most urban roads change shape infrequently, and
+most urban driving can be thought of as responding
+to local disturbances within the constraints of a ﬁxed
+road network. Given that the shape and location of
+paved roads change infrequently, our approach was
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 14 ---
+438 •Journal of Field Robotics—2008
+Figure 10. A single frame from the feature extraction algorithm. The top frame contains the original height signal (thick
+line). The window boundaries are from a single-detail level of the transform. The bottom frame shows the wavelet coefﬁ-cients for each window.
+to localize relative to paved roads and estimate the
+shape of dirt roads, which change geometry more fre-
+quently. This approach has two main advantages:
+•it exploits a priori knowledge to eliminate the
+necessity of estimating road shape in most
+cases;
+•it enables the road shape estimation problem
+to emphasize geometric cues such as berms
+and bushes, which are common in environ-ments with dirt roads and easier to detect at
+long range than lane markings.
+This approach led to two independent algo-
+rithms, one to provide a smooth pose relative to a
+road network, and one to estimate the shape of dirt
+roads. The two algorithms are never operated si-
+multaneously, thus avoiding complex interactions be-
+tween them. Both the localization and road shape es-timation algorithms were heavily tested and proved
+to be effective. Despite conﬁdence in the road shape
+estimation system, it was not enabled during the
+Urban Challenge competition. Based on the waypoint density and aerial imagery of the UCFE course,
+the team determined that there was not a need to es-
+timate road shape. A description of the road shapeestimation approach is provided in Section 4.4 for
+completeness because it enables Boss to drive on gen-
+eral roads and was ready to be used in the event, if
+necessary.
+4.3.1. Localization Inputs
+The localization process can be thought of as trans-
+forming the pose provided by a global position-
+ing system (GPS)–based pose estimation system
+into a smooth coordinate frame registered to a
+road network. To do this it combines data from a
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 15 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •439
+(a)
+ (b)
+(c)
+Figure 11. Overhead view of a road section from the Final Event course (a). Points show nonroad points (b). Overlay of
+nonroad points on imagery (c).
+Table II. Error characteristics of the Applanix POS-LV , as
+reported by Applannix.
+Error with GPS Error after
+and differential 1 km of travel
+corrections without GPS
+Planar position, m 0.3 0.88Heading,
+◦0.05 0.07
+commercially available position estimation system
+and measurements of road lane markers with an an-
+notated road map.
+The initial global position estimate is received
+from a device (POS-LV) developed by the Applanix
+Corporation. This system fuses GPS and inertial and
+wheel encoder data to provide a 100-Hz position esti-
+mate that is robust to GPS dropout. Table II describesthe nominal performance of this system with and
+without GPS. The POS-LV is conﬁgured to slightly
+outperform the nominal performance speciﬁcations
+through the use of a combination of Omnistar VirtualBase Station and High Precision services. By incor-
+porating the High Precision data, nominal perfor-
+mance is improved to a 0.1-m planar expected posi-tioning error. Whereas a positioning accuracy of 0.1 m
+sounds sufﬁcient to blindly localize within a lane,
+these correction signals are frequently disrupted byeven small amounts of overhead vegetation. Once
+disrupted, this signal’s reacquisition takes approxi-
+mately a half hour. Thus, relying on these correc-tions is not viable for urban driving. Furthermore,
+lane geometries may not be known to meter accu-
+racies a priori. It is critically important to be local-ized correctly relative to the lane boundaries, because
+crossing over the lane center could have disastrous
+consequences.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 16 ---
+440 •Journal of Field Robotics—2008
+To detect lane boundaries, down-looking SICK
+LMS lasers are used to detect the painted lane mark-
+ers on roads. Lane markers are generally brighterthan the surrounding road material and are detected
+by convolving the intensities across a line scan with
+a slope function. Peaks and troughs in the responserepresent the edges of potential lane marker bound-
+aries. To reduce false positives, only appropriately
+spaced pairs of peaks and troughs are considered tobe lane markers. Candidate markers are then further
+ﬁltered based on their brightness relative to their sup-
+port region. The result is a set of potential lane marker
+positions.
+The road map used for localization encodes both
+correct local geometry and information about the
+presence or absence of lane markings. Although it
+is possible for road geometry to be incorrect glob-ally, the local geometry is important to the estima-
+tion scheme, as will be described below. If the road
+geometry is not well known, the map must indicatethis. When the vehicle traverses parts of the map with
+poor geometry, the road shape estimation algorithms
+operate and the road map localization algorithms aredisabled.
+4.3.2. Position Filtering
+To transform the measurements provided by the
+POS-LV to a smooth, road-network-registered frame,
+we consider three potential sources of position error:
+1.Position jumps. Despite the availability of in-
+ertial information, the POS-LV will occasion-
+ally generate position jumps.
+2.Position drift. The correction signals, vari-
+ation in satellite constellation, and iono-
+spheric disturbances cause slowly various
+changes to the position reported by the POS-LV.
+3.Road model errors. Our approach to creating
+road maps is to manually extract road shapesfrom aerial imagery. Modern aerial imagery
+can provide quarter-meter or better image
+resolution, but global registration is gener-ally good only to a meter or worse. Distor-
+tion in the imagery generally has a low spa-
+tial frequency, so that the local shape of the
+road is accurate, but the apparent global po-
+sition may be inaccurate.These three error sources are grouped into two
+classes; discontinuous errors (such as jumps) and
+continuous errors (drift and model errors). Withevery new state measurement, the change in position
+/Delta1xis checked for validity based on measured wheel
+speed v, anticipated percentage velocity error ζ,a l -
+lowed position jitter ε, travel direction θ, and allow-
+able travel direction error τ:
+reject =|/Delta1x|>v(1+ζ)/Delta1t+ε∨
+/braceleftBigg
+(|/Delta1x|>ε)∧/Delta1x
+|/Delta1x|·/bracketleftBigg
+cos(θ)
+sin(θ)/bracketrightBigg
+>τ/bracerightBigg
+.(12)
+In Eq. (12), the ﬁrst term ensures that the reported
+motion of the vehicle is not signiﬁcantly greater than
+the anticipated motion given the vehicle wheel speed.
+The second term ensures that for any signiﬁcant mo-tion, the reported motion is in approximately the
+same direction as the vehicle is pointed (which is ex-
+pected for the speeds and conditions of the UrbanChallenge). If /Delta1xis rejected, a predicted motion is
+calculated based on heading and wheel speed. The
+residual between the prediction and the measuredchange in position is accumulated in a running sum,
+which is subtracted from position estimates reported
+by the POS-LV . In practice, values of ζ=0.05,ε=0.02,
+andτ=cos(30 deg) produce good performance.
+Correcting for the continuous class of errors is
+how localization to the road model is performed. The
+localization process accumulates lane marker points
+(LMP) generated by the laser lane marker detectionalgorithms. After a short travel distance, 1 m during
+the Urban Challenge, each LMP is associated with a
+lane boundary described in the road model. The dis-tance of the corrected global position pfor each LMP
+from the lane center is calculated, and the projection
+point onto the lane center p
+cis noted. Half of the
+lane width is subtracted from this distance, resulting
+in the magnitude of the local error estimate between
+the lane boundary position and the model of the laneboundary position. This process is repeated for each
+LMP , resulting in an error estimate:
+e
+LMP=1
+nLMPnLMP/summationdisplay
+1/bracketleftbigg/vextendsingle/vextendsingle/parenleftbig
+pi−pi
+c/parenrightbig/vextendsingle/vextendsingle−wi
+l
+2/bracketrightbigg
+·/parenleftbiggpi−pi
+c/vextendsingle/vextendsinglepi−pic/vextendsingle/vextendsingle/parenrightbigg
+.
+(13)
+This represents the error in the current ﬁltered/
+localized position estimate; thus the eLMP repre-
+sents how much error there is between the current
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 17 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •441
+combination of the existing error estimate and posi-
+tion. In practice, we further gate the error estimates,
+discarding any larger than some predetermined max-imum error threshold (3 m during the Urban Chal-
+lenge). Over time, error estimates are accumulated
+through a recursive ﬁlter:
+e
+cur=eprev+αeLMP. (14)
+This approach generates a smooth, road-network-
+referenced position estimate, even in situations inwhich GPS quality is insufﬁcient to otherwise local-
+ize within a lane. This solution proved to be effective.
+During prechallenge testing, we performed several
+tests with GPS signals denied (through the placement
+of aluminum caps over the GPS antennas). In one rep-resentative test, the vehicle was able to maintain po-
+sition within a lane, while traveling more than 5.7 km
+without GPS. During this test, the difference error inthe POS-LV position reached up to 2.5 m, more than
+enough to put the vehicle either off the road or in an-
+other lane if not compensated for.
+4.4. Road Shape Estimation
+To robustly drive on roads where the geometry is notknown a priori, the road shape estimator measures
+the curvature, position, and heading of roads near the
+vehicle. The estimator fuses inputs from a variety ofLIDAR sensors and cameras to composite a model of
+the road. The estimator is initialized using available
+prior road shape data and generates a best-guess roadlocation between designated sparse points where a
+road may twist and turn. The road shape is repre-
+sented as the Taylor expansion of a clothoid with anoffset normal to the direction of travel of the vehicle.
+This approximation is generated at 10 Hz.
+4.4.1. Sensor Inputs
+Two primary features were used to determine road
+location.
+Curbs represent the edge of the road and are de-
+tected using the Haar wavelet (see Static Obstacle
+Detection and Mapping section). When curbs are de-
+tected, the estimator attempts to align the edge of theparametric model with the detections.
+Obstacles represent areas where the road is un-
+likely to exist and are detected using the obstacle de-
+tection system. The estimator is less likely to pick a
+road location where obstacle density is high.4.4.2. State Vector
+To represent the parameters of a road, the following
+model is used:
+s(t)=[x(t),y(t),ϕ(t),C
+0(t),C1(t),W(t)], (15)
+where [ x(t),y(t),φ(t)] represents the origin and orien-
+tation of the base of the curve, C0(t) is the curvature
+of the road, C1(t) is the rate of curvature, and W(t)
+is the road width. A Taylor series representation of a
+clothoid is used to generate the actual curve. This isrepresented as
+y(x)=tan[ϕ(t)]x+C
+0t
+2x2+C1t
+6x3. (16)
+4.4.3. Particle Filter
+The road estimator uses an SIR (sample importance
+resample) (Duda & Hart, 1972) ﬁlter populated by500 particles. Each particle is an instantiation of the
+state vector. During the sampling phase, each parti-
+cle is propagated forward according to the following
+set of equations, where dsrepresents the relative dis-
+tance that the robot traveled from one iteration of thealgorithm to the next:
+y=y+ϕds+(ds)
+2
+2C0+(ds)3
+6C1, (17)
+ϕ=ϕ+C0ds+(ds)2
+2C1−dϕ, (18)
+C0=C0+C1ds, (19)
+C1=(0.99)C1. (20)
+The ﬁnal C1term represents the assumption that the
+curvature of a road will always tend to head toward
+zero, which helps to straighten out the particle overtime. After the deterministic update, the particle ﬁl-
+ter adds random Gaussian noise to each of the di-
+mensions of the particle in an effort to help exploresudden changes in the upcoming road curvature that
+are not modeled by the curve parameters. In addition
+to Gaussian noise, several more directed searches areperformed, in which the width of the road can ran-
+domly increase or decrease itself by a ﬁxed amount.
+Empirically, this represents the case in which a road
+suddenly becomes wider because a turn lane or a
+shoulder has suddenly appeared.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 18 ---
+442 •Journal of Field Robotics—2008
+4.4.4. Sensor Data Processing
+Because particle ﬁltering requires the evaluation of
+a huge number of hypotheses (more than 10,000 hy-potheses per second in this case), it is desirable to be
+able to evaluate road likelihoods very quickly. Eval-
+uations are typically distributed over a large propor-tion of the area around the vehicle and occur at a high
+rate. Therefore, the likelihood evaluations were de-
+signed to have low computational cost, on average
+requiring one lookup per sample point along the road
+shape.
+The likelihood function for the ﬁlter is repre-
+sented as a log-linear cost function:
+L=1
+Ze−C(shape ,data). (21)
+In Eq. (21), Zis a normalization constant that forces
+the sum of the likelihoods over all road shapes to be
+one and Cis a cost function that speciﬁes the em-
+pirical “cost” of a road shape as a function of theavailable sensor data. The cost function is the sum of
+several terms represented by three subclasses of cost
+function: distances, counts, and blockages.
+The ﬁlter evaluates the number of obstacles N
+O
+and number of curb points NCencountered inside the
+road shape; the distance of the edge of the road to
+the detected curb points DC; the distance between the
+observed lane markers and the model’s lane markersD
+L; and the presence of blockage across the road B.
+To scale the cost function, counts and distances are
+normalized. The resulting cost function is
+C=N/summationdisplay
+i=0/parenleftbiggNi
+o
+σo/parenrightbigg2
++/parenleftbiggNi
+C
+σC/parenrightbigg2
++/parenleftbiggDC
+σC/parenrightbigg2
++/parenleftbiggDL
+σL/parenrightbigg2
+.
+(22)
+4.4.5. Fast Convolutions and Distance Transforms
+To exactly compute the cost function, we need to con-
+volve each road shape with the cost map to sum
+the detection counts and obstacle costs. This requires
+tens of thousands of convolutions per second for eachcount. Whereas fast methods exist to exactly compute
+simple shapes (Viola & Jones, 2001), the shapes that
+we wish to convolve are too complicated for these ap-proaches. Instead, we approximate the road shape as
+a set of overlapping disks centered on the road shape
+(see Figure 12).
+The disks have a diameter equal to the width
+of the road and are spaced at 1.5-m samplings.
+Figure 12. Example illustrating how road shape is approx-
+imated by a series of disks.
+Although this approach tends to overcount, we have
+found that it is adequate for the purposes of tracking
+the road and is more than fast enough for our pur-
+poses.
+To allow the width of the road to vary, we com-
+pute convolutions for different-width disks ranging
+from 2.2 to 15.2 m sampled at half-meter spacing. In-termediate widths are interpolated.
+Each width requires one convolution with a ker-
+nel size that varies linearly with the width of the road.Computing these convolutions for each frame is not
+possible, and so the convolutions are computed iter-
+atively. In the case of curb detections, curb points ar-rive and are tested against a binary map, which in-
+dicates whether a curb point near the new detection
+has already been considered. If the location has not
+been considered, then the point is added to the con-
+volution result by adding a disk at each radius to themap stack. In the case of an obstacle map, when a
+new map arrives, a difference map is computed be-
+tween the current map and the previous convolutionindicator. New obstacle detections are added into the
+convolution result as in the case of the point detec-
+tion, and obstacles that have vanished are removed.The result of the convolutions is a set of cost maps
+that represent the road conﬁguration space for each
+potential road width.
+To evaluate the distance components of the cost
+function, we employ a distance transform (Hutten-
+locker & Felzenswalb, 2004). The distances from thenearest curb location or lane marker location to a
+given sample location are built into a distance map.
+The distance map can then be examined at samplepoints and evaluated like the cost counts. Summing
+the overall cost function results in a minimum located
+at the true location of the road.
+A snapshot of the overall system performance is
+illustrated in Figure 13. The example shows on an
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 19 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •443
+Figure 13. Example showing the road shape estimate (par-
+allel curves) for an off-road scene. Obstacles and berms areillustrated by pixels.
+off-road stretch where some geometric features were
+visible in terms of berms and shrubbery as obstacles.
+The top of the ﬁgure shows the output from two cam-
+eras mounted on the top of Boss. The particle ﬁlter
+stretches forward from the vehicle, and the road is
+represented as three lines.
+5. MISSION PLANNING
+To generate mission plans, the data provided in theroad network deﬁnition ﬁle (RNDF) are used to cre-
+ate a graph that encodes the connectivity of the en-
+vironment. Each way point in the RNDF becomes anode in this graph, and directional edges (represent-
+ing lanes) are inserted between way points and all
+other way points that they can reach. For instance, away point deﬁning a stop line at an intersection will
+have edges connecting it to all way points leaving
+the intersection that can be legally driven to. Theseedges are also assigned costs based on a combination
+of several factors, including expected time to traverse
+the edge, distance of the edge, and complexity of thecorresponding area of the environment. The resultant
+cost graph is the baseline for travel road and lane de-
+cisions by the behavioral subsystem.
+A value function is computed over this graph,
+providing the path from each way point to the cur-rent goal (e.g., the ﬁrst checkpoint in a mission). In
+addition to providing the executive more information
+to reason about, computing a value function is usefulbecause it allows the navigation system to react ap-
+propriately if an execution error occurs (e.g., if the ve-
+hicle drives through an intersection rather than turn-ing, the new best path to take is instantly available).
+As the vehicle navigates through the environ-
+ment, the mission planner updates its graph to in-corporate newly observed information such as road
+blockages. Each time a change is observed, the mis-
+sion planner regenerates a new policy. Because the
+size of the graph is relatively small, this replan-
+ning can be performed quickly, allowing for near-immediate response to detected changes.
+To correctly react to these occurrences, the robot
+must be able to detect when a road is impassable andplan another route to its goal, no matter where the
+goal is. Particularly difﬁcult cases include planning
+to a goal immediately on the other side of a newlydiscovered blockage and behaving reasonably when
+a one-way street becomes blocked. Road conditions
+are ﬂuid and highly variable, and road blockages maynot be permanent. Thus, a robot should eventually
+revisit the site of a previously encountered blockage
+to see whether it has been cleared away. In fact, therobot must revisit a blockage if all other paths to a
+goal have also been found to be blocked, hoping to
+discover that a road blockage has been cleared.
+5.1. Detecting Blockages
+To determine whether there is a blockage, Boss caneither directly detect the blockage or infer it by a fail-ure to navigate a lane. To directly detect a blockage,
+the road in front of Boss is checked against a static
+obstacle map to see whether lethal obstacles com-pletely cross the road. Noise in the obstacle map is
+suppressed by ignoring apparent blockages that have
+been observed for less than a time constant (nomi-nally 5 s). Blockages are considered to no longer exist
+if the obstacle map shows a sufﬁciently wide corri-
+dor through the location where a blockage previouslyexisted.
+The direct detection algorithm generates obsta-
+cles using an efﬁcient but optimistic algorithm; thus,there are conﬁgurations of obstacles that effectively
+block the road but are not directly detected as a road
+blockage. In these conditions, the on-road navigation
+algorithm may report that the road is blocked, induc-
+ing a virtual blockage. Because the behavior generation
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 20 ---
+444 •Journal of Field Robotics—2008
+module works by picking the lowest cost path to its
+goal, this is an elegant way for it to stimulate itself to
+choose an alternate route. Because virtual blockagesinduced by the behavior generation module are not
+created due to something explicitly observed, they
+cannot be removed by observation; thus, they are re-moved each time the vehicle achieves a checkpoint.
+Although heuristic, this approach works well in prac-
+tice, as these blockages are often constructed dueto odd geometries of temporary obstacles. By wait-
+ing until the current checkpoint is complete, this ap-
+proach ensures that the vehicle will wait until its cur-
+rent mission is complete before revisiting a location.
+If the only path to a goal is through a virtual blockagethat cannot be detected as cleared, and the situation
+that caused the blockage to be declared has been re-
+solved, then forward progress will still occur, becausethe virtual blockages decay in the same manner that
+explicitly observed blockages do.
+5.2. Blockages
+Once a blockage has been detected, the extent along
+affected lanes that the blockage occupies is de-
+termined. Locations before and after the blockage
+are identiﬁed where U-turn maneuvers can be per-formed. At these locations, road model elements rep-
+resenting legal places to make a U-turn are added.
+Simultaneously, the corresponding traversal costs for
+the U-turn maneuvers are set to low values, the costs
+for crossing the blockages are increased by a largeamount, and the navigation policy is recomputed. Be-
+cause Boss follows the policy, the high costs levied
+on traversing a blockage cause the robot to choose analternate path. If Boss later detects that the blockage
+is gone, the traversal costs for elements crossing the
+blockage are restored to their defaults, and the traver-sal costs for the added U-turn elements are effectively
+removed from the graph.
+Revisiting of previously detected blockages is im-
+plemented by gradually reducing the traversal cost
+applied to road elements crossing a blockage. If the
+cost eventually drops below a predeﬁned threshold,the blockage is treated as if it were observed to be
+gone. The U-turn traversal costs are not concomi-
+tantly increased; instead, they are changed all at oncewhen the blockage is observed or assumed to be
+gone. Decreasing the cross-blockage traversal costs
+encourages the robot to return to check whether a
+blockage is removed, whereas notincreasing the U-
+turn traversal costs encourages the robot to continueto plan to traverse the U-turn if it is beneﬁcial to do
+so.
+The cost cincrement added by a blockage is de-
+cayed exponentially:
+c=p2
+−a/h, (23)
+where ais the time since the blockage was last ob-
+served, his a half-life parameter, and pis the starting
+cost penalty increment for blockages. To illustrate, if
+the blockage is new, we have a=0a n d c=p.I ft h e
+blockage was last observed htime units in the past,
+we have a=handc=p/2. The cost continues to de-
+cay exponentially as the blockage ages.
+An exponential decay rate mitigates the problem
+of a single blockage being interpreted as multiple
+blockages (due to incomplete perception), causing acost of np, where nis the number of blockages. Un-
+der this condition, a linear decay rate would cause an
+unacceptably long delay before revisiting a blockage.
+A weakness of this blockage handling approach
+is that it is possible to waste time making multiple
+visits to a blockage that never gets removed. A simplesolution of incrementing hfor the blockage after each
+new visit would make the traversal costs decay more
+slowly each time the obstacle is observed.
+On one-way roads, U-turn lanes are not created
+in response to road blockages. However, traversal
+costs across the blockage are increased, decreasing
+the likelihood of reusing the road. To respond to one-
+way road blockages, the zone navigation planner isinvoked as an error recovery mode, as discussed in
+Section 6.3.
+6. BEHAVIORAL REASONING
+The behavioral architecture is responsible for execut-
+ing the policy generated by the mission planner; mak-
+ing lane-change, precedence, and safety decisions, re-
+spectively, on roads, at intersections, and at yields;and responding to and recovering from anomalous
+situations.
+The behavioral architecture is based on the con-
+cept of identifying a set of driving contexts, each
+of which requires the vehicle to focus on a reduced
+set of environmental features. At the highest levelof this design, the three contexts are road, inter-
+section, and zone, and their corresponding behav-
+iors are, respectively, lane driving ,intersection handling ,
+and achieving a zone pose . The achieving a zone pose
+behavior is meant for unstructured or unconstrained
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 21 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •445
+Figure 14. High-level behaviors architecture.
+environments, including parking lots and jammed in-
+tersections. In practice this behavior’s function is per-
+formed by the zone planner. Figure 14 shows a dia-
+gram of behavioral subsystem architecture with the
+subbehaviors corresponding to the high-level behav-
+iors, along with two subbehaviors making up theauxiliary goal selection behavior, which plays a cru-
+cial role not only in standard operation but also in
+error recovery. The function of each of these subcom-ponents is described in Table III.
+6.1. Intersections and Yielding
+The precedence estimator is most directly responsible
+for the system’s adherence to the Urban Challenge
+rules (DARPA, 2007) including obeying precedence,
+not entering an intersection when another vehicle isin it, and being able to merge into and across moving
+trafﬁc. To follow the rules, the precedence estimator
+combines data from the rest of the system to deter-
+mine whether it is clear to go. This state is used as a
+gate condition in the transition manager and triggersthe issuance of the motion goal to proceed through
+the intersection.
+The precedence estimator uses a combination of
+the road model and moving obstacle information to
+determine whether it is clear to go. The road model
+provides static information about an intersection, in-cluding the set of lane exit way points that compose
+the intersection and the geometry of their associated
+lanes. The moving obstacle set provides dynamic in-formation about the location, size, and speed of esti-
+mated nearby vehicles. Given the problem of spatial
+uncertainty, false positives and false negatives mustbe accounted for in the precedence estimation system.
+The road model provides important data, includ-
+ing the following:
+•The current intersection of interest, which is
+maintained in the world model as a group of
+exit way points, some subset of which will
+also be stop lines.
+•A virtual lane representing the action the sys-
+tem will take at that intersection.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 22 ---
+446 •Journal of Field Robotics—2008
+Table III. Components of the behavioral subsystem.
+Goal selection components Drive down road Handle intersection
+State estimator : combines the vehi-
+cle’s position with the world model
+to produce a discrete and semanti-cally rich representation of the vehi-
+cle’s logical position with the RNDF.
+Goal selector : uses the current logical
+location as reported by state estima-
+tor to generate the next series of lo-
+cal goals for execution by the motion
+planner; these will be either lane goals
+or zone goals.Lane selector : uses the surrounding
+trafﬁc conditions to determine the op-
+timal lane to be in at any instant andexecutes a merge into that lane if it is
+feasible.
+Merge planner : determines the feasi-
+bility of a merge into a lane proposed
+by lane selector.
+Current scene reporter : the current
+scene reporter distills the list of
+known vehicles and discrete obsta-cles into a few discrete data elements,
+most notably the distance to and ve-
+locity of the nearest vehicle in front ofBoss in the current lane.
+Distance keeper : uses the surround-
+ing trafﬁc conditions to determine thenecessary in-lane vehicle safety gaps
+and govern the vehicle’s speed ac-
+cordingly.Vehicle driver : combines the outputs
+of distance keeper and lane selector
+with its own internal rules to generatea so-called “motion parameters” mes-
+sage, which governs details such as
+the vehicle’s speed, acceleration, anddesired tracking lane.Precedence estimator : uses the list of
+known other vehicles and their state
+information to determine precedenceat an intersection.
+Pan-head planner : aims the pan-head
+sensors to gain the most relevant in-formation for intersection precedence
+decisions.
+Transition manager : manages the
+discrete-goal interface between the
+behavioral executive and the motionplanner, using the goals from goal se-
+lector and the gating function from
+precedence estimator to determinewhen to transmit the next sequence of
+goals.
+•A set of yield lanes1for that virtual lane.
+•Geometry and speed limits for those lanes
+and any necessary predecessor lanes.
+These data are known in advance of arrival at the in-
+tersection, are of high accuracy, and are completely
+static. Thus, the precedence estimator can use them
+to preprocess an intersection’s geometry.
+The moving obstacle set is received periodically
+and represents the location, size, and speed of all
+detected vehicles around the robot. In contrast to
+the information gleaned from the road model, thesedata are highly dynamic, displaying several proper-
+ties that must be accounted for in the precedence es-
+timation system: tracked vehicles can ﬂicker in andout of existence for short durations of time; sensing
+and modeling uncertainties can affect the estimated
+1Yield lanes are lanes of moving trafﬁc for which a vehicle must
+wait for a clear opportunity to execute the associated maneuver.shape, position, and velocity of a vehicle; and the
+process of determining moving obstacles from sensordata may represent a vehicle as a small collection of
+moving obstacles. Among other things, this negates
+the usefulness of attempting to track speciﬁc vehiclesthrough an intersection and requires an intersection-
+centric (as opposed to vehicle-centric) precedence es-
+timation algorithm.
+6.1.1. Intersection-Centric Precedence Estimation
+Within the road model, an intersection is deﬁned as a
+group of lane exit way points. That is, an intersection
+must contain one or more lane exit way points, and
+each lane exit way point will be a part of exactly oneintersection. The next intersection is thus determined
+as the intersection containing the next lane exit way
+point that will be encountered. This excludes exits
+that Boss will cross but not stop at (e.g., crossing the
+top of a tee intersection that has only one stop sign).
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 23 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •447
+Figure 15. Typical exit occupancy polygon and examples of vehicles at an exit.
+Precedence between any two exit way points is
+determined ﬁrst by whether the exit way points arestop lines. Nonstop exit way points automatically
+have precedence over exit way points that have stop
+lines. Among stop line exit way points, precedenceis determined by arrival times, where earlier arrivals
+have precedence over later arrivals.
+The robust computation of arrival time is critical
+to the correct operation of the precedence estimator.
+Given the dynamic and noisy nature of the moving
+obstacle set, the algorithm uses a purely geometricand instantaneous notion of way point occupancy for
+computing arrival times. An exit way point is con-
+sidered to be occupied when any vehicle’s estimated
+front bumper is inside or intersects a small polygon
+around the way point, called its occupancy polygon .
+Boss’s front bumper is added to the pool of estimated
+front bumpers and is treated no differently for the
+purposes of precedence estimation.
+Occupancy polygons are constructed for each
+exit way point and for the whole intersection. The oc-
+cupancy polygons for each exit way point are used todetermine precedence, where the occupancy polygon
+constructed for the intersection is used to determine
+whether the intersection is clear of other trafﬁc. Thesize of the polygon for an exit way point determines
+several factors:
+•The point at which a vehicle gains its prece-
+dence ordering, which is actually some length
+along the lane backward from the stopline.
+•The system’s robustness to spatial noise,
+where larger polygons are generally more ro-
+bust than smaller ones at retaining the prece-
+dence order.
+•The system’s ability to discriminate two cars
+moving through the intersection in sequence,where larger polygons are more likely to treat
+two discrete cars as one for the purposes ofprecedence ordering.
+Figure 15 shows a typical exit occupancy polygon
+extending 3 m back along the lane from the stop line
+and with 1 m of padding on all sides. This is the con-
+ﬁguration that was used on race day.
+The estimated front bumper of a vehicle must be
+inside the occupancy polygon as shown in Figure 15
+to be considered to be an occupant of that polygon.
+A given occupancy polygon maintains its asso-
+ciated exit way point, its occupancy state, and two
+pieces of temporal data:
+1. The time of ﬁrst occupancy, which is used to
+determine precedence ordering.
+2. The time of most recent (last) occupancy,
+which is used to implement a temporal hys-
+teresis around when the polygon becomes
+unoccupied.
+To account for (nearly) simultaneous arrival, ar-
+rival times are biased for the sake of precedence es-timation by some small time factor that is a function
+of their position relative to Boss’s exit way point. Exit
+way points that are to the right receive a negative bias
+and are thus treated as having arrived slightly earlier
+than in actuality, encoding an implicit yield-to-right
+rule. Similarly, exit way points that are to the left re-
+ceive a positive bias, seeming to have arrived later
+and thus causing the system to take precedence from
+the left. (Empirically, 0.5 s worked well for this value.)The result is considered to be the exit way point’s
+modiﬁed arrival time .
+With these data available, the determination
+of precedence order becomes a matter of sorting
+the occupied polygons in ascending order by their
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 24 ---
+448 •Journal of Field Robotics—2008
+Figure 16. Typical tee intersection with yield lanes.
+modiﬁed arrival time. The resulting list is a direct rep-
+resentation of the estimated precedence ordering, and
+when the front of that list represents Boss’s target exit
+way point, Boss is considered to have precedence atthat intersection.
+6.1.2. Yielding
+Beyond interacting with stopped trafﬁc, the prece-
+dence estimator is also responsible for merging into
+or across moving trafﬁc from a stop. To support this,the system maintains a next intersection goal , which is
+invariably a virtual lane that connects the target exit
+way point to some other way point, nominally in an-other lane or in a parking or obstacle zone. That vir-
+tual lane has an associated set of yield lanes , which are
+other lanes that must be considered for moving traf-ﬁc in order to take the next intersection action. The
+yield lanes are deﬁned as the real lanes that overlap a
+virtual lane. Overlapped virtual lanes are not consid-ered because they must already have a clearly estab-
+lished precedence order via stop lines. Intersections
+that fail this requirement (e.g., an intersection with
+four yield signs) are considered ill formed and are
+not guaranteed to be handled correctly. Thus, yieldcases are considered only for merges into or across
+real lanes. Figure 16 shows an example tee intersec-
+tion, highlighting the next intersection goal and the
+associated yield lanes.
+First, temporal requirements are derived for the
+next intersection goal as follows:
+1.T
+action is computed as the time to traverse the
+intersection and get into the target lane us-
+ing conservative accelerations from a start-
+ing speed of zero.
+2.Taccelerate is computed as the time for accel-
+erating from zero up to speed in the des-
+tination lane using the same conservativeacceleration.
+3.T
+delay is estimated as the maximum system
+delay.
+4.Tspacing is deﬁned as the minimum re-
+quired temporal spacing between vehicles,
+where 1 s approximates a vehicle length per10 mph.
+Using these values, a required temporal window
+T
+required is computed for each yield lane as
+Trequired =Taction+Tdelay+Tspacing (24)
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 25 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •449
+for lanes that are crossed by the next intersection ac-
+tion. In the case of merging into a lane, the required
+window is extended to include the acceleration time,if necessary, as
+T
+required =max(Taction,Taccelerate )+Tdelay+Tspacing.
+(25)
+This temporal window is then used to construct
+a polygon similar to an exit occupancy polygon back-
+ward along the road network for a distance of
+/lscriptyield polygon =vmaxlane Trequired +dsafety. (26)
+These yield polygons, shown in Figure 16, are
+used as a ﬁrst pass for determining cars that are rele-vant to the yield window computations.
+Any reported vehicle that is inside or overlaps
+the yield polygon is considered in the determinationof the available yield window. Yield polygons are also
+provided to a panhead planner , which performs cover-
+age optimization to point long-range sensors alongthe yield lanes and thus at oncoming trafﬁc, increas-
+ing the probability of detection for these vehicles at
+long range.
+For each such vehicle in a yield lane, a time of
+arrival is estimated at the near edge of the overlaparea, called the crash point and illustrated in Figure 16
+as follows:
+1. Compute a worst-case speed v
+obstacle along
+the yield lane by projecting the reported ve-locity vector, plus one standard deviation,
+onto the yield lane.
+2. Compute d
+crash as the length along the road
+network from that projected point to the
+leading edge of the overlap area.
+3. Compute an estimated time of arrival as
+Tarrival=dcrash
+vobstacle. (27)
+4. Retain the minimum Tarrival asTcurrent over all
+relevant vehicles per yield lane.
+The yield window for the overall intersection ac-
+tion is considered to be instantaneously open when
+Tcurrent>T required for all yield lanes. To account for the
+possibility of tracked vehicles being lost momentar-
+ily, as in the exit way point precedence determination,
+this notion of instantaneous clearance is protected bya 1-s hysteresis. That is, all yield windows must be
+continuously open for at least 1 s before yield clear-
+ance is passed to the rest of the system.
+6.1.3. Gridlock Management
+With exit precedence and yield clearance in place, the
+third and ﬁnal element of intersection handling is thedetection and prevention of gridlock situations. Grid-
+lock is determined simply as a vehicle (or other obsta-
+cle) blocking the path of travel immediately after thenext intersection goal such that the completion of the
+next intersection goal is not immediately feasible (i.e.,
+a situation that would cause Boss to become stoppedin an intersection).
+Gridlock management comes into effect once the
+system determines that Boss has precedence at the
+current intersection and begins with a 15-s timeout to
+give the problematic vehicle an opportunity to clear.If still gridlocked after 15 s, the current intersection
+action is marked as locally high cost, and the mission
+planner is allowed to determine whether an alternatepath to goal exists. If so, Boss will reroute along that
+alternate path; otherwise, the system jumps into error
+recovery for intersection goals, using the generalizedpose planner to ﬁnd a way around the presumed-
+dead vehicle. This is discussed in greater detail in the
+section describing error recovery.
+6.2. Distance Keeping and Merge Planning
+The distance-keeping behavior aims simultaneouslyto zero the difference between Boss’s velocity and
+that of the vehicle in front of Boss and the difference
+between the desired and actual intervehicle gaps. Thecommanded velocity is
+v
+cmd=Kgap(dactule−ddesired ), (28)
+where vtarget is the target-vehicle velocity and Kgapis
+the gap gain. The desired gap is
+ddesired =max/parenleftbigg/lscriptvehicle
+10vactual,dmingap/parenrightbigg
+, (29)
+where the /lscriptvehicle term represents the one-vehicle-
+length-per-10-mph minimum-separation require-
+ment and dmingap is the absolute minimum gap
+requirement. When Boss’s velocity exceeds the target
+vehicle’s, its deceleration is set to a single conﬁg-
+urable default value; when Boss’s velocity is less than
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 26 ---
+450 •Journal of Field Robotics—2008
+Figure 17. Two-lane merging.
+the target vehicle’s, for safety and smoothness, Boss’s
+commanded acceleration is made proportional to
+the difference between the commanded and actualvelocities and capped at maximum and minimum
+values ( a
+max=4.0a n d amin=1.0m / s2on race day)
+according to
+acmd=amin+Kaccvvmd(amax−amin). (30)
+The merge, or lane-change, planner determines
+the feasibility of changing lanes. It is relevant not onlyon a unidirectional multilane road but also on a bidi-
+rectional two-lane road in order to handle passing a
+stopped vehicle after coming to a stop. Feasibility isbased on the ability to maintain proper spacing with
+surrounding vehicles and to reach a checkpoint in the
+lane to merge into (the “merge-to” lane) while meet-ing a velocity constraint at the checkpoint. The two-
+lane unidirectional case is depicted in Figure 17. The
+merge planner performs the following steps:
+1. Check whether it is possible to reach the
+checkpoint in the merge-to lane from the ini-
+tial position given velocity and acceleration
+constraints and the “merge distance,” i.e., thedistance required for Boss to move from its
+current lane into an adjacent lane. For sim-
+plicity’s sake, the merge distance was madea constant parameter whose setting based on
+experimentation was 12 m on race day.
+2. Determine the merge-by distance, i.e., the al-
+lowable distance in the current lane in or-
+der to complete the merge. The merge-by dis-tance in the case of a moving obstacle in front
+of Boss is
+d
+obst=v0dinitial
+v0−v1, (31)
+where dinitial is the initial distance to the mov-
+ing obstacle. Note that this reduces to dinitial if
+the obstacle is still, i.e., if v1=0.
+3. For each of the obstacles in the merge-to lane,
+determine whether a front-merge (overtak-
+ing the obstacle and merging into its lane in
+front of it with proper spacing) is feasible andwhether a back-merge (dropping behind the
+obstacle and merging behind it with proper
+spacing) is feasible.
+For either a front- or back-merge, ﬁrst de-
+termine whether proper spacing is already
+met. For a front merge, this means
+x
+0−/lscriptvehicle−x1≥max/parenleftbiggv1/lscriptvehicle
+10,dmingap/parenrightbigg
+.
+(32)
+For a back merge,
+x1−/lscriptvehicle−x1≥max/parenleftbiggv0/lscriptvehicle
+10,dmingap/parenrightbigg
+.
+(33)
+If proper spacing is met, check whether the
+other vehicle’s velocity can be matched by
+acceleration or deceleration after the merge
+without proper spacing being violated. If
+so, the merge is so far feasible; if not, the
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 27 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •451
+merge is infeasible. Otherwise, determine the
+acceleration proﬁle to accelerate or deceler-
+ate respectively to, and remain at, either themaximum or minimum speed until proper
+spacing is reached.
+4. Check whether it is possible to reach and
+meet the velocity constraint at the checkpoint
+in the merge-to lane starting from the merge
+point, i.e., the position and velocity reachedin the previous step after proper spacing has
+been met. If so, the merge is feasible.
+5. Repeat the above steps for all nobstacles in
+the merge-to lane. There are n+1 “slots” into
+which a merge can take place, one each atthe front and rear of the line of obstacles and
+the rest between obstacles. The feasibility
+of the front and rear slots is associated witha single obstacle and therefore already de-
+termined by the foregoing. A “between” slot
+is feasible if the following criteria are met:1) the slot’s front-obstacle back-merge and
+rear-obstacle front-merge are feasible; 2) the
+gap between obstacles is large enough forBoss plus proper spacing in front and rear;
+3) the front obstacle’s velocity is greater than
+or equal to the rear obstacle’s velocity, sothe gap is not closing; 4) the merge-between
+point will be reached before the checkpoint.
+Boss determines whether a merge is feasible in
+a l ls l o t si nt h em e r g e - t ol a n e( t h e r ea r et h r e ei nt h e
+example: in front of vehicle 1, between vehicles 1 and
+2, and behind vehicle 2) and targets the appropriatefeasible merge slot depending on the situation. For
+a multilane unidirectional road, this is generally the
+foremost feasible slot.
+Once feasibility for all slots is determined, ap-
+propriate logic is applied to determine which slot to
+merge into depending on the situation. For a multi-lane unidirectional road, Boss seeks the foremost fea-
+sible slot in order to make the best time. For a two-
+lane bidirectional road, Boss seeks the closest feasibleslot in order to remain in the wrong-direction lane for
+the shortest time possible.
+Determination of the merge-by distance is the
+smallest of the distances to the 1) next motion goal
+(i.e., checkpoint), 2) end of the current lane, 3) clos-
+est road blockage in the current lane, and 4) projected
+position of the closest moving obstacle in the current
+lane.6.3. Error Recovery
+One of the most important aspects of the behavioralreasoning system is its responsibility to detect and
+address errors from the motion planner and other
+aberrant situations. To be effective, the recovery sys-
+tem should
+•be able to generate a nonrepeating and novel
+sequence of recovery goals in the face of re-peated failures ad inﬁnitum.
+•be able to generate different sets of recovery
+goals to handle different contexts.
+•be implemented with minimal complexity so
+as to produce as few undesirable behaviors as
+possible.
+To reduce interface complexity, the goal selection
+system follows the state graph shown in Figure 18.
+Each edge represents the successful completion
+(Success) or the failed termination (Failure) of the cur-rent motion goal. Goal failure can be either directly
+reported by the motion planner or triggered inter-
+nally by progress monitoring that declares failure if
+sufﬁcient progress is not made within some time. All
+edge transitions trigger the selection of a new goaland modify the recovery level :
+•Success resets recovery level to zero but
+caches the previous recovery level.
+•Failure sets the recovery level to one greater
+than the maximum of the cached and current
+recovery level.
+Figure 18. Goal selection state graph.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 28 ---
+452 •Journal of Field Robotics—2008
+The recovery level and the type and parameters
+of the original failed goal are the primary inﬂuences
+on the recovery goal algorithms. The general form ofthe recovery goals is that an increasing recovery level
+results in higher risk attempts to recover, meaning
+actions that are generally farther away from the cur-rent position and/or the original goal. This process
+ensures that Boss tries low-risk and easy-to-execute
+maneuvers initially while still considering moredrastic measures when necessary. If the recovery
+process chooses an obviously infeasible goal, the
+motion planner will signal failure immediately and
+the recovery level will increment. Otherwise, to
+complement explicit failure reports from the motionplanner, forward progress is monitored such that the
+robot must move a minimum distance toward the
+goal over some span of time. If it does not, the currentgoal is treated as a failure, and the recovery level is
+incremented. The progress threshold and time span
+were determined largely by experimentation and setto 10 m and 90 s on race day. Generally speaking,
+these represent the largest realistic delay the system
+was expected to encounter during operation.
+In general, the successful completion of a re-
+covery goal sets the system back to normal op-
+eration. This eliminates the possibility of complexmultimaneuver recovery schemes, at the beneﬁt of
+simplifying the recovery state tracking. In situations
+in which the vehicle oscillates between recovery and
+normal operation, the recovery system maintains suf-
+ﬁcient state to increase the complexity of recoverymaneuvers.
+6.3.1. On-Road Failures
+The most commonly encountered recovery situation
+occurs when the on-road planner generates an error
+while the vehicle is driving down a lane. Any numberof stimuli can trigger this behavior, including
+•small or transient obstacles, e.g., trafﬁc cones
+that do not block the entire lane but are suf-
+ﬁcient to prevent the planner from ﬁnding a
+safe path through them
+•larger obstacles such as road barrels, K-rails,
+or other cars that are detected too late for nor-mal distance keeping to bring the system to a
+graceful stop
+•low-hanging canopy, which is generally de-
+tected late and often requires additional cau-
+tion and careful planning
+•lanes whose shape is kinematically infeasible.
+The algorithm for lane recovery goal selection,
+called shimmy and illustrated in Figure 19, selects an
+initial set of goals forward along the lane with the dis-
+tance forward described by
+d
+shimmy =dinitial+Rdincremental . (34)
+Empirically, dinitial=20 m and dincremental =10 m
+worked well. The 20-m initial distance was empiri-
+cally found to give the planner sufﬁcient room to get
+past stopped cars in front of the vehicle.
+These forward goals (Goals 1–3 in Figure 19)
+are selected out to some maximum distance, roughly
+40 m and corresponding to our high-ﬁdelity sensorrange, after which a goal is selected 10 m behind the
+vehicle (Goal 4) with the intent of backing up and get-
+ting a different perspective on the immediate imped-
+iment.
+After backing up, the sequence of forward goals
+is allowed to repeat once more with slight (less than
+5 m) alterations, after which continued failure causes
+one of two things to happen:
+Figure 19. Example shimmy error recovery goal sequence.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 29 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •453
+1. If a lane is available in the opposing direc-
+tion, mark the segment as locally blocked
+and issue a U-turn (Goal 5). This is supple-mental to the external treatment of total seg-
+ment blockages discussed in Section 5.2 and
+presumes that a U-turn has not yet been de-tected and generated.
+2. If no lanes are available in the opposing di-
+rection (i.e., Boss is stuck on a one-way road),then the goal selection process is allowed to
+continue forward inﬁnitely beyond the 40-
+m limit with the additional effect of remov-
+ing an implicit stay near the lane constraint
+that is associated with all previous recov-ery goals. Removing this constraint gives the
+pose planner complete freedom to wander
+the world arbitrarily in an attempt to achievesome forward goal.
+6.3.2. Intersection Failures
+Error cases in intersections are perhaps the most difﬁ-
+cult to recover from. These errors happen when an at-
+tempt to traverse an intersection is not possible due to
+obstacles and/or kinematic constraints or else as part
+of the gridlock resolution system. A simpliﬁed ex-
+ample sequence from this recovery algorithm, calledjimmy , is show in Figure 20.
+The ﬁrst step in the jimmy algorithm is to try the
+original failed goal over again as a pose goal, insteadof a road driving goal (e.g., goal), giving the motion
+planner the whole intersection as its workspace in-
+stead of just the smooth path between the intersec-tion entry and exit. This generally and quickly recov-
+ers from small or spurious failures in intersections
+as well as compensating for intersections with turnsthat are tighter than the vehicle can make in a sin-
+gle motion. Should that ﬁrst recovery goal fail, its as-
+sociated entry way point is marked as blocked, andthe system is allowed an opportunity to plan an alter-
+nate mission plan to the goal. If there is an alternate
+path, that alternate intersection goal (e.g., Goals 2, 3)
+is selected as the next normal goal and the cycle is al-
+lowed to continue. If that alternate goal fails, it is alsomarked as blocked, and the system is allowed to re-
+plan and so forth, until all alternate routes to the goal
+are exhausted, whereupon the system will select un-constrained pose goals (i.e., pose goals that can drive
+outside of the intersection and roads) incrementally
+farther away from the intersection along the originalfailed goal.
+6.3.3. Zone Failures
+The case in which speciﬁcs do matter, however, is the
+third recovery scenario, failures in zones. The pose
+planner that executes zone goals is general and pow-erful enough to ﬁnd a path to any speciﬁc pose if such
+a path exists, so a failure to do so implies one of the
+following:
+Figure 20. Example jimmy recovery goal sequence.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 30 ---
+454 •Journal of Field Robotics—2008
+Figure 21. Example shake recovery goal sequence.
+1. The path to the goal has been tran-
+siently blocked by another vehicle. Although
+DARPA guaranteed that a parking spot in a
+zone will be free, they made no such guaran-
+tees about trafﬁc accumulations at zone ex-its or about the number of vehicles between
+the current position and the target parking
+spot. In either case, a retry of the same or aselection of a nearby similar goal should af-
+ford the transient blockage time to pass.
+2. Owing to some sensor artifact, the system be-
+lieves that there is no viable path to goal. In
+this case, selecting nearby goals that offer dif-
+ferent perspectives on the original goal areamay relieve the situation.
+3. The path to the goal is actually blocked.
+The goal selection algorithm for failed zone goals,
+called shake , selects goals in a regular, triangular pat-
+tern facing the original goal, as shown in Figure 21.
+On successful completion of any one these goals,
+the original goal is reattempted. If the original goalfails again, the shake pattern picks up where it left off.
+If this continues through the entire pattern, the next
+set of actions is determined by the original goal. Park-ing spot goals were guaranteed to be empty, so the
+pattern is repeated with a small incremental angular
+offset ad inﬁnitum. For zone exit way point goals, theexit is marked as blocked and the system attempts to
+reroute through alternate exits similar to the alternate
+path selection in the jimmy algorithm. In the case of
+no other exits, or no other path to goal, the system
+issues completely unconstrained goals to logical suc-cessors of the zone exit way point in a last-ditch effort
+to escape the zone.
+If these goals continue to fail, then farther succes-
+sors are selected in a semirandom breadth-ﬁrst search
+along the road network in a general last-ditch recov-ery algorithm called bake. Increasing values of recov-
+ery level call out farther paths in the search algorithm.
+The goals selected in this manner are characterizedby being completely unconstrained, loosely speciﬁed
+goals that are meant to be invoked when each of the
+other recovery goal selection schemes has been ex-hausted. In addition to shake goals at a zone exit,
+these are selected for shimmy goals that run off the
+end of the lane and similarly for jimmy goals whenall other attempts to get out of an intersection have
+failed.
+Through these four recovery algorithms
+(shimmy, jimmy, shake, and bake), many for-
+ward paths are explored from any single location,
+leaving only the possibility that the system is stuck
+due to a local sensor artifact or some other strange
+local minima that requires a small local adjustment.To address this possibility, a completely separate
+recovery mechanism runs in parallel to the rest of
+the goal monitoring and recovery system with a verysimple rule: if the system has not moved at least 1 m
+in the last 5 min, override the current goal with a
+randomized local goal. When that goal is completed,pretend that there was a completely fresh wakeup
+at that location, possibly clearing the accumulated
+state, and try again.
+The goals selected by this algorithm, called
+wiggle , are illustrated in Figure 22. The goals are
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 31 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •455
+Figure 22. Example wiggle recovery goals.
+pseudo-random and approximately kinematically
+feasible and can be either in front of or behind thevehicle’s current pose. The algorithm is, however, bi-
+ased somewhat forward of the robot’s position so that
+there is statistically net-forward motion if the robot isforced to choose these goals repeatedly over time in a
+behavior similar to the “wander” behavior described
+by 0.
+The composite recovery system provides a nec-
+essary line of defense against failures in the planning
+and perceptive systems. This robustness was a key el-ement of winning the Urban Challenge.
+7. SOFTWARE INFRASTRUCTURE
+The software infrastructure is a toolbox that providesthe basic tools required to build a robotic platform.The infrastructure takes the form of common libraries
+that provide fundamental capability, such as inter-
+process communication, common data types, roboticmath routines, data log/playback, and much more.
+Additionally, the infrastructure reinforces a standard
+mechanism for processes in the system to exchange,log, replay, and visualize data across any interface in
+the system, thereby reducing the time to develop and
+test new modules.
+The following is a list of the tools provided by the
+infrastructure:
+Communications library . Abstracts around ba-
+sic interprocess communication over UNIX Do-
+main Sockets, TCP/IP , or UDP; supports the
+boost::serialization library to easily marshal data
+structures across a communications link and then un-
+marshal on the receiving side. A key feature is anony-mous publish/subscribe, which disconnects a con-
+sumer of data from having to know who is actually
+providing the data, enabling the easy interchange ofcomponents during testing and development.
+Interfaces library . Each interface between two pro-
+cesses in the system is added to this library. Each in-terface ﬁts into a plug-in framework so that a task,
+depending on its communications conﬁguration, can
+dynamically load the interfaces required at run time.For example, this enables a perception task to abstract
+the notion of a LIDAR source and at run time be con-
+ﬁgured to use any LIDAR source, effectively decou-
+pling the algorithmic logic from the nuts-and-bolts
+of sensor interfacing. Furthermore, interfaces can bebuilt on top of other interfaces in order to produce
+composite information from multiple sources of data.
+For example, a pointed LIDAR interface combines aLIDAR interface and a pose interface.
+Conﬁguration library . Parses conﬁguration ﬁles
+written in the Ruby scripting language in order toconﬁgure various aspects of the system at run time.
+Each individual task can add parameters speciﬁc to
+its operation, in addition to common parameters suchas those that affect the loggers’ verbosity, and the con-
+ﬁguration of communications interfaces. The Ruby
+scripting language is used in order to provide a morefamiliar syntax, to provide ease of detecting errors in
+syntax or malformed scripts, and to give the user sev-
+eral options for calculating and deriving conﬁgura-
+tion parameters.
+Task library . Abstracts around the system’s main()
+function, provides an event loop that is triggered at
+speciﬁed frequencies, and automatically establishes
+communication with other tasks in the system.
+Debug logger . Provides a mechanism for applica-
+tions to send debug messages of varying priority to
+the console, operator control station, log ﬁle, etc., de-pending on a threshold that varies verbosity accord-
+ing to a priority threshold parameter.
+Log/playback . The data log utility provides a
+generic way to log any interface in the system. Ev-
+ery data structure that is transmitted through the in-
+terprocess communication system can inherently becaptured using this utility. The logged data are saved
+to a Berkeley database ﬁle along with a time stamp.
+The playback utility can read a Berkeley databaseﬁle, seek to a particular time within the ﬁle, and
+transmit the messages stored in the ﬁle across the
+interprocess communication system. Because the in-
+terprocess communication system uses an anony-
+mous publish/subscribe scheme, the consuming
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 32 ---
+456 •Journal of Field Robotics—2008
+processes will receive the played-back messages,
+without realizing that data are not coming from a live
+sensor. This feature is useful in order to replay inci-dents that occurred on the vehicle for ofﬂine analysis.
+Tartan Racing Operator Control Station (TROCS) .
+A graphical user interface (GUI) based on QT thatprovides an operator, engineer, or tester a convenient
+tool for starting and stopping the software, viewing
+status/health information, and debugging the vari-ous tasks that are executing. Each developer can de-
+velop custom widgets that plug into TROCS in order
+to display information for debugging and/or moni-
+toring purposes (Figure 23).8. TESTING
+Testing was a central theme of the research program
+that developed Boss. Over the 16 months of devel-
+opment, Boss performed more than 3,000 km of au-
+tonomous driving. The team used time on two test
+vehicles, a simulation and data replay tool, and mul-
+tiple test sites in three states to debug, test, and eval-uate the system.
+Testing and development were closely inter-
+twined, following the cyclic process illustrated inFigure 24. Before algorithm development began, the
+team assembled requirements that deﬁned the capa-
+bilities that Boss would need to be able to complete
+Figure 23. The TROCS is an extensible GUI that enables developers to both monitor telemetry from Boss while it is driving
+and replay data ofﬂine for algorithm analysis.
+Figure 24. The requirements and testing process used in the development of Boss.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 33 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •457
+the challenge. Requirements drove the development
+of algorithms and selection of components. Algo-
+rithms and approaches were tested ofﬂine either insimulation or by using data replay. Once an algo-
+rithm became sufﬁciently mature, it would move
+to on-vehicle testing, in which system and environ-mental interactions could be fully evaluated. These
+tests would often uncover algorithmic problems or
+implementation bugs that were not obvious duringofﬂine testing, often resulting in numerous cycles of
+rework and further ofﬂine debugging. Once the de-
+velopers were satisﬁed that the algorithm worked,
+testing of the algorithm was added to the formal,
+regularly scheduled system test. Independent testingof algorithms would often uncover new deﬁciencies,
+requiring some rework. In other cases, testing and
+postanalysis would cause the team to modify the re-quirements driving the development, limiting or ex-
+tending scope as appropriate. Eventually, the tech-
+nology would be deemed accepted and ready for theUrban Challenge.
+Regressive system testing was the cornerstone of
+the development process. Following the cyclic devel-opment process, each researcher was free to imple-
+ment and test as independently of the overall system
+as possible, but to judge overall capability and to ver-ify that component changes did not degrade overallsystem performance, the team performed regressive
+system testing.
+System testing was performed with a frequency
+proportionate to system readiness. Between February
+and October 2007, the team performed 65 days of sys-
+tem testing. Formal testing time was adjusted overthe course of the program to ensure relevance. As an
+example, during February the team performed less
+than 16 km of system testing. In contrast, during theﬁrst 3 weeks of October, the team performed more
+than 1,500 km of autonomous testing.
+In general, the team tested once a week, but lead-
+ing up to major milestones (the midterm site visit
+and NQE) the team moved to daily regressive testing.During regressive testing, the team would evaluate
+Boss’s performance against a standard set of plays (or
+scenarios) described in a master playbook. The play-book captures more than 250 different driving events
+that are important to evaluate. Figure 25 illustrates
+what a page from the playbook looks like. Each playis annotated with priority (ranked 1–3), how thor-
+oughly it has been tested, how it relates to require-
+ments, and a description of how Boss should behavewhen encountering this scenario. The 250 plays cover
+the mundane (correctly stopping at a stop sign) to the
+challenging (successfully navigating a jammed inter-section), enabling the team to have conﬁdence that
+Figure 25. A representative page from the testing playbook.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 34 ---
+458 •Journal of Field Robotics—2008
+even the most coupled software changes were not
+damaging overall system performance.
+Feedback from system tests was rapidly passed
+to the development team through a hot wash after
+each system test, and a test report was published
+within 48 h. Whereas the hot wash was delivered bythe test software operator, who conveyed ﬁrst-hand
+experience of code performance, the test report pro-
+vided a more black-box understanding of how wellthe system met its mission requirements. Software
+bugs discovered through this and other testing were
+electronically tracked, and formal review occurred
+weekly. The test report included a gap analysis show-
+ing the requirements that remained to be veriﬁed un-der system testing. This gap analysis was an essential
+measure of the team’s readiness to compete at the Ur-
+ban Challenge.
+In addition to regressive testing, the team per-
+formed periodic endurance tests designed to con-
+ﬁrm that Boss could safely operate for at least 6 hor 60 miles (96 km) (the stated length of the Urban
+Challenge). This was the acid test of performance, al-
+lowing the team to catch intermittent and subtle soft-ware and mechanical defects by increasing time on
+the vehicle. One of the most elusive problems discov-
+ered by this testing process was an electrical shortingproblem that was the result of a 2-mm gash in a sig-
+nal line on the base vehicle Tahoe bus. The problem
+caused Boss to lose all automotive electrical power,killing the vehicle. Had the team not performed en-
+durance testing, it is plausible that this defect would
+have never been encountered before the UCFE andwould have caused Boss to fail.
+9. PERFORMANCE AT THE NATIONAL
+QUALIFICATION EVENT AND URBAN
+CHALLENGE FINAL EVENT
+The NQE and UCFE were held at the former George
+Air Force Base (see Figure 26), which provided avariety of roads, intersections, and parking lots to
+test the vehicles. The NQE allowed DARPA to as-
+sess the capability and safety of each of the competi-tors. The teams were evaluated on three courses. Area
+A required the autonomous vehicles to merge into
+and turn across dense moving trafﬁc. Vehicles had
+to judge the size of gaps between moving vehicles,
+assess safety, and then maneuver without excessivedelay. For many of the vehicles, this was the most dif-
+ﬁcult challenge, as it involved signiﬁcant reasoning
+about moving obstacles. Area B was a relatively longroad course that wound through a neighborhood.
+Figure 26. The NQE took place in three areas, each emphasizing different skills. Area A tested merging with moving
+trafﬁc, area B tested navigation, and area C tested rerouting and intersection skills.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 35 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •459
+Figure 27. Of the 11 vehicles that qualiﬁed for the UCFE, 3 completed the challenge without human intervention. Three
+additional teams ﬁnished the course with minor interventions.
+Vehicles were challenged to ﬁnd their way through
+the road network while avoiding parked cars, con-
+struction areas, and other road obstacles but did not
+encounter moving trafﬁc. Area C was a relativelyshort course but required autonomous vehicles to
+demonstrate correct behavior with trafﬁc at four-way
+intersections and to demonstrate rerouting around anunexpectedly blocked road.
+For the ﬁnal event, the ﬁeld was reduced to 11
+teams (see Figure 27). Trafﬁc on the course was pro-
+vided by not only the 11 qualifying vehicles but 50
+human-driven vehicles operated by DARPA. Whileprimarily on-road, the course also included a pair of
+relatively short dirt roads, one of which ramped its
+way down a 50-m elevation change.
+Despite the testing by each of the teams and a
+rigorous qualiﬁcation process, the challenge proved
+to be just that. Of the 11 teams that entered, 6 wereable to complete the 85-k course, 3 of them without
+human intervention. Boss ﬁnished the challenge ap-
+proximately 19 min faster than the second-place ve-hicle, Junior (from Stanford University) and 26 min
+ahead of the third-place vehicle, Odin (from Virginia
+Tech). The vehicles from Cornell, MIT, and the Uni-versity of Pennsylvania rounded out the ﬁnishers.
+Overall, the vehicles that competed in the chal-
+lenge performed admirably, with only one vehicle-to-
+vehicle collision, which occurred at very low speeds
+and resulted in no damage. Although the vehiclesdrove well, none of them was perfect. Among the
+foibles: Boss twice incorrectly determined that it
+needed to make a U-turn, resulting in its driving anunnecessary 2 miles (3.2 km); Junior had a minor bug
+that caused it to repeatedly loop twice through one
+section of the course; and Odin incurred a signiﬁcantGPS error that caused it to drive partially off the roadfor part of the challenge. Despite these glitches, these
+vehicles represent a new state of the art for urban
+driving.
+The following sections describe a few incidents
+during the qualiﬁcations and ﬁnal event when Boss
+encountered some difﬁculties.
+9.1. National Qualiﬁcation Event Analysis
+Boss performed well at each component of the NQE,consistently demonstrating good driving skills and
+overall system robustness. Through the NQE test-ing, Boss demonstrated three signiﬁcant bugs, none
+of which was mission ending.
+The ﬁrst signiﬁcant incident occurred in area A,
+the course that tested a robot’s ability to merge with
+trafﬁc. During Boss’s ﬁrst run on this course, it ap-proached a corner and stopped for about 20 s before
+continuing, crossing the centerline for some time be-
+fore settling back into the correct lane and continuing.This incident had two principal causes: narrow lanes
+and incorrect lane geometry. In preparing the course,
+DARPA arranged large concrete Jersey barriers im-mediately adjacent to the lane edges to prevent vehi-
+cles from leaving the course and injuring spectators.
+This left little room for navigational error. When con-ﬁguring Boss for the run, the team adjusted the geom-
+etry deﬁned in the RNDF, with the intention of repre-
+senting the road shape as accurately as possible giventhe available overhead imagery. During this process,
+the team incorrectly deﬁned the shape of the inner
+lanes. Whereas this shape was unimportant for Boss’slocalization and navigation, it was used to predict the
+motion of the other vehicles on the course. The incor-
+rect geometry caused Boss to predict that the other
+vehicles were coming into its lane (see Figure 28). It
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 36 ---
+460 •Journal of Field Robotics—2008
+Figure 28. Data replay shows how the incorrectly extrapolated path of a vehicle (shaded rectangles) and the wall (pixels
+to the right of Boss) create a space that Boss believes is too narrow to drive through (indicated by the arrow).
+thus stopped and an error recovery mode (shimmy)
+kicked in. After shimmying down the lane, Boss re-
+verted to normal driving and completed the test.
+The second signiﬁcant incident occurred during
+testing in area C. This course tested the autonomous
+vehicle’s ability to handle trafﬁc at intersections and
+replan for blocked roads. For most of this course,
+Boss drove well and cleanly, correctly making itsway through intersections and replanning when it
+encountered a blocked road. The second time Boss
+encountered a blocked road it began to U-turn, get-ting two of its wheels up on a curb. As it backed down
+off the curb, it caused a cloud of dust to rise and then
+stopped and appeared to be stuck, turning its wheelsbackward and forward for about a minute. Then Boss
+started moving again and completed the course with-
+out further incident.
+Posttest data analysis revealed that Boss per-
+ceived the dust cloud as an obstacle. In addition,
+an overhanging tree branch behind Boss caused itto believe there was insufﬁcient room to back up.
+Normally, when the dust settled, Boss would have
+perceived that there was no longer an obstacle in
+front of it and continued driving, but in this case the
+dust rose very close to Boss, on the boundary of itsblind spot (see Figure 29). The obstacle detection al-
+gorithms treat this area specially and do not clear
+obstacles within this zone. Eventually Boss wiggledenough to verify that the cell where it had previously
+seen the dust was no longer occupied. Once again,
+Boss’s consistent attempts to replan paid off, this time
+indirectly. After this test, the obstacle detection algo-
+rithms were modiﬁed to give no special treatment toobstacles within the blind spot.
+The third signiﬁcant incident during qualiﬁca-
+tions occurred in area B, the course designed to testnavigation and driving skills. During the test, Boss
+came up behind a pair of cars parked along the edge
+of the road. The cars were not sufﬁciently in the roadto be considered stopped vehicles by the perception
+system, so it fell to the motion planning system to
+avoid them. Owing to pessimistic parameter settings,the motion planner believed that there was insufﬁ-
+cient room to navigate around the obstacles without
+leaving the lane, invoking the behavioral error recov-ery system. Because of a bug in the error handling
+system, the goal requested by the behavioral engine
+was located approximately 30 m behind Boss’s cur-
+rent position, causing it to back up. During the back-
+up maneuver DARPA paused Boss. This cleared the
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 37 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •461
+Figure 29. The false obstacles generated by dust and the bush behind Boss prevented Boss from initially completing its
+U-turn.
+error recovery stack, and upon restart, Boss contin-
+ued along the lane normally until it encountered thesame vehicles, at which point it invoked the recovery
+system again, but due to the pause clearing state in
+the behavioral system, the new recovery goal was ina correct, down-road location.
+Despite these foibles, after completion of the
+qualiﬁcation events, Boss was ranked as the top per-former and was given pole position for the ﬁnal
+event.
+9.2. Final Event Analysis
+Immediately before Boss was to begin the ﬁnal event,
+the team noticed that Boss’s GPS receivers were notreceiving GPS signals. Through equipment tests and
+observation of the surroundings, it was determined
+that the most likely cause of this problem was jam-ming from a Jumbotron (a large television commonly
+used at major sporting events) newly positioned near
+the start area. After a quick conference with theDARPA ofﬁcials, the Jumbotron was shut down and
+Boss’s GPS receivers were restarted and ready to go.
+Boss smoothly departed the launch area to commence
+its ﬁrst of three missions for the day.Once launched, Boss contended with 10 other
+autonomous vehicles and approximately 50 otherhuman-driven vehicles. During the event Boss per-
+formed well but did have a few occurrences of un-
+usual behavior.
+The ﬁrst incident occurred on a relatively bumpy
+transition from a dirt road to a paved road. Instead of
+stopping and then continuing normally, Boss stoppedfor a prolonged period and then hesitantly turned
+onto the paved road. Boss’s hesitation was due to
+a calibration error in the Velodyne LIDAR, used forstatic obstacle detection. In this case, the ground slope
+combined with this miscalibration was sufﬁcient for
+the laser to momentarily detect the ground, callingit an obstacle (see Figure 30). Boss then entered an
+error recovery mode, invoking the zone planner to
+get to the road. With each movement, the false ob-
+stacles in front of Boss would change position, caus-
+ing replanning and thus hesitant behavior. Once Bossmade it off the curb and onto the road, the false ob-
+stacles cleared and Boss was able to continue driving
+normally.
+The next incident occurred when Boss swerved
+abruptly while driving past an oncoming robot. The
+oncoming vehicle was partially in Boss’s lane but
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 38 ---
+462 •Journal of Field Robotics—2008
+Figure 30. False obstacles that caused Boss to stutter when leaving a dirt road.
+not sufﬁciently that Boss needed to maneuver to
+avoid it. The oncoming vehicle partially occluded its
+chase vehicle and momentarily caused Boss’s percep-
+tion system to estimate the vehicle with an incorrectorientation such that it was perceived to be entering
+Boss’s travel lane (see Figure 31). At this point, Boss
+swerved and braked to try and avoid the perceivedoncoming vehicle, moving it very close to the Jersey
+barrier wall. While this was happening, DARPA or-
+dered a full course pause due to activity elsewhere onthe course. This interrupted Boss midmotion, causing
+it to be unable to ﬁnish its maneuver. Upon awaken-
+ing from the pause, Boss felt it was too close to thewall to maneuver safely. After a minute or so of near-
+stationary wheel turning, its pose estimate shifted lat-
+erally by about 2 cm, just enough that it believed that
+it had enough room to avoid the near wall. With a
+safe path ahead, Boss resumed driving and continuedalong its route.
+Later in the ﬁrst mission Boss was forced to
+queue behind a vehicle already waiting at a stop line.Boss began queuing properly, but when the lead ve-
+hicle pulled forward, Boss did not. After an excessive
+delay, Boss performed a U-turn and drove away fromthe intersection, taking an alternative route to its next
+checkpoint.Analysis revealed a minor bug in the planning
+system, which did not correctly update the location
+of moving vehicles. For efﬁciency, the zone planner
+checks goal locations against the location of obstaclesbefore attempting to generate a path. This check can
+be performed efﬁciently, allowing the planning sys-
+tem to report that a goal is unreachable in much lesstime than it takes to perform an exhaustive search.
+A defect in this implementation caused the planning
+system to not correctly update the list of moving ob-stacles prior to performing this check. Thus, after the
+planner’s ﬁrst attempt to plan a path forward failed,
+every future attempt to plan to the same locationfailed, because the planner erroneously believed that
+a stopped vehicle was in front of it. The behavioral
+error recovery system eventually selected a U-turn
+goal, and Boss backed up and went on its way. This
+reroute caused Boss to drive an additional 2.7 km, butit was still able to complete the mission.
+Despite these incidents, Boss was able to ﬁn-
+ish the challenge in 4 h, 10 min, and 20 s, roughly19 min faster than the second-place competitor. Boss
+averaged 22.5 km/h during the challenge (while en-
+abled) and 24.5 km/h when moving. Through ofﬂinesimulation, we estimated that the maximum average
+speed Boss could have obtained over the course was
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 39 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •463
+Figure 31. This incorrect estimate of an oncoming vehicle’s orientation caused Boss to swerve and almost to become
+irrevocably stuck.
+0 2 4 6 8 10 12 140100200300400500600700800
+speed (mps)time (s)
+Figure 32. Boss averaged 22.5 km/h during the challenge; this ﬁgure shows a distribution of the vehicle’s speed while
+moving.
+26.2 km/h. Figure 32 shows the distribution of Boss’s
+moving speeds during the challenge. The large peakat 9–10 m/s is due to the course speed limits. This
+spike implies that Boss was limited by these speed
+limits, not by its capability.The roadmap localization system played an im-
+portant role during the challenge. For a majority ofthe challenge, the error estimate in the roadmap lo-
+calization system was less than 0.5 m, but there was
+more than 16 min when the error was greater than
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 40 ---
+464 •Journal of Field Robotics—2008
+0.5 m, with a peak error of 2.5 m. Had the road map
+localization system not been active, it is likely that
+Boss would have been either off the road or in awrong lane for a signiﬁcant amount of time.
+In general, Boss drove well, completing a large
+majority of the course with skill and precision. Asdemonstrated in this brief analysis, one of Boss’s
+strengths was its robustness and ability to recover
+from unexpected error cases autonomously.
+10. LESSONS LEARNED
+Through the development of Boss and competition inthe Urban Challenge, the team learned several valu-able lessons:
+Available off-the-shelf sensors are insufﬁcient for ur-
+ban driving . Currently no single sensor is capable of
+providing environmental data to sufﬁcient range and
+with sufﬁcient coverage to support autonomous ur-
+ban driving. The Velodyne sensor used on Boss (andother Urban Challenge vehicles) comes close but has
+insufﬁcient angular resolution at long ranges and is
+unwieldy for commercial automotive applications.
+Road shape estimation may be replaced by estimat-
+ing position relative to the road . In urban environments,
+the shape of roads changes infrequently. There maybe local anomalies (e.g., a stopped car or construc-
+tion), but in general, a prior model of road shape can
+be used for on-road navigation. Several Urban Chal-
+lenge teams took this approach, including our team,
+and demonstrated that it was feasible on a small tomedium scale. Whereas this may not be a viable ap-
+proach for all roads, it has proven to be a viable
+method for reducing complexity in common urbandriving scenarios. The next step will be to apply the
+same approach on a large or national scale and au-
+tomate the detection of when the road has changedshape from the expected.
+Human-level urban driving will require a rich repre-
+sentation . The representation used by Boss consists of
+lanes and their interconnections, a regular map con-
+taining large obstacles and curbs, a regular map con-
+taining occlusions, and a list of rectangles (vehicles)and their predicted motions. Boss has a very primi-
+tive notion of what is and is not a vehicle: if it is ob-
+served to move within some small time window andis in a lane or parking lot, then it is a vehicle; oth-
+erwise it is not. Time and location are thus the only
+elements that Boss uses to classify an object as a vehi-
+cle. This can cause unwanted behavior; for example,
+Boss will wait equally long behind a stopped car (ap-pearing reasonable) and a barrel (appearing unrea-
+sonable), while trying to differentiate between them.
+A richer representation including more semantic in-formation will enable future autonomous vehicles to
+behave more intelligently.
+Validation and veriﬁcation of urban driving systems is
+an unsolved problem . The authors are unaware of any
+formal methods that would allow deﬁnitive state-
+ments about the completeness or correctness of a ve-hicle interacting with a static environment, much less
+a dynamic one. Although subsystems that do not in-
+teract directly with the outside world can be proven
+correct and complete (e.g., the planning algorithm),
+verifying a system that interacts with the world (e.g.,sensors/world model building) is as of yet impossi-
+ble.
+Our approach of generating an ad hoc, but large,
+set of test scenarios performed relatively well for the
+Urban Challenge, but as the level of reliability and
+robustness approaches that needed for autonomousvehicles to reach the marketplace, this testing process
+will likely be insufﬁcient. The real limitation of these
+tests is that it is too easy to “teach to the test” anddevelop systems that are able to reliably complete
+these tests but are not robust to a varied world. To re-
+duce this problem, we incorporated free-for-all testing
+in our test process, which allowed trafﬁc to engage
+Boss in a variety of normal, but unscripted, ways. Al-
+though this can increase robustness, it can in no way
+guarantee that the system is correct.
+Sliding autonomy will reduce the complexity of au-
+tonomous vehicles . In building a system that was able
+to recover from a variety of failure cases, we intro-
+duced signiﬁcant system complexity. In general, Bosswas able to recover from many failure modes but
+took considerable time to do so. If, instead of attempt-
+ing an autonomous recovery, the vehicle were to re-quest assistance from a human controller, much of the
+system complexity would be reduced and the time
+taken to recover from faults would decrease dramat-ically. The critical balance here is to ensure that the
+vehicle is sufﬁciently capable that it does not request
+help so frequently that the beneﬁts of autonomy arelost. As an example, if Boss was allowed to ask for
+help during the 4-h Urban Challenge, there were
+three occasions on which it might have requested as-sistance. Human intervention at these times would
+likely have reduced Boss’s overall mission time by
+approximately 15 min.
+Driving is a social activity . Human driving is a
+social activity consisting of many subtle and some
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 41 ---
+Urmson et al.: Autonomous Driving in Urban Environments: Boss and the Urban Challenge •465
+not-so-subtle cues. Drivers will indicate their will-
+ingness for other vehicles to change lanes by vary-
+ing their speed and the gap between themselves andanother vehicle, by small amounts. At other times it
+is necessary to interpret hand gestures and eye con-
+tact in situations when the normal rules of the roadare violated or need to be violated for trafﬁc to ﬂow
+smoothly and efﬁciently. For autonomous vehicles
+to seamlessly integrate into our society, they wouldneed to be able to interpret these gestures.
+Despite this, it may be possible to deploy au-
+tonomous vehicles that are unaware of the subtler
+social cues. During our testing and from anecdotal
+reports during the ﬁnal event, it became clear thathuman drivers were able to quickly adapt and infer
+(perhaps incorrectly) the reasoning within the auton-
+omy system. Perhaps it will be sufﬁcient and easier toassume that we humans will adapt to robotic conven-
+tions of driving rather than the other way around.
+11. CONCLUSIONS
+The Urban Challenge was a tremendously exciting
+program to take part in. The aggressive technol-ogy development timeline, international competition,
+and compelling motivations fostered an environment
+that brought out a tremendous level of creativity and
+effort from all those involved. This research effort
+generated many innovations:
+•a coupled moving obstacle and static obstacle
+detection and tracking system
+•a road navigation system that combines road
+localization and road shape estimation to
+drive on roads where a priori road geometryboth is and is not available
+•a mixed-mode planning system that is able to
+both efﬁciently navigate on roads and safely
+maneuver through open areas and parking
+lots
+•a behavioral engine that is capable of both
+following the rules of the road and violating
+them when necessary
+•a development and testing methodology that
+enables rapid development and testing of
+highly capable autonomous vehicles
+Although this article outlines the algorithms and
+technology that made Boss capable of meeting the
+challenge, there is much left to do. Urban environ-
+ments are considerably more complicated than whatthe vehicles faced in the Urban Challenge; pedestri-
+ans, trafﬁc lights, varied weather, and dense trafﬁc all
+contribute to this complexity.
+As the ﬁeld advances to address these problems,
+we will be faced with secondary problems, such as,
+How do we test these systems and how will societyaccept them? Although defense needs may provide
+the momentum necessary to drive these promising
+technologies, we must work hard to ensure our thatwork is relevant and beneﬁcial to a broader society.
+Whereas these challenges loom large, it is clear that
+there is a bright and non-too-distant future for au-
+tonomous vehicles.
+ACKNOWLEDGMENTS
+This work would not have been possible without thededicated efforts of the Tartan Racing team and the
+generous support of our sponsors, including Gen-eral Motors, Caterpillar, and Continental. This work
+was further supported by DARPA under contract
+HR0011-06-C-0142.
+REFERENCES
+Committee on Army Unmanned Ground Vehicle Technol-
+ogy and the National Research Council. (2002) Tech-nology Development for Army Unmanned GroundVehicles. Washington, DC: Author.
+Darms, M. (2007) Eine Basis-Systemarchitektur zur Sensor-
+datenfusion von Umfeldsensoren f ¨ur Fahrerassisten-
+zsysteme, Fortschrittb. VDI: R12, Nr. 653. Dusseldorf,Germany: VDI-Verlag.
+Darms, M., Baker, C., Rybski, P ., & Urmson, C. (2008). Ve-
+hicle detection and tracking for the Urban Challenge—The approach taken by Tartan Racing. In M. Maurer &C. Stiller (Eds.), 5. Workshop Fahrerassistenzsysteme(pp. 57–67). Karlsruhe, Germany: FMRT.
+Darms, M., Rybski, P ., & Urmson, C. (2008a). An adaptive
+model switching approach for a multisensor tracking
+system used for autonomous driving in an urban en-vironment. AUTOREG 2008. Steuerung und Regelungvon Fahrzeugen und Motoren: 4. Fachtagung, BadenBaden, Germany (pp. 521–530). Dusseldorf, Germany:VDI-Verlag.
+Darms, M., Rybski, P ., & Urmson, C. (2008b). Classiﬁca-
+tion and tracking of dynamic objects with multiple sen-sors for autonomous driving in urban environments.In Proceedings of the 2008 IEEE Intelligent VehiclesSymposium, Eindhoven, the Netherlands (pp. 1192–1202). IEEE.
+Darms, M., & Winner, H. (2005). A modular system archi-
+tecture for sensor data processing of ADAS applica-tions. In Proceedings of the 2008 Intelligent VehiclesSymposium, Las Vegas, NV (pp. 729–734). IEEE.
+Journal of Field Robotics DOI 10.1002/rob
+
+--- Page 42 ---
+466 •Journal of Field Robotics—2008
+DARPA Urban Challenge. (2007). http://www.darpa.mil/
+grandchallenge/index.asp.
+Daubechies, I. (1992). Ten lectures on wavelets. Philadel-
+phia, PA: Society for Industrial and Applied Mathe-matics.
+Duda, R. O. & Hart, P . E. (1972). Use of the Hough
+transformation to detect lines and curves in pictures.Communications of the ACM, 15, 11–15.
+Ferguson, D., Howard, T., & Likhachev, M. (2008, sub-
+mitted for publication). Motion planning in urbanenvironments.
+Howard, T.M., and Kelly, A. (2007). Optimal rough terrain
+trajectory generation for wheeled mobile robots. Inter-national Journal of Robotics Research, 26(2), 141–166.
+Huttenlocker, D., & Felzenswalb, P . (2004). Distance trans-
+forms of sampled functions (Tech. Rep. TR2004-1963).Ithaca, NY: Cornell Computing and InformationScience.
+Kaempchen, N., Weiss, K., Schaefer, M., & Dietmayer,
+K.C.J. (2004, June). IMM object tracking for high
+dynamic driving maneuvers. In IEEE Intelligent
+Vehicles Symposium 2004, Parma, Italy (pp 825–830).Piscataway, NJ: IEEE.
+Likhachev, M., Ferguson, D., Gordon, G., Stentz, A., &
+Thrun, S. (2005). Anytime dynamic A
+∗: An anytime,
+replanning algorithm. In S. Biundo, K. L. Myers, &K. Rajan (Eds.), Proceedings of the Fifteenth Inter-national Conference on Automated Planning andScheduling (ICAPS 2005), Monterey, CA. AAAI.
+MacLachlan, R. (2005, June). Tracking moving objects from
+a moving vehicle using a laser scanner (Tech. Rep.CMU-RI-TR-05-07). Pittsburgh, PA: Carnegie MellonUniversity.Shih, M-Y., and Tseng, D.-C. (2005). A wavelet-based
+multi-resolution edge detection and tracking. Imageand Vision Computing, 23(4), 441–451.
+Thrun, S., Montemerlo, M., Dahlkamp, H., Stavens, D.,
+Aron, A., Diebel, J., Fong, P ., Gale, J., Halpenny, M.,Hoffmann, G., Lau, K., Oakley, C., Palatucci, M., Pratt,V ., Stang, P ., Strohband, S., Dupont, C., Jendrossek, L.-E., Koelen, C., Markey, C., Rummel, C., van Niekerk,J., Jensen, E., Alessandrini, P ., Bradski, G., Davies, B.,Ettinger, S., Kaehler, A., Neﬁan, A., & Mahoney, P .(2006). Stanley: The robot that won the DARPA GrandChallenge. Journal of Field Robotics, 23(9), 661–692.
+Urmson, C., Anhalt, J., Bartz, D., Clark, M., Galatali,
+T., Gutierrez, A., Harbaugh. S., Johnston, J., Kato,H., Koon, P .L., Messner, W., Miller, N., Mosher, A.,Peterson, K., Ragusa, C., Ray, D., Smith, B.K., Snider,J.M., Spiker, S., Struble, J.C., Ziglar, J., & Whittaker,W.L. (2006). A robust approach to high-speed naviga-tion for unrehearsed desert terrain. Journal of FieldRobotics, 23(8), 467–508.
+Urmson, C., Anhalt, J., Clark, M., Galatali, T., Gonzalez,
+J.P ., Gowdy, J., Gutierrez, A., Harbaugh, S., Johnson-Roberson, M., Kato, H., Koon, P .L., Peterson, K., Smith,B.K., Spiker, S., Tryzelaar, E., & Whittaker, W.L. (2004).High speed navigation of unrehearsed terrain: RedTeam technology for Grand Challenge 2004 (Tech. Rep.CMU-RI-TR-04-37). Pittsburgh, PA: Robotics Institute,Carnegie Mellon University.
+Viola, P ., & Jones, M. (2001). Robust real-time object detec-
+tion. In Proceedings of IEEE Workshop on Statisticaland Computational Theories of Vision, Vancouver,BC, Canada. Available at: http://www.stat.ucla.edu/∼sczhu/Workshops/SCTV2001.html.
+Journal of Field Robotics DOI 10.1002/rob

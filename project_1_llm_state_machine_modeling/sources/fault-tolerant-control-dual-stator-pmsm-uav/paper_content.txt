@@ -1,0 +1,975 @@
+--- Page 1 ---
+Citation: Suti, A.; Di Rito, G.;
+Galatolo, R. Fault-Tolerant Control of
+a Dual-Stator PMSM for the
+Full-Electric Propulsion of aLightweight Fixed-Wing UAV .
+Aerospace 2022 ,9, 337. https://
+doi.org/10.3390/aerospace9070337
+Academic Editor: Wim J. C. Verhagen
+Received: 9 May 2022
+Accepted: 22 June 2022
+Published: 24 June 2022
+Publisher’s Note: MDPI stays neutral
+with regard to jurisdictional claims in
+published maps and institutional afﬁl-
+iations.
+Copyright: © 2022 by the authors.
+Licensee MDPI, Basel, Switzerland.
+This article is an open access article
+distributed under the terms and
+conditions of the Creative Commons
+Attribution (CC BY) license (https://
+creativecommons.org/licenses/by/
+4.0/).aerospace
+Article
+Fault-T olerant Control of a Dual-Stator PMSM for the
+Full-Electric Propulsion of a Lightweight Fixed-Wing UA V
+Aleksander Suti * , Gianpietro Di Rito and Roberto Galatolo
+Department of Civil and Industrial Engineering, University of Pisa, Largo Lucio Lazzarino 2, 56122 Pisa, Italy;
+gianpietro.di.rito@unipi.it (G.D.R.); roberto.galatolo@unipi.it (R.G.)
+*Correspondence: aleksander.suti@dici.unipi.it; Tel.: +39-0502217211
+Abstract: The reliability enhancement of electrical machines is one of the key enabling factors for
+spreading the full-electric propulsion to next-generation long-endurance UAVs. This paper deals
+with the fault-tolerant control design of a Full-Electric Propulsion System (FEPS) for a lightweight
+ﬁxed-wing UAV , in which a dual-stator Permanent Magnet Synchronous Machine (PMSM) drives
+a twin-blade ﬁxed-pitch propeller. The FEPS is designed to operate with both stators delivering
+power (active/active status) during climb, to maximize performances, while only one stator is
+used (active/stand-by status) in cruise and landing, to enhance reliability. To assess the fault-
+tolerant capabilities of the system, as well as to evaluate the impacts of its failure transients on the
+UAV performances, a detailed model of the FEPS (including three-phase electrical systems, digital
+regulators, drivetrain compliance and propeller loads) is integrated with the model of the UAV
+longitudinal dynamics, and the system response is characterized by injecting a phase-to-ground fault
+in the motor during different ﬂight manoeuvres. The results show that, even after a stator failure, the
+fault-tolerant control permits the UAV to hold altitude and speed during cruise, to keep on climbing
+(even with reduced performances), and to safely manage the ﬂight termination (requiring to stop and
+align the propeller blades with the UAV wing), by avoiding potentially dangerous torque ripples and
+structural vibrations.
+Keywords: ﬁxed-wing UAV; full-electric propulsion system; axial-ﬂux PMSMS; fault-tolerant control;
+phase-to-ground short circuit; failure transient analysis
+1. Introduction
+The global market size of Unmanned Aerial Vehicles (UAVs) was 27.4 billion USD
+in 2021 and, despite the negative impact of the COVID-19 pandemic, it is expected togrow within 2026 up to 58.4 billion USD, at a Compound Annual Growth Rate (CAGR)
+of 16.4% [ 1]. Additionally, pushed by the wider objectives of the aerospace electriﬁcation,
+the design of next-generation long-endurance UAVs is undoubtedly moving toward the
+use of Full-Electric Propulsion Systems (FEPSs). Although immature nowadays in terms
+of reliability and energy density (e.g., lithium-ion battery packs typically range about300 kJ/kg, which is 100 times lower than gasoline [
+2]), FEPSs are expected to obtain
+large investments in the forthcoming years, aiming to replace the conventional internalcombustion motors, as well as to outclass the hybrid or hydrogen-based solutions [
+3].
+Coherently, the global market size of electric motors is projected to grow within 2028 upto 181.9 billion USD, at a CAGR of 7.0% [
+4]. In particular, the segment of Permanent
+Magnet Synchronous Machines (PMSMs) is forecast to hold more and more signiﬁcant
+markets, due to their advantages in terms of power density, efﬁciency, low torque ripple and
+dynamic performances. In this context, the Italian Government and the Tuscany Regional
+Government co-funded the project TERSA ( T ecnologie Elettriche e Radar per Sistemi aeromobili
+a pilotaggio remoto Autonomi )[5], led by Sky Eye Systems (Italy) in collaboration with the
+University of Pisa and other Italian industries.
+Aerospace 2022 ,9, 337. https://doi.org/10.3390/aerospace9070337 https://www.mdpi.com/journal/aerospace
+
+--- Page 2 ---
+Aerospace 2022 ,9, 337 2o f2 1
+The TERSA project aims to develop an Unmanned Aerial System (UAS) with ﬁxed-
+wing UAV , Figure 1, having the following main characteristics:
+• Take-off weight: from 35 to 50 kg;
+• Endurance: >6 h;
+• Range: >3 km;
+• Take-off system: pneumatic launcher;
+• Landing system: parachute and airbags;
+• Propulsion system: FEPS powering a twin-blade ﬁxed-pitch propeller;
+• Innovative sensing systems:
+/Circle Synthetic aperture radar, to support surveillance missions in adverse environ-
+mental conditions;
+/Circle Sense-and-avoid system, integrating a camera with a miniaturised radar, to
+support autonomous ﬂight capabilities in emergency conditions.
+Figure 1. Rendering of the TERSA UAV [ 5].
+With particular reference to the activities related to the TERSA UAV propulsion sys-
+tem development (which this work refers to), special attention has been dedicated to the
+demonstration of its fault-tolerant capabilities. It is well-known that, compared with solu-
+tions based on internal combustion motors, FEPSs on UAVs would guarantee smaller CO 2
+emissions, higher efﬁciency, lower noise, reduced thermal signature (crucial for military ap-
+plications), higher service ceiling and simpliﬁed maintenance [ 6], but several reliability and
+safety issues are still open, especially for long-endurance ﬂights in unsegregated airspaces.
+As relevant example, the failure rate of a simplex FEPS solution with a three-phase PMSM
+driven by three-leg converter typically ranges about 2.4 per thousand ﬂight hours [ 7,8],
+which is far from the reliability and safety levels required for the airworthiness certiﬁca-
+tion [ 9].
+Provided that the weight and envelopes required by UAV applications impede the
+extensive use of hardware redundancy (e.g., redundant motors), the reliability enhancement
+of FEPSs can be achieved only through motor phase redundancy or by using unconventional
+converters. Different solutions are proposed in the literature, and they can be split in two
+categories: those applying conventional three-leg converters (using multiple phases [ 10,11]
+or multiple three-phase arrangements [ 12,13]), and those using four-leg converters [ 8,14,15].
+In the latter solution, a couple of power switches are added as stand-by devices to theconventional three-leg bridge, enabling the control of the central point of the motor Y-connection. Although the four-leg solution permits to save weight, it requires an ad hocdesign of the motor and its power electronics [
+8,16]. On the other hand, PMSMs with
+multiple three-phase arrangements are less compact, but they use conventional converters
+driven by standard techniques [ 13].
+The failure rate of electric machines is essentially driven by faults on motor phases
+and converters (open-switch in a converter leg, open-phase, phase-to-ground fault, inter-
+turn short circuit, or capacitor short circuit [ 17]), that cover about 70% of the system fault
+modes [ 7]. Stator faults can initiate for different causes, such as dielectric breakdown, degra-
+dation of the winding insulation, thermal stress, overburden, or mechanical vibrations [ 18],
+
+--- Page 3 ---
+Aerospace 2022 ,9, 337 3o f2 1
+and many research efforts have been carried out for their diagnosis and the compensation,
+especially for open-phase faults [ 8,19–21] and inter-turns short circuits [ 22–25], while the
+literature is poorer for phase-to-ground faults in electrical machines [ 26–28]. As discussed
+in [29], phase-to-ground faults fall into the short circuit faults category. Usually, a short
+circuit initiates as an inter-turn fault (very difﬁcult to detect at an early stage), which
+typically evolves into a coil-to-coil, phase-to-phase, or into a phase-to-ground short circuit.
+Phase-to-ground faults are particularly dangerous, because they can cause irreversibledamages to both windings and core. If the motor windings could be replaced, the core
+damage is irreversible and it requires the entire motor removal.
+When addressing UAV applications, the basic consequence related to motor faults is
+the decrease or loss of thrust power, which essentially impacts on the altitude hold and/or
+climb capabilities of the vehicle. Together with other major UAV failures such as those
+affecting control actuators and sensors, the hazard mitigation requires the application of
+suitable fault-tolerant techniques. A comprehensive survey on methods for fault diagnosis
+and fault-tolerant control against UAV failures is provided by [ 30], and the reference
+highlights that the works addressing propulsion failures for ﬁxed-wing UAVs is very
+limited. Most of the literature is actually focused on the effects of faults to control actuators
+and sensors for both single UAVs [ 31–34] and UAVs in formation ﬂight [ 35–37], while
+the faults to propulsion systems are typically modelled with rough or very simpliﬁedapproaches (e.g., total propulsion loss as in [
+38] or increase in the drivetrain friction
+as in [ 39]).
+Together with reliability requirements, an FEPS for UAVs must have high compactness,
+high power-to-weight ratio, high torque density, and excellent efﬁciency. For these high-
+performance applications, Axial-Flux PMSMs (AFPMSMs) are preferred to conventional
+PMSMs with radial ﬂux linkages [ 40]. In fact, although conventional PMSMs have higher
+technology readiness, AFPMSMs are superior in terms of weight (core material is reduced),
+torque-to-weight ratio (magnets are thinner), efﬁciency (rotor losses are minimized), and
+versatility (the axial air gaps are easily adjustable) [ 41–43]. The FEPS of the reference
+TERSA UAV is actually equipped with a dual-stator AFPMSM, capable of operating in both
+active/active and active/stand-by conﬁgurations to obtain fault-tolerant capabilities for
+the system [ 44].
+This paper aims to contribute to the literature of FEPSs for ﬁxed-wing UAVs by
+dealing with the fault-tolerant control design and the dynamic performance characteriza-
+tion of the TERSA UAV , particularly addressing the impacts of failure transients on both
+the motor and the vehicle performances in different ﬂight phases (climb, cruise, ﬂight
+termination/landing) if a phase-to-ground short circuit in a stator is simulated.
+The basic objective of the investigation is, through a detailed fault modelling, to
+characterise both the fault symptoms (at both the motor level and UAV level) and the
+failure transients related to the application of fault-tolerant techniques. For this reason, the
+paper does not include the description of the health-monitoring algorithms, but it simply
+assumes that they exist and are capable of detecting the fault with a pre-deﬁned latency;
+after that a compensation is applied (the failed stator is de-energized and the control on
+healthy one is activated or reconﬁgured).
+The work is articulated as follows: the ﬁrst part is dedicated to the system description
+and to the nonlinear FEPS model; successively, the main features of the fault-tolerant control
+design are presented. Finally, an excerpt of simulation results is proposed, by highlighting
+and discussing the effects of a phase-to-ground fault during different ﬂight manoeuvres,
+and by demonstrating the effectiveness of the proposed design.
+2. Materials and Methods
+2.1. FEPS Description
+The fault-tolerant FEPS of the TERSA UAV is basically composed of (Figure 2):
+• Dual-stator AFPMSM, with surface-mounted magnets and phases in Y connection;
+• Twin-blade ﬁxed-pitch propeller (APC22 ×10E model [ 45]);
+
+--- Page 4 ---
+Aerospace 2022 ,9, 337 4o f2 1
+• Mechanical coupling joint between motor shaft and propeller;
+• Two Electronic Control Units (ECUs), each one including:
+/Circle Control/monitoring (CON/MON) module, for the implementation of the
+closed-loop control and health-monitoring functions;
+/Circle Conventional three-leg converter;
+/Circle Three Current Sensors (CSa, CSb, CSc), one per each motor phase;
+/Circle Angular Position Sensor (APS), measuring the motor rotation;
+/Circle Power Supply Unit (PSU), providing all ECU components with the required
+electrical supply;
+• Two interface connectors, one for the electrical power input and the other for the data
+exchange with the Flight Control Computer (FCC).
+Figure 2. Schematics of the FEPS architecture.
+The fault-tolerant FEPS is designed to guarantee mission accomplishment even after
+the failure of one of the two AFPMSM stators. Different operations of the stators are thus
+deﬁned by the CON/MON modules, so that each stator can
+• Be electrically supplied and controlled to apply an electrical torque on the motor shaft
+(active status);
+• Be electrically supplied at the converter level to be prompt to operate, but with
+open/isolated phases, so that no torque is applied ( stand-by status);
+• Be de-energized at the converter level ( passive status).
+In addition, since the UAV ﬂight termination and landing is obtained by deploying a
+parachute and by inﬂating airbags to be used as landing gears, the propeller blades must be
+aligned with the wing before opening the parachute to avoid interferences, and a speciﬁc
+control mode must be foreseen. As a consequence, four operation modes have been deﬁned
+to control each stator of the AFPMSM:
+(1) Flight Mission Mode (FMM) , in which the stator is active and a speed-tracking closed-
+loop system is implemented, by means of two nested loops, on motor speed and
+currents (via Field-Oriented Control, FOC), respectively;
+(2) Flight Termination Mode (FTM) , in which the stator is active and controlled via three
+nested loops: the two ones of the FMM plus an outer loop on motor shaft rotation,
+with a predeﬁned setpoint for the propeller alignment;
+(3) Hot Stand-By (HSB) , in which the stator is in stand-by status;
+(4) Cold Stand-By (CSB) , in which the stator is passive .
+As reported in Table 1and represented in terms of a ﬂow chart in Figure 3, depending
+on the MON fault ﬂags (generated by the health-monitoring algorithms and communicated
+to the FCC) and on the mission phase (received from the FCC), the CON modules can be
+switched to FMM, FTM, HSB or CSB modes.
+
+--- Page 5 ---
+Aerospace 2022 ,9, 337 5o f2 1
+T able 1. FEPS operation modes as functions of mission phases and detected faults.
+Mission PhaseMON1
+Fault FlagMON2
+Fault FlagCON Mode
+(CON1/CON2)FEPS Status
+(Stator 1/Stator 2)
+Climboff
+off
+onoff
+on
+offFMM/FMM
+FMM/CSBCSB/FMMNormal operation (active/active)
+Fail-operative (active/passive)
+Fail-operative (passive/active)
+Cruise, Loiter, Descentoff
+offoff
+onHSB/FMM
+FMM/CSBNormal operation
+(stand-by/active)
+Fail-operative (active/passive)
+Flight termination/Landingoff
+offoff
+onHSB/FTM
+FTM/CSBNormal operation
+(stand-by/active)
+Fail-operative (active/passive)
+Figure 3. Flow chart deﬁning FEPS operation modes.
+2.2. Mechanical T ransmission and Propeller Loads Modelling
+The dynamics of the aero-mechanical section of the FEPS, providing the UAV with the
+thrust Tp, is schematically depicted in Figure 4a and is modelled by [ 8,12]:
+⎧
+⎪⎪⎨
+⎪⎪⎩Jp..
+θp=−Qp−Cgb/parenleftBig.
+θp−.
+θm/parenrightBig
+−Kgb/parenleftbig
+θp−θm/parenrightbig+Qd
+Jm..
+θm=Qm+Cgb/parenleftBig.
+θp−.
+θm/parenrightBig
++Kgb/parenleftbig
+θp−θm/parenrightbig+Qc
+Qc=Qcmax sin(nhndθm), (1)
+where Jpandθp,Jmandθmare the inertias and angles of the propeller and the motor shafts,
+respectively, Qpis the propeller torque, Qdis a gust-induced disturbance torque, Qmis the
+motor torque, Qcis the cogging torque and Qcmax is its maximum amplitude, ndis the pole
+
+--- Page 6 ---
+Aerospace 2022 ,9, 337 6o f2 1
+pairs number, nhis the harmonic index of the cogging disturbance, while Kgband Cgbare
+the stiffness and the damping of the mechanical coupling joint.
+Figure 4. FEPS: ( a) mechanical scheme; ( b) equivalent three-phase PMSM scheme (one pole pair).
+Concerning the aerodynamic torque, the FEPS is equipped with the twin-blade ﬁxed-
+pitch composite propeller APC22 ×10E, which is characterized by the following thrust and
+torque expressions:
+Tp=CTp/parenleftBig.
+θp,AR/parenrightBig
+ρD4
+p.
+θ2
+p, (2)
+Qp=CQp/parenleftBig.
+θp,AR/parenrightBig
+ρD5
+p.
+θ2
+p, (3)
+AR=Va/Dp.
+θp, (4)
+where CTpand CQpare the nondimensional thrust and torque coefﬁcients, ARis the pro-
+peller advance ratio, Dpis the propeller diameter, ρis the air density, and Vais the UAV
+forward speed.
+It is worth noting that the manufacturer database provides the nondimensional co-
+efﬁcients CTpand CQponly for AR < 0.65 [ 45]. This range adequately covers the FEPS
+operating conditions in FMM (Table 1), but it is not adequate for the FTM, where AR
+theoretically tends to inﬁnite (because the propeller stops rotating), so that a loads model
+extension was carried out. This was carried out via Equation (5), by linearly extrapolating
+the coefﬁcient trends at AR* = 0.65 (Figure 5), with an approach that typically provides
+conservative estimates [ 46,47].
+CXp=⎧
+⎪⎪⎨
+⎪⎪⎩C(DB)
+Xp/parenleftBig.
+θp,AR/parenrightBig
+AR≤AR∗
+C(DB)
+Xp/parenleftBig.
+θp,AR∗/parenrightBig
++∂C(DB)
+Xp
+∂AR/vextendsingle/vextendsingle/vextendsingle/vextendsingle/vextendsingle
+.
+θp,AR∗(AR−AR∗) AR>AR∗, (5)
+In Equation (5), CXprepresents the thrust ( X=T) or torque ( X=Q) propeller coefﬁcient,
+while C(DB)
+Xpis the related quantity given in the manufacturer database.
+
+--- Page 7 ---
+Aerospace 2022 ,9, 337 7o f2 1
+Figure 5. APC 22×10E propeller curves: thrust coefﬁcient ( a) and torque coefﬁcient ( b), thrust ( c)
+and torque ( d) at sea level.
+2.3. Three-Phase PMSM Modelling
+Apart from the architectural dissimilarity from a conventional radial-ﬂux PMSM, the
+mathematical modelling of a AFPMSM is essentially identical [ 48,49]. With reference to the
+schematics in Figure 4b, and under the following assumptions [ 13]:
+• Negligible magnetic nonlinearities of ferromagnetic parts (i.e., hysteresis, saturation);
+• Each stator–rotor module is magnetically symmetric with reference to phases;
+• Permanent magnets are surface-mounted, are made of rare-earth materials, and the
+magnet reluctance along the quadrature axis is inﬁnite with respect to the one along
+the direct axis;
+• Negligible magnetic coupling among phases;
+• Negligible magnetic ﬂux dispersions (i.e., secondary paths, iron losses).
+The current dynamics can be described in vectorized form by [ 8]:
+Vabc=Riabc+Ld
+dtiabc+eabc, (6)
+eabc=λmnd.
+θm/bracketleftbigg
+sin(ndθm), sin/parenleftbigg
+ndθm−2
+3π/parenrightbigg
+, sin/parenleftbigg
+ndθm+2
+3π/parenrightbigg/bracketrightbiggT
+, (7)
+In Equations (5)–(6), Vabc=[Va−Vn,Vb−Vn,Vc−Vn]Tis the applied voltages vector,
+iabc=[ia,ib,ic]Tis the stator currents vector, eabcis the back-electromotive forces vector, R
+and Lare the resistance and inductance of the phases, λmis the magnet ﬂux linkage, and
+Vnis the neutral point voltage. The motor torque ( Qm)is thus given by:
+Qm=λmnd/bracketleftbigg
+iasin(ndθm)+ibsin/parenleftbigg
+ndθm−2
+3π/parenrightbigg
++icsin/parenleftbigg
+ndθm+2
+3π/parenrightbigg/bracketrightbigg
+(8)
+
+--- Page 8 ---
+Aerospace 2022 ,9, 337 8o f2 1
+More conveniently, the motor torque can be expressed with reference to quantities in
+the rotating reference frame, by applying the Clarke–Park transformations [ 13], so that:
+iαβγ=TCiabc=/radicalbigg
+2
+3⎡
+⎣1−1/2−1/2
+0√
+3/2−√
+3/2√
+2/2√
+2/2√
+2/2⎤
+⎦iabc, (9)
+idqz=TPiαβγ=⎡
+⎣cos(ndθm) sin(ndθm)0
+−sin(ndθm)cos(ndθm)0
+00 1⎤
+⎦iαβγ, (10)
+idqz=TPTCiabc=/radicalbigg
+2
+3⎡
+⎣cos(ndθm) cos/parenleftbig
+ndθm−2π
+3/parenrightbig
+cos/parenleftbig
+ndθm+2π
+3/parenrightbig
+−sin(ndθm)−sin/parenleftbig
+ndθm−2π
+3/parenrightbig−sin/parenleftbig
+ndθm+2π
+3/parenrightbig
+√
+2/2√
+2/2√
+2/2⎤
+⎦iabc (11)
+where iαβγand idqzare the current vectors in the Clark and Clark–Park reference frames,
+respectively. By using Equation (7), we ﬁnally have:
+Qm=/radicalbigg
+3
+2λmndiq=ktiq, (12)
+in which ktis the motor torque constant.
+2.4. Fault-T olerant Control System Design
+The multi-mode closed-loop system of the FEPS, schematically depicted in Figure 6,
+has been entirely developed as a ﬁnite-state machine, by using the Matlab–Simulink–
+Stateﬂow tools, with mode switch signals that can be generated by the MON modules or
+overridden by the commands sent by the FCC. In FMM (Table 1), the CON modules receive
+the speed setpoint (.
+θ#
+m) from the FCC, while in FTM the angle setpoint ( θ#
+m) is constant
+and pre-deﬁned.
+Figure 6. FEPS closed-loop architecture.
+
+--- Page 9 ---
+Aerospace 2022 ,9, 337 9o f2 1
+In the CON modules, all the regulators implement digital signal processing and apply
+proportional/integral actions on tracking error signals, plus an anti-windup function with
+back-calculation technique to compensate for command saturation. In particular, the
+generic j-th digital regulator (with j=C,Sand R, indicating the current, speed and rotation
+loops, respectively, Table A3) is governed by Equations (12)–(13):
+y(j)
+PI=k(j)
+Pε(j)+k(j)
+IT(j)
+s
+z−1/bracketleftBig
+ε(j)+k(j)
+AW/parenleftBig
+y(j)−y(j)
+PI/parenrightBig/bracketrightBig
+, (13)
+y(j)=⎧
+⎨
+⎩y(j)
+PI/vextendsingle/vextendsingle/vextendsingley(j)
+PI/vextendsingle/vextendsingle/vextendsingle<y(j)
+sat
+y(j)
+satsgn/parenleftBig
+y(j)
+PI/parenrightBig /vextendsingle/vextendsingle/vextendsingley(j)
+PI/vextendsingle/vextendsingle/vextendsingle≥y(j)
+sat, (14)
+where zis the discrete-time operator, ε(j)is the regulator input (tracking error), y(j)is the
+regulator output, y(j)
+PIis the saturator block input (proportional–integral with reference to
+error, if no saturation is present), while k(j)
+Pand k(j)
+Iare the proportional and integral gains,
+k(j)
+AWis the back-calculation anti-windup gain, y(j)
+satis the saturation limit, and T(j)
+sis the
+sampling rate, Table A3.
+In the MON modules, a set of monitoring algorithms are real-time executed at 10 kHz
+sampling rate, to detect and isolate the major FEPS faults (open-phase, shorted-phase,
+overheating, overcurrent, hardover, jamming, etc.), and to deﬁne the correct operationmode of the AFPMSM stators (Table 1). The maximum fault detection latency for all
+health-monitoring algorithms was set to 250 ms and the FEPS failure transients will be thus
+characterized in Section 3with reference to this worst-case scenario.
+2.5. UAV Longitudinal Dynamics Modelling
+The UAV dynamics is simulated via a reduced-order model, by taking into account
+the longitudinal phugoid behaviour only (Figure 7). By assuming that:
+• The thrust is aligned with the body frame axis ( xB);
+• The aerodynamic coefﬁcients related to the wing downwash and to the pitch rate
+are negligible;
+• The elevator deﬂection ( δe) continuously implies the pitch equilibrium;
+• The angle-of-attack, the path angle and the elevator deﬂection are small quantities.
+The UAV dynamics can be thus described by Equations (14)–(15), [ 50]:
+⎧
+⎪⎨
+⎪⎩ma.
+Va=Tpcos(α−α0)−D−magsin(γ)
+maVa.γ=L−magcos(γ)+ Tpsin(α−α0)
+M=0, (15)
+where ⎧
+⎨
+⎩L=1/2ρSV2CL=1/2ρSV2(CLαα+CLδeδe)
+D=1/2ρSV2CD=1/2ρSV2/parenleftbig
+CD0+kC2
+L/parenrightbig
+M=1/2ρSV2c(Cm0+Cmαα+Cmδeδe), (16)
+In Equations (14)–(15), ma,Va,γ, and ( α0)αare the UAV mass, forward speed, path angle,
+and (zero-lift) angle-of-attack; L,D, and Tpare the UAV lift, drag and thrust (Figure a and
+Figure ); Mis the total aerodynamic pitch moment; Sis the wing area; cis the UAV mean
+aerodynamic chord; Cm0is the base pitch moment coefﬁcient; Cmαand Cmδeare the pitch
+moment–slope coefﬁcients; and CLαand CLδeare the lift–slope coefﬁcients, while CD0and
+kare the zero-lift drag coefﬁcient and the induced drag factor, respectively.
+To evaluate the impacts of motor failures at the vehicle level, the system simulation
+also includes the closed-loop control on the UAV Rate-of-Climb (RoC, Equation (16)), as
+described by the scheme in Figure 8.
+RoC =Vasin(γ) (17)
+
+--- Page 10 ---
+Aerospace 2022 ,9, 337 10 of 21
+Figure 7. Reference schematics for the UAV longitudinal phugoid dynamics.
+Figure 8. Rate-of-climb closed-loop system.
+The RoC regulator receives the setpoint ( RoC#) from the mission management functions
+and implements a proportional/integral action on the tracking error with back-calculation
+anti-windup (similarly to FEPS ones, the regulator is governed by Equations (12)–(13) , in which
+j= RoC, Table A3). In addition, a stability augmentation system related to advance speed
+perturbation (loop with gain kSAS in Figure 8) is also applied.
+3. Results
+3.1. Simulation Campaign Deﬁnition
+The performances of the fault-tolerant FEPS were assessed by using a MATLAB/Simulink
+model of the complete system and numerically solved via the fourth-order Runge–Kutta
+method, using a 10−6s integration step. It is worth noting that the choice of a ﬁxed-step
+solver is not strictly related to the objectives of this work (in which the model is used for
+“off-line” simulations), but it has been selected for the next steps of the project, when the
+control system will be implemented in the ECU boards via automatic MATLAB compilers
+and executed in “real-time”.
+The fault-tolerant capabilities of the FEPS are tested by injecting a phase-to-ground
+fault in the phase A of the stator 2 (Figure 4b) in different ﬂight manoeuvres, i.e.:
+• During climb, in which the MON modules detect the fault and switch the CON mod-
+ules to operate from FMM/FMM (normal operation) to FMM/CSB (fail-operative);
+• During cruise, in which the MON modules detect the fault and switch the CON
+modules to operate from HSB/FMM (normal operation) to FMM/CSB (fail-operative);
+
+--- Page 11 ---
+Aerospace 2022 ,9, 337 11 of 21
+• During ﬂight termination/landing, in which the MON modules ﬁrstly detect the
+fault and switch the CON modules to operate from HSB/FMM (normal operation)
+to FMM/CSB (fail-operative), and then impose the transition from FMM to FTM on
+the active stator when the speed is adequately small. All the tests are executed by
+simulating the following sequence of events:
+• Start ( t= 0 s): the FEPS works in normal operation (no faults) and drives the
+propeller at 5800 rpm with the UAV at 26 m/s in level ﬂight at sea altitude;
+• FEPS command ( t= 1 s), i.e.,
+/Circle For climb, the maximum RoC of 3.5 m/s is requested by the FCC;
+/Circle For cruise, the propeller speed setpoint is held;
+/Circle For ﬂight termination/landing, the propeller speed setpoint is decreased
+from the cruise value at a −60 rad/s2rate;
+• Event 1 (E1, fault injection): a phase-to-ground fault on phase a of stator 2
+is imposed;
+• Event 2 (E2, fault detection and isolation): a CSB mode is set on the faulty stator;
+• Event 3 (E3, fault compensation):
+/Circle For climb, the current demand for the healthy stator is doubled and the
+RoC setpoint is reduced to 1 m/s;
+/Circle For cruise and flight termination/landing, the healthy stator is activated
+(250 ms delay is assumed to achieve the full electric supply) and controlled;
+• Event 4 (E4, only for ﬂight termination/landing): the active stator is switched to
+operate from FMM to FTM.
+To permit the evaluation of failure transient impacts on system performances, the
+results of two simulations will be proposed in Sections 3.2–3.4by applying or not the
+system health monitoring, so that a comparison between uncompensated and compensated
+behaviours is documented.
+3.2. Failure T ransients in Climb
+The simulations can be described with reference to Figure 9: ﬁrstly, the tracking
+performances of the closed-loop control on RoC are assessed, by requesting ( t= 1 s) the
+UAV to achieve the maximum-climb rate (3.5 m/s) at 1.5 gload factor; secondly, for both
+simulations, E1 is imposed while the UAV is performing a steady climb ( t= 12 s). In one of
+the two simulations, the fault is detected and compensated (E2+E3, at t= 12.25 s), and the
+CON modules switch to operate from FMM/FMM to FMM/CSB.
+(a) (b)
+Figure 9. UAV response in climb with phase-to-ground fault on stator 2 (E1, E2 and E3 deﬁned in
+Section 3.1): RoC ( a), airspeed ( b).
+In the healthy condition, the RoC tracking is characterized by a rise time of about
+5 s and negligible overshoot, Figure 9a. An undetected phase-to-ground fault drastically
+
+--- Page 12 ---
+Aerospace 2022 ,9, 337 12 of 21
+impacts on performances: without detection, the RoC actually goes below zero, meaning
+that the UAV follows a descent motion. On the other hand, the fault compensation permits
+to hold the UAV in climb, even if with reduced performance. If the fault is not detected, the
+airspeed exhibits relevant oscillations (with about a 12 s period, close to the Lanchester’s
+phugoid prediction, i.e., π√
+2Va/g,[51]), while it rapidly recovers the cruise value if the
+health-monitoring is applied, Figure 9b.
+The propeller speed is plotted in Figure 10a. In case of undetected fault, the faulty
+stator brakes down the propeller, by reducing the speed up to about 1000 rpm below the
+cruise value (5800 rpm), thus resulting in negative RoC, Figure 9a. If the health-monitoring
+is applied, immediately after the compensation, the output of the SAS block (Figure 8)
+increases because of the airspeed reduction, Figure 9b, as well as for the diminishing output
+from the RoC regulator, thus causing an initial increase in the motor demand speed (up to
+about t= 16 s). During this transient period (from 12.25 s to 16 s), the healthy stator operates
+in saturation condition, as conﬁrmed by the quadrature current output in Figure 10b. It
+can be also observed that the phase-to-ground fault introduces relevant ripples of current
+(hence torque) at about 800 Hz frequency, which is twice the motor electrical frequency
+(nd.
+θm). The current peaks reach ﬁve times the maximum value for continuous duty cycle
+operations ( Isat), with a mean value of about −0.5 Isat, which produces a braking torque
+contribution, Figure 10b.
+E1
+E2+E3
+(a) (b)
+Figure 10. FEPS response in climb with phase-to-ground fault on stator 2 (E1, E2 and E3 deﬁned in
+Section 3.1): propeller speed ( a), quadrature current ( b), with Isat=46 Arms.
+In Figure 11, the phase currents and voltages of the two stators for the compensated
+case are ﬁnally shown. The results are also proposed in the time range between the fault
+injection and compensation to emphasize the detailed dynamic behaviours: differently
+from the normal operation, the phase currents in the faulty stator (although still balanced,
+i.e., their sum is null) are not symmetric, Figure 11a. In fact, the current in phase croughly
+push-pulls with reference to the one in phase a, while in the phase bthe current progressively
+shifts to be roughly synchronous with it. The loss of current symmetry results from the
+voltage grounding on pin a(Figure 11b), which implies that the phase avoltage is driven
+by the neutral point voltage only. As a consequence of the symmetry loss, the Clarke—Park
+transform on stator 2 is no longer effective, and the direct and quadrature current demands
+(id2,iq2) become harmonic quantities, Figure 10b.
+
+--- Page 13 ---
+Aerospace 2022 ,9, 337 13 of 21
+(a) (b)
+Figure 11. FEPS currents and voltages responses in climb with phase-to-ground fault on stator 2 (E1,
+E2 and E3 deﬁned in Section 3.1): stator 2 currents ( a) with Isat=46Arms ; stator 2 voltages ( b) with
+VDC=36 V.
+3.3. Failure T ransients in Cruise
+The simulations can be described with reference to Figure 12: for both simulations,
+E1 is imposed while the UAV is in steady cruise ( t= 1 s); while in one of them, the fault is
+ﬁrstly detected (E2, at t= 1.25 s) and then compensated (E3, at t= 1.5 s), so that the CON
+modules are switched to operate from HSB/FMM to FMM/CSB.
+(a) (b)
+E1E2E3
+Figure 12. UAV response in cruise with phase-to-ground fault on stator 2 (E1, E2 and E3 deﬁned in
+Section 3.1): RoC ( a), airspeed ( b).
+Since in cruise the FEPS operates with one stator only, the undetected fault drastically
+impacts on UAV response, with the RoC that settles to about −2 m/s, Figure 12a. On the
+other hand, in the compensated case, the performances are fully restored. In both cases,
+the airspeed oscillates around the cruise value with the phugoid period, and a maximum
+deviation of about 1 m/s is observed, Figure 12b.
+The propeller speed is plotted in Figure 13a. In the undetected case, the faulty stator
+brakes down the motor, reducing the speed up to about 1200 rpm below the cruise value
+(5800 rpm), justifying the negative RoC in Figure 12a. If the health-monitoring is applied,
+the delay time required for the full electric supply of the stand-by stator (from t= 1.25 s
+
+--- Page 14 ---
+Aerospace 2022 ,9, 337 14 of 21
+tot= 1.5 s ) implies that resistive aerodynamic loads are applied to the propeller, and the
+speed rate diminishes, so that, immediately after the fault, the faulty stator acts as a brake.
+ (a) (b)E1
+E2
+E3
+E1
+E2
+E3
+Figure 13. FEPS response in cruise with phase-to-ground fault on stator 2 (E1, E2 and E3 deﬁned in
+Section 3.1): propeller speed ( a), quadrature current ( b), with Isat=46 Arms.
+The above discussion is further enforced by observing the response in terms of quadra-
+ture currents, Figure 13b. As also highlighted in Section 3.2, the phase-to-ground fault
+introduces high-frequency ripples, and, immediately after the fault, the mean value of the
+quadrature current is negative. On the other hand, in steady condition, it becomes positive
+(0.25 Isat), so that the faulty stator delivers power to the propeller.
+Finally, in Figure 14, the phase currents and voltages of the two stators for the com-
+pensated case are shown. The results are also proposed in the time range between the fault
+injection and compensation to emphasize out the detailed dynamic behaviours. The full
+electric activation of the stator 1 (at t= 1.5 s) is characterized by relevant peaks of the phase
+currents (Figure 14a), up to reach about three times the maximum value in continuous duty
+cycle operations ( Isat). As discussed in Section 3.2, the phase-to-ground fault causes the
+loss of the currents symmetry while maintaining their balance, Figure 14b.
+(a) (b)
+Figure 14. FEPS currents and voltages responses in cruise with phase-to-ground fault on stator 2 (E1,
+E2 and E3 deﬁned in Section 3.1): stator 2 currents ( a) with Isat=46Arms ; stator 2 voltages ( b) with
+VDC=36 V.
+
+--- Page 15 ---
+Aerospace 2022 ,9, 337 15 of 21
+3.4. Failure T ransient and T ransition from FMM to FTM in Flight T ermination/Landing
+The simulations can be described with reference to Figure 15: for both simulations, E1
+is imposed while the UAV is performing a steady descent motion ( t= 4.5 s); while in one
+of the two ones, the fault is ﬁrstly detected (E2, at t= 4.75 s) and then compensated (E3,
+att= 5 s), so that the CON modules switch from HSB/FMM to FMM/CSB. Successively,
+when the speed is adequately small (<1 rad/s), the CON modules switch from HSB/FMM
+to HSB/FTM in the undetected case (E4a, at t= 10.4 s), and from FMM/CSB to FTM/CSB
+if the health-monitoring is applied (E4b, at t= 10.7 s).
+(a) (b)
+E1E2E3
+E4a
+E4bE1E2E3
+E4a
+E4b
+Figure 15. UAV response in ﬂight termination/landing with phase-to-ground fault on stator 2 (E1,
+E2, E3 and E4 deﬁned in Section 3.1): RoC ( a), airspeed ( b).
+The UAV behaviour can be interpreted via Equation (12): since the elevator deﬂec-
+tion maintains the pitch equilibrium, a reduction in the propeller speed implies a thrust
+reduction, which causes an oscillatory descendant trajectory, Figure 15a. On the other hand,
+the airspeed oscillates by following the phugoid behaviour, while keeping its mean value
+roughly to the one before the fault, Figure 15b.
+The closed-loop tracking on propeller speed and position are reported in Figure 16.
+It is worth noting that the mode transition is executed when the speed is not zeroed yet,to anticipate the parachute opening, and that in both cases the position tracking to the
+predeﬁned setpoint (180 deg) is correctly accomplished. The quadrature currents response
+(Figure 17a) also points out that, compared with the climb and cruise simulations, the failure
+transient for the undetected case impacts on the mechanical transmission too, because
+the electrical frequency sweeps down, up to equalling the drivetrain resonant frequency
+(located at 100 Hz), Figure 17b.
+(a) (b)
+Figure 16. FEPS response in ﬂight termination/landing with phase-to-ground fault on stator 2 (E1,
+E2, E3 and E4 deﬁned in Section 3.1): propeller speed ( a), propeller angle ( b).
+
+--- Page 16 ---
+Aerospace 2022 ,9, 337 16 of 21
+(a) (b)
+Figure 17. FEPS response in ﬂight termination/landing with phase-to-ground fault on stator 2 (E1, E2,
+E3 and E4 deﬁned in Section 3.1): quadrature currents ( a) with Isat=46 Arms, propeller speed ( b).
+In Figure 18, the phase currents and voltages of the two stators for the compensated
+case are ﬁnally reported. The full electric activation of the stator 1 (at t= 5 s) is characterized
+by relevant peaks of the phase currents (Figure 18a), reaching up to about seven times
+the maximum value for continuous duty cycle ( Isat), while the stator 1 currents operate in
+saturation (√
+3/2Isat) until the propeller stops (at t= 10 s). Similarly to what was discussed
+in Sections 3.2and 3.3, the phase-to-ground fault again causes the loss of the currents’
+symmetry while maintaining their balance (Figure 18a). Finally, it is worth noting that the
+reduction in voltage amplitudes is coherent with the reduction in the back-electromotive
+forces caused by the speed decrease (the homopolar voltage component is also represented
+in Figure 18b).
+ 
+(a) (b)
+Figure 18. FEPS response in ﬂight termination/landing with phase-to-ground fault on stator 2 (E1,
+E2, E3 and E4 deﬁned in Section 3.1): stator 2 currents ( a) with Isat=46Arms ; stator 2 voltages
+(b) with VDC=36 V.
+
+--- Page 17 ---
+Aerospace 2022 ,9, 337 17 of 21
+4. Discussion
+As conﬁrmed by the results in Section 3, the phase-to-ground fault can determine
+damages to different parts of the electric machine. In fact, to compensate for the voltage
+supply lack on the faulty phase, the currents in other phases strongly increase, leading to
+extremely hot temperatures with consequent deterioration of the magnets. Partial or com-
+plete demagnetization may occur, since the magnet coercivity decreases with temperature.
+Furthermore, another contribution to demagnetization derives from the ﬂux weakening
+caused by the direct current increase. The direct current in the faulty stator is characterized
+by high-amplitude oscillations, so the ﬂux linkage on the quadrature axis ( λq=λm+Lid)
+can even overcome the magnet coercivity.
+Furthermore, the phase-to-ground fault can also impact the structural integrity of
+system drivetrain (e.g., bearings). In fact, the symmetry loss of the faulty stator currentsimplies that the magnetic ﬁelds generated via the FOC technique are not synchronous
+with the rotor magnet’s motion. The ripple manifests at twice the electrical frequency
+and potential criticalities can arise if this frequency equals the structural resonance of
+the drivetrain.
+The failure transient’s analysis proposed in Section 3highlights that the phase-to-
+ground fault can strongly impact performances at the UAV level too. If the fault is notdetected, the propeller torque reduces to below the one required for level ﬂight, thus
+causing the UAV to fall. Furthermore, if one compares the failure transient in climb with the
+one in cruise, it is worth noting that the larger the speed demand for the faulty stator, the
+lower its torque output. During climb, the demand after the fault settles at the maximum
+value (7500 rpm, Figure 10a) and the mean torque to a negative value (Figure 10b); while in
+cruise, when the speed setpoint is kept at 5800 rpm (Figure 13a), the mean torque settles to
+a positive value (Figure 13b). Concerning the ﬂight termination/landing, it is demonstrated
+that, even without fault detection, the FEPS is capable of stopping and aligning the propellerblades with the wing, even if the electrical frequency sweep related to the motor slowdown
+can generate potentially dangerous vibrations when the drivetrain resonant frequency
+is intercepted.
+The future developments of the research will be focused on:
+• System modelling validation, in particular:
+/Circle AFPMSM model, via experimental testing with reference to normal opera-
+tion (failure transient characterisation will be always simulated, but using
+updated parameters);
+/Circle Propeller loads model, via CFD simulations, with special focus on the region of
+AR> 0.65 (no data from manufacturer);
+/Circle Mechanical drivetrain model, via experimental testing;
+/Circle UAV longitudinal dynamics, via ﬂight data.
+• System modelling enhancement, by including a thermal model of the motor that
+would permit assessing the effects of overcurrents caused by phase-to-ground fault,
+which are expected to determine severe overheating;
+• Control system implementation in the ECU boards, via automatic MATLAB compilers
+for the “real-time” execution at a 10 kHz sampling rate.
+5. Conclusions
+The fault-tolerant control of the FEPS employed by the lightweight ﬁxed-wing UAV
+named TERSA has been designed and veriﬁed in terms of dynamic performances by
+simulating major electrical faults during relevant ﬂight manoeuvres. The reference FEPS
+includes a dual-stator AFPMSM operating in active/active mode during climb and in stand-
+by/active mode in other ﬂight phases, and it is designed as a ﬁnite-state machine to switch
+the closed-loop system from speed-tracking control during the ﬂight, to position-tracking
+control during ﬂight termination/landing, when the propeller blades are aligned with the
+wings to avoid interference with the landing parachute opening. Thanks to a high-ﬁdelity
+
+--- Page 18 ---
+Aerospace 2022 ,9, 337 18 of 21
+modelling approach, the impacts of failure transients from component levels up to UAV
+levels during climb, cruise and ﬂight termination/landing manoeuvres are evaluated,by simulating a phase-to-ground fault on a phase of one of the two AFPMSM stators.
+The results show that if the fault is not detected, it strongly impacts on both FEPS and
+UAV performances, up to causing the UAV to fall, the generation of large-amplitude high-
+frequency torque and current oscillations, and dangerous interactions with the drivetrain
+structural resonance. On the other hand, if the health monitoring is applied and the fault is
+detected and compensated, the FEPS permits maintaining the climb capability (even if it is
+with reduced performance), holding the UAV altitude and speed during cruise, as well as
+safely managing the ﬂight termination/landing manoeuvre.
+Author Contributions: Conceptualization, methodology and investigation, A.S. and G.D.R.; software,
+data curation and writing—original draft preparation, A.S.; validation, formal analysis and writing—
+review and editing, G.D.R.; resources, supervision and visualization, G.D.R. and R.G.; project
+administration and funding acquisition, R.G. All authors have read and agreed to the published
+version of the manuscript.
+Funding: This research was co-funded by the Italian Government ( Ministero Italiano dello Sviluppo
+Economico , MISE) and by the Tuscany Regional Government, in the context of the R&D project
+“T ecnologie Elettriche e Radar per SAPR Autonomi (TERSA)”, Grant number: F/130088/01-05/X38.
+Institutional Review Board Statement: Not applicable.
+Informed Consent Statement: Not applicable.
+Data Availability Statement: Not applicable.
+Acknowledgments: The authors wish to thank Luca Sani, from the University of Pisa ( Dipartimento
+di Ingegneria dell’Energia, dei Sistemi, del T erritorio e delle Costruzioni ), for the support in the deﬁnition
+of the AFPMSM model parameters, and Ing. Francesco Schettini, from Sky Eye Systems (Italy), for
+the information about the aero-mechanical data and the general performances of the UAV .
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+Appendix A
+This section contains tables reporting parameters and data related to the propulsion
+system model (Table A1) and the UAV model (Table A2).
+T able A1. FEPS model parameters.
+Deﬁnition Symbol V alue Unit
+Stator phase resistance R 0.025 Ω
+Stator phase inductance single module L 2×10−5 H
+Pole pairs number nd 5-
+Torque constant (single stator) kt 0.06 Nm/Arms
+Back-electromotive force constant ke 0.018 V/(rad/s)
+Permanent magnet ﬂux linkage λm 0.008 Wb
+Maximum current (continuous duty cycle) Isat 46 Arms
+Voltage supply VDC 36 V
+Rotor inertia Jem 8.2×10−3kg·m2
+Propeller diameter Dp 0.5588 m
+Propeller inertia Jp 1.62×10−2kg·m2
+Joint stiffness Kgb 1.598×103 Nm/rad
+Joint damping Cgb 0.2545 Nm/(rad/s)
+
+--- Page 19 ---
+Aerospace 2022 ,9, 337 19 of 21
+T able A2. UAV model parameters.
+Deﬁnition Symbol V alue Unit
+UAV mass ma 35 kg
+Air density ρ ISA model kg/m3
+Reference wing area S 1.058 m2
+Mean aerodynamic chord c 0.303 m
+Lift–slope coefﬁcient due to AoA CLα 5.74 1/rad
+Lift–slope coefﬁcient due to elevator deﬂection CLδe0.56 1/rad
+Pitch moment-slope coefﬁcient due to AoA Cmα, −1.1 1/rad
+Pitch moment-slope coefﬁcient due to elevator
+deﬂectionCmδe−2.4 1/rad
+Zero-lift pitch moment coefﬁcient Cm0 0.36 -
+Zero-lift angle α0 3.5 deg
+Zero-lift drag coefﬁcient CD0 0.0491 -
+Induced drag factor k 0.0462 -
+T able A3. FEPS and UAV regulators parameters.
+Deﬁnition Symbol V alue Unit
+Proportional gain of current regulator k(C)
+P 4×10−4 V/A
+Integral gain of current regulator k(C)
+I0.8 V/A/s
+Anti-windup gain of current regulator k(C)
+AW3140 A/V
+Saturation limit of current regulator y(C)
+sat32 V
+Proportional gain of speed regulator k(S)
+P5 A s/rad
+Integral gain of speed regulator k(S)
+I15 A/rad
+Anti-windup gain of speed regulator k(S)
+AW314 A rad/s
+Saturation limit of speed regulator y(S)
+sat46 Arms
+Proportional gain of rotation regulator k(R)
+P1.9 1/s
+Integral gain of rotation regulator k(R)
+I0.19 1/s2
+Anti-windup gain of rotation regulator k(R)
+AW31.4 s
+Saturation limit of rotation regulator y(R)
+sat785 rad/s
+Proportional gain of RoC regulator k(RoC)
+P65.6 rad/m
+Integral gain of RoC regulator k(RoC)
+I1.6 rad s/m
+Anti-windup gain of RoC regulator k(RoC)
+AW10 m/rad
+RoC-loop SAS gain kSAS 100 rad/m
+FEPS sample time T(C)
+s,T(S)
+s,T(R)
+s10−4 s
+FCC sample time T(RoC)
+s10−3 s
+References
+1. Unmanned Aerial Vehicle (UAV) Market by Point of Sale, Systems, Platform (Civil & Commercial, and Defense & Govern-
+ment), Function, End Use, Application, Type, Mode of Operation, MTOW, Range, and Region—Global Forecast to 2026.
+Research and Markets: Northbrook, IL, USA. 2021. Available online: https://www.marketsandmarkets.com/Market-Reports/
+unmanned-aerial-vehicles-uav-market-662.html?gclid=CjwKCAjwrqqSBhBbEiwAlQeqGiTZXREsmSFhSPuOaugcttjxTwo4L3
+KX7xYtWCycLbFVNWB6YuJIDhoC7ksQAvD_BwE (accessed on 4 April 2022).
+2. Schlachter, F. Has the Battery Bubble Burst? Am. Phys. Soc. 2012 ,21, 8. Available online: https://www.aps.org/publications/
+apsnews/201208/backpage.cfm (accessed on 2 April 2022).
+3. Suti, A.; Di Rito, G.; Galatolo, R. Climbing performance enhancement of small fixed-wing UAVs via hybrid electric propulsion. In Proceedings
+of the 2021 IEEE Workshop on Electrical Machines Design, Control and Diagnosis (WEMDCD), Modena, Italy, 8–9 April 2021. [ CrossRef ]
+4. Power, Electric Motor Market. Fortune Business Insights. Available online: https://www.fortunebusinessinsights.com/industry-
+reports/electric-motor-market-100752 (accessed on 4 April 2022).
+5. Dipartimento di Ingegneria Civile e Industriale, Progetti istituzionali. TERSA (Tecnologie Elettriche e Radar per Sistemi aeromobili a
+pilotaggio remoto Autonomi). Available online: https://dici.unipi.it/ricerca/progetti-finanziati/tersa/ (accessed on 7 April 2022).
+6. Mamen, A.; Supatti, U. A survey of hybrid energy storage systems applied for intermittent renewable energy systems. In
+Proceedings of the 2017 14th International Conference on Electrical Engineering/Electronics, Computer, Telecommunications and
+Information Technology (ECTI-CON), Phuket, Thailand, 27–30 June 2017. [ CrossRef ]
+7. Cao, W.; Mecrow, B.; Atkinson, G.; Bennett, J.; Atkinson, D. Overview of Electric Motor Technologies Used for More Electric
+Aircraft (MEA). IEEE T rans. Ind. Electron. 2012 ,59, 3523–3531. [ CrossRef ]
+8. Suti, A.; Di Rito, G.; Galatolo, R. Fault-Tolerant Control of a Three-Phase Permanent Magnet Synchronous Motor for Lightweight
+UAV Propellers via Central Point Drive. Actuators 2021 ,10, 253. [ CrossRef ]
+
+--- Page 20 ---
+Aerospace 2022 ,9, 337 20 of 21
+9. NATO Standardization Agency. STANAG 4671—Standardization Agreement—Unmanned Aerial Vehicles Systems Airworthiness
+Requirements (USAR) ; NATO Standardization Agency (STANAG): Brussels, Belgium, 2009.
+10. Ryu, H.M.; Kim, J.W.; Sul, S.K. Synchronous-frame current control of multiphase synchronous motor under asymmetric fault
+condition due to open phases. IEEE T rans. Ind. Appl. 2006 ,42, 1062–1070. [ CrossRef ]
+11. Liu, G.; Lin, Z.; Zhao, W.; Chen, Q.; Xu, G. Third Harmonic Current Injection in Fault-Tolerant Five-Phase Permanent-Magnet
+Motor Drive. IEEE T rans. Power Electron. 2018 ,33, 6970–6979. [ CrossRef ]
+12. Bennet, J.; Mecrow, B.; Atkinson, D.; Atkinson, G. Safety-critical design of electromechanical actuation systems in commercial
+aircraft. IET Electr. Power Appl. 2011 ,5, 37–47. [ CrossRef ]
+13. Mazzoleni, M.; Di Rito, G.; Previdi, F. Fault Diagnosis and Condition Monitoring Approaches. In Electro-Mechanical Actuators for
+the More Electric Aircraft ; Springer: Cham, Switzerland, 2021; pp. 87–117.
+14. De Rossiter Correa, M.; Jacobina, C.; Da Silva, E.; Lima, A. An induction motor drive system with improved fault tolerance. IEEE
+T rans. Ind. Appl. 2001 ,37, 873–879. [ CrossRef ]
+15. Ribeiro, R.; Jacobina, C.; Lima, A.; da Silva, E. A strategy for improving reliability of motor drive systems using a four-legthree-phase converter. In Proceedings of the APEC 2001, Sixteenth Annual IEEE Applied Power Electronics Conference and
+Exposition (Cat. No. 01CH37181), Anaheim, CA, USA, 4–8 March 2001. [ CrossRef ]
+16. Zhang, R.; Prasad, V .H.; Boroyevich, D.; Lee, F.J. Three-Dimensional Space Vector Modulation for Four-Leg Voltage-Cource
+Converter. IEEE T rans. Power Electron. 2002 ,17, 314–326. [ CrossRef ]
+17. Kontarcek, A.; Bajec, P .; Nemec, M.; Ambrožic, V .; Nedeljkovic, D. Cost-Effective Three-Phase PMSM Drive Tolerant to Open-Phase
+Fault. IEEE T rans. Ind. Electron. 2015 ,62, 6708–6718. [ CrossRef ]
+18. Bonnet, A.; Soukup, G. Cause and analysis of stator and rotor failures in three-phase squirrel-cage induction motors. IEEE T rans.
+Ind. Appl. 1992 ,28, 921–937. [ CrossRef ]
+19. Khalaief, A.; Boussank, M.; Gossa, M. Open phase faults detection in PMSM drives based on current signature analysis. In
+Proceedings of the XIX International Conference on Electrical Machines (ICEM 2010), Roma, Italy, 6–8 September 2010. [ CrossRef ]
+20. Li, W.; Tang, H.; Luo, S.; Yan, X.; Wu, Z. Comparative analysis of the operating performance, magnetic ﬁeld, and temperature rise
+of the three-phase permanent magnet synchronous motor with or without fault-tolerant control under single-phase open-circuit
+fault. IET Electr. Power Appl. 2021 ,15, 861–872. [ CrossRef ]
+21. Zhou, X.; Sun, J.; Li, H.; Song, X. High Performance Three-Phase PMSM Open-Phase Fault-Tolerant Method Based on Reference
+Frame Transformation. IEEE T rans. Ind. Electron. 2019 ,66, 7571–7580. [ CrossRef ]
+22. Faiz, J.; Nejadi-Koti, H.; Valipour, Z. Comprehensive review on inter-turn fault indexes in permanent magnet motors. IET Electr.
+Power Appl. 2017 ,11, 142–156. [ CrossRef ]
+23. Krzysztoﬁak, M.; Skowron, M.; Orlowska-Kowalska, T. Analysis of the Impact of Stator Inter-Turn Short Circuits on PMSM Drive
+with Scalar and Vector Control. Energies 2021 ,14, 153. [ CrossRef ]
+24. Arabaci, H.; Bilgin, O. The Detection of Rotor Faults By Using Short Time Fourier Transform. In Proceedings of the 2007 IEEE
+15th Signal Processing and Communications Applications, Eskisehir, Turkey, 11–13 June 2007. [ CrossRef ]
+25. Mohammed, O.A.; Liu, Z.; Liu, S.; Abed, N.Y. Internal Short Circuit Fault Diagnosis for PM Machines Using FE-Based Phase
+Variable Model and Wavelets Analysis. IEEE T rans. Magn. 2007 ,43, 1729–1732. [ CrossRef ]
+26. Baggu, M.M.; Chowdhury, B.H. Implementation of a Converter in Sequence Domain to Counter Voltage Imbalances. In
+Proceedings of the 2007 IEEE Power Engineering Society General Meeting, Tampa, FL, USA, 24–28 June 2007. [ CrossRef ]
+27. Blánquez, F.R.; Aranda, M.; Rebollo, E.; Bl ázquez, F.; Platero, C.A. New Fault-Resistance Estimation Algorithm for Rotor-Winding
+Ground-Fault Online Location in Synchronous Machines With Static Excitation. IEEE T rans. Ind. Electron. 2015 ,62, 1901–1911.
+[CrossRef ]
+28. Tan, R.H.; Ramachandaramurthy, V .K. A Comprehensive Modeling and Simulation of Power Quality Disturbances Using
+MATLAB/SIMULINK. In Power Quality Issues in Distributed Generation ; Luszcz, J., Ed.; IntechOpen: London, UK, 2015. [ CrossRef ]
+29. Pietrzak, P .; Wolkiewicz, M. On-line Detection and Classiﬁcation of PMSM Stator Winding Faults Based on Stator Current
+Symmetrical Components Analysis and the KNN Algorithm. Electronics 2021 ,10, 1786. [ CrossRef ]
+30. Fourlas, G.K.; Karras, G.C. A Survey on Fault Diagnosis and Fault-Tolerant Control Methods for Unmanned Aerial Vehicles.
+Machines 2021 ,9, 197. [ CrossRef ]
+31. Freeman, P .; Pandita, R.; Srivastava, N.; Balas, G.J. Model-Based and Data-Driven Fault Detection Performance for Small UAV .
+IEEE/ASME T rans. Mechatron. 2013 ,18, 1300–1309. [ CrossRef ]
+32. Odendaal, H.M.; Jones, T. Actuator fault detection and isolation: An optimised parity space approach. Control. Eng. Pract. 2014 ,
+26, 222–232. [ CrossRef ]
+33. Cao, D.; Fu, J.; Li, Y. Fault diagnosis of actuator of Flight Control System based on analytic model (IEEE CGNCC). In Proceedings
+of the 2016 IEEE Chinese Guidance, Navigation and Control Conference (CGNCC), Nanjing, China, 12–14 August 2016. [ CrossRef ]
+34. Abbaspour, A.; Yen, K.k.; Forouzannezhad, P .; Sargolzaei, A. A Neural Adaptive Approach for Active Fault-Tolerant Control
+Design in UAV . IEEE T rans. Syst. Man Cybern. Syst. 2020 ,50, 3401–3411. [ CrossRef ]
+35. Yin, L.; Liu, J.; Yang, P . Interval Observer-based Fault Detection for UAVs Formation with Actuator Faults. In Proceedings of the 2019
+CAA Symposium on Fault Detection, Supervision and Safety for Technical Processes (SAFEPROCESS), Xiamen, China, 5–7 July 2019.
+[CrossRef ]
+
+--- Page 21 ---
+Aerospace 2022 ,9, 337 21 of 21
+36. Li, D.; Yang, P .; Liu, Z.; Liu, J. Fault Diagnosis for Distributed UAVs Formation Based on Unknown Input Observer. In Proceedings
+of the 2019 Chinese Control Conference (CCC), Guangzhou, China, 27–30 July 2019. [ CrossRef ]
+37. Yu, Z.; Liu, Z.; Zhang, Y.; Qu, Y.; Su, C.Y. Distributed Finite-Time Fault-Tolerant Containment Control for Multiple Unmanned
+Aerial Vehicles. IEEE T rans. Neural Netw. Learn. Syst. 2020 ,31, 2077–2091. [ CrossRef ]
+38. Zogopoulos-Papaliakos, G.; Karras, G.C.; Kyriakopoulos, K.J. A Fault-Tolerant Control Scheme for Fixed-Wing UAVs with Flight
+Envelope Awareness. J. Intell. Robot. Syst. 2021 ,102, 46. [ CrossRef ]
+39. Haaland, O.M.; Wenz, A.W.; Gryte, K.; Hann, R.; Johansen, T.A. Detection and Isolation of Propeller Icing and Electric Propulsion
+System Faults in Fixed-Wing UAVs. In Proceedings of the 2021 International Conference on Unmanned Aircraft Systems (ICUAS),
+Athens, Greece, 15–18 June 2021. [ CrossRef ]
+40. Huang, R.; Liu, C.; Song, Z.; Zhao, H. Design and Analysis of a Novel Axial-Radial Flux Permanent Magnet Machine with
+Halbach-Array Permanent Magnets. Energies 2021 ,14, 3639. [ CrossRef ]
+41. Mahmoudi, A.; Rahim, N.A.; Hew, W.P . Axial-ﬂux permanent-magnet machine modeling, design, simulation and analysis. Sci.
+Res. Essays 2011 ,6, 2525–2549. [ CrossRef ]
+42. Zhao, J.; Han, Q.; Dai, Y.; Hua, M. Study on the Electromagnetic Design and Analysis of Axial Flux Permanent Magnet
+Synchronous Motors for Electric Vehicles. Energies 2019 ,12, 3451. [ CrossRef ]
+43. Kahourzade, S.; Mahmoudi, A.; Ping, H.W.; Mahmoudi, N.U. A Comprehensive Review of Axial-Flux Permanent-Magnet
+Machines. Can. J. Electr. Comput. Eng. 2014 ,37, 19–33. [ CrossRef ]
+44. Wang, Z.; Chen, J.; Cheng, M. Fault tolerant control of double-stator-winding PMSM for open phase operation based on
+asymmetric current injection. In Proceedings of the 17th International Conference on Electrical Machines and Systems (ICEMS),
+Hangzhou, China, 22–25 October 2014. [ CrossRef ]
+45. APC Propellers TECHNICAL INFO. Available online: https://www.apcprop.com/technical-information/performance-data/
+(accessed on 2 May 2021).
+46. Gong, A.; Verstraete, D. Evaluation of a hybrid fuel-cell based propulsion system with a hardware-in-the-loop ﬂight simulator. In
+Proceedings of the ISABE, Manchester, UK, 3–8 September 2017. Available online: https://www.researchgate.net/publication/32
+0998946_Evaluation_of_a_hybrid_fuel-cell_based_propulsion_system_with_a_hardware-in-the-loop_ﬂight_simulator (accessed
+on 28 March 2022).
+47. Pivano, L.; Smogeli, O.N.; Fossen, T.I.; Johansen, T.A. Experimental Validation of a marine propeller thrust estimation scheme.
+Nor. Soc. Autom. Control 2007 ,28, 105–112. [ CrossRef ]
+48. Darba, A.; Esmalifalak, M.; Barazandeh, E.S. Implementing SVPWM technique to axial ﬂux permanent magnet synchronous motor
+drive with internal model current controller. In Proceedings of the 2010 4th International Power Engineering and Optimization
+Conference (PEOCO), Shah Alam, Malaysia, 23–24 June 2010. [ CrossRef ]
+49. Sabah, N.; Humod, A.T.; Hasan, F.A. Field Oriented Control of the Axial Flux PMSM Based On Multi-Objective Particle Swarm
+Optimization. T echnol. Rep. Kansai Univ. 2020 ,62, 1493. Available online: https://www.kansaiuniversityreports.com/article/
+ﬁeld-oriented-control-of-the-axial-ﬂux-pmsm-based-on-multi-objective-particle-swarm-optimization (accessed on 1 April 2022).
+50. Rosario-Gabriel, I.; Cort és, R.H. Aircraft Longitudinal Control based on the Lanchester’s Phugoid Dynamics Model. In Pro-
+ceedings of the 2018 International Conference on Unmanned Aircraft Systems (ICUAS), Dallas, TX, USA, 12–15 June 2018.
+[CrossRef ]
+51. Lanchester, F.W. Aerial Flight: Part 2, Aerodonetics ; A Constable: London, UK, 1908.

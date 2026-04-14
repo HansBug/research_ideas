@@ -1,0 +1,1011 @@
+--- Page 1 ---
+energies
+Article
+Research on Starting Control Method of New-Energy
+Vehicle Based on State Machine
+Yezhen Wu1,2,*, Yuliang Xu1,2, Jianwei Zhou3, Zhen Wang1and Haopeng Wang1
+1Internal Combustion Engine Research Institute, Tianjin University, Tianjin 300072, China;
+xyl@tju.edu.cn (Y.X.); tns@tju.edu.cn (Z.W.); tnswhp@126.com (H.W.)
+2School of Mechanical Engineering, Tianjin University, Tianjin 300072, China
+3Tianjin Trumpjet Power Technology Co. Ltd., Tianjin 300072, China; zhoujianwei@tju.edu.cn
+*Correspondence: wuyezhen1995@163.com; Tel.: +86-166-2272-2799
+Received: 16 October 2020; Accepted: 26 November 2020; Published: 27 November 2020
+/gid00030/gid00035/gid00032/gid00030/gid00038/gid00001/gid00033/gid00042/gid00045 /gid00001
+/gid00048/gid00043/gid00031/gid00028/gid00047/gid00032/gid00046
+Abstract: In order to improve the starting smoothness of new-energy vehicles under multiple
+working conditions and meet the driving intention better, and to make the control strategy have
+high portability and integration, a starting control method for vehicle based on state machine is
+designed. Based on inclination, starting of vehicle is divided into three working conditions: ﬂat road,
+slight slope and steep slope. The method of vehicle starting control is designed, which includes ﬁve
+control states: default state control, torque pre-loading control, anti-rollback control, pedal control
+and PI (Proportion-Intergral) creep control. The simulation is carried out under the conditions of
+ﬂat road, slight slope and steep slope. In terms of ﬂat road and light slope, the vehicle travels below
+3 km /h according to the driver’s intention, the speed is stable at 8 km /h during the creeping control
+phase and the jerk is lower than 5 m /s3. In terms of steep slope, the speed is controlled at 0 km /h
+basically and the 10 s-rollback distance is less than 0.04 m. The results show that the strategy can
+fully meet the driver’s intention with lower jerk, better dynamic and stability, and the method can
+achieve the demand of new-energy vehicle starting control.
+Keywords: new-energy vehicle; method of starting control; state-machine; driver’s intention; jerk
+1. Introduction
+With environmental protection and energy issues becoming increasingly serious, the new-energy
+vehicle attracts more and more attention because of its low emission and high e ciency. Starting
+control is one of the key technologies of the new-energy vehicle. Research of starting control is of great
+signiﬁcance to the development and industrialization of new-energy vehicles.
+Starting control is divided into two stages: slope holding and launching. In traditional vehicles,
+Electrical Park Brake (EPB) and clutch are usually used to control the starting process, which will cause
+complex torque transfer process [ 1–3]. To avoid this problem, starting control only by motor is widely
+used in hybrid electric vehicles, which brings great challenge in designing complicated motor control
+strategies. In recent years, many scholars have studied it. Ref. [ 4] proposed a starting control method
+that coordinates drive-motor and brake, which achieved better slope holding control. Ref. [ 5] designed
+a ramp static holding system based on drive-motor control, which has low cost and wide applicability.
+However, the authors did not fully consider the driver’s intention, which is usually applied to design
+the strategies braking energy recovery [ 6,7]. Ref. [ 8] and [ 9] used PI (Proportion-Intergral) algorithm
+to achieve the longitudinal speed control without pedal action. Ref. [ 10] developed a ramp starting
+strategy based on vehicle speed and brake pedal aperture. Ref. [ 11] studied the coordinated starting
+control strategy of motor and brake with consideration of the relationship between slope and driving
+Energies 2020 ,13, 6249; doi:10.3390 /en13236249 www.mdpi.com /journal /energies
+
+--- Page 2 ---
+Energies 2020 ,13, 6249 2 of 16
+force. Current studies focus on single stage and frequently used the logic threshold control method,
+which makes the control program more disperse and fussy.
+State machine [ 12] is a tool for object behavior modeling, which is represented by state transition
+digraph and is used in software engineering and system design ﬁelds widely [ 13]. Further, it has
+strong accuracy, responsiveness and visibility. Ref. [ 14] applied state machine to identify ransomware
+and it can accurately detect attacks from di erent ransomware variants with signiﬁcantly few false
+predictions. Ref. [ 15] applied state machine to cloud computing and greatly hides the actual complex
+implementation within cloud orchestration and provider tools. Ref. [ 16] utilized the state machine to
+integrate the transition function and dispatch function together and improved the system transient
+performance under various operations. Compared with the control method based on logic threshold,
+it has the characteristics of greatly simplifying model complexity, clear logic and strong system
+integrity [ 17]. For the method in this paper, the low-speed driving scenes of the vehicle are integrated
+together. Meanwhile, with the continuous improvement of automatic code generation technology and
+computer hardware technology, the application of state machine in practical engineering has become
+more advantageous.
+The analysis of driver’s intention, safety control of driving torque and logical judgment are critical
+in starting control [ 18], which is often tested, revised and optimized in the development process
+and upgrading process of new-energy vehicles. Therefore, this paper proposes a starting control
+method based on state machine control, which fully considers driver’s intention, comfort and safety,
+and satisﬁes the requirements of smooth start on ﬂat road and slight slope, and stable holding on steep
+slope. The method is only applicable to pure electric vehicles and partial hybrid electric vehicles which
+start by motor.
+2. Models and Methods
+2.1. Controller Architecture
+Figure 1 shows the architecture of powertrain controller for new energy vehicles, including battery
+management system (BMS), motor controller unit (MCU) and vehicle control unit (VCU). VCU can be
+divided into application software and basic software. The application software is composed of multiple
+control modules, including signal input, human machine interface, fault diagnosis, torque arbitration,
+power management, thermal management, signal output, etc., and formulate a reasonable control
+strategy to make the modules work together to meet the requirements of the vehicle’s dynamic
+performance and comfort.
+Energies 2020 , 13, x FOR PEER REVIEW 2 of 16 
+ between slope and driving force. Current studies focu s on single stage and frequently used the logic 
+threshold control method, which makes the control program more disperse and fussy. 
+State machine [12] is a tool for object behavior modeling, which is represented by state transition 
+digraph and is used in software engineering and system design fiel ds widely [13]. Further, it has 
+strong accuracy, responsiveness and visibility. Ref. [14] applied state machine to identify ransomware 
+and it can accurately detect attacks from differen t ransomware variants with significantly few false 
+predictions. Ref. [15] applied st ate machine to cloud computing and greatly hides the actual complex 
+implementation within cloud orchestration and provider  tools. Ref. [16] utilized the state machine to 
+integrate the transition function and dispatch function together and improved the system transient performance under various operations. Compared with  the control method based on logic threshold, 
+it has the characteristics of greatly simplifying model complexity, clear logic and strong system 
+integrity [17]. For the method in this paper, the lo w-speed driving scenes of the vehicle are integrated 
+together. Meanwhile, with the continuous improv ement of automatic code generation technology 
+and computer hardware technology, the applicatio n of state machine in practical engineering has 
+become more advantageous. 
+The analysis of driver’s intention, safety control of driving torque and logical judgment are 
+critical in starting control [18], which is often tested, revised and optimized in the development 
+process and upgrading process of new-energy vehicles. Therefore, this paper proposes a starting 
+control method based on state machine control, which fully considers driver’s intention, comfort and safety, and satisfies the requirements of smooth start on flat road and slight slope, and stable holding 
+on steep slope. The method is only applicable to pure electric vehicles and partial hybrid electric 
+vehicles which start by motor. 
+2. Models and Methods 
+2.1. Controller Architecture 
+Figure 1 shows the architecture of powertrain controller for new energy vehicles, including 
+battery management system (BMS), motor controller unit (MCU) and vehicle control unit (VCU). VCU can be divided into application software an d basic software. The application software is 
+composed of multiple control modules, including signal input, human machine interface, fault diagnosis, torque arbitration, power management, thermal management, signal output, etc., and 
+formulate a reasonable control strategy to make th e modules work together to meet the requirements 
+of the vehicle’s dynamic performance and comfort. 
+ 
+Figure 1. Overall Framework of Controller. (I: Input Si gnals; HMI: Human Machine Interface; TAC: 
+Torque Arbitration Calculation;  PM: Power Management; EDM: E rror Diagnosis Management; OBM: 
+Observer Module; AM: Accessories Module; O: Output signals; CAN: Controller Area Netwrk; DSP: 
+Digital Signal Processing).   
+   
+I   
+O  HMI 
+ EDM   TAC PM 
+ OBM  AM 
+CAN/Key/Pedal 
+DSP Communication Stora ge 
+Monitorin g Calibration Drive r Underlying Interface BMS 
+ MCU 
+Figure 1. Overall Framework of Controller. (I: Input Signals; HMI: Human Machine Interface;
+TAC: Torque Arbitration Calculation; PM: Power Management; EDM: Error Diagnosis Management;
+OBM: Observer Module; AM: Accessories Module; O: Output signals; CAN: Controller Area Netwrk;
+DSP: Digital Signal Processing).
+
+--- Page 3 ---
+Energies 2020 ,13, 6249 3 of 16
+2.2. Mathematical Model
+2.2.1. Vehicle Modeling
+Figure 2 shows the force diagram of vehicle climbing. Fdis the longitudinal traction force provided
+by the motor, Fbis the braking force, Fsis the climbing resistance, Ffis the acceleration resistance, Fnis
+the ground support force, Gis the gravity and is the inclination.
+Energies 2020 , 13, x FOR PEER REVIEW 3 of 16 
+ 2.2. Mathematical Model 
+2.2.1. Vehicle Modeling 
+Figure 2 shows the force diagram of vehicle climbing. Fd is the longitudinal traction force 
+provided by the motor, Fb is the braking force, Fs is the climbing resistance, Ff is the acceleration 
+resistance, Fn is the ground support force, G is the gravity and θ is the inclination. 
+ 
+Figure 2. Force Diagram of Vehicle Climbing. 
+According to the related knowledge of automobile  theory [18], the following force equation is 
+obtained: 
+td b sfFFFFF   (1) 
+where:   
+Ft is the longitudinal driving force of the vehicle. 
+The relationship between climbing resist ance and inclination is as follows: 
+sinsFm g      (2) 
+where: 
+m is the mass of the vehicle, 
+g is the acceleration of gravity. 
+The acceleration resistance is mainly related to the wind speed, which can be ignored in starting 
+stage and satisfies the following formula: 
+2
+21.15D
+fCA vF  (3) 
+where: 
+CD is the air resistance coefficient,  
+A is the windward area, 
+v is the longitudinal driving speed of the vehicle. 
+The braking force equation will be given in the wheel model construction. 
+2.2.2. Wheel Modeling 
+The research scope is the starting stage of the ve hicle, so the lateral slip of the vehicle is not 
+considered. The wheel modeling adopts the mathematical model of longitudinal brake cylinder pressure control. The wheel output torque is determined by the longitudinal traction force, braking 
+force and rolling resistance. 
+Figure 2. Force Diagram of Vehicle Climbing.
+According to the related knowledge of automobile theory [ 18], the following force equation
+is obtained:
+Ft=Fd+FbFsFf (1)
+where:
+Ftis the longitudinal driving force of the vehicle.
+The relationship between climbing resistance and inclination is as follows:
+Fs=mgsin (2)
+where:
+mis the mass of the vehicle,
+gis the acceleration of gravity.
+The acceleration resistance is mainly related to the wind speed, which can be ignored in starting
+stage and satisﬁes the following formula:
+Ff=CDAv2
+21.15(3)
+where:
+CDis the air resistance coe cient,
+Ais the windward area,
+vis the longitudinal driving speed of the vehicle.
+The braking force equation will be given in the wheel model construction.
+2.2.2. Wheel Modeling
+The research scope is the starting stage of the vehicle, so the lateral slip of the vehicle is not
+considered. The wheel modeling adopts the mathematical model of longitudinal brake cylinder
+
+--- Page 4 ---
+Energies 2020 ,13, 6249 4 of 16
+pressure control. The wheel output torque is determined by the longitudinal traction force, braking
+force and rolling resistance.
+Tt=TdTb+Tr (4)
+where:
+Ttis the torque by wheel,
+Tdis the longitudinal traction torque by the motor,
+Tbis the braking torque,
+Tris the rolling resistance moment term.
+The longitudinal traction torque Tdis directly related to the motor performance, and the motor
+parameters are shown in Table 1.
+Table 1. Parameters of Vehicle and Key Components.
+Name /Unit Value Name /Unit Value
+Mass /kg 1712 Center of Mass Height /m 0.5
+Wheel radius /m 0.31 Rated Power of Motor /kW 37
+Friction Coe cient of Brake Disc 0.35 Peak Power of Motor /kW 95
+Vehicle Resistant Coe cient192.35 Maximum Speed of Motor /rpm 12,000
+0.6462 Battery Nominal Voltage /V 334
+0.047 Battery Capacity /Ah 37
+Windward Area /m22.27 Battery Internal Resistance /mW 96
+Wheelbase /m 2.75
+This paper selects hydraulic disc brake. According to the actual motion state, the braking force is
+divided into static friction braking force and dynamic friction braking force, and the speed Nis used to
+distinguish it.
+Tb=8>>><>>>:PB2aRmNpads
+4,N,0
+staticPB2aRmNpads
+4,N=0(5)
+where:
+Pis the brake cylinder pressure,
+Nis the wheel speed,
+Npadsis the number of brake pads,
+static is the static friction coe cient,
+is the dynamic friction coe cient,
+Bais the diameter of the brake cylinder,
+Rmis the average radius of the brake pad.
+The average radius of brake pads is calculated by Formula (6):
+Rm=(Ri+Ro)
+2(6)
+where:
+Rois the radius of the outer circle of the brake pad,
+Riis the radius of the inner circle of the brake pad.
+The rolling resistance term Tris mainly composed of slip resistance and rolling resistance.
+The rolling resistance has a time constant parameterized in terms of a relaxation length.
+Tr(s)=1
+j!jRe
+Les+1
+FxRe+My
+(7)
+
+--- Page 5 ---
+Energies 2020 ,13, 6249 5 of 16
+where:
+!is the angular velocity of the wheel,
+Reis the e ective tire radius under load and given pressure,
+Leis the relaxation length of the tire,
+Fxis the longitudinal force due to slippage.
+The rolling resistance moment Myis determined by the following formula:
+My=Refa+bjvj+cv2gfF
+zp
+igtanh (4v) (8)
+where:
+Fzis the normal force acting on the wheel,
+piis the tire pressure,
+ais constant term coe cient,
+bis ﬁrst term coe cient,
+cis quadratic term coe cient,
+is tire pressure coe cient,
+is normal force coe cient.
+2.3. Inclination Calculation Method
+In order to accurately divide the boundaries of ﬂat road, slight slope and steep slope, AVL Cruise
+is used to simulate and verify the climbing performance of the vehicle. Considering the inﬂuence of
+vehicle parameters, adhesion and wind resistance on climbing performance, the theoretical maximum
+inclination is calculated. The vehicle and key component parameters are shown in Table 1.
+According to the relevant knowledge of automobile theory [ 19], on the premise of satisfying the
+power and safety performance, this paper deﬁnes the maximum inclination as the corresponding
+inclination when the vehicle can drive at 1 km /h. The inclination corresponding to driving steadily at a
+speed of 50 km /h is deﬁned as the critical inclination.
+The climbing performance of the vehicle is shown in Figure 3. The maximum inclination of the
+vehicle is 41.95% and the critical inclination is 36.89%. In this paper, inclination of 0% is deﬁned as a ﬂat
+road, inclination between zero and critical inclination is deﬁned as a slight inclination, and inclination
+between critical inclination and maximum inclination is deﬁned as a steep inclination.
+Energies 2020 , 13, x FOR PEER REVIEW 5 of 16 
+  1
+1rx e y
+e
+eTs FR MRsL  
+(7) 
+where: 
+ω is the angular velocity of the wheel, 
+Re is the effective tire radius under load and given pressure, 
+Le is the relaxation length of the tire, 
+Fx is the longitudinal force due to slippage. 
+The rolling resistance moment My is determined by the following formula: 
+ 2tanh 4ye z iM Rab v c v F p v       (8) 
+where:  
+Fz is the normal force acting on the wheel, 
+pi is the tire pressure, 
+a is constant term coefficient, 
+b is first term coefficient, 
+c is quadratic term coefficient, 
+λ is tire pressure coefficient, 
+ξ is normal force coefficient. 
+2.3. Inclination Calculation Method 
+In order to accurately divide the boundaries of fl at road, slight slope and steep slope, AVL Cruise 
+is used to simulate and verify the climbing perfor mance of the vehicle. Considering the influence of 
+vehicle parameters, adhesion and wind resistance on climbing performance,  the theoretical maximum 
+inclination is calculated. The vehicle and key component parameters are shown in Table 1. 
+According to the relevant knowledge of automobile theory [19], on the premise of satisfying the 
+power and safety performance, this paper defines the maximum inclination as the corresponding 
+inclination when the vehicle can drive at 1 km/h. Th e inclination corresponding to driving steadily at 
+a speed of 50 km/h is defined as the critical inclination. 
+The climbing performance of the vehicle is shown in Figure 3. The maximum inclination of the 
+vehicle is 41.95% and the critical inclination is 36.89% . In this paper, inclination of 0% is defined as a 
+flat road, inclination between zero and critical in clination is defined as a slight inclination, and 
+inclination between critical inclination and maximu m inclination is defined as a steep inclination. 
+ 
+Figure 3. Simulation Results of Vehicle Climbing Performance. 
+2.4. Starting Control Method 
+2.4.1. Framework and State Machine 
+Figure 3. Simulation Results of Vehicle Climbing Performance.
+2.4. Starting Control Method
+2.4.1. Framework and State Machine
+The starting control strategy studied in this paper is integrated into torque arbitration calculation
+control strategy, which is integrated with accelerator pedal control strategy, brake pedal control strategy
+
+--- Page 6 ---
+Energies 2020 ,13, 6249 6 of 16
+and cruise control strategy. By judging the mode, the corresponding output torque is selected as the
+wheel torque requirement. This paper only gives the map of maximum traction torque and braking
+recovery torque based on vehicle speed, as shown in Figure 4. The control strategy of acceleration,
+braking and cruise are not introduced in detail.
+Energies 2020 , 13, x FOR PEER REVIEW 6 of 16 
+ The starting control strategy studied in this paper is integrated into torque arbitration calculation 
+control strategy, which is integrated with accelerator pedal control strategy, brake pedal control strategy and cruise control strategy. By judging the mode, the corresponding outp ut torque is selected 
+as the wheel torque requirement. This paper only  gives the map of maximu m traction torque and 
+braking recovery torque based on vehicle speed, as  shown in Figure 4. The control strategy of 
+acceleration, braking and cruise are not introduced in detail. 
+ 
+Figure 4. Maximum Traction Torque and Braking Reco very Torque Based on Vehicle Velocity. 
+When the vehicle is on a slope, launching or cr eep, the vehicle enters the starting control mode, 
+and the driver may act on the brake pedal or acce lerator pedal at this time. The starting control 
+strategy consists of three parts: enabling condition, state machine and torque calculation, as shown 
+in Figure 5. 
+ 
+Figure 5. Starting Control Strategy Model Based on State Machine. 
+Based on the state machine, each control state ca n be switched, as shown in Figure 6. In this 
+paper, the starting control is divided into five co ntrol states: default state control, torque preload 
+control, anti-rollback control, pedal control and PI creep control. 
+Figure 4. Maximum Traction Torque and Braking Recovery Torque Based on Vehicle Velocity.
+When the vehicle is on a slope, launching or creep, the vehicle enters the starting control mode,
+and the driver may act on the brake pedal or accelerator pedal at this time. The starting control strategy
+consists of three parts: enabling condition, state machine and torque calculation, as shown in Figure 5.
+Energies 2020 , 13, x FOR PEER REVIEW 6 of 16 
+ The starting control strategy studied in this paper is integrated into torque arbitration calculation 
+control strategy, which is integrated with accelerator pedal control strategy, brake pedal control strategy and cruise control strategy. By judging the mode, the corresponding outp ut torque is selected 
+as the wheel torque requirement. This paper only  gives the map of maximu m traction torque and 
+braking recovery torque based on vehicle speed, as  shown in Figure 4. The control strategy of 
+acceleration, braking and cruise are not introduced in detail. 
+ 
+Figure 4. Maximum Traction Torque and Braking Reco very Torque Based on Vehicle Velocity. 
+When the vehicle is on a slope, launching or cr eep, the vehicle enters the starting control mode, 
+and the driver may act on the brake pedal or acce lerator pedal at this time. The starting control 
+strategy consists of three parts: enabling condition, state machine and torque calculation, as shown 
+in Figure 5. 
+ 
+Figure 5. Starting Control Strategy Model Based on State Machine. 
+Based on the state machine, each control state ca n be switched, as shown in Figure 6. In this 
+paper, the starting control is divided into five co ntrol states: default state control, torque preload 
+control, anti-rollback control, pedal control and PI creep control. 
+Figure 5. Starting Control Strategy Model Based on State Machine.
+Based on the state machine, each control state can be switched, as shown in Figure 6. In this paper,
+the starting control is divided into ﬁve control states: default state control, torque preload control,
+anti-rollback control, pedal control and PI creep control.
+
+--- Page 7 ---
+Energies 2020 ,13, 6249 7 of 16
+Energies 2020 , 13, x FOR PEER REVIEW 7 of 16 
+  
+Figure 6. Control Flow Diagram of State Machine. 
+2.4.2. Conversion Criteria 
+1. Activation and Exit for Starting Control: 
+If the vehicle is in gear D or R and the speed is at or under 8 km/h without accelerator pedal 
+action, the vehicle enters the starting control phase and the starting control is activated to the default 
+mode. If the gear is shifted to a non-D/R gear duri ng the starting control phase, the starting control 
+mode will be exited; if the accelerator pedal is pre ssed, the starting control mode will be exited only 
+when the accelerator pedal torque request is greater th an the starting torque request; and if the vehicle 
+speed is over 10 km/h, it  also will be exited. 
+2. Convert from Default to Preload: 
+If it is currently in the default mode, it will convert to preload mode when the following 
+conditions are met: (a) shifting gear to D/R; (b ) brake pedal aperture gr eater than 95%; (c) no 
+accelerator pedal action; (d) the vehicle speed is lower than 0.2 km/h; (e) the motor speed is lower 
+than 20 rpm. 
+3. Convert from Preload to Default: 
+If it is currently in the preload mode, it will convert to default mode when the following 
+condition are met: (a) the last sampling time moto r torque is not 0; (b) the current sampling time 
+motor torque is 0. 
+4. Convert from Default to Anti-Rollback: 
+If it is currently in the default mode, it will convert to anti-rollback mode when the following 
+conditions are met: (a) gear position is in D/R; (b) brake pedal aperture greater than 70%; (c) no 
+accelerator pedal action; (d) the grade is greater than  0 degree or the motor speed is lower than 0 rpm. 
+5. Convert from Anti-Rollback to Default: 
+If it is currently in the anti-rollback mode, it will convert to default mode when the following 
+condition is met: the brake pedal aperture is greater than 95%. 
+6. Convert from Anti-Rollback or Default to Pedal Control: 
+If it is currently in the anti-rollback mode or default mode, it will convert to pedal control mode 
+when the following condition are met: (a) gear position is in D/R; (b) the brake pedal aperture is lower 
+than 70%; (c) no accelerator pedal action; (d) the vehicle speed is lower than 3 km/h. 
+7. Convert from Pedal Control to Default: PI Cree p Control Pedal Control Anti-Rollback R-Gear Preload D-Gear Preload  
+  
+ 
+Default  
+ 
+ 
+  
+Not 
+Active 
+Figure 6. Control Flow Diagram of State Machine.
+2.4.2. Conversion Criteria
+1. Activation and Exit for Starting Control:
+If the vehicle is in gear D or R and the speed is at or under 8 km /h without accelerator pedal action,
+the vehicle enters the starting control phase and the starting control is activated to the default mode.
+If the gear is shifted to a non-D /R gear during the starting control phase, the starting control mode will
+be exited; if the accelerator pedal is pressed, the starting control mode will be exited only when the
+accelerator pedal torque request is greater than the starting torque request; and if the vehicle speed is
+over 10 km /h, it also will be exited.
+2. Convert from Default to Preload:
+If it is currently in the default mode, it will convert to preload mode when the following conditions
+are met: (a) shifting gear to D /R; (b) brake pedal aperture greater than 95%; (c) no accelerator pedal
+action; (d) the vehicle speed is lower than 0.2 km /h; (e) the motor speed is lower than 20 rpm.
+3. Convert from Preload to Default:
+If it is currently in the preload mode, it will convert to default mode when the following condition
+are met: (a) the last sampling time motor torque is not 0; (b) the current sampling time motor torque
+is 0.
+4. Convert from Default to Anti-Rollback:
+If it is currently in the default mode, it will convert to anti-rollback mode when the following
+conditions are met: (a) gear position is in D /R; (b) brake pedal aperture greater than 70%; (c) no
+accelerator pedal action; (d) the grade is greater than 0 degree or the motor speed is lower than 0 rpm.
+5. Convert from Anti-Rollback to Default:
+If it is currently in the anti-rollback mode, it will convert to default mode when the following
+condition is met: the brake pedal aperture is greater than 95%.
+6. Convert from Anti-Rollback or Default to Pedal Control:
+If it is currently in the anti-rollback mode or default mode, it will convert to pedal control mode
+when the following condition are met: (a) gear position is in D /R; (b) the brake pedal aperture is lower
+than 70%; (c) no accelerator pedal action; (d) the vehicle speed is lower than 3 km /h.
+7. Convert from Pedal Control to Default:
+
+--- Page 8 ---
+Energies 2020 ,13, 6249 8 of 16
+If it is currently in the pedal control mode, it will convert to default mode when the following
+condition is met: the brake pedal aperture is greater than 70%.
+8. Convert from Pedal Control or Default to PI Control:
+If it is currently in the pedal control mode or default mode, it will convert to PI control mode
+when the following conditions are met: (a) gear position is in D /R; (b) the brake pedal aperture is zero;
+(c) the accelerator pedal aperture is zero; (d) the vehicle speed is lower than 9 km /h.
+9. Convert from PI Control to Default:
+If it is currently in the PI control mode, it will convert to default mode in any of the following
+conditions: (a) the brake pedal aperture is greater than 0%; (b) the vehicle speed is over 9 km /h.
+2.4.3. Torque Calculation
+1. Default:
+The default torque is zero.
+2. Preload State:
+The preload torque of the drive motor is 0.5 N m and returns to zero after 0.5 s. The control
+module is shown in Figure 7.
+Energies 2020 , 13, x FOR PEER REVIEW 8 of 16 
+ If it is currently in the pedal control mode, it will convert to default mode when the following 
+condition is met: the brake pedal aperture is greater than 70%. 
+8. Convert from Pedal Control or Default to PI Control: 
+If it is currently in the pedal control mode or default mode, it will convert to PI control mode 
+when the following conditions are met:  (a) gear position is in D/R; (b ) the brake pedal aperture is zero; 
+(c) the accelerator pedal aperture is zero; (d) the vehicle speed is lower than 9 km/h. 
+9. Convert from PI Control to Default: 
+If it is currently in the PI control mode, it will convert to default mode in any of the following 
+conditions: (a) the brake pedal aperture is greate r than 0%; (b) the vehicle speed is over 9 km/h. 
+2.4.3. Torque Calculation 
+1. Default: 
+The default torque is zero. 
+2. Preload State: 
+The preload torque of the drive motor is 0.5 N·m and returns to zero after 0.5 s. The control 
+module is shown in Figure 7. 
+ 
+Figure 7. Preload Torque Calculation Module. 
+3. Anti-Rollback and Pedal Control: 
+The anti-rollback torque T1 is determined according to Formula (9). The anti-rollback module is 
+shown in Figure 8, and the pedal contro l torque is determined by the aperture  of the brake pedal and 
+the actual speed. The output torque T2 is determined by Formula (10). The pedal control module is 
+shown in Figure 9. 
+2
+14m a m padsPB R NT       (9) 
+2 , Tf v   (10) 
+where: 
+β is the pedal aperture 
+Figure 7. Preload Torque Calculation Module.
+3. Anti-Rollback and Pedal Control:
+The anti-rollback torque T1is determined according to Formula (9). The anti-rollback module is
+shown in Figure 8, and the pedal control torque is determined by the aperture of the brake pedal and
+the actual speed. The output torque T2is determined by Formula (10). The pedal control module is
+shown in Figure 9.
+T1=PmBa2RmNpads
+4(9)
+T2=f(v,) (10)
+where:
+is the pedal aperture
+
+--- Page 9 ---
+Energies 2020 ,13, 6249 9 of 16
+Energies 2020 , 13, x FOR PEER REVIEW 9 of 16 
+  
+Figure 8. Anti-rollback Torque Calculation Module. 
+ 
+Figure 9. Pedal Control Torque Calculation Module. 
+Further, the output torque T3 at 0 km/h speed and 70% brake pedal aperture  is determined by 
+the following Formula (11). The output torque T4 at 0 km/h speed and less than 70% brake pedal 
+aperture  is determined by the following Formula (12). Therefore, the starting control method is 
+operated by the driver on the premise of preventing the vehicle from sliding down. 
+ 31 0 1 0max , sinTT m g T       (11) 
+43 12 m a xTT T     (12) 
+where:  
+σ is the starting coefficient, 
+β1 is 70% pedal aperture, 
+β2 is the current pedal aperture, 
+Tmax is the maximum braking torque, 
+T10 is the braking torque at 70% pedal aperture. 
+At this state, the vehicle can launch smoothly without rollback at the stage of the pedal control 
+according to the calibration parameters. 
+4. PI Creep Control: 
+In PI control mode, the torque T5 is determined by Formula (13). 
+5 ,, ,a Tf v v p i   (13) 
+where:  
+va is the target speed,  
+p is the proportional coefficient, 
+I is the integral coefficient. 
+Figure 8. Anti-rollback Torque Calculation Module.
+Energies 2020 , 13, x FOR PEER REVIEW 9 of 16 
+  
+Figure 8. Anti-rollback Torque Calculation Module. 
+ 
+Figure 9. Pedal Control Torque Calculation Module. 
+Further, the output torque T3 at 0 km/h speed and 70% brake pedal aperture  is determined by 
+the following Formula (11). The output torque T4 at 0 km/h speed and less than 70% brake pedal 
+aperture  is determined by the following Formula (12). Therefore, the starting control method is 
+operated by the driver on the premise of preventing the vehicle from sliding down. 
+ 31 0 1 0max , sinTT m g T       (11) 
+43 12 m a xTT T     (12) 
+where:  
+σ is the starting coefficient, 
+β1 is 70% pedal aperture, 
+β2 is the current pedal aperture, 
+Tmax is the maximum braking torque, 
+T10 is the braking torque at 70% pedal aperture. 
+At this state, the vehicle can launch smoothly without rollback at the stage of the pedal control 
+according to the calibration parameters. 
+4. PI Creep Control: 
+In PI control mode, the torque T5 is determined by Formula (13). 
+5 ,, ,a Tf v v p i   (13) 
+where:  
+va is the target speed,  
+p is the proportional coefficient, 
+I is the integral coefficient. 
+Figure 9. Pedal Control Torque Calculation Module.
+Further, the output torque T3at 0 km /h speed and 70% brake pedal aperture is determined by the
+following Formula (11). The output torque T4at 0 km /h speed and less than 70% brake pedal aperture
+is determined by the following Formula (12). Therefore, the starting control method is operated by the
+driver on the premise of preventing the vehicle from sliding down.
+T3=maxT10,mgsinT10	(11)
+T4=T3+(12)Tmax (12)
+where:
+is the starting coe cient,
+1is 70% pedal aperture,
+2is the current pedal aperture,
+Tmaxis the maximum braking torque,
+T10is the braking torque at 70% pedal aperture.
+At this state, the vehicle can launch smoothly without rollback at the stage of the pedal control
+according to the calibration parameters.
+4. PI Creep Control:
+In PI control mode, the torque T5is determined by Formula (13).
+T5=f(v,va,p,i) (13)
+where:
+vais the target speed,
+
+--- Page 10 ---
+Energies 2020 ,13, 6249 10 of 16
+pis the proportional coe cient,
+Iis the integral coe cient.
+Besides this, as shown in Figure 10, the integral term has ﬁnite value according to the maximum
+torque. It is important to note that each time the creep phase is entered, the I-value will be reset to
+depress overshoot, and the integral term will be frozen when the slope is steep.
+Energies 2020 , 13, x FOR PEER REVIEW 10 of 16 
+ Besides this, as shown in Figure 10, the integral  term has finite value according to the maximum 
+torque. It is important to note that each time the creep phase is entered, the I-value will be reset to 
+depress overshoot, and the integral term wi ll be frozen when the slope is steep. 
+ 
+Figure 10. Pedal Control Torque Calculation Module. 
+The proportional coefficient p can be determined by Formula (14) and the integral coefficient i 
+can be determined by Formula (15): 
+ pf   (14) 
+, if v   (15) 
+PI control meets the need for creeping on flat roads and slight slope, including the creep demand 
+after coasting. When the slope is  steep, the motor output torque T6 is determined by Formula (16): 
+6 sin TR m g      (16) 
+where: 
+R is the wheel radius, 
+η is the correction factor. 
+The p and i are important parameters that can affect the vehicle stability. As shown in Figure 11, 
+the values are related to the speed and grade to meet the creeping in diffe rent conditions. Through 
+continuous debugging, the p-value is a constant value of 300 in flat road, and as the grade increases, 
+the overall trend increases. However, I-value is 1 at 0 km/h and decreases first and then increases 
+with the increase of vehicle speed. That is, the p-value adjusts to adapt to changes in grade, and the 
+I-value adjusts to adapt to changes in speed. 
+  
+(a) ( b) 
+Figure 11. Map of p-value and I-value: ( a) p-value Curve with Grade; ( b) I-value Curve with Speed.  
+3. Results 
+Figure 10. Pedal Control Torque Calculation Module.
+The proportional coe cient pcan be determined by Formula (14) and the integral coe cient ican
+be determined by Formula (15):
+p=f() (14)
+i=f(v,) (15)
+PI control meets the need for creeping on ﬂat roads and slight slope, including the creep demand
+after coasting. When the slope is steep, the motor output torque T6is determined by Formula (16):
+T6=Rmgsin (16)
+where:
+Ris the wheel radius,
+is the correction factor.
+Thepandiare important parameters that can a ect the vehicle stability. As shown in Figure 11,
+the values are related to the speed and grade to meet the creeping in di erent conditions. Through
+continuous debugging, the p-value is a constant value of 300 in ﬂat road, and as the grade increases,
+the overall trend increases. However, I-value is 1 at 0 km /h and decreases ﬁrst and then increases with
+the increase of vehicle speed. That is, the p-value adjusts to adapt to changes in grade, and the I-value
+adjusts to adapt to changes in speed.
+Energies 2020 , 13, x FOR PEER REVIEW 10 of 16 
+ Besides this, as shown in Figure 10, the integral  term has finite value according to the maximum 
+torque. It is important to note that each time the creep phase is entered, the I-value will be reset to 
+depress overshoot, and the integral term wi ll be frozen when the slope is steep. 
+ 
+Figure 10. Pedal Control Torque Calculation Module. 
+The proportional coefficient p can be determined by Formula (14) and the integral coefficient i 
+can be determined by Formula (15): 
+ pf   (14) 
+, if v   (15) 
+PI control meets the need for creeping on flat roads and slight slope, including the creep demand 
+after coasting. When the slope is  steep, the motor output torque T6 is determined by Formula (16): 
+6 sin TR m g      (16) 
+where: 
+R is the wheel radius, 
+η is the correction factor. 
+The p and i are important parameters that can affect the vehicle stability. As shown in Figure 11, 
+the values are related to the speed and grade to meet the creeping in diffe rent conditions. Through 
+continuous debugging, the p-value is a constant value of 300 in flat road, and as the grade increases, 
+the overall trend increases. However, I-value is 1 at 0 km/h and decreases first and then increases 
+with the increase of vehicle speed. That is, the p-value adjusts to adapt to changes in grade, and the 
+I-value adjusts to adapt to changes in speed. 
+  
+(a) ( b) 
+Figure 11. Map of p-value and I-value: ( a) p-value Curve with Grade; ( b) I-value Curve with Speed.  
+3. Results 
+Figure 11. Map of p-value and I-value: ( a)p-value Curve with Grade; ( b)I-value Curve with Speed.
+
+--- Page 11 ---
+Energies 2020 ,13, 6249 11 of 16
+3. Results
+This paper carries out simulation experiments on starting control strategy on ﬂat road, slight slope
+and steep slope conditions by constructing driver signal, establishing control strategy model and
+controlled object model and collecting observation signal.
+3.1. Flat Road
+Figure 12 shows the control process under ﬂat road conditions. Input signals from the driver
+include actions such as engaging D gear, raising the brake pedal steadily, releasing the brake pedal
+completely, etc. The driver’s intention is shown in Figure 12a. There is continuous mode switching
+in the state machine during the control process, as shown in Figure 12b, where 0 is the default state
+control, 1 is the torque preload control, 2 is the anti-rollback control, 3 is the pedal control, 4 is the PI
+creep control and 5 is the non-starting control (other inclination conditions are consistent).
+Energies 2020 , 13, x FOR PEER REVIEW 11 of 16 
+ This paper carries out simulation  experiments on starting contro l strategy on flat road, slight 
+slope and steep slope conditions by constructing dr iver signal, establishing  control strategy model 
+and controlled object model and collecting observation signal. 
+3.1. Flat Road 
+Figure 12 shows the control process under flat ro ad conditions. Input signals from the driver 
+include actions such as engaging D gear, raising the brake pedal steadily, releasing the brake pedal 
+completely, etc. The driver’s intention is shown in  Figure 12a. There is continuous mode switching 
+in the state machine during the control process, as shown in Figure 12b, where 0 is the default state control, 1 is the torque preload control, 2 is the anti-rollback control, 3 is the pedal control, 4 is the PI creep control and 5 is the non-starting control (other inclination conditions are consistent). 
+At the initial moment, the gear position is P, the brake pedal aperture is 100%, the accelerator 
+pedal aperture is 0%, and the vehicle speed is 0 km/h. The state machine enters the torque preload 
+mode and the motor outputs 0.5 N·m for 0.5 s when the gear swifts to D. At this time, the aperture of 
+brake pedal is still 100%. As the brake pedal is released gradually, the motor output torque remains 0 N·m until the brake pedal aperture is less than 70%. The state machine enters the pedal control mode and the motor output torque changes continuously according to Formula (10) when the brake pedal aperture is less than 70%. Torque increased from 0 N·m to 107 N·m during 15.28 s to 16.65 s. 
+Then, the vehicle speed increases gradually, but do es not exceed 3 km/h. The state machine enters 
+the PI control mode and the motor output torque changes continuously according to Formula (13) 
+when the brake pedal is released completely. The results show that the creeping target speed is 
+reached in about 3 s and the steady-state error is not more than 0.2 km/h. Further, the torque first 
+increased from 28.57 N·m to 54.5 N·m and then decreased to 5.12 N·m during 21.27 s to 29.11 s. Pressing the accelerator pedal will exit the starting control mode only when the required torque of 
+the accelerator pedal is greater than the starting torq ue. Lastly, as shown in the figure, the driver must 
+fully release the accelerator pedal and press the br ake pedal. The starting control mode will be 
+reentered when the speed drops to 8 km/h. The stat e machine is kept in the pedal control mode to 
+ensure that the vehicle is driven at a low speed betw een 0 to 3 km/h until the brake pedal is completely 
+released. Then, the PI control mode is entered to reach a stable speed of 8 km/h quickly. Throughout 
+the control process, the speed changes in accordance with the driver’s intention, and it has low jerk. 
+ 
+(a)
+ 
+ 
+(b) ( c) 
+Energies 2020 , 13, x FOR PEER REVIEW 12 of 16 
+  
+(d) ( e) 
+Figure 12. Control Process of Flat Road Conditions: ( a) Driver Intention; ( b) Mode Switching Diagram; 
+(c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk. 
+3.2. Slight Slope 
+Figure 13 shows the control process under slight slope conditions. Taking 9% inclination as an 
+example, the driver has behaviors such as shifting gear to D, releasing the brake pedal steadily and pressing the accelerator pedal. The driver’s intention is shown in Figure 13a, and the mode switching of the state machine is shown in Figure 13b. 
+At the initial moment, the gear position is P, the brake pedal aperture is 100%, the accelerator 
+pedal aperture is 0%, and the vehicle speed is 0 km/h. The motor outputs 0.5 N·m preloading torque 
+for 0.5 s when the gear swifts to D. Upon release of  the brake pedal, the state machine enters the anti-
+rollback mode when it detects the road slope. The an ti-rollback torque outputs according to the actual 
+state of the vehicle; keep the motor output torque  at 0 N·m if no rollback occurs. The state machine 
+enters the pedal control mode and the motor outputs torque T
+3 when the brake pedal aperture is less 
+than 70%. Then, the output torque is constantly changed according to Formula (12) so that it can 
+achieve the effect of increasing the vehicle speed sl owly. In this stage, the speed is still controlled 
+below 3 km/h. The torque is first increased from 0 N·m to 87.77 N·m and then decreased to 65.96 N·m 
+during 15 s to 21.63 s. The state machine enters the PI control mode and the motor output torque changes continuously according to Formula (15) when the brake pedal is released completely. The results show that the vehicle can still reach the st able target speed in about 3 s. The torque first 
+increased from 65.96 N·m to 106.84 N·m and then decreased to 49.67 N·m during 21.63 s to 30.41 s. Then, when pressing the accelerator pedal, it will  exit the starting control mode only when the 
+required torque of the accelerato r pedal is greater than the starti ng torque. Release the accelerator 
+pedal completely and it reenters the creep control mode when the vehicle speed drops to 8 km/h. On 
+the premise of ensuring low jerk, it returns to creep speed from the minimum speed in about 10 s. 
+ 
+(a) 
+Figure 12. Control Process of Flat Road Conditions: ( a) Driver Intention; ( b) Mode Switching Diagram;
+(c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk.
+At the initial moment, the gear position is P , the brake pedal aperture is 100%, the accelerator
+pedal aperture is 0%, and the vehicle speed is 0 km /h. The state machine enters the torque preload
+mode and the motor outputs 0.5 N m for 0.5 s when the gear swifts to D. At this time, the aperture of
+brake pedal is still 100%. As the brake pedal is released gradually, the motor output torque remains
+0 Nm until the brake pedal aperture is less than 70%. The state machine enters the pedal control mode
+and the motor output torque changes continuously according to Formula (10) when the brake pedal
+aperture is less than 70%. Torque increased from 0 N m to 107 Nm during 15.28 s to 16.65 s. Then,
+
+--- Page 12 ---
+Energies 2020 ,13, 6249 12 of 16
+the vehicle speed increases gradually, but does not exceed 3 km /h. The state machine enters the PI
+control mode and the motor output torque changes continuously according to Formula (13) when
+the brake pedal is released completely. The results show that the creeping target speed is reached
+in about 3 s and the steady-state error is not more than 0.2 km /h. Further, the torque ﬁrst increased
+from 28.57 Nm to 54.5 Nm and then decreased to 5.12 N m during 21.27 s to 29.11 s. Pressing the
+accelerator pedal will exit the starting control mode only when the required torque of the accelerator
+pedal is greater than the starting torque. Lastly, as shown in the ﬁgure, the driver must fully release
+the accelerator pedal and press the brake pedal. The starting control mode will be reentered when the
+speed drops to 8 km /h. The state machine is kept in the pedal control mode to ensure that the vehicle is
+driven at a low speed between 0 to 3 km /h until the brake pedal is completely released. Then, the PI
+control mode is entered to reach a stable speed of 8 km /h quickly. Throughout the control process,
+the speed changes in accordance with the driver’s intention, and it has low jerk.
+3.2. Slight Slope
+Figure 13 shows the control process under slight slope conditions. Taking 9% inclination as an
+example, the driver has behaviors such as shifting gear to D, releasing the brake pedal steadily and
+pressing the accelerator pedal. The driver’s intention is shown in Figure 13a, and the mode switching
+of the state machine is shown in Figure 13b.
+Energies 2020 , 13, x FOR PEER REVIEW 12 of 16 
+  
+(d) ( e) 
+Figure 12. Control Process of Flat Road Conditions: ( a) Driver Intention; ( b) Mode Switching Diagram; 
+(c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk. 
+3.2. Slight Slope 
+Figure 13 shows the control process under slight slope conditions. Taking 9% inclination as an 
+example, the driver has behaviors such as shifting gear to D, releasing the brake pedal steadily and pressing the accelerator pedal. The driver’s intention is shown in Figure 13a, and the mode switching of the state machine is shown in Figure 13b. 
+At the initial moment, the gear position is P, the brake pedal aperture is 100%, the accelerator 
+pedal aperture is 0%, and the vehicle speed is 0 km/h. The motor outputs 0.5 N·m preloading torque 
+for 0.5 s when the gear swifts to D. Upon release of  the brake pedal, the state machine enters the anti-
+rollback mode when it detects the road slope. The an ti-rollback torque outputs according to the actual 
+state of the vehicle; keep the motor output torque  at 0 N·m if no rollback occurs. The state machine 
+enters the pedal control mode and the motor outputs torque T
+3 when the brake pedal aperture is less 
+than 70%. Then, the output torque is constantly changed according to Formula (12) so that it can 
+achieve the effect of increasing the vehicle speed sl owly. In this stage, the speed is still controlled 
+below 3 km/h. The torque is first increased from 0 N·m to 87.77 N·m and then decreased to 65.96 N·m 
+during 15 s to 21.63 s. The state machine enters the PI control mode and the motor output torque changes continuously according to Formula (15) when the brake pedal is released completely. The results show that the vehicle can still reach the st able target speed in about 3 s. The torque first 
+increased from 65.96 N·m to 106.84 N·m and then decreased to 49.67 N·m during 21.63 s to 30.41 s. Then, when pressing the accelerator pedal, it will  exit the starting control mode only when the 
+required torque of the accelerato r pedal is greater than the starti ng torque. Release the accelerator 
+pedal completely and it reenters the creep control mode when the vehicle speed drops to 8 km/h. On 
+the premise of ensuring low jerk, it returns to creep speed from the minimum speed in about 10 s. 
+ 
+(a) 
+Energies 2020 , 13, x FOR PEER REVIEW 13 of 16 
+  
+(b) ( c) 
+ 
+(d) ( e) 
+Figure 13. Control Process of 9% Inclination Condition: ( a) Driver Intention; ( b) Mode Switching 
+Diagram; ( c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk. 
+Figure 14 shows the control process under 32% conditions. Before the aperture of the brake pedal 
+drops to 70%, a short rollback occurs in the 5t h second, and the motor immediately outputs anti-
+rollback torque (1407 N·m) to keep the vehicle statio nary until it enters the pedal control mode. Since 
+the required torque of the accelerator pedal is always  lower than the creep torque during 30 s to 37 s, 
+the starting torque request is still selected as the actual output torque of the motor. 
+ 
+(a) 
+ 
+(b) ( c) 
+Figure 14. Control Process of 32% Inclination Condition: ( a) Curve of Motor Output Torque; ( b) Curve 
+of Vehicle Velocity; ( c) Curve of Jerk. 
+Figure 13. Control Process of 9% Inclination Condition: ( a) Driver Intention; ( b) Mode Switching
+Diagram; ( c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk.
+
+--- Page 13 ---
+Energies 2020 ,13, 6249 13 of 16
+At the initial moment, the gear position is P , the brake pedal aperture is 100%, the accelerator
+pedal aperture is 0%, and the vehicle speed is 0 km /h. The motor outputs 0.5 N m preloading torque
+for 0.5 s when the gear swifts to D. Upon release of the brake pedal, the state machine enters the
+anti-rollback mode when it detects the road slope. The anti-rollback torque outputs according to the
+actual state of the vehicle; keep the motor output torque at 0 N m if no rollback occurs. The state
+machine enters the pedal control mode and the motor outputs torque T 3when the brake pedal aperture
+is less than 70%. Then, the output torque is constantly changed according to Formula (12) so that it can
+achieve the e ect of increasing the vehicle speed slowly. In this stage, the speed is still controlled below
+3 km/h. The torque is ﬁrst increased from 0 N m to 87.77 Nm and then decreased to 65.96 N m during
+15 s to 21.63 s. The state machine enters the PI control mode and the motor output torque changes
+continuously according to Formula (15) when the brake pedal is released completely. The results show
+that the vehicle can still reach the stable target speed in about 3 s. The torque ﬁrst increased from
+65.96 Nm to 106.84 Nm and then decreased to 49.67 N m during 21.63 s to 30.41 s. Then, when pressing
+the accelerator pedal, it will exit the starting control mode only when the required torque of the
+accelerator pedal is greater than the starting torque. Release the accelerator pedal completely and it
+reenters the creep control mode when the vehicle speed drops to 8 km /h. On the premise of ensuring
+low jerk, it returns to creep speed from the minimum speed in about 10 s.
+Figure 14 shows the control process under 32% conditions. Before the aperture of the brake
+pedal drops to 70%, a short rollback occurs in the 5th second, and the motor immediately outputs
+anti-rollback torque (1407 N m) to keep the vehicle stationary until it enters the pedal control mode.
+Since the required torque of the accelerator pedal is always lower than the creep torque during 30 s to
+37 s, the starting torque request is still selected as the actual output torque of the motor.
+Energies 2020 , 13, x FOR PEER REVIEW 13 of 16 
+  
+(b) ( c) 
+ 
+(d) ( e) 
+Figure 13. Control Process of 9% Inclination Condition: ( a) Driver Intention; ( b) Mode Switching 
+Diagram; ( c) Curve of Motor Output Torque; ( d) Curve of Vehicle Velocity; ( e) Curve of Jerk. 
+Figure 14 shows the control process under 32% conditions. Before the aperture of the brake pedal 
+drops to 70%, a short rollback occurs in the 5t h second, and the motor immediately outputs anti-
+rollback torque (1407 N·m) to keep the vehicle statio nary until it enters the pedal control mode. Since 
+the required torque of the accelerator pedal is always  lower than the creep torque during 30 s to 37 s, 
+the starting torque request is still selected as the actual output torque of the motor. 
+ 
+(a) 
+ 
+(b) ( c) 
+Figure 14. Control Process of 32% Inclination Condition: ( a) Curve of Motor Output Torque; ( b) Curve 
+of Vehicle Velocity; ( c) Curve of Jerk. 
+Figure 14. Control Process of 32% Inclination Condition: ( a) Curve of Motor Output Torque; ( b) Curve
+of Vehicle Velocity; ( c) Curve of Jerk.
+3.3. Steep Slope
+Figure 15 shows the control process under steep slope conditions. In the process of starting on a
+steep slope (take 38% as an example), if the vehicle slides back too far, it is very likely to cause a tra c
+accident. Therefore, during the entire ramp starting process, the vehicle sliding distance should be less
+
+--- Page 14 ---
+Energies 2020 ,13, 6249 14 of 16
+than a certain critical value, and the speed should be controlled within a certain small value until the
+driver’s acceleration torque is greater than the parking torque.
+Energies 2020 , 13, x FOR PEER REVIEW 14 of 16 
+ 3.3. Steep Slope 
+Figure 15 shows the control process under steep slop e conditions. In the process of starting on a 
+steep slope (take 38% as an example), if the vehicle slid es back too far, it is very likely to cause a traffic 
+accident. Therefore, during the entire ramp starting  process, the vehicle sliding distance should be 
+less than a certain critical value, and the speed should be controlled within a certain small value until 
+the driver’s acceleration torque is greater than the parking torque. 
+ 
+(a) ( b) ( c) 
+Figure 15. Control Process of 38% Inclination Condition: ( a) Curve of Motor Output Torque; ( b) Curve 
+of Vehicle Velocity; ( c) Curve of Rollback Distance. 
+The results show that the vehicle speed is basica lly stable at 0 km/h, but the result of speed 
+detection fluctuates slightly due to  the redundancy error of the controlled object. Meanwhile, the jerk 
+is calculated, and the result shows that there is  no adverse influence on the driver’s comfort. 
+4. Discussion 
+4.1. Performance Index 
+4.1.1. Jerk 
+In order to evaluate the smoothness of starting, th e jerk, which is the second-order derivative of 
+vehicle longitudinal speed, is used as the ev aluation index, as shown in Formula (17). 
+2
+2dvJ
+dt   (17) 
+where: 
+J is the jerk. 
+To improve starting comfort and avoid large je rk, driving torque should be outputted in 
+accordance with the appropriate gradient. From the results, it can be seen that the jerk can be 
+controlled within the recommended value of 10 m/s3 [20] during the whole starting stage of flat road 
+and slight slope including launching, creeping, holding, accelerating and coasting. 
+Among them, under the condition of flat road, the dynamic performance is mainly considered, 
+so there is larger jerk but also can be controlled at about 8 m/s3. Under the condition of slope road, 
+safety and comfort are the main factors, so the ma ximum jerk is basically controlled at about 5 m/s3. 
+4.1.2. Speed 
+The stability and response of vehicle speed no t only affects driving comfort, but also the 
+maneuverability [21]. If the same brake pedal apertu re reflects different speeds under different road 
+conditions, it is easy to cause ad verse phenomena such as vehicle rollback. Therefore, the consistency 
+between the brake pedal aperture and the speed response is very important. 
+According to the results, the speed can meet th e driver’s intentions and design requirements. 
+During the creep control stage, the speed is stable at  8 km/h with an error of no more than 0.2 km/h. 
+During the pedal control stage, the speed can change smoothly within the range of 0–3 km/h 
+Figure 15. Control Process of 38% Inclination Condition: ( a) Curve of Motor Output Torque; ( b) Curve
+of Vehicle Velocity; ( c) Curve of Rollback Distance.
+The results show that the vehicle speed is basically stable at 0 km /h, but the result of speed
+detection ﬂuctuates slightly due to the redundancy error of the controlled object. Meanwhile, the jerk
+is calculated, and the result shows that there is no adverse inﬂuence on the driver’s comfort.
+4. Discussion
+4.1. Performance Index
+4.1.1. Jerk
+In order to evaluate the smoothness of starting, the jerk, which is the second-order derivative of
+vehicle longitudinal speed, is used as the evaluation index, as shown in Formula (17).
+J=d2v
+(dt)2(17)
+where:
+Jis the jerk.
+To improve starting comfort and avoid large jerk, driving torque should be outputted in accordance
+with the appropriate gradient. From the results, it can be seen that the jerk can be controlled within
+the recommended value of 10 m /s3[20] during the whole starting stage of ﬂat road and slight slope
+including launching, creeping, holding, accelerating and coasting.
+Among them, under the condition of ﬂat road, the dynamic performance is mainly considered,
+so there is larger jerk but also can be controlled at about 8 m /s3. Under the condition of slope road,
+safety and comfort are the main factors, so the maximum jerk is basically controlled at about 5 m /s3.
+4.1.2. Speed
+The stability and response of vehicle speed not only a ects driving comfort, but also the
+maneuverability [ 21]. If the same brake pedal aperture reﬂects di erent speeds under di erent road
+conditions, it is easy to cause adverse phenomena such as vehicle rollback. Therefore, the consistency
+between the brake pedal aperture and the speed response is very important.
+According to the results, the speed can meet the driver’s intentions and design requirements.
+During the creep control stage, the speed is stable at 8 km /h with an error of no more than 0.2 km /h.
+During the pedal control stage, the speed can change smoothly within the range of 0–3 km /h according
+to the driver’s intention. During the anti-rollback stage, the speed can be maintained within 0.02 km /h
+on steep slope.
+
+--- Page 15 ---
+Energies 2020 ,13, 6249 15 of 16
+4.1.3. Stabilization Time
+In the ﬂat road condition, under the premise of ensuring the jerk, the stable speed can be achieved
+quickly around 4 s because there is no ramp resistance. In order to meet the requirements of jerk when
+sliding on the slope to low speed and entering the creeping process, it takes a longer time to reach the
+stable speed of creep, and the target stable speed can be basically achieved in about 10 s.
+4.1.4. Rollback Distance
+In the process of starting on a slight slope, the distance of rollback is almost 0, which ensures the
+safety of vehicle starting. Rollback occurs in the process of holding on a steep slope, but the distance of
+rollback is short. Moreover, in practical engineering application, the motor should be prevented from
+plugging, so the motor should be kept at appropriate speed.
+4.2. Engineering Value
+The purpose and signiﬁcance of engineering is to solve some practical problems in real life, so it is
+bound to be constrained. So, this method is only applicable to pure electric vehicles and partial hybrid
+electric vehicles which start by motor. However, electriﬁcation is the inevitable trend of automobile
+development, and there are many advantages by using state machine. This method can be applied
+to other types of vehicles with only minor modiﬁcations and the method based on state machine
+can make it easier to debug and upgrade if advanced function is developed. So, it greatly reduces
+the engineering development cycle and research cost, and it will have excellent performance if the
+engineering calibration is done. At the same time, it shows that map calibration is an e ective method
+to solve complex engineering problems.
+5. Conclusions
+(1) A starting control method is designed based on state machine control, which is of clear logic,
+strong integration, strong portability and strong control stability. The control strategies of torque
+preloading, anti-rollback, pedal control and PI creep are studied.
+(2) The torque transition between each mode is smooth, and the jerk of the whole starting stage is
+less than 10 m /s3, which meets the requirements of comfort design.
+(3) Under various working conditions, the brake pedal aperture and speed have good matching
+performance. The time to reach the creeping speed meets the driver’s expectation and the
+requirements of maneuverability design. Stable standing on a steep slope can be achieved to
+meet the design requirements of driving safety.
+(4) The method focuses on the torque management of vehicles, which is in low-speed including
+starting. It can be integrated in torque management calculation coordinated with high-speed
+torque management. This method can be applied in most new-energy vehicles with starting
+by motor.
+(5) In this paper, the design method is studied at the simulation level, and further veriﬁcation will be
+considered combined with the actual vehicle test.
+Author Contributions: Conceptualization, Y.W., J.Z., Y.X., Z.W. and H.W.; methodology, Y.W. and J.Z.; software,
+Y.W.; validation, Y.W., J.Z. and H.W.; formal analysis, Z.W.; investigation, Y.W. and J.Z.; resources, Y.X.; data curation,
+Y.W.; writing—original draft preparation, Y.W.; writing—review and editing, Y.W., J.Z., Y.X. and Z.W.; visualization,
+Y.W.; supervision, Y.X. and Z.W.; project administration, Z.W. and Y.X.; funding acquisition, Y.X. All authors have
+read and agreed to the published version of the manuscript.
+Funding: This research was funded by National Key R&D Program, China, grant number 2016YFB0101402.
+The APC was funded by National Key R&D Program.
+Conﬂicts of Interest: The authors declare no conﬂict of interest.
+
+--- Page 16 ---
+Energies 2020 ,13, 6249 16 of 16
+References
+1. Iyer, R.; Awade, Y.; Doshi, P . Safety and Comfort for All: An A ordable Hill-Hold and Automated Parking
+Brake System. SAE Tech. Pap. 2019 ,26. [CrossRef]
+2. Wang, H.; Peng, P .; Gu, W. Simulation and Experiment of Hill-start of EPB with Logic Threshold Control.
+Automot. Eng. 2018 ,40, 1302–1307.
+3. Liu, J.; Liu, K.; Xiong, L. Research of Intelligent Prediction Control Technology of CVT Starting Clutch.
+J. Highw. Transp. Res. Dev. 2016 ,33, 135–142.
+4. Wu, B.; Zhou, P . Study on Starting Control Strategy of Ramp Based on Pure Electric Vehicle. Agric. Equip.
+Veh. Eng. 2019 ,57, 37–40.
+5. Li, G.; Wu, Z.; Jiang, F. The Motor-Driven Still Hold System for Electric Vehicle on Slope. Trans. Beijing
+Inst. Technol. 2020 ,9, 941–948. [CrossRef]
+6. Yang, Y.; He, Y.; Yang, Z.; Fu, C.; Cong, Z. Torque Coordination Control of an Electro-Hydraulic Composite
+Brake System During Mode Switching Based on Braking Intention. Energies 2020 ,13, 2031. [CrossRef]
+7. Zhou, J.; Sun, J.; He, L.; Ding, Y.; Cao, H.; Zhao, W. Control Oriented Prediction of Driver Brake Intention
+and Intensity Using a Composite Machine Learning Approach. Energies 2019 ,12, 2483. [CrossRef]
+8. Mo, X.; Zhu, Y.; Yang, H. A Study on Motor Speed Control for Ramp Start Up of Electric Vehicle. Comput. Simul.
+2018 ,35, 107–111 +324.
+9. Shen, P .; Zhao, Z.; Zhan, X.; Li, J. Particle Swarm Optimization of Driving Torque Demand Decision Based on
+Fuel Economy for Plug-in Hybrid Electric Vehicle. Energy 2017 ,123, 89–107. [CrossRef]
+10. Hu, J.; Du, R.; Ji, Y . Control Strategy for Starting Up of Pure Electric V ehicles. J. Chongqing Univ. 2013 ,36, 19–25.
+11. Qin, D.; Chen, S.; Hu, M. Electric Vehicle Start Control with Coordination of Motor and Brake. China Mech. Eng.
+2012 ,23, 1758–1763.
+12. Pi, X.; Jing, T.; Liu, L. Research on a Veriﬁcation Simulation Model Based on Finite State Machine Research.
+Comput. Eng. Sci. 2012 ,34, 153–156.
+13. Zhu, W.; Huang, H.; Ma, J. A Research on Parking Space Detection Algorithm Based on Image Recognition.
+Automot. Eng. 2019 ,41, 744–749 +756.
+14. Gowtham, R.; Anjali, M. Automated dynamic approach for detecting ransomware using ﬁnite-state machine.
+Decis. Support Syst. 2020 ,138, 113400.
+15. Hayet, B.; Achraf, M.; Walid, G.; Boualem, B. Toward higher-level abstractions based on state machine for
+cloud resources elasticity. Inf. Syst. 2020 ,90, 101450.
+16. Wang, J.; Zhao, C.; Pratt, A.; Baggu, M. Design of an advanced energy management system for microgrid
+control using a state machine. Appl. Energy 2018 ,228, 2407–2421. [CrossRef]
+17. Wu, J.; Zhong, S.; Jiang, C. Characteristic Frequency Scanning System of EMI for New Energy Vehicles Based
+on Finite State Machine. China Meas. Test 2018 ,44, 102–105 +129.
+18. Zhou, S.; Ren, J.; Fu, X. Study on Torque Signal Processing for Electric Vehicle Based on Driving Safety
+Performance. J. Highw. Transp. Res. Dev. 2018 ,35, 115–122.
+19. Iqbal, H. Electric and Hybrid Vehicles: Design Fundamentals , 2nd ed.; CRC Press: Boca Raton, FL, USA, 2010;
+pp. 31–65.
+20. Zhao, C.; Zhu, B.; Xu, Y. Analysis of a Coordinated Engine-Start Control Strategy for P2 Hybrid Electric
+Vehicle. SAE Tech. Pap. 2019 ,1. [CrossRef]
+21. Wang, S.; Chen, J.; Tian, X. Research on Weights of Subjective Evaluation of Automobile Braking Performance
+Based on AHP . J. Highw. Transp. Res. Dev. 2015 ,32, 138–142.
+Publisher’s Note: MDPI stays neutral with regard to jurisdictional claims in published maps and institutional
+aliations.
+©2020 by the authors. Licensee MDPI, Basel, Switzerland. This article is an open access
+article distributed under the terms and conditions of the Creative Commons Attribution
+(CC BY) license (http: //creativecommons.org /licenses /by/4.0/).

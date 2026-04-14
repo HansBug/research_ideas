@@ -1,0 +1,406 @@
+--- Page 1 ---
+Onboard Decision-Making for Nominal and
+Contingency sUAS Flight
+Joshua Baculi& Corey Ippolitoy
+NASA Ames Research Center, Moett Field, CA 94035
+This study presents an onboard decision-making architecture for small unmanned aerial
+systems (sUAS) . The decision-maker is part of NASA's SAFE50 project that is working
+under the UAS Trac Management (UTM) Technical Capability Level (TCL) 4 to provide
+autonomous point-to-point sUAS ight in beyond visual line-of-site (BVLOS), high-density
+urban environments. The decision-maker monitors various metrics to determine the safety
+and feasibility of the mission and categorizes ight states as Nominal, O-Nominal, Alter-
+nate Land, and Land Now in a nite state machine. Changes in the monitored metrics
+serve as transitions in the state machine and trigger replanning. Navigation degrada-
+tion and communication failure are simulated to show the feasibility of the decision-maker
+framework in appropriately switching the ight state.
+I. Introduction
+Asunmanned aerial vehicle (UAV) ight continues to expand in complexity (e.g. surveillance,1trac assis-
+tance,2disaster management,3cinematography,4delivery,5etc.), vehicle capabilities have been growing
+to match. For example, package delivery in an urban environment may pose problems due to GPS loss around
+tall buildings. Therefore, other localization methods such as LIDAR6or visual7simultaneous localization
+and mapping (SLAM) must be developed. Urban landscapes not only pose a detriment to localization,
+but can also complicate beyond visual line-of-sight (BVLOS) ight by obstructing communication lines. To
+mitigate these communication dropouts, UAVs may be restricted to special segregated airspace.8However,
+the FAA predicts the number of commercial small Unmanned Aerial Systems (sUAS)|which includes the
+UAV with the ground control and communication units|will grow to 420,000 by 2021, almost ten times
+the 42,000 in 2016.9Furthermore, these restrictions will impede wider utilization due to the multitude of
+stakeholders and current heterogeneity of national UAS regulations. As such, a homogeneous infrastructure
+must be developed to match the progression of UAV technology.
+NASA's UAS Trac Management (UTM) system seeks to enable safe and ecient low-altitude UAS
+operations in high-density airspace by providing services such as "airspace design and dynamic conguration,
+dynamic geofencing, severe weather and wind avoidance, congestion management, terrain avoidance, route
+planning and re-routing, separation management, sequencing and spacing, and contingency management".10
+The UTM concept of operations (ConOps) focuses on small UAS under 55lbs that operate no more than
+400 ft above ground level (AGL) within Class G airspace.11
+In researching and testing UTM, NASA has phased development into four technical capability levels
+(TCL).12TCL 1 covers minimal trac over unpopulated landscape with little to no autonomy, with each
+subsequent level increasing in both operation and vehicle complexity (i.e. more trac in populated areas
+with increasing autonomy). UTM is currently in the fourth and nal TCL stage that focuses on:
+Beyond visual line-of-sight
+Urban environments, high density
+Autonomous, vehicle-to-vehicle internet connected
+Large-scale contingencies mitigation
+News gathering, deliveries, personal use
+Systems Engineer, HX5, LLC., NASA Ames Research Center, Moett Field, CA 94035, AIAA Member.
+yAerospace Scientist, NASA Ames Research Center, Moet Field, CA 94035, AIAA Member.
+1 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 2 ---
+To accommodate the projected high density and complexity of operation, UTM employs Operation Volumes
+to manage operations in a safe, ecient, and eective manner.12The volumes consist of an Operational
+Geography to dene the intended airspace with overlaying geographies serving as additional buers in the
+case of environmental or performance uncertainties.
+A. Contribution
+The contribution of this paper is a point design of the decision-making process for enabling sUAS to conduct
+autonomous point-to-point ight in BVLOS urban environment. The decision-maker is tested in nominal
+ight as well as in contingencies that compromise safe operation. While there are many use cases outlined in
+the ConOps, this point design is part of the NASA SAFE50 project that is focusing on Use Case 1{BVLOS
+operations in uncontrolled airspace.11Figure 1 shows what we envision Use Case 1 to look like in an urban
+environment. SAFE50 seeks to provide fully autonomous ight in the vehicle's perspective by putting all of
+the processing onboard. The SAFE50 project makes the following assumptions regarding ight operations:
+High-density
+Low-altitude
+Urban, dynamic, uncertain environment
+Constant V2X communication for cooperative sense and avoid (SAA)
+Multiple vehicles can occupy the same volume
+Figure 1: BVLOS point-to-point UAS ight in an uncontrolled, urban environment.
+Contingency management proposed in the ConOps is comprised of protocols that outline the procedures
+in the event of certain contingencies such as communication loss. For this point design, we implement a
+nite state machine (FSM) similar to Paden et al. on autonomous urban cars.13The states in our FSM
+are based on the ight states used by Sankararaman and Krishnakumar that categorize the ight based
+on safety.14The transitions are changes in vehicle health, path feasibility, and clearance due to geofencing.
+Utilizing a FSM allows the decision-maker to be expanded as more protocols for contingency management are
+developed. Contingencies are simply added as another state with the transitions and logic pre-programmed
+based on the desired behavior. As of now, the decision-maker only handles single contingency situations,
+but managing simultaneously occurring contingencies is planned for future work.
+As previously mentioned, all of the processing is done onboard the vehicle, including decision-making.
+The advantage of having the decision-making onboard is the reduced dependence and requirements on
+communications.15In the event of communication failure with the ground, the vehicle should still have the
+capabilities to either nish the mission or determine the safest alternate plan.
+2 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 3 ---
+II. Flight Scenarios
+A. Flight Phases
+In our nominal point-to-point ight, the UAS will ow through the ight phases shown in Fig. 2. The
+Pre-Flight phase is where most of the non-autonomous tasks occur (e.g. deploying and loading the vehicle,
+creating the mission, making the ight plan, etc.). Once all of the Pre-Flight checks are completed, the UAS
+begins the Take-O phase. During this phase, the vehicle climbs to the cruising altitude determined by the
+ight plan. From there, the vehicle continues in the Cruise phase until it reaches its destination and enters
+the Landing phase. After touchdown, the Post-Flight phase reports the mission and vehicle status.
+Figure 2: Flight phases in point-to-point ight.
+It is important to note that the Take-O, Cruise, and Landing phases are where most of the autonomy
+occurs. Throughout these phases, the UAS is continuously monitoring the vehicle health, checking clearance,
+and calculating ight paths. The outputs of these tasks may trigger deviations from the nominal ight plan
+called contingencies.
+B. Contingencies
+The UAS should be able to deviate from the nominal plan in certain situations to nd safe alternate landing
+locations or return home.10Figure 1 shows how an emergency vehicle whose ight plan (red path) intersects
+the nominal point-to-point trajectory (yellow path) may invoke an emergency landing (blue path). Some of
+the contingencies our study focuses on includes:
+Health Monitoring
+{Air-to-Ground (A2G) Communication Failure
+{Vehicle-to-Vehicle (V2X) Communication Failure
+{Navigation degradation
+{Battery failure
+{Motor failure
+Path Feasibility
+{Dynamic ground object
+{Static aerial obstacle
+{Dynamic aerial obstacle
+{Unsafe wind here
+Dynamic Geofencing
+{Emergency message from nearby UAS
+{High priority re message along trajectory
+{Unsafe wind ahead
+Health Monitoring contingencies are based on the health of various sensors onboard the vehicle and whether
+or not they are capable of maintaining autonomous capabilities (this relates to the monitor vehicle health
+task previously mentioned in Sec. I.A). Path Feasibility contingencies are instigated by external conditions
+that obstruct the current path. Dynamic Geofencing contingencies occur when the overall ight plan may
+need to be adjusted due to a change in clearance up ahead, such as the emergency vehicle in Fig. 1. Figure
+3 shows the possible hazards that cause contingencies in urban environments.16
+Based on the status of the UAS, the ight state is categorized as one of the states shown in Tab.
+1. The \Value" column shows the integer used by each state in the decision-maker and will be shown
+in the plots in Sec. IV. FS NOMINAL ight is the initial accepted ight plan with full capabilities.
+FSOFFNOMINAL XXX ight has the same landing site as FS NOMINAL, but may be mitigating some ca-
+pability loss such as navigation degradation or communication failure. The FS ALTERNATE LAND state
+3 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 4 ---
+Figure 3: Urban hazards to the UAS.17
+Table 1: Decision-making ight states.
+Value Flight State Description
+1 FS NOMINAL Nominal point-to-point ight plan
+2 FS ALTERNATE LAND Flying in contingency volume for alternate landing
+3 FS LAND NOW Immediately landing at current location
+4 FS OFFNOMINAL NAV LOSS Flying to nominal landing site with lost navigation
+5 FS OFFNOMINAL A2G COM REGAIN Nominal ight waiting for A2G communication regain
+has the vehicle y to an alternate landing site whose volumes were allocated with the initial ight plan.
+Finally, during FS LAND NOW, the vehicle immediately lands at its current location as safely as it can.
+As previously mentioned, operational volumes are allocated by UTM to safely manage high density ight
+operations. Figure 4 shows what these volumes look like for the ight states in Table 1 under Use Case 1.
+Green volumes show the allocated space the UAV can y under Nominal (yellow path) or O-Nominal (blue
+path) conditions. The red volumes for alternate landing are also allocated during Pre-Flight.
+In the event of contingencies, the UAV must report its status to the ground station and nearby vehicles in
+the form of ICAO emergency phases1. Just as with the ight states in Tab. 1, the \Value" column shown in
+Tab. 2 shows the integers that represent the phases in the decision-maker. The Emergency Phase describes
+the safety capability of the UAS and the risk it poses to its surroundings.
+1https://www.skybrary.aero/index.php/ICAO Emergency Phases
+4 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 5 ---
+Figure 4: Operational volumes allocated for both nominal and contingency trajectories.
+Table 2: Decision making emergency phases.
+Value Emergency Phase Callout Description
+1 Nominal NOMFA Nominal ight with intact safe landing
+2 Uncertainty INCERFA O-nominal ight with intact safe landing
+3 Alert ALERFA O-nominal ight with compromised safe landing
+4 Distress DETRESFA O-nominal ight posing imminent danger to people or property
+III. Architecture
+A. Reection Architecture
+The decision-maker is simulated in NASA's Reection Architecture that allows users to assemble software
+systems using component modules.17Figure 5 shows the Decision Making Module within the full Reection
+system architecture. The Decision Making Module outputs the Approved Navigation Volumes to the Local
+Planner as well as Trajectory Generation Adjustments to the Path Planning System. The inputs to the
+Decision Making Module include the Environment Map, Detected Dynamic Objects, Other Vehicle State,
+Trajectories, Wind Information, Vehicle State, and Path Feasibility.
+5 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 6 ---
+Figure 5: Architecture diagram of interacting modules in Reection.
+B. Decision-Making State Machine
+As mentioned in Sec. I.A, the decision-maker is implemented in Reection as a nite state machine of the
+ight states shown in Tab. 1. State machine diagrams for each implemented contingency are shown later in
+Sec. IV.
+In order to separate planning and executing, two main states were created, DMS PLAN and DMS EXECUTE,
+shown in Fig. 6. These main states contain switch statements with the ight states as cases. The decision-
+maker begins in the DMS PLAN state by calling for a trajectory from the Path Planning System based
+on its current ight state. After accepting a trajectory, it then transitions into the DMS EXECUTE state
+where it stays unless the ight state changes and a new trajectory must consequentially be planned.
+Figure 6: Planning and execute states for the decision-maker nite state machine.
+6 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 7 ---
+C. Decision-Making Inputs and Outputs
+During the DMS EXECUTE state, the decision-maker is continuously watching the three classes of contin-
+gencies: Health Monitoring, Path Feasibility, and Dynamic Geofencing. Figure 7 shows how the Decision-
+Maker class interacts with the contingency and planning (TrajectoryGen) classes as well as which Reection
+modules are used to simulate these classes.
+Figure 7: Decision-maker, planner, and contingency classes showing relevant Reection modules.
+The monitored health metrics shown in Tab. 3 are assumed to be provided by the relevant modules (i.e.
+the VoxelMap, IVC, Object Detection, Wind Field Estimation, and fVS modules must be able to report time-
+out and failure information). The UTM Communications and Navigation Working Group (C&N) is currently
+studying the criteria for communications and navigation failure during o-nominal operations.18A failure for
+one of these metrics would instigate a ight state change such as FS OFFNOMINAL A2G COM REGAIN.
+Some other health metrics that may be monitored but are not implemented yet are: Environment Detection
+Health, Attitude Determination and Control (ADAC) Health, Energy Information, and Wind Information.
+Table 3: Monitored health metrics.
+Health Metric Description
+Navigation Health Status of the onboard navigation system
+A2G Communication Health Status of the communication between vehicle and ground control
+V2X Communication Health Status of communication between vehicle and other UAVs
+External Surveillance Status of localization information not coming from the navigation system
+Path Feasibility contingencies are handled by the Local Planner. Based on the trajectory provided by
+the Decision Making Module, the Local Planner creates tree-based paths for the vehicle to track while
+staying within the approved trajectory. These paths are generated to avoid detected obstacles such as power
+lines, windy areas, and dynamic ground objects. Contingencies occur when no paths are found due to
+an upcoming obstruction. Thus, the decision-maker must determine whether a detour trajectory can be
+generated to complete the mission or if the the safest route is to abort the mission and go to an alternate
+7 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 8 ---
+landing site or land now.
+Dynamic Geofencing contingencies are not yet implemented, but would rely on messages from other
+vehicles and the ground station to determine if the trajectory is no longer cleared to y in.
+IV. Implementation
+A. Reection Implementation
+The relevant modules for implementing decision-making in Reection were previously shown in Fig. 7.
+However, many of the input modules to the DecisionMaker are still in development. In lieu, a single class for
+each type of contingency was created| healthmonitor ,dynamicgeofencing , and pathfeasibility . Figure 8
+shows the class diagram for implementing navigation degradation and communication failure contingencies.
+For these contingencies, only the decisionmaker ,healthmonitor , and trajectorygen classes are needed. All
+of the struct and enum subclasses are inherited by their parent class. The navHealth, A2GComHealth,
+V2XComHealth, and extSurv variables are routed to decisionmaker from healthmonitor . Furthermore,
+decisionmaker sends trajectorygen the type of trajectory to generate and in return either accepts or rejects
+this plan. In the case of V2X communication failure, decisionmaker receives the FS ALTERNATE LAND
+plan from trajectorygen and decide if it is feasible based on current distance to the landing site.
+Figure 8: Class diagram for navigation degradation and A2G and V2X communication loss contingencies.
+When the modules shown in Fig. 7 are implemented, they will be required to be able to report health
+and failures. For the time being, the inputs are triggered via GUI buttons in the Action Panel window shown
+in Fig. 9 where pressing a button changes the status to Good (value of 1) or Fail (value of 0) like a switch.
+The Action Panel includes the monitored health metrics shown in Tab. 3 and can be expanded to include
+other health metrics, path feasibility, and dynamic geofences.
+8 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 9 ---
+Figure 9: Reection interface showing Alternate Land due to A2G communication failure.
+B. Navigation Degradation
+Figure 10 shows the state diagram for the navigation degradation contingency. During this contingency,
+the onboard navigation system reports degraded health. If external surveillance is still providing adequate
+localization, the UAS has intact safe landing capability in an o-nominal situation and so the decision-maker
+switches to Uncertainty phase. The Flight State switches to FS OFFNOMINAL NAV LOSS, continuing the
+initial nominal trajectory while still feasible. If external surveillance is no longer able to provide adequate
+localization, then the UAS no longer has intact safe landing capability and must y to a pre-allocated
+alternate landing site in one of the contingency volumes shown in Fig. 4. Thus, the Flight State and
+Emergency Phase are switched to FS ALTERNATE LAND and ALERFA, respectively. Figure 11 shows
+the Flight State and Emergency Phase switching in response to changes in Navigation Health and External
+Surveillance. The UAS is assumed to be in Cruise ight phase when navigation degradation occurs, such
+that the nominal landing site is farther away than alternate landing sites.
+9 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 10 ---
+Figure 10: Navigation degradation state machine.
+Figure 11: Plot of the navigation degradation contingency showing Emergency Phase, Flight State, Navi-
+gation Health, and External Surveillance vs time.
+10 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 11 ---
+C. A2G Communication Failure
+Figure 12 shows the state diagram for the A2G communication loss contingency. This contingency has the
+aforementioned FS OFFNOMINAL A2G COM REGAIN mode where the vehicle ies its nominal trajectory
+while trying to regain A2G communication within a specied time window. During this regain period, the
+decision-maker switches to INCERFA. However, if A2G communication is not regained, the ight state
+is then changed to FS ALTERNATE LAND and the emergency phase to ALERFA. Figure 13 shows the
+Emergency Phase and Flight State reacting to A2G communication failure. Following the protocol in Fig.
+12, the UAS remains in a 10 second regain period before ying to an alternate landing site and declaring
+ALERFA. It is important to note that this 10 second period is for simulation purposes and actual regain
+timeouts should be between 5 and 10 minutes. The UAS is assumed to be in Cruise phase where the vehicle
+will not reach the nominal landing site within the allowed regain time.
+Figure 12: A2G communication loss state machine.
+11 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 12 ---
+Figure 13: A2G communication failure plot showing Emergency Phase, Flight State, and A2G Com Health
+vs time.
+D. V2X Communication Failure
+While SAA methods such as LIDAR or vision may detect non-cooperative obstacles, V2X communication
+is the only reliable means of detecting other vehicles at high speeds. Therefore, in the event of V2X com-
+munication loss, the vehicle is vulnerable to inter-vehicle collision and must be placed under Distress phase
+rather than an Uncertain regain phase. Figure 14 shows that in the event of V2X communication loss, the
+vehicle must either y to an alternate landing site or land now if the alternate landing site is too far. In
+both cases, the Emergency Phase must declare DETRESFA.
+Figures 15 and 16 show the V2X communication failure contingencies resulting in FS LAND NOW and
+FSALTERNATE LAND states, respectively. Both gures start at FS NOMINAL and are assumed to be
+in Cruise phase when V2X Com Health is set to Fail and the Emergency Phase is subsequently switched to
+DETRESFA. In Fig. 15, the vehicle is already farther than the allowable distance (200m) to travel without
+V2X communication capabilities. Following the state machine in Fig. 14, the Flight State changes to 3 for
+FSLAND NOW. Conversely in Fig. 16, the vehicle is still within 200m of the landing site at the time of
+V2X Com Failure and subsequently changes the Flight State to FS ALTERNATE LAND.
+Figure 17 shows V2X communication failure where the FS ALTERNATE LAND trajectory takes the
+UAV more than 200m away from alternate landing site. This may be due to a building obstructing a direct
+path or the alternate landing site being geofenced, forcing another replan. When V2X Com Health is switched
+to Fail, the Flight State correctly changes to FS ALTERNATE LAND. However, the trajectory moves the
+UAV more than 200m away from the alternate landing site and so the UAS goes into FS LAND NOW.
+12 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 13 ---
+Figure 14: V2X communication loss state machine.
+Figure 15: V2X communication failure contingency resulting in a Land Now. Emergency Phase, Flight
+State, and V2X Com Health vs time are shown on the left axis and Distance to Land vs time on the right
+axis.
+13 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 14 ---
+Figure 16: V2X communication failure contingency resulting in an Alternate Land. Emergency Phase, Flight
+State and V2X Com Health vs time are shown on the left axis and Distance to Land vs time on the right
+axis.
+Figure 17: V2X communication failure contingency plot showing Emergency Phase, Flight State, and V2X
+Com Health vs time on the left axis and Distance to Land vs time on the right axis. Upon V2X communication
+failure, the UAS initially ies to an alternate landing site. However, the FS ALTERNATE LAND trajectory
+takes the vehicle too far from the landing site, prompting an immediate Land Now.
+14 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 15 ---
+V. Conclusion
+This study presents an onboard decision-making framework for enabling safe ight of an autonomous
+sUAS. The decision-maker is part of the point design being developed by NASA's SAFE50 project that
+focuses on autonomous sUAS under UTM. UTM's goal is to safely enable low-altitude operations for small
+UAS in high-density airspace. SAFE50's point design falls under UTM-TCL4 for autonomous BVLOS
+ight in high density urban environments and the point-to-point ight described under Use Case 1. The
+decision-maker is implemented in the form of a nite state machine whose main states consist of planning
+and executing. Furthermore, the decision-maker categorizes the ight as Nominal, some kind of O-Nominal,
+Alternate Land, and Land Now, and the emergency phase as Nominal, Uncertain, Alert, and Distress. The
+state transitions are incurred by three categories of contingencies: health monitoring, path feasibility, and
+dynamic geofencing. The decision-maker is expanded by adding contingencies as states with the transitions
+being pre-programmed protocols.
+The decision-maker is simulated in response to three dierent contingencies: navigation degradation,
+A2G communication failure, and V2X communication failure. The decision-maker is shown to be able to
+reassess the ight state and trigger replanning when necessary based on the desired protocol. For navigation
+degradation, the UAV ies to an alternate landing site when both navigation health and external surveillance
+return Fail. The A2G communication failure contingency also results in an Alternate Land if communication
+has not been regained after some time. In the event of V2X communication failure, the decision-maker
+switches to Alternate Land if within range of landing site or Land Now if too far.
+Future work includes expanding the decision-maker state machine to include all of the planned con-
+tingencies. As of now, the decision-maker is simulated with hard coded trajectories and button-triggered
+inputs. The relevant modules for path planning and contingencies must be developed for integration with
+the Decision Making Module in Reection. After expanding the decision-maker, protocols for simultane-
+ously occurring contingencies, such as no feasible paths during navigation degradation, can be developed
+and implemented.
+Acknowledgments
+The authors would like to thank our colleagues in the NASA SAFE50 and UAS Trac Management
+(UTM) projects for their collaboration and insight.
+References
+1Semsch, E., Jakob, M., Pavlicek, D., and Pechoucek, M., \Autonomous UAV Surveillance in Complex Urban Environ-
+ments," Proceedings of the 2009 IEEE/WIC/ACM International Joint Conference on Web Intelligence and Intelligent Agent
+Technology-Volume 02 , IEEE Computer Society, 2009, pp. 82{85.
+2Menouar, H., Guvenc, I., Akkaya, K., Uluagac, A. S., Kadri, A., and Tuncer, A., \UAV-enabled intelligent transportation
+systems for the smart city: Applications and challenges," IEEE Communications Magazine , Vol. 55, No. 3, 2017, pp. 22{28.
+3Erdelj, M., Natalizio, E., Chowdhury, K. R., and Akyildiz, I. F., \Help from the sky: Leveraging UAVs for disaster
+management," IEEE Pervasive Computing , , No. 1, 2017, pp. 24{32.
+4Mademlis, I., Mygdalis, V., Nikolaidis, N., and Pitas, I., \Challenges in Autonomous UAV Cinematography: An
+Overview," 2018 IEEE International Conference on Multimedia and Expo (ICME) , IEEE, 2018, pp. 1{6.
+5Hadi, G. S., Varianto, R., Trilaksono, B., and Budiyono, A., \Autonomous UAV system development for payload dropping
+mission," The Journal of Instrumentation, Automation and Systems , Vol. 1, No. 2, 2014, pp. 72{22.
+6Hening, S., Ippolito, C. A., Krishnakumar, K. S., Stepanyan, V., and Teodorescu, M., \3D LiDAR SLAM Integration
+with GPS/INS for UAVs in Urban GPS-Degraded Environments," AIAA Information Systems-AIAA Infotech@ Aerospace ,
+2017, p. 0448.
+7Tomic, T., Schmid, K., Lutz, P., Domel, A., Kassecker, M., Mair, E., Grixa, I. L., Ruess, F., Suppa, M., and Burschka,
+D., \Toward a Fully Autonomous UAV: Research Platform for Indoor and Outdoor Urban Search and Rescue," IEEE robotics
+& automation magazine , Vol. 19, No. 3, 2012, pp. 46{56.
+8St ocker, C., Bennett, R., Nex, F., Gerke, M., and Zevenbergen, J., \Review of the current state of UAV regulations,"
+Remote sensing , Vol. 9, No. 5, 2017, pp. 459.
+9Schaufele, R., Ding, L., Miller, N., Barlett, H., Lukacs, M., and Bhadra, D., \FAA Aerospace Forecast: Fiscal Years
+2017{2037," Washington, DC , 2017.
+10Kopardekar, P. H., \Unmanned aerial system (UAS) trac management (UTM): Enabling low-altitude airspace and UAS
+operations," 2014.
+11Rios, J. and Johnson, M., \Unmanned Aircraft Systems Trac Management (UTM) Concepts and Architecture
+Overview," 2018.
+15 of 16
+American Institute of Aeronautics and Astronautics
+
+--- Page 16 ---
+12Homola, J., Dao, Q., Martin, L., Mercer, J., Mohlenbrink, C., and Claudatos, L., \Technical Capability Level 2 Unmanned
+Aircraft System Trac Management (UTM) Flight Demonstration: Description and Analysis," Proceedings of the 36th Digital
+Avionics Systems Conference (DASC), Petersburg, FL , 2017.
+13Paden, B., C ap, M., Yong, S. Z., Yershov, D., and Frazzoli, E., \A survey of motion planning and control techniques for
+self-driving urban vehicles," IEEE Transactions on intelligent vehicles , Vol. 1, No. 1, 2016, pp. 33{55.
+14Sankararaman, S., \Towards a Computational Framework for Autonomous Decision-Making in Unmanned Aerial Vehi-
+cles," AIAA Information Systems-AIAA Infotech@ Aerospace , 2017, p. 0446.
+15Sankararaman, S. and Goebel, K., \A computational architecture for autonomous decision-making in unmanned aerial
+vehicles," Micro-and Nanotechnology Sensors, Systems, and Applications X , Vol. 10639, International Society for Optics and
+Photonics, 2018, p. 106391Y.
+16Krishnakumar, K. S., Kopardekar, P. H., Ippolito, C. A., Melton, J., Stepanyan, V., Sankararaman, S., and Nikaido, B.,
+\Safe Autonomous Flight Environment (SAFE50) for the Notional Last \50 ft" of Operation of \55 lb" Class of UAS," AIAA
+Information Systems-AIAA Infotech@ Aerospace , 2017, p. 0445.
+17Ippolito, C. A., Hening, S., Sankararaman, S., and Stepanyan, V., \A Modeling, Simulation and Control Framework
+for Small Unmanned Multicopter Platforms in Urban Environments," 2018 AIAA Modeling and Simulation Technologies
+Conference , 2018, p. 1915.
+18Jung, J., Drew, C., Nag, S., Torres, E., Ishihara, A. K., Modi, H., and Do, M., \Initial approach to collect small Unmanned
+Aircraft System o-nominal operational situations data," 2018 Aviation Technology, Integration, and Operations Conference ,
+2018, p. 3030.
+16 of 16
+American Institute of Aeronautics and Astronautics

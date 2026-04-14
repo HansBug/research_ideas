@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：🪫 主要用于降采样池
+- 代表状态机类型：Resource-flow（资源流/并发网模型）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：资源互斥
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：request-check-lock-green-release 的 route lifecycle 写得非常完整。
+- 简要判断：request-check-lock-green-release 的 route lifecycle 写得非常完整，并保住了状态名、资源锁闭和动作链。
 
 ## 条目 1: Route lifecycle in an SSI interlocking model
 - 控制对象：SSI 联锁系统中的 route lifecycle 控制逻辑
+- 状态机类型：Resource-flow（资源流/并发网模型）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：资源互斥
+- 原文细节充实度：🟢 A（细节完备）
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：🪫 降采样保留
+- 趋同标签：🔁 强趋同（G1 铁路联锁进路生命周期）
 
 ### 0. 条目识别与判定
 
@@ -17,82 +28,45 @@
 ### 1. 原文摘录
 
 #### 摘录 A
-- 出处：第 3 页，Section 2，对 route command handling 与 subroute release 的说明，行 97-110
+- 出处：第 3 页，Section 2，对 route command handling 与 subroute release 的说明，行 97-116
 > RKM 045 is a route going from signal KM to track 045. The interlocking handles a route command in
 > the following manner:
 > 1. When a route is requested, it veriﬁes whether the command is safe. This means that the track
-> components (points and track circuits) requested should not be already reserved for another route
-> (the points P01AM, P02BM, P04AM, P04BM, and the tracks TC01AM, TC02BM, TC04BM for
-> RKM 045).
-> 2. It commands the points by controlling their actuators (points P01AM, P02BM, P04AM, P04BM
-> to the right positions for R KM 045).
-> 3. It veriﬁes the new status of the points by comparing the command and the replied status of the
-> actuators.
-> 4. It then grants access to the train on the route, setting the origin signal of the route to green (KM
-> for R KM 045).
-> A route is composed of several segments called subroutes, corresponding to its track segments (three
-> for route R KM 045). Each of them is locked when the route is set and is released when the train has
+> components ... should not be already reserved for another route
+> 2. It commands the points by controlling their actuators ...
+> 3. It veriﬁes the new status of the points by comparing the command and the replied status of the actuators.
+> 4. It then grants access to the train on the route, setting the origin signal of the route to green.
+> ...
+> Each of them is locked when the route is set and is released when the train has
+> fully freed the home track circuit of the subroute, releasing the corresponding points.
 
 #### 摘录 B
-- 出处：第 4 页，Section 3，对 route-based interlocking 的说明，行 141-147
+- 出处：第 4-7 页，Section 3，对 route-based locking variables、state names 与 point/route actions 的说明，行 141-220
 > Our interlocking (SSI) is route based which means:
-> A route must be successfully controlled by the controller before a train can run through the station.
-> The routes interact with the track side components (e.g.: points, signals).
->
-> --- Page 5 ---
-> S. Busard, Q. Cappart, C. Limbr ´ee, C. Pecheur, P. Schaus 23
-> The routes using shared resources (e.g.: points) make use of locking variables in order to prevent
-
-#### 摘录 C
-- 出处：第 6 页，Section 3，对 route modules / route request conditions and actions 的说明，行 183-220
-> Route modules: The route lifecycle is described in Section 2. The route modules are a straight transla-
-> tion of the application data from the SSI language to NuSMV . The state machine of a route includes
+> A route must be successfully controlled by the controller before a train can run through the station.
+> ...
+> The routes using shared resources (e.g.: points) make use of locking variables in order to prevent ...
+> ...
+> The state machine of a route includes
 > the following states: idle, commanded, proved, and occupied by a train.
-> Frame axioms module: This module performs three different tasks:
-> Changing the status of the track components according to the train movements.
-> Triggering a wheel detector when a track segment is occupied.
-> Updating the point position after a command.
-> This module depends on both the application data (routes) and the track layout (trains) to know
-> when the actions must be done and what are the modiﬁcations to do.
-> Given that we want to verify the consistency between the application data and the real track layout,
-> we have to consider a separate source for the application data and the layout. Therefore, unlike the other
-> modules, the train module is not generated from the application data.
-> Put together, these modules constitute a model simulating the behaviour of an interlocking system as
-> described in the application data and the behaviour of trains according to the track layout. On this model,
-> we can assert and automatically check safety properties with respect to the application data. These
-> properties can be expressed on the state of the trains. For example, a collision occurs if two trains are
-> both located on the same segment. For instance, in Figure 2, such a collision will occur if the application
-> data could allow routes R KM 045 and R CM 044 to be set together.
-> 4 Automatic translation of application data
-> Among all the application data, only a subset is necessary to verify the security of an interlocking system.
-> The rest is either not related to the security or abstracted in our model. Let us now describe the application
-> data used in our model.
-> Each point can move under a set of conditions. Listing 1 shows how these conditions are represented
-> in the SSI code for a particular point. There are two positions for a point: normal and reverse.4Here, the
-> 4Normal stands for left and reverse for right.
->
-> --- Page 7 ---
-> S. Busard, Q. Cappart, C. Limbr ´ee, C. Pecheur, P. Schaus 25
-> point P 01AM can be set in a normal position (P 01AM N) only if it is is free to move (U IR(01AM) f).
-> There is a similar rule for the reverse position (P 01AM R) .
-> 1* P_01AMN U_IR (01 AM) f /* condition for normal position */
-> 2* P_01AMR U_IR (01 AM) f /* condition for reverse position */
-> Listing 1: SSI code: Conditions allowing a point to move.
-> Each route has a set of conditions under which the route request can be granted, and a set of actions
-> that have to be done to fulﬁl the request. For example, Listing 2 states that the route from Signal CM
-> to Track 044 can only be set if it is not already set (line 2) and if the points are free to be commanded
-> and moved to a certain position (lines 3 and 4). The resulting actions are the setting of the route (line
-> 6), the command of the points (lines 7 and 8) and the locking of the points (line 9). The route and the
+> ...
+> point P 01AM can be set in a normal position ... only if it is free to move.
+> ...
+> The resulting actions are the setting of the route, the command of the points and the locking of the points.
 
 ### 2. 基于原文整理后的自然语言描述
 
-When a route is requested, the interlocking first checks whether the command is safe, then commands and locks the required track components, and finally grants access by setting the origin signal of the route to green. Each subroute is locked when the route is set and is released when the train has fully freed the corresponding home track circuit. The route module therefore captures a route lifecycle made of request conditions and the actions needed to fulfil the request.
+The route module for `RKM 045` uses the explicit lifecycle states `idle`, `commanded`, `proved`, and `occupied by a train`. When a route request arrives, the interlocking first checks that the required points and track circuits are not already reserved for another route, then commands the points to the positions needed for the route, verifies the actuator replies, and only then sets the origin signal to green. A route is decomposed into subroutes, each subroute is locked when the route is set, and each is released only after the train has fully freed the corresponding home track circuit, releasing the associated points. Because the SSI is route-based, routes interact with signals and points through shared locking variables so that conflicting routes cannot use the same resources at the same time. Point moves are themselves guarded by freedom-to-move conditions, and a successful route action sets the route, commands the points, and locks them as part of the lifecycle.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When a route is requested, the interlocking first checks whether the command is safe, then commands and locks the required track components, and finally grants access by setting the origin signal of the route to green.
+1. 句子 1：The route module for `RKM 045` uses the explicit lifecycle states `idle`, `commanded`, `proved`, and `occupied by a train`.
+   对应摘录：B
+2. 句子 2：When a route request arrives, the interlocking first checks that the required points and track circuits are not already reserved for another route, then commands the points to the positions needed for the route, verifies the actuator replies, and only then sets the origin signal to green.
    对应摘录：A
-2. 句子 2：Each subroute is locked when the route is set and is released when the train has fully freed the corresponding home track circuit.
+3. 句子 3：A route is decomposed into subroutes, each subroute is locked when the route is set, and each is released only after the train has fully freed the corresponding home track circuit, releasing the associated points.
    对应摘录：A
-3. 句子 3：The route module therefore captures a route lifecycle made of request conditions and the actions needed to fulfil the request.
-   对应摘录：B, C
+4. 句子 4：Because the SSI is route-based, routes interact with signals and points through shared locking variables so that conflicting routes cannot use the same resources at the same time.
+   对应摘录：B
+5. 句子 5：Point moves are themselves guarded by freedom-to-move conditions, and a successful route action sets the route, commands the points, and locks them as part of the lifecycle.
+   对应摘录：B

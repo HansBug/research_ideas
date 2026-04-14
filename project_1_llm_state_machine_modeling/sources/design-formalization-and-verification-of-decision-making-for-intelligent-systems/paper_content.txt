@@ -1,0 +1,932 @@
+--- Page 1 ---
+Design, Formalization, and Verification of Decision Making for
+Intelligent Systems∗
+Mohammad Hejase†, Andreas Katis‡, and Anastasia Mavridou§
+Intelligent Systems Division, NASA Ames Research Center, Moffet Field, CA, 94035.
+Thedevelopmentofautonomoussystemsrequiresarigorousprocessthatcanguaranteea
+system’sreliabilityincriticalapplications. Atitscore, anautonomoussystembasesitsbehavior
+on a well-defined decision making system. In this paper, we present a methodological basis for
+thedesign,formalizationandformalverificationofDecisionMakingsystemsforautonomous
+agents. The approach is generally applicable to operational objectives that can be functionally
+decomposed and subsequently represented as Hierarchical Finite State Machines. As a case
+study, we present the application of this method to implement a Decision Making model in
+Simulink. Furthermore, we present how we use NASA’s FRETtool to write requirements
+in structured natural language and generate formal specifications that can be automatically
+digested by NASA’s CoCoSim tool. Finally, we present how, by leveraging CoCoSim , we
+perform formal verification against the Simulink model and present analysis results.
+I. Introduction
+In recent years, the demand for and investment in autonomous systems has been growing rapidly across various
+domains, including space exploration, aerospace operations, and autonomous vehicles in urban settings. The imminent
+deployment of such systems, coupled with the critical nature of their decision making capabilities, necessitates the
+development of trustworthy and certifiable systems. Trusted autonomy refers to the ability of autonomous systems
+to make decisions reliably and in a manner that can be understood, validated, and trusted by human operators or
+stakeholders. Thisconceptisofparamountimportance,consideringthatthesevehiclesareutilizedinenvironments
+wherethewell-beingofhumanlives,valuableassets,andcriticalmissionsisatstake. Toaddressthischallenge,this
+paperproposesadesignmethodologyfordecisionmakingsystemsthatpromotestrustedautonomythroughapredictable,
+formalizable, and verifiable implementation. By pursuing rigorous yet simple design methodologies that prioritize trust
+and verification, the path to successful deployment of autonomous systems in diverse and complex environments can be
+paved.
+InthispaperadesignmethodologyisproposedforDecisionMakingsystemsinSectionII.Theproposedmethodology
+beginswithproceduresforthesystematicfunctionaldecompositionofthesystemoverallgoaluntilitisrepresented
+by a set of smaller and interconnected simpler sub-goals with clearly defined primitives (goals, tasks, procedures,
+measurements, resources, and constraints). A Hierarchical Finite State Machine (H-FSM) implementation for Decision
+Making (DM) is constructed as a result of the functional decomposition. Requirement types are then derived that
+give complete coverage to the intended DM behavior and implementation. Section III of the paper formalizes the
+DM requirement types using the FRETtool. Section IV presents the CoCoSim tool for the verification of a DM
+implementation. Aworkflowoverviewofthe FRET-CoCoSim toolchainisshowninFigure1. SectionVpresentsa
+case study to illustrate the proposed design procedure, requirement elicitation and formalization, and verification of the
+implemented DM system.
+∗GOVERNMENTRIGHTSNOTICE.ThisworkwasauthoredbyemployeesofKBRWyleServices,LLCunderContractNo. 80ARC020D0010
+with the National Aeronautics and Space Administration. The United States Government retains and the publisher, by accepting the article for
+publication, acknowledges that the United States Government retains a non-exclusive, paid-up, irrevocable, worldwide license to reproduce, prepare
+derivative works,distributecopies tothepublic, andperformpublicly anddisplaypublicly,or allowothersto doso,forUnitedStatesGovernment
+purposes. All other rights are reserved by the copyright owner.
+†Intelligent Systems Division, NASA Ames Research Center.
+‡Intelligent Systems Division, KBR Inc. / NASA Ames Research Center.
+§Intelligent Systems Division, KBR Inc. / NASA Ames Research Center.
+1
+
+--- Page 2 ---
+Fig. 1The requirement specification and verification toolchain
+II. Decision Making Design Procedure
+A. System Functional Decomposition and Functional Finite State Machine Construction
+Hybrid-State Systems (HSS) serve as an ideal framework for the representation of Autonomous Systems that
+include a combination of continuous-time (system models/components, applications, control systems) and discrete-time
+behaviors(decisionmaking)[ 1]. AHSSiscomposedofseverallayersasseeninFigure2. TheHigh-levellayerdictates
+the mode of operation (e.g. Drive, Science Tasks, Wait, etc) or the phase of a mission an autonomous vehicle is in,
+whereasthelow-levellayerscontainthelow-levelsoftwarecomponents(healthmonitor,controllers,communication
+applications, etc.) along with actual system or modeled system dynamics. An interface is used to connect the high-level
+layers to the low level ones. The purpose of such an interface is twofold: 1) provide the high-level module with the
+necessary information required for decision making (events that trigger state transitions), and 2) provide low-level
+control modules with the phase-specific set-points and controller parameters (velocity set-points, controller mode,
+communication actions, etc.).
+Fig. 2Decision Making Hybrid-State System Structure
+The proposed Decision Making (DM) scheme is represented by the high-level layer of the system and is made up of
+a Hierarchical Finite State Machine (H-FSM). A H-FSM is made up of a collection of meta-states, which are states that
+2
+
+--- Page 3 ---
+are made up of states. The states that a meta-state is made up of are referred to as sub-states, these sub-states form
+internal state machines that define the sequence of actions to be executed in a meta-state. Note that sub-states may also
+have internal states (no hard limit on depth).
+Thechoiceofmeta-statesandthecorrespondingsub-statesneedstobeconductedinasystematicandcomprehensive
+manner that is informed by the system capabilities and the mission requirements. A functional hierarchy is used for
+such a detailed decomposition of the system in order to arrange the decision making process into a hierarchical tree
+which can be then translated into a H-FSM [ 2]. For systematic decomposition of the system, six primitives are defined
+ateachnodeofthedecomposition[ 3]: Goals,Tasks,Procedures,Measurements,Constraints,andResources. Goals
+represent the end results that need to be obtained at a node. Tasks represent the elementary job descriptions at the
+node. Procedures represent detailed methods of accomplishing tasks. Measurements represent data available to the
+decision making module. Constraints represent task restrictions or exemptions. Resources represent task restrictions or
+exemptions related to the use of procedures.
+The top node in a functional hierarchy represents the main objective. The goal at that top node is first defined.
+Accessiblemeasurements,availableresources,andconstraintsimposedonthevehiclearethengloballyidentified. Aset
+of tasks are then identified that lead to the satisfaction of the goal at the top node. These tasks defined on the top node
+arethenusedtodecomposethemissionintoasetofphases,whichformthenodesonthenextlevelofthefunctional
+hierarchy. For each of those phases, the same set of primitives are defined leading to the further decomposition of the
+mission into sub-phases. This decomposition is carried out until the lowest level of the decomposition is reached, with
+veryelementarytasksdefinedatthatlevel. Proceduresthatarerequiredforthecompletionofthetasksunderthedefined
+measurements,resources,andconstraintsarethenidentified. Ageneralformofafunctionalhierarchycanbeseenin
+Figure 3. The process of converting the functional hierarchy to a decision making system containing the H-FSM can be
+seeninFigure4. Nodeswithchildrenaretransformedintometa-statescontainingsub-states. Thetransitionswithin
+these sub-states are determined by the derived procedures. The lowest level nodes of the functional hierarchy form the
+lowest-level states of the H-FSM where the procedures of each such node can be sufficiently represented by a parameter
+list (otherwise further decomposition is needed). In order to keep the H-FSM readable and configurable, events are
+defined as functions of logical flags. Such flags are statused by the lower-level system measurements and represent
+thebasissetofconditionsonwhicheventsaredefined. Alsonotethateachmeta-statehasasub-stateitdefaultstoas
+defined by the procedures for the corresponding node.
+Fig. 3Generic Functional Decomposition
+B. H-FSM Definitions and Notations
+Below we list the keywords, their meanings and the notation that we use throughout the paper.
+•Meta-state: A state that contains an internal state machine with at least one sub-state.
+•Sub-state: A state that is within another meta-state.
+3
+
+--- Page 4 ---
+Fig. 4Decision Making System Construction from Functional Decomposition
+•State level: The layer of the H-FSM that the state belongs to. The Top most level is 1 and represents the state
+machine as a whole.
+•Flag: A variable used to map system measurements to Boolean expressions.
+•Event: A Boolean variable that is a logical combination of Flags.
+For an arbitrary H-FSM that contains 𝐿levels, the following notations are used:
+•Sis an integer tuple representing an arbitrary state such that S=[𝑠1, 𝑠2, 𝑠3, . . . 𝑠𝐿].𝑠𝑖is a positive integer value
+thatrepresentsthe 𝑠𝑡ℎ
+𝑖stateonthe 𝑖𝑡ℎleveloftheH-FSM.Notethatforastateonthe 𝑗𝑡ℎlevelsuchthat 𝑗 < 𝐿,
+𝑠𝑗+1, ..., 𝑠𝐿 =0.
+•Eis an integer tuple representing the 𝑒𝑡ℎevent within a state Ssuch that E=[S, 𝑒]. Let 𝑓𝑆be a mapping from S
+to a state enumeration value 𝑒𝑛𝑢𝑚𝑆𝑡𝑎𝑡𝑒, and 𝑓𝐸be a mapping from the event tuple to an Event enumeration value
+𝑒𝑛𝑢𝑚𝐸𝑣𝑒𝑛𝑡.
+•𝑓𝑖is a Boolean value that represents the 𝑖𝑡ℎflag state of the system.
+•𝑚𝑖is a real number representing the 𝑖𝑡ℎsystem measurement available to the H-FSM.
+C. Hierarchical Finite State Machine Requirement Elicitation in Natural Language
+ThesystematicandthoroughdecompositionprocedurewithwhichtheH-FSMwasconstructedespeciallyproves
+practical when eliciting requirements on the designed system. Namely, there are four main mechanisms that represent
+the underlying operation of the H-FSM at any given state: H-FSM state-to-state transitions (Events), meta-state default
+stateentryand Interfaceparameterlist generation. Byeliciting thesefour typesofrequirements fortheentire Decision
+Making system structure, requirement coverage is provided for all system procedures, goals, and tasks under available
+measurements, resources, and constraints.
+4
+
+--- Page 5 ---
+In particular, we elicit the following four requirement types:
+1) DM Default State Entry: Each meta-state shall default to a single sub-state upon entry.
+2)DM State-to-State Transitions: A state shall transition to a neighboring state if the event triggering the transition
+is activated and no parent events have been activated.
+3)DM Event Statusing: An event shall be set to true if the system is in the relevant originating state and the event
+flag logic holds true over the last T consecutive time-steps.
+4) DM Parameter List Generation: States that are not meta-states shall have parameter lists associated to them.
+III. Specification and Formalization of System Requirements
+InthisSection,wewilltakethehigh-levelnaturallanguagedescriptionofthefourrequirementtypesprovidedinthe
+previousSubsectionandspecifythemusingtheNASAAmes’ FRETtool. FRET[4,5]isanopen-sourcetool[ 6]for
+writing, understanding, formalizing, and analyzing requirements.
+In practice, requirements are typically written in natural language, which is ambiguous and, consequently, not
+amenable to formal analysis. Since formal, mathematical notations are unintuitive, requirements in FRETare entered
+inarestrictednaturallanguagenamed FRETish [7]withrigoroussemantics. Foreach FRETish requirement, FRET
+generates formulae in a variety of formalisms including metric Linear Temporal Logic (LTL) and Lustre [8] code.
+A. The FRETish language
+AFRETish requirement is composed using up to six distinct fields (the * symbol designates mandatory fields): 1)
+scopespecifies the time intervals where the requirement is enforced, 2) condition is a Boolean expression that
+eithera)Uponkeyword: triggersthe response tooccuratthetimetheexpression’svaluebecomestrue,oristrueatthe
+beginning of the scope interval, or b) Whenever keyword: triggers the response to occur every time the expression’s
+value is true 3) component *is the system component that the requirement is levied upon, 4) shall *is used to
+express that the component’s behavior must conform to the requirement, 5) timing specifies when the response shall
+happen, subject to the constraints defined in scopeandcondition and 6) response *is the Boolean expression
+that the component’s behavior must satisfy.
+B. Specification of DM requirement types in FRETish
+Below we work on each of the four requirement types and specify them as FRETish templates. We denote template
+placeholders with angle brackets, i.e., <PLACEHOLDER >.
+We start with the DM Default State Entry requirement type. Here we want to express that upon entering a
+meta-state, the FSM shall begin execution at a default sub-state. For this, we use a variable, namely FSM_State_< 𝑙> to
+indicate the state that the FSM is currently at. FSM_State_< 𝑙> may be used to indicate either a meta-state or a sub-state
+dependingonthevalueof 𝑙. Inparticular, 𝑙∈ {1..𝐿}denotesthelevelfromwhichthestatewasextracted. Wewritethis
+requirement template in FRETish as follows:
+DM Default State Entry:
+UponFSM_State_< 𝑙>=<integer_representing_Meta_State><DM> shallimmediatelysatisfyFSM_State_< 𝑙+
+1>=<integer_representing_Default_Sub_State>
+In this template, we use five out of the six FRETish fields. In particular, we use the condition field to check
+whenthe <DM>componententersaspecificmeta-state(UponFSM_State_< 𝑙>=<integer_representing_Meta_State>),
+whichisindicatedbyaninteger. Whenthecomponententersthemeta-state,thenatthesametimestep(immediately)
+thecomponentshalldefaulttoaspecificsub-state(FSM_State_< 𝑙+1>=<integer_representing_Default_Sub_State>)
+(also indicated by an integer).
+Next, wecontinue withthe specification DM State to StateTransitions requirement type. Wecreate adedicated
+requirement template in FRETish as follows:
+DM State to State Transitions:
+UponFSM_State_< 𝑙>=<integer_representing_current_State>&<Event_from_current_state_to_new_State>
+<DM> shallat the next timepoint satisfy FSM_State_< 𝑙>=<integer_representing_new_State>
+5
+
+--- Page 6 ---
+We require that when <DM>enters a particular state (Upon FSM_State_< 𝑙>=<integer_representing_current_State>)
+and a certain event is activated (<Event_from_current_state_to_new_State>), then <DM>shall transition to a new state
+(FSM_State_< 𝑙>=<integer_representing_new_State>) at the same time step (immediately).
+Next, we specify FRETish templates for the DM Event Statusing requirement type:
+DM Event Statusing:
+<DM> shallalways satisfy E_<Event> <=> persisted(T-1,<Flags_Logical_Expression_Relevant_to_Event>)
+Noticetheuseofthepersistedfunctioninthe response fieldofDMEventStatusing . Thesemanticsofpersisted
+isasfollows: persisted(n,p) becomestrueatthetimetheBooleanexpression phasheldinthepreviousntimesteps
+andalsoholdsatthecurrenttimestep,foratotalof n+1timesteps,meaningadurationof ntimeunits. Additionally
+notice that both of these templates use the equivalence operator <=>.
+Finally,wespecifythelastrequirementtemplate,namely DMParameterListGeneration . Thistemplatedescribes
+that states, which do not belong to meta-states, shall be associated with a list of parameters with specific valuation upon
+entry in a state.
+DM Parameter List Generation:
+Whenever FSM_State_< 𝐿>=<integer_representing_bottom_State> <DM> shall immediately sat-
+isfy <param_list_entry1_name>=<Entry1Value> & <param_list_entry2_name>=<Entry2Value> &
+<param_list_entryN_name>=<EntryNValue>
+The immediately timing requires that the response is satisfied at the same time point whenever the condition
+(FSM_State_< 𝐿>=<integer_representing_bottom_State>)istrue. FSM_State_< 𝐿>representsthestateatthebottom
+level of the FSM.
+IV. Verification of Formalized Requirements
+ThedesignpresentedinSectionIIcanbeimplementedinastraightforwardmannerusingmodel-baseddevelopment
+tools. Moreimportantly,resultingmodelsfromthisdevelopmentprocessareamenabletoautomatedformalanalysis.
+The main objective at this step is to provide a formal proof of the correctness of the model, considering instantiations of
+the formal requirement types defined in Section III.B. Our workflow depends on MATLAB Simulink/Stateflow for the
+implementationofmodels,whileourin-housesolution,namely CoCoSim [9],enablesscalableformalcompositional
+verification of such models.
+CoCoSim (Contract-based Compositional verification of Simulink models) is an open-source plugin for MATLAB
+Simulink/Stateflow, that allows users to formally verify requirements expressed in the form of Assume-Guarantee
+contracts[ 10,11]. Totacklescalabilityissues,verificationcanbeachievedusingcompositionalreasoningovercontracts
+defined for the system as a whole, as well as its subsystems. Complexity induced by verbose subsystems can be
+abstractedaway,byreplacingthemodelwithitscorrespondingcontractintheproof. Besidescompositionalverification,
+CoCoSim provides means to translate Simulink/Stateflow models into equivalent implementations in Lustre and C, and
+limited support for test-case generation.
+Aparticularlyimportant CoCoSim featureforthepurposesofthiswork,providestheabilityforuserstoimportexisting
+formalized requirements, with CoCoSim automatically attaching them to relevant Simulink models as synchronous
+observers [ 12]. Input requirements are expressed in CoCoSpec , a Lustre specification format that adheres to the
+Assume-Guarantee paradigm [ 13]. Previous work by Mavridou et al. [ 14,15] implemented and applied this feature to
+industrial-levelproblems,whileestablishingastrongerconnectionbetween FRETandCoCoSim . Asaresult, FRET
+users can export FRETish requirements into CoCoSpec , which can be subsequently attached to a Simulink model using
+CoCoSim ’stranslationschemetoSimulinkcode. Asanexample,theStatetoStateTransitionrequirementtypefrom
+Section III.B is automatically translated by FRETinto the following guarantee in CoCoSpec :
+1-- DM State to State Transition:
+2guarantee H((((FSM_State_<l> = <integer_representing_current_State>) and
+3 <Event_from_current_state_to_new_State>) and
+4 ((YtoPre( not ((FSM_State_<l> = <integer_representing_current_State>) and
+5 <Event_from_current_state_to_new_State>))) or FTP)) =>
+6 (FSM_State_<l> = <integer_representing_new_State>));
+6
+
+--- Page 7 ---
+TheCoCoSpec guarantee is a direct result of the translation of the original FRETish requirement in Past Time Metric
+LinearTemporalLogic(pmLTL).ThepmLTLformulaisexpressedinLustre,withthenode(function)calls HandYtoPre
+correspondingtotheapplicationofpredefinedLustrenodesforthepmLTLoperators’Historically’and’Yesterday’.
+FTPis an internal boolean variable that is only true in the first time point of a given execution.
+Given the formal model and the imported FRETish requirements for the Decision Making system, CoCoSim can be
+invokedtoformallyverifythemodelagainsttherequirements. Duringthisprocess, CoCoSim translatesthecombination
+of the model and the contract into equivalent code in Lustre, enabling thus the usage of state-of-the art model checkers
+suchas Kind 2[16]. Theresultofacompleteverificationtaskiseitheraproofthatthemodelconformstothegiven
+requirements or, otherwise, an indication of how (a subset of) the requirements are violated using actual execution
+traces as counterexamples.
+V. Case Study: Dynamic Zonal Relay Stage of the Troupe System
+ThissectionwillpresenttheDMdesignprocessfollowedfortheNASATroupeprojectcasestudy. Afunctional
+decomposition is performed on the Dynamic Zonal Relay (DZR) stage of the Troupe system, followed by H-FSM
+construction and implementation in Simulink. Requirements are formalized for DM in FRET and verified using
+CoCoSIM.
+DzrSnrTransition_3
+SNR_Setup_32
+sendConfirmation_322
+entry:
+	fsm_state=
+322
+;
+DZRCloseout_31
+TransferData_311
+entry:
+	fsm_state=
+311
+;
+[EJ(
+1
+)	==	
+1
+]
+DZR_1
+DriveToZone_11
+Transmit_112
+entry:
+	fsm_state=
+112
+;
+Drive_111
+entry:
+	fsm_state=
+111
+;
+[EC(
+2
+)	==	
+1
+]
+[EC(
+1
+)	==	
+1
+]
+CharacterizeZone_12
+Transmit_123
+entry:
+	fsm_state=
+123
+;
+Drive_121
+entry:
+	fsm_state=
+121
+;
+Acquire_122
+entry:
+	fsm_state=
+122
+;
+[ED(
+3
+)	==	
+1
+]
+[ED(
+2
+)	==	
+1
+]
+[ED(
+1
+)	==	
+1
+]
+Relay
+ApproachRelayLoc_131
+entry:
+	fsm_state=
+131
+;
+TransferData_132
+entry:
+	fsm_state=
+132
+;
+Idle_133
+entry:
+	fsm_state=
+133
+;
+[EE(
+1
+)	==	
+1
+]
+[EE(
+2
+)	==	
+1
+]
+[EE(
+3
+)	==	
+1
+]
+1
+[EE(
+1
+)	==	
+1
+] 
+2
+[EB(
+2
+)	==	
+1
+]
+[EB(
+1
+)	==	
+1
+]
+[EA(
+3
+)	==	
+1
+]
+[EA(
+1
+)	==	
+1
+]
+Fig. 5The DZR meta-state in the H-FSM subsystem.
+A. Case Study Description
+TroupeisaNASAAmesResearchCenterProjectthataimstodevelopasystemof4-10roverscapableofcoordination
+fortheautonomousmappingoftheirenvironment. Theautonomy,coordination,andcollaborationalgorithmforthe
+rovers is based on the Dynamic Zonal Relay (DZR) and Sneaker-Net Relay (SNR) algorithms developed at NASA’s Jet
+Propulsion Lab (JPL) [17].
+The DZR+SNR algorithm is made up of two distinct stages.
+In the first stage, DZR, each rover is assigned to a zone along an area of interest and is tasked with performing
+science (e.g. mapping) while maintaining communication within that zone. In the second stage, SNR, rovers coordinate
+inalineformationtotraversetozonesbeyondthecommunicationdistancewiththebasestationandperformscience
+tasks. Within SNR, rovers are required to coordinate to relay data back to the base-station.
+7
+
+--- Page 8 ---
+Area  Exploratio n
+Goal : Perform area exploration and science in area of interest.
+Tasks : Map initial zone using DZR algorithm & extend operations using SNR algorithm. 
+Procedures : Initiate DZR algorithm. Once initial zone is mapped, transition to SNR 
+algorithm.
+DZR_1
+Goal : Complete initial zone mapping using Dynamic Zone Relay.
+Tasks : Drive to zone from starting location. Characterize zone (mapping). Act as a relay rover 
+once zone characterization complete.
+Procedures : Initiate DZR in DriveToZone . Once  rover  is at zone, transition to CharacterizeZone . 
+When  zone is mapped and data transmitted to follower, transition to Relay. SNR_2
+…
+Goal : Traverse to initially -assigned zone while 
+relaying data to follower when required to do 
+so.
+Tasks : Drive to zone from starting location. 
+Listen to other rovers and transmit data back 
+to lander when received. 
+Procedures : Start  driving  to zone.  If data  
+received from leader, transmit data to 
+follower. If data transmitted to follower, 
+transition back to drive. CharacterizeZone_12
+Goal : Map initially -assigned zone segment by segment while 
+relaying acquired data to follower. Also relay data to follower when 
+required to do so. 
+Tasks : Drive to unmapped segments. Acquire data in unmapped 
+segments. Transmit newly acquired data or relayed data to 
+followers.
+Procedures : Drive to unmapped segment of zone. Once at 
+unmapped segment, acquire data in segment until mapping is 
+complete. Transmit acquired data or relayed data to follower. Once 
+segment data is transmitted, drive to next unmapped segment.DriveToZone_11
+Goal : Go to relay location and maintain line 
+of communication between leader and 
+follower. 
+Tasks : Drive to relay location. Transmit data 
+to follower when available. Idle until new 
+data received.
+Procedures : Drive to Relay location. If data 
+received while driving to relay location and 
+follower in range transfer data. Idle once in 
+relay location until new data received. Relay_13
+Goal : Traverse to initially -
+assigned zone.
+Tasks : Drive to zone from 
+starting location. 
+Procedures : Issue parameter 
+list (controller type, 
+controller SP , etc.) relevant 
+to Drive_111 State. Drive_111
+Goal : Transmit Data to 
+follower.
+Tasks : Send data to follower. 
+Procedures : Issue parameter 
+list (controller type, 
+controller SP , etc.) relevant 
+to Transmit_112 State. Transmit_112
+Goal : Drive to unmapped 
+segment in zone. 
+Tasks : Arrive at unmapped 
+segment. 
+Procedures : Issue parameter 
+list (controller type, 
+controller SP , etc.) relevant 
+to Drive_121 State. Drive_121
+Goal : Perform science in 
+unmapped segment. 
+Tasks : Map unmapped 
+segment. 
+Procedures : Issue parameter 
+list relevant to Acquire_122
+State. Acquire_122
+Goal : Transmit data to 
+follower. 
+Tasks : Send data to follower. 
+Procedures : Issue parameter 
+list (controller type, controller 
+SP , etc.) relevant to 
+Transmit_122 State. Transmit_123
+Goal : Drive to Relay location 
+within zone. 
+Tasks : Arrive at Relay 
+Location SP . 
+Procedures : Issue parameter 
+list relevant to 
+ApproachRelayLoc_131
+ State. ApproachRelayLoc_131
+Goal : Transmit data to 
+follower. 
+Tasks : Send data to follower. 
+Procedures : Issue parameter 
+list relevant to 
+TransferData_132
+State. TransferData_132
+Goal : Remain idle in place. 
+Tasks : Idle and listen to 
+potential comm requests. 
+Procedures : Issue parameter 
+list relevant to Idle_133 State. Idle_133
+Unspecified for all nodes for brevity:
+Measurements : Set of flags from software bus 
+necessary for event detections specified in procedures. 
+Resources & Constraints: Restrictions  or exemptions  
+relevant  to procedures.Fig. 6DZR Functional Hierarchy resulting from system decomposition.
+Following the described System Functional Decomposition process described in Section II, the algorithms specified
+in [17] are decomposed into a functional hierarchy. DZR_1 is first decomposed to be made up of three distinct phases:
+DriveToZone_11, Characterize Zone_12, and Relay_13. A rover is first tasked with driving to a zone it is assigned
+to,thencharacterizethezone,andrelaythedatabacktothefollowerrover. WithinDriveToZone_11,agivenroveris
+taskedwithdrivingtoitsdesignatedzone(Drive_111)whilelisteningtodatafromotherroversandtransmittingbackto
+followers (Transmit_112) if data is being relayed to the lander. Once in the designated zone, the rover transitions to
+CharacterizeZone_12 where the goal of the rover is to drive (Drive_121) in the exploration pattern within the zone,
+acquire data (Acquire_122) on a segment-by-segment basis, and regularly transmit (Transmit_123) data when segments
+are mapped or when data is being received from a leader rover. On completion of zone mapping, the rover then
+transitions to the Relay_13 phase where it is tasked with traversing to a relay location (ApproacRelateLoc_131) within
+its zone, transfer data (TransferData_132) back to the lander, and remain idle (Idle_133) until SNR phase of the mission
+isinitiated. Whileremainingidletheroverwilltransmit(Transmit_112)datatowardsthelanderwhenitisreceived.
+The Functional Hierarchy structure can be seen in Figure 6. The H-FSM based DM app design can be seen in Figure 7,
+whereastheSimulinkimplementationisinFigure5. TheDZRimplementationhighlightedinFigure7resultsinthe
+generationof35requirements. 5ofwhichare ’DMDefaultStateEntry’ requirements,11 ’DMStatetoStateTransitions’
+requirements, 11 ’DM Event Statusing’ requirements, and 8 ’DM Parameter List Generation’ requirements.
+For thepurposes ofthis case study,we will focuson the DZRH-FSM implementation. Wepresent the formalized
+FRETrequirements, as well as verification results using CoCoSim .
+8
+
+--- Page 9 ---
+DZR_1
+DriveToZone_11 CharacterizeZone_12
+Relay_13Transmit_
+122Drive_111
+Transmit_
+123Drive_121
+Acquire_
+122
+Approach
+RelayLoc_
+131TransferD
+ata_132
+Idle_133EC_1
+EC_2
+EE_1
+EE_2
+EE_3 EE_4ED_1
+ED_2ED_3EB_1
+EB_2EA_1Default
+Default
+Default
+DefaultDefault
+Event s
+EA_1: Flag for DZR completion. 
+EB_1: Flag logic for arrival at designated zone.
+EB_2:  Flag logic for completion of zone characterization.
+EC_1:  Flag logic for receipt of data to be transmitted to follower.
+EC_2:  Flag logic  for completion  of data  transmission to follower.
+ED_1:  Flag logic for arrival at unmapped segment.  
+ED_2: Flag logic for completion of segment mapping. 
+ED_3: Flag logic for completion of mapped segment data 
+transmission. 
+EE_1: Flag logic for receipt of data to be transmitted to follower.
+EE_2: Flag logic for completion of data transmission to follower.
+EE_3: Flag logic for arrival to relay location.
+EE_4: Flag logic for receipt of data to be transmitted to follower.Parameter Lists
+Each  State  on the lowest level is mapped to a 
+parameter list  that statuses apps interfacing with 
+Decision Making. Fig. 7DZR Functional Hierarchy resulting from system decomposition.
+9
+
+--- Page 10 ---
+B.FRETrequirements for DM
+Using the templates in Section III.B, we derived 196 FRETrequirements for the DM app. Note that these
+requirements are across all phases of operation and not only DZR. In the following, We provide example requirements,
+as well as a description of the intended behavior that each captures. Note that we use labels to refer to different
+(meta/sub-)states, instead of their corresponding integer value.
+The requirement below captures the initial sub-state of the Relay phase in the DZR meta-state:
+DM Default State Entry (DZR, relay phase):
+Upon FSM_State_2 = DZR_Relay DM shall immediately satisfy FSM_State_3 =
+DZR_Relay_ApproachRelayLoc
+During the DZR algorithm, the rover is expected to transmit data from the designated zone, assuming that the
+necessary information has been previously acquired and that input event vector ED was observed to have its second
+element set to true ( ED_2). This is captured as a state transition requirement, as shown below:
+DM State to State Transitions (DZR, transmit acquired data):
+Upon(FSM_State_3=DZR_CharacterizeZone_Acquire&ED_2)DM shallatthenexttimepointsatisfy
+FSM_State_3 = DZR_CharacterizeZone_Transmit
+As previously mentioned, each event signal in the DM app has a predefined logic over the input flags. The
+requirement below showcases this for the aforementioned input vector ED, and more specifically the truth value of the
+second element of the vector, which is set to true if the segment the rover is in has been characterized (captured by flag
+F_segmentCharacterizationComplete ):
+DM Event Statusing (ED event):
+DMshallalways satisfy ED_2 <=> persisted(3,F_segmentCharacterizationComplete)
+The DM app outputs relevant information related to its current state for other apps to consume (e.g. health monitor,
+rover dynamics, PID control systems). More specifically, each leaf-level state of the DM H-FSM determines the values
+of a list of output parameters. In the example below, we show how the state DZR_CharacterizeZone_Acquire dictates
+thevaluesofparametersrelatedtothemodeoftheunderlyingcontroller( controllerType ),theactivitytheroverperforms
+and finally its velocity:
+DM Parameter List Generation (DZR, data acquired):
+WheneverFSM_State_3=DZR_CharacterizeZone_Acquire DM shallimmediatelysatisfy(controllerType=
+1 & activity = 4 & velocity = 1.0)
+C. Formal Verification with CoCoSim
+Eachoneofthe196 FRETrequirementswereimportedintheDMSimulinkmodelusingtherequirementsimporting
+feature in CoCoSim . The result of the importing process is the creation of CoCoSim contracts i.e., constructs that
+contain a Simulink representation for each requirement. The contracts are automatically attached to the corresponding
+Simulink subsystem. Figure 8 shows one such example of a CoCoSim contract attached to the H-FSM implementation
+of the DM app. Consequently, the Simulink model is amenable to analysis via formal verification against the attached
+contracts. More specifically, CoCoSim leveragesthe Kind 2modelcheckingtoolto verifytheimplementation, and
+provide diagnostic results.
+Table 1 shows the verification results per FRETtemplate. The total analysis time was 48 minutes, 23 seconds,
+including the time taken for CoCoSim to translate the entire DM app to Lustre, the input format of Kind 2. As Table 1
+shows, requirements of all but one template were proved to be valid. More specifically, requirements of the State to
+State transition template were originallyproved to not hold. The verification results showedthat additional constraints
+were missing from each requirement, that are necessary to ensure that the expected transition will indeed occur.
+10
+
+--- Page 11 ---
+1
+FSM_State_t1
+Events
+TlmHeader
+DzrSnrTransition_3
+SNR_Setup_32
+sendConfirmation_322
+entry:
+	fsm_state=322;
+SendSnrSignal_321
+entry:
+	fsm_state=321;
+[EL(1)	==	1]
+DZRCloseout_31
+TransferData_311
+entry:
+	fsm_state=311;
+[EJ(1)	==	1]
+SNRelay_2
+ERC_21
+ApproachLeadNRelay_212
+entry:
+	fsm_state=212;
+Idle_211
+entry:
+	fsm_state=211;
+AcquireData_214
+entry:
+	fsm_state=214;
+waitForData_216
+entry:
+	fsm_state=216;
+ApproachNewZone_213
+entry:
+	fsm_state=213;
+Drive_215
+entry:
+	fsm_state=215;
+[EG(2)	==	1]
+[EG(1)	==	1] 
+1
+[EG(6)	==	1]
+[EG(3)	==	1]
+2
+[EG(5)	==	1]
+[EG(4)	==	1]
+Confirmation_23
+SendConfirmation_234
+entry:
+	fsm_state=234;
+ReturnToPrevRelay_233
+entry:
+	fsm_state=233;
+Idle_231
+entry:
+	fsm_state=231;
+ApproachLeadRover_232
+entry:
+	fsm_state=232;
+IdleAfterConfirmation_235
+entry:
+	fsm_state=235;
+[EI(5)	==	1]
+[EI(4)	==	1]
+2 
+[EI(2)	==	1]
+[EI(3)	==	1]
+[EI(1)	==	1]
+1
+Relay_22
+TransmitDataToFollower_224
+entry:
+	fsm_state=224;
+Idle_221
+entry:
+	fsm_state=221;
+ApproachFollowerCommRange_222
+entry:
+	fsm_state=222;
+ApproachLanderCommRange_223
+entry:
+	fsm_state=223;
+TransmitDataToLander_225
+entry:
+	fsm_state=225;
+[EH(5)	==	1]
+[EH(6)	==	1]
+[EH(4)	==	1]
+2
+[EH(1)	==	1] 
+1
+[EH(2)	==	1]
+[EH(3)	==	1]
+[EF(2)	==	1]
+[EF(1)	==	1]
+[EF(3)	==	1]
+DZR_1
+DriveToZone_11
+Transmit_112
+entry:
+	fsm_state=112;
+Drive_111
+entry:
+	fsm_state=111;
+[EC(2)	==	1]
+[EC(1)	==	1]
+CharacterizeZone_12
+Transmit_123
+entry:
+	fsm_state=123;
+Drive_121
+entry:
+	fsm_state=121;
+Acquire_122
+entry:
+	fsm_state=122;
+[ED(3)	==	1]
+[ED(2)	==	1]
+[ED(1)	==	1]
+Relay
+ApproachRelayLoc_131
+entry:
+	fsm_state=131;
+TransferData_132
+entry:
+	fsm_state=132;
+Idle_133
+entry:
+	fsm_state=133;
+[EE(1)	==	1]
+[EE(2)	==	1]
+[EE(3)	==	1]
+1
+[EE(1)	==	1] 
+2
+[EB(2)	==	1]
+[EB(1)	==	1]
+Manual_4
+RoverDrive_41
+RoverStraightLine_411
+entry:
+	fsm_state=411;
+RoverIdle_44
+Idle_441
+entry:
+	fsm_state=441;
+MapSending_42
+TransferInit_421
+entry:
+	fsm_state=421;
+SendMapData_423
+entry:
+	fsm_state=423;
+WaitForMapConf_424
+entry:
+	fsm_state=424;
+WaitForTIConf_422
+entry:
+	fsm_state=422;
+[EO(2)	==	1]
+[EO(3)	==	1]
+[EO(1)	==	1]
+MapReceipt_43
+SendTIConf_431
+entry:
+	fsm_state=431;
+SendMapConf_433
+entry:
+	fsm_state=433;
+WaitForMapData_432
+entry:
+	fsm_state=432;
+[EP(2)	==	1]
+[EP(1)	==	1]
+RoverMap_45
+AmgrMapIntake_453
+entry:
+	fsm_state=453;
+RoverMappingPattern_451
+entry:
+	fsm_state=451;
+RoverMapInit_452
+entry:
+	fsm_state=452;
+[EQ(1)	==	1]
+[EQ(2)	==	1]
+[EM(3)	==	1] 
+2
+[EM(1)	==	1]
+1
+[EM(5)	==	1] 
+1
+[EM(7)	==	1] 
+3
+[EM(6)	==	1]
+[EM(4)	==	1]
+[EM(8)	==	1]
+[EM(2)	==	1]
+2
+[EA(2)	==	1]
+[EA(3)	==	1]
+[EA(1)	==	1]EAEBECEDEEEFEGEHEIEJEKELEMENEOEPEQfsm_state
+ContractED
+DM_FiniteStateMachineSpec_FSM_Statevalid
+Chart_DM_FiniteStateMachineSpec
+Chart_scope1
+<EQ>
+discreteStateNum
+<EP>
+<EO>
+<EN>
+<EM>
+<EL>
+<EK>
+TlmHeader
+<EA>
+<EB>
+<EC>
+<ED>
+<EE>
+<EF>
+<EG> 
+<EH>
+<EI>
+<EJ>
+FSM_State_tFig. 8H-FSMStateflow model with attached CoCoSim contract.
+Table 1 Verification results for DM app.
+FRETDM Template No. of requirements Avg. Analysis Time (seconds) Verification Result
+Default State Entry 17 6.55 Valid
+State to State transition 95 12.87 Invalid
+Event Statusing 45 22.01 Valid
+Parameter List Generation 39 6.05 Valid
+Acrucialartifacttowardsunderstandingthisissuewasthesetofcounterexamplesprovidedby Kind 2fortheinvalid
+requirements. Given an invalid requirement, a counterexample is an execution trace of the implementation, wherein the
+requirement can be shown to be violated. As an example, consider the following requirement from Section V.B:
+Upon ( FSM_State_3 = DZR_CharacterizeZone_Acquire & ED_2 ) DM shallat the next timepoint satisfy
+FSM_State_3 = DZR_CharacterizeZone_Transmit
+Theaforementionedrequirementcapturesanexpectedtransitionbetweenstates DZR_CharacterizeZone_Acquire
+andDZR_CharacterizeZone_Transmit , under the premise that the second element of the input event vector ED ( ED_2)
+issettotrue. Thecorrespondingverificationtaskshowedthattherequirementisinvalid,andacounterexamplewas
+generated. Table 2 shows the counterexample trace, consisting of four state transitions starting from the initial state of
+thehierarchicalfinitestatemachineintheDMapp( Manual_RoverIdle_Idle ). Atthethirdstepoftheexecution,thestate
+machineisinstate DZR_CharacterizeZone_Acquire andconsideringtherequirement,theexpectednextstateshould
+havebeen DZR_CharacterizeZone_Transmit ,giventhat ED_2istrue. Inthelaststepofthecounterexample,input ED_2
+isindeedtrue,butthestatemachineexercisesanunexpectedtransitionintostate DZR_Relay_ApproachRelayLoc ,which
+initiatesthe’Relay’phaseoftheDZRalgorithm. Areviewofthestatemachinequicklyuncoveredthereasons. First,
+therequirement inits originalformconsiders thevalue ofthe EDeventvector inthe previousexecutionstep, whereas
+the Stateflow model considers only current inputs for its state transitions. Second, in the meta-state that corresponds to
+Table 2 Counterexample trace for invalid requirement in the H-FSM model.
+Signal Step 0 Step 1 Step 2 Step 3 Step 4
+EA_1 false false false false false
+... ... ... ... ... ...
+EB_2 true false false false true
+... ... ... ... ... ...
+ED_2 false true false true true
+FSM_State Manual_RoverIdle_Idle DZR_DriveToZone_Drive DZR_Characterize_Zone_Drive DZR_Characterize_Zone_Acquire DZR_Relay_ApproachRelayLoc
+Requirement true true true true false
+11
+
+--- Page 12 ---
+theDZRalgorithm,theunexpectedtransitionhasahigherprioritythantheonedefinedinourexamplerequirement.
+Assuch,when EB_2istrue,thestatemachineprioritizesthetransitionto DZR_Relay_ApproachRelayLoc . Figure5
+shows the exact representation of the DZR meta-state, where transitions at higher state levels have higher priorities
+when compared to states in lower levels.
+Consideringtheabove,eachinstantiatedrequirementoftheStatetoStatetransitiontemplateneededtoberefined
+to address the two observations. More specifically, their preconditions needed to be strengthened with additional
+constraints that prevent transitions with higher priority to be possible when verifying a given requirement. Additionally,
+therequirementshouldconsiderthecurrentinputsinsteadofthecorrespondingvaluesinthepreviousexecutionstep.
+For our example, these adjustments meant that we had to refine the requirement into the following:
+Upon(FSM_State_3=DZR_CharacterizeZone_Acquire)DM shallatthenexttimepointsatisfy(ED_2&! EA_1&
+! EB_2 ) => FSM_State_3 = DZR_CharacterizeZone_Transmit
+The updated requirements were subsequently proved to be valid by CoCoSim , following the same verification
+workflow.
+VI. Conclusion
+We introduced a methodology for formally designing, specifying, and verifying a Decision Making application
+intended for autonomous systems. Our demonstration showcased the functional decomposition of the system’s
+overarchingobjectivesthroughtheutilizationofafunctionalhierarchy. Thisresultantstructurewasthentranslatedintoa
+HierarchicalFiniteStateMachine,withfunctionalitycomprehensivelyaddressedbyfourtypesofrequirementsexpressed
+innaturallanguage. Theproposedapproachandtheensuingrequirementsenabledustoemploytheconnectionbetween
+theFRETandCoCoSim tools to specify, formalize and verify properties of interest against the implementation. In
+particular, we first elicited four requirement types in natural language and then specified these requirement types in the
+FRETish language. TocoverthecompleteDMapp,weinstantiated196requirementsfromthesefourtemplatesandthen
+FRETautomatically generated CoCoSpec specifications that cover all 196 requirements. The CoCoSpec specifications
+were subsequently given as input to the CoCoSim tool, where model checking actions proved the requirements’ validity
+againsttheSimulinkmodeloftheDMapp. Theoutcomeisacomprehensiveend-to-endprocessthatcanbeappliedand
+customized for the design of Decision Making systems, ensuring formal requirements and verifiable implementations.
+References
+[1]Kurt, A., and Özgüner, Ü., “Hierarchical finite state machines for autonomous mobile systems,” Control Engineering Practice ,
+Vol. 21, No. 2, 2013, pp. 184–194.
+[2]Hejase,M.,Oguz,A.E.,Kurt,A.,Ozguner,U.,andRedmill,K.,“Ahierarchicalhybridstatesystembasedcontrollerdesign
+approach for an autonomous UAS mission,” 16th AIAA Aviation Technology, Integration, and Operations Conference , 2016, p.
+3294.
+[3]Acar, L., and Ozguner, U., “Design of knowledge-rich hierarchical controllers for large functional systems,” IEEE transactions
+on systems, man, and cybernetics , Vol. 20, No. 4, 1990, pp. 791–803.
+[4]Giannakopoulou,D.,Mavridou,A.,Pressburger,T.,Rhein,J.,Schumann,J.,andShi,N.,“FormalRequirementsElicitation
+with FRET,” REFSQ, 2020.
+[5]Katis,A.,Mavridou,A.,Giannakopoulou,D.,Pressburger,T.,andSchumann,J.,“Capture,Analyze,Diagnose: Realizability
+Checking Of Requirements in FRET,” Computer Aided Verification: 34th International Conference, CAV 2022, Haifa, Israel,
+August 7–10, 2022, Proceedings, Part II , Springer, 2022, pp. 490–504.
+[6] “FRET: Formal Requirements Elicitation Tool,” , 2023. URL https://tinyurl.com/ycxe9fv4 .
+[7]Giannakopoulou,D.,Pressburger,T.,Mavridou,A.,andSchumann,J.,“Automatedformalizationofstructurednaturallanguage
+requirements,” Information and Software Technology , Vol. 137, 2021, p. 106590. https://doi.org/10.1016/j.infsof.2021.106590.
+[8] Jahier, E., Raymond, P., and Halbwachs, N., “The lustre v6 reference manual,” Verimag, Grenoble, Dec , 2016.
+[9]“CoCoSim: Contract-based Compositional verification of Simulink models,” , 2023. URL https://github.com/NASA-SW-
+VnV/cocosim.
+12
+
+--- Page 13 ---
+[10]Bourbouh, H., Garoche, P.-L., Loquen, T., Noulard, É., and Pagetti, C., “CoCoSim, a code generation framework for
+control/command applications: An overview of CoCoSim for multi-periodic discrete Simulink models,” Embedded Real Time
+Systems (ERTS) 2020 , , No. ARC-E-DAA-TN74591, 2020.
+[11]Bourbouh,H.,Garoche,P.-L.,Garion,C.,Gurfinkel,A.,Kahsai,T.,andThirioux,X.,“AutomatedanalysisofStateflowmodels,”
+21st International conference on logic for programming, artificial intelligence and reasoning (LPAR 2017) , Vol. 46, 2017, pp.
+144–161.
+[12]Halbwachs, N., Lagnier, F., and Raymond, P., “Synchronous observers and the verification of reactive systems,” Algebraic
+Methodology and Software Technology (AMAST’93) Proceedings of the Third International Conference on Algebraic
+Methodology and Software Technology, University of Twente, Enschede, The Netherlands 21–25 June 1993 , Springer, 1994, pp.
+83–96.
+[13]Champion, A.,Gurfinkel, A.,Kahsai, T.,and Tinelli, C.,“CoCoSpec: Amode-aware contractlanguage forreactivesystems,”
+Software Engineering and Formal Methods: 14th International Conference, SEFM 2016, Held as Part of STAF 2016, Vienna,
+Austria, July 4-8, 2016, Proceedings , Springer, 2016, pp. 347–366.
+[14]Mavridou, A., Bourbouh, H., Garoche, P. L., Giannakopoulou, D., Pessburger, T., and Schumann, J., “Bridgingthe gap between
+requirements and simulink model analysis,” Joint 26th International Conference on Requirements Engineering: Foundation for
+Software Quality Workshops, Doctoral Symposium, Live Studies Track, and Poster Track , 2020.
+[15]Mavridou,A.,Bourbouh,H.,Giannakopoulou,D.,Pressburger,T.,Hejase,M.,Garoche,P.-L.,andSchumann,J.,“Theten
+lockheed martin cyber-physical challenges: formalized, analyzed, and explained,” 2020 IEEE 28th International Requirements
+Engineering Conference (RE) , IEEE, 2020, pp. 300–310.
+[16]Champion, A., Mebsout, A., Sticksel, C., and Tinelli, C., “The Kind 2 model checker,” Computer Aided Verification: 28th
+International Conference, CAV 2016, Toronto, ON, Canada, July 17-23, 2016, Proceedings, Part II , Springer, 2016, pp.
+510–517.
+[17]Vaquero,T.,Troesch,M.,andChien,S.,“Anapproachforautonomousmulti-rovercollaborationformarscaveexploration:
+Preliminary results,” International Symposium on Artificial Intelligence, Robotics, and Automation in Space (i-SAIRAS 2018).
+Also appears at the ICAPS PlanRob , 2018.
+13

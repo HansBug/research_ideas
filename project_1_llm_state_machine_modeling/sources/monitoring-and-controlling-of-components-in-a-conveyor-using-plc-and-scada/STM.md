@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T1（工程定时 / 局部定时）
+- 结构标签概况：显式时钟
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文直接描述了三段输送带在对象检测后启动、延时停机以及第三段在累计 5 个对象后启动的顺序控制逻辑。
 
 ## 条目 1: Multi-Conveyor Detection and Delayed Transfer Logic
 - 控制对象：离散制造场景下的三段输送带 PLC 控制系统
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T1（工程定时 / 局部定时）
+- 结构标签：显式时钟
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 - 一句话说明：这是工业自动化领域的输送带控制器，用于检测部件到位、控制各段输送带启停，并在累计到一定数量后触发后续输送。
@@ -25,13 +36,15 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The conveyor-control system uses PLC logic and sensors to monitor the components transported on DC-motor-driven belts. Each conveyor segment starts running only after its proximity sensor detects an object, and the segment is turned off after a certain number of seconds following detection. The same sequence is applied to all three conveyors, except that the third conveyor starts only after five objects have been collected.
+The conveyor-control system uses PLC logic and three proximity-sensed, DC-motor-driven conveyor sections to monitor the components transported on the belts. Each conveyor section starts running only after its own proximity sensor detects an object, and that section is turned off again after a certain number of seconds following the detection event. The same detect-run-delayed-stop sequence is applied to the first and second conveyors, while the third conveyor is released only after five objects have been collected. SCADA logs the conveyor cycle time, idle time, and the number of completed components while the PLC executes the transport sequence.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The conveyor-control system uses PLC logic and sensors to monitor the components transported on DC-motor-driven belts.
+1. 句子 1：The conveyor-control system uses PLC logic and three proximity-sensed, DC-motor-driven conveyor sections to monitor the components transported on the belts.
    对应摘录：A, B
-2. 句子 2：Each conveyor segment starts running only after its proximity sensor detects an object, and the segment is turned off after a certain number of seconds following detection.
+2. 句子 2：Each conveyor section starts running only after its own proximity sensor detects an object, and that section is turned off again after a certain number of seconds following the detection event.
    对应摘录：B
-3. 句子 3：The same sequence is applied to all three conveyors, except that the third conveyor starts only after five objects have been collected.
+3. 句子 3：The same detect-run-delayed-stop sequence is applied to the first and second conveyors, while the third conveyor is released only after five objects have been collected.
    对应摘录：B
+4. 句子 4：SCADA logs the conveyor cycle time, idle time, and the number of completed components while the PLC executes the transport sequence.
+   对应摘录：A, B

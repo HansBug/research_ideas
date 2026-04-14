@@ -1,0 +1,980 @@
+--- Page 1 ---
+Autonomous Robots (2020) 44:1395–1410
+https://doi.org/10.1007/s10514-020-09933-w
+A method for autonomous robotic manipulation through exploratory
+interactions with uncertain environments
+Pietro Balatti1,2·Dimitrios Kanoulas3·Nikos Tsagarakis4·Arash Ajoudani1
+Received: 17 June 2019 / Accepted: 14 July 2020 / Published online: 3 August 2020
+© The Author(s) 2020
+Abstract
+Expanding robot autonomy can deliver functional ﬂexibility and enable fast deployment of robots in challenging and unstruc-tured environments. In this direction, signiﬁcant advances have been recently made in visual-perception driven autonomy,
+which is mainly due to the availability of rich sensory data-sets. However, current robots’ physical interaction autonomy levels
+still remain at a basic level. Towards providing a systematic approach to this problem, this paper presents a new context-awareand adaptive method that allows a robotic platform to interact with unknown environments. In particular, a multi-axes self-
+tuning impedance controller is introduced to regulate quasi-static parameters of the robot based on previous experience in
+interacting with similar environments and the real-time sensory data. The proposed method is also capable of differentiatinginternal and external disruptions, and responding to them accordingly and appropriately. An agricultural experiment withdifferent deformable material is presented to validate robot interaction autonomy improvements, and the capability of the
+proposed methodology in detecting and responding to unexpected events (e.g., faults).
+Keywords Robotic manipulation ·Interaction autonomy ·Impedance control ·Adaptive control
+1 Introduction
+To respond to the rapidly increasing demand for high levels of
+ﬂexibility in manufacturing and service applications, recent
+Electronic supplementary material The online version of this article
+(https://doi.org/10.1007/s10514-020-09933-w ) contains
+supplementary material, which is available to authorized users.
+B Pietro Balattipietro.balatti@iit.it
+Dimitrios Kanoulas
+d.kanoulas@ucl.ac.uk
+Nikos Tsagarakis
+nikos.tsagarakis@iit.it
+Arash Ajoudani
+arash.ajoudani@iit.it
+1HRI Laboratory, Istituto Italiano di Tecnologia, via Morego30, 16163 Genoa, Italy
+2Department of Information Engineering, University of Pisa,Pisa, Italy
+3Department of Computer Science, University College
+London, Gower Street, WC1E 6BT London, UK
+4HHCM Laboratory, Istituto Italiano di Tecnologia, via
+Morego 30, 16163 Genoa, Italyresearch has focused on endowing robots with the ability
+to react and adapt to their environments. From the one hand,robotic systems based on torque sensing and actuation or vari-
+able impedance mechanisms have been developed to make
+them compliant to their surroundings (Albu-Schaffer et al.2003 ; Tsagarakis et al. 2016 ). On the software level instead,
+a great deal of attention has been devoted to the perception
+autonomy of the robots, to capture the effects of appearanceand context (Kotseruba et al. 2016 ; Harbers et al. 2017 ).
+Although these two directions have seen signiﬁcant
+advancements over the past decade, the bridging action,
+i.e., associating perception to interaction in an autonomousway, still remains in a non-satisfactory level. This funda-
+mental shortcoming has limited the application of robots
+in out-of-the-cage application scenarios, making a frame-work to enhance their physical interaction autonomy a critical
+requirement.
+Previous attempts to endow robots with adaptive interac-
+tion skills have pursued different directions. A well-knownapproach is based on learning from human demonstrations
+(Katz et al. 2014 ,2008 ; Kronander and Billard 2014 ), which
+has shown promising results when sufﬁcient training datais available. In fact, the high dependency of observation-
+based approaches to the quality of training data sets has
+123
+
+--- Page 2 ---
+1396 Autonomous Robots (2020) 44:1395–1410
+been a limiting factor. Moreover, while performing complex
+manipulation tasks, accurate sensory measurements relatedto physical interactions (e.g., forces and torques) may not be
+possible through wearable sensory systems, that is why most
+learning by demonstration techniques function on a kine-matic level.
+To provide a solution to this problem, analytical tech-
+niques have focused on the use of impedance control (Diet-
+rich et al. 2016 ; Lee et al. 2014 ; Ajoudani et al. 2014b ),
+force control for both ﬁxed manipulators (Roveda et al. 2018 ;
+Righetti et al. 2014 ) and mobile base applications (Roveda
+2018 ), or hybrid interaction controllers (Anderson and Spong
+1988 ; Schindlbeck and Haddadin 2015 ). However, in the
+majority of cases, the control parameters are pre-selected by
+robot programmers based on their experience in carrying outanalogous tasks. In such a way, the framework cannot adaptwhen task conditions change, hence, the full potential of such
+powerful control techniques cannot be exploited (Yang et al.
+2011 ; Ferraguti et al. 2013 ).
+To provide a solution to this shortcoming, adaptive learn-
+ing techniques have been proposed. In (Xu et al. 2011 ),
+an adaptive impedance controller for upper-limb rehabili-tation, based on evolutionary dynamic fuzzy neural network
+was proposed to regulate the impedance proﬁle between the
+impaired limb and the robot. However, this method lacks ver-satility, since the algorithm is limited to a speciﬁc task. In asimilar work (Gribovskaya et al. 2011 ), empirical constants
+had to be set, which reduced the ﬂexibility of the framework.
+In addition, the desired impedance matrices were assumedto be diagonal, resulting in limited adaptability in selective
+Cartesian axes. More generic methods have been introduced
+by reducing impedance control to position control (throughhigh position loop gains) when there is no interaction (Li
+et al. 2012 ) with the aim to minimize the error between the
+desired and actual trajectories (He and Dong 2018 ). This
+signiﬁcantly reduced the system’s ability to deliver a distin-guished respond to the desired (task) and undesired (e.g.,
+collisions) interactions (see also Nemec et al. 2018 ).
+To address these challenges and towards bridging the
+autonomy gap in the perception-reaction chain, we pro-
+pose a novel manipulation framework that integrates various
+components to achieve a context-aware and adaptive robotphysical interaction behavior.
+The main component of our framework is a multi-axes
+self-tuning impedance controller, to tune the Cartesian stiff-ness and damping proﬁles (see Fig. 1) in any arbitrary
+direction, which coincide with the direction of interaction,
+based on the previous experience in interacting with sim-
+ilar environments and the real-time robot sensory data.As (Song et al. 2019 ) report in the survey and comparison of
+Fig. 1 The robotic arm explores the materials in its workspace, iden-
+tifying and self-tuning its impedance parameters along the directions
+of interaction. These are represented by the principal axis of the geo-metric ellipsoids depicted in the ﬁgure. Longer arrows represent higherCartesian stiffness and damping values
+impedance control techniques on robotic manipulation, vari-
+able impedance controllers need to determine when and how
+to vary the impedance parameters. Autonomously carryingout this non-trivial task falls within the primary aims of this
+work.
+To recognise and localize different materials in the robot
+workspace and associate their newly/previously identiﬁed
+characteristics to the robot interaction knowledge (i.e.,
+impedance control and self-tuning gains), a visual percep-tion module has been developed. This module, embedded
+in our multi-axis self-tuning controller, enables the robot to
+explore an environment, to identify its characteristics, and to
+effectively interact with it. This behavior is inspired by the
+humans’ way of adapting to their surroundings, by constantly
+building internal models of the external world, while explor-
+ing and identifying it. When interacting with new or similarenvironments, the prior knowledge is used as a preparatory
+strategy, while keeping open the possibility of adaption, to
+update our internal knowledge (Kawato 1999 ). Another sim-
+ilarity between our method and human behavior is given by
+the default compliant behavior of the robot. In fact, when no
+interaction is expected, we tend to relax our muscles to com-ply with unexpected external disturbances (and to minimizeenergy consumption).
+The organization of the individual components and their
+inter-connections are achieved through a Finite State Machine(FSM). The proposed FSM fuses the data received from the
+robot sensors and the vision module, to distinguish expected
+interactions from disturbances and faults, and accordingly,to self-tune control gains and trajectories in real-time. Note
+that, the presented FSM is connected to the main experiment
+we conducted to validate the proposed method. Nevertheless,the algorithm can be applied to many other applications bymodifying its states, as it is described in a section dedicated
+to the algorithm scalability .
+We prepared an agricultural experimental setup to demon-
+strate the potential of the presented methodology in one of the
+123
+
+--- Page 3 ---
+Autonomous Robots (2020) 44:1395–1410 1397
+Fig. 2 The framework is composed by 5 modules, each of them is
+developed as a ROS node. Data between them are exchanged via ROSmessages on the ROS topics illustrated with dotted lines. The messagesin blue are published by the proposed software architecture, while the
+others represent the robot state (in green) and the vision data providedby the camera (in red) (Color ﬁgure online)
+most promising but somewhat disregarded ﬁelds in robotics.
+Two Franka Emika Panda robotic arms, one equipped withthe Pisa/IIT SoftHand (Ajoudani et al. 2014a ) and the other
+with a standard gripper were used to perform the experimen-
+tal task.
+The original idea of this work was presented in a short
+conference paper (Balatti et al. 2019 ). However, to advance
+the methodology and explain its full potential, in this article,
+we have added signiﬁcant contributions w.r.t. to the originalwork. Here, we introduce a novel “Fault Detection” unit, able
+to recover from unexpected collisions with the boundary (for
+instance due to a fault of the perception unit). This can alsobe useful to detect substantial changes in the material prop-erties, since these would be system malfunction symptoms
+in industrial production. Next, the performance of the multi-
+axis self-tuning impedance controller is thoroughly evaluatedwith several details. Additionally, we performed new exper-
+iments to compare our method to non-adaptive techniques,
+to highlight the full potential of the framework in interactingwith uncertain environments. Furthermore, we conducted an
+analysis to guarantee the stability of the controller, since it is
+based on continuous variations of the impedance parameters.To illustrate the generality and scalability of the presentedapproach, we also included a new experiment showing the
+controller adaptation while grasping and handling a pallet
+jack handle.
+2 Method
+The main purpose of the presented framework is to enablerobots to acquire an original set of skills to explore variousenvironments, identify their characteristics and accordinglyadapt to them, build the knowledge, and use it for future
+interactions. This methodology is based on the concept ofself-adaptability, even after building the knowledge on taskor environments. In this way, the robot has the ability to
+adapt by starting from a reasonable initial condition, even if
+the environmental conditions were subject to changes.
+The required theoretical and technological components to
+build such a framework are integrated into ﬁve main mod-
+ules, that are illustrated in Fig. 2: (1) a Cartesian impedance
+controller whose parameters can be tuned online, (2) a multi-
+axes self-tuning impedance unit to tune the aforementioned
+parameters when an interaction with the environment is pre-dicted, (3) a trajectory planner to calculate the spatial pointsto be reached by the controller, (4) a visual perception module
+that locates the materials’ positions in the robot workspace,
+and (5) a Finite State Machine (FSM) that, based on the dataprovided by (4), triggers unit (2) and (3), being also respon-
+sible of detecting system faults.
+2.1 Cartesian impedance controller
+Cartesian impedance control techniques provide the ability to
+achieve any arbitrary quasi-static behavior at the robot end-effector (Schindlbeck and Haddadin 2015 ; Ajoudani et al.
+2017 ). This is however limited to the positive deﬁniteness and
+symmetry of the impedance matrices, by considering robottorque boundaries and the number of degrees of freedom(≥6).
+This control technique relies on torque sensing and actua-
+tion, with the vector of robot joint torques τ∈R
+ncalculated
+as follows:
+τ=M(q)¨q+C(q,˙q)˙q+g(q)+τext, (1)
+123
+
+--- Page 4 ---
+1398 Autonomous Robots (2020) 44:1395–1410
+Fig. 3 The self-tuning impedance algorithm ﬂow chart: if no interac-
+tion is expected, the robot keeps a compliant behavior, otherwise theimpedance parameters can be subject to changes
+τext=J(q)TFc+τst, (2)
+where nis the number of joints, q∈Rnis the joint angles
+vector, J∈R6×nis the robot arm Jacobian matrix, M∈
+Rn×nis the mass matrix, C∈ Rn×nis the Coriolis and
+centrifugal matrix, g∈Rnis the gravity vector and τextis
+the external torque vector. Fcrepresents the forces vector in
+the Cartesian space and τstthe second task torques projected
+onto the null-space of J.
+Forces Fc∈R6are calculated as follows:
+Fc=Kc(Xd−Xa)+Dc(˙Xd−˙Xa), (3)
+where Kc∈R6×6and Dc∈R6×6represent respectively the
+Cartesian stiffness and damping matrix, Xdand Xa∈R6
+the Cartesian desired and actual position, ˙Xdand˙Xa∈R6
+their corresponding velocity proﬁles. The Cartesian desired
+position and velocity are given in input by the Trajectory
+planner (see Sect. 2.3).
+2.2 Self-tuning impedance unit
+In the near future, robots will enter in several application sce-
+narios to collaborate with humans, in environments designedand built to match their human counterparts’ needs, charac-
+terised by high uncertainty levels. To respond to the varying
+task conditions and uncertainly levels, we aim to develop anovel self-tuning impedance controller that is able to adapt itsparameters when an interaction is expected. The adaptation is
+limited to the expected direction(s) of interaction/movementto avoid unnecessary stiffening/complying of the remaining
+axes (Fig. 3).
+Since our method implies the adaptation of the impedance
+parameters only in the interactions that are expected, we needto distinguish when this is the case. To this end, we deﬁne
+a Boolean value, named Interaction expectancy ( I
+e), that
+results from the Boolean logic rule Ie=Im∧If. The ﬁrst
+value, Im, induced by the FSM, is True only in the states
+where an interaction with the environment is expected. The
+second one, If, set by the visual perception module, is set
+to True when the tool attached to the end-effector is inside
+the material that has to be manipulated. The importance of
+this consideration has already been shown in our preliminarywork (Balatti et al. 2018 ) and it will not be repeated here.
+When no interaction is expected, and therefore I
+eis False,
+the Cartesian stiffness matrix Kcis set to a default diago-
+nal matrix with all the non-zero coefﬁcients set to kmin to
+deliver a compliant behavior. That is because the base con-
+dition of the presented self-tuning impedance controller is
+to be soft in all Cartesian and redundant axes, unless aninteraction is expected to occur. The impedance values to
+render softness, however, has to be chosen based on a trade-
+off between the position tracking accuracy (affected by theexistence of unmodelled dynamics such as friction) and theforce response, if an unexpected interaction occurs.
+The damping matrix D
+cis derived from Kcby:
+Dc=/Lambda1∗Ddiag Kadj∗+Kadj∗Ddiag/Lambda1∗, (4)
+where Ddiag is the diagonal matrix containing the damping
+factor ( ζ=0.7),Kadj∗Kadj∗=Kcand/Lambda1∗/Lambda1∗=/Lambda1, where /Lambda1
+is the desired end-effector mass matrix (Albu-Schaffer et al.
+2003 ).
+Instead, when an interaction is expected, being IeTrue,
+the Cartesian stiffness matrix Kcand consequently the
+damping matrix Dcare subject to changes increasing (or
+decreasing) the impedance parameters only along the direc-tion of the desired movement deﬁned by:
+−→P=X
+d,t−Xd,t−1, (5)
+(which can also be calculated from ˙Xd) and keeping a
+compliant behavior, set to kminand dmin=2ζ√kmin(Albu-
+Schaffer et al. 2003 ), along the other axes. To achieve this,
+the stiffness and damping matrices, as being symmetric and
+positive deﬁnite, can be expressed by:
+A=U/Sigma1V∗, (6)
+123
+
+--- Page 5 ---
+Autonomous Robots (2020) 44:1395–1410 1399
+which is known by the Singular V alue Decomposition (SVD).
+Such a decomposition enables us to project the desired stiff-ness and damping, calculated w.r.t. the reference frame of
+desired motion vector−→P, onto the reference frame of the
+robot base. U∈R
+3and V∈R3are orthonormal bases, and
+/Sigma1∈R3is a diagonal matrix whose elements are the singular
+values of matrix Asorted in decreasing order and represent-
+ing the principal axes amplitudes of the resulting geometric
+ellipsoid. The columns of matrix Uform a set of orthonormal
+vectors, which can be regarded as basis vectors. In this work,
+the ﬁrst column of Urepresents the desired motion vector−→P, while the second and the third ones are derived from the
+ﬁrst in such a way they form an orthonormal basis. Since theHermitian transpose V
+∗∈R3, and the resulting matrix A,
+that represents the impedance values, is positive deﬁnite, we
+have that:
+V∗=VT, (7)
+V=U. (8)
+Combining ( 6), (7) and ( 8), we can derive the stiffness and
+the damping matrix:
+Kc=U/Sigma1kUT, (9)
+Dc=U/Sigma1dUT, (10)
+where the diagonal matrix /Sigma1kand/Sigma1dcoefﬁcients are respec-
+tively the desired stiffness and damping coefﬁcients alongthe direction of the vectors composing the Ubasis. They are
+diagonal matrices deﬁned by:
+/Sigma1
+k=diag(kst,kmin,kmin) (11)
+/Sigma1d=diag(dst,dmin,dmin) (12)
+where kstis the self-tuning stiffness coefﬁcient to be set along
+the motion vector−→Pand dstits correspondent damping ele-
+ment. kstis deﬁned at every time tas:
+kst,t=kst,t−1+α/Delta1 P/Delta1T, (13)
+/Delta1P=|/Delta1X·/hatwideP|, (14)
+/Delta1X=Xd−Xa, (15)
+where αis the update parameter, /Delta1Pis the absolute value
+of the Cartesian error /Delta1Xprojected onto the direction of the
+motion vector−→P, and normalized /hatwideP, where /Delta1Tis the control
+loop sample time. It is important to notice that, kstis subject
+to changes only when /Delta1Pis beyond a limit. To this end,
+we introduce a threshold, deﬁned as /Delta1Pt, since usually in
+impedance controlled robots it is hard to achieve a small errorbetween the desired and actual position, unless the gains, i.e.
+stiffness and damping, are very high and it can be comparedto position control. In this way we let a small margin of
+error, not to increase the impedance parameters when it is
+not required by the task, and to arrest its growth when adesired accuracy is achieved. Moreover, we want to avoidunnecessary adaptation which can be caused by unmodeled
+robot dynamics and small amount of friction at joints, and
+therefore the error can also not be related to the task.
+In order to increase robot autonomy, the desired impedance
+parameters need to be adapted in a reasonably short time.
+This implies an accurate choice of α. A high value of this
+parameter would lead to a rapid convergence in materials
+with high density. Nevertheless, choosing a high value for
+non-dense material will cause needless stiffening of the robotthat must be avoided. Therefore, to obtain an average αvalue,
+as a trade-off between fast convergence and stiffening per-
+formance, we performed experiments on different materials
+such as soil, sand, rocks with different density, air and water.
+To achieve this, for every material m,α
+mwas estimated
+and the average value was deﬁned through the arithmetic
+mean of all the nmaterials taken into account in the analysis:
+α=1
+nn/summationdisplay
+m=1αm. (16)
+There are also situations in which the impedance param-
+eters adaptation has to be carried out in the opposite way,i.e. decreasing them, and ( 13) cannot be applied. An exam-
+ple is given by the case where the tool attached to the robot
+end-effector exits the material, even still being inside theinteraction expectancy area. We deﬁne /Delta1F
+ext,tas the varia-
+tion of the external forces, along the motion vector, detected
+at the robot end-effector at time tw.r.t. the ones measured at
+time t−1:
+/Delta1Fext,t=(Fext,t−Fext,t−1)·/hatwideP. (17)
+In the aforementioned situations, /Delta1Fext,tis positive and kst
+is deﬁned at every time tas:
+kst,t=kst,t−1−β/Delta1 Fext,t/Delta1T, (18)
+where βis given by αscaled by a factor of 10−2, to implement
+a similar rate of adaptation as in ( 13). To avoid unneces-
+sary changes caused by negligible force sensing difference,the positiveness of /Delta1F
+ext,tis deﬁned considering a small
+ε. A pseudo-code of the proposed method is presented in
+Algorithm 1.
+123
+
+--- Page 6 ---
+1400 Autonomous Robots (2020) 44:1395–1410
+Algorithm 1 Self-tuning impedance algorithm
+Input:−→P
+Output: Kc,Dc
+Initialization :
+/Sigma1k=kmin I3×3,/Sigma1d=dmin I3×3
+kst,0=kmin,dst,0=dmin
+Control loop :
+Ie=Im∧If
+if(Ie∧No fault detected )then
+/hatwideP=−→P
+/bardbl−→P/bardbl2
+/Delta1P=|(Xd−Xa)·/hatwideP|
+if(/Delta1P≥/Delta1Pt)then
+kst,t=kst,t−1+α/Delta1 P/Delta1T
+else if (/Delta1Fext≥ε)then
+kst,t=kst,t−1−β/Delta1 Fext,t/Delta1T
+end if/Sigma1
+k,1,1=kst,t
+/Sigma1d,1,1=2ζ/radicalbig
+kst,t
+U=getOrtho no rmalBasis (−→P)
+Kc=U/Sigma1kUT
+Dc=U/Sigma1dUT
+else
+Kc=kmin I3×3
+Dc=dmin I3×3
+end if
+return Kc,Dc
+2.3 Trajectory planner
+The framework offers different kinds of motion planning tra-
+jectories. The Trajectory planner unit receives in input from
+the FSM (see Sect. 2.5) the target pose, the desired period to
+reach it, and the type of trajectory planner that can be selectedamong:
+–point-to-point motion between two via points, i.e. start-
+ing from the actual one and reaching the desired one that
+is given as input. To achieve smoother trajectory pro-
+ﬁles and prevent impulsive jerks, this kind of motion isimplemented with ﬁfth-order polynomial. In this way,
+velocity/acceleration initial and ﬁnal values are set to
+zero.
+–scooping motion , which reaches the target pose through
+a half circular motion on the vertical axis, replicating
+a scooping movement. This type of motion, designed
+with constant angular rate of rotation and constant speed,is helpful to collect materials when a scoop-like end-
+effector is attached to the robot ﬂange.
+–shaking motion , that is based on a rapid sinusoidal move-
+ment performed in place. By getting as input the shaking
+direction, this motion is needed to completely pour the
+materials in the pot during the “Task” state, without leav-ing any residuals on the spoon.Note that, the design and implementation of the trajecto-
+ries are not explained in details since they do not contributeto the novelty of this work, as they are well-known in robotics
+literature. However, a short introduction is useful to under-
+stand better the different phases explained in Sect. 2.5.
+2.4 Visual perception module
+Visual perception plays a key role in the Finite State Machine,
+providing information about the materials which are going to
+be manipulated by the robotic arm. The module splits in two
+sub-systems, using as input RGB-D data from a range sen-sor (ASUS Xtion PRO) placed in ﬁxed position with respectto the arm and facing the materials. In the ﬁrst sub-system,
+different types of materials are detected in the scene, using
+RGB data, and their three-dimensional (3D) surface convexhull polygon is calculated, using depth data ( materials local-
+ization sub-module ). In the second one, a peak point per each
+material is localized in the base robot frame, using the depthdata (peaks localization sub-module) .
+Materials Localization To localize different materials in
+3D, we use color-based region growing segmentation. TheRGB-D sensor provides colored point clouds that are ﬁrsttransformed in the robot’s base frame (z-axis upwards and
+y-axis towards left). Point cloud ﬁltering, such as pass-
+through and box-cropping, is applied to keep only thosepoints of interest that are inside the working space of the
+robot. Keeping the structure of the point cloud in its origi-
+nal grid organization (i.e. instead of removing points, setting
+Fig. 4 The visual perception module. Upper left: the RGB-D point
+cloud, acquired from the range sensor. Upper right: each material ver-tices V
+1,V2,V3,V4visualized in different colors. Down: the peak point
+piper each material i(Color ﬁgure online)
+123
+
+--- Page 7 ---
+Autonomous Robots (2020) 44:1395–1410 1401
+them to NaNs) makes the method more efﬁcient. Then, region
+growing is applied based on color, in order to classify similarpoints in clusters. This is a two-steps algorithm. In the ﬁrst
+step, points are sorted based on their local curvature. Regions
+that grow from points with minimum curvature (more ﬂatsurfaces) reduce the number of segments. Two neighboringpoints are consider to be part of the same material if their
+color is similar to each other. The process continues for a
+seed’s neighboring point, until no further neighbors can beclassiﬁed to the same segment. In the second step, clusters
+with similar average colors or small size are merged. In Fig. 4,
+the result of this process is visualized. To localize the convexhull polygon of each material, we identify the extreme points
+in the xy-plane (i.e. the 2.5D bounding box), which results
+to vertices V
+1,V2,V3,V4(Fig. 4), stored and passed to the
+Finite State Machine.
+Peaks Localization Identifying each material’s peak point
+is straightforward after having localized the materials them-
+selves. The peak point pi, for a material i, is the point with
+the maximum z-value. Similarly, each material’s center is the
+average of the encapsulating polygon’s vertices.
+2.5 Finite state machine
+To increase the autonomy of the system, we designed a Finite
+State Machine that is responsible of managing the transitionsbetween the different phases of the framework (see Fig. 2).
+This unit gets as input the data sent by the Visual perception
+module , and by processing them, deﬁnes the target poses that
+are sent to the Trajectory planner . Moreover, this module is in
+charge of determining if an interaction with the environment
+is to happen, in order to activate the Self-tuning impedance
+unit.
+The FSM is formed by four states. The “Workspace
+deﬁnition” state is responsible of acquiring the knowledge
+regarding the environment where the robot will operate inthe next steps. To do so, it gets as input the vertices of the
+polygons that shape the materials within the robot workspace.
+These data are received from the “Materials localization” unitand stored in an appropriate data structure. In order to iden-
+tify the k
+stparameter for every material, the FSM switches
+to the “Exploration” state. At this step, the robot end-effectorgrasps a stick-like tool, and reaches in a compliant way thematerial placed in the leftmost part of the workspace, pre-
+viously identiﬁed by the Visual Perception Module .A f t e r
+having dunked into the matter, the Self-tuning impedance unit
+is triggered: both the boolean value I
+mand Ifhave been set
+to True, since a contact with the environment is expected and
+the end-effector tool is inside the material. Then, the robotfollows a point-to-point motion towards the polygon cen-
+ter while adapting the impedance parameters as described
+in Sect. 2.2. The framework stores the resulting k
+stin the
+data structure, associating it to the corresponding material.After that, the tool is pulled out from the substance and the
+impedance parameter identiﬁcation process is repeated for allthe materials in the workspace, until the rightmost material
+has been analyzed. Notice that, it is not necessary to contin-
+uously track the tool pose to check if it is inside the materialand therefore to activate I
+m. In fact, during the “Workspace
+deﬁnition” state, the Visual Perception Module localizes and
+deﬁnes the areas of interaction, and from here on, through
+the robot forward kinematics, we can identify whether a toolis located within that interaction expectancy area or not. This
+is possible since the tool is attached to the robot end-effector.
+In such a way, we can deﬁne whether I
+mhas to be set to True
+or False at every time step.
+To enhance the robustness of the system to unexpected
+events, we designed a “Fault Detection” sub-unit, within the“Exploration” state, that is triggered in case of a collisionwith the boundary (possibly due to a perception unit fault). If
+the sensed external forces projected along the motion vector
+experience an abrupt increase, the robot ends its motion andgoes back to its homing position. The external forces trend
+w.r.t the robot displacement, is estimated through a linear
+regression algorithm, computed for every nsamples. When
+the linear regression slope mgoes beyond a threshold set to
+m
+fault, the fault is triggered.
+Next, in the “Materials distribution” state, the vision unit
+detects the highest point for every matter through the “Peakslocalization” unit. The FSM receives these points and asso-
+ciates them to the relative material. During the ﬁnal state,
+named “Task”, the robot needs to scoop some material andpour it in a pot held by another robot. The scooping trajecto-
+ries are designed to start in the Euclidean points identiﬁed as
+peak points to ensure that some material is found in that partof the container. While holding a scooping tool, as a scoop or
+a small shovel, the robot starts to carry out the task by reach-
+ing the ﬁrst scheduled material with the default compliance
+k
+minset in all the Cartesian axes. When it dunks inside the
+matter in order to scoop some of it, and therefore activating
+the interaction expectancy value, the impedance parameter
+are adapted in the direction of the motion setting the relative
+kstfor every material. This value is retrieved from the data
+structure, where it was stored during the learning phase in the
+“Exploration” state. Like this, since the very beginning of thetask, the robot does not lag behind and can execute the task in
+a more precise manner. When the scooping motion, that goes
+from the highest point towards the polygon center, is over,the material is poured in a pot and the process starts overwith the next material, as scheduled by the task sequence.
+There are cases in which the substances’ viscous properties
+are subject to changes over time. This can be given eitherbecause of the material intrinsic properties or due to exter-
+nal circumstances. That is why, even in the “Task” state, the
+impedance parameters are exposed to changeability. Never-theless, we decided to set a maximum value k
+st_max that can
+123
+
+--- Page 8 ---
+1402 Autonomous Robots (2020) 44:1395–1410
+Fig. 5 The experimental setup is composed by two Franka Emika Panda
+robotic arms (one equipped with the Pisa/IIT SoftHand), and an ASUSXtion Pro RGB-D camera
+be reached by kstin this state to avoid signiﬁcant variations
+w.r.t. the one computed in the “Exploration” state:
+kst_max ,m=kst_exploration ,m∗(1+p)
+0≤p≤0.5∀m, (19)
+where kst_exploration ,mis the value stored in the “Exploration”
+state for material m, and pis the percentage of variation that
+can be set. If, in the “Task” state, this value is exceeded, the
+“Fault Detection” sub-unit is triggered, and the robot goes
+back to its homing position. This method can be useful fordetecting both a collision with the boundary (for instance due
+to a fault of the perception unit) and a substantial change in
+the material properties, since in industrial production thesewould be symptoms of system malfunction or material incon-sistency.
+3 Experimental setup
+The framework software architecture is developed with therobotics middleware Robot Operating System (ROS) using
+C++ as client library. The modules illustrated in Sect. 2are
+implemented as ROS nodes, and they communicate throughthe ROS topics depicted in Fig. 2by means of the pub-
+lisher/subscriber design pattern.
+The experimental setup (Fig. 5) includes two Franka
+Emika Panda robotic arms. The main robot carries out all thesteps of the described method, and the other one is used as a
+support to the ﬁrst one, providing the pot where the materials
+are poured after the scooping task. The presented architecturerelies upon a tailored version of franka_ros metapackage,
+the ROS integration for Franka Emika research robots. This
+package integrates libfranka , Franka Emika’s open source
+C++ interface, into ROS and ROS Control. This interface
+communicates with the robot trough the Franka Control Inter-
+face (FCI), that provides the current robot status and enablesits direct control with an external workstation PC. The com-munication is realized via an Ethernet cable in real-time, and
+the communication rate is 1 kHz.
+An underactuated robotic hand, i.e., the Pisa/IIT Soft-
+Hand (Ajoudani et al. 2014a ), is used as end-effector. We
+installed a pole in front of the robot arm, and we mounted ontop an ASUS Xtion Pro RGB-D sensor to provide the per-ception data. The camera calibration is conducted w.r.t. the
+robot base frame.
+4 Experiments
+We conducted experiments within an agricultural robotics
+scenario, in order to validate the presented method. The setup
+included a container, placed between the camera pole and
+the robot, where three different materials were placed. Todemonstrate distinct behaviors in the impedance parameters
+self-tuning, we considered materials with substantial differ-
+ence among their viscoelastic properties, and their large-scaleuse in agriculture: seeds, soil and expanded clay. A video of
+the experiment is available in the multimedia extension.
+We follow the FSM states sequence to describe the exper-
+iments. The materials’ container had a rectangular shape,and the materials inside were equally separated into three
+rectangular areas. Therefore, in the “Workspace deﬁnition”
+state, the FSM receives from the “Materials localization” per-ception unit the 12 Euclidean points delimiting the areas of
+the three materials. Accordingly, it updates the column of the
+data structure proposed in Table 1related to Polygon vertices .
+Afterwards, the robot grasps a metal stick 27 cm long, to carry
+out the next phase, i.e. the “Exploration” state. Based on ( 16)
+and on the values reported in Table 2,αwas set to 20,000.
+To ensure a good level of compliance in case of unpredictedcollisions, the value of k
+minwas set to 500 N/m. During this
+state, the robot gets to the leftmost material, formed by seeds
+(material 1), dunking the metal stick into it. An interactionwith the environment is expected to happen, and therefore
+the I
+evalue is activated, as shown at t= 1.5 s in the fourth
+plot of Fig. 6. Consequently, the Self-tuning impedance unit
+is enabled. While keeping the tool immersed in the material,
+the robot performs an 18 cm long movement along the xaxis.
+Since /Delta1Pgoes beyond the threshold /Delta1Ptset to 1 cm, kst
+increases following ( 13) as shown in the ﬁrst plot of Fig. 6.A s
+a consequence, the Cartesian stiffness along the direction of
+interaction is adapted. In this case the movement direction is
+performed only on xaxis. With the increase of the impedance
+values, we can notice that /Delta1P, that represents the Cartesian
+error along the motion vector, gets reduced and goes below
+the threshold /Delta1Pt. The maximum value reached by kstin
+this case is equal to 1100 N/m, and it gets associated to the
+relative material as reported in the right column of Table 1.T o
+complete the “Exploration” state, the robot repeats the samedescribed procedure for the other two materials. As expected,
+123
+
+--- Page 9 ---
+Autonomous Robots (2020) 44:1395–1410 1403
+Table 1 The data structure containing the data coming from the Self-tuning impedance unit , relative to the stiffness kst(rounded to integers), and
+from the Visual perception module , relative to the polygon vertices of the materials and their peak points
+Material Polygon vertices (x,y,z) Peak point (x,y,z) kst[N/m]
+V1 V2 V3 V4
+1 (0.66,0.30,0.10) (0.36,0.30,0.11) (0.36,0.09,0.09) (0.66,0.08,0.09) (0.63,0.22,0.14) 1100
+2 (0.66,0.09,0.08) (0.36,0.09,0.09) (0.36, −0.16,0.10) (0.66, −0.16,0.09) (0.62, −0.01,0.12) 1650
+3 (0.66, −0.14,0.10) (0.36, −0.14,0.10) (0.36, −0.36,0.13) (0.66, −0.36,0.11) (0.59, −0.29,0.13) 1330
+Table 2 To derive the value of
+α, different materials have been
+taken into account. The resultingaverage, computed through ( 16),
+has been set to 20,000m αm
+Air 16,200
+Water 16,800Seeds 19,400Soil 22,300Expanded clay 21,800Soil + water 23,500
+the soil (material 2) turns out to be the stiffest material, with
+kstreaching a value of 1650 N/m, and the expanded clay
+(material 3) is in between the other two, i.e. 1330 N/m. In the
+third plot of Fig. 6, we can notice how these values are tuned.
+After the identiﬁcation of the impedance parameters, the
+FSM transits to the “Material distribution” state. The starting
+point of the scooping trajectories are detected by the “Peaks
+localization” unit of the perception module, and stored in therelative column of Table 1.
+Then, the robotic hand grasps a scooping tool in order to
+carry out the “Task” state, subdivided in four substates. Therobot scoops and pours in a plant pot, provided by the sec-ond robotic arm, the three materials following this sequence:
+soil (a), plant seeds (b), other soil (c), and expanded clay (d).
+These four substates are depicted in the plots of Fig. 7and
+Fig. 8. In the latter, the green triangles represent the highest
+point of each substance provided by the “Peaks localization”
+perception module. To foster a deeper understanding, theaxes of this ﬁgure are oriented to analyze the task from a lat-
+eral view. In this way, it is clear to see how the stiffness value
+k
+stis adapted along the direction of the motion /hatwidePinside the
+interaction expectancy area. Faint and shorter arrows sym-bolize lower stiffness values, while longer and more vivid
+arrows represent higher stiffness values. The direction of the
+motion vector in the Cartesian space is also speciﬁed in theplot related to the three components of the normalized motion
+vector /hatwidePin Fig. 7.
+When no interaction is to happen, i.e. outside the contain-
+ers, the robot keeps a compliant proﬁle, and k
+stis always
+set to kmin, i.e. 500 N/m. Entering the interaction expectancy
+area leads to a rapid adaptation of kst, that assumes the value
+stored in Table 1relative to each material. This can be noticed00.010.02
+50010001500
+50010001500
+5 10 15 20 25 30 35 40
+time [s]01
+Fig. 6 “Exploration” state: when an interaction with the environment
+is predicted, the self-tuning stiffness kstv a l u eg r o w sb a s e do nt h ee r r o r
+in the direction of the motion ( /Delta1P)
+by the sudden growth in the arrows length and color intensity.
+In case /Delta1Pkeeps its value below the threshold, it means that
+the viscoelastic properties of the material did not change, and
+so there is no need for further adaptation. When the scoopingis over, but still being inside the container, k
+stgets reduced
+according to ( 18), as can be seen the last part of the scooping.
+Notice that, negligible variations could lead to unnecessary
+changes, so we designed a moving average window to calcu-late/Delta1F
+ext. In the last part of the depicted motion, the robot
+exits the interaction expectancy area, and kstis restored to
+its default compliant value, i.e. kmin.
+To show that the impedance self-tuning would occur also
+in case of viscoelastic properties changes, we decided to pour
+some water in the soil between the “Exploration” and the“Task” states. This adaptation is visible when the scoopingtool enters the soil during “Task” (a), and it is caused by /Delta1P
+exceeding the threshold /Delta1P
+tas shown in the third plot of
+Fig. 7att=6.3 s when the Self-tuning impedance unit is
+activated again. The value of kstfor material 2 gets increased
+from 1650 N/m to 1750 N/m. This is highlighted by the differ-
+ence between the ﬁrst and the other arrows inside the leftmostcontainer in Fig. 8.
+In Fig. 9we show how the tuning of the Cartesian stiff-
+ness is achieved only in the directions of movement /hatwideP, when
+the tool is inside the materials in two of the “Task” state
+123
+
+--- Page 10 ---
+1404 Autonomous Robots (2020) 44:1395–1410
+Fig. 7 “Task” state: starting from the impedance values already tuned
+in the “Exploration” state, the framework allows the robot not to lag
+behind, so that /Delta1Premains below the /Delta1Ptthreshold. Only in “Task”(a),/Delta1Pgoes beyond the threshold, since the material viscoelastic prop-
+erties have been intentionally changed
+Fig. 8 A lateral view of the four “Task” substates. kstis projected onto the direction of motion and here represented by means of red arrows, whose
+intensity grows with their value (Color ﬁgure online)
+Fig. 9 “Task” state: the tuning of the Cartesian stiffness is achieved
+only in the directions of movement /hatwideP. The vectorial sum of the three
+diagonal components is always equal to kst
+sub-phases. In “Task”(a), kstof material 2 is adapted at
+t= 6.5 s, since the soil viscoelastic properties were changedas explained above. We notice that the sum of the three Carte-
+sian stiffness diagonal components is always equal to kst.I n
+“Task”(d), we see the adaptation also on Kc(y).
+To show that the framework reliability has been increased
+by means of the two “Fault Detection” sub-units, we repeatedthe experiment simulating a fault in the perception unit by
+changing the pose of the box containing the materials both
+during the “Exploration” state and the “Task” state execution.Like this, following the desired trajectory, the tool grasped
+by the robot end-effector collides with one of the container
+sides.
+Figure 10shows an execution of the “Exploration” state
+performed to retrieve the ﬁrst material k
+st. As can be noticed
+in the third subplot, performing a linear regression (redsolid curve) on the measured external forces data (blue scat-
+123
+
+--- Page 11 ---
+Autonomous Robots (2020) 44:1395–1410 1405
+00.010.02
+50010001500
+01234567-20-100
+01234567
+time [s]-20020
+Fig. 10 “Fault Detection” during “Exploration” state: if the external
+forces linear regression slope mgoes beyond the threshold mfault,t h e
+robot stops the current motion and goes back to its homing conﬁgurationin a compliant way
+Fig. 11 “Fault Detection” during “Task” state: if kstgoes beyond the
+kst_max threshold, the execution halts and the robot goes back to its
+initial conﬁguration in a compliant way
+tered curve) allows to deﬁne in the fourth subplot the linear
+regression slope m(blue curve) that when goes beyond the
+threshold mfault set to −15, triggers a fault at t=4 . 5s . T h e
+robot stops performing the task and goes back to its homing
+position in a compliant way, as illustrated in the second sub-plot that shows the Cartesian stiffness parameters. The linear
+regression was performed every 500 samples, i.e. every 0.5 s.
+On the other hand, Fig. 11shows the behavior of the “Fault
+Detection” sub-unit associated to the “Task” state. Since in
+the “Exploration” state (performed without faults), k
+stfor
+material 1 reached 1100 N/m, by applying ( 19) with p=
+0.3, we obtain that kst_max ,1=1433 N/m. As shown in the
+plots, at the time of the collision, i.e. t=6s ,/Delta1Pincreases
+suddenly and so kst,1goes beyond kst_max ,1computed above.
+The execution halts, the robot exits the material and goes backto its initial conﬁguration.
+To demonstrate further the validity and the effectiveness
+of the proposed method, we decided to perform an otherexperiment inserting an obstacle inside one of the materi-
+als, so as to simulate an uncertain environment, and carrying
+out one more time the FSM “Task” state. We put a piece ofwood inside the seeds (material 1), placing it in the middleof the path of the expected reference trajectory. In this way,
+the tool held by the robot had to react adapting to the woodshape. We repeated the experiment three times. At ﬁrst, we
+removed the “Self-tuning impedance unit” from the frame-
+work, so that the impedance parameters were not subjectedto changes even if an interaction was expected. With this con-ﬁguration, we performed the experiment with high and low
+impedance parameters and we compared the obtained results.
+Afterwards, we carried out the task with the same setup, butwith the impedance regulation enabled. To evaluate the three
+described trials, whose plots are illustrated in Fig. 12,w e
+decided to compare the external interaction forces acting onthe robot end-effector, i.e. F
+ext, and the Cartesian error pro-
+jected onto the direction of the movement, i.e. /Delta1P, under the
+different conditions of the impedance parameters.
+The ﬁrst column represents the data acquired while keep-
+ing always a high level of the impedance parameters, i.e.
+1100 N/m (see bottom plot), that is the value reached by kst
+for material 1 during the “Exploration” state. In this case,
+although the tracking of the error /Delta1Pdoes not exceed exces-
+sively the imposed threshold /Delta1Pt, we measured interaction
+forces on z axis, represented by the blue line on the top plot,reached a quite high value ( ≈13 N). Therefore, this approach
+could lead to a system failure caused by a tool/robot dam-
+age. Notice that, with higher obstacle curvatures, the externalforces measurements could scale quite rapidly easily leadingto more substantial failures.
+The second column shows the plots of the trial with lower
+impedance parameters, set at 500 N/m, as no interaction wasever expected. The robot is able to better comply with the
+external environment, as highlighted by lower interaction
+forces on z axis, that reach a maximum value of ≈10 N, and
+therefore damages are more likely prevented. Nevertheless,
+complying both with the expected and unexpected interac-
+tions with the environment leads also to a loss in terms ofperformances. This can be seen in the plots representing /Delta1P,
+where the robot lags behind the desired trajectory up to 3 cm.
+This behavior can not be considered desirable, since the task
+is not carried out as expected.
+Lastly, the third column depicts the data logged applying
+the method presented in this work. Stiffness and damping are
+updated on-line, based on the interaction expectancy and onthe direction of the movement /hatwideP. The external interaction
+forces are further reduced, reaching at maximum ≈8N ./Delta1P
+is signiﬁcantly less w.r.t. to the case with low impedance.
+In Fig. 13, we report the setup used in this experiment
+enhanced with the reference trajectory (blue curve) and the
+measured path (red curve) logged during the last trial, when
+the “Self-tuning impedance unit” was enabled.
+123
+
+--- Page 12 ---
+1406 Autonomous Robots (2020) 44:1395–1410
+Fig. 12 The plots show three different executions of the “Task” state
+with an object placed inside material 1 (setup shown in Fig. 13): at
+the left without applying the presented method and always keepinghigh impedance values, in the center as the previous case but with lowimpedance parameters, and at the right the trial with the Self-tuning
+impedance unit enabled. In the latter case, there are less external inter-
+action forces w.r.t. the ﬁrst case, and the error in the direction of themovement /Delta1Pis substantially less w.r.t. the second trial
+Fig. 13 To simulate an uncertain environment, a piece of wood has
+been inserted inside material 1. The curves in the picture represent thedesired trajectory (blue line) and the actual trajectory (red line) (Colorﬁgure online)
+5 Tank-based system passivity observer
+Since the presented controller is based on continuous vari-
+ations of the impedance parameters, we must demonstrate
+that the passivity of the system, and so its stability, is guar-anteed. Following the approach presented in (Ferraguti et al.-0.0500.05
+-0.500.5
+50010001500
+405060
+0  20 40 60 80 100 120 140
+time [s]020
+Fig. 14 The analysis reveals that the tank energy is above the lower
+bound ¯Tlset to 0.5 Jfor the entire experiment, thus guaranteeing there
+is no loss of stability
+2013 ), we implemented a tank-based approach to monitor
+the system stability. Formally, the model of the robot in the
+task space is given by:
+/Lambda1(x)¨/Delta1X+(μ(x,˙x)+Dd)˙/Delta1X
++Kconst/Delta1X−ωxt=Fext,
+˙xt=σ
+xt(˙/Delta1X/latticetopDd˙/Delta1X)−ω/latticetop˙/Delta1X. (20)
+123
+
+--- Page 13 ---
+Autonomous Robots (2020) 44:1395–1410 1407
+(a) (b)
+Fig. 15 The self-tuning impedance algorithm applied to the handle
+pulling phase of a standard industrial pallet jack. When an interaction isexpected and /Delta1P
+tis beyond a threshold, the impedance parameters aretuned along the motion vector /hatwideP(a). On the right, the initial and ﬁnal
+conﬁguration assumed by the cobot are depicted, with a sketch repre-senting the trajectory followed by the robot to pull the handle down (b)
+where the desired stiffness is equal to Kd(t)= Kconst+
+K/prime(t), being Kconst∈ R6×6the constant stiffness term
+and K/prime∈R6×6the time-varying stiffness. /Lambda1(x)∈R6×6
+andμ(x,˙x)∈ R6×6are the Cartesian inertia and Corio-
+lis/centrifugal matrices respectively. The scalar xt∈Ris the
+state associated with the tank and the tank energy T∈R+
+and T=1
+2x2
+t.σ∈Randω∈R6respectively are
+σ=/braceleftBigg
+1i f T(xt)≤¯Tu
+0 otherwise, (21)
+ω=/braceleftBigg
+−K/prime(t)˜x
+xtifT(xt)≥¯Tl
+0 otherwise. (22)
+where, ¯Tu∈R+is a suitable, application dependent, upper
+bound that avoid excessive energy storing in the tank while
+¯Tl∈R+is a lower bound below which energy cannot be
+extracted by the tank for avoiding singularities in ( 20) and
+thus the time-varying stiffness K/prime(t)will be removed. For
+a detailed analysis of the system passivity, please refer to(Ferraguti et al. 2013 ).
+Figure 14shows the stability analysis performed dur-
+ing the entire duration of the experiment, i.e. including the“Exploration” and the “Task” states, when no faults occurred.As we can see from the bottom subplot, the tank energy was
+above the lower bound ( ¯T
+l=0.5J) during all the phases,
+which means that the full stiffness including the constant
+(set to the compliant value, 500 N) and varying parts can be
+realised without loss of stability.
+6 Algorithm scalability
+The self-tuning impedance algorithm has extensively demon-strated its validity in the previous sections. However, its appli-cability is not limited to the experimental setup described so
+far. In fact, by changing the FSM states illustrated in Sect. 2.5,
+various applications can gain advantages thanks to the pro-posed methodology.
+An example is given by pick and place tasks, where the
+robot keeps a compliant proﬁle on all the Cartesian axes
+before picking and after placing, while adjust the impedanceparameters while carrying the task. Preliminary results,
+although tuning the parameters only along Cartesian axes,
+are presented in (Balatti et al. 2018 ) for a debris removal
+task.
+Another application ﬁeld is represented by the logistics
+sector, where cobots are expected to automatize repetitiveand physically demanding works, as transporting airport
+123
+
+--- Page 14 ---
+1408 Autonomous Robots (2020) 44:1395–1410
+mobile stairways, heavy industrial carts, and warehouses pal-
+let jacks. To this end, hereafter we show a demonstration ofthe self-tuning impedance algorithm applied to the pulling
+task of a standard industrial pallet jack. We deﬁne a new
+FSM, that includes a “Handle pull down” state where I
+mgets
+triggered. On the other hand, vision comes into play trigger-ing I
+fwhenever the end-effector is within the area around
+the pallet jack handle (similarly as in (Balatti et al. 2018 )),
+which is recognized through a standard template matchingperception algorithm. The “Handle pull down” state is per-
+formed with a circular trajectory as depicted in the lower
+part of Fig. 15b. In this sketch the red arrows represent the
+online stiffness parameters adaption as in Fig. 8. In the plots
+of Fig. 15a, it is represented the tuning of k
+stalong the motion
+vector, triggered only when Ieis set to True and /Delta1Pis
+beyond the threshold /Delta1Pt, set to 3 cm. The top right part
+of Fig. 15represents the initial and ﬁnal conﬁguration of the
+MOCA robot (Wu et al. 2019 ) used in this experiment. A
+video showing the pallet jack handle pulling results is part ofthe multimedia extension.
+7 Conclusion and discussion
+This paper presented a novel framework to enhance robotadaptability in unknown and unstructured environments. The
+system relied on a self-tuning impedance controller, able to
+regulate the impedance parameters only on the direction ofthe motion vector, and activated just when an interaction
+with the external environment was predicted. It addition-
+ally included a visual perception module that improved thesituation-awareness of the robot, localizing the surroundingmaterials and their peak points. Notice that the material detec-
+tion process (i.e. color-based region growing segmentation)
+could be replaced with other RGB-based methods, such asdeep learning, to improve the time complexity. Given that the
+visual results were accurate and fast enough for our applica-
+tion, we leave this as future work.
+To detect faults, we also presented a novel unit capable of
+recovering from unexpected collisions with the boundary. A
+Finite State Machine was introduced to manage the transi-tions between the system states. We experimentally validatedthe presented framework in an agricultural task. Although
+we are working towards making the method autonomous,
+it still needs an ofﬂine tuning of some parameters, such asαandβ, whose online adaptation will be the focus of our
+future work. Nevertheless, using non-optimal αandβvalues
+does not imply failure in task execution, but rather introducessome variations to the convergence speed of the self-tuning
+control gains. An analysis of the stability of the system is
+reported, since the algorithm includes time-varying tuningof the impedance parameters.Acknowledgements Open access funding provided by Istituto Ital-
+iano di Tecnologia within the CRUI-CARE Agreement. This work wassupported by the European Union’s Horizon 2020 research and innova-tion programme under Grant Agreement No. 871237 (SOPHIA). Theauthors would like to thank Y uqiang Wu for his contributions to thestability analysis.
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing, adap-tation, distribution and reproduction in any medium or format, aslong as you give appropriate credit to the original author(s) and thesource, provide a link to the Creative Commons licence, and indi-cate if changes were made. The images or other third party materialin this article are included in the article’s Creative Commons licence,unless indicated otherwise in a credit line to the material. If materialis not included in the article’s Creative Commons licence and yourintended use is not permitted by statutory regulation or exceeds thepermitted use, you will need to obtain permission directly from the copy-right holder. To view a copy of this licence, visit http://creativecomm
+ons.org/licenses/by/4.0/ .
+References
+Ajoudani, A., Godfrey, S. B., Bianchi, M., Catalano, M. G., Grioli,
+G., Tsagarakis, N., et al. (2014a). Exploring teleimpedance andtactile feedback for intuitive control of the pisa/iit softhand. IEEE
+Transactions on Haptics ,7(2), 203–215.
+Ajoudani, A., Lee, J., Rocchi, A., Ferrati, M., Hoffman, E.M., Settimi,
+A., Caldwell, D.G., Bicchi, A., & Tsagarakis, N.G. (2014b). Amanipulation framework for compliant humanoid coman: Appli-cation to a valve turning task. In 14th IEEE-RAS international
+conference on Humanoid Robots (Humanoids) , pp 664–670.
+Ajoudani, A., Tsagarakis, N. G., & Bicchi, A. (2017). Choosing poses
+for force and stiffness control. IEEE Transactions on Robotics ,
+33(6), 1483–1490.
+Albu-Schaffer, A., Ott, C., Frese, U., & Hirzinger, G. (2003). Cartesian
+impedance control of redundant robots: recent results with the dlr-light-weight-arms. IEEE international conference on robotics and
+automation (ICRA) , 3704–3709.
+Anderson, R. J., & Spong, M. W. (1988). Hybrid impedance control of
+robotic manipulators. IEEE Journal on Robotics and Automation ,
+4(5), 549–556.
+Balatti, P ., Kanoulas, D., Rigano, G.F., Muratore, L., Tsagarakis, N.G.,
+& Ajoudani, A. (2018). A self-tuning impedance controller forautonomous robotic manipulation. In 2018 IEEE/RSJ interna-
+tional conference on intelligent robots and systems (IROS) ,p p
+5885–5891.
+Balatti, P ., Kanoulas, D., Tsagarakis, N. G., & Ajoudani, A. (2019).
+Towards robot interaction autonomy: Explore, identify, and inter-
+act. IEEE international conference on robotics and automation
+(ICRA) , 9523–9529.
+Dietrich, A., Bussmann, K., Petit, F., Kotyczka, P ., Ott, C., Lohmann, B.,
+et al. (2016). Whole-body impedance control of wheeled mobilemanipulators. Autonomous Robots ,40(3), 505–517.
+Ferraguti, F., Secchi, C., & Fantuzzi, C. (2013). A tank-based approach
+to impedance control with variable stiffness. IEEE international
+conference on robotics and automation (ICRA) , 4948–4953.
+Gribovskaya, E., Kheddar, A., & Billard, A. (2011). Motion learning
+and adaptive impedance for robot control during physical interac-tion with humans. IEEE international conference on robotics and
+automation (ICRA) , 4326–4332.
+Harbers, M., Peeters, M. M., & Neerincx, M. A. (2017). Perceived
+autonomy of robots: effects of appearance and context. In M. I.Aldinhas Ferreira, J. Silva Sequeira, M. O. Tokhi, E. K. Endre, &
+123
+
+--- Page 15 ---
+Autonomous Robots (2020) 44:1395–1410 1409
+G. S. Virk (Eds.), A world with robots: International conference on
+robot ethics: ICRE 2015 (pp. 19–33). Cham: Springer International
+Publishing.
+He, W., & Dong, Y . (2018). Adaptive fuzzy neural network control for
+a constrained robot using impedance learning. IEEE Transactions
+on Neural Networks and Learning Systems ,29(4), 1174–1186.
+Katz, D., Pyuro, Y ., & Brock, O. (2008). Learning to manipulate artic-
+ulated objects in unstructured environments using a groundedrelational representation. In O. Brock, J. Trinkle, & F. Ramos(Eds.), Robotics: Science and systems IV . Zurich, Switzerland:
+The MIT Press.
+Katz, D., V enkatraman, A., Kazemi, M., Bagnell, J. A., & Stentz, A.
+(2014). Perceiving, learning, and exploiting object affordances forautonomous pile manipulation. Autonomous Robots ,37(4), 369–
+382.
+Kawato, M. (1999). Internal models for motor control and trajectory
+planning. Current Opinion in Neurobiology ,9(6), 718–727.
+Kotseruba, I., Gonzalez, O.J.A., & Tsotsos, J.K. (2016). A review of
+40 years of cognitive architecture research: Focus on perception,attention, learning and applications, pp 1–74. arXiv:1610.08602
+Kronander, K., & Billard, A. (2014). Learning compliant manipula-
+tion through kinesthetic and tactile human-robot interaction. IEEE
+Transactions on Haptics ,7(3), 367–380.
+Lee, J., Ajoudani, A., Hoffman, E.M., Rocchi, A., Settimi, A., Fer-
+rati, M., Bicchi, A., Tsagarakis, N.G., & Caldwell, D.G. (2014).Upper-body impedance control with variable stiffness for a dooropening task. In 2014 14th IEEE-RAS international conference on
+Humanoid Robots (Humanoids) , pp 713–719.
+Li, Y ., Sam Ge, S., & Yang, C. (2012). Learning impedance control for
+physical robot-environment interaction. International Journal of
+Control ,85(2), 182–193.
+Nemec, B., Likar, N., Gams, A., & Ude, A. (2018). Human robot coop-
+eration with compliance adaptation along the motion trajectory.Autonomous Robots ,42(5), 1023–1035.
+Righetti, L., Kalakrishnan, M., Pastor, P ., Binney, J., Kelly, J., V oorhies,
+R. C., et al. (2014). An autonomous manipulation system basedon force control and optimization. Autonomous Robots ,36(1–2),
+11–30.
+Roveda, L. (2018). Adaptive interaction controller for compliant robot
+base applications. IEEE Access ,7, 6553–6561.
+Roveda, L., Iannacci, N., & Tosatti, L. M. (2018). Discrete-time formu-
+lation for optimal impact control in interaction tasks. Journal of
+Intelligent & Robotic Systems ,90(3–4), 407–417.
+Schindlbeck, C., & Haddadin, S. (2015). Uniﬁed passivity-based carte-
+sian force/impedance control for rigid and ﬂexible joint robots viatask-energy tanks. IEEE international conference on robotics and
+automation (ICRA) , 440–447.
+Song, P ., Y u, Y ., & Zhang, X. (2019). A tutorial survey and comparison
+of impedance control on robotic manipulation. Robotica ,37(5),
+801–836.
+Tsagarakis, N. G., Caldwell, D. G., Negrello, F., Choi, W., Baccel-
+liere, L., Loc, V ., et al. (2016). Walk-man: A high-performancehumanoid platform for realistic environments. Journal of Field
+Robotics ,34(7), 1225–1259.
+Wu, Y ., Balatti, P ., Lorenzini, M., Zhao, F., Kim, W., & Ajoudani, A.
+(2019). A teleoperation interface for loco-manipulation control ofmobile collaborative robotic assistant. IEEE Robotics and Automa-
+tion Letters ,4(4), 3593–3600.
+Xu, G., Song, A., & Li, H. (2011). Adaptive impedance control
+for upper-limb rehabilitation robot using evolutionary dynamicrecurrent fuzzy neural network. Journal of Intelligent & Robotic
+Systems ,62(3–4), 501–525.
+Yang, C., Ganesh, G., Haddadin, S., Parusel, S., Albu-Schaeffer, A., &
+Burdet, E. (2011). Human-like adaptation of force and impedancein stable and unstable interactions. IEEE Transactions on Robotics ,
+27(5), 918–930.Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+Pietro Balatti is a PhD candidate at
+the Human-Robot Interfaces and
+physical Interaction Lab, IstitutoItaliano di Tecnologia, and at theDepartment of Information Engi-neering, University of Pisa, Italy.He received the BD and the MD,cum laude, in computer scienceand engineering from Politecnicodi Milano, Italy, in 2014 and 2016,respectively. He was member ofteam “CoAware” that won theKUKA Innovation Award in April2018, who was responsible of therobot control framework. His main
+research interests are focused in the enhancement of robot interactionautonomy, within the ﬁelds of adaptive impedance control and physi-cal human-robot interaction.
+Dimitrios Kanoulas is currently
+a Lecturer (Assistant Professor)in Robotics and Computation atthe University College London(UCL), Department of ComputerScience, working on robotic per-ception and learning for multi-DoF robotic platforms, such ashumanoids, quadrupeds, andmobile manipulators. Between2014–2019 he was a senior post-doctoral researcher at theHumanoids and Human-CenteredMechatronics Lab at the IstitutoItaliano di Tecnologia (IIT), work-
+ing with Dr. Nikos Tsagarakis and Prof. Darwin Caldwell on theW ALK-MAN, CENTAURO, and CogIMon European projects. Hewas the perception team leader during the DARPA Robotics Challenge2015. In August 2014, he completed his PhD at the Geometric and
+Physical Computing Lab in the College of Computer and Information
+Science at Northeastern University, advised by Prof. Marsette V ona.
+Nikos Tsagarakis received his
+D.Eng. degree in Electrical andComputer Science Engineering in1995 from the Polytechnic Schoolof Aristotle University, Greece,his MSc degree in Control Engi-neering in 1997 and his PhD inRobotics from the University ofSalford, UK, in 2000. He is
+Tenured Senior Scientist at IIT
+with overall responsibility forHumanoid design & Human-Centred Mechatronics develop-ment. Since 2013, he is alsoserving as a Visiting Professor at
+the Centre for Robotics Research (CORE), Department of Informat-ics, King’s College University, London, UK.
+123
+
+--- Page 16 ---
+1410 Autonomous Robots (2020) 44:1395–1410
+Arash Ajoudani is a tenured senior
+scientist at the Italian Institute ofTechnology (IIT), where he leadsthe Human-Robot Interfaces andphysical Interaction (HRI
+2)l a b -
+oratory. He received his PhDdegree in Robotics and Automa-tion from University of Pisa andIIT in July 2014. His PhD the-sis was a ﬁnalist for the GeorgesGiralt PhD award 2015 - bestEuropean PhD thesis in robotics.
+He is a recipient of the European
+Research Council (ERC) startinggrant 2019. He was a winner of
+the Amazon Research Awards 2019, the winner of the Solution Award2019 (Premio Innovazione Robotica at MECSPE2019), the winner ofthe KUKA Innovation Award 2018, the winner of the Werob bestposter award 2018, a ﬁnalist for the best conference paper awardat Humanoids 2018, a ﬁnalist for the best interactive paper awardat Humanoids 2016, a ﬁnalist for the best oral presentation awardat Automatica (SIDRA) 2014, the winner of the best student paper
+award and a ﬁnalist for the best conference paper award at ROBIO2013, and a ﬁnalist for the best manipulation paper award at ICRA2012. He is the coordinator of the Horizon-2020 project SOPHIAwith a consortium of 12 partners from the leading European researchand industrial organisations. He has contributed to several successfulEuropean projects (H2020 and FP7) such as W ALKMAN, WearHap,SOMA, and SoftPro. He is the author of the book “TransferringHuman Impedance Regulation Skills to Robots” in the Springer Tractsin Advanced Robotics (STAR), and several publications in journals,international conferences, and book chapters. He is currently serv-ing as the executive manager of the IEEE-RAS Y oung Reviewers’Program (YRP), and as chair and representative of the IEEE-RASY oung Professionals Committee. He has been serving as a memberof scientiﬁc advisory committee and as an associate editor for sev-eral international journals and conferences such as IEEE RAL, Biorob,ICORR, etc. His main research interests are in physical human-robotinteraction and cooperation, robotic manipulation, robust and adaptivecontrol, assistive robotics, and tele-robotics.
+123

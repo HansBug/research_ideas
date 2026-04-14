@@ -1,0 +1,1245 @@
+--- Page 1 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 1 / 33
+ 
+ OPEN ACCESS
+Citation: Sun K, Zhang N, Li Z, Ding H, Zhang 
+H, Jiang C (2025) Improved MPC for trajectory 
+planning of self-driving cars. PLoS One 20(6): 
+e0320359. https://doi.org/10.1371/journal.
+pone.0320359
+Editor: Nishant Mukund Pawar, National 
+Institute of Technology Calicut, INDIA
+Received:  July 22, 2024
+Accepted:  February 18, 2025
+Published: June 3, 2025
+Peer Review History: PLOS recognizes the 
+benefits of transparency in the peer review 
+process; therefore, we enable the publication 
+of all of the content of peer review and 
+author responses alongside final, published 
+articles. The editorial history of this article is 
+available here: https://doi.org/10.1371/journal.
+pone.0320359
+Copyright:  © 2025 Sun et al . This is an open 
+access article distributed under the terms of 
+the Creative Commons Attribution License , 
+which permits unrestricted use, distribution, 
+and reproduction in any medium, provided the 
+original author and source are credited.
+Data availability statement : The data 
+underlying the results presented in the study RESEARCH ARTICLE
+Improved MPC for trajectory planning  
+of self-driving cars
+Kai Sun1, Niaona Zhang1*, Zonghao Li2☯, Haitao Ding2, Heshu Zhang1, 
+Changhong Jiang1*
+1 Electrical and Electronic Engineering, Changchun University of Technology, Changchun, Jilin Province, 
+China, 2 College of Automotive Engineering, Jilin University, Changchun, Jilin Province, China 
+☯ These author contributed equally to this work.
+* zhangniaona@163.com  (NZ); jch@ccut.edu.cn  (CJ)
+Abstract 
+To tackle the challenges associated with lane changes in diverse driving environments, 
+this study introduces an Improved Model Predictive Control (IMPC) approach that inte -
+grates vehicle state and driving context to execute maneuvers effectively. Initially, a simpli -
+fied model is established, incorporating vehicle position, velocity, and driving conditions. 
+Subsequently, a Sigmoid function is utilized to restrict vehicle movements, while Finite 
+State Machine (FSM) decision-making selects appropriate maneuvers in real time accord -
+ing to changing driving conditions. In addition, a discrete Simplified Dual Neural Network 
+(SDNN) is utilized to efficiently solve Quadratic Programming (QP) problems, overcoming 
+the slow-solving issue of traditional MPC and ensuring rapid acquisition of longitudinal 
+and lateral accelerations for lane changes, braking, and overtaking maneuvers. Finally, 
+the results from hardware-in-the-loop (HIL) simulation validation indicate that IMPC can 
+efficiently address collision avoidance with surrounding dynamic vehicles across three 
+distinct driving scenarios.
+Introduction
+In recent years, advancements in vehicle technology and artificial intelligence have fostered 
+the emergence of autonomous vehicles. Data indicate that many road traffic accidents stem 
+from driver negligence and delayed reactions. Self-driving vehicles could significantly enhance 
+road safety, enhance passenger comfort, and decrease driver workload [ 1,2]. Furthermore, 
+they can effectively mitigate these incidents. Consequently, research on autonomous vehicles 
+has become pivotal, emphasizing collision avoidance and overtaking maneuvers under vary -
+ing driving conditions. This paper introduces the IPMC method to tackle these challenges.
+When performing obstacle avoidance and overtaking tasks, autonomous vehicles can 
+determine their path by utilizing road conditions and surrounding vehicle information 
+ collected by sensors. Additionally, they adapt the planned path in response to changes 
+in the surrounding environment [ 3]. Typically, completing obstacle avoidance and 
+ overtaking maneuvers comprises two main components: decision-making and control. The 
+ decision-making component generates appropriate maneuver decisions, which are subse -
+quently transmitted to the control component. The control component executes these maneu -
+vers while adhering to the constraints of vehicle dynamics and environmental conditions, 
+
+
+--- Page 2 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 2 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+thereby accomplishing the obstacle avoidance and overtaking tasks [ 4]. In summary, an 
+obstacle avoidance and overtaking system consists of two interrelated yet independent parts: 
+path planning and trajectory tracking.
+The methods of path planning [ 5,6] comprise graph-based search algorithms (e.g., Dijks -
+tra’s algorithm [ 7] and A * algorithm [ 8]), local planning algorithms (e.g., artificial potential 
+field method [ 9] and dynamic window approach [ 10]), sampling-based algorithms (e.g., 
+Rapidly-exploring Random Trees [ 11]), parameter optimization methods (e.g., Bezier curve 
+method [ 12] and Sigmoid method [ 13]), and numerical optimization methods. This study 
+utilizes the Improved Model Predictive Control (IMPC) methodology within numerical 
+optimization methods. MPC [ 14] can integrate road boundary constraints, vehicle dynamics 
+constraints, and drivable area constraints as unified constraints within the prediction process. 
+Moreover, MPC can allocate weights effectively based on the lane-changing context. During 
+the optimization process, more accurate prediction results can be obtained by adjusting the 
+prediction model, objective function, and constraints (e.g., vehicle dynamics and physical lim -
+itations). Additionally, future output predictions can be enhanced by adjusting the prediction 
+and control horizons [ 15–18].
+Many scholars have explored the challenges of lane-changing and overtaking in autono -
+mous driving systems. Alrifaee [ 19] introduced two linear constraints: the Forward Collision 
+Constraint (FCC) and the Rearward Collision Constraint (RCC). These constraints incor -
+porate surrounding vehicles and lane boundaries as barriers within the MPC framework to 
+define feasible driving regions for the ego vehicle. Nilsson [ 20,21] proposed a method that 
+utilizes a structured environment for formulating low-complexity rolling horizon planning, 
+effectively addressing the high computational complexity associated with trajectory plan -
+ning. Coskun [ 22] conducted reachability analysis on surrounding vehicles using dynamic 
+models to predict their future movements accurately. Jalalmaab [ 23] employed constant 
+safety distances in constraint settings to ensure vehicle safety, although enhancing flexibility 
+in lane-changing under complex scenarios is required. Brown [ 24] and Esterle [ 25] utilized 
+enveloping and combinatorial reasoning methods to generate collision-free areas that involve 
+multiple MPC controllers, ensuring stability in individual control strategies, yet necessitat -
+ing enhanced computational efficiency for joint control scenarios. Combining the strengths 
+and weaknesses of these studies, this paper introduces a function graph akin to a Sigmoid 
+function used for overtaking trajectories. Traditionally employed for overtaking trajectories, 
+the Sigmoid function [ 26–29] here acts as a constraint barrier to prevent collisions, offering 
+time-varying navigable regions for moving vehicles. A decision variable is assigned to the 
+Sigmoid function. When overtaking is not feasible, braking and deceleration are initiated 
+until the left lane is safely navigable. When encountering obstructed vehicles, scenarios 
+involving both lane-changing and braking are considered, necessitating the introduction of 
+a decision-making function. Various decision-making methods applicable to autonomous 
+driving [ 30]. Markov decision processes [ 31] can simulate agents making stochastic decisions 
+in environments where system states exhibit Markov properties. Q-Learning [ 32] optimizes 
+agent behavior strategies through learning over state-action pairs. Finite state machines (FSM) 
+model a discrete mathematical approach to studying a finite number of states and transitions 
+between them. Due to their simplicity in handling basic behaviors such as lane changing and 
+braking, FSM [ 33] is chosen as the decision-making algorithm for its ease of implementation, 
+real-time responsiveness, and simplicity of application. In this study, FSM-generated activa -
+tion signals are combined with the sigmoid function to impose different constraint conditions 
+on Model Predictive Control (MPC).
+During vehicle operation, prompt responses are necessary when encountering obstructed 
+vehicles. However, the iterative optimization speed of MPC is insufficient to meet the are available from"github: https://github.com/
+s147896325/k.git "and"figshare: 10.6084/
+m9.figshare.28021790 ".
+Funding: This research was funded by NZ of 
+the National Natural Science Joint Fund Project, 
+grant number 52477041; NZ of the Open Fund 
+of the State Key Laboratory of Automotive 
+Simulation and Control of Jilin University, 
+grant number 20210237; and NZ of the Jilin 
+Province Science and Technology Development 
+Plan Project, grant number 20230508049RC. 
+The funders had no role in study design, data 
+collection and analysis, decision to publish, or 
+preparation of the manuscript.
+Competing interests: There are no financial 
+conflicts of interest to disclose.
+
+--- Page 3 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 3 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+real-time and rapid requirements of vehicle movement. The solving process of MPC funda -
+mentally entails online solving of constrained quadratic programming problems. Enhanced 
+MPC integrates a discretized simplified dual neural network that converts constraint inter -
+vals into set-point controls through steady-state optimization, thereby effectively reducing 
+computational burdens. Lastly, the neural network resolves the Quadratic Programming (QP) 
+problem, thereby significantly enhancing MPC’s solving speed.
+The contributions of this paper are summarized as follows:
+1. Introducing the Sigmoid function as a constraint barrier to regulate the travel range of the 
+autonomous vehicle. This innovation allows for travel planning without the need to gener -
+ate specific travel trajectories.
+2. Integrating the activation function into MPC constraints involves generating it from the 
+FSM decision, which governs lane changes and braking. This integration reduces the num -
+ber of constraints and selects optimal maneuvers for specific driving scenarios.
+3. Introducing discrete SDNN to solve MPC reduces computation time and enhances the 
+response time of self-driving vehicles.
+The structure of this paper is depicted in Fig 1 . Section 2 establishes the model. Section 3 
+addresses the obstacle avoidance trajectory planning problem, (1) encompassing the setup 
+of vehicle driving conditions; (2) behavioral decision-making employing the FSM algorithm; 
+(3) pre-optimization of parameters for the Sigmoid function; (4) establishment of constraints 
+and objective functions; (5) Generation of Sigmoid Constraint Barriers Section 4 presents the 
+discrete SDNN for rapid QP problem-solving. Section 5 conducts simulation analyses under 
+three distinct scenarios. Section 6 concludes the paper and provides future perspectives.
+Model development
+Different vehicle models are suitable for various modeling scenarios, and the choice of 
+model significantly influences final prediction outcomes [ 34]. For example, simpler scenar -
+ios require straightforward vehicle models to prevent excessive parameterization that could 
+degrade response times. In this study, MPC is employed to predict the trajectory of the ego 
+vehicle for collision-free overtaking planning. The prediction process focuses exclusively 
+on the longitudinal and lateral velocity, position, and acceleration, treating both the ego 
+vehicle and surrounding vehicles as point masses in motion. Therefore, a point mass model 
+is employed in this study to predict the motion of both the ego vehicle and surrounding 
+vehicles. This model simplifies vehicle dynamics by disregarding size-related information 
+and load transfer due to longitudinal and lateral accelerations, describing vehicle motion as 
+that of a single mass point. Such models are commonly used in the path-planning phase of 
+autonomous vehicles, effectively reducing the computational complexity in trajectory plan -
+ning [ 35] (Fig 2 ).
+The kinematic equations for the point mass model are as follows:
+  /dotnosp/dotnosp
+/dotnosp/dotnosp
+/dotnosp
+/dotnosp/dotnosp/dotnosp
+/dotnosp/dotnosp/dotnospya
+a
+a
+a
+Yx y
+Xx yxy
+x
+y
+x=
+=
+=
+=+
+=+
+
+ϕ
+ϕϕ
+ϕϕsinc os
+coss in
+ (1)
+
+--- Page 4 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 4 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Where, x and y represent the vehicle’s longitudinal and lateral directions in the vehicle body 
+coordinate system, while X and Y denotes the geodetic coordinate system, with φ representing 
+the vehicle’s heading angle. From the equation above, this system can be considered a control 
+system with input ua axyT=[]  and state variable χϕ=[]yx YXT     The general form of this 
+system can be expressed as:
+ χχ=fu(, ) (2)
+Fig 1 . IMPC Trajectory Planning Framework.  Green, red, and purple respectively denote the decision-making, modeling, and trajectory-planning components.
+https://doi.org/10.1371/journal.pone.0320359.g001
+
+--- Page 5 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 5 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Simply put:
+ /tildenosp/dotnosp /tildenosp/tildenosp χχ=+AB u (3)
+The forward Eulerian discretization yields:
+ /tildenosp/tildenosp /tildenosp χχ() () () kA kB uk += + 1  (4)
+Where 
+A
+xy
+x=
+−
+−− −10 00 0
+01 00 0
+00 10 0
+10 coss in coss in
+sinc os sinϕϕ ϕϕ
+ϕϕ ϕ/dotnosp/dotnosp
+/dotnosp/dotnosp yycosϕ 01
+
+,  Baa
+axy
+x= −
+
+10
+01
+1
+00
+002
+Transforming the equation results in
+ ξχ(| )(| )
+(| )ktkt
+uk t=−
+
+/dotnosp
+/dotnosp 1 (5)
+Fig 2 . Automotive point mass model.  (x, y) denotes the vehicle coordinate system, while ( X, Y ) represents the global 
+coordinate system.
+https://doi.org/10.1371/journal.pone.0320359.g002
+
+--- Page 6 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 6 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+The resulting state space expression is:
+ ξξ
+ηξ() () (| )
+() ()kt Ak tB Uk t
+kt Ck t+= +
+=1 /tildenosp /tildenosp/triangle
+/tildenosp (6)
+Where /tildenospAAB
+m=
+
+ 0I, /tildenospBB
+m=
+
+I, n represents the control variables, and m represents the state 
+variables.
+The predicted output is expressed as:
+ Yk kU kkk () () () =+φξ θ/triangle  (7)
+Where:
+ Ykk
+k
+kN
+kNc
+p() =+()
++()
++()
++()
+
+η
+η
+η
+η1
+2
+/midhorizellipsis
+/midhorizellipsis, φkN
+NCA
+CA
+CA
+CAc
+p=
+
+/tildenosp/tildenosp
+/tildenosp/tildenosp
+/midhorizellipsis
+/tildenosp/tildenosp
+/midhorizellipsis
+/tildenosp/tildenosp2
+, θkNN
+NNCB
+CABC B
+CA BC AB CB
+CABC ACC
+C=−−/tildenosp/tildenosp
+/tildenosp/tildenosp/tildenosp /tildenosp/tildenosp
+/midhorizellipsis/midhorizellipsis/downslopeellipsis/midhorizellipsis
+/tildenosp/tildenosp /tildenosp /midhorizellipsis
+/tildenosp/tildenosp/tildenosp/tildenosp000
+00
+12
+CC
+PP PCBC AB
+CA BC AB CA BNN NN−
+−− −−
+
+1
+11 1/tildenosp /midhorizellipsis /tildenosp/tildenosp/tildenosp
+/vertellipsis/vertellipsis /downslopeellipsis/vertellipsis
+/tildenosp/tildenosp /tildenosp/tildenosp/tildenosp /tildenosp /midhorizellipsis /tildenosp/tildenosp /tildenosp
+
+Following the discretization of the kinematic equations of the point mass model in both hori -
+zontal and vertical directions:
+ vv aT
+vv aT
+xx vT
+yy vTxk
+xk
+exk
+s
+yk
+yk
+eyk
+s
+kk
+xk
+s
+kk
+yk
+s+
++
++
++=+
+=+
+=+
+=+1
+1
+1
+1 (8)
+Where vx and vy represent the velocities of the self-vehicle in the longitudinal and transverse 
+directions, respectively. x and y denote the positions of the self-vehicle in the lateral and lon -
+gitudinal directions along the simulated road. aex and aey denote the lateral and longitudinal 
+accelerations of the self-vehicle, while Ts represents the sampling period. The velocity and 
+positions of the front and left vehicles are as follows:
+ ∆∆
+∆∆
+∆vv aa T
+vv aa T
+xxik
+xik
+xik
+exk
+s
+yik
+yik
+yik
+exk
+s
+ik+
++=+ −
+=+ −1
+1()
+()
+++
++=+
+=+1
+1∆∆
+∆∆ ∆xv T
+yy vTik
+xik
+s
+ik
+ik
+yik
+s (9)
+Where, ∆vxi and ∆vyi denote the longitudinal and transverse velocity differences between 
+the i vehicle and the self-vehicle. ∆xi and ∆yi represent the longitudinal and transverse 
+distances between the i vehicle and the self-vehicle, respectively, while axi and ayi signify the 
+accelerations of the i vehicle along the longitudinal and transverse axes.
+
+--- Page 7 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 7 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Obstacle avoidance trajectory planning
+Establishing vehicle driving conditions
+Barrier-free overtaking trajectory planning necessitates the control of autonomous vehicles 
+across varied driving conditions. Fig 3  illustrates typical real-world scenarios encountered by 
+autonomous vehicles in everyday operations. In this scenario, Car1 is positioned ahead of the 
+ego vehicle, while Car2 is in the adjacent left lane. The ego vehicle E modifies its actions—such 
+as braking and overtaking—according to the behaviors of these vehicles and the surrounding 
+conditions. The objectives of this trajectory planning include:
+1. Ensuring the vehicle travels along the centerline of the lane.
+2. Maintaining an appropriate travel speed.
+3. Adhering to physical and dynamic constraints.
+4. Avoid collisions with surrounding vehicles already at the lane boundary.
+The architecture comprises two layers: the decision-making and trajectory-planning layers. 
+The decision layer determines lane changes or braking and formulates these tasks as MPC 
+constraints. A Finite State Machine (FSM) triggers specific activation functions based on 
+constraints to execute various driving maneuvers. Throughout driving, real-time monitoring 
+of nearby road occupancy and distances between the vehicle and the front and left vehicles 
+ensures collision avoidance. Fig 1  illustrates that once the vehicle reaches a safe distance from 
+Fig 3 . Vehicle driving diagram.  The red vehicle represents the ego vehicle, the green vehicle denotes the obstacle vehicle, and the red 
+border indicates the safety zone.
+https://doi.org/10.1371/journal.pone.0320359.g003
+
+--- Page 8 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 8 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+the preceding vehicle, it evaluates the availability of the left lane. If clear, the vehicle changes 
+lanes; otherwise, it remains in its current lane. In case the front vehicle decelerates beyond a 
+safe braking distance, the vehicle initiates braking until the left lane clears, then changes lanes, 
+returning to its original lane after overtaking, contingent on conditions, thereby completing 
+obstacle avoidance and overtaking maneuvers. The overtaking trajectory follows an S-shaped 
+path that adjusts dynamically to real-time road conditions. A pre-optimized Sigmoid function 
+adjusts constraints post-sampling for optimal trajectory planning. The MPC computes appro -
+priate outputs (, ) aaex ey based on these constraints to execute optimal overtaking maneuvers. 
+This study assumes knowledge of self-vehicle speed, positions of surrounding vehicles, and a 
+straight road configuration.
+FSM-based decision-making
+The FSM ( Fig 4 ) algorithm determines braking or overtaking actions based on surrounding 
+information, adjusting vehicle speed or lane position to ensure safety by considering adjacent 
+lane usage, and the distance and speed of preceding vehicles. Depending on the scenario, it 
+generates an appropriate activation function sent to the MPC to execute the corresponding 
+driving response. The flowchart outlining this process is depicted below.
+Where δk represents the lane change activation function; the vehicle initiates a lane change 
+when δk=1. γk denotes the braking activation function; braking occurs when γk=1.This 
+activation function guides subsequent Sigmoid constraint barriers, serves as input to the MPC 
+for trajectory generation, and determines the transverse and longitudinal acceleration of the 
+autonomous vehicle.
+Pre-optimization of the sigmoid function
+The sigmoid function possesses the properties of boundedness, continuity, differentiabil -
+ity, and strict monotonicity, making it widely utilized in function-based trajectory planning 
+algorithms. In this study, the Sigmoid function serves as an overtaking barrier in trajectory 
+planning. The formulation of the Sigmoid function is given by [ 26–29]:
+ yxy
+elat
+xs()
+()=
++−−12ζ (10)
+Where ylat represents the lateral offset of the vehicle, s/2 denotes the longitudinal distance 
+required to reach the symmetric path point (/ ,/ ) sylat 22  (this point is selected on the path to 
+enhance smoothness and stability during path planning), and parameter ζ formally defines 
+the function’s curvature, where a higher value indicates sharper steering. To ensure the barrier 
+function’s safety and precision, preprocessing of the curvature parameter ( Fig 5 ) can be inte -
+grated into the MPC.
+The optimization of curvature form parameters is as follows. The formula for calculating 
+curvature is:
+ ρϕ()()
+()xdx
+dsx=  (11)
+Where:
+ dsxd xd y
+xdy
+dx() () ()
+() arctan ()=+
+=22
+ϕ 
+
+--- Page 9 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 9 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig4 . FSM flowchart.  Blue denotes the vehicle’s operational processes, while green represents the decision parameters.
+https://doi.org/10.1371/journal.pone.0320359.g004
+
+--- Page 10 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 10 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+When dx() changes minimally, it can be approximated that ds dx () ()≈  and ϕ()()
+()xdy
+dx≈ .
+In conclusion, the formula for curvature calculation can be rewritten as:
+ ρϕ()()
+()()
+()xdx
+dxdy x
+dx=≈2
+2 (12)
+After calculation, the heading angle and curvature are [ 28]:
+ ϕζζ
+ζ()
+()()
+()xye
+elatxs
+xs=
++−−
+−−2
+2 21 (13)
+ ρζζζ
+ζ()()
+()() ()
+()xye e
+elatxsxs
+xs=−
++−− −−
+−−2 22
+2 41
+1 (14)
+From the formula above, it is evident that the curvature depends on parameter ζ, allowing 
+modification of the Sigmoid constraint barrier’s shape. Various lane-changing techniques exist 
+with differing curvatures, yet adherence to physical and road safety constraints is paramount 
+in vehicle travel. Thus, constraining lane change curvature within MPC involves integrating it 
+as a set of constraints, where the curvature ρ must adhere to limits defined between minimum 
+ρmin and maximum ρmax curvatures.
+The maximum curvature is obtained at the inflection point of the Sigmoid function, specifically 
+at dx
+dxρ()
+()=0. Substituting the determined inflection point x value into ρ()x yields the maximum 
+curvature value ρmax. At this point, the curvature parameter ζ also achieves its maximum value:
+ ζργ
+γγmaxmax()
+()=+
+−1
+13
+ylat (15)
+Fig 5 . Pre-optimization flowchart.  The left side represents inputs, while the right side represents outputs. Green denotes the 
+ pre-optimization of curvature parameters, and purple indicates the MPC operational process.
+https://doi.org/10.1371/journal.pone.0320359.g005
+
+--- Page 11 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 11 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+where γ=e13170. is a constant determined through calculation ζmax. The maximum curvature 
+of the safety trajectory must satisfy vehicle dynamics constraints. Steering should not exceed 
+the maximum lateral acceleration, which is influenced by the friction between the vehicle 
+and the road surface, as well as the front wheel steering angle. Lateral acceleration depends 
+on the friction factor between the vehicle and the road surface, along with the front wheels’ 
+rotation angle. The upper limit of lateral acceleration is determined by aVyxmaxm ax =/dotnospϕ , Where 
+/dotnospϕµmax ./=085gVx determines the upper limit of yaw rate /dotnospϕ. Vx represents the longitudinal 
+velocity of the vehicle, μ denotes the friction factor between the car and the ground, and g 
+stands for gravitational acceleration. For ensuring turn stability, the maximum curvature of 
+the lane change trajectory correlates with the maximum yaw rate:
+ ρϕ
+maxmax=/dotnosp
+Vx (16)
+Unlike the maximum curvature ρmax, the minimum curvature ρmin considers geometric con -
+straints, specifically ensuring that collisions are avoided during vehicle overtaking, as detailed 
+in reference [ 29].
+ ζminlog( )
+=−−21y
+y
+sc
+c (17)
+Where yc represents the permissible error to waypoint (, ) sylat. Optimization of ζ can be 
+integrated into MPC, where [, ]minm ax ζζ  is treated as constraints in each rolling optimization, 
+thereby generating standardized overtaking trajectories.
+Cost function and constraints of trajectory planning
+Objectives 1 and 2 involve driving along the lane centerline at an appropriate speed, formu -
+lated as a cost function:
+ JX Xu
+kN
+k
+refk
+Q kN
+k
+Rp c
+=− ++
+=−
+=−
+∑∑
+01 2
+01 2
+2∆ ρε (18)
+ J
+kN
+in
+ip v
+2
+01
+12
+=
+=−
+=∑∑ ζ
+χ (19)
+Where Xy vkk
+xkT=[, ] and Xy vrefk
+refk
+refkT=[, ]. The input ∆ua axk
+ykT=[, ] represents changes in 
+the lateral and longitudinal acceleration of the vehicle. J2 represents the cost function involv -
+ing optimized slack variables, where Nc denotes the control time domain, Np signifies the 
+prediction time domain, nv=12/ indicates the number of surrounding vehicles, and χ stands 
+for the weight variable
+To ensure both driving comfort and adherence to physical conditions, the hard constraints are:
+ aa a
+aa a
+aa aexk
+ex ex
+eyk
+ey ey
+exk
+ex e∈
+∈
+∈[, ]
+[, ]
+[,minm ax
+minm ax
+min ∆∆ ∆xx
+eyk
+ey ey
+xx xaa a
+vv vmax
+minm ax
+minm ax]
+[, ]
+[, ]∆∆ ∆ ∈
+∈
+
+  (20)
+
+--- Page 12 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 12 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+The vehicle’s longitudinal and lateral velocities are coupled to a certain extent. The slip angle β 
+constrains the relationship between longitudinal and lateral velocities [ 29], expressed as:
+ β=arctanv
+vy
+x (21)
+According to the small-angle approximation theorem, the above equation can be approxi -
+mated as β=v
+vy
+x. To ensure driving safety, the vehicle’s slip angle must satisfy:
+ ββ<max (22)
+In summary, the longitudinal velocity vy can be constrained to be:
+ vv vyk
+xk
+xk∈−[, ]maxm ax ββ  (23)
+Road traveling constraints for:
+ yyLyL∈+ + [, ]minm ax22 (24)
+Where L is the width of the car, ymax and ymin are the upper and lower boundaries of the 
+road.
+Generation of sigmoid constraint barriers
+In a realistic scenario of autonomous driving, each vehicle forms a Sigmoid constraint barrier. 
+This S-type barrier function convexifies the navigable area around the ego vehicle, as illus -
+trated in Fig 6 .
+For safety reasons, the autonomous vehicle must maintain a safe distance from the pre -
+ceding vehicle and operate within a collision-free zone beyond the critical area. This depends 
+on driving conditions and the decision-making module, which can be implemented through 
+overtaking or braking maneuvers. When the ego vehicle approaches the hazardous zone of 
+Car1, if the left lane is safe, a lane change may be executed. The feasibility of lane change 
+is ensured by the S-shaped constraint barrier depicted in the figure. If the adjacent lane is 
+occupied, the autonomous vehicle enters the danger zone (marked in red), making overtak -
+ing impossible ( Fig 7 ). In such cases, it is necessary to adjust the speed and maintain a safe 
+distance from the preceding vehicle.
+The safety zone fluctuates over time and is contingent upon the state of the autonomous 
+vehicle and the velocities of nearby vehicles. The Sigmoid constraint barrier allows the auton -
+omous vehicle nearing a danger zone to maneuver into a collision-free zone. This mechanism 
+is integrated into the MPC framework and triggered by an activation signal from the decision 
+module [ 14].
+ ±≥
++−− +∆yy
+eikk
+lat
+kx Sik
+fkδ
+ζ1()/triangle (25)
+Where ylat is the lateral distance that should be retained between the self and the vehicle in 
+front, which includes the width of the vehicle, ζ denotes the pre-optimized curvature geometry 
+parameter; and Sf stands for the longitudinal safety distance of the workshop, as defined by 
+references [ 36,37]:
+
+--- Page 13 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 13 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+ Sv
+av
+avt dfx
+exi
+ix =− ++22
+022maxm ax (26)
+Where vx represents the speed of the autonomous vehicle, aemax denotes its acceleration, vxi 
+signifies the speed of the obstacle vehicle, aimax indicates the obstacle vehicle’s acceleration, t 
+denotes the reaction time for peripheral information transmission, and d0 denotes the mini -
+mum safe distance required. It should be noted that the sign of ∆yik depends on the vehicle’s 
+lane position: it is positive when the autonomous vehicle is in the right lane and intends to 
+change to the left lane, and negative when in the left lane changing to the right lane. Once in 
+the overtaking lane, the vehicle can return to its original lane after ensuring a safe distance 
+from the vehicle behind, completing the lane-change maneuver.
+The FSM parameters are obtained from the following equation
+ ∆
+∆xS M
+xS Mk
+fk
+k
+fk1
+2≥−
+≥−
+
+δ
+γ (27)
+Simplified dual neural network for rapid MPC solution
+In the rolling optimization process of MPC, the predicted output of the model can be 
+expressed analytically and used to derive the optimal control sequence through quadratic pro -
+gramming [ 38]. Setting Ek()=φξ allows for the reformulation of Equation ( 18) as:
+Fig 6 . Generate Sigmoid barrier.  The green region denotes the accessible area.
+https://doi.org/10.1371/journal.pone.0320359.g006
+
+--- Page 14 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 14 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+ Ju QR uE Qu ERETT TT T=+ ++ + ∆∆ θθ θε ρε 2 /triangle  (28)
+The optimal solution to the above equation yields:
+ ∂
+∂=+() +JQR uE QuQRi
+uTT
+i,
+∆∆∆ 22θθ θ  (29)
+Expressed in the form of a quadratic programming problem:
+ min
+.JU HU fU
+stlK UhTT=+
+≤≤1
+2
+   (30)
+where UuT=[]∆ ε, HBQT
+=+ ()
+
+2
+2BR
+ρ, fE QTT=20 θ , if li=−∞ or hi=∞  
+corresponds to a one-sided inequality constraint; if li=−∞ and hi=∞ , the corresponding 
+inequality constraint does not exist.
+Based on the duality principle, the dual problem of the above equation can be formulated as:
+ λλλλ
+λλihUHUl h
+stHU fK KT
+iT
+h
+T
+iT
+h,max
+.−+ −
++− +=1
+2
+0   (31)
+Fig 7 . Brake schematic diagram.  The ego vehicle must neither cross the safety red line nor change lanes.
+https://doi.org/10.1371/journal.pone.0320359.g007
+
+--- Page 15 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 15 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Where λλih, is the Lagrange multiplier, setting vih=−λλ  and substituting into the above 
+equation yields:
+ HU fK vT+− =0 (32)
+For the quadratic programming problem, its Karush-Kuhn-Tucker Conditions (KKT) condi -
+tions are:
+ HU cE v
+KU lv
+KU hv
+lK Uh vT
+iii
+iii
+iiii+− =
+() =>
+() =<
+≤() ≤=
+
+0
+0
+0
+0 
+The above equation can be simplified to:
+ HU fK v
+KU gKUvT+− =
+=−()
+
+0
+ (33)
+Where gz gz gz gzpT
+() = () () ()
+
+ 12 /midhorizellipsis  is a piecewise linear vector function defined as 
+follows:
+ gzilz l
+zl zh
+hz hii i
+ii ii
+ii i()=<
+≤≤
+>
+
+ (34)
+According to equation ( 33):
+ UO vp=−  (35)
+Where OH Ep HfT==−−11, .
+Based on the above, the Simplified Dual Neural Network model (SSDN) can be constructed 
+as follows:
+State Equation:
+ κd
+dKU gKUvv
+t=− +− ()  (36)
+Output equations:
+ UO vp=−  (37)
+Where v is the state variable; and κ>0 is the scaling factor that regulates the speed of conver -
+gence of the simplified dual neural network model.
+Let zK Uv=− , and bring in the state equation can be obtained:
+ κdz
+dtKOzE OI gz Kp =− +− − () ()  (38)
+Where z represents neurons, gz() denotes a nonlinear activation function and KO I− is a 
+symmetric weight coupling matrix. In this context, SSDN can be viewed as a periodic neural 
+network model.
+
+--- Page 16 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 16 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+The above is the continuous SDNN model, and the discrete SDNN model by the 
+ Runge-Kutta method is as follows:
+State Equation:
+ vvT
+kk kkil i p () () +=+ ++ + ()62212 34  (39)
+Output equations:
+ UO vpQRi=−  (40)
+Where Tp denotes the step size and the rest of the notation is as follows:
+ ftvK Ug KU v
+kf tv
+kf tT
+vii
+i p i(, )/
+,
+,=− +−()
+=()
+=+() ()
+() ()κ
+1
+22++
+
+
+=+ +
+
+() ()T
+k
+kf tT
+vT
+k
+kp
+i p i p2
+221
+32
+3,
+==+ + ()
+
+() ()ft Tv Tki
+pi
+p ,3 
+This discretized SDNN can be applied in Model Predictive Control (MPC) for rolling optimi -
+zation. Regarding the quadratic programming of J, the correspondence between the parame -
+ters of the discretized SDNN and those of the quadratic programming is as follows:
+ Uu
+KI I
+fE Q
+HBQT
+T
+TT
+T=
+=
+=
+=+ ()
+
+[]
+*/triangle 
+BRε
+θ
+ρ22
+20
+2
+2
+=− − 
+=− − 
+
+lu uk u
+hu uk uTT T
+TT Tminm in
+maxm ax()
+()1
+1/triangle
+/triangle
+ (41)
+Based on the preceding discussion, the primary metric for evaluating the solution efficiency 
+of neural networks is computational complexity, as evidenced by equations ( 29) and ( 36). 
+The number of neurons in the SDNN is directly related to the number of bilateral inequality 
+constraints, with W and E being known parameters. Consequently, solving the MPC using 
+SDNN does not require operations such as matrix decomposition or inversion. In comparison 
+to traditional solution methods, SDNN exhibits lower computational complexity, thereby 
+demanding fewer resources and delivering superior algorithmic efficiency.
+The convergence of SDNN and its relationship with the optimal solution of quadratic pro -
+gramming can be theorized by [ 38]:
+Theorem I: SDNN has stability in the sense of Lyapunov and converges globally to the 
+equilibrium point v*.
+
+--- Page 17 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 17 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Theorem II: The equilibrium output UO vp∗=∗− of SDNN is the optimal solution of 
+quadratic programming, where v∗ is the equilibrium state point of SDNN.
+The comparison of solution speeds between SDNN and traditional methods under varying 
+Np conditions is presented in Fig 8(a) . As the number of iterations increases, the perfor -
+mance gap in solution speed between conventional methods and SDNN becomes more 
+apparent. This is primarily attributed to the increased computational complexity of matrix 
+inversion and decomposition in conventional methods. The use of SDNN leads to a substan -
+tial improvement in solution speed. As shown in Fig 8(b) , compared to other variant solution 
+methods, SDNN exhibits superior speed in solving the MPC, regardless of whether the system 
+is single-input or multi-input, provided the step size remains fixed.
+Simulation analysis
+This study employs a hardware-in-the-loop (HIL) setup based on the National Instruments 
+LabVIEW RT platform to validate the effectiveness of the proposed IMPC further. The 
+IPC2 is integrated with the environment simulation software SCANeR, which facilitates the 
+driving environment. Veristand-RT invokes individual submodules, establishes connections 
+between sub-signals, and deploys the model onto the lower computer. The real-time version 
+of  CarSim-RT, provided by CarSim, operates in real-time through frequency synchroniza -
+tion with the lower computer, closely approximating actual vehicle dynamics. CarSim-RT 
+updates the vehicle’s position, speed, and acceleration, and displays HIL simulation imagery. 
+The lower computer encodes signals in CAN format for data transmission, and the Controller 
+Area Network (CAN) bus facilitates data exchange between the various platforms. This HIL 
+experiment sets the control cycle to 10 ms, with the CAN bus baud rate configured at 500 
+kbps. Vehicle parameters and driving information are provided in Tables 1  and 2.
+This study examines four distinct scenarios of dual-lane driving to demonstrate the feasi -
+bility of the proposed method, which not only achieves overtaking objectives but also satisfies 
+constraints on slip angle β and yaw rate φ to ensure lateral stability ( Fig 9 ).
+Simulation parameters are presented in the following Table 1 .
+The simulated vehicle driving environment information is presented in Table 2 .
+Driving information of the ego vehicle relative to surrounding vehicles in three driving 
+scenarios.
+1. There is a slower vehicle ahead, and a faster vehicle occupies the left lane.
+The ego vehicle travels at 30 m/s. An obstacle vehicle in the left lane travels faster than the 
+ego vehicle. The vehicle ahead moves slower than the ego vehicle, preventing safe overtaking. 
+Initially, the ego vehicle applies brakes and waits for the left lane to clear before attempting to 
+overtake. During overtaking, it first decelerates to 25 m/s without changing lanes. Once the 
+left lane is clear, the ego vehicle changes lanes, ensuring a safe distance between vehicles ahead 
+and behind. It then returns to its original lane and resumes traveling at 30 m/s, as illustrated in 
+the ego vehicle trajectory diagram ( Figs 10 , 11, 12).
+2. The preceding vehicle is obstructing, while the left lane remains vacant.
+The vehicle travels at a speed of 30 m/s. The vehicle ahead decelerates, and the left lane is 
+clear. When the vehicle approaches too closely to the preceding vehicle, it reduces its speed 
+from 30 m/s to 28.89 m/s in preparation for overtaking. Upon entering the left lane, the vehi -
+cle maintains a safe following distance before merging back into the original lane and restor -
+ing its initial speed ( Figs 13 , 14, 15).
+3. There is a slower vehicle ahead, and a slower vehicle occupies the left lane.
+
+--- Page 18 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 18 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 8 . (a) Comparison between SDNN and Traditional Methods.  The horizontal axis represents the prediction 
+horizon, while the vertical axis denotes computation time; red denotes traditional methods, and blue represents 
+SDNN. (b) Comparison of different algorithms under different inputs . The horizontal axis represents algorithm 
+type and total surrounding computation speed, with red lines indicating single input and blue lines representing 
+multiple inputs.
+https://doi.org/10.1371/journal.pone.0320359.g008
+
+--- Page 19 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 19 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Table 1 . Simulation parameters.
+Soft constraints limits
+ymmin=0 ymmax .=72 
+Vx msmin / =0 Vx msmax / =40 
+Lm=2 βmax=°10
+Hard constraints limits
+am sxmin / =− 42 am sxmax / =22 
+am symin / =− 22 am symax / =22 
+∆am sxmin ./=− 152 ∆am sxmax ./=152 
+∆am symin ./=− 052 ∆am symax ./=052 
+Safety barrier
+ymlat=36. dm=13. 
+L represents vehicle width, y denotes road constraints, ylat indicates road width, and d represents minimum 
+ inter-vehicle spacing.
+https://doi.org/10.1371/journal.pone.0320359.t001
+Table 2 . Driving environment information.
+Scenario Vx (m/s) X1 (m) X2 (m) Vx1 (m/s) Vx2 (m/s)
+1 30 20 -80 36 18
+2 30 180 – 18 –
+3 30 30 -50 10 18
+https://doi.org/10.1371/journal.pone.0320359.t002
+Fig 9 . Hardware in the loop experimental platform.  Showcasing our team’s ongoing hardware in the loop experiment process.
+https://doi.org/10.1371/journal.pone.0320359.g009
+
+--- Page 20 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 20 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+The vehicle starts off traveling at 25 m/s. Encountering slower traffic ahead, it notices a faster 
+but distant obstacle in the left lane when approaching too closely. The vehicle accelerates to  
+30 m/s to pass the slower traffic safely, then returns to its original lane, maintaining a speed  
+of 30 m/s ( Figs 16 , 17, 18).
+4. There is a slower vehicle ahead, and a faster vehicle occupies the left lane.(Wet and slippery 
+road surface on rainy days)
+The subject vehicle is traveling at a speed of 30 m/s. In the left lane, an obstacle vehicle is 
+traveling at a speed greater than that of the subject vehicle. The vehicle ahead is traveling 
+at a slower speed than the subject vehicle, preventing the subject vehicle from overtaking 
+safely. The subject vehicle first applies the brakes and waits until the left lane is clear before 
+attempting to overtake. The trajectory of the subject vehicle is depicted in the figure. 
+Fig 10 . Schematic diagram of the overtaking process.  Illustration depicting the changes in the ego vehicle’s state relative to surrounding vehicles during the overtaking 
+process.
+https://doi.org/10.1371/journal.pone.0320359.g010
+
+--- Page 21 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 21 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+During the overtaking maneuver, the subject vehicle first reduces its speed to 25 m/s and 
+refrains from changing lanes. Once the left lane is clear, the subject vehicle changes lanes. 
+After confirming a safe distance between the subject vehicle and the vehicles in front and 
+behind, the subject vehicle returns to its original lane and resumes a speed of 30 m/s. 
+Compared to normal weather conditions, controlling the subject vehicle’s speed during 
+acceleration and deceleration is more challenging, and the speed curve becomes more 
+pronounced ( Figs 19 –21).
+Conclusion
+This paper proposes a collision-free trajectory planning method integrated with a decision- 
+making process. The method utilizes an Improve Model Predictive Control framework; 
+the Sigmoid function serves as a constraint barrier for vehicle dynamics. During the 
+ decision-making process, Finite State Machine parameters dynamically enable or disable 
+constraints. Furthermore, the optimization of decision parameters and Sigmoid parameters is 
+integrated into Model Predictive Control. Finally, Discrete Simplified Dual Neural Network 
+is employed for rapid Quadratic Programming problem solution in MPC, obtaining opti -
+mal lateral and longitudinal accelerations, significantly simplifying the solving process. This 
+approach enables timely driving decisions to prevent accidents.Additionally, the proposed 
+method demonstrates adaptability and flexibility in various real-world driving scenarios. 
+Fig 11 . Diagram of driving trajectory and steering angle.  The figures sequentially depict the trajectory, heading angle, and slip angle 
+throughout the overtaking maneuver.
+https://doi.org/10.1371/journal.pone.0320359.g011
+
+--- Page 22 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 22 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Simulation results validate method effectiveness in diverse driving environments, promising 
+future real-time testing on actual vehicles.As the complexity of surrounding driving environ -
+ments increases, challenges of obstacle avoidance and overtaking escalate. To address this, 
+future work could explore priority-based algorithms in trajectory planning. Further investiga -
+tions aim to enhance system performance and robustness.
+Acknowledgment
+We would like to express our gratitude to Professor Haitao Ding for his laboratory simulation 
+work. We express our gratitude to Professor Nianna Zhang for her support. We would like to 
+extend our sincere appreciation to the editor and reviewers for their anticipated feedback and 
+valuable suggestions on this manuscript.
+Author contributions
+Conceptualization:  Zonghao Li.
+Data curation:  Kai Sun.
+Formal analysis:  Heshu Zhang.
+Fig 12 . Graph of acceleration, velocity, and angle change rate.  From top to bottom, the figures depict the images of yaw rate, veloc -
+ity, lateral acceleration, and longitudinal acceleration during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g012
+
+--- Page 23 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 23 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Funding acquisition:  Haitao Ding, Changhong Jiang.
+Investigation:  Kai Sun.
+Methodology:  Kai Sun.
+Project administration:  Niaona Zhang.
+Software:  Kai Sun.
+Validation:  Kai Sun.
+Visualization:  Kai Sun.
+Writing – original draft:  Kai Sun.
+Writing – review & editing:  Kai Sun.  
+ 
+ 
+ 
+ 
+ 
+ 
+Fig 13 . Schematic diagram of the overtaking process.  Illustration depicting the changes in the ego vehicle’s state relative to sur -
+rounding vehicles during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g013
+
+--- Page 24 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 24 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 14 . Diagram of driving trajectory and steering angle.  The figures sequentially depict the trajectory, heading angle, and slip angle 
+throughout the overtaking maneuver.
+https://doi.org/10.1371/journal.pone.0320359.g014
+
+--- Page 25 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 25 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 15 . Graph of acceleration, velocity, and angle change rate.  From top to bottom, the figures depict the images of yaw rate, veloc -
+ity, lateral acceleration, and longitudinal acceleration during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g015
+
+--- Page 26 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 26 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 16 . Schematic diagram of the overtaking process.  Illustration depicting the changes in the ego vehicle’s state relative to sur -
+rounding vehicles during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g016
+
+--- Page 27 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 27 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 17 . Diagram of driving trajectory and steering angle.  The figures sequentially depict the trajectory, heading angle, and slip angle 
+throughout the overtaking maneuver.
+https://doi.org/10.1371/journal.pone.0320359.g017
+
+--- Page 28 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 28 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 18 . Graph of acceleration, velocity, and angle change rate.  From top to bottom, the figures depict the images of yaw rate, veloc -
+ity, lateral acceleration, and longitudinal acceleration during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g018
+
+--- Page 29 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 29 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 19 . Schematic diagram of the overtaking process.  Illustration depicting the changes in the ego vehicle’s state relative to sur -
+rounding vehicles during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g019
+
+--- Page 30 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 30 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 20 . Diagram of driving trajectory and steering angle.  The figures sequentially depict the trajectory, heading angle, and slip angle 
+throughout the overtaking maneuver.
+https://doi.org/10.1371/journal.pone.0320359.g020
+
+--- Page 31 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 31 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+Fig 21 . Graph of acceleration, velocity, and angle change rate.  From top to bottom, the figures depict the images of yaw rate, veloc -
+ity, lateral acceleration, and longitudinal acceleration during the overtaking process.
+https://doi.org/10.1371/journal.pone.0320359.g021
+
+--- Page 32 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 32 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+References
+ 1. Badue C, Guidolini R, Carneiro RV, Azevedo P , Cardoso VB, Forechi A, et al. Self-driving cars: A sur -
+vey. Expert Systems with Applications. 2021;165:113816. https://doi.org/10.1016/j.eswa.2020.113816
+ 2. Eskandarian A. Advanced Methods and Algorithms for Selected Connected Autonomous Vehi -
+cles (CAVs) Benefits. IEEE Trans Intell Transport Syst. 2024;25(4):405–42. https://doi.org/10.1109/
+tits.2024.3376268
+ 3. Zhu H, Yuen K-V, Mihaylova L, Leung H. Overview of Environment Perception for Intelligent Vehicles. 
+IEEE Trans Intell Transport Syst. 2017;18(10):2584–601 . https://doi.org/10.1109/tits.2017 .2658662
+ 4. Liao Y , Yu G, Chen P , Zhou B, Li H. Integration of Decision-Making and Motion Planning for Autono -
+mous Driving Based on Double-Layer Reinforcement Learning Framework. IEEE Trans Veh Technol. 
+2024;73(3):3142–58. https://doi.org/10.1109/tvt.2023.3326548
+ 5. Li A, Jiang Y , Sun X, Chi H, Niu C, Liu G. Research Status of Intelligent Electric Vehicle Trajectory 
+Planning and Its Key Technologies: A Review. Electrochem. 2022;3(4):688–98. https://doi.org/10.3390/
+electrochem3040045
+ 6. Dixit S, Fallah S, Montanaro U, Dianati M, Stevens A, Mccullough F , et al. Trajectory planning and 
+tracking for autonomous overtaking: State-of-the-art and future prospects. Annual Reviews in Control. 
+2018;45:76–86. https://doi.org/10.1016/j.arcontrol.2018.02.001
+ 7. Nagarajan U, Kantor G, Hollis R. Integrated motion planning and control for graceful balancing 
+mobile robots. The International Journal of Robotics Research. 2013;32(9–10):1005–29. https://doi.
+org/10.1177/0278364913488011
+ 8. Yin C, Tan C, Wang C, Shen F . An Improved A-Star Path Planning Algorithm Based on Mobile Robots 
+in Medical Testing Laboratories. Sensors (Basel). 2024;24(6):1784. https://doi.org/10.3390/s24061784  
+PMID: 38544046
+ 9. Zhang W, Xu G, Song Y , Wang Y . An obstacle avoidance strategy for complex obstacles based on 
+artificial potential field method. Journal of Field Robotics. 2023;40(5):1231–44. https://doi.org/10.1002/
+rob.22183
+ 10. Dobrevski M, Sko čaj D. Dynamic Adaptive Dynamic Window Approach. IEEE Trans Robot. 
+2024;40:3068–81 . https://doi.org/10.1109/tro.2024.3400932
+ 11. Zhang R, Chai R, Chai S, Xia Y , Tsourdos A. Design and Practical Implementation of a High Efficiency 
+Two-Layer Trajectory Planning Method for AGV. IEEE Trans Ind Electron. 2024;71(2):1811–22. https://
+doi.org/10.1109/tie.2023.3250847
+ 12. Chen T, Cai Y , Chen L, Xu X. Trajectory and Velocity Planning Method of Emergency Rescue Vehicle 
+Based on Segmented Three-Dimensional Quartic Bezier Curve. IEEE Trans Intell Transport Syst. 
+2023;24(3):3461–75. https://doi.org/10.1109/tits.2022.3224785
+ 13. Fang Y , Hu J, Liu W, Shao Q, Qi J, Peng Y . Smooth and time-optimal S-curve trajectory planning for 
+automated robots and machines. Mechanism and Machine Theory. 2019;137:127–53. https://doi.
+org/10.1016/j.mechmachtheory.2019.03.019
+ 14. Ammour M, Orjuela R, Basset M. A MPC Combined Decision Making and Trajectory Planning for 
+Autonomous Vehicle Collision Avoidance. IEEE Trans Intell Transport Syst. 2022;23(12):24805–17 . 
+https://doi.org/10.1109/tits.2022.3210276
+ 15. Dixit S, Montanaro U, Dianati M, Oxtoby D, Mizutani T, Mouzakitis A, et al. Trajectory Planning for 
+Autonomous High-Speed Overtaking in Structured Environments Using Robust MPC. IEEE Trans 
+Intell Transport Syst. 2020;21(6):2310–23. https://doi.org/10.1109/tits.2019.2916354
+ 16. Guo H, Shen C, Zhang H, Chen H, Jia R. Simultaneous Trajectory Planning and Tracking Using an 
+MPC Method for Cyber-Physical Systems: A Case Study of Obstacle Avoidance for an Intelligent 
+Vehicle. IEEE Trans Ind Inf. 2018;14(9):4273–83. https://doi.org/10.1109/tii.2018.2815531
+ 1 7. Chen Y , Yu H, Zhang J, Cao D. Lane-Exchanging Driving Strategy for Autonomous Vehicle via Trajec -
+tory Prediction and Model Predictive Control. Chin J Mech Eng. 2022;35(1). https://doi.org/10.1186/
+s10033-022-00748-7
+ 18. Zuo Z, Y ang X, Li Z, Wang Y , Han Q, Wang L, et al. MPC-Based Cooperative Control Strategy of Path 
+Planning and Trajectory Tracking for Intelligent Vehicles. IEEE Trans Intell Veh. 2021;6(3):513–22. 
+https://doi.org/10.1109/tiv.2020.3045837
+ 19. Alrifaee B, Abel D, Ament C. Networked model predictive control for vehicle collision avoidance. Com -
+puter Science. 2017 . https://doi.org/10.18154/RWTH-2017-04199
+ 20. Nilsson J, Falcone P , Ali M, Sjöberg J. Receding horizon maneuver generation for automated 
+highway driving. Control Engineering Practice. 2015;41:124–33. https://doi.org/10.1016/j.
+conengprac.2015.04.006
+
+--- Page 33 ---
+PLOS One | https://doi.org/10.1371/journal.pone.0320359  June 3, 2025 33 / 33PLOS One
+Improved MPC for self-driving car trajectory planning
+ 21. Nilsson J, Ali M, Falcone P , Sjoberg J. Predictive manoeuvre generation for automated driving. 16th 
+International IEEE Conference on Intelligent Transportation Systems (ITSC 2013). 2013. https://doi.
+org/10.1109/itsc.2013.6728267
+ 22. Coskun S. Autonomous overtaking in highways: A receding horizon trajectory generator with embed -
+ded safety feature. Engineering Science and Technology, an International Journal. 2021;24(5):1049–
+58. https://doi.org/10.1016/j.jestch.2021 .02.005
+ 23. Jalalmaab M, Fidan B, Jeon S, Falcone P . Model predictive path planning with time-varying safety 
+constraints for highway autonomous driving. 2015 International Conference on Advanced Robotics 
+(ICAR). 2015:213–7 . https://doi.org/10.1109/icar.2015.7251458
+ 24. Brown M, Funke J, Erlien S, Gerdes JC. Safe driving envelopes for path tracking in autonomous vehi -
+cles. Control Engineering Practice. 2017;61:307–16. https://doi.org/10.1016/j.conengprac.2016.04.013
+ 25. Esterle K, Hart P , Bernhard J, Knoll A. Spatiotemporal Motion Planning with Combinatorial Reasoning 
+for Autonomous Driving. 2018 21st International Conference on Intelligent Transportation Systems 
+(ITSC). 2018. https://doi.org/10.1109/itsc.2018.8570003
+ 26. Malayjerdi E, Sell R, Malayjerdi M, Udal A, Bellone M. Practical path planning techniques in overtak -
+ing for autonomous shuttles. Journal of Field Robotics. 2022;39(4):410–25. https://doi.org/10.1002/
+rob.22057
+ 2 7. Huang X, Zhang W, Li P . A Path Planning Method for Vehicle Overtaking Maneuver Using Sigmoid 
+Functions. IFAC-PapersOnLine. 2019;52(8):422–7 . https://doi.org/10.1016/j.ifacol.2019.08.098
+ 28. Ammour M, Orjuela R, Basset M. Trajectory Reference Generation and Guidance Control for Autono -
+mous Vehicle Lane Change Maneuver. 2020 28th Mediterranean Conference on Control and Automa -
+tion (MED). 2020:13–8. https://doi.org/10.1109/med48518.2020.9183082
+ 29. Ben-Messaoud W, Basset M, Lauffenburger J-P , Orjuela R. Smooth Obstacle Avoidance Path 
+Planning for Autonomous Vehicles. 2018 IEEE International Conference on Vehicular Electronics and 
+Safety (ICVES). 2018:1–6. https://doi.org/10.1109/icves.2018.8519525
+ 30. Wang W, Qie T, Y ang C, Liu W, Xiang C, Huang K. An Intelligent Lane-Changing Behavior Prediction 
+and Decision-Making Strategy for an Autonomous Vehicle. IEEE Trans Ind Electron. 2022;69(3):2927–
+3 7. https://doi.org/10.1109/tie.2021 .3066943
+ 31. Zheng K, Y ang H, Liu S, Zhang K, Lei L. A Behavior Decision Method Based on Reinforcement Learn -
+ing for Autonomous Driving. IEEE Internet Things J. 2022;9(24):25386–94. https://doi.org/10.1109/
+jiot.2022.3196639
+ 32. Chen L, Hu X, Tang B, Cheng Y . Conditional DQN-Based Motion Planning With Fuzzy Logic for 
+Autonomous Driving. IEEE Trans Intell Transport Syst. 2022;23(4):2966–77 . https://doi.org/10.1109/
+tits.2020.3025671
+ 33. Nguyen HD, Choi M, Han K. Risk-informed decision-making and control strategies for autono -
+mous vehicles in emergency situations. Accid Anal Prev. 2023;193:107305. https://doi.org/10.1016/j.
+aap.2023.107305  PMID: 37741202
+ 34. Danquah B, Riedmaier S, Lienkamp M. Potential of statistical model verification, validation and uncer -
+tainty quantification in automotive vehicle dynamics simulations: a review. Vehicle System Dynamics. 
+2020;60(4):1292–321 . https://doi.org/10.1080/00423114.2020.1854317
+ 35. Chen C, Niemeier D. A mass point vehicle scrappage model. Transportation Research Part B: Meth -
+odological. 2005;39(5):401–15. https://doi.org/10.1016/j.trb.2004.06.003
+ 36. Y anfeng Cong, Sawodny O, Hong Chen, Zimmermann J, Lutz A. Motion planning for an autonomous 
+vehicle driving on motorways by using flatness properties. 2010 IEEE International Conference on 
+Control Applications. 2010:908–13. https://doi.org/10.1109/cca.2010.5611299
+ 3 7. Pan D, Zheng Y . Velocity difference control based on dynamic tracking of safe following distance in 
+the process of vehicle following. IET Intelligent Trans Sys. 2014;8(3):232–43. https://doi.org/10.1049/
+iet-its.2013.0040
+ 38. Zhang Y , Wang J. A dual neural network for convex quadratic programming subject to linear equality 
+and inequality constraints. Physics Letters A. 2002;298(4):271–8. https://doi.org/10.1016/s0375-
+9601(02)00424-3

@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
+- 文件级角色：🧰 需清洗样本
+- 代表状态机类型：Resource-flow（资源流/并发网模型）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：资源互斥
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文主体偏验证方法，但仍给出了 LDS/RBS 作为实际列车间隔控制子系统的控制对象说明与调度职责。
 
 ## 条目 1: RBS-Based Train Spacing Control
 - 控制对象：轨道交通领域的 ERTMS 列车间隔控制子系统
+- 状态机类型：Resource-flow（资源流/并发网模型）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：资源互斥
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 - 一句话说明：这是 ERTMS Level 2 中的 LDS/RBS 控制子系统，用于控制列车移动、轨旁设备、逻辑进路分配以及列车间隔安全。
@@ -27,15 +38,21 @@
 - 出处：第 5-6 页，verification abstraction, 行 156-162
 > The property is “no two different trains occupy the same track”. ... we abstract away non-RBS processes, and use an abstracted scheduler that repeatedly chooses one of the ten RBS’s, depending on a certain condition, starts its process by executing one of its functions, until some exiting condition is met.
 
+#### 摘录 D
+- 出处：第 3 页，application overview, 行 103-108
+> LDS is designed by specifying the processes controlled by the scheduler, which are then converted into executable code. In general, LDS can be thought of as a reactive system, acting along the following loop: read status from track-side units and input from the operator, run the processes through the scheduler to apply the control law of the logic, and write commands to actuators of the units.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The LDS subsystem manages train spacing in the ERTMS railway system by controlling train movements and track-side equipment such as track circuits, signals, and switches. Within this controller, a point acts as a logical switch controller and a radio block section corresponds to a logical route composed of reserved components and points. The scheduler repeatedly selects an RBS under certain conditions, executes its control process, and enforces the safety condition that no two different trains occupy the same track.
+The LDS subsystem manages train spacing in the ERTMS railway system by controlling train movements and track-side equipment such as track circuits, signals, and switches. It operates as a reactive loop that reads track-side and operator status, executes the selected logic process through the scheduler, and then writes commands back to the actuators. Within this controller, a component is a logical reservation for a line segment, a point is a logical controller for a switch, and a radio block section corresponds to a logical route composed of components and points between initial and final EOAs. The scheduler repeatedly selects an RBS under certain conditions, executes its control process until an exit condition is met, and enforces the safety property that no two different trains occupy the same track.
 
 ### 3. 逐句溯源
 
 1. 句子 1：The LDS subsystem manages train spacing in the ERTMS railway system by controlling train movements and track-side equipment such as track circuits, signals, and switches.
    对应摘录：A
-2. 句子 2：Within this controller, a point acts as a logical switch controller and a radio block section corresponds to a logical route composed of reserved components and points.
+2. 句子 2：It operates as a reactive loop that reads track-side and operator status, executes the selected logic process through the scheduler, and then writes commands back to the actuators.
+   对应摘录：D
+3. 句子 3：Within this controller, a component is a logical reservation for a line segment, a point is a logical controller for a switch, and a radio block section corresponds to a logical route composed of components and points between initial and final EOAs.
    对应摘录：B
-3. 句子 3：The scheduler repeatedly selects an RBS under certain conditions, executes its control process, and enforces the safety condition that no two different trains occupy the same track.
+4. 句子 4：The scheduler repeatedly selects an RBS under certain conditions, executes its control process until an exit condition is met, and enforces the safety property that no two different trains occupy the same track.
    对应摘录：C

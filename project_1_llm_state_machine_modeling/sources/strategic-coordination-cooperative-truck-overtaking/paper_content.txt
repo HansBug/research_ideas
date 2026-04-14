@@ -1,0 +1,598 @@
+--- Page 1 ---
+Strategic Coordination of Cooperative Truck Overtaking Maneuver s  
+Jan Cedric Mertens1a, Jürgen Hauenstein1, Frank Diermeyer1b  and Andreas Zimmermann2 
+1Institute of Automotive Technology, Technical Uni versity of Munich, Garching b., München, Germany 
+2Corporate Research, MAN Truc k & Bus SE, München, Germany  
+ 
+Keywords: V2X, Cooperation, Truck  Overtaking, Message Specifica tion, Distributed State Machine, Connected Vehicles. 
+Abstract: This paper demonstra tes how a cooperati ve truck overt aking maneuver can be coor dinated and synchronized 
+via V2X. This is relevant because the classical truck overtakin g maneuver imposes high stress on truck drivers, 
+which can lead to work absences o r accidents. We define which a bstract/atomic tasks are involved in the truck 
+overtaking maneuver and assign them to a distributed state mach ine. With the help of a V2X message we then 
+synchronize this state machine a nd exchange all information rel evant for the overtaking maneuver. The 
+simulation of 600 overtaking scenarios demonstrates that the de veloped concept is a dequate and that a 
+transmission frequency of 5 Hz o ffers the best trade-off betwee n channel load and maneuver quality. 
+1 INTRODUCTION 
+In Germany, the volume of freight transport has 
+increased since 2015 from 4,470,468 kt annually by 1.5-2 % to 4,726,810 kt in 2018. In the same period, 
+the share of the total volume transported by road 
+transport increased fro m 78.1 % to 79.2 % 
+(Statistisches Bundesamt, 2020). Of this again, about 
+90 % is transported by truck (Statista, 2020). Thus, a 
+trend toward an increasing need for transportation by truck becomes obvious. The Covid-19 pandemic has 
+also highlighted the need for and our dependence on 
+truck transportation. In March 2020, shortly before the first lockdown in Germany, fears of supply chains 
+breaking down due to the effects of the pandemic 
+were already being fanned and an extreme strain on truck drivers was predicte d (Hecking, 2020). Shortly 
+afterwards, the MAN Truck & Bus SE for instance, 
+had to stop production, partly due to supply chains breaking down (MAN Truck & Bus SE, 2020). 
+However, for the fact that despite the extreme 
+conditions the basic supply of goods in Germany 
+could be secured, Federal Minister Scheuer expressed 
+a big gratitude to all truck drivers and emphasized their importance (Bundesmi nisterium für Verkehr 
+und digitale Infrastruktur, 2020). 
+While the need for truck drivers is undisputed for 
+a sustainable supply and economy, Germany is also 
+ 
+a https://orcid.org/0000-0002-4079-2730 
+b https://orcid.org/0000-0003-1441-5226 faced with a severe driver s hortage (Schlamp, 2020). 
+In addition, existing truck drivers are under extreme stress during their working day, often caused by time 
+pressure and conflicts with other road users (Evers, 
+2010). The consequences of th ese strains are illnesses 
+(Bergrath, 2011) and accide nts (Evers, 2010) For 
+example, the recent health r eports of the insurance 
+companies show a peak of d ays-off-work per year in 
+transport and logistics occupations (approx. 30 % 
+above the average) and especi ally for vehicle drivers: 
+25 days per year, 70 % above the average (Bessel, 2020). Among the transportation professions, 27 % of 
+the days off work were caused by back pain, while 
+13 % were caused by mental illnesses categorized according to ICD-10.   
+However, stress not only leads to illness, but also 
+to risky and error-prone driving (Evers, 2010). In 2018, 61 % of accidents w ith personal injuries 
+involving trucks on highways were caused by driver 
+error (Statistisches Bundesamt, 2018). 
+Our short-term goal is therefore to relieve truck 
+drivers through a cooperative truck overtaking assistant in order to reduce lost working days and 
+accidents and to promote sus tainable truck traffic. 
+The long-term goal is to prepare trucks for cooperative autonomous driving functions.  For these 
+goals, we have already published the concept of the 
+cooperative truck overtaking with optimized starting points, velocity profiles (Mertens, Hauenstein, 
+Mertens, J., Hauenstein, J., Diermeyer, F . and Zimmermann, A.
+Strategic Coordination of Cooperative Truck Overtaking Maneuvers.
+DOI: 10.5220/0010447805130520
+InProceedings of the 7th International Conference on Vehicle Technology and Intelligent Transport Systems (VEHITS 2021) , pages 513-520
+ISBN: 978-989-758-513-5
+Copyright c/circlecopyrt2021 by SCITEPRESS – Science and Technology Publications, Lda. All rights reserved513
+
+
+--- Page 2 ---
+Diermeyer, Jahn, & Kraus, 2020) and reduced safety 
+distance (Mertens, Hauenst ein, Diermeyer, & Kraus, 
+2020).  
+This paper starts in Sectio n 2 with an overview of 
+V2X, Cooperative Truck Overtaking, and the 
+Collaborative Maneuver Protocol. In Section 3, it continues to introduce the distributed state machine 
+for the strategic planning level and specify the 
+message for coordination. The following Section 4 describes our simulation setup and present the results 
+and discussions in before ending with a conclusion in 
+Section 5.   
+2 STATE OF THE ART 
+This section, gives a briefly review of V2X and 
+analysis of trends in this field over the last 20 years. 
+Afterwards it states approaches for cooperative truck overtaking before presenting the Collaborative 
+Maneuver Protocol as a possibility for strategic 
+coordination. Afterwards a brief introduction to the project IMAGinE with the participating partners and 
+goals is given. 
+2.1 V2X 
+An important step toward autonomous road traffic is 
+connectivity and cooperat ion between vehicles 
+(Mertens, Knies, et al., 2020).  While it is still unclear 
+which technology will prevail for data exchange in the future (WLAN or cellular based (Vukadinovic et 
+al., 2018)), the standardization of the messages to be 
+transmitted is progressing s uccessfully. In Europe, 
+the Cooperative Awareness Message (CAM) (ETSI - 
+ITS, 2014a) and Decentralized Environmental 
+Notification Message (DENM) (ETSI - ITS, 2014b) have already been specified by ETSI and the first 
+vehicles such as the VW Golf 8 or the VW ID.3 are 
+sending them as part of their standard equipment via ITS-G5 (ADAC, 2020).  
+In addition to these so-called Day 1 messages, the 
+development of the Day 2 message Collective Perception Message (CPM) (ETSI, 2020) is already 
+well advanced and will enable the exchange of sensor 
+information in the future. Following on from this, the Maneuver Coordination Message (MCM) is being 
+developed for coordination and maneuver planning 
+via trajectories (CAR 2 CAR Communication 
+Consortium, 2019). 
+  
+            2.2 Cooperative Truck Overtaking 
+During truck overtaking maneuver, the safety distances between the trucks before and after the lane 
+change are often greatly undercut and conflicts arise with the car drivers because the truck blocks the 
+overtaking lane. As already mentioned in the 
+introduction, this can lead to high stress for the truck drivers and to accidents. V2X may be used also 
+between trucks to optimize the truck overtaking 
+maneuver and there are four steps (Mertens, Hauenstein, Diermeyer, Jahn, & Kraus, 2020): 
+ Find an optimized overtaking position 
+ Secure the reduced safety gap 
+ Perform a cooperative lane change 
+ Adjust the velocities during overtaking 
+ 
+While maneuver planning on a trajectory level 
+could e.g. coordinate the cooperative lane change 
+with MCM, agreeing on a certain overtaking point is a strategic decision that requires a much longer 
+planning horizon than MCM allows. Therefore, a 
+different message type is needed which is discussed 
+in this paper. 
+2.3 Collaborative Maneuver Protocol 
+Oliver Sawade et al. have developed the 
+Collaborative Maneuver Protocol (CMP) with the corresponding Collaborative Maneuver Message 
+(CMM) for the negotiation of cooperative maneuver 
+in ad-hoc networks between vehicles in 2018. The objective of the CMP is to enable robust coordination 
+under byzantine network conditions. For this purpose, 
+function-specific distributed state machines are designed in which each state assigns tasks for 
+different roles. For example, in a platooning scenario 
+the roles "leader" and "follower" could be implemented, where the follower in one of the states 
+has the task to "follow with a small distance". To 
+synchronize the vehicles in a distributed state machine, a session with all involved vehicles is 
+started and the roles are assigned. Within the session 
+each participant can start a vot e for a state transition. 
+I n  c a s e  o f  a  u n i f o r m  d e c i s i o n ,  t h e  c h o s e n  s t a t e  i s  
+transitioned and each participant takes over the task 
+assigned to its role there. To detect a 
+desynchronization or the failure of a session 
+participant, each vehicle sends a heartbeat message w i t h  t h e  h a s h  o f  t h e  c u r r e n t  s t a t e  ( S a w a d e  e t  a l . ,  
+2018).  
+The advantage of the CMP is that no specific 
+maneuver has to be planned in detail, but the 
+coordination takes place on a higher strategic and VEHITS 2021 - 7th International Conference on Vehicle Technology and Intelligent Transport Systems
+514
+
+
+--- Page 3 ---
+abstract level. This increases robustness, since, for 
+example, deviations from specific trajectories can 
+occur more quickly and then lead to an abort of the maneuver. In addition, the vehicles can be kept in a 
+synchronized state over a long period of time, which 
+makes it possible to make long-term strategic decisions together. The individual function 
+implementation of the corresponding vehicle is then 
+responsible for the implementation of the role-specific tasks. Thus, the CMP can be set on top of an 
+existing trajectory planning, which may differ from 
+vehicle to vehicle. The disadvantage is that the specific trajectories are not coordinated between the 
+vehicles, so especially in highly dynamic scenarios, 
+maneuver can be planned better on trajectory level than on a strategic level. Furthermore, although the 
+coordination and synchronization concepts are 
+generic, the distributed state machine must be developed specifically for each function and initially 
+distributed to all vehicles.   
+2.4 IMAGinE 
+The IMAGinE project (Intelligent Maneuver 
+Automation - Cooperativ e Hazard Avoidance in 
+Real-Time) addresses cooperative driving maneuver 
+in 6 different scenarios, including turning on rural roads, merging onto highways, and truck overtaking 
+(IMAGinE, 2016). The 12 consortium partners (Opel 
+Automobile GmbH, BMW AG, Mercedes-Benz AG, MAN Truck & Bus SE, Volkswagen AG, Continental 
+Teves AG & Co. ohG, Robert Bosch GmbH, IPG 
+Automotive GmbH, Nordsys GmbH, WIVW GmbH, Hessen Mobil - Straßen und Verkehrsmanagement, 
+Technische Universität München) are funded by the 
+German Federal Ministry for Economic Affairs and Energy and aim to implemen t a collective perception 
+with subsequent coopera tive maneuver planning in 
+simulation and real vehicles. Central to this is the agreement on common and uniform message 
+specifications, in particular the CPM and MCM, with 
+which important experience is being gained in the project for further specification and applications of 
+the messages. 
+In IMAGinE, the MAN Truck & Bus SE is 
+focusing in particular on the cooperative truck 
+overtaking maneuver. For this purpose, two test vehicles were equipped with advanced sensors, 
+actuators, computing units and a communication 
+module for WLAN 802.11p.  3 METHODS 
+This section describes how the strategic planning 
+layer for the cooperative truck overtaking maneuver 
+is implemented and how the distributed state machine is designed. It is also determined what information 
+needs to be exchanged and how it can be specified in 
+a message. At the end, our simulation setup as well as the experiments are described. The main purpose of 
+the experiments is to demonstrate that the cooperative 
+maneuver coordination works and to investigate what transmission frequency of the described message is 
+needed. 
+3.1 Strategic Planning 
+The truck overtaking maneuver requires a long 
+planning horizon, since the low differential speeds of 
+the trucks mean that long d istances are covered from 
+the first contact via V2X to the completion of the 
+overtaking maneuver. A truck with a constant speed of 80 km/h overtaking a 70 km/h truck travels from 
+the first contact via V2X at a communication range of 
+400 m about 3 km to the lane change into the overtaking lane and further 1.1 km to the second lane 
+change. Such a long cooperative maneuver needs to 
+be coordinated at a strategic planning level (also 
+called behaviour or tactical level) (Gu et al., 2016), 
+since the planning horizon of an MCM at a trajectory level is around 20 s, i.e. 440 m. Even though longer 
+MCMs can be constructed, it is impossible to predict 
+the position and velocity at 4 km distance accurately enough for a trajectory planni ng level. On a strategic 
+level, it is enough to coordinate: 
+ About where lane changes are to be made 
+ How long the overtaking maneuver will take  
+ What safety distances  are necessary    
+ Which type of cooperation is chosen 
+ 
+With this compact information, an unambiguous 
+overtaking maneuver can essentially be described. It is not yet important, for example, to calculate the 
+exact trajectory for the lane  change, but to formulate 
+abstract tasks that enable the execution of the overtaking maneuver. The following distributed state 
+machine summarizes these tasks. 
+3.2 Distributed State Machine 
+As described by Sawade et al., a cooperative 
+maneuver can be broken down at the strategic level 
+into abstract tasks, which are then executed in a 
+coordinated manner by the participating vehicles (Sawade et al., 2018). Ex ecution in this context can Strategic Coordination of Cooperative Truck Overtaking Maneuvers
+515
+
+
+--- Page 4 ---
+mean, for example, that the underlying trajectory 
+maneuver planning is parameterized accordingly.  For 
+the truck overtaking maneuver two roles are defined, whose tasks differ per state: the overtaker and the 
+overtaken. Passenger cars, which of course also have 
+to be considered in the truck overtaking maneuver, are not considered on the strategic level, since the 
+cooperation between passenger cars and trucks is 
+limited to the trajectory level during the first lane change. In the following, the ten states with the 
+corresponding tasks are described: 
+1. Solo (not synchronized) - No truck in the 
+surrounding area or for all trucks determined 
+that overtaking is not practical.  
+2. Initialization - Information is exchanged and an 
+attempt is made to establish the roles for 
+Overtaker and Overtaken. If the assignment is 
+successful switch to 3.  
+3. Planning - Both: The overtaking maneuver is 
+planned and described by lane change, duration, 
+safety distances and cooperation mode. If both 
+trucks agree on the same overtaking maneuver, 
+switch to 4.  
+4. Approach - Overtaken: Follow your originally 
+planned Velocity-Profile. Overtaker: Adjust 
+speed continuously so that the overtaker reaches the overtaken approximately at the time of the 
+planned lane change. If the safety distance to the 
+overtaken is ≤ 60 m change to 5. 
+5. Secure Gap (pre) - Overtaken: Transmit during 
+emergency braking, brake signals via V2X. 
+Overtaker: Reduce the safety distance secured by the V2X messages and react to possible 
+emergency braking of the overtaken. Plan the 
+cooperative lane change with the vehicles in the overtaking lane. When safety distance is 
+reached, change to 6. 
+6. Lane Change (to 2) - Overtaken: Send braking 
+signals via V2X in case of emergency braking.   
+Overtaker: Perform lane change to overtaking 
+lane and react to possible emergency braking. 
+When lane change is finished change to 7. 
+7. Pass - Overtaken: Reduce you r speed within the 
+hysteresis. Overtaker: Increase your speed 
+within the hysteresis. When safety distance is 
+reached after overtaking maneuver change to 8. 
+8. Lane Change (to 1) - Overtaken: React to 
+possible emergency braking from the overtaker. 
+Overtaker: Execute the lane change to the first lane and send brake signals via V2X in case of 
+emergency braking. When lane change is 
+finished switch to 9. 
+9. Secure Gap (post) - Overtaken: React to 
+possible emergency braking from the overtaker and accelerate again to the desired speed. 
+Overtaker: Slow down again to desired speed 
+and send brake signals via V2X in case of emergency braking. If the safety distance to the 
+overtaker is ≥ 50 m change to 10. 
+10. End - Overtaking maneuver is completed, both 
+continue at desired speed and reset all states. 
+ 
+In each state there are abort conditions, so that if 
+an overtaking maneuver is no longer useful or a 
+participant ends the cooperation prematurely, the 
+system returns to state 1. It should be noted that the state changes do not depend on an absolute condition 
+specified in state 3. For example, the transition to the 
+lane change state does not depend on an absolute position on the road, but on the relative position to the 
+overtaken. This allows that the overtaking maneuver 
+can be adapted dynamically even after the initial planning and does not have to be aborted if minor 
+deviations occur.   
+3.3 Required Information 
+As already mentioned, it is not useful to use an MCM 
+over such a long planning horizon, since for example 
+the lateral location component can be reduced to the 
+two lane changes. However, for example, it is indispensable to determine when the first possible 
+overtaking time point is, i.e. when the distance 
+between the overtaker and the overtaken has reached the safety distance. To predict this point, the current 
+positions and the upcoming velocity profiles of both 
+trucks must be known. In “Cooperative Truck Overtaking on Freeways” ( Mertens, Hauenstein, 
+D i e r m e y e r ,  J a h n ,  &  K r a u s ,  2 0 2 0 )  w e  i n v e s t i g a t e d  
+how velocity profiles can be exchanged over V2X and designed an ASN.1 speci fication that allows 7 km 
+long velocity profiles to be transmitted in a 33 Byte 
+message. The compression used resulted in an average deviation of 0.1 m/s between the original and 
+the received velo city profile.  
+Now we want to go a step further and consider 
+how the velocity profiles we re determined in the first 
+place. Most trucks today are equipped with a GPS 
+cruise control system that calculates an energy-
+efficient velocity profile depending on the topology. 
+The main factors that go into this calculation are (Passenberg et al., 2009): 
+ Road topology 
+ Position of the truck 
+ Desired speed: V
+set 
+ Hysteresis with speed variation: Hmin Hmax 
+ Weight of the truck: W 
+ Engine model: E VEHITS 2021 - 7th International Conference on Vehicle Technology and Intelligent Transport Systems
+516
+
+
+--- Page 5 ---
+ 
+Figure 1: IMAGinE Driving Strategy Message 
+specification. 
+Under the assumption that both trucks have a GPS 
+cruise control that deliver approximately the same results with the same input, it is sufficient to transmit 
+only the initial parameters for its calculation instead 
+of the complete velocity profile. Since the road topology is already available in both trucks and the 
+position is sent via the CAM, only V
+set, Hmin, Hmax, W 
+and E remain, which can be transmitted more 
+compactly than a velocity profile. This information 
+also allows us to determine the reduced safety 
+distance, which depends mainly on the weight and the velocity. In the next step, we will embed this required 
+information into a message to synchronously run 
+through the distributed state machine and plan the overtaking maneuver. 
+3.4 IDSM Message 
+In order to synchronize the vehicles in the distributed 
+state machine and exchange the required information 
+for planning the overtaking maneuver, a message 
+needs to be specified. Build ing on the CMP and the 
+CMM of Sawade et al., the IMAGinE project designed the IMAGinE Driving Strategy Message 
+(IDSM). Figure 1 shows the main elements of the 
+IDSM. Beside the header it contains the IDS which indicates via Nature which function and thus which 
+state machine is active. Furthermore, the current 
+session and an optional desired session are included. These contain in each case a state with the ID and 
+Payload of the current and the desire state. In the 
+desired state there is also a timeout, for how long can 
+be voted for it.  The last elements of the sessions are 
+the
+ participant  lists with the corresponding  IDs and   
+Figure 2: Payload for Coopera tive Truck Overtaking. 
+their roles. In the current state, each vehicle can add a 
+payload to its participant entry to share details about 
+itself. This message is thus generic in the sense that 
+arbitrary state machin es can be traversed 
+synchronously. Once a session is initiated, each 
+participant in the session can send a desired state in 
+addition to the current state. As soon as all participants send the same desired state, the system 
+switches synchronously to this state. 
+The payloads in the IDSM are defined as a byte 
+array so that specific content can be appended 
+depending on the function activated. Figure 2 shows the payload for the Cooperative Truck Overtaking 
+Maneuver and contains the information derived in 
+Section 3.1 and Section 3.3.  
+3.5 Simulation 
+To test the coordination of the cooperative overtaking m a n e u v e r  b e t w e e n  t w o  t r u c k s  w i t h  t h e  I D S M ,  w e  
+implemented a simulation environment and a 
+dashboard for visualization. The simulation of the two trucks is implemented in ROS-Kinetic (ROS, 
+2018) and ego data as well as simulated CAMs are 
+provided as ROS-topic. For each truck one instance of the Cooperative Truck Overtaking Assistant is 
+running which receives the data and provides IDSMs 
+as ROS-topic for the other truck. Except for the lane changes, the trucks always drive on lane center and 
+the speed of the trucks is directly controlled by the 
+Cooperative Truck Over taking Assistant. The 
+calculation of the speed profiles is based on the 
+already published tool "Truck Overtaking Analyser" 
+which has now been extended by the coordination 
+with the Distributed State Machine and the IDSM.  
+3.6 Experimental Setup 
+With the described simulation a series of tests with 
+two objectives has been performed. Firstly, we wanted to see whether the strategic coordination 
+concept works and whether the overtaking maneuvers 
+Strategic Coordination of Cooperative Truck Overtaking Maneuvers
+517
+
+
+--- Page 6 ---
+as planned by the "Truck O vertaking Analyzer" are 
+actually realized. On the other hand, we wanted to 
+investigate which transmission frequency is necessary to achieve this. For this purpose, 100 
+scenarios for cooperative truck overtaking maneuvers 
+with 1, 2, 3, 5, 7 and 10 Hz each were simulated while logging details like lane change positions, duration, 
+number of messages sent and time in each state. The 
+100 scenarios were set up so that all were performed in Active Cooperative mode, both trucks had a total 
+mass of 25 t, and the overtaken started 200 m ahead 
+of the overtaker. The starting position of the overtaker went in 1 km steps from 3 km to 102 km on a 116 km 
+long section of the A8 from Ulm to Munich with 
+original elevation profile. 50 % of the scenarios were to be performed with reduced safety distance and the 
+speeds were set at 20 % each as follows (Overtaker 
+[km/h] / Overtaken [km/h] / Hysteresis [±km/h]): 80/70/5, 85/75/5, 75/70/7, 80/77/7, 85/80/7. The 
+order of all overtaking maneuvers remained the same, 
+so that they differed in the six runs only by the 
+transmission frequency of the IDSM. 
+4 RESULTS AND DISCUSSON 
+The described tests were carried out at real speed and 
+no problems or failures occurred. In total, about 
+30 hours of truck driving were simulated and 600 
+overtaking maneuvers were successfully coordinated and executed. Now we need to determine which IDSM frequency provides the best trade-off between 
+message count, i.e. channel load, and coordination 
+quality. For this, it is assumed in the following that the overtaking maneuver can be coordinated best with 
+a high frequency, since queries can be exchanged 
+more frequently and the delay is low. Therefore, for our experiments, 10 Hz is selected as reference. 
+ 
+Figure 3: Mean±Sigma for overtaking duration and 
+message count at differen t IDSM Frequencies. 
+Figure 3 shows the influence of the IDSM frequency 
+on the average overtaking time and the average 
+number of messages transmitted. As the frequency increases, the number of messages increases and so 
+does the channel load. Furthe r, it is noticeable that the 
+average overtaking time differs from the reference by only 0.08 s even at 1 Hz. It is obvious, however,  
+that the standard deviation of the average overtaking  
+ 
+Figure 4: The correlation of ove rtaking duration and lane chang e position between lower IDS M Frequencies and 10 Hz.  
+VEHITS 2021 - 7th International Conference on Vehicle Technology and Intelligent Transport Systems
+518
+
+
+--- Page 7 ---
+duration increases with falling frequency. Thus, 
+deviations from the optimal overtaking maneuver 
+occur more frequently 
+Since this can have an effect on more than just the 
+overtaking duration, we also considered the position 
+of the first lane change in the next step. Figure 4 shows the correlation of the overtaking time and lane 
+change position at 1, 2, 4, 5 and 7 Hz to our 10 Hz 
+reference. While there is a strong correlation of R
+2 = 0.98 for duration and R2 = 0.99 for position for 
+5 Hz and 7 Hz, the correlation drops steadily to 
+R2 = 0.92 and R2 = 0.91 at 1 Hz. 
+We conclude that the best trade-off between 
+tuning and channel load is established at an IDSM 
+frequency of 5 Hz. However, as a kind of dynamic congestion control, the fre quency can be reduced to 
+3 Hz or 2 Hz if the current channel load requires it. 
+While the coordination with 1 Hz still worked successfully, more frequent overtaking maneuvers 
+were performed which deviated from the optimal 
+overtaking maneuver. The coordination of the 
+cooperative truck overtaking maneuver with 1 Hz 
+should therefore be avoided. This is also confirmed by our last investigation. Figure 5 shows how the 
+average time spent in each state differs from the 
+references. In particular, at 1 Hz there are large deviations that clearly stand out from those of the 
+other frequencies.   
+ 
+ 
+Figure 5: Average time spent in each state at different 
+IDSM frequencies compared to 10 Hz. 
+5 CONCLUSIONS 
+It was demonstrated that the truck overtaking 
+maneuver can be coordinated and executed 
+cooperatively at a strategic  level using a distributed 
+state machine. To synchronize the vehicles in the 
+distributed state machine, a message is required that 
+groups the participants in a session and enables coordination for a transition to a new desired state. 
+For this, the IMAGinE proj ect specified a generic 
+message on which we built and added a truck overtaking specific paylo ad. Using this message, 600 
+overtaking maneuvers at different transmission 
+frequencies were simulated, and all overtaking maneuvers were successfully planned and completed. 
+Our subsequent investigation showed that a 
+transmission frequency of 5 Hz provided the best trade-off between channel load and overtaking 
+maneuver quality.  
+Having demonstrated in “Cooperative Truck 
+Overtaking on Freeways” how a cooperative truck 
+overtaking maneuver can be optimally planned, we 
+now have the capability to coordinate this planning between two vehicles via V2X. The next step will be 
+the integration of our system into two trucks to 
+investigate the cooperative truck overtaking maneuver not only in simulation but in real field tests. 
+A resulting assistance system would have the 
+potential to relieve the truck driver and lead to a more 
+sustainable working environment and is a step 
+towards autonomous truck traffic in the long term. 
+ACKNOWLEDGEMENTS 
+Research supported by MAN Truck & Bus SE and the 
+IMAGinE project (Intelligent Maneuver Automation 
+- cooperative hazard avo idance in real-time). 
+IMAGinE is founded by the German Federal Ministry 
+for Economic Affairs and Energy (BMWi). 
+CONTRIBUTIONS 
+J.C.M. (first and corresponding author) initiated the 
+idea of the paper and contributed to the 
+conceptualization, methodology, software, 
+investigation and writing of the original draft. J.H. supported the methodology and investigation with 
+insights and discussions.  F . D .  a n d  A . Z .  m a d e  a n  
+essential contribution to the conception of the r e s e a r c h  p r o j e c t  a n d  r e v i s e d  t h e  p a p e r  c r i t i c a l l y  f o r  
+intellectual content. F.D. and A.Z. give final approval 
+for the version to be published and agree to all aspects of the work. As a guarantor, F.D. accepts 
+responsibility for the overall integrity of the paper. 
+ 
+ 
+  
+ 
+Strategic Coordination of Cooperative Truck Overtaking Maneuvers
+519
+
+
+--- Page 8 ---
+REFERENCES 
+ADAC. (2020). C2X im VW Golf 8: Erster ADAC Test . 
+https://www.adac.de/rund-ums- fahrzeug/tests/assistenz 
+systeme/c2x-im-vw-golf-8/ 
+Bergrath, J. (2011). Der Job des Lkw-Fahrers verursacht 
+Krankheiten . https://www.eurotransport.de/artikel/lkw-
+fahrer-haben-berufskrankheiten-384486.html. 
+Bessel, S. (2020). TK Gesundheitsreport 2020: 
+Arbeitsunfähigkeiten. 
+Bundesministerium für Verkehr und digitale Infrastruktur. 
+(2020). #Covid-19 Straßenverkehr . https://www.bm 
+vi.de/SharedDocs/DE/Artikel/K/Corona/strassenverke
+hr-covid-19.html. 
+CAR 2 CAR Communication Consortium (2019). 
+Guidance for day 2 and beyond roadmap. 
+ETSI. (2020). Intelligent Transport Systems (ITS); 
+Cooperative Perception Services . https://portal.etsi. 
+org/webapp/WorkProgram/Report_WorkItem.asp?wki
+_id=46541. 
+ETSI - ITS (2014a). Basic Set  of Applications; Part 2: 
+Specification of Cooperative Awareness Basi c Service. 
+EN 302 637-2 - V1.3.1 - Inte lligent Trans port Systems 
+(ITS); Vehicular Communications; (ETSI-CAM-14). 
+ETSI - ITS (2014b). Basic Set of Applications; Part 3: 
+Specifications of Decentralized Environmental 
+Notification Basic Service. EN 302 637-3 - V1.2.1 - 
+Intelligent Transport Systems (ITS); Vehicular 
+Communications; (ETSI-DENM-14). 
+Evers, C. (2010). Auswirkungen von Belastungen und 
+Stress auf das Verkehrsverhalten von Lkw-Fahrern. 
+Bundesanstalt Für Straßenwesen - Forschung Kompakt . 
+Gu, T., Dolan, J. M., & Lee, J.‑W. (Eds.) (2016, October). 
+Automated Tactical Maneuver Discovery, Reasoning 
+and Trajectory Planning for Autonomous Driving . IEEE. 
+Hecking, C. (2020). Industrie-Lieferket ten unter Druck. 
+Spiegel. https://www.spiegel.de/wirtschaft/unterneh 
+men/covid-19-lieferketten-in-gefahr-a-d0735376-540a-
+4b25-b876-8a14d7470f17. 
+IMAGinE. (2016). Solutions for Cooperative Driving . 
+https://imagine-online.de. 
+MAN Truck & Bus SE. (2020, March 19). Corona-
+Entwicklung: MAN Truck & Bus stoppt die Produktion . 
+https://press.mantruckandbus.com/corona-
+entwicklung-man-truck--bus-stoppt-die-produktion/ 
+Mertens, J. C., Hauenstein, J [Jurgen], Diermeyer, F., 
+Jahn, L., & Kraus, S. (2020). Cooperative Truck 
+Overtaking on Freeways. Fifteenth International 
+Conference on Ecological Vehicles and Renewable 
+Energies (EVER) , 1–15. https://doi.org/10.1109/ 
+EVER48776.2020.9243145. 
+Mertens, J. C., Hauenstein, J [Jürgen], Diermeyer, F., & 
+Kraus, S. (2020). Reduced Safety Distance during 
+Cooperative Truck Overtaking. Fifteenth International 
+Conf. on Ecological Vehicles and Renewable Energies 
+(EVER) . 
+Mertens, J. C., Knies, C., Diermeyer, F., Escherle, S., & 
+Kraus, S. (2020). The Need for Cooperative Automated 
+Driving. Electronics , 9(5), 754. https://doi.org/10. 
+3390/electronics9050754. Passenberg, B., Kock, P., & Stursberg, O. (2009). 
+Combined time and fuel optimal driving of trucks based 
+on a hybrid model. European Control Conference 
+(ECC). Advance online publication. https://doi 
+.org/10.23919/ECC.2009.7075185. 
+ROS. (2018). Kinetic Kame . www.wiki.ros.org/kinetic. 
+Sawade, O., Schul ze, M., & Radusch, I. (2018). Robust 
+Communication for Cooperative Driving Maneuvers. 
+IEEE Intelligent Transportation Systems Magazine , 
+10(3), 159–169. https://doi.org/10.1109/MITS. 
+2018.2842241. 
+Schlamp, C. (2020, March 18). LKW Fahrermangel: 
+Tausende LKW Fahrer fehlen .: Sind Arbeitskräfte aus 
+Nicht-EU-Ländern die Lösung? Lkw-Fahrer-Gesucht. 
+https://lkw-fahrer-gesucht.c om/fernfahrer-magazin/32/ 
+lkw-fahrermangel-was-tun.html. 
+Statista. (2020). Anteil der Lkw an der Transportleistung im 
+Güterverkehr in Deutschland in den Jahren von 2013 
+bis 2023: Verkehr & Logistik - Fahrzeuge & 
+Straßenverkehr . https://de.statista.com/statistik/daten 
+/studie/12195/umfrage/ante il-der-lkw-am-gueterverke 
+hr-in-deutschland/ 
+Statistisches Bundesamt (2018). Verkehrsunfälle - Unfälle 
+von Güterkraftfahrzeugen im Straßenverkehr. 
+Statistisches Bundesamt. (2020). Beförderungsmenge und 
+Beförderungsleistung nach Verkehrsträgern: 
+Güterverkehr . https://www.destatis.de/DE/Themen/Bra 
+nchen-Unternehmen/Transport-Verkehr/Gueterverkehr/ 
+Tabellen/gueterbefoerderung-lr.html. 
+Vukadinovic, V., Bakowski, K., Marsch, P., Garcia, I. D., 
+Xu, H., Sybis, M., Sroka, P., Wesolowski, K., Lister, 
+D., & Thibault, I. (2018). 3GPP C-V2X and IEEE 
+802.11p for Vehicle-to-Vehicle communications in 
+highway platooning scenarios. Ad Hoc Networks , 74, 
+17–29. https://doi.org/10.1016/j.adhoc.2018.03.004.  VEHITS 2021 - 7th International Conference on Vehicle Technology and Intelligent Transport Systems
+520
+

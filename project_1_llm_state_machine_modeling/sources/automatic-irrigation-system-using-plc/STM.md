@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
+- 文件级角色：🧰 需清洗样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T0（无关键时间语义）
+- 结构标签概况：-（无代表标签）
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文在摘要里明确写出了湿度阈值、分区阀门和 PLC 反馈控制关系，但正文提取质量一般，适合作为简洁阈值控制样本。
 
 ## 条目 1: Humidity-Regulated Irrigation Valve Control
 - 控制对象：PLC 滴灌系统的土壤湿度与阀门控制逻辑
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：-（无额外结构标签）
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 - 一句话说明：这是农业环境控制领域的 PLC 灌溉控制器，用于根据田间湿度的最小/最大阈值控制各分区阀门并维持土壤含水水平。
@@ -21,7 +32,7 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-The PLC-based drip-irrigation controller uses field-humidity sensing as the primary condition for watering different plants. Separate valves are assigned to the fields, and these valves are controlled by the PLC according to minimum and maximum humidity conditions. Through feedback control, the system maintains the soil-moisture level at the required value instead of relying on manual flooding irrigation.
+The PLC-based drip-irrigation controller uses field-humidity sensing as the primary condition for watering different plants. Each field is equipped with a separate valve, and the PLC drives these valves according to minimum and maximum humidity thresholds reported by the sensors. Through this feedback loop, the controller maintains the soil-moisture percentage at the required value instead of relying on manual flooding irrigation.
 
 ### 3. 逐句溯源
 

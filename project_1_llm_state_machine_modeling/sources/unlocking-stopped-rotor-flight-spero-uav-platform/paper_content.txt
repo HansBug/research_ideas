@@ -1,0 +1,1197 @@
+--- Page 1 ---
+1
+Unlocking Stopped-Rotor Flight: Development and Validation of
+SPERO, a Novel UA V Platform
+Kristan Hilby and Ian Hunter
+Abstract—Stop-rotor aircraft have long been proposed as the
+ideal vertical takeoff and landing (VTOL) aircraft for missions
+with equal time spent in both flight regimes, such as agricultural
+monitoring, search and rescue, and last-mile delivery. Featuring
+a central lifting surface that rotates in VTOL to generate vertical
+thrust and locks in forward flight to generate passive lift, the stop-
+rotor offers the potential for high efficiency across both modes.
+However, practical implementation has remained infeasible due
+to aerodynamic and stability conflicts between flight modes. In
+this work, we present SPERO (Stopped-Penta Rotor), a stop-rotor
+uncrewed aerial vehicle (UA V) featuring a flipping and latching
+wing, an active center of pressure mechanism, thrust vectored
+counterbalances, a five-rotor architecture, and an eleven-state
+machine flight controller coordinating geometric and controller
+reconfiguration. Furthermore, SPERO establishes a generalizable
+design and control framework for stopped-rotor UA Vs. Together,
+these innovations overcome longstanding challenges in stop-rotor
+flight and enable the first stable, bidirectional transition between
+VTOL and forward flight.
+I. INTRODUCTION
+VERTICAL take-off and landing (VTOL) uncrewed aerial
+vehicles (UA Vs) have enabled the presence of aerial
+robotics in remote and undeveloped environments, performing
+tasks often deemed too dangerous or mundane for humans
+[1]–[3] through enhanced safety, versatility, and agility [4].
+Existing VTOL configurations–including multi-rotors [5], [6],
+tiltrotor [7]–[12], tiltwing [13]–[17], and tailsitter [18]–[22]–
+are effective but often compromise efficiency in hover or
+forward flight [23]–[25]. As missions evolve from short point-
+to-point flights toward complex, long-duration operations, ef-
+ficiency across both regimes becomes critical [26].
+One proposed configuration to address this trade-off is the
+stop-rotor aircraft, which employs a central lifting surface that
+rotates to provide vertical thrust in VTOL and locks in place
+to act as a fixed wing in forward flight. This dual function-
+ality offers potential for greater speed, range, and payload
+capacity than conventional VTOL UA Vs. However, despite
+significant research on stop-rotor concepts [27]–[52], to the
+best of our knowledge, experimental demonstration of stable
+and reversible bidirectional transitions remains unreported.
+Stable stopped-rotor flight faces challenges across four
+domains. First, aerodynamic requirements across the wings
+changes as a function of flight mode [53], [54]. Second,
+the geometric relationship between center of pressure (CoP)
+and center of gravity to ensure aerodynamic stability changes
+across flight modes. Third, the additional forces needed for
+stability and operation across flight modes differs. Finally, the
+rotor experiences a temporary loss of lift during transition,
+complicating altitude control.
+Fig. 1. SPERO, a novel stopped-rotor UA V capable of stable bidirectional
+transition flight enabled by the highlighted aerodynamic and control features.
+This work presents SPERO, a stopped-penta rotor UA V
+capable of stable bidirectional flight, shown in Fig. 1. SPERO
+integrates a flipping wing enabled by separated rotor and body
+avionics to manage airfoil directionality, an active center of
+pressure control mechanism for stability across flight regimes,
+and a quadcopter-based architecture to mitigate temporary
+loss of lift. Further, insights derived from theoretical stability
+analysis and the development of a mode-dependent state-
+machine controller to coordinate transitions. Building upon
+theoretical stability analysis, we further develop a mode-
+dependent state-machine control strategy that coordinates these
+features to enable smooth and robust transitions between flight
+modes. We contribute a comprehensive design and control
+methodology for stop-rotor UA Vs, bridging aerodynamic re-
+quirements, vehicle geometry, and controller synthesis into
+a cohesive framework. We validate the proposed approach
+through hardware implementation and real-world flight testing,
+demonstrating SPERO’s ability to achieve stable and reversible
+bidirectional transitions.
+The present work establishes the foundational design
+methodology, modeling framework, and control architecture
+for stopped-rotor UA Vs, upon which subsequent validation and
+model refinement efforts are built. These key contributions are
+summarized as follows:
+1) A unified design methodology that establishes the aero-
+dynamic, geometric, and control requirements necessary
+for achieving stable operation of stop-rotor UA Vs.
+2) A mode-dependent control framework that integratesarXiv:2509.07812v1  [cs.RO]  9 Sep 2025
+
+--- Page 2 ---
+2
+state-machine logic with stability-driven control strate-
+gies to manage transitions across flight regimes.
+3) The first experimental demonstration of stable, re-
+versible, and bidirectional transitions in a stop-rotor
+UA V , validated through real-world flight testing.
+II. FEASIBILITYCONDITIONS FORSTOP-ROTORFLIGHT
+Achieving stable and efficient flight across VTOL, forward
+flight, and transition regimes imposes a set of conflicting aero-
+dynamic, geometric, and control constraints for stop-rotor air-
+craft. These constraints, summarized in Fig. 2, fundamentally
+shape the design of lifting surfaces, vehicle layout, and control
+architectures, and directly motivate the key design features
+implemented in SPERO. Through this work, we refer to the
+set of conflicting requirements as feasibility conditions (FCs),
+as they are necessary for the vehicle to operate effectively
+across VTOL, forward flight, and transitions.
+A. Aerodynamic Requirements (FC1)
+Efficient operation in VTOL and forward flight requires dif-
+ferent wing configurations optimized for distinct aerodynamic
+objectives. In VTOL, wings with moderate twist balance the
+lift distribution and symmetric airfoils with the leading edges
+on opposite sides of the wing ensure equal thrust across the
+wing is generated during hover (Fig. 2a).
+Conversely, in forward flight, the aerodynamic efficiency
+(i.e., the ratio between lift and drag) dominates: wings with
+cambered airfoils, moderate taper, and leading edges aligned
+on the same side of the wing are preferred (Fig. 2b). While
+camber, taper, and twist influence the optimal wing design, this
+work focuses exclusively on airfoil directionality requirements,
+leaving broader aerodynamic optimization to future studies.B. Geometric Layout for Stability (FC2)
+Differences in force generation across flight modes impose
+unique geometric constraints on the vehicle layout to ensure
+stability. In VTOL, the rotating wing introduces two key
+considerations. First, because the wing spins about the yaw
+axis, the vehicle must maintain sufficient yaw control authority
+to stabilize heading. Second, misalignment between the axis of
+rotation of the wing and the vehicle’s center of gravity possibly
+introduces unwanted gyroscopic precession. To mitigate these
+effects, the rotational axis of the wing and any additional
+counter-yaw torque should be coaxially aligned with the center
+of gravity, as illustrated in Fig. 2c.
+By contrast, in forward flight, pitch stability is the primary
+consideration as constant lift and drag forces can generate
+moments about the center of gravity of the vehicle. For passive
+pitch stability, it is desirable for the center of pressure to
+be aft the center of gravity (Fig. 2d), such that aerodynamic
+disturbances induce a restoring moment.
+C. Auxiliary Forces (FC3)
+Across flight modes, different control forces are needed
+to ensure stable operation. In VTOL, as briefly discussed
+in Section II-B, a counter-torque is needed on the body to
+compensate for rotor acceleration and drag. This additional
+control torque is depicted asτ CBin Fig. 2c.
+In forward flight, a thrust in thexdirection is needed to
+accelerate the vehicle to trim speed in transition, as well as
+compensate for drag and maintain vehicle speed once trimmed
+conditions are met. This additional forward thrust is denoted
+as CB thrust in Fig. 2d.
+Fig. 2. Overview of aerodynamic and geometric requirements across flight modes. (a) In VTOL, the preferred airfoil orientation places the leading edges
+on opposite sides of the wing (orange lines) to ensure balanced thrust during hover. (b) In forward flight, the leading edges are aligned on the same side to
+maximize lift and minimize drag. (c) During VTOL, gyroscopic effects are minimized by aligning the axis of rotation (i.e., effective wing center of pressure)
+with the geometric center of counterbalance torque (τ CB). (d) In forward flight, placing the center of pressure aft of the center of gravity promotes passive
+pitch stability by generating a restoring moment under aerodynamic disturbances.
+
+--- Page 3 ---
+3
+D. Lift Continuity (FC4)
+The working principle of stop-rotor UA Vs relies on a single
+lifting surface operating in two distinct modes: In VTOL, lift
+is generated through rotor-induced circulation, whereas in for-
+ward flight, lift arises from the vehicle’s translational motion.
+Because the lift generated by the wing scales with the square
+of effective airspeed (L∝v2), transition periods inherently
+produce a temporary loss of lift as the flow conditions change.
+During VTOL to forward flight (i.e., forward transition),
+the rotor decelerates and eventually locks to function as a
+fixed wing. As the rotor slows, the relative airspeed across
+the wing diminishes, causing the lift contribution to reduce to
+zero. Similarly, during forward flight to VTOL (i.e., backward
+transition), the freestream velocity diminishes and the wing
+again produces negligible lift.
+In both cases, the temporary loss of wing lift removes
+altitude control authority and can destabilize the vehicle unless
+special consideration is taken.
+III. KEYDESIGNFEATURES
+In light of the requirements outlined in Section II, we
+propose SPERO (Fig. 1), a 2.7 kg stopped-penta rotor UA V ,
+featuring five key design features (DFs) that collectively ad-
+dress the identified challenges: (DF1) a flipping and precision
+latching wing mechanism to dynamically reorient the airfoil
+direction across flight modes and secure the wing in forward
+flight; (DF2) an active center of pressure positioning mecha-
+nism to manage the differing geometric stability requirements;
+(DF3) a quadcopter platform to maintain altitude control
+during transitions; (DF4) thrust-vectored counterbalances to
+provide yaw and thrust authority in VTOL and forward flight,TABLE I
+MAPPINGBETWEENFEASIBILITYCONDITIONS(FC)ANDKEYDESIGN
+FEATURES(DF)
+DF1 DF2 DF3 DF4 DF5
+(§III-A) (§III-B) (§III-C) (§III-D) (§III-E)
+FC1(§II-A)✓◦
+FC2(§II-B)✓◦
+FC3(§II-C)✓◦ ◦
+FC4(§II-D)◦✓◦
+Legend:✓= primary contribution (directly addresses the requirement);
+◦= secondary contribution (indirectly supports the requirement, but
+is not the main enabler; § = Section.
+respectively; and (DF5) a distributed avionics architecture,
+comprising independent top-rotor and main body systems that
+coordinates the actuation and control of the preceding design
+features while also managing flight control integration, com-
+munication, and telemetry. The mapping between feasibility
+conditions and design features are summarized in Table I.
+The mechanical implementation of DF1 – DF4 is provided
+in Fig. 3, while Fig. 4 summarizes the possible vehicle config-
+urations resulting from these features. The configuration labels
+defined in Fig. 4 are used consistently in subsequent sections.
+The avionics relating to DF5 are summarized in Fig. 5.
+Table II summarizes the relevant design parameters, including
+key dimensions, mass properties, and transition properties.
+Finally, all design files, including CAD models, 3D-printable
+files, machining drawings, and an interactive 3D viewer, are
+available online [55]. The following sections examine each
+design feature in detail, discussing the relation to feasibility
+conditions and mechanical design.
+Fig. 3. Implementation of SPERO’s key features. (a) Flipping wing mechanism driven by a servo and supported by a mount and plate. (b) Wing latching
+system comprising a spring-loaded latch pin, cotter pin, and bumper that secure the wing in the forward-flight configuration; the blue arrow illustrates the
+bumper trajectory during flipping. (c) Active center of pressure mechanism, where a linear servo drives a carriage along a rail to reposition the main rotor
+relative to the vehicle body, enabling passive stability across flight modes. (d) Counterbalance system with a servo-actuated shaft and coupling, providing
+adjustable control forces to accommodate the differing requirements of VTOL and forward flight. All components are indexed in the accompanying table.
+
+--- Page 4 ---
+4
+TABLE II
+PHYSICALPARAMETERS FORSPERO. SUMMARY OF THE KEY
+DIMENSIONS,MASS PROPERTIES,AND PERFORMANCE VALUES FOR
+SPERO. COPREFERS TO THE CENTER OF PRESSURE,ANDCGREFERS TO
+THE CENTER OF GRAVITY. *REFERENCEAPPENDIXAFOR CALCULATION
+Parameter Value Unit
+Dimensions
+Body bounding box length (l) 0.665 m
+Body bounding box width (w) 0.619 m
+Body bounding box height (h) 0.350 m
+Central rotor diameter 0.588 m
+Single wing span 0.250 m
+Quadrotor and counterbalance diameter 0.127 m
+Mass Properties
+Total mass 2.727 kg
+Single wing mass 0.168 kg
+Single counterbalance mass 0.086 kg
+Wing flip hardware mass 0.145 kg
+Passive wing latch hardware mass 0.011 kg
+Active center of pressure mass 0.350 kg
+Main battery mass 0.460 kg
+Top rotor battery mass 0.040 kg
+Transition Properties
+Measured forward transition time 4.2 s
+Measured backward transition time 3.8 s
+Wing flip angle 190 deg
+Maximum forward flight CoP to CG distance* 0.03 m
+A. Flipping and latching wing ensures ideal aerodynamic
+configuration (DF1)
+As outlined in Sec. II-A, achieving stable and efficient flight
+requires the airfoil direction of the wings to adapt between
+VTOL and forward flight to satisfy distinct aerodynamic
+requirements. Prior work has explored reversible morphing
+wings to achieve this adaptation [53], [54], [56]–[58], but these
+solutions are often mechanically complex and poorly suited for
+lightweight UA V platforms.
+SPERO addresses this challenge with a servo-driven flipping
+mechanism. As shown in Fig. 3a, one of the wings is mounted
+to a servomotor through a series of support brackets, allowing
+the wing to rotate about the axis along the span. By actuating
+the servo, the wing transitions between theSameandOpposite
+configurations viaFlip to sameandFlip to oppositetransi-tions, as summarized in Fig. 4a. The wing uses a symmetric
+NACA 0012 airfoil to ensure the same wing performance
+across rotations.
+To complement the flipping mechanism, a passive latching
+system (Fig. 3b) secures the wing in its forward-flight ori-
+entation, eliminating oscillations and ensuring rigidity under
+aerodynamic loads. The latch consists of a spring-loaded pin,
+bumper, catch, and cotter pin, engaging automatically as the
+wing rotates into position. During the reverse transition back
+to VTOL, the spring retracts the pin, releasing the wing and
+allowing the rotor to spin freely.
+B. Active center of pressure provides passive and dynamic
+stability (DF2)
+To satisfy the varying center of pressure alignment require-
+ments described in Sec. II-B, SPERO employs an active center
+of pressure positioning mechanism, illustrated in Fig. 3c. The
+main rotor and wing assembly are mounted on a carriage that
+translates along a linear rail by a servo, effectively shifting the
+center of pressure during actuation.
+During flight, this mechanism allows SPERO to position the
+center of pressure in theForwardandAftorientations viaShift
+forwardandShift afttransitions, as summarized in Fig. 4b.
+C. Thrust vectored counterbalances ensure adequate control
+authority without design overhead (DF3)
+To meet the varying control force requirements described
+in Section II-C, SPERO employs a thrust-vectored counter-
+balance assembly on each side of the vehicle, shown in Fig.
+3d. Each assembly consists of a brushless motor mounted to a
+carbon fiber rod via a custom adapter. The carbon fiber rod is
+rotated by a servo motor to alter the direction of thrust from
+the brushless motor. This mechanism primarily satisfies the
+auxiliary force requirement (FC3) by actively controlling the
+direction of the forces introduced by the attached brushless
+motors.
+In VTOL and rotor acceleration, the counterbalances are
+oriented in opposite directions to produce a net torqueτ CBon
+Fig. 4. Overview of the geometric transformations undergone by SPERO during bidirectional flight. Color coding is consistent across panels: VTOL
+configurations, forward transition configurations, backward transition configurations, and forward flight configurations are depicted in green, orange, blue, and
+yellow, respectively. (a) Wing direction configurations, showing the leading edges oriented on opposite sides during VTOL flight and aligned on the same side
+during forward flight. (b) Center of pressure configurations used to adjust the vehicle’s mass distribution. (c) Counterbalance (CB) directions used to adjust
+net forces on the vehicle. R1 – R3 denote transitions between discrete “-z”, “+z”, and “forward” configurations.
+
+--- Page 5 ---
+5
+Fig. 5. Avionics architecture of SPERO, showing the power (red), computation (yellow), communication (gray), and actuation (blue) components. Power
+signals are indicated by red lines, with solid, dashed, and dot-dashed styles corresponding to 22.2 V , 7.4 V , and 5 V , respectively. Communication signals
+are shown in blue, where solid, dot-dashed, and dashed lines represent serial, PWM, and three-phase AC sinusoidal signals, respectively. The positions of
+the actuation components are overlaid on SPERO, with indicesB,S, andQdenoting brushless motors, servo motors, and quadcopter motors, respectively.
+Elements above the dashed black line belong to the top-rotor avionics, while those below belong to the main body avionics.
+the vehicle, corresponding to the-z Oppositeconfiguration in
+Fig. 4c. During rotor deceleration, the counterbalances remain
+arranged in opposite directions, but the torque direction is
+reversed by changing the direction of both counterbalances.
+This configuration is referred to as the+z Oppositeorientation
+shown in Fig. 4c. Finally, in forward flight, both counterbal-
+ances are aligned forward, producing thrust for acceleration
+and cruise, denoted as theForwardconfiguration in Fig. 4c.
+The transitions between these three configurations are denoted
+R1,R2, andR3in Fig. 4c.
+Beyond their primary role of generating the necessary force
+and torque for stable operation, the counterbalances can alsoprovide a secondary lift contribution during transitions. By
+orienting the counterbalances in intermediate angles between
+-z oppositeand+z oppositeconfigurations, the counterbal-
+ances augment lift during transition phases. This incidental
+contribution enhances lift continuity (FC4) but does not drive
+the mechanism’s design, making it a secondary effect rather
+than a primary requirement.
+D. Quadcopter architecture ensures stable altitude control
+through temporary loss of lift (DF4)
+The temporary loss of lift (FC4) outlined in Section II-D
+is primarily addressed through the integration of a quadcopter
+
+--- Page 6 ---
+6
+architecture into the base of the vehicle, as annotated in Fig.
+1. Four brushless motors are mounted directly to the base
+plate of the vehicle, providing supplemental thrust when the
+lift generated by the main rotor decreases. During transitions,
+the quadcopter motors gradually increase thrust to support the
+vehicle’s weight, ensuring continuous lift and satisfying the
+primary requirement for lift continuity (FC4).
+Beyond the primary contribution, the quadcopter motors
+also provide a secondary contribution to auxiliary force needs
+(FC3). In VTOL and rotor acceleration, the quadcopter motors
+introduce a small moment to assist the vehicle in yaw stabi-
+lization. Similarly, as the vehicle is accelerating to reach trim
+speed in forward flight, the quadcopter motors contribute a
+vertical force. This effect is considered secondary because the
+quadcopter’s contributions are limited to minor adjustments,
+rather than increasing overall control authority.
+E. Distributed avionics architecture enables mechanism actu-
+ation and flight control (DF5)
+SPERO employs the distributed avionics architecture shown
+in Fig. 5. Unlike the other key design features (DF1 – DF4),
+the avionics system (DF5) does not directly address any single
+fundamental necessity (FC1 – FC4); instead, the avionics
+system, and specifically the distributed nature, enables the
+function of the other design features through power, compu-
+tation, communication, and actuation modules.
+Power modules regulate and distribute energy between
+SPERO’s components. Computation modules perform state
+estimation and control allocation to drive the various compo-
+nents on SPERO. Communication modules relay data between
+the vehicle and a ground station. Finally, actuation modules
+contain the actuators of the vehicle that realizes DF1 – DF4,
+shown in the inset image of Fig. 5. All avionics components
+are available off the shelf.
+1) Top-rotor avionics enable the flipping wing (DF1):The
+flipping wing mechanism (DF1) requires a dedicated set of
+electronics that are mounted on the rotating top-rotor assembly,
+shown above the dotted line in Fig. 5. Because of the relatively
+high rotor speeds (>80 rad/s) and low vehicle weight (<3
+kg), conventional slip-ring power transmission is impractical.
+Instead, a self-constrained top-rotor avionics package manages
+the wing flipping separate from the main body avionics.
+Commands from a ground pilot are received by an RX
+module and converted into the appropriate rescaled pulse width
+modulated (PWM) signal to match the full servo range with
+a Seeed RP2040. The entire top-rotor avionics package is
+powered by a two-cell 2.96 Wh (400 mAh) battery via a 5V
+regulator. The relevant code for the Seeed RP2040 is available
+online [59].
+2) Main body avionics enable stop-rotor processes, DF2 –
+DF4 functionality, and general UAV operations:The main
+body avionics of SPERO, shown below the dotted line in
+Fig. 5, manages three responsibilities: 1) Enable stop-rotor
+processes, such as the main rotor integration and control, 2)
+coordination of DF2 – DF4 functionality through the linear
+servo for active center of pressure positioning (DF2), the
+servos and brushless motors for the counterbalances (DF3),and the quadcopter system for lift continuity (DF4), and 3)
+executing general UA V operations such as flight control, state
+estimation, and communication.
+Computation is split between two Pixhawk 6X flight con-
+trollers. The first executes a custom stop-rotor control stack,
+managing the main motor, linear servo, and counterbalances,
+while the second runs the standard PX4 VTOL controller
+for quadcopter transitions. The separation of control loops
+enables decentralized coordination between the stop-rotor and
+quadcopter subsystems for improved robustness during testing.
+State estimation is provided via a Raspberry Pi 4 integrating
+motion-capture feedback. The custom PX4 build for the first
+Pixhawk is available online [55]. Communication with the
+ground station is handled via a telemetry radio for state
+streaming and an RX receiver for pilot commands.
+IV. SIMPLIFIEDDYNAMICS, STABILITY
+CHARACTERIZATION,ANDCONTROLINSIGHT
+Building on the design insights established in the preceding
+sections, this section develops a simplified analytical model
+of SPERO’s dynamics to characterize operational constraints
+and inform controller synthesis. We focus on yaw and altitude
+degrees of freedom, as these are most directly influenced by
+the rotor aerodynamics and inertia compared to roll and pitch.
+Specifically, we first derive simplified expressions for the
+yaw and altitude of the vehicle. Next, we develop a control
+policy informed by the derived dynamics to ensure stability.
+The stability of two closed-loop controllers are evaluated and
+the performance is compared. The section is concluded with
+a summary of the insights derived from the various analyses.
+All constants and variables used in this section are defined in
+the text and summarized in Table III.
+A. Simplified Vehicle Dynamics
+To derive tractable models suitable for supporting controller
+design and stability analyses, we develop simplified models
+of SPERO by applying Newton’s second law to a simplified
+representation of SPERO, shown in Fig. 6. We aim to capture
+the dominant effects of rotor-driven dynamics while neglecting
+higher-order effects. Specifically, we model the yaw and
+altitude dynamics as these degrees of freedom are identified to
+be the most strongly coupled to rotor aerodynamics and inertia.
+Roll and pitch dynamics are ignored as they are decoupled
+from rotor effects in an ideal system and can be stabilized
+using well-studied quadcopter control methods. As such, the
+goal is not to capture the full six degree of freedom vehicle
+dynamics, but to derive tractable analytical models that provide
+insight into the stability and control across key flight regimes.
+1) Modeling assumptions:As the aim is to identify the
+key influence of rotor dynamics, the following assumptions
+are made:
+•Operational scope: The analysis focus on VTOL and
+rotor spin up and down during transition as the yaw
+and altitude dynamics are most strongly coupled in these
+phases.
+•Force and torque modeling: Forces and torques are
+assumed to be unidirectional and decoupled. Furthermore,
+
+--- Page 7 ---
+7
+TABLE III
+VARIABLE DEFINITIONS AND AERODYNAMIC PARAMETERS FOR
+MODELINGSPERO. COPREFERS TO THE CENTER OF PRESSURE.
+Symbol Definition Value Unit
+Inertia Properties
+Ibody Body inertia aboutz-axis 0.0345 kg·m2
+Irotor Rotor inertia aboutz-axis 0.0016 kg·m2
+Aerodynamic Properties
+ρAir density 1.225 kg/m3
+cd Wing drag coefficient 0.05 –
+Aref Wing reference area 0.056 m2
+cl Wing lift coefficient 0.87 –
+Dynamic Variables
+αrotor(t)Rotor yaw angle – rad
+αbody(t)Body yaw angle – rad
+ωrotor(t)Rotor yaw rate – rad/s
+τu(t)Yaw control torque – N·m
+Fu(t)Vertical control force – N
+z(t)Vehicle altitude – m
+uyaw(t)Yaw control input – –
+ualt(t)Altitude control input – –
+Geometric and System Properties
+rRotation axis to wing CoP distance 0.10 m
+mTotal vehicle mass 2.727 kg
+mwing Combined mass of both wings 0.34 kg
+mrail Mass of active rail mechanism 0.51 kg
+Fundamental Values
+tTime – s
+sLaplace variable – s−1
+gGravitational acceleration 9.81 m/s2
+only dominant forces and torques are considered: basic
+aerodynamic lift and drag from the main wing, torque
+from the counterbalance system, thrust from the quad-
+copter, and gravity.
+•Neglected aerodynamic effects: Rotor inflow dynamics,
+unsteady vortex effects, and higher order unstable aero-
+dynamic effects are neglected under the assumption of
+quasi-steady flow at a moderate Reynolds number,
+•Rigid body approximation: All bodies are treated as
+rigid, thereby ignoring structural flexibility and aeroelas-
+tic effects.
+•Actuator dynamics: Actuator bandwidths are assumed to
+be fast relative to vehicle dynamics, allowing torque and
+thrust to be commanded instantaneously in the model.
+•Neglected sensor and communication delays: Latency
+in sensing, computation, and communication are ignored.
+•Lateral dynamics exclusion: Roll and pitch dynamics
+are omitted as the preceding assumptions limit the effect
+of rotor dynamics.
+2) Yaw dynamics:Under the assumptions presented in the
+prior section, the yaw dynamics of SPERO during VTOL
+and transition flight are derived by applying Newton’s second
+law subject to the forces shown in Fig. 6, which yields the
+following expression:
+Ibody¨αbody(t) =−I rotor·¨αrotor(t)−1
+2ρcdArefr3ωrotor(t)2+τu(t),
+(1)
+whereI body andI rotor are the moment of inertia of the body
+and rotor, respectively;α body(t)andα rotor (t)are the yaw
+angle of the body and rotor, respectively;ρis air density;c d
+is the drag coefficient of the wing;A refis the reference area
+of the wing;ω rotor(t)is the rotor speed;ris the distance
+Fig. 6. Simplified schematic illustrating key forces during operation. Blue
+arrows depict forces acting on the vehicle, including lift (F lift), drag
+(Fdrag), individual quadcopter thrust (F Q1–FQ4), individual counterbalance
+(Fleft,CB ,Fright,CB ), and gravity (F gravity ). Dashed blue lines indicate the
+direction variability of forces across flight modes. Orange arrows define the
+vehicle axes, while dashed black lines indicate propeller boundaries.
+between the axis of rotation and the center of pressure; and
+τu(t)is the control torque from the counterbalances.
+3) Altitude dynamics:Similarly, applying the assumptions
+outlined in Section IV-A1, the altitude dynamics of SPERO
+during VTOL and transition flight are governed by the solution
+to Newton’s second law for forces along the z-axis of the body:
+m·¨z(t) =m·g−1
+2ρclArefr2ωrotor(t)2−Fu(t),(2)
+where m is the total mass of the vehicle,z(t)is the altitude,
+g is the gravitational constant, andc lis the lift coefficient of
+the wing.
+4) Notable modeling insights:Equation (1) and Equation
+(2) reveal two important characteristics of the dynamics. First,
+both dynamics present a nonlinear dependence on rotor speed.
+Second, both present constant offset contributions from grav-
+ity, aerodynamic drag, and rotor acceleration. Both of these
+factors must be addressed to ensure accurate vehicle control
+and stabilization. These factors will be referenced again in the
+formulation of the control architecture in the following section.
+B. Control Architecture
+SPERO’s control architecture utilizes an augmented feed-
+back control system, summarized in Fig. 7, to stabilize the
+dynamics presented in Equation (1) and Equation (2). Two
+feedback control structures are considered: single-loop PID
+and cascaded PI-PID. In the single-loop structure, a single
+controller,C 1(s), acts on the error of position (i.e., yaw or
+altitude), shown by substituting in the path in the blue box in
+Fig. 7a. In contrast, the cascaded structure separates control
+into two stages. First, an inner loop controls rate error (i.e.,
+yaw rate or velocity inz) withC 2(s). An outer controller,
+C1(s), controls the position error. The cascaded structure is
+shown by substituting the orange box into the path, as shown
+in Fig. 7a.
+
+--- Page 8 ---
+8
+The feedback control system is augmented in two ways.
+First, two forms of rotor speed are assumed. Second, feed-
+forward linearization is used to compensate for the constant
+offset terms outlined in Section IV-A4. Each augmentation is
+reviewed in further detail.
+1) Nonlinear dependence on rotor speed:In Case I, ro-
+tor speed is held constant suchω rotor(t) =ω rotor and
+¨αrotor(t) = 0. As rotor speed cannot always be held constant
+(e.g., during transition), in Case II, rotor acceleration held
+constant (i.e.,ω rotor(t) =α rotort).
+2) Constant offset terms:Equation (1) and Equation (2)
+present linear offset terms related to gravity, aerodynamic
+effects, and rotor contributions which prevent the isolation of
+the input signals. A known offset, d(s), is added to the control
+input to remove the effects of these disturbances from the
+perspective of the controller, as illustrated in Fig. 7a.
+The control inputs are defined as:τ u(t) =d yaw(t) +
+uyaw(t)andF u(t) =d alt(t) +u alt(t),where the disturbance
+terms are chosen to cancel out the coupling terms in Equation
+(1) and Equation (2). The disturbance terms are then chosen
+as:
+dyaw(t) =I rotor·¨αrotor(t) +1
+2ρcdArefr3ωrotor(t)2,
+dalt(t) =m·g−1
+2ρclArefr2ωrotor(t)2.(3)In essence, the yaw disturbanced yaw(t)compensates for
+torque introduced from rotor acceleration and aerodynamic
+drag. The altitude disturbanced alt(t)compensates for the
+difference between the gravity force and the lift from the rotor.
+3) Effect of augmentation of plant transfer function:In
+both yaw and altitude case, applying simplifying assumptions
+of rotor speed profile and a known offset generates a plant
+transfer function of
+Gp(s) =Gv(s)
+s=y(s)
+u(s)=1
+ηs2,(4)
+whereη yaw=Ibody andη alt=m. The transfer function
+outlined in Equation (4) represents a marginally stable system,
+aligned with the analyses presented on Equation (1) and
+Equation (2).
+C. Stability Criteria
+The stability of each controller is evaluated by applying the
+Routh-Hurwitz criterion to the closed-loop transfer function
+that arises for the system shown in Fig. 7. Under single-loop
+PID control, the controller is defined asC 1(s) =k p,1+kd,1s+
+ki,1
+s. Applying the Routh-Hurwitz criterion to the closed loop
+transfer function yields the requirement thatk p,1kd,1> ηk i,1
+for stable operation for yaw and altitude under both cases.
+For the cascaded PI-PID controller,C 1(s) =k p,1+ki,1
+sand
+Fig. 7. Comparison of single-loop and cascaded PID control architectures for SPERO’s yaw and altitude stabilization. (a) Control block diagram comparing
+the single loop (blue) and cascaded (orange) PID control structures. In the single-loop case, one PID controllerC 1(s)acts on the position error of the system,
+where the plant is modeled asG p(s). In the cascaded configuration, an outer-loop controllerC 1(s)regulates position while an inner-loop controllerC 2(s)
+controls rate, based on the rate plant modelG v(s). Simulation results using SPERO’s identified yaw dynamics highlight performance tradeoffs between the
+two architectures: (b) Step response shows comparable rise times, transient behavior, and steady-state accuracy. (c) When subject to modeling error, both
+loops reject the disturbance. (d) Under a step disturbance at the input to the plant, the cascaded system rejects the disturbance to a steady state value, while
+the single loop error continues to grow. (e) Controller effort required for tracking a step input showing that cascaded control exhibits lower peak demand than
+the single loop case.
+
+--- Page 9 ---
+9
+Fig. 8. Yaw instability regions due to cascaded PID gains. The first row
+of graphs vary inner loop proportional and integral gains across panels. The
+second row of graphs vary outer loop proportional and integral gains across
+panels, while within each graph, the inner loop derivative gain and outer
+loop gains are varied. The orange regions of each plot indicate the gain
+combinations that produce unstable vehicle yaw.
+C2(s) =k p,2+kd,2s+ki,2
+s. The derivative term is excluded
+from the outer loop due to the tendency to introduce excess
+noise. Applying the Routh-Hurwitz stability criterion to the
+closed loop transfer function of the system shown in Fig.
+7a produces the following nonlinear inequality involving all
+controller gains and system dynamics:
+(η+k d2) (kp1ki2+ki1kp2)2+ (k i1ki2) (kp2+kp1kd2)2<
+(kp2+kp1kd2) (kp1ki2+ki1kp2) (ki2+kp1kp2+ki1kd2).
+(5)
+Although the cascaded stability condition outlined in Equa-
+tion (5) is not directly suited for controller tuning, it can
+be used to verify the stability for a given set of controller
+gains and to qualitatively evaluate the relationship between
+gains. Fig. 8 presents instability region plots for differing
+values of proportional and integral gain of the inner and outer
+loops. Qualitatively, decreases in outer loop gains improves
+the stability margins of the system (Fig. 8, top row), while
+decreases in inner loop proportional and integral gain decrease
+the stability margins of the system (Fig. 8, bottom row).
+D. Simulated Controller Performance
+To evaluate the performance of the single-loop PID and
+cascaded PID controllers, we simulate the step response,
+disturbance rejection, modeling error rejection, and controller
+effort of each controller (Fig. 7b–e). The gains used for
+performance comparison were determined via the optimization
+process outlined in Appendix B. The specific gain values are
+also reported in Appendix B.Both architectures exhibit a comparable step response (Fig.
+7b) and rejection of modeling error (Fig. 7c), indicating similar
+tracking performance under nominal conditions. However,
+with a disturbance to the plant input (i.e., load disturbance),
+the cascaded controller asymptotically rejects the disturbance,
+whereas the single PID controller accumulates the error over
+time (Fig. 7d), highlighting the improved robustness of the
+cascaded PID controller. In addition to improved load dis-
+turbance rejection, the cascaded PID controller reduces over-
+all controller effort, particularly in peak demand (Fig. 7e).
+These results support the cascaded controller as the preferred
+architecture for robust and energy-efficient yaw and altitude
+regulation on SPERO.
+E. Key Operational Insights
+Preceding analyses from this section yield three main in-
+sights that directly inform SPERO’s controller design and
+state-machine coordination:
+1) Distinct forms of rotor speed ensures stability (i.e., Case
+I and Case II),
+2) Feedforward linearization reduces the effects of constant
+offset terms,
+3) Cascaded PID provides closed form closed-loop stability
+margins,
+V. STATEMACHINECONTROL FORSTABLEDEPLOYMENT
+The preceding sections identified the design features and
+control requirements necessary for the stable operation of a
+stopped-rotor aircraft, including maintaining lift continuity,
+managing auxiliary forces, and ensuring cross-regime stability.
+Building on these insights, this section describes how these
+requirements are integrated into SPERO’s operation through a
+mode-dependent controller implemented as a state machine.
+The state machine framework coordinates three key ele-
+ments: (1) activating the appropriate controller for each flight
+regime, (2) allocating auxiliary forces via the counterbalances,
+quadcopter subsystem, and center of pressure mechanism,
+and (3) dynamically reconfiguring vehicle geometry during
+transitions. In this way, the state machine operationalizes the
+principles derived in the preceding sections and enables robust
+mode switching across highly distinct flight regimes.
+SPERO’s state machine comprises eleven discrete modes,
+grouped into five categories: safety, VTOL, forward flight,
+forward transition, and backward transition (Fig. 9). Each state
+uses one of two controller architectures: a multicopter (MC)
+controller for VTOL and transition phases, and a forward-
+wing controller (FWC) for fixed-wing flight. Both controllers
+are drawn from the PX4 open-source autopilot [60], where
+they are standard, widely validated architectures used in con-
+ventional multicopter and fixed-wing vehicles. Integration with
+PX4 allows SPERO to leverage proven control modules while
+extending them through our custom state machine logic and
+transition sequencing. Full controller implementation details
+and transition conditions are provided in Appendix C.
+
+--- Page 10 ---
+10
+Fig. 9. State machine diagram of SPERO where operational transitions necessary for safe operation are denoted by gray lines, forward transitions (i.e., from
+VTOL to forward flight) are shown with orange arrows, and backward transitions (i.e., from forward flight to VTOL) are denoted with blue arrows. Similarly,
+operational states are shown in gray, VTOL states are shown in green, forward transition states are shown in orange, forward flight is shown in yellow, and
+backward transition states are shown in blue. CoP refers to the position of the center of pressure, while CBs refer to the orientation of the counterbalances.
+A. Safety States
+The safety states encompass the modes necessary to ensure
+smooth and secure operation of the vehicle, including a disarm,
+arm, and kill state, as shown by the gray shaded boxes in Fig.
+9. The disarmed state is the starting state when the vehicle
+is powered on, but the motors are disabled (i.e., no signal)
+and the system is idle (i.e., computers and communication
+are active). In the armed state, the motors are enabled and
+commanded to zero speed and all systems are ready for flight.
+Finally, the kill state, which is reachable from every state of
+the vehicle, immediately disables all motors. These modes are
+used solely for operational handling of the vehicle and do not
+encompass any control policies.
+B. VTOL State
+From rest, VTOL is initiated with the rotor spin-up state,
+during which the vehicle remains grounded until the main rotor
+accelerates to a steady-state speed of 80 rad/s. Once the rotor
+reaches steady state, the system transitions to VTOL mode,where the vehicle enters a hover using lift from the main
+rotor. In VTOL mode, the vehicle is controlled in translational
+velocity, altitude, and yaw.
+C. Forward Flight States
+In the forward flight state, SPERO operates as a fixed-wing
+vehicle. The main rotor position is fixed, and lift is generated
+passively by air flow over the wings. As the vehicle transitions
+from rest (i.e., quadcopters generating all lift) to trimmed
+speed (i.e., fixed wings generating all lift), the controller used
+depends on the vehicle’s forward velocity. At lower cruise
+velocities (<10 m/s), the hybrid MC/FWC controller is used
+to ensure adequate altitude stability. At higher speeds (>10
+m/s), the vehicle is controlled with a standard FWC, where the
+quadcopter is fully disabled and pitch, airspeed, and altitude
+are dynamically coupled.
+D. Forward Transition States
+Forward transition enables the reconfiguration of SPERO
+from VTOL to forward flight, following a sequence of three
+
+--- Page 11 ---
+11
+states depicted by orange arrows in Fig. 9. From the VTOL
+state, the vehicle enters the deceleration preparation state,
+where the counterbalances are temporarily disabled and the
+orientation is reversed. In this state, rotor speed is used to
+control yaw, while the quadcopter is used to control altitude.
+Once the counterbalances have reversed direction, the vehi-
+cle enters the rotor deceleration state, where the main rotor
+is actively slowed at a constant rate. The counterbalances
+are used to counteract torque generated by the slowing rotor.
+Once the rotor is fully stopped and homed, the system enters
+the forward flight initiation state, during which the wing is
+flipped to the forward configuration, the counterbalances are
+rotated forward, and the center of pressure is shifted aft. When
+geometric configuration is complete, the vehicle transitions to
+the forward flight state.
+E. Backward Transition States
+Backward transition returns the vehicle from forward flight
+to VTOL through two states (blue arrows, Fig. 9). When
+forward speed falls below 10 m/s, the vehicle enters VTOL
+initiation state. In this mode, the center of pressure is shifted
+forward, the counterbalances are rotated to prepare to coun-
+teract rotor acceleration, and the wing is flipped to the VTOL
+configuration. Once the geometric changes are complete, the
+vehicle enters the rotor acceleration state. Here, the rotor
+accelerates at a constant rate while the quadcopter holds the
+position, roll, and pitch of the vehicle. Yaw is controlled by
+the counterbalances. Upon completion, the system returns to
+the VTOL state.VI. EXPERIMENTALDEMONSTRATION BY
+BI-DIRECTIONALTRANSITION
+Real-world flight testing was performed to verify the stabil-
+ity of SPERO across flight modes and during transitions. An
+open-loop trajectory was commanded via a remote controller
+operated by a ground-based pilot. The commanded trajectory is
+depicted in red in Fig. 10, and the actual trajectory is overlaid
+in blue. The complete flight, lasting approximately 120 s, is
+shown in entirety in the supplementary movie.
+Flight validation was performed in a 12 m x 12 m x
+7.5 m indoor motion capture facility outfitted with 20 Vicon
+cameras and a suspended safety net. SPERO was equipped
+with 12 retroreflective markers for full six-degree-of-freedom
+pose tracking. Motion capture data was streamed at 100 Hz
+over WiFi to an onboard Raspberry Pi, where the data is
+transformed into the vehicle coordinate frame. The trans-
+formed data was transmitted to the PX4 flight controller over
+MA VLINK using MA VROS. The PX4 flight controller fuses
+the motion capture data into the integrated extended Kalman
+filter to update the state estimate.
+For takeoff, SPERO was placed on a table in the motion
+capture space. All vehicle operations were initiated by a
+ground-based pilot using a standard RC transmitter. The pilot
+commanded body-relative x and y velocity, z position, and yaw
+rate. When x, y, and yaw sticks are in the neutral position, the
+vehicle enters a corresponding position hold mode. Desired
+trajectory is received onboard with a standard transmitter and
+communicated to the PX4 flight controller over SBUS. PX4
+Fig. 10. The 3-dimensional trajectory of SPERO during flight validation of bidirectional transition. Adjacent images show SPERO during the key phases of
+flight: (a) VTOL, (b) the wing flip maneuver during forward transition, and (c) forward flight. Measured position was obtained via a motion capture system,
+while velocity inputs were commanded by the user. In the absence of user input, the system maintained the current position.
+
+--- Page 12 ---
+12
+passes the desired setpoints to the low-level controller for the
+corresponding flight mode.
+A. Bidirectional Transition
+The bidirectional flight test included all key operational
+phases: SPERO took off and entered VTOL mode (Fig. 10a).
+During forward transition, SPERO successfully performed the
+wing flip maneuver (Fig. 10b), engaged the passive latch
+mechanism, and reoriented the center of pressure. The vehicle
+transitioned to forward flight and maintained stable operation
+across the length of the motion capture space (Fig. 10c).
+Finally, SPERO performed a backward transition where the
+wing flipped back to the VTOL configuration, releasing the
+latch pin. The rotor accelerated to steady state. Once back in
+the VTOL state, the vehicle successfully landed. The entire
+flight is summarized in Fig. 10.
+This demonstration confirms that SPERO’s mechanical re-
+configuration and control system enables stable operation
+through forward and backward transition modes. Trimmed
+forward flight could not be tested due to size limitations of
+the motion capture space. However, throughout VTOL and
+transition phases, no instability or loss of yaw or altitude
+control was observed, all factors that have contributed to the
+failure modes of prior vehicle designs.
+B. Closed-Loop Controller Tracking
+The error in commanded versus measured position and
+attitude across flight modes is summarized in Fig. 11. The
+largest deviations occurred during takeoff (Fig. 11a) and
+VTOL mode (Fig. 11b), with root mean square error (RMSE)
+of 0.074 m inx, 0.064 m iny, and 0.008 m inz. The
+Fig. 11. Time traces of the error between commanded and measured position
+and attitude during the bidirectional flight validation test. Dashed vertical gray
+lines denote the transitions between the different flight phases: (a) Takeoff,
+(b) VTOL, (c) forward transition, (d) forward flight, (e) backward transition,
+and (f) landing.initial jump in error during takeoff corresponds to a brief
+physical interaction of SPERO’s landing gear with the net,
+as shown in the supplementary movie. Subsequent jumps in x
+and y position error correlate to commanded yaw inputs and
+diminish sharply once the yaw command is removed. This
+behavior suggests a misalignment between SPERO’s center of
+gravity and the center of thrust of the counterbalances (Fig.
+6), causing lateral drifts during rotation commands.
+The RMSE for roll, pitch, and yaw, are 0.017 rad, 0.027
+rad, and 0.040 rad, respectively. Yaw experiences the largest
+deviations, with spikes occurring in takeoff (Fig. 11a), forward
+transition (Fig. 11c), and backward transition (Fig. 11e). The
+disturbance during forward and backward transition is corre-
+lated with dynamic maneuvers, including wing flipping and
+impulse acceleration of the rotors; however, the disturbances
+attenuate once the action is complete. Roll and pitch tracking
+remained consistent throughout the flight test.
+Together, these results indicate that SPERO maintains stable
+tracking despite the reconfiguration of aerodynamic surfaces,
+redistribution of control forces during transition, and the
+introduction of impulse forces. The absence of oscillations or
+divergence in the error graphs (Fig. 11) following transition
+suggests that the onboard mechanical and control systems
+effectively stabilize SPERO.
+VII. CONCLUSION
+In this work, we introduce SPERO, a 2.7 kg stopped-penta
+rotor UA V that achieves the first experimentally validated,
+stable, and reversible bidirectional transition between VTOL
+and forward flight. In addition to demonstrating feasibility,
+we identify four feasibility conditions (FC1 – FC4) that define
+the aerodynamic, geometric, auxiliary force, and lift-continuity
+requirements for practical stopped-rotor designs, establishing
+a general framework for future vehicles. From these insights,
+we design an integrated design and control methodology that
+combines a flipping and latching wing, an active center of
+pressure mechanism, thrust vectored counterbalances, and a
+multicopter system, all of which are coordinated by an 11
+state machine. By pairing simplified dynamic models with
+controller evaluation, we identify the conditions necessary to
+guarantee yaw stability and altitude regulation during highly
+nonlinear stopped-rotor transitions.
+While the design and experiments confirm the effective-
+ness of SPERO, new challenges are exposed. First, energy
+efficiency remains a limitation during hover and transitions,
+suggesting opportunities for design optimization. Additionally,
+outdoor flight testing in unconstrained environments is needed
+to fully characterize the performance. Nonetheless, the results
+presented here lay design and control groundwork for a new
+class of efficient VTOL UA V .
+APPENDIXA
+MAXIMUMCENTER OFPRESSURE TOCENTER OF
+GRAVITYCALCULATION
+The movement of the center of gravity relative to the center
+of gravity of the body is computed with the following formula:
+Cg,x=mrailrrail+m wingrwing
+m,(6)
+
+--- Page 13 ---
+13
+TABLE IV
+STATE TRANSITION TABLE FORSPERO’S11-STATE MODE-DEPENDENT CONTROLLER. INPUTS:KILL=MANUAL SAFETY OVERRIDE,ARM=VEHICLE
+ARMING COMMAND,STATE=COMMANDED FLIGHT MODE. STATE NAMES MATCH THOSE INFIG. 9.
+Current State Inputs Next State
+Kill Arm State Command Other
+Disarmed 0 1 0 (Null) – Armed
+Armed 0 0 0 (Null) – Disarmed
+0 1 1 (VTOL) – Rotor Spin Up
+Rotor Spin Up 0 1 1 (VTOL) Rotor Speed = 0 VTOL
+VTOL 0 1 2 (Forward Flight) – Deceleration Preparation
+Deceleration Preparation 0 1 2 (Forward Flight) Counterbalance Speed = 0 Rotor Deceleration
+Rotor Deceleration 0 1 2 (Forward Flight) Rotor Speed = 0 Forward Flight Initiation
+Forward Flight Initiation 0 1 2 (Forward Flight) Counterbalance Speed = 0 Forward Flight
+Forward Flight 0 1 2 (Forward Flight) Vehicle Speed = 0 VTOL Initiation
+VTOL Initiation 0 1 1 (VTOL) Counterbalance Speed = 0 Rotor Acceleration
+Rotor Acceleration 0 1 1 (VTOL) Rotor Acceleration = 0 VTOL
+Kill 0 1 0 (Null) – Disarmed
+Any 1 0/1 Any – Kill
+wherem= 2.7kg is the total mass of the vehicle,m wing =
+0.34kg is the mass of both wings,m rail= 0.51kg is the
+mass of the components that move along the linear rail,r railis
+the distance between the body center of mass and the center of
+gravity of the rail assembly, andr wing is the distance between
+the body center of mass and the center of gravity of the wings.
+In the VTOL configuration,r rail=rwing= 0, as the system
+is designed to axially align these bodies through the axis of
+rotation of the vehicle. Evaluating Equation (6) for VTOL
+yieldsC g,x = 0m, consistent with the alignment of the
+rail, wing, and main body through the axis of rotation of the
+vehicle.
+In forward flight, the center of gravity inevitably shifts as
+the wing rotates and the rail assembly translates. In SPERO
+rrail= 0.05m corresponds to the maximum displacement
+of the active center of pressure, andr wing = 0.08m.
+Substituting these values into Equation (6) yieldsC g,x= 0.02
+m. Given the linear servo stroke of 0.05 m, the resulting
+maximum offset between the shifted center of pressure andcenter of gravity is approximately 0.03 m, as reported in Table
+II in the main text.
+APPENDIXB
+PID PARAMETEROPTIMIZATION
+PID gains for comparing single-loop and cascaded PID con-
+trol were determined by formulating a constrained optimiza-
+tion program. For all optimizations, theMATLAB fmincon
+function was used to minimize a scalar cost function of the
+form:
+J= IAE +λ·ZT
+0u2(t)dt,(7)
+whereIAEis the integral of absolute error between the
+reference and the measured output over a 1-second time
+horizon, andλis a regularization parameter used to penalize
+control effortu(t). The initial guess for all gains was unity,
+while the parameters were constrained to be positive and less
+than100.
+TABLE V
+PIDCONTROLLER GAINS USED ONSPERO
+Controller Type P I D Saturation Units Integral Windup
+Multi-copter (MC)
+Roll Attitude 6.500 0.000 0.000[−3.840,3.840]rad/s N/A
+Roll Rate Rate 0.150 0.200 0.003[−1.000,1.000]rad/s[−0.300,0.300]
+Pitch Attitude 6.500 0.000 0.000[−3.840,3.840]rad/s N/A
+Pitch Rate Rate 0.150 0.200 0.003[−1.000,1.000]rad/s[−0.300,0.300]
+Yaw Attitude 2.800 0.000 0.000[−3.840,3.840]rad/s N/A
+Yaw Rate Rate 0.200 0.100 0.000[−1.000,1.000]rad/s[−0.300,0.300]
+X and Y Position Position 0.950 0.000 0.000 N/A m N/A
+X and Y Velocity Velocity 1.800 0.400 0.200[−12.000,12.000]m/s N/A
+Z Position Position 1.000 0.000 0.000[−1.500,3.000]m N/A
+Z Velocity Velocity 4.000 2.000 0.000 N/A m/s N/A
+Forward Flight (FWC)
+Roll Attitude 2.500 0.000 0.000[−1.221,1.221]rad/s N/A
+Roll Rate Rate 0.050 0.100 0.000 N/A rad/s[−0.200,0.200]
+Pitch Attitude 2.500 0.000 0.000[−1.047,1.047]rad/s N/A
+Pitch Rate Rate 0.080 0.100 0.000 N/A rad/s[−0.400,0.400]
+Yaw Attitude 2.500 0.000 0.000[−0.873,0.873]rad/s N/A
+Yaw Rate Rate 0.050 0.100 0.000 N/A rad/s[−0.200,0.200]
+Energy Rate Rate 0.050 0.020 0.000 N/A N/A N/A
+Energy Balance Control 0.100 0.100 0.000 N/A N/A N/A
+
+--- Page 14 ---
+14
+The resulting single-loop gains were determined to bek p1=
+0.004,k i1= 0.010, andk d1= 0.561. The cascaded gains were
+determined to bek p1= 13.100,k i1= 0.002,k p2= 13.600,
+ki2= 0.036, andk d2= 1.370×10−5.
+APPENDIXC
+CONTROLLERARCHITECTURE
+The quadcopter of SPERO utilizes a hybrid control sys-
+tem implemented within the PX4 software, combining the
+multicopter and fixed-wing controllers [60]. During VTOL
+and hover, the vehicle utilizes the standard PX4 cascaded
+PID multicopter controller, referred to as MC in Fig. 9. In
+forward flight, the vehicle utilizes the standard PX4 fixed-
+wing controller, denoted FWC in Fig. 9. Transitions between
+the MC and FWC controllers are handled internally by PX4.
+The reader is directed to the PX4 documentation [60] for more
+information on the implementation of and transition between
+these controllers.
+The transition conditions for the 11 state machine are
+summarized in Table IV. The PID controller gains across flight
+modes are summarized in Table V.
+REFERENCES
+[1] M. Lyu, Y . Zhao, C. Huang, and H. Huang, “Unmanned Aerial Vehicles
+for Search and Rescue: A Survey,”Remote Sensing, vol. 15, no. 13,
+2023.
+[2] A. C. Watts, J. H. Perry, S. E. Smith, M. A. Burgess, B. E. Wilkinson,
+Z. Szantoi, P. G. Ifju, and H. F. Percival, “Small Unmanned Aircraft
+Systems for Low-Altitude Aerial Surveys,”The Journal of Wildlife
+Management, vol. 74, no. 7, pp. 1614–1619, 2010. [Online]. Available:
+http://www.jstor.org/stable/40801523
+[3] U. Ozdemir, Y . O. Aktas, A. Vuruskan, Y . Dereli, A. F. Tarhan,
+K. Demirbag, A. Erdem, G. D. Kalaycioglu, I. Ozkol, and G. Inalhan,
+“Design of a Commercial Hybrid VTOL UA V System,”Journal of
+Intelligent & Robotic Systems, vol. 74, no. 1, pp. 371–393, 2014.
+[Online]. Available: https://doi.org/10.1007/s10846-013-9900-0
+[4] Y . Zhou, H. Zhao, and Y . Liu, “An evaluative review of the VTOL
+technologies for unmanned and manned aerial vehicles,”Computer
+Communications, vol. 149, pp. 356–369, 2020. [Online]. Available:
+https://www.sciencedirect.com/science/article/pii/S014036641930996X
+[5] W. Johnson,Helicopter Theory. New York, NY , USA: Dover Publica-
+tions, 1994.
+[6] Q. Quan,Introduction to multicopter design and control, 1st ed.
+Springer Singapore, 2017.
+[7] T. H. Thomason, “The Bell Helicopter XV-3 and XV-15 experimental
+aircraft - Lessons learned,” inAircraft Design, Systems and Operations
+Conference. Dayton, OH, USA: American Institute of Aeronautics and
+Astronautics, 9 1990.
+[8] J. J. Gertler, “V-22 Osprey Tilt-Rotor Aircraft: Background and Issues
+for Congress,” Congressional Research Service, Tech. Rep., 3 2011.
+[9] M. J. Lopez, C. S. Duffy, M. B. Tischler, and P. Ruckel, “Bell V-280
+hover flight dynamics model validation and update with flight test data,”
+inVertical Flight Society 77th Annual Forum, 2021.
+[10] F. Fonte, M. Favale, A. Rigo, and G. Quaranta, “Enhanced Gust
+Load Recovery For The AW609 Tiltrotor,” in45th European
+Rotorcraft Forum (ERF 2019), 2019, pp. 485–497. [Online]. Available:
+https://re.public.polimi.it/bitstream/11311/1111806/1/FONTF02-19.pdf
+[11] M. D. Maisel, D. J. Giulianetti, and D. C. Dugan,The History of The
+XV-15 Tilt Rotor Research Aircraft: From Concept to Flight. National
+Aeronautics and Space Administration, Office of Policy and Plans,
+NASA History Division, 2000.
+[12] D. A. Conner, B. D. Edwards, W. A. Decker, M. A. Marcolini, and
+P. D. Klein, “NASA/Army/Bell XV-15 Tiltrotor Low Noise Terminal
+Area Operations Flight Research Program,”Journal of the American
+Helicopter Society, vol. 47, no. 4, pp. 219–232, 2002.
+[13] R. Ransone, “An overview of VSTOL aircraft and their contributions,”
+in2002 Biennial International Powered Lift Conference and Exhibit.
+Williamsburg, V A, USA: American Institute of Aeronautics and Astro-
+nautics, 11 2002.[14] J. Nichols, “The Hiller X-18 Experimental Aircraft - Lessons Learned,”
+inAircraft Design, Systems and Operations Conference. Dayton, OH,
+USA: American Institute of Aeronautics and Astronautics, 1990.
+[15] J. Konrad, “Flight and Operational Suitability Testing of the XC-142,
+V/STOL Assault Transport,” inFlight Test, Simulation and Support
+Conference. Cocoa Beach, FL: American Institute of Aeronautics and
+Astronautics, 1967.
+[16] R. J. Pegg,Summary of Flight-test Results of the VZ-2 Tilt-wing Aircraft.
+National Aeronautics and Space Administration, 1962, vol. 989.
+[17] R. G. Mitchell,Full-Scale Wind-Tunnel Test of the VZ-2 VTOL Airplane
+With Particular Reference to the Wing Stall Phenomena. National
+Aeronautics and Space Administration, 1963.
+[18] N. Tesla, “Apparatus for Aerial Transportation,” 1 1928. [Online].
+Available: https://patents.google.com/patent/US1655114A/en?oq=U.S.
++PATENT+1%2c655%2c114
+[19] S. B. Anderson, “An overview of V/STOL aircraft development,” in
+Aircraft Design, Systems and Technology Meeting. Fort Worth, TX:
+American Institute of Aeronautics and Astronautics, 10 1983.
+[20] N. B. Knoebel, S. R. Osborne, D. O. Snyder, T. W. McLain, R. W.
+Beard, and A. M. Eldredge, “Preliminary modeling, control, and tra-
+jectory design for miniature autonomous tailsitters,” inAIAA Guidance,
+Navigation, and Control Conference and Exhibit. American Institute
+of Aeronautics and Astronautics, 2006.
+[21] D. J. Taylor, M. V . Ol, and T. Cord, “SkyTote: An unmanned precision
+cargo delivery system,” inAIAA International Air and Space Symposium
+and Exposition: The Next 100 Years. Dayton, OH, USA: American
+Institute of Aeronautics and Astronautics, 7 2003.
+[22] Y . Ito, M. Hayashida, and H. Yasuda, “Concept of a logistics, air
+launch, and recovery (Lalar) evtol platform to support small-sized space
+vehicles,” inAIAA Aviation 2019 Forum. Dallas, TX, USA: American
+Institute of Aeronautics and Astronautics, 6 2019.
+[23] D. F. Finger, C. Braun, and C. Bil, “A Review of Configuration Design
+for Distributed Propulsion Transitioning VTOL Aircraft,”Asia-Pacific
+International Symposium on Aerospace Technology-APISAT, pp. 3–5,
+2017.
+[24] G. E. Welch, “Assessment of aerodynamic challenges of a variable-speed
+power turbine for large civil tilt-rotor application,” in66th Annual Forum
+and Technology Display (AHS Forum 66). Phoenix, AZ, USA: National
+Aeronautics and Space Administration, 5 2010.
+[25] A. Bacchini and E. Cestino, “Electric VTOL configurations comparison,”
+Aerospace, vol. 6, no. 3, 2019.
+[26] K. Hilby, “Design and Control of a Stop-Rotor Aircraft Enabled by Mor-
+phing Wings,” Ph.D. dissertation, Massachusetts Institute of Technology,
+Cambridge, MA, 2 2025.
+[27] G. P. Herrick, “Some Aerodynamic Problems in the Design of the
+Convertible Airplane,”Journal of the Aeronautical Sciences, vol. 5,
+no. 12, pp. 494–497, 1938.
+[28] ——, “Multiple flight aircraft,” US Patent 2,544,497, 3 1951.
+[29] C. R. Smith, “Hot Cycle Rotor/Wing Composite Research Aircraft,”
+U.S. Army Aviation Materiel Laboratories, Fort Eustis, V A, USA,
+Tech. Rep., 8 1968. [Online]. Available: https://apps.dtic.mil/sti/tr/pdf/
+AD0684315.pdf
+[30] R. Guertin, “Development status of the RSRA/X-Wing,” in
+AIAA/AHS/ASEE Aircraft Design Systems and Operations Meeting.
+Colorado Springs, CO, USA: American Institute of Aeronautics and
+Astronautics (AIAA), 10 1985.
+[31] J. W. Lane and M. Sumich, “The RSRA/X-Wing experiment - A status
+report,” SAE Technical Paper, Tech. Rep., 1987.
+[32] A. W. Linden, “RSRA/X-Wing - A Status Report,” in12th
+European Rotorcraft Forum, Garmisch-Partenkirchen, Germany, 9 1986.
+[Online]. Available: https://dspace-erf.nlr.nl/server/api/core/bitstreams/
+df0c1e03-1b56-40be-8eef-183fe8e9ee94/content
+[33] S. I. Sikorsky,The Sikorsky Legacy. Arcadia Publishing, 2007.
+[34] D. R. Jenkins, T. Landis, and J. Miller, “American X-Vehicles: An
+Inventory X-1 to X-50 Centennial of Flight Edition,” Tech. Rep., 2003.
+[35] C. A. Mitchell and B. J. V ogel, “The canard rotor wing (CRW)
+aircraft - A new way to fly,”AIAA/ICAS International Air and Space
+Symposium and Exposition: The Next 100 Years, 2003. [Online].
+Available: https://arc.aiaa.org/doi/abs/10.2514/6.2003-2517
+[36] W. Gai, H. Wang, T. Guo, and D. Li, “Modeling and LPV flight control
+of the Canard Rotor/ Wing unmanned aerial vehicle,” in2011 2nd
+International Conference on Artificial Intelligence, Management Science
+and Electronic Commerce, AIMSEC 2011 - Proceedings, 2011.
+[37] H. Gao, Z. Gao, Y . Na, and C. Pang, “Trim strategy, control model, and
+flight dynamics characteristics of canard rotor/wing aircraft in transition
+mode,”IEEE Access, vol. 7, 2019.
+
+--- Page 15 ---
+15
+[38] H. Gao, “A new control strategy of stopped-rotor aircraft based on
+manipulation model,”Aircraft Engineering and Aerospace Technology,
+vol. 94, no. 10, 2022.
+[39] B. Wang, D. Zhu, L. Han, H. Gao, Z. Gao, and Y . Zhang, “Adaptive
+Fault-Tolerant Control of a Hybrid Canard Rotor/Wing UA V under
+Transition Flight Subject to Actuator Faults and Model Uncertainties,”
+IEEE Transactions on Aerospace and Electronic Systems, vol. 59, no. 4,
+2023.
+[40] D. Zhu, Y . Zhang, H. Zhao, B. Wang, and Z. Gao, “Adaptive Fault-
+Tolerant Control of a Canard Rotor/Wing VTOL Aircraft,” inLecture
+Notes in Electrical Engineering, vol. 845 LNEE, 2023.
+[41] Y . Zhang, H. Zhao, D. Zhu, B. Wang, J. Huang, and Z. Gao, “Flight Con-
+trol of a Canard Rotor/Wing VTOL Aircraft Based on Reinforcement
+Learning Under Transition Flight Mode,” inLecture Notes in Electrical
+Engineering, vol. 1010 LNEE, 2023.
+[42] H. Gao, H. Shi, and X. Zou, “Flight Dynamics Modeling and Control of
+a New Type High-speed Helicopter in Take-off and Landing,” in2022
+International Conference on Unmanned Aircraft Systems, ICUAS 2022,
+2022.
+[43] S. K. Tayman and A. B. Walden, “An Investigation of the Aerodynamic
+Performance of the Spin-Wing Concept,” National Research Laboratory,
+Washington, DC, USA, Tech. Rep., 2 1998.
+[44] S. K. Tayman, “Stop-rotor rotary wing aircraft,” US Patent 8,070,090,
+12 2011.
+[45] A. He, H. Gao, S. Zhang, Z. Gao, B. Ma, L. Chen, and W. Dai, “Full
+mode flight dynamics modelling and control of stopped-rotor UA V,”
+Chinese Journal of Aeronautics, vol. 35, no. 10, 2022.
+[46] A. Vargas-Clara and S. Redkar, “Dynamics and Control of a Stop
+Rotor Unmanned Aerial Vehicle,”International Journal of Electrical
+and Computer Engineering, vol. 2, no. 5, 10 2012.
+[47] J. E. Low, L. T. S. Win, D. S. B. Shaiful, C. H. Tan, G. S. Soh,
+and S. Foong, “Design and dynamic analysis of a Transformable
+Hovering Rotorcraft (THOR),” in2017 IEEE International Conference
+on Robotics and Automation (ICRA), 2017, pp. 6389–6396.
+[48] R. Ramamurti, W. Sandberg, P. Vaiana, J. Kellogg, and D. Cylinder,
+“Computational fluid dynamics study of unconventional air vehicle
+configurations,”Aeronautical Journal, vol. 109, no. 1097, 2005.
+[49] J. Kellogg, C. Bovais, R. Foch, D. Cylinder, R. Ramamurti, W. Sandberg,
+J. Gardner, D. Srull, G. Piper, P. Vaiana, and A. Kahn, “Development
+and testing of unconventional micro air vehicle configurations,” in2nd
+AIAA ”Unmanned Unlimited” Conference and Workshop and Exhibit,
+2003.
+[50] J. Bevirt, E. Stilson, A. Stoll, and P. Sinha, “Aerodynamically efficient
+lightweight vertical take-off and landing aircraft with multi-configuration
+wing tip mounted rotors,” US Patent 10,035,587, 12 2018.
+[51] P. Sinha, A. M. Stoll, E. V . Stilson, and J. Bevirt, “Design and
+testing of the Joby lotus multifunctional rotor VTOL UA V,” in15th
+AIAA Aviation Technology, Integration, and Operations Conference.
+American Institute of Aeronautics and Astronautics, 2015.
+[52] G. E. Brown and V . Ahuja, “The Stopped Rotor Concept – A New
+Look At An Old Idea,” inAIAA Aviation 2023 Forum. San Diego,
+CA, USA: American Institute of Aeronautics and Astronautics, 6 2023.
+[Online]. Available: https://arc.aiaa.org/doi/10.2514/6.2023-4388
+[53] K. Hilby, M. Hughes, and I. Hunter, “Design and Analysis of a Novel
+Reversible Airfoil Mechanism,” inIEEE Aerospace Conference. Big
+Sky, MY: IEEE Computer Society, 3 2023.
+[54] ——, “Slat-Inspired Reversible Wing for Stopped-Rotor Vehicles,” in
+2025 International Conference in Unmanned Aircraft Systems (ICUAS).
+Charlotte, NC, USA: Institute of Electrical and Electronics Engineers,
+5 2025, pp. 22–28.
+[55] Redacted, “SPERO Supplemental Documentation,” 2025. [Online].
+Available: https://anonymous.4open.science/w/SPERO-4A02/
+[56] K. Hilby, M. Hughes, and I. Hunter, “Design of a Six-Bar Linkage-
+Inspired Reversible Wing for Stopped-Rotor Vehicles,” inIEEE/RSJ
+International Conference on Intelligent Robots and Systems (IROS
+2025), Hangzhou, 2025.
+[57] R. Niemiec, G. Jacobellis, and F. Gandhi, “Reversible airfoils for stopped
+rotors in high speed flight,”Smart Materials and Structures, vol. 23,
+no. 11, 2014.
+[58] ——, “Leading-and trailing-edge reversal of a cambered airfoil for
+stopped rotors,” in56th AIAA/ASCE/AHS/ASC Structures, Structural
+Dynamics, and Materials Conference, 2015.
+[59] Redacted, “Servo PWM Rescaling,” 2025. [Online]. Available:
+https://anonymous.4open.science/r/PWM-arduino-rescaling-B788
+[60] “PX4 Architectural Overview.” [Online]. Available: https://docs.px4.io/
+main/en/concept/architecture.html

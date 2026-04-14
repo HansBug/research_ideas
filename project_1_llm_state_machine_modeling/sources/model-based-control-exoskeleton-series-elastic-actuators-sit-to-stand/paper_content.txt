@@ -1,0 +1,1780 @@
+--- Page 1 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 
+https://doi.org/10.1186/s12984-019-0526-8
+RESEARCH OpenAccess
+Model-basedcontrolforexoskeletons
+withserieselasticactuatorsevaluatedon
+sit-to-standmovements
+JonasVantilt1,4*,KevinTanghe1,MaartenAfschrift2,4,AmberK.B.DBruijnes2,KarenJunius3,
+JoostGeeroms3,ErwinAertbeliën1,FriedlDeGroote2,DirkLefeber3,IlseJonkers2andJorisDeSchutter1
+Abstract
+Background: Currently, controlofexoskeletonsinrehabilitationfocusesonimposingdesiredtrajectoriesto
+promoterelearningofmotions.Furthermore,assistanceisoftenprovidedbyimposingthesedesiredtrajectoriesusing
+impedancecontrollers.However,lower-limbexoskeletonsarealsoapromisingsolutionformobilityproblemsof
+individualsindailylife.Todevelopanassistiveexoskeletonwhichallowstheusertobeautonomous,i.e.incontrolof
+hismotions,remainsachallenge.Thispaperpresentsamodel-basedcontrolmethodtotacklethischallenge.
+Methods: Themodel-basedcontrolmethodutilizesadynamicmodeloftheexoskeletontocompensateforitsown
+dynamics.Afterthiscompensationoftheexoskeletondynamics,theexoskeletoncanprovideadesiredassistanceto
+theuser.Whiledynamicmodelsofexoskeletonsusedintheliteraturefocusongravitycompensationonly,theneed
+formodellingandmonitoringofthegroundcontactimpedestheirwidespreaduse.Thecontrolstrategyproposed
+herereliesonmodellingofthefullexoskeletondynamicsandofthecontactswiththeenvironment.Amodelling
+strategyandgeneralcontrolschemeareintroduced.
+Results: Validationofthecontrolmethodon15non-disabledadultsperformingsit-to-standmotionsshowsthat
+muscleeffortandjointtorquesaresimilarintheconditionswithdynamicallycompensatedexoskeletonandwithout
+exoskeleton.Theconditionwithexoskeletoninwhichthecompensatingcontrollerwasnotactiveshoweda
+significantincreaseinhumanjointtorquesandmuscleeffortatthekneeandhip.Motorsaturationoccurredduring
+theassistedcondition,whichlimitedtheassistancetheexoskeletoncoulddeliver.
+Conclusions: Thisworkpresentsthemodellingstepsandcontrollerdesigntocompensatetheexoskeletondynamics.
+Thevalidationseemstoindicatethatthepresentedmodel-basedcontrollerisabletocompensatetheexoskeleton.
+Keywords: Model-basedcontrol,Exoskeleton,Sit-to-stand,Assistiverobots,Serieselasticactuator,Paraplegia,Muscle
+weakness
+Background
+Performing activities of daily living (ADL) is a challenge
+for people affected by muscle weakness or neurologic
+disorders, like paraplegia. Crutches and wheelchairs pro-
+vide help to perform ADL. However, these devices do
+not encourage the normal use of muscles and they lead
+to disuse and further deterioration of lower-limb muscle
+functionforADL.Incontrast,assistivelower-limbrobots
+*Correspondence: jonas.vantilt@kuleuven.be
+1theRoboticsResearchGroup,theDepartmentofMechanicalEngineering,KU
+Leuven,Celestijnenlaan300,Leuven,Belgium
+FulllistofauthorinformationisavailableattheendofthearticlehavethepotentialtosupportADLandtoencourageactive
+participation of the user, making them valuable additions
+to or replacements of wheelchairs and crutches. To nar-
+rowthefocus,thispaperlooksatassistivedevicesthatare
+notstationary,i.e.fixedtotheground,andthereforeallow
+overgroundwalking.Toachievethis,thesedevicesneedto
+be compact, lightweight and need to have energy auton-
+omy. These requirements have a large impact on both
+design and control decisions. Assistive robots allowing
+overground walking, worn on the lower limbs and cover-
+ing all joints are referred to as exoskeletons in this paper.
+The term actuated orthoses on the other hand refers to
+©TheAuthor(s).2019 OpenAccess ThisarticleisdistributedunderthetermsoftheCreativeCommonsAttribution4.0
+InternationalLicense( http://creativecommons.org/licenses/by/4.0/ ),whichpermitsunrestricteduse,distribution,and
+reproductioninanymedium,providedyougiveappropriatecredittotheoriginalauthor(s)andthesource,providealinktothe
+CreativeCommonslicense,andindicateifchangesweremade. TheCreativeCommonsPublicDomainDedicationwaiver
+(http://creativecommons.org/publicdomain/zero/1.0/ )appliestothedatamadeavailableinthisarticle,unlessotherwisestated.
+
+--- Page 2 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page2of21
+assistive robots that span only one or two joints in this
+paper.
+Young and Ferris [ 1] point out the variety in control
+methods and the absence of convergence towards one
+or a class of controller methods. The variety in con-
+trol strategies in assistive robotics is further backed up
+by the review work of Yan et al. [ 2]. They classify six
+groups of assistive controllers of which predefined tra-
+jectory and model-based control strategies are the most
+common.Predefinedtrajectorycontrollersareoftenused
+for gait trainers and exoskeletons for complete paraplegic
+persons. These predefined trajectories are enforced with
+positionorimpedancecontrol[ 3,4].Forexample,devices
+for spinal cord injuries move the user’s limbs according
+tothesepredefinedtrajectories.Inrehabilitationrobotics,
+the enforced trajectories train muscle strength and coor-
+dination [ 5–8]. Here, the impedance controller is widely
+used: the more the subject deviates from the desired
+trajectory, the more assistance the rehabilitation device
+delivers to guide the user back to the desired trajectory,
+which increases user involvement during training [ 9,10].
+In contrast, enforcing a trajectory with an impedance
+controller is undesirable in an exoskeleton supporting
+voluntarycapabilities.
+Our work focusses on exoskeletons that assist the vol-
+untary capabilities of people suffering from mild forms
+of paraplegia or muscle weakness. Enforcing a trajec-
+tory with an impedance controller is undesirable in such
+exoskeletons[ 1],becausetheseexoskeletonsneedtokeep
+t h eu s e ri nc h a r g eo ft h em o t i o n .M o d e l - b a s e dc o n t r o l
+strategies, as described by Yan et al. [ 2], are more appro-
+priateforexoskeletonsassistingthevoluntarycapabilities
+of the user. These methods rely on human-exoskeleton
+models and can often compensate gravity, determine the
+assistance and even incorporate balance criteria. Also
+controllers utilizing the muscle activity [ 11,12]a r ec l a s -
+sified as model-based controller in the work of Yan et al.
+[2]. In this paper, model-based control relies on physi-
+cal models of the dynamics and contacts of the system
+(exoskeletonandhuman)todeterminetheactuationfrom
+the motors. In many cases, such controllers only use
+exoskeletongravitycompensation[ 8,10],eventhoughthe
+influenceofthedynamicscannotbeignored[ 13,14].Only
+a few controllers compensate the complete exoskeleton
+dynamics [ 14,15], as this requires a full dynamic model
+oftheexoskeleton.Theoutputofthesemodel-basedcon-
+trollersarethetorqueneededateachjoint.
+ThewidelyusedSeriesElasticActuators(SEA)[ 6,7,13]
+facilitates torque control in exoskeletons. This type of
+actuator has a spring(like) element in series with the
+actuator. By measuring the extension and impression of
+the springs, the SEAs transform the torque/force control
+problem to a position control problem using their com-
+pliance. This facilitates a torque-based control strategy[16–18]. In addition, these actuators increase user safety
+and comfort, which is important in applications directly
+involving human interaction. The spring acts as a buffer
+for impact and reduces the actuator inertia felt by the
+user. An added advantage is that the springs are able to
+storeenergy.AlthoughSEAsareunabletolockthisstored
+energy, they do allow to reduce peak motor power when
+designed properly [ 19]. These advantages of SEAs come
+at a cost in the form of a reduced positioning bandwidth
+andanincreasednumberofmechanicalparts,whichmay
+increasetheoverallweight.
+When exoskeletons or orthoses already have low mass
+andinertiabydesign,compensatingthemislesscrucialto
+achieve beneficial results. Only a few ankle orthoses have
+showntobeeffective,asevidencedbyareducedmetabolic
+cost for walking or running [ 20–22]. All these orthoses
+havelowmassandrotationalinertia,eitherbyputtingthe
+motors on a separate control station [ 20,21]o rb e c a u s e
+they have no motors at all [ 22]. However, for complete
+exoskeletons,whichneedtocarrytheirownbatteriesand
+actuators, the mass and rotational inertia is much higher,
+requiringasubstantialpartoftheactuatorscapabilities.If
+theexoskeletondynamicsarenotcompensatedforbythe
+controller, the effective assistance provided to the user is
+reduced.
+In contrast to the different control strategies in assis-
+tive robotics [ 2], in humanoid robotics, a model-based
+control strategy that accounts for the full robot dynamics
+is common practice [ 23–25]. Additionally, these models
+can also estimate ground reaction forces [ 26,27], needed
+as input to the dynamics models. In order to achieve
+model-based control, humanoid robots are almost always
+torque-controlled,oftenusingforcecells.Thefundamen-
+taldifferencebetweenhumanoidrobotsandexoskeletons
+isthepresenceofthehuman,whichgreatlyimpactsdesign
+and control. The weight and size limits for exoskeletons
+result in actuators which operate close to their limits. On
+topofthat,thehumancontributestotheactuation,possi-
+blyaffectingstability.Furthermore,theexoskeletonneeds
+to adapt itself to the motions of the human operator and
+theirexecutionspeed.
+The similarity between humanoid robots and exoskele-
+tons provides a motivation to also move towards model-
+based control in exoskeletons. The work of Yan et al. [ 2]
+contains different types of models that are used in a vari-
+etyofways.Thismakesacomparisonbetweencontrollers
+difficult[ 1].Irrespectiveoftheusedassistivecontrolstrat-
+egy [2] ,t h ed e v i c ea t t a c h e dt ot h ep e r s o na l s oc o n s u m e s
+part of the actuation. If this is not compensated for, the
+provided assistance is affected. A model-based control
+strategy can compensate these actuation needed by the
+exoskeleton dynamics. In this way, the exoskeleton fol-
+lows themotionsofthehumansuchthatthe humandoes
+not feel the extra weight and inertia of the exoskeleton.
+
+--- Page 3 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page3of21
+Compensating the exoskeleton in a model-based way
+allows us to more properly compare different assistance
+strategiesforexoskeletons.
+A key element in the model-based exoskeleton dynam-
+ics compensation is the contact modelling with the envi-
+ronment. A change in contact situation leads to a change
+in the compensation controller. In the literature, Finite
+State Machines (FSM) are often used to specify different
+(discrete) states of the controller [ 1]. Depending on the
+phaseofthemotion,differentstatesaredefinedwhichcan
+have their own control strategy. In this way, position and
+forcecontrolcanbeinterchangeddependingonthephase
+ofmotion[ 6,14].ManyofthestatesoftheFSMsimplicitly
+relate to the contact with the environment. For example,
+t h es w i n ga n ds t a n c ep h a s e so fg a i ti n d i c a t ei ft h ef o o t
+makes contact with the ground. In this work, the states of
+the FSM are directly linked to the contact situations with
+theenvironment.
+The computation of the assistive torques can also rely
+on a model-based strategy. Such a model-based approach
+relies on a musculoskeletal model of the user, comprising
+two parts. First, the skeletal, dynamics model calculates
+thetorquesrequiredateachjointforagiventask.Second,
+the muscle model estimates the torque which the user is
+able to deliver with his muscles. The work of Carmichael
+etal.[28]showsamethodtoestimatetheassistanceneeds
+of a person with respect to the task at hand relying on
+muscle models. Hence, human capability is expressed at
+muscle level and accounts for the changing lever arms of
+the muscles, the muscle force-length and force-velocity
+properties, and the effect of bi-articular muscles. This
+makesthemodelusableforanyactivityatanyspeed.How
+t h em u s c l es t r e n g t hn e e d st ob ei d e n t i f i e di sn o tt a c k -
+led, nor is the influence of muscle fatigue accounted for.
+A model that is less computationally intensive expresses
+human capability at the joint level by imposing joint
+torque limits. However, this last model neglects the men-
+tionedmuscleeffects.Hence,thesejointtorquelimitsare
+only valid for a specific motion at a specific speed and
+hencearenotgeneralizable.
+In order to achieve both the compensation of the
+exoskeleton dynamics and the user-specific assistance,
+this paper presents a novel model-based torque control
+approach for exoskeletons. The focus lies on the com-
+pensation of the exoskeleton dynamics, the model-based
+assistance is computed off-line and the assistance is not
+the focus of this paper. Both the model-based exoskele-
+tondynamicscompensationandthemodel-basedhuman
+assistancearegeneralizabletoothermotions,becausethe
+models are usable in any contact situation. The first con-
+tribution is the extensive modelling of the exoskeleton
+anditsinteractionswiththeenvironment.Theboundaries
+of the models and assumptions made during modelling
+are presented. The modelling starts from a model-basedcontrol scheme and modelling procedure. The second
+contribution is the design of the feedforward control
+signal for the SEA. This feedforward signal is impor-
+tant to obtain good torque tracking, since the bandwidth
+of the feedback position control is limited. The third
+contribution is the validation of the control method on
+an exoskeleton for sit-to-stand motions. A sit-to-stand
+motion is chosen as validation because this motion is
+less reported on in the literature and it is not a cyclic
+motion such as overground walking. The absence of the
+cyclic characteristic makes forces and torques harder to
+predict.
+The Methods section presents the model-based con-
+trol approach for assistive robots. The general control
+scheme, modelling of exoskeleton and environment and
+the feedforward for SEAs are presented. The Sit-to-
+standExoskeletonsectionexplainstheimplementationof
+the model-based control methods on an exoskeleton for
+standingupandsittingdown.Theusedexoskeletonhard-
+ware and sensor are also presented. The experiments and
+results are described in the next section, followed by the
+discussionandconclusion.
+Methods:Model-basedControl
+Because all controllers do depend on hardware to some
+extent, modelling procedures and assumptions behind
+the control design are of great importance for other
+researchers working on different hardware. However, for
+many existing exoskeletons, a detailed description of the
+control strategy is not available, as pointed out in [ 1].
+To encourage the use of and reporting of dynamic mod-
+els of assistive devices in control, a systematic modelling
+procedure is presented in Table 1,f o c u s i n go nas i n g l e
+activity (like walking). The contact with the environment
+plays a key role in the modelling procedure. Although
+the modelling procedure presented in Table 1is obvious,
+the importance of the contact situations of the exoskele-
+ton cannot be emphasized enough. The different contact
+situationsdirectlyinfluencecontrollers.
+Table1Modellingprocedureforanactivityonanexisting
+exoskeleton(hardwareisgiven)
+stepno. name description
+1 listsensors listallsensorinformationavailableforthe
+exoskeletoncontroller
+2 contact determineandcharacterizethedifferent
+environmentcontactsituationsintheactivity
+3 detect decidehowtodetectthetransitionin
+environmentcontactusingtheavailable
+sensordata
+4 model modelthedynamicmodelsofeachdifferent
+environmentcontactsituationandtheir
+transitions
+
+--- Page 4 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page4of21
+This modellingprocedure is supplemented bya general
+controlschemeinFig. 1.Thiscontrolschemediffersfrom
+other control schemes, like the one of Tucker et al. [ 29],
+byhavingastronglinkwiththemodellingprocedure.Our
+controlschemehasfourcontrollevels:actuator,low-level,
+mid-level,andhigh-levelcontrolasindicatedinthefigure.
+Theirrelationwiththemodellingstepsisexplainedasfol-
+lows. The actuator control level uses the model of one
+actuator, the low-level controller uses the model of the
+whole exoskeleton and the mid- and high-level controller
+relatetomodellingthegroundcontactoftheexoskeleton.
+The lowest control level is the actuator level , which
+sends commands to a single actuator unit, consisting
+of a motor and possibly a spring. Our focus is on
+electric motors. Typical control approaches use velocity
+controllers or torque controllers. The choice between a
+velocity or torque controller influences how the dynamic
+models are used in the low-level control, as the con-
+trol commands and feedforward commands differ. The
+i n p u t so ft h ea c t u a t o rc o n t r o l l e ra r et h es e n s o rd a t a
+of the actuated joint and the desired reference control
+signal.
+Thelow-level controller sends reference commands to
+all actuator controllers. The control strategy is either
+force, impedance or position control. This control level
+utilizes dynamic models of the exoskeleton and contact
+models with the environment. The high complexity and
+thelackofinformationmakeitimpracticaltomodelevery
+part of the physical world in Fig. 1. However, it is usu-
+ally feasible to model the exoskeleton and its changing
+interactions with the environment, which is the result of
+modelling step 4. Inputs of this control level are control
+gains and modelling parameters supplied by the mid-
+level controller, together with sensor data of the whole
+exoskeleton.
+The assistance depends on the control strategy and,
+consequently, is part of the low-level controller. Inimpedance control, the assistance is directly related to
+the chosen impedance and the error with respect to
+the imposed reference trajectory. In force control, the
+assistance is a force or torque which the assistive robot
+providestothehuman.Inthiswork,theassistancetorque
+complieswiththeassistance-as-neededparadigm.Relying
+on the musculoskeletal model of the human and the sen-
+sor data of the exoskeleton, the capability gap [ 28,30]i s
+calculated. This capability gap is the difference between
+thetorquedemandedbythemotionofthehumanandthe
+torqueavailablebythehumanmuscles.
+Themid-level controller decides which model the low-
+level controller should use, depending on the contact.
+To achieve this, the mid-level controller changes control
+gains, models and/or model parameters of the low-level
+controller. In addition, the mid-level controller also trig-
+gers when to start and stop giving assistance when this
+assistanceisnotalwaysactivesuchasinthecapabilitygap
+calculated assistance. The mid-level controller is an FSM,
+a discrete controller. The states are related to the differ-
+entcontactsituationsoftheactivity,whichisanoutcome
+of modelling step 2 in Table 1. The inputs of this control
+level are the events (important occurrences) detected by
+thehigh-levelcontroller.
+While the mid-level controller implements how the
+contact models should change, the high-level controller
+implements whenthese changes need to occur. The high-
+level controller does this by sending events to switch the
+state of the FSM in the mid-level controller. The events
+arerelatedtothecurrentandfuturecontactsituationwith
+the environment. Hence, the high-level controller con-
+sists of several intent and event estimators, which are the
+outcome of modelling step 3. These estimators detect or
+predictanupcomingchangeincontactusingalltheavail-
+able sensor data. The predictions are needed to ensure a
+continuous transition in the models used in the low-level
+controller.
+Fig.1Generalcontrolschemeforanexoskeleton.Thephysicalsysteminredisseparatedfromthecontrolbythedashedline.Thecontrolisdivided
+intofourhierarchicallevels,withafewkeywordstoindicatetheirfunction.Thethinlinesrepresentdataflowfromtheavailableexoskeletonsens ors.
+Thethicklinesrepresentthecontrol/decisioncommandstoalowercontrollevel.Theassistanceblockingreentransformsthesensordatato
+desiredassistanceinthelow-levelcontrolblock
+
+--- Page 5 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page5of21
+The following subsections present the modelling steps
+of the exoskeleton and the contact situations and how to
+compensate the exoskeleton dynamics in the controller.
+In the first subsection, the exoskeleton dynamics model
+is presented and the compensation of the exoskeleton
+dynamicsisderived.Inthesecondsubsection,theimpact
+of the contact on the dynamics is shown and the contact
+modelling step is explained. The third subsection tackles
+thefeedforwardcontrolcommandfortheactuatorcontrol
+leveltoimprovetheperformanceofthecontroller.
+ModellingandCompensationoftheExoskeletonDynamics
+The controller needs to actively compensate the dynam-
+ics of the exoskeleton, as these dynamics have a negative
+effect on the performance. Any exoskeleton which phys-
+ically interacts with a person unavoidably adds mass and
+rotationalinertiatotheperson.Whenthecontrollercom-
+pensatesfortheseaddeddynamics,theexoskeletondeliv-
+ers the torques to move itself. As the person observes
+a reduced exoskeleton mass and rotational inertia, this
+control mode is referred to as transparent control. The
+exoskeleton dynamics compensation does not limit itself
+togravitationaleffects[ 8,10,12,31],butencompassesthe
+whole dynamics including inertial effects, which are not
+negligible[ 13,14].
+A floating base dynamic model [ 32], see Fig. 2,i s
+chosen to calculate the exoskeleton torques through
+inversedynamics.Thismodelischaracterizedbyavirtualkinematic chain that connects the floating base to the
+ground. This virtual chain represents all degrees of free-
+dom (dof) of the floatingbase, but is not actuated. In
+order to move the exoskeleton in the world, additional
+actuated paths towards the ground are needed. Such an
+actuation path is a chain of exoskeleton links connected
+to the ground and running up to the base link. Each
+ground contact applies constraints to the dynamic model
+and introduces constraint wrenches, consisting of forces
+and moments. Because most exoskeletons are only actu-
+ated in the sagittal plane, a 2D dynamic model suffices to
+describethem.
+SEAsareoftenusedinexoskeletonsandthushavetobe
+modelled. An SEA consists of a spring in series with the
+motor as seen in Fig. 3. The motor moves the lever arm
+with respect to the reference link and a spring between
+theleverarmandmovinglinkpullsorpushesthemoving
+link. The angles of the lever arm and moving link rela-
+tive to the reference link are θiandφirespectively. The
+lever arm angle θii st h es a m ea st h em o t o ra n g l ea f t e r
+transmission. From here on we will use the term lever
+armangle.Theangleoverwhichtherotaryspringiscom-
+pressedorextendedis αi=θi−φi.Thetorquegenerated
+by the spring is the actuation torque for driving the mov-
+ing link, as seen in Eq. ( 1). SEAs are introduced to the
+exoskeletondynamicsmodelbycombiningareducedflex-
+iblejointdynamicmodel[ 33]withafloatingbasedynamic
+model[32]:
+Fig.2Floatingbasemodeloftheexoskeleton.Thefloatingbaserepresentationofanexoskeletonischaracterizedbyavirtual,unactuatedchain.
+Thischainconsistsofsixdofs:threetranslationsandthreerotationsin3D.Whenusinga2Dmodelthisreducestotwotranslationsandonerotation,
+shownbythefilleddofs.Theseactuatorslieinoneplane,thesagittalplane,showninblue
+
+--- Page 6 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page6of21
+Fig.3SchematicmodelofanSEA.AnSEAconsistsofamotor,atransmission,aspringandtheoutgoinglink,asshownbythetopschematic.All
+variablesarereferencedagainstthepreviouslinkasshownbythedashedlineinthelowerfigure. θ∗
+iisthemotoranglebeforetransmission.
+αi=θi−φiisthespringdeflectionangle
+M(q)¨q+C(q,˙q)˙q+G(q)=STτspr+JT
+c(q)wc+fh,
+(1)
+B¨θ+τspr=τmotor,( 2 )
+with the assumption that no energy is dissipated in the
+contacts (e.g. by sliding friction) and with the following
+definitions:
+•q,˙q,¨q∈Rr×1:thestatevector,consistingofthree
+floatingbasevariables( px,pyandψ)andnjoint
+angles φi,i.e.q=/bracketleftbigpxpyψφ1... φn/bracketrightbigT,seeFig.4
+forthedefinitionofallvariables,
+•θ,˙θ,¨θ∈Rn×1:theleverarmstatevector,
+•M∈Rr×r:theinertiamatrix,
+•C∈Rr×r:theCoriolisandcentrifugalmatrix,
+•G∈Rr×1:thegravitationalvector,
+•τspr∈Rn×1:thespringtorques,
+•S=/bracketleftbig0n×3In×n/bracketrightbig
+:theactuationselectionmatrix,
+•wc∈Rk:thevectorofallcontactforces/moments,
+•Jc∈Rk×r:thecontact/constraintJacobian,
+•fh∈Rr×1:thevectorofhumaninteraction
+forces/torques,
+•B∈Rn×n:thediagonalmotorinertiamatrixafter
+transmission,
+•τmotor∈Rn×1:themotorjointtorquesafter
+transmission.
+The parameters in M,C,GandBconsist of the masses,
+center of masses, rotational inertias and lengths of the
+exoskeletonlinks,whicharederivedfromCADmodelsor
+are experimentally identified [ 34,35]. From here on, the
+dependenceofmatricesandvectorson qor˙qisomittedin
+theequations.Thenumberofactuatedjointsoftherobot
+isn;r=n+3 is the number of the floating base model
+states and kis the dimension of the independent contact
+constraints.Forexample,withonenon-slidingfootflatonthe ground k=3; with two non-sliding feet flat on the
+floork=6. When making contact with the ground, the
+kinematicsatthecontactpointsareconstrainedusingthe
+additionalequations:
+˙pc=Jc˙q=0, (3)
+¨pc=Jc¨q+˙Jc˙q=Jc¨q+⎛
+⎝r/summationdisplay
+j=1∂Jc
+∂qj˙qj⎞
+⎠˙q=0, (4)
+withpc=/bracketleftbigxleftyleft/Psi1leftxrightyright/Psi1right/bracketrightbigTrepresent-
+ingthepositionsandangleofbothfeetwithrespecttothe
+worldframe.
+The human is modelled as an independent distur-
+bancefhacting on the exoskeleton at joint level, as
+seen in Eq. ( 1). This human input consists of two forces
+and one moment at the floating base and nhuman
+joint torques. Another way of modelling the interac-
+tion between exoskeleton and human is to identify every
+interaction point and measure every interaction force
+and moment. This is not a practical solution, because
+it requires expensive force cells at every link, potentially
+multipleonesifsingleaxisforcecellsareused.Theseforce
+cells add weight and consume space. The human interac-
+tionsfhrepresenttheassistancedeliveredbytheexoskele-
+ton to the human. To calculate the transparent control
+torques, the human interactions fhare set to zero. When
+theexoskeletonneedstoprovideassistance,adesiredvec-
+tor of interaction forces and torques fh,desis added to the
+exoskeleton dynamics compensation torques. From here
+on,weonlyconsiderassistanceatthejoints,referredtoas
+assistance torques τassist. When no interaction forces are
+desired,theexoskeletonactstransparently.
+The spring torques required to compensate the
+exoskeleton dynamics are derived from the nlower rows
+ofEq.(1):
+
+--- Page 7 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page7of21
+Fig.4Definitionofframes,anglesandfloatingbasestatesvariablesoftheexoskeleton.Thethickblacklinesrepresentthelinkofonelegofthe
+exoskeletonviewedfromtheside(sagittalplane).Thejoints(hip,kneeandankleareindicatedbyblackcircles.Theleverarmsoftheactuatedjoint s
+areindicatedbypurplebars.Theframeofeachlinkisshowninadifferentcolorwithallz-axespointingoutwardofthepaper.Thelinkangles φiand
+theleverarmangles θiaredefinedstartingfromthepreviouslink(=referencelink)andaccordingtotherighthandrule.Thekneejointandlever
+armanglearethusnegativeinthisconfiguration. pxandpyrepresentthepositionofthecenterofmassofthefloatingbaselink,thepelvislink.The
+angleψistheangleofthefloatingbasewithrespecttotheworldframe
+τdyn=βin/hatwideMjo¨q+βin/hatwideCjo˙q+/hatwideGjo−/hatwideJT
+c,jo/hatwidewc,( 5 )
+withjoindicating the nlower rows of the corresponding
+matrices and vector, which relate to the actuated joints.
+The hats on top of the matrices and contact wrench indi-
+cates these are now relying on estimated values (dynamic
+parameters) and the measured state vector. This way of
+compensating the non-linear dynamics is a form of feed-
+back linearisation [ 36,37], also called computed torque-
+like control [ 15,38]. The gain βinis introduced to reduce
+the inertial effects in the exoskeleton dynamics compen-
+sation control for stability reasons. A complete compen-
+sation of the inertial terms of the exoskeleton is not
+feasible, due to modelling errors and delays. These delaysare unavoidable when working with derivatives of mea-
+sured variables, except when dealing with quasi-cyclic
+motions [ 39,40]. Therefore, the βingain is held constant
+between 0 and 1, close to 1. The gravitational term has
+no such gain, as it is less prone to modelling errors and
+does not depend on derivatives of joint angles. When
+the exoskeleton also has to provide assistance the desired
+springtorquebecomes:
+τdes,spr=τdyn+τassist.( 6 )
+Torque control of SEAs often relies on position (and
+velocity) controllers at the actuator level [ 41–43]. Hence,
+the desired spring torque is converted into a desired
+springangleusingthetorqueanglerelation:
+
+--- Page 8 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page8of21
+τspr,i=fi(αi)⇒αdes,i=f−1
+i(τspr,i),( 7 )
+withfbeing the non-linear torque-angle relation. The
+spring characteristic fionly depends on joint i.T h e s e
+inversespringcalculationsarerepresentedby:
+αdes=Finv(τdes,spr).( 8 )
+Thespringangleisthenenforcedbyaclosedloopposition
+controller. The desired motor angle for each joint is the
+sumofthespringdeflectionandthemeasuredjointangle:
+θdes,i=αdes,i+/hatwideφi,orinvectornotation:
+θdes=αdes+S/hatwideq,( 9 )
+with the hat indicating a measured variable and with the
+selection Matrix Sonly taking the njoint angles φifrom
+thestatevector q:/bracketleftbigφ1... φn/bracketrightbigT=Sq.
+EnvironmentContactModelling
+Anycontactwiththeenvironmentimposesconstraintson
+thekinematicsinEqs.( 3-4)andresultsinconstraintforces
+and moments wcon the dynamics in Eq. ( 1). Jacobian Jc
+represents information about the nature and location of
+the ground contact. This contact information is derived
+fromsensordata,theexoskeletonkinematicsandamodel
+oftheenvironment.
+Suitable sensors to detect contact locations are contact
+switches, pressure sensors, force/torque sensors, or even
+distance sensors. When none of these sensors are avail-
+able, at least one absolute orientation measurement from
+anInertialMeasurementUnit(IMU)isneededtoestimate
+thecontactinformation.Usingtheexoskeletonkinematics
+and some mild assumptions about the ground, for exam-
+ple flat surface, the absolute orientation measurement
+allows to estimate the position and angle of the feet with
+respecttotheground.This,inturn,allowstoestimatethe
+contactinformation.
+The contact wrenches wccan be obtained from either
+measurement or estimation. The first method uses
+force cells to directly measure the forces and moments.
+Although these sensors are capable of accurately measur-
+ing the wrenches, they have several disadvantages: they
+need to be placed at all contact locations, they need to
+be calibrated, and are expensive when high accuracy and
+repeatability is required. Overloading force cells should
+alsobeavoided.Oftenwhenaforcecellisabletobeover-
+loaded more, its resolution is lowered. In the exoskeleton
+used to validate the developed control methods, no force
+sensors are available. However, the springs in the SEAs
+can be seen as simple force cells that allow to measure
+joint torques. The second method estimates the contact
+wrenches using the floating base part of the dynamics
+given by the top three equations of Eq. ( 1)a n dt h ec o n -
+straint equations ( 3)a n d(4). These equations enable us
+tosolvethreecontactwrenchcomponents.Wheneverthenumberofwrenchcomponents kexceedsthree,e.g.when
+bothfeetareontheground,thecontactwrenchescannot
+be solved unambiguously and a contact wrench distri-
+bution needs to be found. In humanoid robotics, this is
+solved by minimizing a weighted combination of contact
+forces and joint torques [ 26,27]. In this paper, we use a
+similarmethod[ 44]inwhichtheweightsoftheminimiza-
+tion are determined by the stiffness of the exoskeleton
+parts.
+Althoughcontactsaregenerallymodelledwithacontact
+Jacobian and a contact wrench, some contact situations
+allowalternativemodellingapproaches.Alternativemod-
+elling is required when the contact wrench is hard to
+obtain or the contact Jacobian cannot be constructed.
+The contact between an exoskeleton and a chair/stool in
+a sit-to-stand (STS) motion is a contact that is hard to
+model and measure. In this case, the stool is support-
+ing the weight of the exoskeleton, reducing the load on
+the leg actuators. Hence, the stool contact can be mod-
+elled by setting the gravity part of the dynamics to zero.
+When the exoskeleton leaves the stool, the gravity part
+is again active. This alternative modelling is achieved by
+addingachanginggravitygainscalar βgtotheexoskeleton
+dynamicscompensationjointtorquesinEq.( 5):
+τdyn=βin/parenleftbig/hatwideMjo¨q+/hatwideCjo˙q/parenrightbig
++βg/hatwideGjo−/hatwideJT
+c,jo/hatwidewc, (10)
+wherethegain βgliesbetween0and1.
+RobotDynamicsinfeedforward
+This way of compensating the non-linear dynamics is a
+form of feedback linearisation [ 36,37], also called com-
+putedtorque-likecontrol[ 15,38].
+Computedtorque-likecontrol[ 38]isaformoffeedback
+linearisation [ 36,37]. It relies on a good torque con-
+trol loop in order to compensate the non-linearities and
+achieve linear error dynamics. SEAs allow to convert a
+torquecontroltoapositioncontrolproblemusingEq.( 7).
+However, feedback position control of the SEAs is insuf-
+ficienttocompensatetheexoskeletondynamics,sincethe
+bandwidthofthispositioncontrollerisalwayslowerthan
+the underlying motor velocity or current control loop.
+Moreover, the varying inertia (and stiffness) seen by each
+actuatorrequiresconservativetuningofthefeedbackgain,
+whichfurtherlimitsthebandwidthofthepositioncontrol
+loop. Therefore, feedforward is essential in SEA control
+to reduce the torque tracking errors in case of rapidly
+changingtorques.
+I no r d e rt ob ea se f f e c t i v ea sp o s s i b l e ,t h ef e e d f o r w a r d
+signalshouldenteratthelowestpossiblelevelintheactu-
+ator controller. This actuator control level consists of a
+currentcontrolloopinsidethevelocitycontrolloop.Cur-
+rent feedforward is directly related to the joint torques,
+becauseofthelinearrelationshipbetweentorqueandcur-
+rent for electric motors, given by the motor constant KT
+
+--- Page 9 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page9of21
+(neglecting magnetic saturation). This feedforward also
+depends on the efficiency of the motor and gear η, which
+is not a constant, and the transmission ratio of the gears,
+tr. The current feedforward Iffis based on the work of
+Paineetal.[ 45],butextendedusingEq.( 2)toalsotakethe
+motorinertia Biiintoaccounttogiveforactuator i:
+Iff,i=τmotor,i
+(tr·η·KT)i=τspr,i+Bii¨θi
+(tr·η·KT)i. (11)
+Iftheactuatorcontrollerallowsnoaccesstothecurrent
+control loop, the low-level controller needs to provide a
+feedforward signal on velocity level. Velocity feedforward
+requires a time derivative of the desired spring deflection
+angleα. By taking the time-derivative of the torque-angle
+characteristicinEq.( 7):
+dτspr,i
+dt=∂fi
+∂αi·dαi
+dt, (12)
+and combining this in a diagonal stiffness matrix K(α)=
+diag(∂fi/∂αi), the motor velocity feedforward is written
+as:
+˙θff=S˙q+K−1(α)˙τdes,spr. (13)
+The derivative of the spring torque ˙τdes,spris computed
+byderivingthedesiredspringtorquesinEq.( 6),in which
+theexoskeletondynamicscompensationtorqueforSTSof
+Eq.(10)aresubstituted:
+˙τdes,spr=βin(/hatwide˙Mjo¨q+/hatwideMjo...q+/hatwide˙Cjo˙q+/hatwideCjo¨q)+βg/hatwide˙Gjo
++˙βg/hatwideGjo−/hatwide˙JT
+c,jo/hatwidewc−/hatwideJT
+c,jo/hatwide˙wc+˙τassist. (14)
+T h er a t eo fc h a n g eo fg a i n βghas an important influence
+on the feedforward signal, as the gravity is multiplied by
+thetimederivativeofthegainterms ˙βg,whichresultsina
+largecontributiontothefeedforwardsignal, ˙βgGjo.Hence,
+theinfluenceofchangingparametersinthedynamicscan
+be an important contribution to the feedforward com-
+mand, as shown by the derivative of the spring torque
+in Eq. (14). The gain for the inertial parameters βinis a
+constantandhencenotimederivativeisneeded.
+When no desired trajectory is imposed, the exoskele-
+ton needs to follow the human as closely as possible. In
+this case, the inputs of the velocity feedforward of the
+low-levelcontrollerarebasedon measured statevariables
+and their derivatives: /hatwideq,/hatwide˙qand/hatwide¨q. To prevent instability
+due to modelling errors and noise, the feedforward gain
+needs to be set (slightly) smaller than 100% and the third
+orderderivativesofthemeasuredstatevector /hatwide...qareomit-
+ted,becauseoftheirnoisesensitivity.Onlywhenworking
+with predefined trajectories or predictions of the desired
+feedforward, the...qterm is usable when these signals are
+derivableatleastthreetimes.Whennodesiredtrajectory
+is at hand, the exact (full) feedforward cannot be attained
+inpractice.Sit-to-standExoskeleton
+Thecontributionsofthispaperarevalidatedonabilateral
+lower-limb exoskeleton for STS, shown in Fig. 5,d e v e l -
+oped in the MIRAD project. The design of the MIRAD
+exoskeleton focuses on the hip, knee and ankle joints in
+thesagittalplane[ 46].Therangeofmotionandtorquesof
+thesejointsarelargestinthesagittalplaneformostactiv-
+ities of daily life. Standing up and sitting down demand
+high hip extension and knee extension power [ 47], while
+the range of joint motion during this activity is large. On
+the other hand, walking demands high ankle plantarflex-
+ion power. Therefore, the exoskeleton only has rotational
+joints corresponding to the sagittal hip, knee and ankle
+joints. These joints are equipped with MACCEPA actu-
+ators [48], which are SEAs capable of changing their
+stiffness,i.e.VariableStiffnessActuators.TheMACCEPA
+actuatoruseslinearcompressionspringswithanon-linear
+lever-armsystem,butthespringbehavioratthejointlevel
+is modelled as a non-linear rotary spring according to
+Eq.(7)andF ig. 3.Asthehumanjointsoutsidethesagittal
+planealsoexhibitsmallmotions,flexibilityofthemechan-
+icalframeallowssmall,out-of-planemotions.Thismakes
+theexoskeletonsignificantlymorewearable.Additionally,
+Fig.5TheMIRADsit-to-standexoskeleton.AsideviewoftheMIRAD
+sit-to-standexoskeletonisshown.Thepowerandcommunication
+cablesforeachjointarenotpresenttoavoidoverloadofthe
+photograph.TheMACCEPAactuatorsareplacedatthehip,kneeand
+ankleofacommerciallowerlimbbrace
+
+--- Page 10 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page10of21
+t h el i n k sa r ea d j u s t a b l ei nl e n g t ht oi n c r e a s et h er a n g eo f
+potentialusers.
+The MACCEPA actuator used in the exoskeleton is
+shown in Fig. 6. The lever arm and flat cable transform
+the linear translation spring into a non-linear stiffening
+rotational spring behaviour. In addition, the pretension
+controls the rotational stiffness. More pretension results
+in higher rotational stiffness. The pretension is kept the
+same during all motions. The drawback of the lever arm
+and cable system is the introduction of backlash around
+thealignmentoftheleverarmandoutputlink.Themotor
+i nt h i sM A C C E P Ai saM a x o nE C4 5f l a t5 0 Wm o t o r
+with a Maxon Spur Gearhead GS 45 A and a toothed
+belttransmission,resultinginatransmissionratioof188.
+The nominal torque and nominal velocity at the output
+of the toothed belt are 11.2Nm and 28rpm (=2.93rad/s)
+respectively.Thepeaktorquecanreachupto15Nmwhen
+overloadingthemotor.
+The actuator is equipped with an absolute magnetic
+encoder (AMS, AS5048A, SPI, 6 pins, 5V, 14bits) to mea-
+sure the lever arm angle with respect to the motor link
+θi. A relative optical encoder (US Digital HUBDISK-2-
+2000-625-IE, module: EM1-2-2000-I, DI/O, 5 pins, 5V)
+measures the angle of the output link with respect to the
+motor link φi. The motor velocity is estimated from the
+hallsensorsandalsomotorcurrentismeasured.Allmotor
+data and sensor data is captured by the communication
+board on every joint and send to the central processing
+unit over EtherCAT [ 49]. In order to have an additional
+absolute measure of the floating base states ( px,pyand
+pz) and their derivatives, an IMU of Xsens [ 50] provides
+accelerations,angularrotationsandtheorientationofthe
+sensor.
+The designed actuators including sensors, motor con-
+troller and communication boards are mounted on
+commercial available braces [ 46]. The mass, center ofmass coordinates and the rotational inertia of each part
+of the exoskeleton are shown in Table 2. These dynamic
+parametersareidentifiedinpreviouswork[ 35].
+Most exoskeletons that have assisted sit-to-stand
+motion focus on paraplegic patients [ 51][52]o rf o c u s
+on gravity compensation of the person [ 53]. Nakamura
+et al. [53] showed a reduction in human EMG when
+they assisted with a simplified human model to compen-
+sate part of the human weight. The MIRAD exoskeleton
+is intended for people who still have voluntary motion
+capabilities,andusesthemodel-basedtorquecontrolpre-
+sented in the Methods section. The modelling procedure
+inTable1isillustratedontheSTSactivity.
+ModellingStep1:Listsensordataavailabletothe
+exoskeletoncontroller
+The following measured variables are available to the
+exoskeletoncontroller:
+•relativerotaryencodersmeasurealljointangles φi,
+•thejointangularvelocity ˙φiofeachjointisobtained
+bycountingthenumberofhighfrequencyclock
+pulsesbetweentwoencoderpulses,
+•absoluteencodersmeasuretheleverarmangles θi,
+•hallsensorsmeasuretheleverarmangularvelocities
+˙θi,
+•anIMUofXsensplacedatthepelvisreturnsthe
+floatingbaseangle ψ,itsderivative ˙ψandthe
+accelerations axandayatthesensorlocation,which
+arerelatedto ¨pxand¨py,
+•asecondIMUatthesternummonitorsthehuman
+trunk.
+ThekinematicconstraintsinEq.( 3)and(4)enableusto
+estimate the floating base states and derivatives from the
+jointanglemeasurements.However,smalldeflectionsout
+Fig.6TheMACCEPAactuator.Themotorisconnectedtotheleverarmwithatoothedbelttransmission.Aflatcableconnectstheleverarmwith
+thecompressionspringlocatedinthemovingoutputlink.Whentheleverarmandoutputlinkarealigned,thetorquegeneratedbytheMACCEPA
+iszero.Thepretensionscrewsallowtogivethespringapretensiontochangethestiffnessrelationshipoftheactuator
+
+--- Page 11 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page11of21
+Table2DynamicparametersoftheSTSexoskeletonwithallleg
+lengthssetto L=0.42m
+part mass centerofmass(x,y)w.r.t.joint rotationalinertia
+leftfoot 1.21 kg(0.09217, −0.0690 )m 0.00849kgm2
+leftlowerleg 1.88 kg(0.1883,0.0109 )m 0.0105kgm2
+leftupperleg 2.53 kg(0.2268,0.0088 )m 0.01529kgm2
+rightfoot 1.19 kg(0.09121, −0.0686 )m 0.00792kgm2
+rightlowerleg 1.96 kg(0.1826, −0.0067 )m 0.0118kgm2
+rightupperleg 2.47 kg(0.2301,0.0152 )m 0.01568kgm2
+pelvis 1.59 kg(0.113,−0.072)m 0.0072kgm2
+ofthe2Dplaneandnoiseonhigherderivativesofthejoint
+angles, make the floating base derivatives unreliable. Fur-
+thermore, the exoskeleton requires at least one absolute
+measurementtoknowitsorientationintheworld.There-
+fore, an IMU placed at the pelvis provides this additional
+information. The IMU measurements are fused together
+with the floating base estimates based on the kinematic
+constraints. This is done by considering all the IMU
+measurements and the kinematic constraint estimates as
+inputs of a Kalman filter with a constant acceleration
+motion model. The accelerations of the joint angles ¨φi
+and lever arm angles ¨θiare obtained also by relying on a
+Kalman Filter for each joint with a constant acceleration
+motionmodel.
+ModellingStep2:Determinecontactsituations
+The STS activity is characterized by two different contact
+situations:contactandnocontactwiththestool,asshownby Fig.7. In the first case, the exoskeleton has three
+contacts with the environment: both feet at the ground
+and the pelvis and upper limbs at the stool. In the second
+case, only the feet still touch the ground. Seat-off is
+definedbytheinstanceatwhichtheexoskeletonandper-
+son no longer touch the stool and it separates the two
+contactsituations.
+The two different contact situations are directly related
+to two discrete states, the sit state and the stand state, in
+the FSM of the mid-level controller in Fig. 8.T h es i ts ta t e
+and stand state are accompanied by two additional states
+for transition between the contact states: a standing-up
+state and a sitting-down state. The implementation of the
+action at each state depends on the modelling of the con-
+tactsituationsandfollowsinstep4.AseparateFSMinthe
+standing-up state allows to independently start and stop
+the assistance. The transition between states is triggered
+byevents,asshownbythearrowsinFig. 8.
+ModellingStep3:Detectandpredictcontacttransitions
+TheeventsthatchangethestateoftheFSMarepresented
+in Table 3. All these events are monitored or predicted
+by the high-level controller. The start of the STS motion
+is detected by looking at the velocity of the hip angle.
+When this hip velocity exceeds 14.3 deg /s(0.25rad/s)
+the STS motion starts. Other events are explained in
+Table3. The seat-off event is predicted using statistical
+methods and is described in more detail in the work of
+Tanghe et al. [ 54]. Briefly explained, a statistical model
+is constructed relying on measurements of hip, knee and
+ankle angles during STS motions of non-disable persons
+Fig.7Differentcontactsituationofthesit-to-standmotion.Inthesit-to-standmotion,seat-offisthekeyeventformodelling.Inthesitstate,the
+exoskeletonissupportedbythestoolandonlytheinertial,centrifugalandCoriolistermsarecompensatedfor(onlythetrunkcanmove).Inthe
+standstate,theexoskeletonisnolongersupportedbythestoolandneedstosupportitsowngravity
+
+--- Page 12 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page12of21
+Fig.8Mid-levelcontrolleroftheexoskeleton.TheFiniteStateMachineofthesit-to-standmotionhasfourmainstates:sit,stand,standing-upand
+sitting-down.Foureventstriggerthechangefromstatetostate.InthesitstateonlytheinertialandCorioliscompensationoftheexoskeletonis
+active.Inthestanding-upstate,thegravitycompensationisgraduallyturnedonbeforetheseat-off.Whenthecompensationgetsoneorwhenthe
+seat-offisdetected,thegravitycompensationiscompletelyon.Whentheeventtostarttheassistanceisdetected,theassistanceisswitchedto
+active.Inthestandstatetheexoskeletoniscompletelycompensated.Inthesitting-downstate,gravitycompensationisgraduallyreducedtozero
+untilthepersonsitsbackonthestool
+without exoskeleton. During these STS movements in
+the lab, a force plate underneath the stool measured the
+ground reaction forces. The force plate data was the
+ground truth for the seat-off event, but this informa-
+tion is not available for the exoskeleton controller. The
+hip angles were found to hold most information to pre-
+dict the seat-off event. A method to detect the start of
+assistance based on Artificial Neural Networks (ANN) is
+also presented in their work. All predictions and estima-
+tions rely on joint measurements, as sensors to detect
+contact with the stool are not available. Only the joint
+angles related to stand qi,standfor determining the end
+of the STS motion are tuned for each person individ-
+ually. This is done by capturing these angles when the
+person is standing upright before the experiments start.
+All otherparametersare generalizedandthus used for all
+participants.
+Table3High-levelcontroller:eventdetection/prediction
+event detection/prediction
+e_start_sit_to_stand ˙qhip>14.3deg /s
+predictseat-offtime tsot@m a x (qhip,predicted )
+e_seatoff_detected max (qhip,buffered[t])==max(qhip,buffered[t+1])
+e_detect_start_assistance tso−tcurrent<0.11sorANN[54]
+e_assistance_done τas==0
+e_finish_sit_to_stand qiclosetoqi,stand
+e_start_stand_to_sit qknee<−28.6degand ˙qknee<−17.2deg /s
+e_seatdown_detected qknee<−68.8deg
+e_finish_stand_to_sit qknee<−77.3degand |˙qknee|<5.7deg /s
+e_error anyencoder,controllerorpredictionerrorModellingStep4:Modeltheexoskeletonforeachsituation
+The dynamic model for the exoskeleton is a floating base
+modelinbothcontactsituations.Inbothcases,weassume
+that both feet stay in contact with the ground, hence no
+foot is lifted or moved. The contact Jacobian and contact
+wrench of the feet are constructed with the contact loca-
+tion at the heel. As each foot is also assumed flat on the
+ground, the contact wrench of each foot consists of two
+forces and one moment. These contact wrenches cannot
+be solved with the three floating base equations alone.
+An optimization based on the stiffness of the exoskeleton
+[44] is used to solve the six contact wrench components,
+as described in the Methods section. As the stool con-
+tact is both hard to locate and measure, it is modelled by
+introducinggainparametersinthedynamics,seeEq.( 10).
+When the exoskeleton and human are seated, the stool
+supports almost all the weight. Hence, the exoskeleton
+model is a floating base model without gravity by setting
+βgto0.Whenthestoolcontactisbroken,theexoskeleton
+is required to compensate its own weight and the gain βg
+issetto1.
+The exoskeleton gravity compensation gain βgshould
+not be turned on and off instantaneously. From measure-
+ments of the human-stool interaction forces we know
+that the reaction force on the stool decreases almost
+linearly, starting approximately 0.3s before seat-off until
+seat-off [ 54]. Hence, the model of the exoskeleton has
+to change linearly from a model without gravity at 0.3s
+before seat-off to a model with full gravity at seat-off, i.e.
+the exoskeleton gravity compensation gain βgneeds to
+increase linearly from zero to one in approximately 0.3s.
+Thislinearincreaseof βgisimplementedinthestanding-
+up state in Fig. 8. The increase in βgis made dependent
+of the time until the current predicted seat-off: βg=
+
+--- Page 13 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page13of21
+1−tuntillseat −off,predicted /0.3swhentuntillseat −off,predicted >
+0.3s,w i t htuntillseat −off,predictedis the predicted time until
+seat-off. This ensures that the exoskeleton gravity com-
+pensation is built up faster when the seat-off is reached
+faster. This shows the importance of the two additional
+statesstanding-upandsitting-downintheFSM.Thegain
+βgusedtoswitchthecontactmodelisshownintheFSM.
+Overviewofthelow-levelcontroller
+Figure9givesanoverviewofthecontinuouscontrolloops
+for the STS exoskeleton. The focus lies on the actuator
+and low-level controllers, as the mid-level and high-level
+controllersarealreadyshowninFig. 8andTable 3respec-
+tively.Thecontrolloopsareshownforanexoskeletonwith
+velocity controlled SEAs. In the low-level controller the
+dynamicmodelgeneratesthespringtorque τdynrequired
+tocompensatetheexoskeletondynamics.Theinertialand
+Coriolis and centrifugal parts of the dynamics are only
+partially compensated by setting βinto a constant gain of
+0.75. A full dynamic compensation of the exoskeleton is
+not feasible due to modelling errors, filtering delays, clo-
+sure of the loop with measured variables and the play in
+theMaccepaactuatorsaroundzerotorque.Thejointsare
+filtered with independent constant acceleration Kalman
+filters.
+The spring torques of the exoskeleton dynamics com-
+pensation τdynare combined with the assistance torques
+τassisttogivethedesiredjointtorques τdes.Thesetorques
+τdesaretransformedtodesiredmotorangle θdesinputsfor
+each actuator controller, using Eqs. ( 7-9) in the low-level
+controller. This is followed by a closed-loop proportional
+position control (orange) with a gain Pof 10s−1, which
+results in a position bandwidth around 1.6Hz. This low
+gain keeps the system conservatively stable under the
+changing inertia of the non-linear exoskeleton dynamics
+and under the non-linear spring. To make up for the low
+positionbandwidth,velocityfeedforward ˙θffisintroduced
+using Eqs. ( 13-14). The signal enters the velocity controlloop as the motor current control is not accessible. The
+feedforward, which relies on measured variables in this
+STS motion, is set to 90%, to prevent instability. Also,
+the third order derivative of position...qof Eq. (14)i sn o t
+considered due to the high influence of noise on higher
+derivatives.
+ExperimentsandResults
+We validated the exoskeleton dynamics compensation
+controlleronnon-disabledindividuals.Ifthemodel-based
+compensation of the exoskeleton dynamics is success-
+ful, there should be no difference between muscle effort
+during STS when no exoskeleton is worn and when the
+exoskeleton,controlledfornear-full( βin=0.75)exoskele-
+ton dynamics compensation, is worn. Ideally, this com-
+pensationoftheexoskeletondynamicsshouldbe1(100%),
+but could not be attained in practise. Also the human
+kinematics and dynamics should be similar in both cases.
+Inaddition,wealsoverifiedhowwellthetorquecontroller
+was able to deliver the demanded spring torque. The
+stand-to-sitmotionwasnotanalysedindepth,becausewe
+focused on standing up. No walker or any other support
+wasusedduringtheSTSexperiments.
+Participants
+Theexoskeletonwastestedon15youngadults(10males,
+5 females, 26.4 ±3.3 years, 71.3 ±9.2kg). The partic-
+ipants had no prior experience with exoskeletons. The
+exoskeleton link lengths were adjusted to each partici-
+pant and the exoskeleton joints were aligned with the
+participant’s joints. All subjects gave informed consent in
+accordancetotheethicalcommitteeofUZLeuvenbefore
+participatinginthestudy.
+Assistance
+The provided assistance torques are additional torques
+in addition to the exoskeleton dynamics compensation
+torques.Asthenon-disabledparticipantsdonotneedthis
+Fig.9Overviewoftheexoskeletoncontrollers.Thecontrolloopsoftheexoskeletonaregiven.Theactuatorcontrollerisavelocitycontrollerofthe
+motorangle θ.Theinputofthisactuatorcontrollercomesfromthelow-levelcontroller:thedesiredvelocityandthevelocityfeedforward.Both
+signalsusethedynamicmodelandthemodelofthespring.Thefeedforward ˙θffisobtainedfromEq.( 13-14)
+
+--- Page 14 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page14of21
+assistance, the goal of the assistance is to reduce the con-
+tribution of the participants compared to the case when
+no assistance is given. The assistance is an off-line com-
+puted assistance-as-needed (AAN) torque. Hence, this
+wasaprecomputedtorqueprofilethatwasgivenasassis-
+tance in the assistance-as-needed condition. The start of
+theoff-linegeneratedassistancewaslearntusingartificial
+neural networks [ 54]. These neural networks learned to
+map the start of assistance on the human torques needed
+duringstandingup.Thenetworkwastrainedondatafrom
+theinitialtestsonseveralvolunteerstoonlypredictwhen
+theoff-linegeneratedassistanceneededtostart.Training
+the network on several persons allowed to use the net-
+work on multiple participants without having to calibrate
+for every individual. However, when the motion deviates
+alotfromthedemonstratedmotions(elderlyordisabled),
+theneuralnetworkneedsretraining.
+To compute this assistance, data from an earlier study
+[30] was used. Marker data of several participants of
+this study was used to scale m usculoskeletal models in
+OpenSim 3.2 [ 55]. To simulate muscle weakness, the
+muscles were artificially weakened in the musculoskele-
+tal models. The same kinematics and force plate data was
+applied to the models. Because of the muscle weakening,
+the models were no longer able to generate the required
+torques to perform the recorded motion in simulation.
+Subtractingthesimulatedmuscle-generatedtorquesfrom
+the required torques, prescribed by the human dynam-
+ics, leads to the assistance-as-needed torques. Eventually,
+this should be calculated on-line while moving with the
+exoskeleton. However, in these first experiments, these
+calculation were simulated off-line and averaged over the
+sevennon-disabledparticipantsoftheearlierstudy.
+Protocol
+Each participant came once to the measurement lab for
+thefullexperimentalprotocol.Themeasurementinvolved
+standing up from and sitting down on a stool, set to
+100% knee height. Each STS movement (with or without
+exoskeleton) was characterized as follows. The partici-
+pant was instructed to wait for a verbal signal before
+standing up. After the verbal signal the participant could
+choose freely when to stand up at a self selected speed,
+but was requested to do so fluently. After the partici-
+pant was standing, he was instructed to sit down after
+approximatelythreeseconds.
+Four different conditions were analysed: condition
+without exoskeleton N ,passive P condition (exoskele-
+ton is unpowered), transparentT condition (exoskeleton
+is compensated, no assistance) and off-line assistance-
+as-needed A condition, always performed in that order.
+The passive condition was evaluated to Because adjust-
+ing the exoskeleton to the participant and putting on
+the exoskeleton takes almost half an hour, the motionswithoutexoskeletonwerealwaysperformedfirst.Thepar-
+ticipant had to stand up and sit down five times in condi-
+tionN.Next,theexoskeletonwasputonandtheexoskele-
+ton IMU sensors were calibrated. For each exoskeleton
+condition,21motionswereperformed,ofwhichthefirst,
+middle and last three were recorded. This way, we could
+analyseiftheuserwouldrequiresometimetoadapttothe
+control method in each condition. However, a required
+adaptation time was not perceived. In this paper, only the
+last three motions of each condition were used. Between
+each exoskeleton condition, a short break of 5min. was
+introducedtopreventfatigueandtolettheparticipantfill
+outaquestionnaire.
+Kinematicsandkinetics
+To validate the exoskeleton controller, the motions of
+the participant and exoskeleton were recorded with a
+reflectivemarkermotioncapturesystemconsistingoften
+cameras (Vicon Motion Systems, Oxford Metrics, UK)
+sampled at 100Hz. A total of 34 markers were placed on
+bony landmarks of the participant. In addition, clusters
+with three markers were placed on lower and upper arms
+and upper legs, and a head band with four markers was
+wornbytheparticipant.Intheexoskeletoncondition,the
+markers on the participant’s pelvis were removed due to
+incompatibility with the exoskeleton pelvis module. Four
+markers placed on the exoskeleton pelvis module were
+usedtolocatetheparticipant’spelvis.
+Three force plates (AMTI, Waterworn, USA) placed
+under both feet and a stool respectively captured the
+ground reaction forces at a sample frequency of 1000Hz.
+The way the force plates were set up in the lab prevented
+the participants from placing their feet in a self-selected
+position.Asaresult,therightlegwasplacedslightlymore
+outwardcomparedtoaself-selecting normalsittingposi-
+tion.Attentionwaspaidtomakesurethefeetwereplaced
+in the same positions in every condition. Placing the feet
+in a non self-selected position might have an impact on
+the kinematics, torques and muscle usage. Because the
+foot placement was kept the same for every condition,
+any deviation due to a non self-selected foot placement
+is present in every measured condition. In addition, the
+data used for the off-line assistance torques [ 30]w a sa l s o
+recordedwiththesamefootplacement.
+All marker data and force plate data were low-pass
+second order Butterworth filtered with zero-phase lag
+at 6Hz. Inverse kinematics of the marker data resulted
+in the joint kinematics using OpenSim 3.2. A partici-
+pantmodelwascreatedbyscalingthestandardOpenSim
+generic_92_23 model to the weight and size of the par-
+ticipant. The exoskeleton dynamic model was added to
+this scaled participant model. The inverse dynamics were
+calculated in OpenSim 3.2 using this total model, the cal-
+culatedjointkinematicsandforceplatedata.Thisresulted
+
+--- Page 15 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page15of21
+inthetotaljointtorquesofbothparticipantandexoskele-
+ton. The marker and force plate data were synchronized
+with the exoskeleton data, which was recorded at 500Hz.
+This allowed to subtract the exoskeleton torque contri-
+bution (Eq. ( 7)) from the total joint torques to give the
+participant’sjointtorques.
+Electromyography
+The different control conditions were also compared
+by looking at muscle usage. We measured surface elec-
+tromyography (EMG) signals of the rectus femoris (RF),
+vastus lateralis (VL), biceps femoris (BF), medial ham-
+strings (MH), tibialis anterior (TA), gastrocnemius later-
+alis(GL),soleus(So)andvastusmedialis(VM)bilaterally.
+Theself-adhesiveelectrodeswereplacedtwocentimetres
+apart and in the fibre direction on the belly of each mus-
+cle in accordance with the Seniam guidelines [ 56]. EMG
+signalsofthe14musclesweresampledat1000Hzusinga
+wireless EMG system (ZeroWire, Aurion). The raw EMG
+signalswerebandpassfilteredbetween20and400Hzwith
+asecondorderButterworthfilter.Thesignalwasthenrec-
+tified and low pass filtered at 10Hz with a second order
+Butterworth filter. The EMG processing is done accord-
+ing to the Seniam guidelines [ 56]T h em u s c l ee f f o r tw a s
+approximated by the time integral of the rectified and fil-
+teredEMGvaluesduringtheSTSmotion.Sincetherewas
+a resting period between the measured conditions, the
+EMGwasnotcorrectedforfatiguebetweenconditions.
+Statistics
+The relative change in muscle effort in the passive con-
+dition compared to the transparent condition and in thecondition without exoskeleton compared to the trans-
+parent condition was evaluated with a Wilcoxon Signed
+Rank Test [ 57]. The statistical tests of the 14 muscles are
+one family of tests. Hence, p-values of the muscles tests
+werecorrectedformultiplecomparisonswithBonferroni-
+Holm [58] correction. The 14 p-values from comparing
+twoconditionsareorderedfromlowtohigh.Thep-value
+on rank iis Bonferroni corrected for 14 −i+1t e s t s
+(pBonferroni ,i=(14−i+1)×p) and compared to the
+significance level (here 0.05). When the Bonferroni cor-
+rected p-value of rank iis not significant, the test stops
+and all following p-values ( i+1 to 14) are also not sig-
+nificant. There are three families of muscle tests: passive,
+transparentandwithoutexoskeleton.Themultipletesting
+ofthethreeconditionsiscorrectedbyasimpleBonferroni
+correctionbymultiplyingallp-valuesby3.
+To compare the human joint angles and torques
+between the different conditions, a one dimensional Sta-
+tistical Parametric Mapping (SPM) Friedman’s ANOVA
+was used [ 59]. This method also corrects for multiple
+tests.Whensignificancewasreached,apost-hoctestwas
+neededtofindbetweenwhichgroupsthedifferenceswere
+significant.Thisisdonewithatwo-samplet-testbetween
+the combination of conditions N vs T and P vs T, again
+correctingformultipletesting.
+Results
+The main objective of the experiments was to show the
+effectiveness of the model-based compensation of the
+exoskeleton dynamics. Therefore, the muscle efforts of
+fourteenmuscleswerecomparedinFig. 10.Especiallythe
+quadriceps muscles, of which the vastus medialis, vastus
+ab
+Fig.10Comparisonofmuscleeffortinthreeconditions:passive,transparentandwithoutexoskeleton.Theaveragemuscleeffort(timeintegralof
+themuscleactivity)isshownrelativetothetransparentconditionbythegraybarsandthecorrespondingstandarddeviationacrossallfifteen
+participantsisshownbytheerrorbars.Eachmuscleisscaledseparatelyrelativetothecorrespondingaveragemuscleeffortinthetransparent
+condition.Theblackdottedlinerepresentsthisrelativemuscleactivityinthetransparentcondition,scaledtoone.Intheleftsubfigure(a)them uscle
+effortofthepassiveconditioniscomparedtothetransparentcondition.Intherightsubfigure(b)theeffortoftheconditionwithoutexoskeletoni s
+comparedtothetransparentcondition.Whentheplottedbarsanderrorbarslieaboveone,themuscleeffortislargerthaninthetransparent
+condition.Significantdifferencesbetweenthewithoutexoskeletonandtransparentconditionaremarkedwithablackstar (pBonferroni −Holm<0.05)
+
+--- Page 16 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page16of21
+lateralis and the rectus femoris were measured, con-
+tribute to the STS motion. Eight out of the fourteen mus-
+cles required significantly (Bonferroni-Holm corrected p
+<0.05) more effort in the passive condition P relative to
+thetransparentconditionT,asFig. 10aandT a ble 4show.
+All of the recorded quadriceps muscles (RF, VL and VM)
+showed significant difference. In contrast, in the muscle
+effort of the condition without exoskeleton N compared
+toconditionT,nosignificantdifferencesweredetectedin
+anymuscle,asTable 5andFig.10bshow .
+To further examine the effectiveness of the transpar-
+ent control, we compared human kinematics and joint
+torquesofthehip,kneeandankleduringtheSTSmotions
+computed by SPM in Fig. 11. The reference posture for
+the human joint kinematics (Fig. 11at o11c) is stand-
+ing upright (zero angles). The comparison of kinematics
+between the transparent condition T in red and the pas-
+sive condition P in black showed significant differences
+(pcorrected <0.05) in the hip (pcorrected =0.008)and knee
+(pcorrected <0.001)angle around 50% of the STS motion,
+indicated by a blue bar. This could be expected as in con-
+dition P, the hip (more flexion) and knee angle (more
+flexion) evolved slower to the angles of standing upright.
+No significant differences ( pcorrected >0.05) were found in
+the kinematics between the condition T in red and con-
+dition without exoskeleton N in blue during STS. The
+human joint torques (Fig. 11dt o11f) showed significant
+differences( pcorrected <0.05)betweenconditionPandTin
+the hip (pcorrected =0.007)and knee torque (pcorrected <
+0.001), indicated by a green bar. In condition P, the exter-
+nal hip torque was more negative (more flexion torque)
+from 40 to 50% of the motion, while the external knee
+torquewassignificantlylarger(moreflexiontorque)from
+30 to 65% of the STS motion. No significant differences
+(pcorrected >0.05)werefoundinthehip,kneeandanklefor
+conditionTandconditionN,duringtheSTSmotions.
+As the focus is on the compensation of the exoskeleton,
+Fig.12showstheeffectivenessofthetorquecontrolloop.
+The desired τdes,sprand measured /hatwideτsprspring torques of
+the hip, knee and ankle joints are compared in the trans-
+parent control condition T. The controller is able to track
+Table4Bonferroni-Holmcorrectedp-valuesPvsT
+left
+musclecorrected
+p-valueuncorrected
+p-valueright
+musclecorrected
+p-valueuncorrected
+p-value
+BFL 0.7632 0.1272 BFR 0.0945 0.0052
+GLL 0.0293 0.0012 GLR 0.3926 0.0327
+MHL 0.7632 0.1272 MHR 0.4449 0.0494
+RFL 0.0051 0.0001 RFR 0.0293 0.0012
+TAL 0.1465 0.0098 TAR 0.0081 0.0002
+VLL 0.0081 0.0002 VLR 0.0051 0.0001
+VML 0.0073 0.0002 VMR 0.0048 0.0001Table5Bonferroni-Holmcorrectedp-valuesNvsT
+left
+musclecorrected
+p-valueuncorrected
+p-valueright
+musclecorrected
+p-valueuncorrected
+p-value
+BFL 1 1 BFR 1 0.1040
+GLL 1 0.0494 GLR 1 0.3757
+MHL 1 0.0923 MHR 1 0.6355
+RFL 1 0.2412 RFR 1 0.1909
+TAL 0.5333 0.0137 TAR 1 0.1272
+VLL 1 0.0419 VLR 1 0.1531
+VML 0.3384 0.0081 VMR 1 0.0676
+the desired τdes,sprspring torques. This is also confirmed
+bythelowtorqueerrors τerror=(τdes,spr−/hatwideτspr)inFig.12d
+to12f.
+The results of Fig. 13show the desired and delivered
+torques at the hip, knee and ankle joint in the assistance-
+as-needed condition (A). During the largest part of the
+STS motion, the desired τdes,sprin blue and measured
+(=delivered) /hatwideτsprin red spring torque overlap in Fig. 13a
+to13c, and the average errors τerror=(τdes,spr−/hatwideτspr)
+remainsmallinFig. 13dto13f.However,themeasuredhip
+torque /hatwideτspris lower than the desired one τdes,spraround
+seat-off in Fig. 13a, which means the assistance is not
+given completely. This is also indicated by the large aver-
+age error τerrorin Fig.13d. At this location, the motor
+measured acceleration torque /hatwideBmot/hatwide¨θ(in orange) of the
+hip is very high leading to saturation of the hip motor.
+In contrast, the knee torque is able to follow the desired
+torque around seat-off, which means the assistance is
+given completely. Important to note is that the required
+steep build-up of torque at the knee before seat-off is
+achievedbythecontroller.
+Discussion
+In order to compensate the exoskeleton dynamics, mod-
+elling the contacts of the exoskeleton with the environ-
+ment are crucial. These contacts play a major role in the
+controller,astheylargelyaffecttheexoskeletondynamics.
+Modelling these contacts is often not tackled but evaded
+byutilizingdifferentdynamicmodelsforeverycontactsit-
+uation [14] or changing the control strategy [ 1,7]. In this
+work, effort is put in modelling the contacts and using
+the same dynamic model (floating base) in the different
+contactsituations.
+The STS motion demonstrated the importance of good
+contact modelling: the stool contact changes, which
+greatlyinfluencedtheexoskeletondynamics.Whileonthe
+stool, the exoskeleton is supported and the actuators do
+not need to compensate the weight of the exoskeleton.
+Thestoolcontactismodelledbysettingthegravityofthe
+
+--- Page 17 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page17of21
+Fig.11Comparisonofhumanjointkinematicsanddynamicsinthreeconditions:passive,transparentandwithoutexoskeleton.Thehuman
+kinematicsandjointtorquesofthehip,kneeandankleareshowninthreeconditions:withoutexoskeleton(N)ingreen,thetransparent
+exoskeletoncondition(T)inredandthepassiveexoskeletoncondition(P)inblack.Thetopthreesubfigures(atoc)representthejointangles,whil e
+thelowerthreesubfigures(dtof)representthejointtorques,normalizedwithrespecttothemassofeachparticipant.Boththeaverageand
+standarddeviation(bandof ±σareshownineachgraph.Thebluebarsindicatetimeperiodswithasignificantdifferencebetweenthepassiveand
+transparentconditionofthepost-hoctwo-samplet-test.Thecorrectedp-valuesare0.008, <0.001,0.007and <0.001forthehipangle,kneeangle,
+hiptorqueandkneetorquerespectively
+ex oskeletontozerowithgain βg=0.Whentheexoskele-
+ton leaves the stool, it needs to compensate its whole
+dynamics. All the weight of the exoskeletonis transferred
+totheexoskeletonfeetand βgissetto1.Theinertialterm
+βinwas active in both contact situations. This allowed to
+also compensate the exoskeleton when the person moves
+his trunk forward while sitting on the stool. The distribu-
+tion of the forces over both feet while not on the stool is
+performed with a model-based method [ 44] that account
+forthestiffnessoftheexoskeleton.Modellingallcontactsituationsandrelyingonafloating
+base model makes the model-based exoskeleton com-
+pensationeasiergeneralizabletoothercontactsituations.
+Modelling the contact results in a limited number of gain
+factors to capture the change of the dynamics. Only one
+gain factor βgmodels the stool contact in the two situ-
+ations. The prescribed variation of βgis directly linked
+to the change of the vertical ground reaction force when
+the stool contact changes [ 54]. The difference with pre-
+scribing joint trajectories in impedance controllers [ 3,4]
+Fig.12Exoskeletontransparentcontrolevaluation.Thejointtorqueanalysisforthetransparentconditionisshown(conditionT).Thetopthree
+subfigures(atoc)showthejointtorqueforthehip,kneeandankleforoneSTSmotion.Thedesiredjointtorque τdes,sprisshowninblue.Thisdesired
+springtorqueistorqueneededtocompensatetheexoskeleton.Themeasuredspringtorque /hatwideτsprisrepresentedinred.Thetorquetoacceleratethe
+motorinertiaisgiveninyellow.Seat-offoccursattheblackdashedline.Thelowerthreesubfigures(dtof)showtheaverageerror(difference)and
+thebandofstandarddeviation (±σ)betweenthedesired τdes,sprandthedelivered /hatwideτsprspringtorquesforalltheSTSmotionsofconditionT
+
+--- Page 18 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page18of21
+Fig.13Exoskeletonjointtorquecontrolevaluation.Thejointtorqueanalysisfortheofflineassistance-as-neededisshown(conditionA).Thetop
+threesubfigures(atoc)showthejointtorqueforthehip,kneeandankleforoneSTSmotion.Thedesiredjointtorque τdes,sprisshowninblue.This
+desiredspringtorqueisthesumoftheexoskeletondynamicscompensationtorque τdyn,shownbythelightbluecurve,andthedesiredassistance
+indicatedbytheblueareabetween τdynandτdes,spr.Therealisedspringtorque /hatwideτsprisrepresentedinred.Thetorquetoacceleratethemotorinertia
+isgiveninyellow.Seat-offoccursattheblackdashedline.Thelowerthreesubfigures(dtof)showtheaverageerror(difference)andthebandof
+standarddeviation (±σ)betweenthedesiredandthedeliveredspringtorquesforalltheSTSmotionsofconditionA
+is that βgis not a motion trajectory, but it is one param-
+eter modelling the time variation of the gravity term of
+the exoskeleton. Furthermore, prescribing βgis no longer
+needed when a low-cost pressure sensor would track the
+change of contact pressure at the stool. The change in
+pressurecouldbedirectlymappedon βg.
+Inthepassivecondition(P),thehumanneededtomove
+the exoskeleton as the controller was not actuating the
+exoskeleton motors. This is validated by a significant
+increase in hip and knee flexion torque to stand up in
+condition P, compared to transparent condition T (see
+Fig.11). Especially the human knee torque was larger in
+condition P, because the exoskeleton needed larger knee
+torques(seepurpledashedlineinFig. 13b).Theanalysisof
+muscleeffortbacksupthisincreaseinjointtorqueincon-
+ditionP.Thequadricepsmuscles,ofwhichVM,VLandRF
+were measured,were significantly(Bonferroni-Holm cor-
+rected p <0.05) more recruited in condition P compared
+toconditionT,asseeninFig. 10aandT able 4.Thesignif-
+icant difference in joint kinematics between condition P
+andTaround50%oftheSTSmotioncanbeexplainedby
+aslowerfirsthalfoftheSTSmotioninconditionP.
+In the transparent condition (T), the exoskeleton had
+to compensate its own dynamics, taking into account the
+changingstoolcontact.Ifthecontactwasmodelledinthe
+wrongway,suchthatthecontrollerwouldcompensatethe
+exoskeleton too early or too late, significant differences
+in human joint torques and muscle effort was expected.
+However,nosignificantdifferences( pcorrected >0.05)were
+found for the joint torques or the muscle efforts between
+conditionTandtheconditionwithoutexoskeletonN.The
+uncorrected p-valuesofthemuscleeffortbetweencondi-
+tionsTandNarefoundinTable 5.Thesevaluesillustratethe non-significance of the differences between N and T.
+This indicates the contact modelling of the stool using βg
+isontime.Althoughtheabsenceofsignificantdifferences
+does not prove statistical similarity between condition T
+and N, the human joint torques show great similarity in
+Fig.11.E v a l u a t i o no ft h ec o n t r o le r r o r s τerrorin Fig.12
+dt oF i g . 12f indicates that the controller is able to track
+the desired spring torque to compensate the exoskeleton
+andprovideassistance.Hence,themodel-basedcontroller
+seemstobeabletocompensatetheexoskeletondynamics.
+Priortotheseat-off,asteepbuild-upofkneetorquefor
+the exoskeleton dynamics compensation and assistance
+is demanded in Fig. 13b. This steep build-up of spring
+torque at the knee would be impossible by the SEA posi-
+tion control loop alone because it has a low bandwidth
+(seeSubsectionOverviewofthelow-levelcontroller).The
+torque needs to be build up fast as in less than 0.3s after
+the seat-off prediction the peak torques at the knee have
+to be reached. The feedforward control command from
+Eqs. (13-14) is crucial to prevent tracking errors in the
+spring compression, which would result in less torque
+generated.
+The error between the desired and measured knee
+torque right after the assistance (Fig. 13b) and the large
+error at the hip torque around seat-off (Fig. 13a) can be
+explained by motor saturation. The motor inertial torque
+/hatwideB/hatwide¨θand the measured spring torque /hatwideτspra d du pt oa b o u t
+15Nmwhich is the motor torque limit when overload-
+ing the motor. The high hip motor acceleration and high
+motor inertia, due to a high transmission ratio, led to a
+high motor inertial torque /hatwideB/hatwide¨θas shown in Fig. 13a. This
+shows the importance of the transmission ratio in the
+design of the exoskeleton. The high motor inertial torque
+
+--- Page 19 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page19of21
+/hatwideB/hatwide¨θdrained most of the available motor torque, prevent-
+ing the spring torque /hatwideτsprfrom reaching its desired value
+τdes,spr. The motor saturation did not influence stability.
+Thesaturationonlypreventedtoprovideproperhipassis-
+tance even though the assistance was low (6Nm). When
+no assistance was needed (in condition T), no motor sat-
+uration occurred, as Fig. 12shows. In order to overcome
+this saturation limit, the motor and transmission ratio
+shouldberedesignedtoreducethereflectedmotorinertia
+aftertransmissionand/ortodeliverhighertorques.
+The motor saturation indicates the importance of a
+proper motor and transmission design in the early design
+stages. To this end, not only the desired assistance but
+also the dynamics of the exoskeleton itself needs to be
+accounted for. Although the exact mechanical design
+of the exoskeleton might still be unknown in the early
+design stages, a rough estimate is needed to simulate the
+motor torques needed to move the exoskeleton based on
+human kinematics. In addition, the selection of motor
+and transmission have to be solved concurrently, as the
+transmission affects both the torque and the motor iner-
+tia presented at the joint level. The selected motor and
+transmission will affect the exoskeleton inertia and thus
+alter the torques needed to move the exoskeleton. Hence,
+aniterativedesignprocedurewillbeneededwheremotor
+and transmission selection and exoskeleton dynamics
+simulationwillhavetoberepeateduntilconvergencetoa
+validsolution.
+The high standard deviation on the spring torque error
+τerrorinFig.13dto13fispartiallycausedbythedifficulty
+in defining the end of an STS motion. The STS motion
+endswhenthepersonisstandingupright.Thejointangles
+needtobeclosetoadefinedsetofanglesrelatedtostand-
+ingandthejointvelocitiesshouldbelow.Becausethereis
+a difference in how fast the person executes the last part
+of the STS motion, the seat-off instance (where for exam-
+ple the hip torque error is largest) is occurring at slightly
+different normalized times for every participant. There-
+fore,thetimenormalizedtorqueerrorcurvesshowlarger
+variancebetweensubjects.
+Thestudyhasthreemainlimitations.First,theexoskele-
+ton actuators (motor and transmission) were not able
+to assist the hip at the required dynamic profile, lead-
+ing to motor saturation. Although compensation of the
+exoskeleton dynamics was possible, the motors were
+close to or at saturation and unable to deliver any
+higher assistance torques. Because the assistance was
+small, the assistance condition did not differ greatly from
+the transparent control control condition. Consequently,
+comparisons of muscle effort did not result in significant
+differences between the transparent and assisted condi-
+tions. These analysis are left out of the paper. Second,
+the control method was not directly compared to the
+impedance controller, which is a commonly used methodin the literature. Such an impedance controller imposes
+a desired trajectory, which is difficult to provide in non-
+cyclic motions and while keeping the user in charge.
+Also, the detailed implementation of the impedance con-
+trollers is not documented in depth and these controllers
+have more gains that require tuning, which prevents
+an proper comparison. The third limitation is that only
+sit-to-stand motions were examined. In order to fur-
+ther validate the controller methodology to compensate
+the exoskeleton and model contacts with the ground,
+other tasks, such as walking, should be examined in the
+future.
+Conclusion
+The present study proposed a model-based control to
+compensate the dynamics of a lower-limb exoskeleton.
+This control approach was tested and evaluated on an
+exoskeletonforsit-to-standmotions.
+Compensating the dynamics of exoskeletons becomes
+importantwhentheyenterdailylifewheretheuserwants
+to be in charge. Controllers capable of compensating the
+exoskeleton rely on extensive modelling the exoskeleton
+and the contacts with the environment. These contacts
+playamajorroleinthiscontroller,astheylargelyaffectthe
+exoskeleton dynamics. The sit-to-stand motion is a good
+example to demonstrate the importance of good contact
+modelling: the stool contact changes, which greatly influ-
+enced the exoskeleton dynamics. While on the stool, the
+exoskeleton is supported and the actuators do not need
+to compensate the weight of the exoskeleton. When the
+exoskeleton leaves the stool, it needs to compensate its
+wholedynamics.
+To aid in developing such exoskeleton dynamics com-
+pensation controllers, a modelling procedure and control
+scheme are presented in this work. The control scheme
+breaks down the controller in four different control lev-
+els in support of the modelling steps. Starting from
+the dynamic model of the exoskeleton, the exoskeleton
+compensation controller is designed. The outputs of the
+exoskeleton compensation controller are the exoskeleton
+compensation torques, which are enforced by a position
+controlled Series Elastic Actuator. The proposed model-
+based feedforward signal improves the tracking of the
+positioncontrol loop.A changeofthecontactmodelalso
+contributestothefeedforwardsignal.
+Theeffectivenessofthecontrollerwasdemonstratedby
+validating it on non-disabled participants. The controller
+was able to follow the fast changing torque demands,
+except when motor saturation occurred (at the hips).
+Comparing the results between the passive exoskeleton
+andthetransparentcontrollershowedsignificantlylarger
+human joint torques and more muscle effort for the pas-
+siveexoskeleton.Ontheotherhand,comparingthetrans-
+parent controller and the condition without exoskeleton
+
+--- Page 20 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page20of21
+showed no significant difference in results for the human
+torqueandmuscleeffort.
+The saturation of the actuators during the assisted
+condition, prevented a proper evaluation of the control
+methodswhilegivingassistance.Futureworkwillinclude
+validating the controller on an exoskeleton with more
+powerful actuators and testing and validating the control
+methodsonwalkingexoskeletons.
+Abbreviations
+A:Assistance-as-neededcondition;AAN:Assistance-as-needed;ADL:Activities
+ofdailyliving;ANN:Artificialneuralnetworks;CAD:Computeraideddesign;
+dof:Degreeoffreedom;EMG:Electromyography;FSM:Finitestatemachine;
+IMU:Inertialmeasurementunit;MACCEPA:Mechanicallyadjustable
+complianceandcontrollableequilibriumpositionactuator;N:Condition
+withoutexoskeleton;P:Passivecondition;SEA:Serieselasticactuator;STS:
+Sit-to-stand;T:Transparentcondition
+Acknowledgements
+TheRoboticsResearchGroupandtheRoboticsandMultibodyMechanics
+ResearchGrouparebothcorelabsofFlandersMake..JonasVantiltandKaren
+JuniusareresearchfellowsoftheFlemishagencyforInnovationbyScience
+andTechnology(IWT-SBO).MaartenAfschriftisaresearchfellowofthe
+Flemishagencyforscientificresearch(FWO-Vlaanderen).Theauthors
+gratefullyacknowledgethefinancialsupportbytheagencyFlanders
+Innovation&Entrepreneurship(VLAIO)throughaprojectgrant(MIRAD,
+IWT-SBO120057).Theauthorscordiallythankallparticipantsofthestudy.
+Funding
+TheMIRADexoskeletonisfundedbytheagencyFlandersInnovation&
+Entrepreneurship(VLAIO)throughaprojectgrant(MIRAD,IWT-SBO120057).
+JonasVantiltandKarenJuniusareresearchfellowsoftheFlemishagencyfor
+InnovationbyScienceandTechnology(IWT-SBO).MaartenAfschriftisa
+researchfellowoftheFlemishagencyforscientificresearch(FWO-Vlaanderen).
+Availabilityofdataandmaterials
+Thedatasetsgeneratedand/oranalysedduringthecurrentstudyarenot
+publiclyavailableduetimeandeffortspentfordatacollection.Accesstothe
+softwareoftheexoskeletonareavailablefromthecorrespondingauthoron
+reasonablerequest.
+Authors’contributions
+JVandKTdevelopedthecontrolalgorithmsfortheexoskeleton.JVconducted
+allmodellingworkoftheexoskeleton.KJandJGdesignedtheexoskeleton
+andactuators.AKBDrecruitedtheparticipants.JV,KTandAKBDconducted
+thevalidationexperimentswiththeparticipants.MA,AKBDandJVanalysed
+thedata.JDS,FDG,EA,IJandDLprovidedsupervisionandproofreadthe
+paper.Allauthorsreadandapprovedthefinalmanuscript.
+Ethicsapprovalandconsenttoparticipate
+Allsubjectsgaveinformedconsent(studyS55281)inaccordancetothe
+EthicalCommitteeofUZ/KULeuven(ECOnderzoekUZ/KULeuven)before
+participatinginthestudy.
+Consentforpublication
+Theconsentofallparticipantswasobtainedbeforepublication.
+Competinginterests
+Theauthorsdeclarethattheyhavenocompetinginterests.
+Publisher’sNote
+SpringerNatureremainsneutralwithregardtojurisdictionalclaimsin
+publishedmapsandinstitutionalaffiliations.
+Authordetails
+1theRoboticsResearchGroup,theDepartmentofMechanicalEngineering,KU
+Leuven,Celestijnenlaan300,Leuven,Belgium.2DepartmentofKinesiology,KU
+Leuven,Tervuursevest101,Leuven,Belgium.3RoboticsandMultibody
+MechanicsResearchGroup,DepartmentofMechanicalEngineering,VUB,
+Pleinlaan2,Brussels,Belgium.4FlandersMake,Lommel3920,Belgium.Received:24January2018 Accepted:29April2019
+References
+1. YoungAJ, FerrisDP.Stateoftheartandfuturedirectionsforlowerlimb
+roboticexoskeletons.IEEETransNeuralSystRehabilEngineer.2017;25(2):
+171–82.https://doi.org/10.1109/TNSRE.2016.2521160 .
+2. YanT, CempiniM, OddoCM, VitielloN.Reviewofassistivestrategiesin
+poweredlower-limborthosesandexoskeletons.RobotAutonSyst.
+2015;64:120–36. https://doi.org/10.1016/j.robot.2014.09.032 .
+3. Kolakowsky-HaynerS, CrewJ, MoranS, ShahA.Safetyandfeasibilityof
+usingtheeksobionicexoskeletontoaidambulationafterspinalcord
+injury.JSpine.2013;4(3).
+4. WangS,etal.Designandcontrolofthemindwalkerexoskeleton.IEEE
+TransNeuralSystRehabilEngineer.2015;23(2):277–86. https://doi.org/10.
+1109/TNSRE.2014.2365697 .
+5. JezernikS, ColomboG, MorariM.Automaticgait-patternadaptation
+algorithmsforrehabilitationwitha4-dofroboticorthosis.IEEETrans
+RobotAutom.2004;20(3):574–82.
+6. BlayaJ, HerrH.AdaptiveControlofaVariable-ImpedanceAnkle-Foot
+OrthosistoAssistDrop-FootGait.IEEETransNeuralSystRehabilEngineer.
+2004;12(1):24–31. https://doi.org/10.1109/TNSRE.2003.823266 .
+7. Jiménez-FabiánR, VerlindenO.Reviewofcontrolalgorithmsforrobotic
+anklesystemsinlower-limborthoses,prostheses,andexoskeletons.Med
+Engineer&Phys.2012;34(4):397–408. https://doi.org/10.1016/j.
+medengphy.2011.11.018 .
+8. Aguirre-OllingerG, ColgateJE, PeshkinMA, GoswamiA.
+Active-impedancecontrolofalower-limbassistiveexoskeleton.In:
+Proceedingsofthe2007IEEE10thInternationalConferenceon
+RehabilitationRobotics.TheNetherlands:Noordwijk;2007. p.188–95.
+9. BernhardtM, FreyM, ColomboG, RienerR.Hybridforce-positioncontrol
+yieldscooperativebehaviouroftherehabilitationrobotlokomat.In:9th
+InternationalConferenceonRehabilitationRobotics,2005.Chicago:IEEE;
+2005. p.536–9. https://doi.org/10.1109/ICORR.2005.1501159 .
+10. Duschau-WickeA, ZitzewitzJv, CaprezA, LünenburgerL, RienerR.Path
+control:Amethodforpatient-cooperativerobot-aidedgaitrehabilitation.
+IEEETransNeuralSystRehabilEngineer.2010;18(1):38–48.
+11. HeH, KiguchiK.Astudyonemg-basedcontrolofexoskeletonrobots
+forhumanlower-limbmotionassist.In:20076thInternationalSpecial
+TopicConferenceonInformationTechnologyApplicationsin
+Biomedicine.Tokyo:IEEE;2007. p.292–5. https://doi.org/10.1109/ITAB.
+2007.4407405 .
+12. KawamotoH, TaalS, NinissH, HayashiT, KamibayashiK, EguchiK,
+SankaiY.Voluntarymotionsupportcontrolofrobotsuithaltriggeredby
+bioelectricalsignalforhemiplegia.In:2010AnnualInternational
+ConferenceoftheIEEEEngineeringinMedicineandBiology.Buenos
+Aires:IEEE;2010. p.462–6. https://doi.org/10.1109/IEMBS.2010.5626191 .
+13. vanAsseldonkEHF, vanderKooijH.Robot-AidedGaitTrainingwith
+LOPES.In: In:DietzV, NefT., RymerWZ,editors.Londen:Springer;2012.
+p.379–96.
+14. KazerooniH, StegerR, HuangL.Hybridcontroloftheberkeleylower
+extremityexoskeleton(bleex).IntJRobotRes.2006;25(5/6):561–73.
+https://doi.org/10.1177/0278364906065505 .
+15. AjayiMO, DjouaniK, HamamY.Shank-foottrajectorycontrol:Aforward
+dynamicsapproachusingcomputed-torquecontrol.In:IEEE-RAS
+InternationalConferenceonHumanoidRobots.Madrid:IEEE;2014. p.
+652–7.https://doi.org/10.1109/HUMANOIDS.2014.7041432 .
+16. ValleryH, VenemanJ, vanAsseldonkE, EkkelenkampR, BussM, vanDer
+KooijH.Compliantactuationofrehabilitationrobots.IEEERobot&Autom
+Mag.2008;15(3):60–9. https://doi.org/10.1109/MRA.2008.927689 .
+17. PrattGA, WilliamsonMM.Serieselasticactuators.In:Proceedings1995
+IEEE/RSJInternationalConferenceonIntelligentRobotsandSystems.
+Pittsburgh:IEEE;1995. p.399–406. https://doi.org/10.1109/IROS.1995.
+525827.
+18. PrattGA, WillissonP, BoltonC, HofmanA.Latemotorprocessingin
+low-impedancerobots:impedancecontrolofseries-elasticactuators.In:
+Proceedingsofthe2004AmericanControlConference.Boston:IEEE;
+2004. p.3245–51.
+19. MathijssenG, CherelleP, LefeberD, VanderborghtB.Conceptofa
+series-parallelelasticactuatorforapoweredtranstibialprosthesis.
+Actuators.2013;2(3):59–73. https://doi.org/10.3390/act2030059 .
+
+--- Page 21 ---
+Vantiltetal. JournalofNeuroEngineeringandRehabilitation           (2019) 16:65 Page21of21
+20. QuinlivanBT, LeeS, MalcolmP, RossiDM, GrimmerM, SiviyC, Karavas
+N, WagnerD, AsbeckA, GalianaI, WalshCJ.Assistancemagnitude
+versusmetaboliccostreductionsforatetheredmultiarticularsoftexosuit.
+ScienceRobotics.2017;2(2):. https://doi.org/10.1126/scirobotics.aah4416 .
+21. ZhangJ, FiersP, WitteKA, JacksonRW, PoggenseeKL, AtkesonCG,
+CollinsSH.Human-in-the-loopoptimizationofexoskeletonassistance
+duringwalking.Science.2017;356(6344):1280–4. https://doi.org/10.1126/
+science.aal5054 .
+22. CollinsSH, WigginMB, SawickiGS.Reducingtheenergycostofhuman
+walkingusinganunpoweredexoskeleton.Nature.2015;522(7555):212–5.
+https://doi.org/10.1038/nature14288 .
+23. FengS, WhitmanE, XinjilefuX, AtkesonCG.OptimizationBasedFull
+BodyControlfortheATLASRobot.In:2014IEEE-RASInternational
+ConferenceonHumanoidRobots.Madrid:IEEE;2014. p.120–7. https://
+doi.org/10.1109/HUMANOIDS.2014.7041347 .
+24. HerzogA, RighettiL, GrimmingerF, PastorP, SchaalS.Balancing
+experimentsonatorque-controlledhumanoidwithhierarchicalinverse
+dynamics.In:2014IEEE/RSJInternationalConferenceonIntelligent
+RobotsandSystems.Chicago:IEEE;2014. p.981–8. https://doi.org/10.
+1109/IROS.2014.6942678 .
+25. SherikovA, DimitrovD, WieberP.-B.WholeBodyMotionControllerwith
+Long-TermBalanceConstraints.In:14thIEEE-RASInternational
+ConferenceonHumanoidRobots(Humanoids).Madrid:IEEE;2014.
+p.444–50.
+26. OttC, RoaMA, HirzingerG.Postureandbalancecontrolforbipedrobots
+basedoncontactforceoptimization.In:11thIEEE-RASInternational
+ConferenceonHumanoidRobots.Bled:IEEE;2011. p.26–33.
+27. RighettiL, BuchliJ, MistryM, KalakrishnanM, SchaalS.Optimal
+distributionofcontactforceswithinverse-dynamicscontrol.IntJRobot
+Res.2013;32(3):280–98. https://doi.org/10.1177/0278364912469821 .
+28. CarmichaelMG, LiuD.Estimatingphysicalassistanceneedusinga
+musculoskeletalmodel.IEEETransBiomedEngineer.2013;60(7):1912–9.
+https://doi.org/10.1109/TBME.2013.2244889 .
+29. TuckerMR, OlivierJ, PagelA, BleulerH, BouriM, LambercyO, Millán
+JdR, RienerR, GassertR.Controlstrategiesforactivelowerextremity
+prostheticsandorthotics:areview.JNeuroEngineeringRehabil.
+2015;12(1):1–29. https://doi.org/10.1186/1743-0003-12-1 .
+30. AfschriftM, DeGrooteF, DeSchutterJ, JonkersI.Theeffectofmuscle
+weaknessinthecapabilitygapduringgrossmotorfunction:asimulation
+studysupportingdesigncriteriaforexoskeletonsofthelowerlimb.Biomed
+EngOnline.2014;13(111). https://doi.org/10.1186/1475-925X-13-111 .
+31. UnluhisarcikliO, PietrusinskiM, WeinbergB, BonatoP, MavroidisC.
+Designandcontrolofaroboticlowerextremityexoskeletonforgait
+rehabilitation.In:2011IEEE/RSJInternationalConferenceonIntelligent
+RobotsandSystems.SanFrancisco:IEEE;2011. p.4893–8. https://doi.org/
+10.1109/IROS.2011.6094973 .
+32. FeatherstoneR.RigidBodyDynamicsAlgorithms.In: In:FeatherstoneR,
+editor.1st.NewYork:Springer;2008. p.171–93.
+33. SpongMW.Modelingandcontrolofelasticjointrobots.TransASMEJ
+DynamSystMeasControl.1987;109(4):310–8.
+34. SweversJ, GansemanC, TükelDB, DeSchutterJ, VanBrusselH.Optimal
+robotexcitationandidentification.IEEETransRobotAutom.1997;13(5):
+730–9.
+35. VantiltJ, AertbeliënE, DeGrooteF, DeSchutterJ.Optimalexcitation
+andidentificationofthedynamicmodelofroboticsystemswith
+compliantactuators.In:2015IEEEInternationalConferenceonRobotics
+andAutomation.Seattle:IEEE;2015. p.2117–24. https://doi.org/10.1109/
+ICRA.2015.7139478 .
+36. PalliG, MelchiorriC, LucaAD.Onthefeedbacklinearizationofrobots
+withvariablejointstiffness.In:2008IEEEInternationalConferenceon
+RoboticsandAutomation.Pasadena:IEEE;2008. p.1753–9. https://doi.
+org/10.1109/ROBOT.2008.4543454 .
+37. ChungW, FuL-C, HsuS-H.Motioncontrol.In: In:SicilianoB, KhatibO.,
+editors.SpringerHandbookofRobotics.Berlin:Springer;2008. p.133–59.
+38. AnCH, AtkesonCG, GriffithsJD, HollerbachJM.Experimentalevaluation
+offeedforwardandcomputedtorquecontrol.IEEETransRobotAutom.
+1989;5(3):368–73. https://doi.org/10.1109/70.34773 .
+39. RonsseR, RossiSMMD, VitielloN, LenziT, CarrozzaMC, IjspeertAJ.
+Real-timeestimateofvelocityandaccelerationofquasi-periodicsignals
+usingadaptiveoscillators.IEEETransRobot.2013;29(3):783–91. https://
+doi.org/10.1109/TRO.2013.2240173 .40. TangheK, AertbeliënE, VantiltJ, MoltedoM, BacekT, DeSchutterJ.
+Realtimedelaylessestimationofderivativesofnoisysensorsignalsfor
+quasi-cyclicmotionswithapplicationtojointaccelerationestimationon
+anexoskeleton.IEEERoboticsandAutomationLetters(RA-L)(accepted).
+2018;3(3):1647–54. https://doi.org/10.1109/LRA.2018.2801473 .
+41. WyethG.AustralasianConferenceonRoboticsandAutomation.In: In:
+MacDonaldB,editor.Auckland:AustralianRoboticsandAutomation
+AssociationInc;2006.
+42. vanderKooijH, VennemanJF, EkkelkampR.MobileRobotsTowards
+NewApplications.In: In:LazinicaA,editor.London:InTech;2006. p.
+129–48.https://doi.org/10.5772/4688 .
+43. ValleryH, EkkelenkampR, vanderKooijH, BussM.Passiveandaccurate
+torquecontrolofserieselasticactuators.In:Proceedingsofthe2007
+IEEE/RSJInternationalConferenceonIntelligentRobotsandSystems.San
+Diego:IEEE;2007. p.3534–8. https://doi.org/10.1109/IROS.2007.4399172 .
+44. VantiltJ, GiraddiC, AertbeliënE, DeGrooteF, DeSchutterJ.Estimating
+contactforcesandmomentsforwalkingrobotsandexoskeletonsusing
+complementaryenergymethods.IEEERobotAutomLett.2018;3(4):
+3410–7.https://doi.org/10.1109/LRA.2018.2852776 .
+45. PaineN, OhS, SentisL.Designandcontrolconsiderationsfor
+high-performanceserieselasticactuators.IEEE/ASMETransMechatron.
+2014;19(3):1080–91. https://doi.org/10.1109/TMECH.2013.2270435 .
+46. JuniusK, BrackxB, GrosuV, CuypersH, GeeromsJ, MoltedoM,
+VanderborghtB, LefeberD.Mechatronicdesignofasit-to-stance
+exoskeleton.In:Proceedingsofthe5thIEEERAS/EMBSInternational
+ConferenceonBiomedicalRoboticsandBiomechatronics.SãoPaulo:
+IEEE;2014. p.945–50. https://doi.org/10.1109/BIOROB.2014.6913902 .
+47. RoebroeckME, DoorenboschCAM, HarlaarJ, JacobsR, LankhorstGJ.
+Biomechanicsandmuscularactivityduringsit-to-standtransfer.Clinic
+Biomech.1994;9(4):235–44. https://doi.org/10.1016/0268-
+0033(94)90004-3 .
+48. BrackxB,etal.Designofamodularadd-oncompliantactuatortoconvert
+anorthosisintoanassistiveexoskeleton.In:Proceedingsofthe5thIEEE
+RAS/EMBSInternationalConferenceonBiomedicalRoboticsand
+Biomechatronics.SãoPaulo:IEEE;2014. p.485–90.
+49. EtherCATTechnologyGroup.EtherCAT. https://www.ethercat.org/
+default.htm .
+50. XsensTechnologiesBV.Xsens. https://www.xsens.com .
+51. TsukaharaA, KawanishiR, HasegawaY, SankaiY.Sit-to-standand
+stand-to-sittransfersupportforcompleteparaplegicpatientswithrobot
+suithal.AdvRobot.2010;24(11):1615–38. https://doi.org/10.1163/
+016918610X512622 .
+52. MoriY, OkadaJ, TakayamaK.Developmentofastandingstyletransfer
+system“able”fordisabledlowerlimbs.IEEE/ASMETransMechatron.
+2006;11(4):372–80. https://doi.org/10.1109/TMECH.2006.878558 .
+53. NakamuraT, SaitoK, WangZ, KosugeK.Realizingmodel-basedwearable
+antigravitymusclessupportwithdynamicsterms.In:2005IEEE/RSJ
+InternationalConferenceonIntelligentRobotsandSystems.Edmonton:
+IEEE;2005. p.2694–9. https://doi.org/10.1109/IROS.2005.1545279 .
+54. TangheK, HarutyunyanA, AertbelienE, DeGrooteF, DeSchutterJ,
+VrancxP, NoweA.Predictingseat-offanddetectingstart-of-assistance
+eventsforassistingsit-to-standwithanexoskeleton.IEEERobotAutom
+Lett.2016;1(2):792–9. https://doi.org/10.1109/LRA.2016.2530165 .
+55. DelpSL, AndersonFC, ArnoldAS, LoanP, HabibA, JohnCT,
+GuendelmanE, ThelenDG.Opensim:Open-sourcesoftwaretocreateand
+analyzedynamicsimulationsofmovement.IEEETransBiomedEngineer.
+2007;54(11):1940–50. https://doi.org/10.1109/TBME.2007.901024 .
+56. HermensHJ, FreriksB, Disselhorst-KlugC, RauG.Developmentof
+recommendationsforsemgsensorsandsensorplacementprocedures.J
+ElectromyographyKinesiol.2000;10(5):361–74. https://doi.org/10.1016/
+S1050-6411(00)00027-4 .
+57. WilcoxonF.Individualcomparisonsbyrankingmethods.BiometBullet.
+1945;1(6):80–3. https://doi.org/10.2307/3001968 .
+58. HolmS.Asimplesequentiallyrejectivemultipletestprocedure.
+ScandinavianJStat.1979;6(2):65–70.
+59. PatakyPC, RobinsonMA, VanrenterghemJ.Vectorfieldstatisticalanalysis
+ofkinematicandforcetrajectories.JBiomech.2013;46(14):2394–401.

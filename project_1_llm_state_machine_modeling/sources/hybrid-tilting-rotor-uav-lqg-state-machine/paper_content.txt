@@ -1,0 +1,678 @@
+--- Page 1 ---
+A NOVEL APPROACH TO AUTOMATED TRACKING CONTROL OF
+HYBRID TILTING ROTOR UAVS USING LQG CONTROLLER AND STATE
+MACHINE
+Joshua Levin Kurniawan1, Patrisius Bagus Alvito Baylon1& Rianto Adhy Sasongko1
+1Faculty of Mechanical and Aerospace Engineering, Institut Teknologi Bandung, Jl.E ITB, Kota Bandung, Jawa Barat
+40132, Indonesia
+Abstract
+Tilt-rotor UAVs offer several benefits, primarily their ability to perform vertical takeoff and vertical landing while
+being capable of forward flight in fixed-wing mode. However, implementing control for this type of UAV can be
+challenging, especially during the transition phase, where the system characteristics can change significantly
+and may introduce nonlinearities. Current methodologies typically rely on linearizing the dynamics at several
+trim points, which is unsuitable due to the finite number of linearization points, resulting in inadequate con-
+sideration of aerodynamic effects. This paper introduces a novel approach to designing a tracking controller
+for tilt-rotors by employing an a set of linear-quadratic-gaussian controllers coupled with a state-machine. The
+operation of the tilt-rotor UAV is decomposed into several operating points, which are then linearized. Based
+on the linearization results, a set of linear-quadratic controllers and Kalman Filters are designed. These con-
+trollers and observers are activated using a switching algorithm controlled by the state machine. The conducted
+simulation, the tilt-rotor UAV demonstrates that the designed controller is notably capable of maintaining stable
+hover, transition, and fixed-wing operations autonomously. The test results show that the designed control sys-
+tem can execute a stable transition phase within 32 seconds, with a total displacement of 289.3 m horizontally
+and 50.6 m vertically. Remarkably, the proposed method also achieves accurate tracking capability, with errors
+of 0.425% and 0.105% for hover and fixed-wing operations, respectively.
+Keywords: tilt-rotor, transition, LQG, state machine
+1. Introduction
+One advantage of the tilt-rotor UAV configuration is its ability to exploit the efficiency of fixed wing
+configuration and the flexibility of rotorcraft configuration during its flight. This dual capability offers
+flexibility in mission planning and execution, as the UAV can efficiently cover large areas in fixed-
+wing mode while also conducting precise maneuvers and tasks in rotorcraft mode. Additionally, the
+ability to transition seamlessly between these modes enhances the UAV’s adaptability to different
+operational environments and tasks, making it suitable for a wide range of applications, from aerial
+mapping and surveillance to search and rescue missions [1].
+One important phase in the operation of UAVs equipped with tilt-rotor configuration is the transition
+phase from fixed-wing flight to hover, which is usually performed autonomously. Therefore, an auto-
+matic control system is required to perform this transition phase. However, designing an automatic
+control system during the transition phase presents its own challenges. In this phase, the dynamics of
+the tilt-rotor are complex and nonlinear, so a standard implementation of linear time-invariant control
+system cannot be applied.
+The challenges associated with nonlinearities in transitions are commonly addressed by linearizing
+the model around various trim points within the feasible flight envelope. For each of these points, a
+linear control law is designed. In previous research, a combination of these linear control laws with
+Gain Scheduling is employed. Gain scheduling technique involves adapting the controller gains of
+
+--- Page 2 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+a dynamic system based on changing operating parameters to achieve continuous control across
+the entire flight envelope. Previous study has shown the combination of linear control laws, such as
+proportional-integral-derivative (PID) with gain scheduling [2], state feedback with gain scheduling[3],
+and linear-quadratic-controller with gain scheduling[4]. However, using this approach of linearized
+model, aerodynamic effects acting on the vehicle during transition can often not be considered ad-
+equately, meaning that stable and feasible trajectory generation is not guaranteed, due to a finite
+number of linearization points [5].
+Another approach to controlling the transition phase is by using model predictive control (MPC).
+Previous research that has been validated through experiments shows that using this approach, a
+successful automatic transition from rotary-wing to fixed-wing flight mode and back was achieved in
+the presence of wind disturbances, demonstrating the MPC’s capability to ensure sufficient lift gen-
+eration despite the changing aerodynamic effects [5]. However, real-time implementation of MPC
+is practically challenging due to the need for solving a constrained and potentially non-convex opti-
+mal control problem at each sampling instant [6]. The computation time may exceed the available
+time for control updates, impacting the system’s responsiveness, especially when the computation is
+performed using the limited computational power provided by the onboard computer
+To address the challenge of control, we develop a novel approach for the transition phase in a tilt-
+rotor UAV using a set of linear-quadratic-Gaussian (LQG) controllers and a state machine. The
+LQG controller is a control system that merges two approaches: the linear-quadratic controller and
+the Kalman filter. LQG as an optimal controllers are designed to minimize a specific cost function,
+offering better performance compared to some classical linear controllers, such as PID. With the
+incorporation of an appropriate Kalman Filter model, we can estimate the state of the aircraft even in
+the presence of Gaussian white noise and measurement errors[7]. This addition provides redundancy
+to ensure greater safety in the operation in the case of measurement errors during the transition
+phase. However, since the LQG model is built based on a linearized model, it would only be suitable
+for small disturbances and deviations, such that errors due to linear approximation are still acceptable.
+Therefore, for the transition case, we will apply linearization at several operating points and apply the
+LQG controller for each point.
+This research will introduce a controller design that involved a state machine as a decision logic
+algorithm to select the suitable LQG algorithm for a certain state of the aircraft. A state machine is a
+mathematical abstraction used to design an algorithm that considers not only the algorithm’s inputs
+but also the current state of the system to determine the appropriate output. In addition, a filter will
+be added to the system to smoothen the transient response between the state-switching. Utilizing a
+state machine, the optimization of the controller undergoes an offline process. This approach enables
+pre-computed optimizations, allowing the controller to anticipate and respond optimally to various
+operational scenarios in the transition phases without the need for continuous, resource-intensive
+onboard calculations. By making the computer work less during real control tasks, the suggested
+method ensures that the control system works better and responds faster to handle the vehicle’s
+movements during transitions.
+The proposed controller design framework will begin with constructing the nonlinear equations of
+motion for the UAV dynamics. By employing numerical methods, we will generate the Jacobian
+matrix of the system under various trim conditions, which will serve as the linearized equations of
+motion for the UAV. These linearized equations will then be utilized to design a set of linear quadratic
+Gaussian controllers.
+2. Tilt-Rotor Dynamic System
+2.1 Equation of Motions
+In the tilt-rotor configuration, the UAV is equipped with two main rotors located in the front that can be
+tilted at specified angles and a fixed rear motor that is oriented downward. The two front rotors can be
+tilted at such an angle that when the two front motors tilt 90 degrees relative to the drone’s longitudinal
+axis, both front motors, along with the rear motor, produce thrust upwards to allow the UAV to hover
+in rotorcraft mode. Meanwhile, when the two front motors align with the UAV’s longitudinal axis, the
+drone will fly in fixed-wing mode. The RayBe UAV is also equipped with a V-Tail as the stabilizer.
+2
+
+--- Page 3 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+The UAV has two different control surfaces, which are the ailerons used for roll maneuvers and
+the ruddervators used for pitch and yaw maneuvers. This configuration affects the equations of
+forces and moments acting on the aircraft. In hovering mode, the vertical thrust produced by all
+three motors counteracts the gravitational force, and the control of the UAV involves balancing the
+moments to maintain stability. In fixed-wing mode, the aerodynamic forces and moments become
+predominant, and the UAV behaves like a conventional aircraft, relying on aerodynamic lift, drag, and
+control surfaces to maneuver.
+Our focus lies solely on studying the UAV’s motions within the longitudinal plane, as the predominant
+motion during the transition phase occurs within this plane. The aircraft’s longitudinal motion encom-
+passes three degrees of freedom: two translations along the X and Z axes of the aircraft’s body, and
+one rotational motion with the Y -body axis serving as the center of rotation, known as pitching. The
+aircraft is assumed to be in symmetric flight, which means there is no translational or angular accel-
+eration occurring in the aircraft’s lateral and directional axes. The equation of motion for the aircraft
+under steady flight conditions can be written in Equation 1 [8].
+−Wsinθ+X=m(˙u+qw),
+Wcosθ+Z=m(˙w−qu),
+M=Iy˙q,
+˙θ=q(1)
+In Equation 1, the variables are defined as follows: Wrepresents the weight of the aircraft, θ,X, and
+Zdenote the forces acting in the X and Y body axes respectively, Mrepresents the moment occurring
+in the aircraft within the longitudinal plane, mstands for the mass of the aircraft, uandwindicate the
+velocity of the aircraft along the X and Z body axes, qrepresents the pitch rate of the aircraft, and Iy
+represents the aircraft’s moment of inertia around Y -body axis.
+In the tilting rotor configuration, two motors located at the front can be tilted at such an angle that
+when the two front motors tilt 90 degrees relative to the drone’s longitudinal axis, both front motors,
+along with the rear motor, produce thrust upwards to allow the UAV to hover. Meanwhile, when the
+two front motors align with the UAV’s longitudinal axis, the drone will fly in fixed-wing mode.
+The forces and moments acting on the aircraft can be decomposed into several components. Primar-
+ily, aerodynamic forces, comprising lift denoted as Land drag denoted as D, contribute significantly.
+Secondly, propulsion forces generated by the front and rear rotors are labeled as Tf rontand Ta ft
+respectively, with Tf rontrepresenting the combined force from both front motors. Additionally, the
+aerodynamic moment is represented by Maero. Figure 1 provides an illustration of the aircraft’s forces
+and moments, alongside other parameters essential for mathematically characterizing the force and
+moment equations in the UAV’s longitudinal plane. Here, δtiltsignifies the tilt angle of the front motors,
+drxdenotes the X-body axis distance from the center of thrust of the rear motor to the center of gravity,
+dfxand dfzrepresent the horizontal and vertical distances of the front motors’ center of thrust to the
+aircraft’s center of gravity respectively, and δedenotes the deflection angle of the elevator. Thus, we
+can formulate equations describing the forces acting on the X and Z body axes of the aircraft, along
+with the moment in the aircraft’s longitudinal plane, as detailed in Equation 2.
+Figure 1 – Forces and moments diagram of tilt-rotor UAV in the longitudinal plane
+3
+
+--- Page 4 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+X=Tf rontcosδtilt−Dcosα−Lsinα,
+Z=Tf rontsinδtilt+Trear−Dsinα+Lcosα,
+M=Tf ront(−cosδtiltdfz+sinδtiltdfx)−Treardrx+Maero(2)
+The lift, drag, and aerodynamic moment outlined in Equation 2 are influenced by various factors,
+including the aircraft’s angle of attack α, the deflection of the elevator δe, and the pitching rate q.
+Equation 3 only applies to small deviations of α. Within this context, CL0,CD0, and CM0denote the
+non-dimensional free coefficients of the aircraft’s lift, drag, and aerodynamic moment, respectively.
+Furthermore, CLα,CDα, and CMαrepresent the changes in the aircraft’s aerodynamic lift, drag, and
+moment coefficients with respect to α. Additionally, CLqdenotes the change in the lift coefficient with
+respect to the non-dimensionalized form of the aircraft’s pitch rate ˜q, as defined in Equation 4, where
+cis the mean aerodynamic chord of the aircraft. Finally, ρ,V, and Scorrespond to atmospheric air
+density, aircraft velocity, and wing area, respectively.
+D=1
+2ρV2S
+CD0+CDαα+CDδeδe
+L=1
+2ρV2S
+CL0+CLαα+CLqq+CLδeδe
+Maero=1
+2ρV2Sc
+CM0+CMαα+CMδeδe+CMq˜q(3)
+˜q=qc
+2V(4)
+The aerodynamic derivatives data in Equation 3 are obtained using XFLR 5 [9] and Digital Datcom
+software [10], for different variations of αandδe. As Equation 3 becomes unsuitable for approximating
+aerodynamic forces at large angles of attack, especially beyond the stall region, coefficients are
+approximated using a flat plate model to accurately model the aerodynamic force in these conditions
+[11]. An example of aerodynamic free coefficients and aerodynamic derivatives data for fixed-wing
+flight can be found in Table 1, which displays the parameter values for α=0◦. We conducted the
+analysis for α=−8.5◦toα=12.5◦to obtain the parameter values for variations of α. The mass
+properties and geometrical parameter needed for Equation 1, 3, and 4 is given in Table 2.
+Table 1 – Aerodynamic coefficient and aerodynamic derivative data
+Lift coeficient Drag coeffiecient Moment coefficient
+CL00.252 CD00.016 Cm0-0.005
+CLα0.0886 CDα0.00225 Cmα0.00143
+CLδe0.00703 CDδe0.000824 Cmδe-0.0128
+CLq0.0138 CDq≈0 Cmq10.430
+Table 2 – Aircraft Inertial Data and Geometrical Parameters
+Parameter Value
+m 5.2 kg
+Iy 0.0963 kg ·m2
+S 0.428 m2
+b 1.838 m
+¯c 0.253 m
+4
+
+--- Page 5 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+2.2 Trim Condition
+To design the controller, we need to determine the trim condition of the aircraft, which is defined as
+the equilibrium state when the resultant force and moment are zero. We analyze this condition for
+fixed-wing flight, transition, and hover phases. Since our controller is specifically designed for the
+transition phase, it’s crucial to assess trim conditions both before, during, and after this phase. This
+analysis examines the combination of Tf ront,Ta ft,δe,uand wnecessary to achieve the equilibrium
+condition.
+Figure 2 – Computer-aided design model of RayBe
+In the transition controller modeling, we consider a case study of a RayBe UAV, shown in Figure 2,
+initially in hover flight with u=0m/s. Subsequently, the RayBe will perform a transition maneuver
+into fixed-wing forward flight until it achieves a velocity of 19m/s, which is the typical cruise speed for
+RayBe UAV. We then divide the transition process into several trim conditions along the maneuver.
+For the hover phase, we divide the trim conditions into three different sets, each with varying vertical
+velocity. During the transition phase, we divide the trim conditions into five different conditions for the
+front motors: δtilt=15◦,30◦,45◦,60◦,80◦. Finally, for the fixed-wing phase, we have two different trim
+conditions based on different aircraft velocities: 18and 16m/s.
+We applied several constraints to each phase of the trimmed flight. For the hover condition, the
+applied constraint is that there is no forward velocity of the tilt-rotor UAV. Therefore, u=0m/s. For the
+transition flight, we maintained the values of θandqto become zero. For fixed-wing flight, the applied
+constraint is that the tilt-rotor UAV is flying in a steady straight flight. The mathematical definition for
+steady straight flight is described in Equation 5.
+˙u=˙v=˙w=0,˙p=˙q=˙r=0,p=q=r=0 (5)
+Additionally, we limited the value of elevator deflection δeto a range in which the minimum and
+maximum deflection values of the elevator are −30◦to30◦. We then take examples of trimming
+under three different conditions: hover with a vertical velocity of 1 m/s, transition with δtilt=60◦, and
+fixed-wing flight with u=18m/s. The trimming results are displayed in Table 3.
+Table 3 – Trimming results of several example operating points
+Hover (w=1 m/s) Transition ( δtilt=60◦) Fixed Wing (u =18 m/s)
+Tf ront(N) 35.2941 8.2244 0.046402
+Taft(N) 9.7187 0 0
+δe(rad) 0.5236 0.5236 -0.0014791
+u(m/s) 0 4 18
+w(m/s) -1 0 0.89443
+θ(rad) 0 0 0.0057106
+q(rad/s) 0 0 0
+xc
+5
+
+--- Page 6 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+2.3 Linearized Equation of Motions
+As we observe in Equation 1, the equation is not linear due to the coupling of motion parameters,
+such as qwand qu, trigonometric functions such as sinθand cosθ, and non-linear forces and mo-
+ments resulting from the motion parameters, especially aerodynamics. For easier analysis, we can
+approximate the dynamics as a linear system using a state-space model.
+In this research, we utilize Jacobian matrices for linearization. The Jacobian matrix represents the
+first-order partial derivatives of a vector-valued function. In the context of dynamics, the Jacobian
+matrix helps in approximating how small changes in the system variables. By evaluating the Jacobian
+matrix at an operating point, we can derive a linear approximation of the system dynamics that holds
+locally around that point.
+We analyze and transform the dynamic of the aircraft in a several trimmed point across the flight
+envelope of transition maneuvers into several linear equations of motions in the form of state space.
+For a linear-time-invariant system (LTI) the state space model can be written in Equation 6.
+˙⃗x=A⃗x+B⃗u
+⃗y=C⃗x(6)
+Equation 7 defines the state variables crucial for fixed-wing, hover, and transition phases of the UAV,
+encompassing parameters like θ,u,w, and q.
+Furthermore, the input vector for both transition and hover flight is composed of three elements: δe,
+Trear, and Tf ront. For the Meanwhile, the value of δtiltis directly set depending on the state the aircraft
+is in. For example, if the aircraft is in hover, the value of δtiltwill automatically be set to 90◦. During
+fixed-wing flight, the parameter Trearin the state machine will automatically set the value to zero, given
+that the rear motor is deactivated in this mode of operation.
+⃗x=
+θ
+u
+w
+q
+, ⃗u
+δe
+Trear
+Tf ront
+δtilt
+, ⃗y=u
+w
+(7)
+The state matrices, represented by Aand B, vary across different trimmed conditions as defined
+earlier. In Equation 8, 9, and 10, we provide examples of these matrices for three distinct conditions:
+fixed-wing flight at a velocity of 18 m/s denoted by f w18, transition with δtiltset to 60◦denoted by
+trans 60, and hovering indicated by hov.
+Af w18=
+0.00 0 .00 0 .00 1 .00
+−9.81−0.033 0 .411−0.437
+0.285 −0.686−6.50 22 .0
+0.00−0.0034 0 .172 0 .00
+,Bf w18=
+0 0 0
+0.192 0 0 .222
+−11.8−0.222 0
+−39.6−0.671 0
+(8)
+Atrans 60=
+0 0 0 1 .00
+−9.81−0.0248 0 .0950 0
+0 −0.267 −2.33 4 .000
+0 −0.412−0.00730 0
+,Btrans 60=
+0 0 0
+−0.117 0 0 .111
+−0.596−0.222−0.193
+−1.995−0.671 0 .155
+(9)
+Ahov=
+0 0 0 1 .000
+−9.81−0.7979 0 .0000 1 .001
+0 0 .1928 −0.0001 0
+0 0 .1109 −0.0001 0
+,Bhov=
+0 0 0
+0 0 0
+0−0.2222 −0.2222
+0−0.6711 0 .1785
+(10)
+Meanwhile, the matrix Cremains unchanged across all trim points, as depicted in (11).
+C=0 1 0 0
+0 0 1 0
+(11)
+6
+
+--- Page 7 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+2.4 Controllability and Stability of The System
+Next, we will proceed with a controllability analysis to evaluate the system’s capability to be controlled.
+This analysis is fundamental in understanding the system’s behavior and its responsiveness to con-
+trol inputs. Controllability is a critical aspect that determines whether the system can be effectively
+controlled from any initial state to any desired state within a finite time span.
+To perform this analysis, we utilize the controllability matrix, denoted as Qin Equation 12. The
+controllability matrix is derived from the system’s dynamics and input matrices. Specifically, it is
+formulated as follows:
+Q=
+B AB A2B··· An−1B
+(12)
+Here, Arepresents the system matrix, Bdenotes the input matrix, and nrepresents the number of
+control inputs. By analyzing the rank of the controllability matrix, we ascertain whether the system is
+controllable. If the rank of Qequals the system matrix’s dimension, then the system is controllable;
+otherwise, it is not.
+Upon conducting the controllability analysis across all trim points, we observed that the tilt-rotor sys-
+tem demonstrates consistent controllability. This implies that regardless of the operating conditions
+represented by different trim points, the system remains controllable, ensuring that it can be effec-
+tively controlled using appropriate control inputs.
+In addition to controllability analysis, understanding system stability is crucial. This can be visualized
+using a pole-zero diagram, which illustrates the location of poles (eigenvalues) and zeros (roots of
+the transfer function) in the complex plane. Stable systems have poles located in the left half-plane,
+indicating that they decay over time and are bounded. Unstable systems have poles in the right
+half-plane, leading to unbounded responses. By analyzing the pole-zero diagram, we can assess the
+stability of the system under different operating conditions.
+We took an example of three trim points: fixed-wing flight with a velocity of 22 m/s, transition with a
+tilt angle δtilt, and hover condition, and displayed them in Figure 3. In Figure 3, all of the plants have
+at least one pole in the positive real axis value, indicating instability. Hence, all of the systems are
+unstable. The characteristics of other trim points outside of the example are similar, with at least one
+pole in the positive real axis value, which indicates the instability of the plant. Therefore, a control
+system is needed to stabilize the UAV at each trim point.
+Figure 3 – Pole zero map of RayBe tilt-rotor UAV linearized equation of motion
+7
+
+--- Page 8 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+3. Flight Controller Strategies
+Utilizing the linearized equation of motion, we can design an LQG controller tailored for managing
+the transition dynamics of the tilt-rotor UAV. This entails employing the closed-loop pseudo-block dia-
+gram depicted in Figure 4. The controller architecture comprises two loops. The outer loop integrates
+integral action, which involves incorporating feedback by integrating the error signal within the con-
+troller. This integration process facilitates the generation of a feedback term, effectively minimizing
+steady-state error. Meanwhile, the inner loop employs the state feedback matrix derived from the LQ
+controller technique, ensuring optimal control over the system’s internal dynamics. This controller op-
+erates by accepting a reference value ⃗yre ffor both uandw. The discrepancy between this reference
+and the current output ⃗yforms the feedback error, which, upon multiplication by the outer gain Kouter,
+yields the refercence state ⃗xre f. Subsequently, the error feedback arising from the Kalman filter state
+observer model ˆxand xre fis processed through the inner gain Kinner. This step yields the desired
+inputs for the dynamic model—namely, δe,Tfront, and Taft. Meanwhile, the determination of the motor
+tilting angle δtiltis dictated by the current state of the state machine. For instance, when the aircraft
+is in the fixed-wing state, δtiltremains at 0◦, whereas during hover, it equals 90◦. The values of Kouter
+and Kinnerare dynamically adjusted by the state machine, ensuring optimal controller performance
+across varying operational states. It’s worth noting that these gains are obtained through the LQ
+controller process, involving the Riccati equation, which will be elaborated upon in the subsequent
+LQG subsection. The role of the state machine solely lies in switching between these pre-computed
+gains based on the current operational state.
+Inner	gain	switch
+Outer	gain	switch
+Reference	switch
+Observer	switch
+RayBe	UAV	longitudinal	equation	of	motion
+State	Machine	Controller+−+−
+IntegratorK_outer
+Outer-loop
+gain	matrix
+K_inner
+Inner-loop
+gain	matrix
+Reference
+Filter-Moving	average
+State	Observer
+Figure 4 – Control system block diagram
+3.1 Linear-Quadratic-Gaussian Controller
+The linear-quadratic-Gaussian (LQG) controller, shown in Figure 5, combines two key parts: a Linear
+Quadratic (LQ) (LQ) controller and a Kalman Filter. It’s designed to manage linear stochastic systems
+that can be affected by process noise in the system dynamics and measurement noise.
+Figure 5 – An LQG compensator for tracking a reference output [12]
+8
+
+--- Page 9 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+The LQG controller helps keep the system stable and performing well, even when there are uncer-
+tainties or disturbances. It works by using the Kalman Filter to estimate the current state ˆxof the
+system from noisy measurements. This estimated state provides a more accurate representation of
+the system’s actual state than the raw measurements alone. The Kalman Filter continuously updates
+the state estimate as new measurements come in, while the LQ controller continuously adjusts the
+control inputs based on the latest state estimate.
+Once the current state is estimated, the LQ controller uses this information to calculate the optimal
+control input u(t). The LQ controller determines the best control action that minimizes a cost function,
+which typically includes terms for the system’s performance and the effort required to control the
+system. The optimal control input is given by u(t) =−Kˆx(t), where Kis the optimal gain matrix. The
+goal is to achieve the desired system behavior while balancing performance and control effort.
+3.1.1 Linear-Quadratic Controller
+A linear-quadratic controller aims to minimize a quadratic cost function that penalizes both the de-
+viation of the system’s state from a desired trajectory and the control effort required to achieve this
+trajectory.
+Let the desired state be defined as ⃗xre f, then the error vector can be denoted as ⃗e=⃗xre f−⃗x. In the
+controller design process, the optimal control is designed to obtain ⃗u(t)such that the cost function in
+Equation 13 can be minimized.
+J=Z∞
+0
+⃗eTQ⃗e+⃗uTR⃗u
+dt (13)
+where Qis a positive semi-definite matrix penalizing the state deviation, and Ris a positive definite
+matrix penalizing the control effort.
+The control signal uthat will minimize Jin Equation 13 is given in Equation 14.
+⃗u(t) =−K⃗e(t) (14)
+Kis the feedback gain matrix given by Equation 15.
+K=R−1BTP (15)
+where Pis the solution of the algebraic Riccati equation in form of positive definite matrix. The
+algebraic Riccati equation for continuous-time systems is given by Equation 16.
+ATP+PA−PBR−1BTP+Q=0 (16)
+Substituting this control law into the dynamics equation, we get Equation 17.
+˙x(t) = ( A−BK)⃗e(t) (17)
+The solution to the Riccati equation provides the optimal feedback gain matrix K, which minimizes
+the cost function Jfor the given system dynamics Aand control matrices B, as well as the weighting
+matrices Qand R. Applying this optimal feedback control law results in a closed-loop system that
+drives the state of the linear system towards the desired trajectory or the trim values while minimizing
+the cost function over an infinite time horizon.
+3.1.2 Kalman Filter
+The uncertainties in the tilt-rotor model arise due to the model having only limited linearization points,
+despite the dynamics in the transition process being highly complex and nonlinear. To address this
+issue, we propose the idea of using a Kalman Filter state estimator within the LQG controller to pro-
+vide the best estimation of the system state despite the nonlinear dynamics of the transition process.
+The Kalman filter is a recursive estimator that combines measurements from sensors with a dynamic
+model of the system to provide the best estimate of the system’s state, taking into account both the
+inherent uncertainties in the system dynamics and the measurement noise. The Kalman filter works
+by minimizing the covariance matrix of the estimation error, which can be written in Equation 18:
+9
+
+--- Page 10 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+ˆe(t) =⃗x(t)−ˆx(t) (18)
+where ˆx(t)is the estimated state vector and xis the state of the system, whose dynamics are de-
+scribed in Equation 19:
+˙ˆ⃗x(t) =A0(t)ˆ⃗x(t)+B0(t)⃗u(t)+L(t)⃗y(t) (19)
+The matrices A0(t)and B0(t)are the coefficient matrices of the Kalman Filter, while u(t)represents
+the input to the system. Additionally, L(t)denotes the Kalman gain applied to the measurement y(t).
+The equation for the optimal Kalman filter gain is written in Equation 20:
+L= (ReCT+FSvw)S−1
+w (20)
+where Swis the correlation matrix of the process noise, Svwis the cross-spectral density matrix of
+process noise and measurement noise, and Reis the conditional covariance matrix defined as the
+covariance matrix based on the finite record of the output, which is shown in Equation 21.
+Re(t,t) =E[ˆe(t)ˆeT(t)|ˆy(τ),t0≤τ≤t] (21)
+In our controller model, the Kalman Filter is specifically designed as a linear parameter-varying model.
+With this method, we can approximate nonlinear systems and apply linear design techniques to
+nonlinear models without using more advanced Kalman Filter models, such as the Extended Kalman
+Filter. The state machine will act as a trigger for parameter changes in the Kalman Filter based on
+the state of the tilt-rotor UAV.
+3.2 State Machine
+For the implementation of switching strategies, we employ a state machine as the decision logic
+mechanism for transitioning between different operational states. This state machine, often referred
+to as a finite state machine (FSM), operates on a finite set of states, each representing a distinct
+operational condition. In general, a finite state machine is a mathematical model where there is only
+exactly one of a set of finite states at a time. By utilizing the finite state machine, the algorithm
+can be visualized in a way that makes the transition rules between states more interpretable. Finite
+machines have found applications in different engineering fields, such as UAV energy management
+strategy [13] and motion controllers for servo drives [14].
+Figure 6 – State machine and controller workflow
+In this case, the FSM is constructed, enabling a visual representation of the decision-making pro-
+cess. The state flow model encapsulates the various states, the transitions between them, and the
+conditions dictating these transitions. Figure 6 shows the interaction between the state machine and
+the controller. The state machine provides a switch signal for both the observer and the full-state
+feedback controller. For the observer, the switch signal changes the parameters of the Kalman Filter.
+10
+
+--- Page 11 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+For the feedback controller, the switch signal alters the optimal gain matrix of the LQ controller. The
+state machine retrieves information about the current state from the system.
+4. Nonlinear Simulation
+4.1 Simulation Scenario and Setting
+In this section, the designed controller will be implemented in the constructed nonlinear simulation.
+The closed-loop system, as illustrated in Figure 4, is constructed to test the performance of the
+designed control strategies in longitudinal mode.
+Figure 7 – Simulation mission profile
+In the test, as illustrated in Figure 7, the tilt-rotor UAV will start from hover with zero velocity and
+take off vertically with a speed of 4 m/s. Then, the rotor will be slowly tilted until it is facing forward
+(δtilt=0◦), and then continue to perform fixed-wing forward flight (steady symmetrical level flight) from
+a forward velocity of 17 m/s to 19 m/s. During the vertical take-off maneuver, the state machine sets
+a tracking reference of zero for forward speed. Meanwhile, for the vertical speed ( w), it accelerates
+from 0 to -2 and then to -4 (upward), before reversing back to -2 and 0 before the transition phase
+begins. In this vertical take-off phase, the controller compensates the pitch angle to maintain its zero
+value, ensuring the vehicle moves upward perpendicular to the ground.
+During the transition phase, the rotor tilts from 90° to 0° to enable fixed-wing mode flight. Due
+to this tilting operation, the thrust vector from the front rotor is deflected, resulting in accelera-
+tion/deceleration in both the forward and downward directions. Consequently, the state machine
+disables the outer loop of the dynamic system (setting Kouterto a zero matrix), allowing the control
+system to focus on maintaining the pitch angle ( θ) and pitch rate ( q). The outer loop is re-enabled
+when the tilting angle reaches 0°, indicating the vehicle has entered fixed-wing mode. In this mode,
+the state machine disables the rear rotor, allowing the pitching moment control to solely rely on the
+elevator.
+Figure 8 illustrates the activated set of gain matrices from LQ controller ( K) based on the current
+states uand w. To address the nonlinearity of the system, the optimal controller switches based on
+the control logic contained in the state machine. The colored bounding boxes in the plot depict the
+regions where each Kis active.
+11
+
+--- Page 12 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+Figure 8 – Gain switching region
+4.2 Simulation Result
+0 10 20 30 40 50 60 70 80 90 100246810K
+Time (seconds)
+Figure 9 – Gain switching simulation result
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)020406080tilt (°)
+Figure 10 – Tilting angle simulation result
+During the simulation, the state machine sequentially performs gain-switching, transitioning from the
+gains utilized for hover mode, through the transition phase, and ultimately to the fixed-wing flight
+mode, as shown in Figure 9. As the gains switch, the main rotor gradually tilts forward until it is
+oriented for fixed-wing flight ( δtilt=0◦) which is depicted in Figure 10. For the initial 32 seconds,
+the aircraft employs the gains designated for hover mode, specifically K1through K3, with the main
+rotor oriented upward ( δtilt=90◦). Subsequently, as the aircraft enters the transition process, the
+state machine adjusts the gain to K4, and δtiltstarts to change gradually. Throughout the transition
+process, the state machine continually modifies the applied gains based on the parameters uandw.
+Upon completion of the transition, the UAV shifts to fixed-wing flight, at which point the state machine
+adjusts the gain to K9with the rotor oriented horizontally ( δtilt=0◦).
+The simulation results of the constructed closed-loop system can be seen in Figure 11. From the
+12
+
+--- Page 13 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)-1-0.50 (rad)actual
+estimated
+(a) Pitch angle simulation result
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)-1-0.500.51q (rad/s) actual
+estimated
+(b) Pitch rate simulation result
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)05101520u (m/s)
+(c) Body axis forward speed simulation result
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)-4-20w (m/s)
+(d) Body axis downward speed simulation result
+Figure 11 – Nonlinear simulation state results
+simulation results, it can be observed that the designed flight controller strategy can autonomously
+perform flight from hover (vertical takeoff function) to forward flight (fixed-wing mode). However,
+there are notable differences between the actual and estimated results for the pitch angle and pitch
+rate plots. This discrepancy may be attributed to the Kalman Filter’s inability to accurately estimate
+high-frequency signals. While the designed Kalman Filter coupled with the state machine provides
+sufficient information for the full state feedback controller to maintain stable autonomous operation,
+the error between the actual and estimated signals persists, especially in the transient region, mostly
+during the transition phase.
+During the operation, Figure 11 shows successful tracking capabilities during the vertical take-off
+phase. Throughout this phase, the combination of gain matrix scheduling, controlled by the state
+machine, maintains the body axis forward velocity, u, at zero while increasing the upward velocity
+(−w). The vehicle achieves a vertical velocity of 2 m/s in 8.4 seconds from 0 m/s, then reaches 4 m/s
+in the next 7.8 seconds with steady-state errors of 0.375% and 0.425%, respectively. Subsequently,
+the vehicle decelerates to 0 m/s in 16.02 seconds from an upward velocity of 4 m/s. During the vertical
+13
+
+--- Page 14 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+take-off operation, the vehicle experiences a maximum forward speed of -1 m/s, with a total horizontal
+displacement of 0.45 m. This test result demonstrates that despite experiencing additional drag and
+pitch moments while retaining additional upward velocity, the designed flight controller maintains its
+robustness.
+The transition phase lasted 32 seconds, resulting in a displacement of 289.3 m horizontally and 50.8
+m vertically. During this phase, the vehicle experienced the most severe pitch angle and pitch rate,
+reaching a maximum pitching angle of -0.77 rad and a maximum pitch rate of -1.14 rad/s. In this
+phase, the vehicle regained speed to surpass the stall speed, enabling it to transition into fixed-wing
+mode flight. By the end of the phase, the vehicle had regained a forward speed of 17 m/s. Analyzing
+the fixed-wing mode phase, the controller effectively stabilized the system using the pitching moment
+provided solely by the elevator, indicating that the regained speed was adequate. The controller able
+to maintain the pitch angle θand pitch rate qto zero demonstrating a good fixed wing flight quality.
+Additionally, during fixed-wing mode, the system successfully tracked its velocity to 19 m/s from 17
+m/s in 3.3 seconds, with an error of 0.105%.
+Figure 12 – Trajectory simulation result
+The simulation assumes that the tilting UAV starts the vertical take-off phase from the ground (equiv-
+alent to 0 altitude). After reaching a certain vertical speed, the UAV transitions to hover mode to begin
+the transition phase. Based on the trajectory shown in Figure 12, the flight path indicates that with
+the designed controller method, the UAV can maintain stability during the transition phase without
+significant loss of altitude.
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)00.20.4e
+(a) Elevator angle input
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)051015Trear (N)
+(b) Rear rotor thrust input
+0 10 20 30 40 50 60 70 80 90 100
+Time (seconds)10203040Tfront
+(c) Main rotor thrust input
+Figure 13 – Nonlinear simulation input signal
+14
+
+--- Page 15 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+Furthermore, Figure 13 reveals the input signal provided by the control system to the plant during the
+simulation. Although the system can be controlled with elevator inputs below the maximum deflection
+angle (in this case ±30◦) and the thrust given is still below the maximum thrust (8 kg for each rotor),
+there is a noticeable rapid change in the rear thrust input. It can be observed from the figure that
+there is a rapid change in rear thrust during the transition phase due to the necessity of providing
+additional pitching moments when the thrust vector deflects.
+5. Conclusion
+The research has demonstrated a new approach to controlling a tilt-rotor UAV, a highly nonlinear
+system, using an LQG controller coupled with a state machine. With this proposed control method,
+the capabilities of LQG, which typically only work in specific conditions, can be extended to cover a
+wider operation regime, involving significant system’s dynamics changes. Based on the case study,
+the tilt-rotor UAV, together with the flight control strategy, can perform autonomous flight from hover
+condition to forward flight in fixed-wing mode. The test results show that the system can execute a
+vertical take-off maneuver, reaching 4 m/s upward velocity from 0 m/s in 16.02 seconds. The vehicle
+can also maintain zero forward velocity during vertical take-off, resulting in an insignificant horizontal
+displacement of 0.45 m. Additionally, with the proposed control method, the controller can handle
+the UAV during the transition phase, which is highly nonlinear, by maintaining the pitch attitude of the
+vehicle. From the simulation, the maximum pitch angle and pitch rate account for -0.77 rad and -1.14
+rad/s, respectively, occurring during the transition phase. Moreover, the designed control system can
+track forward velocity from 17 m/s to 19 m/s during steady symmetrical level flight in fixed-wing mode.
+However, although the designed observer provides enough information to the full-state feedback
+controller to stabilize and track, it is notable that the designed Kalman Filter coupled with the state
+machine still produces significant errors, especially in high-frequency region. For future work, further
+analysis and validation of the control strategy can be performed using Software-in-the-Loop (SIL) and
+Hardware-in-the-Loop (HIL) simulations before real-world UAV testing.
+6. Contact Author Email Adress
+For additional information regarding the paper, feel free to contact the authors using the following
+email address: joshualevinkurniawan@gmail.com.
+7. Copyright Statement
+The authors confirm that they, and/or their company or organization, hold copyright on all of the
+original material included in this paper. The authors also confirm that they have obtained permission,
+from the copyright holder of any third party material included in this paper, to publish it as part of their
+paper. The authors confirm that they give permission, or have obtained permission from the copyright
+holder of this paper, for the publication and distribution of this paper as part of the ICAS proceedings
+or as individual off-prints from the proceedings.
+References
+[1] A. Misra, S. Jayachandran, S. Kenche, A. Katoch, A. Suresh, E. Gundabattini, S. Selvaraj, and A. Leg-
+esse. A review on vertical take-off and landing (vtol) tilt-rotor and tilt wing unmanned aerial vehicles (uavs).
+Journal of Engineering, Vol. 2022, pp. 1-20, 2022.
+[2] Y . Nakamura, A. Arakawa, K. Watanabe, and I. Nagai. Transitional flight simulations for a tilted quadrotor
+with a fixed-wing. Proc. 2018 IEEE International Conference on Mechatronics and Automation (ICMA),
+Changchun, China, Vol. 1, pp. 1829–1836, 2018.
+[3] D. Y angping and H. Gao. Transition flight control and test of a new kind tilt prop box-wing vtol uav. Proc.
+2018 9th International Conference on Mechanical and Aerospace Engineering (ICMAE), Budapest, Hun-
+gary, Vol. 1, pp. 90–94, 2018.
+[4] C.-C. Peng, T.-S. Hwang, S.-W. Chen, C.-Y . Chang, Y .-C. Lin, Y .-T. Wu, Y .-J. Lin, and W.-R. Lai. Zpetc
+path-tracking gain-scheduling design and real-time multi-task flight simulation for the automatic transition
+of tilt-rotor aircraft. Proc. 2010 IEEE Conference on Robotics, Automation and Mechatronics, Singapore,
+Vol. 1, pp. 118–123, 2010.
+[5] M. Allenspach and G. J. J. Ducard. Nonlinear model predictive control and guidance for a propeller-tilting
+hybrid unmanned air vehicle. Automatica, Vol. 132, No. 109790, pp. 1-15, 2021.
+15
+
+--- Page 16 ---
+Automated Tracking Control for Hybrid Tilting Rotor UAVs Using LQG Controller and State Machine
+[6] D. Liao-McPherson, M. M. Nicotra, and I. Kolmanovsky. Time-distributed optimization for real-time model
+predictive control: Stability, robustness, and constraint satisfaction. Automatica, Vol. 117, No. 108973, pp.
+1-10, 2020.
+[7] O. R. González and A. G. Kelkar. Robust multivariable control. In The Electrical Engineering Handbook,
+Elsevier, pp. 1037-1050, 2004.
+[8] J. Roskam. Airplane flight dynamics and automatic flight controls. DARcorporation, 1st edition, 1998.
+[9] M. Drela. XFLR5 v6.02 Guidelines, Analysis of foils and wings operating at low Reynolds numbers. Ver-
+sion 6.02, pp. 1-50, February 1986.
+[10] McDonnell Douglas Astronautics Company. The USAF Stability and Control DATCOM. St. Louis Division,
+St Louis, Missouri, Updated by Public Domain Aeronautical Software, pp. 1-500, December 1999.
+[11] R. W. Beard and T. W. McLain. Small Unmanned Aircraft: Theory and Practice. Princeton University
+Press, 1st edition, 2012.
+[12] A. Tewari. Advanced control of aircraft, spacecraft and rockets. John Wiley Sons, 1st edition, 2011.
+[13] X. Zhang, L. Liu, and Y . Dai. Fuzzy state machine energy management strategy for hybrid electric uavs
+with pv/fuel cell/battery power system. International Journal of Aerospace Engineering, Vol. 2018, No. 1,
+pp. 1-10, 2018.
+[14] K. Jezernik, R. Horvat, and J. Harnik. Finite-state machine motion controller: Servo drives. IEEE Industrial
+Electronics Magazine, Vol. 6, No. 3, pp. 13–23, 2012.
+16

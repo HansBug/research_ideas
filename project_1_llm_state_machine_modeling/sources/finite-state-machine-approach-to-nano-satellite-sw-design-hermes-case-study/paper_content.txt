@@ -1,0 +1,480 @@
+--- Page 1 ---
+A ﬁnite state machine approach to nano-satellite SW design:
+the HERMES case study
+Margherita Piccinin⋆, Andrea Brandonisio⋆, Andrea Colagrossi⋆†, Giovanni Zanotti⋆, Stefano Silvestrini⋆
+and Michèle Lavagna⋆
+⋆Politecnico di Milano - Via La Masa 34, Milano, Italy
+margherita.piccinin@polimi.it ·andrea.brandonisio@polimi.it ·andrea.colagrossi@polimi.it ·
+giovanni.zanotti@polimi.it ·stefano.silvestrini@polimi.it ·michelle.lavagna@polimi.it
+†Corresponding author
+Abstract
+In recent years, the number of launched small satellites, has exponentially grown, thanks to their low cost
+and modularity. Nevertheless, the software of such platforms still requires remarkable mission-speciﬁc tai-loring eﬀorts. In this paper, a linear, ﬂexible and modular Finite State Machine (FSM) approach for nano-
+satellites software design is proposed, capable of being easily tailored to the speciﬁc mission and tunedaccording to variations of requirements and functionalities. The proposed FSM structure is composed ofthree major macro-modes, o ﬀering a time-driven mode and a scheduled mode for nominal operations, with
+a cyclic and basic safe mode, potentially applicable to every generic nano-satellite mission. The presented
+method has been used for the SW design of the HERMES mission, a 6 CubeSats constellation ﬁnanced
+by Italian Ministry of University and Research (MUR), the Italian Space Agency (ASI) and the EuropeanCommunity (EC). HERMES FSM is presented in the paper, as case study for the method application.
+1. Introduction
+The Space community interest in small-sized spacecraft increased considerably in recent years, being the number oflaunched nano-satellites and CubeSats growing with an exponential trend in the last decade. According to currentﬁgures, until 1st January 2023 the total number of launched nano-satellites is 2138, with a forecast of about other 2000nano-satellites to be launched in the next 6 years.
+1Small platforms are born with the idea of building a low cost solution
+and of allowing a quick development time. However, with the consolidation of small spacecraft technologies, they arebeing used to achieve more and more complex mission objectives. Indeed, their applications span from interplanetary
+CubeSats to Earth satellites for science, technological demonstrations and remote sensing. In particular, Low EarthOrbit (LEO) constellations o ﬀer the possibility to exploit a distributed instrument architecture, otherwise impossible
+to reach with just one satellite. With small-sized satellites, mega constellations have also become possible. Due to theincreasing complexity of such missions, and to achieve high value mission goals it is not su ﬃcient to simply assemble
+Commercial Oﬀ-The-Shelf (COTS) components, but customised and tailored solutions are often necessary.
+A fundamental aspect for the success of such missions consists into the design of reliable on-board software,
+which is a vital element of the platform and in charge of performing Fault Detection Isolation and Recovery (FDIR)functions.
+2The deﬁnition of the software logic and routine workﬂows is a task with large complexity, as it involves
+major design choices and has a large impact on the whole system functioning.
+The problem of nano-satellites software design is not new and, in literature, di ﬀerent approaches can be found,
+often relying on a Finite State Machine (FSM) to execute the mission functionalities in a deterministic manner.3–5
+However, there is still the lack of a consolidated and broadly recognised framework for designing the logic underlyingthe on-board software. Currently, it can be still observed a tight bond among the mission needs and the speciﬁc solutionsthat are consequently adopted in the software architecture. On the other hand, the nano-satellite market would beneﬁtfrom a linear, modular and easily adaptable software framework.
+With the purpose of making some steps forward in this direction, a multi-disciplinary and systematic approach
+to break down the software design process into e ﬀective steps is proposed and described in the paper. The proposed
+solutions and the adopted concepts tackle the typical challenges that can be found in many CubeSats LEO missions,
+such as the need of performing an automatic LEOP (Launch and Early Operation Phase) in a short pre-deﬁned time,operating the platform via on-ground scheduled commands, and the necessity of a highly reliable software managingthe low-cost components of the satellite. The described approach is then applied to the High Energy Rapid Modular
+Copyright ©2023 by First Author. Posted on line by the EUCASS association with permission.DOI: 10.13009/EUCASS2023-342
+Aerospace Europe Conference 2023 – 10 ୶୪ EUCASS – 9 ୶୪ CEAS
+
+--- Page 2 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+Ensemble of Satellites (HERMES) mission, funded by Italian Ministry of Research (MUR), the Italian Space Agency,
+(ASI) and the European Commission (EC), as a case study.6, 7
+HERMES space segment is composed of a LEO constellation of six nano-satellites, with the objective of detec-
+tion, localisation and communication to ground of energetic astrophysical transients. To achieve such complex objec-
+tives, the on-board software is executed by two di ﬀerent OBCs on the spacecraft (i.e., OBC-MAIN and OBC-ADCS),
+while interfacing with other spacecraft’s components, as the payload, the power module, the radios, the sensors and theactuators. Each OBC is driven by a dedicated software (i.e., SW-MAIN and SW-ADCS), which is structured accordingto its own FSM. The two pieces of software are interfaced by means of structured data commands and monitoringparameters, with a "master-slave" logical architecture.
+The paper has therefore three main contributions:
+•A general and eﬀective approach for nano-satellite’s software design is proposed, presenting design guidelines
+and a clear strategy to include FDIR functions.
+•The proposed FSM-based method for the design and implementation of the on-board software can be easily
+standardised and applied to di ﬀerent scenarios and space missions, improving the ﬂexibility and the modularity
+of classical FSMs.
+•The method is applied to the HERMES mission, highlighting the main speciﬁc design challenges and presenting
+the results up to the formal veriﬁcation of the software FSM in the framework of a validated environment.
+The paper is structured as follows. After presenting a survey of nano-satellite software design approaches in
+Section 2, a structured and general method for small-spacecraft mission software design is proposed in Section 3.Then Section 4 introduces the HERMES case study, presenting the speciﬁc challenges and the adopted solutionsof this application case while applying the proposed method for software design. The achievements are shown inSection 5, including the FSM veriﬁcation and some multi-disciplinary analyses in support to the design choices.Finally, conclusions are drawn in Section 6.
+2. Survey of nano-satellite software design approaches
+Many nano-satellite software design approaches are founded on the principle of separating the on-board software indiﬀerent layers to encapsulate di ﬀerent abstraction levels. This decision is frequently linked to the exploitation of one
+operating system (OS) in the fundamental levels. Commonly, third-party available OS are used, like FreeRTOS orGNU/Linux. The latter requires powerful on-board processors, and it is selected whenever high-level programming
+language or features available only in GNU /Linux are necessary.
+8–10However, if the design approach allows for low-
+level programming language, or limited performance OBCs are available, or saving processing resources is a missionrequirement, an OS for embedded systems is preferred (e.g., FreeRTOS).
+11
+In general, nano-satellites’ ﬂight software is required to be modular, extensible, ﬂexible, robust and capable to
+handle on-board failures. These qualities are commonly implemented in the upper abstraction layer, which containsthe main application software. This can be formalised and designed following a FSM approach or a component-basedand service-oriented architecture. FSM provides a straightforward and neat implementation once all the mission’sfunctional requirements are available, but it is typically less prone to include changes and follow the developmentprocess, indulging on modiﬁcations that a ﬀect the evolution of the states and transitions. On the contrary, centralised
+and decentralised architectures based on components and services, if well organised, are more ﬂexible supportingincremental development and updated requirements.
+2.1 FSM-based approaches
+Finite state machines are deﬁned as abstract computation models that at one time can be in exactly one of a ﬁnite
+number of states. The FSM changes from one state to another are driven by speciﬁed inputs, and they are denoted astransitions. To deﬁne a FSM, the full list of its states, the initial state and the inputs triggering each transition shallbe declared. Then, a FSM allows to follow the operations of a spacecraft, transitioning among the di ﬀerent mission
+modes with diﬀerent functionalities. V ery simple spacecraft are entirely based on a hierarchical FSM, driving the entire
+on-board software,
+12while more complex architectures contain the FSM in the upper application layer.8, 13In any case,
+a very structured hierarchical FSM, from one side makes the software design very plain and linear, customised for
+the speciﬁc mission modes, on the other end it requires deep and extensive modiﬁcations if any alteration is needed.In order to overcome such problems, hierarchical decomposition methods are being study in the ﬁeld of automatatheory.
+14
+2DOI: 10.13009/EUCASS2023-342
+
+--- Page 3 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+A FSM-based approach allows the support of formal validation and veriﬁcation of the main software architecture.
+Indeed, the ﬁeld of FSM formal speciﬁcation and veriﬁcation is very rich and consolidated.15, 16Furthermore, standard
+and codiﬁed FSM description languages exists and are very well documented, like SDL (Speciﬁcation and DescriptionLanguage)
+17and, moreover, dedicated validation tools exist.18In the context of satellite on-board software formal
+veriﬁcation, the ESA tool OpenGEODE, which is included in the T ASTE environment,19provide a valuable example
+and useful instrument to validate the developed FSM.
+2.2 FDIR methods
+Spacecraft FDIR (Fault Detection, Isolation and Recovery) methods are at the base of on-board health monitoring
+and management systems. These techniques are fundamental for the reliability, availability and safety of a spacemission. They are addressed and studied since the very beginning of the space era, because of the intrinsic problemof maintenance in space. Indeed, to minimise the risk of major failures, which may be caused by small initial issuesassociated to apparently negligible symptoms, it is paramount to quickly detect any anomaly occurring on-board,stopping its propagation to other system’s components or subsystems.
+2
+The rapid progress in on-board computational power supported the transfer of FDIR functions from the ground
+to the ﬂight segment and the enhancement of the spacecraft on-board autonomy.20This is very common also in
+nano-satellite missions, not because of outstanding computing performance is available, but because an increasedspacecraft autonomy is closely linked to a reduction in operating costs. Thus, there is a strong requirement to implementFDIR functions on-board modern nano-satellites, and this is commonly achieved by inserting these functionalities intodedicated software modules.
+The nano-satellites’ FDIR functions are typically very simple and their main requirements are focused on the
+reliability and the low computational burden. Often, they are based on sequential monitoring of primary parametersthat are compared to thresholds, or on cross-checking of error and status ﬂags. The detection of any anomaly in thesemonitoring steps is frequently directly associated to a transition to safe mode.
+21Then, nano-satellite missions are
+often equipped only with fault detection capabilities. The possibility to include an intermediate layer of autonomousfailure isolation and recovery, before the transition to safe mode requiring ground intervention, is remarkably usefuland may lead to a great improvement in the system performance and objectives.
+22The design of such complex soft-
+ware functionalities may beneﬁt from a model-based design approach, achieving a monolithic component dedicatedto the speciﬁc system conﬁguration.
+23In alternative, it may be founded on a modular structure embedded in the FSM
+architecture. The separate software modules implement the distinct detection, isolation and recovery functions, and
+are strongly interconnected with the primary FSM. Moreover, these can be formally veriﬁed with the same approach
+adopted for the whole FSM, and their testing is directly performed at overall software level.24, 25This last approach is
+the one also used in this research work.
+2.3 Lessons learnt
+The proposed approach to develop and implement a nano-satellite software with a linear and modular FSM structure
+tries to summarise the lesson learnt from previous nano-satellite missions. The method allows a formal veriﬁcationof the entire on-board software in terms of system functionalities and components, including the possible transitionsbetween the diﬀerent software elements. Moreover, the distinct software states and modules can directly contain
+the fault detection, isolation and recovery blocks for a synergic integration of nominal and non-nominal phases. Thesecharacteristics have been proven to be e ﬀective in facilitating a positive outcome of the space mission.
+26–28Particularly,
+the modularity of such architecture, facilitating software updates and patches, and the close integration of FDIR routineswith the primary software level, enabler of a thorough ground veriﬁcation and testing of nominal and non-nominaltransitions, are considered as best-practices leading to successful space missions. Furthermore, the limitation of thehierarchy levels in the FSM structure, in favour of a more linear architecture, reduces the possibilities of unforeseenanomalous transitions and facilitates the complete testing of all the software elements. These beneﬁts are also suggested
+from real on-orbit experiences and lesson learned from previous missions.
+3. Proposed ﬁnite state machine-based method
+3.1 Method overview
+The proposed approach for FSM design, is schematised in Fig. 1. First, starting from missions’ typical high-level func-
+tionalities, the fundamental FSM macro-modes, such as LEOP , nominal routine (NOM) and hard safe mode (HSAFE),
+3DOI: 10.13009/EUCASS2023-342
+
+--- Page 4 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+Figure 1: Step-based strategy for the design of general-purposed CubeSat mission deﬁnition.
+are identiﬁed and the connecting transitions among them are deﬁned. Then, the logic underlying each mode is described
+accounting for either the relevant requirements to be satisﬁed, the mission’s operations and the actual functioning of
+the spacecraft’s components. Secondly, in order to check the compatibility with the spacecraft’s design and operations,the logic’s design is supported and consolidated with analyses involving the spacecraft subsystems, such as the attitudedetermination and control (ADCS), the power generation and management, and the on-board data handling. Duringsuch process, particular attention is paid to the design of the nano-satellite’s FDIR and to its translation into the FSM
+logic, which shall be achieved by means of monitoring functions that perform the Fault Detection (FD) and the soft
+safe (SSAFE) routines, which are devoted to the Fault Identiﬁcation (FI) and, possibly,fault correction. Afterwards, thederived FSM logic is represented in detail with the Speciﬁcation and Description Language (SDL), which allows theformal veriﬁcation of the FSM and bridges the high-level deﬁnition to the ﬁnal on-board software implementation.
+3.2 Identiﬁcation of general software functionalities
+Despite of mission-speciﬁc objectives, a large number of functionalities need to be always granted by a general nano-
+satellite’s on-board software. These include not only common low-level tasks, such as the boot and start-up of the sys-tem, the communication with peripherals and the monitoring of on-board components, but most importantly high-level
+functionalities. The latter range from on-board tasks as communication with ground, power generation, distribution andstorage, and (for the more complex nano-satellites’ missions) the attitude determination and control of the spacecraft;
+up to operational functionalities, related to the the ground planning and operation of the satellites, which are tightlyrelated to the mission phases.
+3.3 Proposed high-level software structure
+Derivation of a generic backbone software structure In this section, a generally applicable backbone structure for
+a nano-satellite on-board software is proposed, adopting a FSM-based approach. In the framework of FSM approaches,the software backbone structure can be deﬁned as the software modes themselves.
+The key insight that leads to the deﬁnition of the FSM modes is the identiﬁcation of the very di ﬀerent underlying
+working principles that are required to accomplish the various high-level software functionalities. In other words, theFSM modes can be found by clustering together functionalities that can be satisﬁed by implementing a software piecebased on the same drivers. It is important to highlight that such identiﬁcation process focuses on high-level softwarefunctions only, because it is noticed that the low-level functionalities should be always present throughout the wholesoftware functioning.
+For a small-sized spacecraft software, three high-level functionalities groups based on similar working principles
+are identiﬁed:
+1. Tasks that shall be accomplished only once during the mission, i.e. at the beginning of the operations in space,
+for which a complete autonomy of the satellite is mandatory, because the system is not ready yet to communicatewith ground.
+2. Tasks that need to be repeatedly performed, for which the ground control and planning is desirable.3. Tasks that can possibly be performed repeatedly during the mission, but that depend on contingencies and thus
+can not be planned or that cannot be handled immediately by the ground mission control.
+FSM backbone states description From the above high-level clustering, it is found that a nano-satellite software
+can be structured upon three fundamental software macro-modes, which are here called LEOP , NOM and HSAFE.
+4DOI: 10.13009/EUCASS2023-342
+
+--- Page 5 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+1. The LEOP mode includes the operations that start with the spacecraft ﬁrst switch-on in space that must be
+executed only once (such as system boot, appendages deployment and initial detumbling). The driving principle
+here is the one-time successful execution of a sequence of tasks. Moreover, due to the fact that in this phasebatteries are the main power source, such tasks shall be completed within a reduced time-framework. It is thusproposed to base such mode on time-tagged commands that shall be repeated until the success assessment of anysingle task or expiration of the allocated time-out. Such software mode should be employed during the ﬁrst part
+of the LEOP mission phase.
+2. The NOM mode implies a regular communication with ground, hence it should be typically used during the
+spacecraft commissioning and during all nominal mission phases. It is here proposed to base the NOM mode
+upon scheduled commands, uploaded by ground during communication windows. Each command is paired with
+a scheduled time at which the on-board software triggers its execution. The sequence should be scheduled byground keeping in mind the most proper sequence of operations for the platform (e.g. required attitude pointingand control mode, ground stations visibility windows, payload operational mode). These scheduled commandcan be either low-level, commanding basic functionalities and actions, or high-level, commanding automaticsequences of basic commands that achieve a more complex system action.
+3. The HSAFE mode, instead, consists of automatic routines to follow when an error has been detected and identi-
+ﬁed without being able to recover the failure or, more generally, when a ground contact is immediately desirable
+and the system shall survive at the best, while trying to achieve the such communication. The HSAFE is drivenby the maximisation of the spacecraft survivability, thus increasing the probability to communicate with groundand of maintaining a positive power balance.
+Transitions among FSM states The entry and exit transitions of these three major software states are now described.
+•The LEOP mode is entered if the time is below a threshold from the the ﬁrst switch-on of the on-board computer
+in space. Such threshold should be deﬁned and consolidated by means of analyses and tests. The LEOP mode isexited when the time is above this time threshold, with a transition to the HSAFE mode. This is due to the factthat the HSAFE mode guarantees a positive power balance, while maintaining the basic system functionalitiesand maximising the chances to get the ﬁrst ground contact.
+•The entrance to the NOM mode can be only commanded by ground, thanks to a communication contact hap-
+pening in the HSAFE state and requiring the upload of a schedule. On the contrary, exiting from NOM mode is
+dictated by contingencies, i.e. failures and non-nominal situations detected and identiﬁed on-board, triggering
+the transition to the HSAFE mode.
+•As already said, the HSAFE mode can be entered from both LEOP and NOM via on-board events and can be
+exited with a transition to NOM via ground intervention only.
+The major advantage in exploiting such macro-modes is the possibility to develop a modular and linear FSM,
+that, contrary to hierarchical structures, is portable to di ﬀerent missions and more easily adaptable to the speciﬁc
+requirements.
+3.4 Entailment of FDIR functionalities into the FSM
+The big challenge of nano-satellite missions consists in achieving the mission objectives with a low cost design, which
+implies taking more risks. Indeed, the probability and severity of failures are often higher than in larger scale missions,due to diﬀerent reasons, such as lack of redundancies, low design margins on power and telemetry budgets or reduced
+test campaigns that typically characterise small size spacecraft.
+For this reason, particular attention shall be paid to the design of the nano-satellite’s FDIR and to its translation
+and entailment into the FSM. For small spacecraft, the FDIR strategy shall be designed to grant the safety and the
+reliability of the system minimising on-board recovery actions and untracked autonomous transitions, while puttingthe system into a hard safe mode that maximises both the power budget margin the attempts to communicate to groundfor intervention.
+It is here proposed to include each FDIR function in the software FSM by means of monitors and SSAFE
+routines, as follows.
+•FD. Some monitors shall continuously check the system variables that are necessary for the correct functioning
+of the platform. Such monitors shall be di ﬀerentiated according to the FSM mode.
+5DOI: 10.13009/EUCASS2023-342
+
+--- Page 6 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+•FI. In case some failure is detected by the monitors, some dedicated routines, here called SSAFE, shall be in
+charge for the Fault Identiﬁcation. The extreme exit condition of the SSAFE procedure is to request the entire
+system to transition into HSAFE, where the nominal functioning of the platform is stopped to fast and safelycommunicate with ground.
+•FR. The FR functions are part of the SSAFE routines. Once an anomaly is isolated, the software can au-
+tonomously try to solve the possible problems arisen, usually and when possible, trying to reboot the error-relatedcomponent. Only few other autonomous FR actions should be kept on-board, i.e. only when an immediate inter-vention is necessary to avoid a catastrophic loss of the system. In all the other cases, the FR shall be performedwith the ground in the loop. For this purpose, the system stays in the HSAFE mode, while waiting for groundcommands.
+The FDIR monitors and routines run during all system modes, with the only exception of the LEOP . Indeed such
+phase is inherently designed to perform tasks accomplishment checks and it continuously tries to re-issue such tasksuntil success. In parallel to the schedule, during the NOM mode, parameters monitors and SSAFE routines are alsoincluded. It is important to underline that in HSAFE mode, the monitors and SSAFE routines are still active. The
+proposed SSAFE approach has the advantage of granting attempts of failure isolation and recovery autonomously, in
+certain conditions, before interrupting the current tasks and waiting for ground intervention. In this way, on one hand aprompt recovery can be attempted immediately at the failure time and on the other hand some simple failure cases canbe overcome, having a positive impact on the mission operations.
+3.5 Approach for detailed software design
+After having clariﬁed the general software structure and the entailment of FDIR functionalities, this section tackles the
+approach to be followed for the detailed design of the software. In this case, mission-speciﬁc factors heavily a ﬀect the
+design output, but still the approach to adopt during the detailed design can be standardised, by exposing the majorparameters of interest in the SW . Some general guidelines for the detailed design are here provided.
+The detailed design shall start from the knowledge of the functioning of the nano-satellite COTS components,
+in order to understand which parameters can be monitored and which commands can be provided. All the missing orcustom desired software pieces shall be addressed to in very early design stages.
+Besides the design, implementation and testing of the low-level software components, the FSM routines shall
+be veriﬁed following a multi-disciplinary approach, in order to keep an holistic view over the mission software, but atthe same time accounting for subsystem-speciﬁc needs. The detailed design shall be based on system engineering and
+shall be performed with multiple iterations, in order to account for mission-speciﬁc components, tasks and operations.
+It is also suggested to perform multi-disciplinary analyses in the domain of di ﬀerent subsystems, to be related
+to the expected software behaviour. In particular, attitude determination and control simulations, power budgets and
+housekeeping telemetry budgets. Some major common FSM-related trade-o ﬀs involving multiple subsystems are here
+identiﬁed as:
+•deﬁnition of priorities and timing of the LEOP mode tasks sequence;
+•selection of a restricted set of parameters to monitor and related SSAFE routines;
+•deﬁnition of events to log and related severity.
+The output of the detailed FSM design, shall be the clear schematics of the di ﬀerent modes, the monitored
+parameter lists and the schematics of the SSAFE routines.
+3.6 Software implementation and veriﬁcation
+Once the conceptual deﬁnition of the FSM and FDIR have been detailed, the state machine can be implemented in the
+Opengeode environment, an open-source graphical editor developed by the European Space Agency (ESA), containedinside the T ASTE package. In such a way, it is possible to directly identify possible faults and formal errors in the
+prototype logics, thus relying on a more accurate and with wider coverage FSM veriﬁcation.
+This tool exploits the SDL language needed for the formal description of ﬁnite state machines, in a safe and
+robust manner. Up to now, OpenGEODE is a technology demonstrator tool, therefore can only be used to describe and
+preliminary verify the implementation of the FSM. Being based on the SDL language, that has a deﬁned syntax and
+semantics, the tool can perform several checks on the formal design of the state transitions, input and output parameters,and procedures’ calling and deﬁnition.
+6DOI: 10.13009/EUCASS2023-342
+
+--- Page 7 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+During the code development and deployment, it is important to foresee testing techniques to inject failures, both
+hardware and software, into the system.
+4. The HERMES case study
+In the following section the HERMES mission case study is presented, starting from a brief explanation of the missionitself. Afterwards, the FSM approach developed and deﬁned in the previous section is applied to the HERMES re-quirements, and the following outcome in terms of FSM design is described. In particular, it will be visible how all the
+steps deﬁned in the proposed method can be easily shaped for the speciﬁc request of a single CubeSat mission, without
+losing the generality aspects that characterised the method, making it usable for various kinds of missions. The section
+is divided into four subsections, describing the HERMES mission and its main requirements, the software high-levelstructure, the FDIR functionality, and ﬁnally the detailed design.
+Figure 2: CAD description of the HERMES CubeSat’s platform.
+4.1 The HERMES mission
+The High Energy Rapid Modular Ensemble of Satellites (HERMES) mission, is a CubeSat mission aimed to contributes
+to the so called Multi-Messenger Astrophysics. The HERMES’ space segment is composed of a Low Earth Orbit (LEO)constellation of six nano-satellites. Each of them is a 3U CubeSat carrying a novel miniaturised detector sensitive to Xand gamma-rays. Indeed, the mission aims at detecting and localising energetic astrophysical transients, such as shortgamma-ray bursts (GRB), which are the electromagnetic counterparts of gravitational wave events. Once the detectordetects the GRB, the system shall promptly communicate the localised event to ground. The constellation developmentis both funded by Italian Ministry of University and Research (MUR), the Italian Space Agency (ASI) and the EuropeanCommunity (EC).
+6Starting from these very high level requirements, needed by the spacecraft scientiﬁc payload, the
+main objective of the development of the HERMES platform can be summarised in the test and validation of the designof a robust and reliable CubeSat platform, equipped with a ﬂexible and conﬁgurable attitude determination and control
+(ADCS) system, and a potential continuous and active link with ground. The HERMES’ platform is shown in Fig. 2.
+4.2 HERMES software high-level design with proposed method
+Following the steps of the method proposed in Sec. 3, here the high level functionalities and design are described. As
+proposed in Sec. 3.3, the HERMES’ software high level structure is divided into three main modes, LEOP , NOM, andHSAFE, grouping the three main functionality principles proposed for CubeSat’s software. The LEOP mode is theone aimed to boot the system, the ADCS system, and the main communication system, in order to rapidly obtain theﬁrst contact with ground. Moreover, it is dedicated to the deployment of the folded appendages (e.g., communication
+antennas and solar arrays) and to detumble the satellite. NOM is the mode in which the platform performs attitude
+manoeuvres, commands the scientiﬁc payload, connects to ground with all the communication systems, and monitorsthe satellite critical parameters. On the other hand, the HSAFE mode is dedicated to avoid any waste of power, to fast
+7DOI: 10.13009/EUCASS2023-342
+
+--- Page 8 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+communicate with ground, to control the ADCS to maximise the power generation or to handle non nominal situation,
+such as tumbling or unexpected wheel saturation. To achieve the very complex mission’s objectives, the on-board
+software for the HERMES nano-satellites is executed by two di ﬀerent OBCs on the spacecraft, namely OBC-MAIN
+and OBC-ADCS. The OBC-MAIN is the interface between all the spacecraft’s components, as the scientiﬁc payload,the power and telecommunication modules, and the OBC-ADCS itself. Di ﬀerently, the OBC-ADCS interfaces with all
+the attitude determination sensors and control actuators.
+Figure 3: HERMES’ software high-level structure.
+The software running in each of the two OBCs, named SW-MAIN and SW-ADCS respectively, is structured
+according to its own FSM, that still follows the functionalities presented before. The two are interfaced by meansof structured data commands and monitoring parameters, with a master-slave logical architecture. Speciﬁcally, the
+SW-ADCS is subordinated to the requests and commands deﬁned by the SW-MAIN. This high-level structure can be
+depicted in Fig. 3. It can be noticed that both software’s FSM reﬂect the same architecture deﬁned by the three main
+modes: LEOP , NOM and HSAFE. The only exception is the lack the LEOP mode for SW-ADCS, useless because
+subordinated to the SW-MAIN. The master-slave relation is justiﬁed by the fact that SW-ADCS exchanges with SW-
+MAIN counterpart monitors and data, while only receiving commands.
+In Fig. 3, the transaction between modes with their relative entry and exit conditions are deﬁned exactly as those
+presented in the general-purpose methodology of Sec. 3.3: HSAFE is used as the LEOP exit condition, since it isdesigned to be power positive and to look for a ground contact; while the ﬁrst schedule upload allows transition toNOM mode.
+4.3 HERMES software detailed design with proposed method
+In order to be compliant with the FDIR functionalities described in Sec. 3.4, also the HERMES FDIR strategy is based
+on the concept of the SSAFE routines. To recap, the SSAFE object is a continuous monitor, that runs during both theNOM and the HSAFE phase of the mission, and is in charge of continuously checking HERMES vitals parametersin order to detect possible failures or errors in the system. Afterwards, it tries to solve the problem, with simple FRprocedures, otherwise, request the entire system in HSAFE.
+In the next paragraphs, each of the software’s modes will be brieﬂy analysed more in detail following the ap-
+proach deﬁned in Sec. 3.5, in order to generate as output the clear schematics of the modes’ architecture , the overallmonitor parameters list, and consequently the schematics of the SSAFE routines. The description will be dividedbetween the two software’s design: SW-MAIN and SW-ADCS.
+4.3.1 HERMES SW-MAIN ﬁnite state machine
+The FSM of the HERMES SW-MAIN is divided into three main modes: LEOP , NOM and HSAFE. The design of each
+mode is hereby brieﬂy described.
+8DOI: 10.13009/EUCASS2023-342
+
+--- Page 9 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+LEOP mode. As proposed in Sec 3.3 every operation in the SW-MAIN LEOP mode is time tagged. Nominally,
+the correct operational order is the one schematised in Fig. 4, and described in the following list. It is important to
+understand that, since the process is time-tagged, all the operations can happen only in a deﬁned time slot, within whichthe SW attempts cyclically to execute each task, as visible again in Fig. 4.
+Figure 4: SW-MAIN LEOP mode operational schematic.
+•At ﬁrst, the OBC-MAIN board switches on and performs its automatic power-up and boot procedure.
+•Once the OBC is operative, it waits until the end of the short slot 1 , it boots the UHF board (one of the three
+HERMES’ telecommunication systems) and then it deploys the two antennas. If the boot and deployment com-plete successfully, the UHF is commissioned and the board starts sending a beacon message to ground in orderto acquire the ﬁrst contact.
+•After the UHF operation, the LEOP mode boots the OBC-ADCS board.
+•Then, if the boot is successful the software commands the ADCS to activate the detumbling mode, in order
+to detumble the spacecraft before trying the deployment of the solar arrays, that shall not sustain high angularvelocities.
+•When the time slot 2 is concluded, even if the ADCS has not managed to completely detumble the satellite, the
+SW commands the deployment of the spacecraft’s solar arrays. This is because the risk of opening the solar
+panels at high tumbling rate is minor of the one associated to running a long detumbling mode on battery with
+folded panels.
+Once this process is concluded, the OBC system automatically enters the HSAFE mode. The LEOP mode is
+constructed to fast and safely execute the solar panels deployment: indeed, without them, the survival of the platformis practically impossible and therefore, the mission may be completely lost. This underlines the importance of havinga LEOP phase that is time tagged and not event tagged in order to ensure the panels deployment at the deﬁned time,even if all the previous operations have failed.
+NOM mode. The SW-MAIN nominal mode is based on the considerations done in Sec. 3.3, i.e. the software operates
+following the commands present in a deﬁned and delivered schedule, which is periodically uploaded from groundduring the satellites’ operations. The scheduled commands do not correspond to a single action, but they will be
+implemented as Scripted Commands. Such scripts can be classiﬁed into two groups: Routine Scripted Commands, thatwill be used mainly during the nominaloperations, and the Commissioning Scripted Commands, that will be employedonly during the commissioning phase. The main concepts of the Routine Scripted Commands operation are listed inthe following:
+•Manoeuvre commands: used to command a manoeuvre to the ADCS. The inputs to this script include the guiding
+polynomial and the preferred actuator.
+•Start, make, and stop observation commands: used to enter and exit the scientiﬁc observation mode exploiting
+the scientiﬁc payload and the Iridium system as a low latency communication channel.
+•Data transfer commands: used to transfer data from the scientiﬁc payload to the OBC-MAIN internal memory.
+9DOI: 10.13009/EUCASS2023-342
+
+--- Page 10 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+•Start, make, and stop communication window commands: used to handle ground communication windows.
+Input arguments include the communication channels to be used and the ground stations to communicate with.
+Nominally with SBAND telecommunication system.
+Diﬀerently, the NOM mode Commissioning Scripted Commands activities can be summarised as:
+•Full commissioning of ADCS subsystem.
+•Full commissioning of Telemetry Tracking and Command (TT&C) subsystem.
+•Full commissioning of Electric Power Subsystem (EPS).
+•Full commissioning of the Payload.
+These or additional scripted commands can be uploaded and modiﬁed from ground, thus guaranteeing ﬂexible
+operations. Moreover, the schedule can also contain basic low-leve actions and functionalities to be executed. Asmentioned before, meanwhile the Scripted Commands are executed in the NOM state, the SSAFE monitor and routinesare included and periodically run to grant the FDIR functionalities of the SW-MAIN and the entire HERMES system.
+HSAFE mode. As introduced before, some nominal monitors can lead the system to enter the HSAFE mode, due
+to components’ errors or failures. The logical architecture of the HSAFE mode has a tree structure, where systemchecks determine branches, which ﬁnally can lead to possible actions. Two main parameters manage the functioningof the HSAFE process: the battery voltage and the ADCS status. The battery voltage is necessary to understandthe level of power that is still available in the platform, while the ADCS status can have di ﬀerent output in terms of
+direct SW-ADCS requests or availability status, determining the operating mode of the satellite. In Fig. 5, the logical
+scheme of the HSAFE mode is described. When the system enters HSAFE, the on-board computer powers o ﬀall
+HERMES’ telecommunication systems, puts the ADCS in standby and the payload in power-save mode. In case oferrors coming from the ADCS or the payload, their shut-down is enforced by calling the respective procedures. Aftersuch operations, which constitute the initialisation phase of HSAFE, the process enters the main central loop, which isbased on the continuous check of battery voltage and ADCS status, and that can be exited only by a ground command.
+Depending on the battery and ADCS status, the process may lead to ﬁve di ﬀerent branches (as in Fig. 5) depend-
+ing on the status of its sensors and actuators: fatal error, detumbling, desaturation, safe or nominal ADCS branches.The battery status can directly lead to the fatal error branch if its status is below a certain voltage threshold. If thebattery is in critical condition, no operations are performed because the entire system will be automatically shut-down.In all other cases, the main operation of the FSM is selecting the best available communication instrument in order toconnect with ground as fast as possible.
+Figure 5: SW-MAIN HSAFE mode operational schematic.
+4.3.2 HERMES SW-ADCS ﬁnite state machine
+The FSM of the HERMES SW-ADCS is divided into two main modes: NOM and HSAFE. The design of each mode
+is hereby brieﬂy described.
+10DOI: 10.13009/EUCASS2023-342
+
+--- Page 11 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+NOM mode. The SW-ADCS NOM mode provides the nominal interaction between the ADCS algorithms and the
+monitors and SSAFE routines of the ADCS COTS components. The software is designed to have two main parts, the
+ADCS algorithm, and the ADCS SSAFE monitors. The ﬁrst one is dedicated to the spacecraft GNC, and its operativemode is directly commanded by the SW-MAIN schedule, while the latter reads the algorithm generated ﬂag to safelymonitor ADCS software, sensors, and actuators. If an error or failure occurs and the relative SSAFE procedure does notmanage to solve it, it directly exposes the error to the SW-MAIN, that will switch mode to HSAFE. The architecture
+reﬂects the master-slave interaction deﬁned in Sec. 4.2. The logical architecture scheme is depicted in the right side of
+Fig. 6.
+Figure 6: SW-ADCS NOM and HSAFE modes operational schemes.
+HSAFE mode. The SW-ADCS HSAFE mode still provides the coupling between ADCS algorithms, monitors and
+SSAFE routines, with an additional element, active only in this mode, aimed to select the correct ADCS operative mode,following the requests and instruction of the SW-MAIN HSAFE tree logic. Once the SW-MAIN system switches toHSAFE mode, even if the transition is not caused by an ADCS failure, also the ADCS-SW switches to its HSAFE
+mode. Here the software is composed of three actors: the usual ADCS algorithm, the ADCS SSAFE monitors and the
+ADCS-HSAFE logic, as described in the left side of Fig. 6. The ﬁrst does not change with respect to NOM phase, stillrequesting the mode command and exposing ﬂags. The monitors, in HSAFE mode, slightly change, but still outcomethe ADCS status and the modes availability and request a di ﬀerent set of macro-modes (set of modes characterised
+by the same subset of sensors and actuators). The new element, instead, is the ADCS-HSAFE logic, that becomesthe bridge between the SW-MAIN HSAFE mode and the ADCS algorithm. Indeed, the HSAFE procedure reads the
+monitor macro-mode requests, if present, and tells the macro-mode to the ADCS-HSAFE; here, depending on the
+macro-modes availability the ﬁrst compatible mode is then commanded to the ADCS algorithm.
+5. Results
+In this section, some results of di ﬀerent analyses are reported, in order to highlight how the presented and implemented
+methods are exploited to drive the design of the on-board software.
+5.1 Inter-disciplinary analyses
+In support to the FSM design, multi-disciplinary analyses were carried-out, most importantly regarding the ADCS and
+EPS subsystems. Due to the limited available on-board resources, a crucial challenge for the HERMES mission was to
+select and correctly scheduling the di ﬀerent operating modes in relation to the SW architecture. The two subsystems
+models were run in open-loop, accounting for the FSM structure as the high level SW commands of the subsystemsmodes.
+11DOI: 10.13009/EUCASS2023-342
+
+--- Page 12 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+(a) Angular velocity.
+ (b) Battery voltage.
+Figure 7: Montecarlo simulation during LEOP (50 runs).
+Example of simulation impacting on the FSM design. An example of analysis that a ﬀected the FSM design is here
+reported, where multi-disciplinary Montecarlo simulations of the LEOP phase have been carried-out. In Fig. 7a the
+angular rate of the satellite during the LEOP is depicted, while in Fig. 7b the corresponding batteries voltage is shown.
+The general success rate of the simulations is 96% and the statistical values of the ﬁnal angular velocity are
+reported in 1. The detumbling is always successfully completed. The batteries ﬁnal state of charge is reported in Table1 as well, showing that the batteries are e ﬀectively recharged during the sun pointing phase. As shown in Figure 7b,
+Table 1: LEOP ﬁnal angular velocity and battery voltage.
+Variable mean std (1 σ)
+ωx[◦/s] 3.00e-04 9.00e-04
+ωy[◦/s] -1.00e-04 7.00e-04
+ωz[◦/s] 1.60e-03 9.30e-03
+V-BATT [V] 15.595 0.495
+the satellite relies on batteries at the beginning of the LEOP , while in almost all the cases the batteries are recharged as
+soon as the solar arrays are deployed.
+The major outcome from the analyses was the consolidation and veriﬁcation of operation sequence and the need
+to of adopting strategies to eliminate the failure cases in which the batteries voltage drops down below the criticalvalue, like:
+•earlier deployment of the solar arrays;
+•reduced communications for power save before the LEOP end.
+5.2 FSM implementation and veriﬁcation in OpenGEODE
+Following the steps of the proposed method for the FSM design, the last passage consists in the development and
+implementation of the FSM and FDIR routines in SDL within the OpenGEODE environment, which allows the formalveriﬁcation of the logical architecture, as brieﬂy introduced in Sec. 3.6. Using SDL language for these kind of taskscan be very useful since the language is formally completed, and therefore, it can be directly used to generate thesimulation or target code. The SDL language relies on four main aspects: structure, communication, behaviour, anddata.
+•The structure of the system is made by di ﬀerent function blocks that can be further decomposed in other blocks.
+The lowest level of block is instead deﬁned with a series of one or more processes, describing the actual opera-
+tions of the FSM.
+•Blocks and sub-blocks are connected through communication channels that carry internal or external signals,
+depending if the communication must occur between blocks of the same or di ﬀerent levels respectively.
+12DOI: 10.13009/EUCASS2023-342
+
+--- Page 13 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+•The process inside each low level block describes all the action that the system shall perform. It could consists in
+reading external input, sending messages, taking actions (cycle, assignment), making decision or call procedures.
+•All the variables deﬁned in the process must follow a syntax, which supports pre-deﬁned data types (e.g. integer,
+ﬂoat, boolean, string, ...)
+This simple and well-deﬁned formalism makes the SDL language reliable for the sizing of robust software.
+Indeed, being HERMES a 3U CubeSat mission, the on-board software needs to be simple and reliable. Therefore, thechoice of OpenGEODE as editing tool is useful to reduce the complexity of the state chain, streamlining the checking
+parameters selection and the procedures deﬁnition. This is why all the HERMES FSM modes and SSAFE routines,
+deﬁned in Sec. 4, have a veriﬁed OpenGEODE formulation: each of these are based on inner procedures which areagain implemented and veriﬁed with OpenGEODE.
+Figure 8: OpenGEODE implementation of the SW-MAIN LEOP mode, with a inside look at the Solar Array deploy-ment state.
+An example of the formalisation of HERMES’ ﬁnite state machine in OpenGEODE is shown in Fig. 8, that
+presents the veriﬁed SW-MAIN LEOP mode. As explained in Sec. 3.6, the overall FSM implementation in Open-GEODE is used as formal veriﬁcation of the logical architecture designed for the di ﬀerent modes of the two satellite’s
+software, that is, therefore, formally veriﬁed. The next step, instead, may be related to the direct translation of the
+OpenGEODE’s SDL code in the ﬁnal FSM coded in the real spacecraft’s OBC systems.
+6. Conclusion
+In conclusion, three main objectives have been satisﬁed by the work presented in the paper:
+•A speciﬁc step-based strategy for the design of general-purposed nano-satellite mission software functionalities
+has been deﬁned.
+•An easy way to structure the FSM for this kind of missions has been proposed.
+•A simple and yet eﬀective way to formally verify the design of the FSM has been analysed and proved.
+At last, the paper proposes an e ﬀective architecture for the HERMES’ mission software, based on the presented
+FSM design approach, also including the satellite’s FDIR strategy. A multi-disciplinary simulator is used to helpverifying the LEOP sequence and tuning some parameters to ensure the CubeSat survivability. Finally, each FSM partis deﬁned in SDL, with the OpenGEODE tool, and formally veriﬁed.
+13DOI: 10.13009/EUCASS2023-342
+
+--- Page 14 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+7. Acknowledgments
+The authors would like to acknowledge the entire HERMES project consortium, composed of the Italian Space Agency
+(ASI), Italian Institute of Astrophysics (INAF), Politecnico di Milano, Cagliari University, National Institute of HigherMathematics (INdAM), Skylabs Technology, Deimos Space, Nova Gorica University, Tübingen University, LorándEötvös University, Aalta Lab, C3S Electronics.
+The authors want to acknowledge the Italian Ministry of University and Research (MUR), the Italian Space
+Agency (ASI) and the European Commission for the funding of the HERMES project.
+References
+[1] E. Kulu, “Nanosatellite launch forecasts-track record and latest prediction,” in 36th Annual Small Satellite Con-
+ference 2022 , 2022.
+[2] M. Tipaldi and B. Bruenjes, “Spacecraft health monitoring and management systems,” in 2014 IEEE Metrology
+for Aerospace (MetroAeroSpace) , pp. 68–72, IEEE, 2014.
+[3] K. V . de Souza, Y . Bouslimani, and M. Ghribi, “Flight software development for a cubesat application,” IEEE
+Journal on Miniaturization for Air and Space Systems , vol. 3, no. 4, pp. 184–196, 2022.
+[4] I. Latachi, T. Rachidi, M. Karim, and A. Hanaﬁ, “Reusable and reliable ﬂight-control software for a fail-safe and
+cost-eﬃcient cubesat mission: Design and implementation,” Aerospace , vol. 7, no. 10, p. 146, 2020.
+[5] S. Buckner, C. Carrasquillo, M. Elosegui, and R. Bevilacqua, “A novel approach to cubesat ﬂight software devel-
+opment using robot operating system (ros),” in 34th Annual AIAA /USU Small Satellite Conference , 2020.
+[6] F. Fiore, L. Burderi, M. Lavagna, R. Bertacin, Y . Evangelista, R. Campana, F. Fuschino, P . Lunghi, A. Monge,
+B. Negri, et al. , “The hermes-technologic and scientiﬁc pathﬁnder,” in Space Telescopes and Instrumentation
+2020: Ultraviolet to Gamma Ray , vol. 11444, pp. 214–228, SPIE, 2020.
+[7] A. Colagrossi and M. Lavagna, “Fault tolerant attitude and orbit determination system for small satellite plat-
+forms,” Aerospace , vol. 9, no. 2, p. 46, 2022.
+[8] S. Johl, E. Glenn Lightsey, S. M. Horton, and G. R. Anandayuvaraj, “A reusable command and data handling
+system for university cubesat missions,” in 2014 IEEE Aerospace Conference , pp. 1–13, 2014.
+[9] M. Schmidt and K. Schilling, “An extensible on-board data handling software platform for pico satellites,” Acta
+Astronautica , vol. 63, no. 11, pp. 1299–1304, 2008.
+[10] C. Mitchell, J. Rexroat, S. A. Rawashdeh, and J. Lumpp, “Development of a modular command and data handling
+architecture for the kysat-2 cubesat,” in 2014 IEEE Aerospace Conference , pp. 1–11, 2014.
+[11] C. E. Gonzalez, C. J. Rojas, A. Bergel, and M. A. Diaz, “An architecture-tracking approach to evaluate a modular
+and extensible ﬂight software for cubesat nanosatellites,” IEEE Access , vol. 7, pp. 126409–126429, 2019.
+[12] P . Fiala and A. V obornÃk, “Embedded microcontroller system for pilsencube picosatellite,” in 2013 IEEE 16th
+International Symposium on Design and Diagnostics of Electronic Circuits and Systems (DDECS) , pp. 131–134,
+2013.
+[13] J. Guo, J. Bouwmeester, and E. Gill, “In-orbit results of delﬁ-n3xt: Lessons learned and move forward,” Acta
+Astronautica , vol. 121, pp. 39–50, 2016.
+[14] O. Biggar, M. Zamani, and I. Shames, “Modular decomposition of hierarchical ﬁnite state machines,” arXiv
+preprint arXiv:2111.04902 , 2021.
+[15] A. R. Flora-Holmquist and M. G. Staskauskas, “Formal validation of virtual ﬁnite state machines,” in Proceedings
+of 1995 IEEE Workshop on Industrial-Strength F ormal Speciﬁcation Techniques , pp. 122–129, IEEE, 1995.
+[16] D. Lee and M. Y annakakis, “Testing ﬁnite-state machines: State identiﬁcation and veriﬁcation,” IEEE Transac-
+tions on computers , vol. 43, no. 3, pp. 306–320, 1994.
+[17] P . Poizat, “Sdl: a language based on extended ﬁnite state machines with abstract data types,” Software Speciﬁca-
+tion Methods: An Overview Using a Case Study , pp. 147–164, 2001.
+14DOI: 10.13009/EUCASS2023-342
+
+--- Page 15 ---
+A FINITE ST A TE MACHINE APPROACH TO NANO-SA TELLITE SW DESIGN
+[18] S. C. P . F. Fabbri, J. C. Maldonado, and M. Delamaro, “Proteum /fsm: a tool to support ﬁnite state machine
+validation based on mutation testing,” in Proceedings. SCCC’99 XIX International Conference of the Chilean
+Computer Science Society , pp. 96–104, IEEE, 1999.
+[19] I. Dragomir, M. Bozga, I. Ober, D. Silveira, T. Jorge, E. Alana, and M. Perrotin, “Formal veriﬁcation of space
+systems designed with taste,” arXiv preprint arXiv:2111.10132 , 2021.
+[20] M. Tipaldi and L. Glielmo, “A survey on model-based mission planning and execution for autonomous space-
+craft,” IEEE Systems Journal , vol. 12, no. 4, pp. 3893–3905, 2017.
+[21] L. Franchi, L. Feruglio, R. Mozzillo, and S. Corpino, “Model predictive and reallocation problem for cubesat
+fault recovery and attitude control,” Mechanical Systems and Signal Processing , vol. 98, pp. 1034–1055, 2018.
+[22] M. Tipaldi, S. Silvestrini, V . Pesce, and A. Colagrossi, “Chapter eleven - FDIR development approaches in space
+systems,” in Modern Spacecraft Guidance, Navigation, and Control (V . Pesce, A. Colagrossi, and S. Silvestrini,
+eds.), pp. 631–646, Elsevier, 2023.
+[23] J. S. Lobo, P . Ghiglino, S. L. Escobedo, M. S. Rivo, and K. Robotics, “Design of a model-based failure detection
+isolation and recovery system for cubesats,” 2019.
+[24] M. C. Vitelli, M. Tipaldi, and L. Troiano, “A domain speciﬁc language oriented to fault detection, isolation and
+recovery,” in 2013 International Conference on Soft Computing and Pattern Recognition (SoCPaR) , pp. 343–348,
+IEEE, 2013.
+[25] O. Durou, V . Godet, L. Mangane, D. Pérarnaud, and R. Roques, “Hierarchical fault detection, isolation and
+recovery applied to cof and atv avionics,” Acta Astronautica , vol. 50, no. 9, pp. 547–556, 2002.
+[26] C. Gonzalez, C. Rojas, A. Becerra, J. Rojas, T. Opazo, and M. Diaz, “Lessons learned from building the ﬁrst
+chilean nano-satellite: The suchai project,” 2018.
+[27] J. Scharnagl, R. Haber, V . Dombrovski, and K. Schilling, “Netsat - challenges and lessons learned of a formation
+of 4 nano-satellites,” Acta Astronautica , vol. 201, pp. 580–591, 2022.
+[28] A. Slavinskis, M. Pajusalu, H. Kuuste, E. Ilbis, T. Eenmäe, I. Sünter, K. Laizans, H. Ehrpais, P . Liias, E. Kulu,
+et al. , “Estcube-1 in-orbit experience and lessons learned,” IEEE aerospace and electronic systems magazine ,
+vol. 30, no. 8, pp. 12–22, 2015.
+15DOI: 10.13009/EUCASS2023-342

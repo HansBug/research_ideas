@@ -1,0 +1,1356 @@
+--- Page 1 ---
+JournalofIntelligent&RoboticSystems
+https://doi.org/10.1007/s10846-018-0869-6
+CommunicationWithinMulti-FSMBasedRoboticSystems
+CezaryZieli ´nski1·MaksymFigat1·Ren´eHexel2
+Received:2October2017/Accepted:8May2018
+©TheAuthor(s)2018
+Abstract
+The paper presents a robotic system design methodology based on the concept of an embodied agent decomposed into
+communicating subsystems, whose activities are specified in terms of FSMs invoking behaviours parameterised by transitionfunctions and terminal conditions. In the implementation phase, this specification is transformed into a system composedof a whiteboard providing communication means and logically labelled FSMs (LLFSMs) defining the system behaviour.These concepts are used to generate the code of the robot controller. The inclusion of inter-subsystem communicationmodel completes the resulting system design with respect to our previous work that did not account for this model.
+Thus communication plays a central role in this presentation. The design methodology is exemplified with a rudimentary
+table tennis ball-collecting robot. The presented methodology and the implementation tools are suitable and beneficial forapplication to the design of other robotic systems.
+Keywords Robotic system specification ·Robotic system design methodology ·Communication model
+1Introduction
+Good practises of software engineering require that the
+creation of systems involves a specification phase that
+defines the model of what has to be created, and animplementation phase that discloses how this is done[84]. This paper uses the specification method based
+on the concept of an embodied agent [54, 92]. The
+novelty is twofold. Our first contribution is the method
+of implementation of robotics systems using the concepts
+of logic-labelled finite-state machines (LLFSMs) and
+whiteboards. Secondly, we show the simplicity of thetransformation of the embodied agent based specification
+into an (executable) implementation using LLFSMs and the
+/envelopebackCezary Zieli ´nski
+c.zielinski@ia.pw.edu.pl
+Maksym Figat
+m.figat@ia.pw.edu.pl
+Ren´eH e x e l
+r.hexel@griffith.edu.au
+1Institute of Control and Computation Engineering,
+Warsaw University of Technology, Nowowiejska 15/19,00-665 Warsaw, Poland
+2School of ICT, Griffith University, 170 Kessels Road, Nathan,QLD 4111, Australiawhiteboard for communication. Especially the decoupling
+achieved by the method of communication between thecomponents of a robotic system is of interest here. We
+start with a motivation for the presented research and the
+structure of the paper.
+1.1Motivation
+The design of a robotic system starts with the specificationof its architecture. As Andrew Tanenbaum points out
+in his seminal work [86], the term architecture pertainsto: the instruction set, memory organisation, I/O, and
+bus structure. This obviously refers to the architecture
+of computer systems. However current robotic systemsare computer based, thus their architecture has the samefoundation. The instruction set defines what the processing
+capabilities of the system, i.e. possible activities, are.
+The remaining elements refer to the structure, i.e. thecomponents and their interconnections [23, 55]. In the
+approach that we follow in our work, the structure refersto the division of the system into subsystems and theirinterconnections, whilst the activities are specified by a
+set of such concepts as: Finite State Machines (FSMs),
+behaviours, transition functions and their arguments, andinter subsystem communication means, all of whichwill be detailed later in the paper. However, in many
+existing robotic systems, it is difficult to determine their(2019)93:787–805
+/Publishedonline:2 June 2018
+
+--- Page 2 ---
+architecture [55]. Robot control systems are inherently
+complex, nonetheless their authors rarely formally specifythem. Lack of a formal system specification usually
+results in an obscure architecture that is difficult to
+modify or extend it in future projects or to integratewith other systems. The process of developing robotic
+systems requires both appropriate development methods
+(procedures, architectures, etc.) and tools (modellinglanguages, middleware and other frameworks). Many
+attempts have been made to introduce formal languages
+based on mathematics to determine both the controllerstructure and its activities [ 18,63,90,92,96]. However,
+the majority of the robot systems were developed based on
+software engineering [ 16,17,68], downplaying the domain-
+specific information required by robotics. The proposed
+method of modelling and specifying robotic systems, based
+on the concept of the embodied agent [54, 92,94], relies
+on such fundamental concepts of robotics as: effectors,
+i.e. devices influencing the physical environment, and
+receptors, i.e. sensors gathering the information about
+the state of that environment, as well as mathematicalconcepts underlying decision making and sub-systembehaviour. However, up till now this design methodology
+lacked a detailed representation of a vital component:
+inter-subsystem communication . Hence, the present paper
+delves into that issue. The main purpose of this paper
+is therefore to present the system design methodology
+split into two phases, as required by good practises insoftware engineering. The first phase produces the system
+model specification based on the concept of an embodied
+agent, whilst the second one is the implementation phase,which first transforms the model into the composition ofa whiteboard and LLFSMs as an interim implementation
+model that is subsequently transformed into executable
+robotic system controller code.
+1.2StructureofthePaper
+In Section 2the classification of communication methods
+from the robotics perspective is introduced. Section 3briefly
+presents the concept of an embodied agent, showing bothits structure and its activities. The embodied agent is theprimary concept of the robotic system design method used
+in this paper. The universality of an embodied agent is
+expounded in Section 4. Section 5describes the interim
+implementation model, i.e. the elements necessary for theimplementation of an embodied agent, focusing on the
+communication aspect.
+As ROS currently is the most popular robot programming
+framework, the comparison of whiteboard and ROS com-munication mechanisms is presented in Section 6. Section 7
+showcases the proposed design and implementation meth-
+ods on a robot collecting table-tennis balls. This exampleis kept concise to enable the reader to focus on the pre-sented methods rather than being forced to deal with thecomplexity of the robotic system. The last section presents
+the conclusions derived from the presented work.
+2Communication
+In telecommunications, the concept of the communication
+channel is central to the operation of a communication
+system [44, 83], distinguishing between free propagation
+(broadcast, one-to-many) and guided propagation (point-to-
+point, one-to-one) communication types. Telecommunica-
+tion deals with such characteristics of the communication
+channel as its linearity or non-linearity, time variability orinvariance, bandwidth, or power limitation. However thosephysical properties are of secondary importance and can
+be abstracted away for communication of software imple-
+mented subsystems of robots. In the most rudimentary view,the communication model consists of the communicating
+systems/subsystems and the communication channel. The
+communication channel (the transmission medium) can beeither based on technological means (e.g. wired or wireless)
+or use natural means (e.g. voice communication using air)
+[44,83]. In the latter case the environment itself can be used
+as a communication channel [4], then stigmergy results [12].Both technological and natural communication channels can
+contain buffers, which can store the transmitted information
+for some time, or exist without a buffer. Transmission delaysshould not be treated as a capacity of the channel to store
+data. For communication to take place not only the transmis-
+sion medium is necessary, but also a common protocol hasto exist, as the transmitter and the receiver of the informa-
+tion must have a common understanding of the transmitted
+information.
+In robotics, diverse communication methods have
+been considered. Three different types of communication
+between robots were discussed in [25]: two-way commu-
+nication, explicit one-way communication, and completelyimplicit communication. This work also points out that there
+are several difficulties that should be considered in com-
+munication between collective robots, i.e. efficiency, faulttolerance and cost, and that in contrast to centralised com-
+munication approaches, e.g. [ 88], communication between
+robots should be distributed. Comparison of three types of
+communication, i.e. through the environment, using trans-mission of state between the agents, and utilising the trans-
+mission of the detected goal, was introduced in [ 8]. Similar
+criteria were discussed in [ 65], distinguishing direct (purely
+communicative act) and indirect communication (based onobserved behaviour of other agents). Direct communica-
+tion was further decomposed into one-to-one (peer-to-peer)and one-to-many (broadcasting), based on the the numberJIntellRobotSyst(2019)93:787–805 788
+
+--- Page 3 ---
+of communicating entities. Another division of commu-
+nication is direct vs indirect communication [ 34]. Direct
+communication occurs when a dedicated on-board hardware
+device is utilised, whilst indirect communication occurs
+through the environment. The paper also notices that indi-rect communication is particularly useful from the point of
+view of Multirobot Systems (MRS), in contrast to direct
+communication, which in MRS may result in much moreexpensive and unreliable solution. However, that paper also
+points out that direct communication in Multi-Agent Sys-
+tems (MAS) may be used to guarantee locality of inter-actions and to avoid synchronisation procedures amongstagents. A similar criterion based on how the information
+may be obtained by robots was introduced in [75], where
+three types of communication were distinguished: implicitcommunication through the world, passive action recog-
+nition (robots use sensors to directly observe the actions
+of other robots) and explicit communication (robots com-municate directly and intentionally through an artificial
+communication channel). Either way, care must be taken
+to avoid the hidden channel problem that results whendiffering temporal precedence between these means of com-munication creates inconsistencies between the intent of the
+system designer and the actual timing and order in which
+information is delivered [21].
+Criteria pertaining to the communication range, commu-
+nication topology and communication bandwidth were dis-c u s s e di n[ 24,26]. However, those criteria concern mainly
+physical aspects of communication, already discussed in
+[44, 85]. Yet other criteria pertain to interaction distance
+(distance between the agents during the communication, i.e.
+direct physical contact, visual range, hearing range and longrange), interaction simultaneity (period between the signal
+emission and reception, i.e. immediate, long time), sig-
+nalling explicitness (explicitness of the emitter’s signallingbehaviour) and sophistication of interpretation (the com-
+plexity of the interpretation process that gives meaning to
+the signal) [48].
+The above analysis shows that whilst similar terminology
+is used for the purpose of communication classification, themeaning attributed to the same names is slightly different,making it difficult to propose a comprehensive communi-cation model. Some of the subdivision criteria are based on
+physical aspects of communication (topology, place, types
+of communication channels, bandwidth, etc.), neglectingother also very important criteria (e.g. whether the commu-
+nicating entities block each other whilst sending/receiving
+data). Thus, to make the presentation clear, we summarisethe criteria most relevant to the subject of this paper as
+follows. From the point of view of robot control system
+design, of importance is the possible number of subsys-tems writing to or reading from the communication channel.This leads to four communication types [39], dependingon the number of message producers and the number ofconsumers: one-to-one (peer-to-peer), one-to-many (e.g.broadcast), many-to-one and many-to-many (e.g. multicast).
+An example of one-to-one communication is presented in
+[66] where a system composed of many robots executes abox-pushing task. Cases of one-to-many communication are
+presented in [7, 45,65,74,76], where the consumers either
+utilise broadcast messages at their will or ignore them. The
+many-to-many communication can be organised as e.g. a
+blackboard system [41]o rb ys t i g m e r g y[ 12].
+Another criterion worth considering is based on the
+location of the communication channel: inter-system or
+intra-system. Here the terms intra-system and inter-system
+need to be disambiguated. We assume that in the caseof intra-system communication, the transmission occursbetween nodes existing on a single computer (composed
+of a single or multiple processors), and in the case of
+inter-system communication transmission is between nodesresiding on many computers. Thus in this case the word
+system does not refer to the robotic system as a whole,
+but only to the communicating nodes that are within the
+robotic system, located either on a single computer oron several computers forming a network. The importance
+of this distinction is due to each of these types of
+communication requiring different software and hardwaremeans of implementation.
+Still another criterium pertains to whether the producer
+or consumer block until message delivery has completed.Blocking producer behaviour requires the consumer to
+respond in order to unblock the producer, whilst in the
+non-blocking mode this is not required, i.e. after initiatingthe communication, the producer can continue with otheractivities. Similarly the consumer can either be blocked
+whilst waiting for the message or not. In the latter case,
+the consumer can poll the communication channel whenrequired to find out whether there is a message for it to
+attend to. Still another criterion is storage, i.e. whether the
+communication channel contains a buffer or not. In thelatter case the communication channel does not have the
+capability to store messages. In the former case the size and
+type of the buffer is of relevance. The commonly used buffertypes in robotics are either queues or cyclic buffers.
+Moreover, it should be noted that communication
+is sometimes associated with cooperation. However theformer refers to the ability to transmit information betweensystems and the latter with the ability to jointly execute a
+task. Cooperation can be achieved both by using implicit
+and explicit communication. The former refers to a situationwhere the consumer of the message is not clearly defined,
+and thus the interpretation of the message by a consumer
+may be difficult (as in the case of stigmergy) and in thelatter case the consumer is clearly defined, and thus theinterpretation of the message using the commonly knownJIntellRobotSyst(2019)93:787–805 789
+
+--- Page 4 ---
+protocol is straightforward (as is the case with the majority
+of technologically based channels or such natural channelsas air used for voice communication). In robotics, there
+is a vast body of literature dealing with cooperation using
+implicit communication, especially stigmergy. For example[4] presents a schema based control of a multi-robot
+system used for common object retrieval, [81] describes
+robots communicating using sensors for detecting infraredradiation reflected by the environment, [ 87] presents robots
+communicating using traction forces, [25] describes robotscommunicating indirectly using on-board visual sensing,whilst [20] reports on the system composed of 20 e-puckrobots pushing three different objects based on inputs from
+infrared proximity sensors, [89] describes a multi-robot
+system where individual robots use an adaptive behaviourselection strategy based on sensoric information about the
+location of the transferred object and the other robots, [ 95]
+presents multi-robot box pushing based on the detection of
+the motions of the translocated box. On the one hand the
+examples of implicit communication are abundant in the
+literature and on the other hand this form of communicationdoes not influence the system specification from the pointof view of communication, as it is realised by the perception
+subsystem. Thus this paper will limit itself to explicit forms
+of communication.
+3EmbodiedAgent
+A single- or multi-robot system (a robotic system, in short)
+is represented by communicating agents [14, 46]. An agent
+which has a physical body is called an embodied agent [14,
+54,94,96] – its general structure is presented in Fig. 1.
+An embodied agent aj(jis its designator) is decomposed
+into 5 types of subsystems: control subsystem cj, virtual
+receptors rj,k, virtual effectors ej,n, real receptors Rj,land
+real effectors Ej,m,w h e r ek ,n,landmare the designators
+of particular subsystems of the agent aj[94].
+Virtual receptors rj,kaggregate data acquired from the
+environment through real receptors Rj,l. Virtual effectors
+ej,ntransform control commands received from the control
+subsystem cjinto a form acceptable by the real effectors
+Ej,m. An embodied agent contains a single control
+subsystem and zero or more subsystems of each of the othertypes.
+The activity of a system as a whole depends on the
+individual activities of its subsystems and their interactions.
+The activity of each subsystem s∈{c,e,r}is represented
+by a hierarchical FSM
+sFj,v[35], where vindicates the
+subsystem name. An FSM is represented as a directed graphcomposed of nodes and directed arcs. Each node represents
+a state, whilst each arc represents a state transition. Arcsare labelled by initial conditions, being predicates, which,
+Fig.1 Internal structure of an agent aj
+if true, cause a state transition from the current to the
+state pointed at by the arc labelled by this predicate. Witheach state of an FSM
+sFj,vthere is an associated subFSM
+sFB
+j,v,ω, specifying the behavioursBj,v,ω,w h e r eω names
+the behaviour. The subFSM template modelling a behaviour
+sBj,v,ω is presented in Fig. 2. Each iteration of a behaviour
+consists of calculation of a transition function and two-way transfer of data. The transition function
+sfj,v,ω takes
+as arguments the current data from the subsystem sinternal
+memorysSi
+j,vand its input buffers xSi
+j,v, and calculates
+the values which are inserted into the output buffers ySi+1
+j,v
+and the internal memoryssi+1
+j,v. Superscripts iandi+1
+indicate the elapse of a single tick of the discrete time,
+Fig.2 FSMsFB
+j,v,ωspecifying the behavioursBj,v,ωJIntellRobotSyst(2019)93:787–805 790
+
+--- Page 5 ---
+which determines the duration of the behaviour iteration.
+The behaviour subsequently sends the results of calculationsfrom the output buffers
+ySi+1
+j,vto the inputs of the associated
+subsystems and acquires from them new data loading itinto input buffers xS
+i
+j,v. Based on the obtained data an
+associated error conditionsfε
+j,v,βand terminal condition
+sfτ
+j,v,ξare tested (β andξare their designators). The
+duration of a single iteration of the subsystem behaviourdefines its sampling period. The iterations of the behaviour
+terminate when the associated error or terminal condition
+is fulfilled. At this moment the main subsystem FSM
+sFj,v
+resumes its activity, changing its state.
+4UniversalityoftheEmbodiedAgent
+The structure of the embodied agent and its ability to
+connect to other such agents, thus producing networks,
+enables the reproduction of other well known and studiedarchitectures. Hence, the embodied agent can be treated
+as a general means for designing robotics systems. The
+most popular architectures employed in robotics are: Sense-Plan-Act (SPA), multi-tier (usually either two- (2T) or
+three-tier (3T) are used), subsumption, and the ones based
+on some forms of schemata. The universality of theconcept of an embodied agent will be briefly justifiedhere by showing its relationship to those architectures.
+Robotic system software reflects its architecture. Although
+some work has been done on formal specification ofrobot control software, e.g. [6, 62,63,91,93] and its
+formal verification, e.g. [ 49,50], unfortunately this has
+not gained widespread adoption [56]. Usually, architecturesare presented by informal text descriptions supplemented
+by block diagrams, with varying level of details. Early
+approaches to formalisation of the specification of a roboticsystem treated such systems as composed of computationalmodules and followed operational semantics in describing
+their structure and activities [ 62,63]. One of the few systems
+that employs formal specification and generation of code
+for the implementation of the lowest layer of robotic system
+controller is G
+enoM (Generator of Modules) [ 1,36]. It is
+integrated with the BIP (Behaviour Interaction Priorities)
+[10]f r a m e w o r ka n dt o o l s e t ,w h i c hi su s e dt of o r m a l l y
+specify and verify the correctness of the produced system,
+treated as a real-time, component-based complex structure.However, as the majority of architectures presented in theliterature is not specified formally this discussion will not
+rely on a formal description.
+Frequently, hierarchical layered architectures are
+designed. One of the oldest hierarchical architectures isthe sense-plan-act (SPA) structure, used for instance by
+the Shakey robot in the 1960s [ 71]. Shakey sensed itsenvironment, invoked action planning, and then executedthe thus derived plan. Later, different criterions have beenused for the decomposition into layers. Usually, the time
+of the execution of a single behaviour iteration of a com-
+ponent within the layer is the discriminating factor. Thehigher the layer within the system, the longer the time of its
+single iteration execution. In some cases, task abstraction
+is the criterion, i.e. a single activity at an upper layer isdecomposed into several lower layer activities, e.g. NAS-
+REM (NASA Standard Reference Model) [60]. Usually, as
+a consequence, the utilised ontology becomes more abstractgoing up the layers. The lowest layer is behavioural andis tightly coupled with actuators and sensors. The mid-
+dle layer is the sequencing layer (sometimes termed as
+executive layer [56]), responsible for selecting behavioursthat will eventually realise the task. The uppermost tier
+usually involves deliberation. In robotics, deliberation is
+associated with planning. From what has been said, it isevident that planning and sequencing layers act together
+to accomplish the plan and in some systems are tightly
+bound together (e.g. CRAM [9], CLARAty [68]), hence 2Tinstead of 3T architecture results. The proposed embodiedagent based architecture can accommodate all of these
+possibilities. By design, an embodied agent forms a two
+tier architecture: virtual entities controlling the real devicesform the first tier and the control subsystem forms the
+second one. Above that, a hierarchy of computational
+agents (embodied agents lacking effectors and recep-tors) can form supplementary tiers. A computationally
+demanding planning task can be decomposed into several
+parts, implemented as several interacting computationalagents.
+As planning is a time-consuming task, the subsumption
+architecture was proposed [13–15]. Its overall behaviour isthe result of the interaction of the activities of modules,which react to input from other modules and sensoric
+stimulus. If lower layer reactions can not cope with
+the task, upper layer reactions suppress or inhibit them,taking over control, thus subsuming their actions. As the
+SPA architecture tends to be prohibitively slow and the
+subsumption architecture, although very reactive, lacksforesight, hybrid architectures emerged [5]. Those wereusually designed as three tier systems (e.g. [ 1,38]),
+having: planning (deliberative layer), sequencing (usuallyimplemented as a finite state machine governing the actionsof the system), and device control layers (responsible for
+motor control and sensor data aggregation – a reactive layer
+resulting if both were combined). Behavioural systems [ 5,
+6], based on reactivity, have gained widespread attention.
+In order to satisfy the requirement of the fastest possible
+response, reactivity should be implemented at the lowestlevel. The shortest possible loop starts with proprioceptorsJIntellRobotSyst(2019)93:787–805 791
+
+--- Page 6 ---
+and directly influences the real effector. As the activities of
+the reactive layer rely mainly on sensor input and to a verylimited degree on internal state (i.e. memory) it is very easy
+to reproduce this layer within an embodied agent, where the
+quickest responses are organised within the virtual effectorand are based on proprioceptive input. An example of this
+approach is the utilisation of force/torque sensing directly
+within the virtual effector (e.g. [97]). If a subsumptionarchitecture [13, 15] is to be reproduced, its modules can
+be represented by blocks within the data flow diagramdefinition of a transition function by using inhibiting andsuppressing links (as presented in [54]). Otherwise, themodules can deliver the results of their computations into
+a composition unit, which will compute the final outcome,
+subsequently dispatched to a real effector for execution. Ifa slower reaction is permissible, exteroceptive input from
+the virtual receptors can be used by the control subsystem,
+which will use the same scheme of operation as thevirtual effector. Thus, the same pattern will be reproduced
+at different levels of the control hierarchy. This can be
+continued at even higher levels of the hierarchy by usingextra computational agents [98].
+Schema Theory was formulated for the purpose of
+representing systems created to study both artificialintelligence and brain theory [ 2,3,5,62,63]. Schema
+Theory provides guidance to building models of animal
+and artificial agent behaviour, stating that behaviour is the
+result of competition and cooperation between schemata,which are conglomerates of knowledge and methods of
+processing [2]. Instances of schemas are created either
+by other schemas or as a reaction to sensory stimulus.Perceptual schemas process sensory input, whilst motorschemas produce action patterns. A network of schemas
+is called an assemblage. The overall behaviour of an
+agent is produced as a result of interactions betweenschemas composing the network. Such schemas can be
+embedded in an embodied agent, as virtual receptors reflect
+perceptual schemas, whilst virtual effectors reflect motorschemas. At a higher level, embodied agents without
+effectors match perceptual schemas, whilst those without
+receptors match motor schemas, this multi-agent networkscan also reproduce assemblages. The application of SchemaTheory in robotics followed different paths. One of them
+is described in [3, 5]. In this case, motor schemas are
+basic units of behaviour. Motor schemas act in conjunction
+with embedded perceptual schemas. Concurrently acting
+behaviours, i.e. motor schemas, compute individual results
+that are composed together into the final control outcome.This architecture is easily reproduced in an embodied agent.
+Perceptual schemas are reproduced by virtual sensors.
+The control subsystem implements a behaviour that isparameterised by a transition function which in turn isdecomposed into concurrently computed functions thatdefine the computations of individual motor schemas. Thetransition function composes the results produced by partial
+transition function into an outcome that is dispatched to
+the virtual effector. A more formalised approach to SchemaTheory is called Robot Schemas (RS) [63]. RS form a
+formal model of distributed computing in the robotics
+domain. The model is built of concurrent computing agents,each being a Schema Instance (SI). SIs communicate
+through ports, with which data types are associated. At
+SI instantiation time, its ports are connected to the portsof other SIs. Communication occurs when an SI writesto one of its output ports. Basic schemas are defined by
+the port connections, local variables and the procedural
+behaviour section, which specifies how the schema reactsto input. Basic schemas, once initiated, iteratively execute
+the behaviour section, synchronously reading or writing
+to ports, performing computations on local variables andinput ports and instantiating and deinstantiating other
+SIs. Complex schemas, i.e. assemblages, are a recursive
+composition of basic schemas into ever more complexones. Assemblages do not have the behaviour definitionpart, as that is defined by the schemas they are composed
+of. Only the port connection part exists. SIs form a
+dynamical network which grows or shrinks as the activitiesof the system take place. The task is represented as
+the outermost assemblage. Thus, the system is composed
+of sensory schemas, motor schemas and schemas thatconnect them, i.e. task schemas. In general, this reflects the
+structure of an embodied agent or can be reproduced as
+a network of embodied agents with some of their internalcomponents missing. It should be noted that the design ofan RS-based system focuses on computation, however this
+involves also instantiation and deinstantiation as well as
+communication, all considered at the same computationallevel. Thus, the basic level is flat and all aspects of
+system activities are entangled, hence intelligibility is
+sacrificed. Hierarchy emerges from assembling lower levelschemas into higher level ones, but as the design principles
+of the lowest level are not expressed explicitly the
+creation of such systems is difficult. An embodied agentintroduces a hierarchy of concepts starting from the lowestlevel: transition function and terminal condition (purely
+computational), behaviour (adds communication), FSM
+(selects behaviours), subsystems (distinguish perception,action and task control), agents (form networks of any size).
+Each of those concepts can be dealt with separately, thus
+it is easier for the designer to focus on a single entity at atime, simplifying the process of system creation. Systems
+composed of embodied agents, besides being capable of
+reproducing the well known architectures, can be used tocreate other architectural patterns [94, 98].JIntellRobotSyst(2019)93:787–805 792
+
+--- Page 7 ---
+5ImplementationofanEmbodiedAgent
+The architecture of an embodied agent presented in
+Section 3is implemented using several earlier-mentioned
+concepts. Here we shall concentrate on two important
+ones associated with the communication and behaviour
+selection [ 31]: the whiteboard, which is used as the main
+communication means between subsystems, and Logic-
+Labelled Finite State Machines (LLFSMs), which govern
+the actions of each of the subsystems present in the agent,
+including the exchange of information between subsystems.The whiteboard is our implementation of the generalconcept of a blackboard [42], thus whenever we refer here
+to the former we refer to our implementation and for the
+general concept, the latter is referred to.
+The concept of a blackboard was created for the
+purpose of studying artificial intelligence (AI) [ 69]. The
+blackboard model consists of three major components [22,43,70,82]: knowledge sources (KSs) – corresponding
+to the domain experts, blackboard data structure – theglobal resource where information to be shared is written,and control mechanism – responsible for processing theknowledge contained in the blackboard and ensuring that
+only one domain expert has access to the blackboard
+at a given time. The blackboard can be any datastructure accessible by all the KSs. Each KS operates
+in the following sequence: reads the information from
+the blackboard, acts based on the information found andwrites its conclusions and hypothesis into the blackboard.
+The work on blackboards in AI concentrated on several
+aspects: the organisation of knowledge data structures,reasoning utilising those data structures as well as providingaccess to them. The concept of the whiteboard focuses
+on data access. The use of data-centric communication
+similar to blackboards has transcended AI and found itsway into the wider software engineering community. The
+Data Distribution Service (DDS) is a standard formulated
+by the Object Management Group (OMG), implementingData-Centric Publish/Subscribe (DCPS) communication
+model [40, 58]. The main purpose of DDS is to
+assure dependable communication in dynamic, networked
+environments between distributed producers and consumerfulfilling real-time constraints. Whiteboard implements
+the pull approach, whilst the DDS, which is based on
+Publish/Subscribe model, is based on the push approach.
+Blackboards have also been used in robotics. The
+following examples show only a fraction of the diversityof their applications. A reconfigurable mobile robot useda blackboard enabling a horizontal system decomposition
+allowing the cooperation between all the subsystems
+considered as knowledge sources executing a specific task[72]. The CrunchBot [ 37] used a Bayesian blackboard to
+solve the mapping problem for a mobile robot equippedwith whisker sensors. Autonomous mobile robots dealingwith hazardous material spill emergency situation used ablackboard system to integrate information from various
+sensor-based and knowledge-based subsystems [73]. Those
+examples and the plethora of other works on the utilisationof blackboards in robotics show that the effort has
+concentrated on either different aspects of knowledge
+processing or on providing a balanced access to knowledgeto all involved actors or on both. The concept of
+a whiteboard is derived from blackboards, however it
+focuses on information sharing, thus the communicationaspect. The contents of the whiteboard is of secondaryimportance as is the purpose of information processing.
+The focus is on providing efficient communication means.
+A similar communication concept was introduced in[1], namely a poster. It uses shared memory for the
+purpose of communication. A poster is a structured shared
+memory only writable by its owner and readable byany element of the architecture. Posters are completely
+independent from each other. They are not regions of a
+common blackboard and cannot be written to by manyproducers, thus they do not have all the properties ofa blackboard. A whiteboard has all the communication
+abilities of a blackboard, so it is more general than
+a poster.
+5.1Whiteboard
+Thegusimplewhiteboard (Griffith University Simple
+Whiteboard) is a library for organising inter-process
+communication [31]. It implements a mutation of the
+general blackboard concept [ 42]. It enables the transfer of
+C++11 objects through shared memory. As it is linked in,
+no broker is necessary. The message transfer is idempotent,
+i.e., if the transfer is repeated the result does not change. Noqueues need to be involved, however, if necessary, they canbe organised, as the whiteboard does not determine the data
+structures it will be storing – this is the choice of the system
+designer using the whiteboard.
+Shared memory communication exhibits certain advan-
+tages over the traditional approach taken by, e.g. ROSmessages and services, [47]. Producers and consumers uselocal instances of classes to communicate. When a producer
+sends a message, it copies an object containing the mes-
+sage from its local store to the static instance of the classin the gusimplewhiteboard. When a consumer wants
+to retrieve the message, the current instance of the object
+in the gusimplewhiteboard is transferred to the local
+memory of the consumer. When operating in a distributed
+system, a UDP-based sharing algorithm that also makes use
+of the Time-Triggered Architecture (TTA) [ 52]i su s e dt o
+broadcast data to other receivers [ 61]. The implementation
+of the distributed version of the whiteboard uses efficient,JIntellRobotSyst(2019)93:787–805 793
+
+--- Page 8 ---
+fault-tolerant communication for distributed systems as pre-
+sented in [11, 51,57][ 52,53]. Compared to the DCPS [58],
+the whiteboard does not offer inherent mechanisms for dis-
+tributed reconfiguration, but offers a statically defined data
+classes and O(1), fail-silent communication within boundedreal-time constraints [31]. A more detailed discussion of the
+networked version of the whiteboard [61]i sp r e s e n t e di n
+Section 6.
+5.2CommunicationModel
+The blackboard can be considered as a broker, whichenables the producer to depose in it, in a non-blocking way,
+whatever data it has to send out, whilst the consumer may
+act in one of the following modes. Either it acts in thepush mode (similar to the DCPS), where the blackboardinvokes a specific function of the consumer-subscriber, thus
+notifying it of the arrival of new data, or in pull mode,
+where the consumer accesses the data when it requires. Theformer usually involves queuing of messages, whilst the
+latter implies the delivery of only the most current data. The
+push model implies close coupling of modules, where thesubscriber must react to all messages issued by the producer
+[30]. In the pull model, the components are decoupled, the
+consumer may react in its own time, and only to someof the produced messages. In both communication models,the publisher introduces a message into the blackboard.
+In the case of the push model the blackboard notifies
+the consumer that the message it has subscribed to isavailable and the subscriber invokes a call back function
+in response. The messages are queued, so the consumer
+should somehow react to all of them. An event drivenarchitecture results. It relies on an assumption that there is
+enough of computational power to handle the messages as
+they come. However, in the case of the pull model, such anassumption is not necessary. The consumer is not notifiedabout the arrival of a new message. When the consumer
+needs the new message it retrieves form the blackboard the
+most current one, neglecting the obsolete ones (in realityusually they will even not be available). The publisher and
+subscriber are very loosely coupled, without assumptions as
+to the available computational power, and thus the ability torespond timely to the incoming stream of messages results.
+Obviously, the pull model works on the principle that we get
+a better response, if the system at any moment uses the mostcurrent data. Both the publisher and the subscriber act withtheir own frequencies, without having to synchronise their
+activities. This way, no global timing schedule is required,
+fully decoupling the development of both components. Thepull model is immune to messages being lost by definition,
+as it does not require response to every message, whilst
+the push model requires delivery guarantees, because everymessage attracts attention. The majority of middlewareutilising the concept of a blackboard still relies on thepush model. For instance, ROS topics act in push mode.However the blackboard provides an opportunity to base
+the communication on the pull model. Whilst the proposed
+whiteboard can be used in both push and pull modes, thelatter should be the method of choice. In the majority of
+middleware, the structure of the contents of the messages
+transferred is limited, whilst in gusimplewhiteboard
+any C++11 objects can be used [31].
+5.3LLFSM
+LLFSMs are FSMs, in which transitions from one state to
+another state are based on the fulfilment of logic expressions
+rather than events. As events are usually queued and logicexpressions are computed just on the basis of currentdata, as is more appropriate for robot control, this form
+of an FSM is preferred. In the implementation presented
+here, the LLFSMs, in principle, operate concurrently,but in reality are scheduled sequentially, thus critical
+sections and synchronisation points become unnecessary.
+This inherently removes the possibility of race conditions.The communication between LLFSMs uses whiteboards.
+The utilised LLFSMs are synchronous automatons. With
+every state, three portions of code are associated: thecode that is executed on entering the state, the exit codeinvoked when the logic expression with one of the outgoing
+transitions (directed arcs) is satisfied, and the code that is
+executed when none of those logic labels is true, hence theexecution of this code may be repeated many times.
+The LLFSMs can be composed hierarchically. Each
+LLFSM can be suspended, thus enabling the executionof a subLLFSM. It can also be restarted from the state
+it was suspended in or restarted from its initial state
+1.
+The subLLFSMs act like subprograms and need not act
+simultaneously – this prevents state replication [ 19]. The
+higher level LLFSM becomes dormant during the actions
+of the subLLFSMs, increasing the degree of determinism of
+the system performance.
+From what has been said here, it is evident that the
+implementation of both the subsystem FSMsFB
+j,vand
+the behaviour subFSMsFB
+j,v,ω(specifying the behaviour
+sFj,v,ω), as LLFSMs is straightforward, as the directed
+arcs of those FSMs are labelled by predicates, i.e. logicexpressions, hence their equivalence is ascertained.
+5.4Scheduler
+An embodied agent is composed of one control subsystemand usually several virtual effectors and receptors. Each of
+1Incidentally, this property also enables the implementation of the
+subsumption architecture [13] by using those automatons [ 19].JIntellRobotSyst(2019)93:787–805 794
+
+--- Page 9 ---
+those subsystems is governed by one FSM – here imple-
+mented as an LLFSM. The proposed solution schedulessequentially the LLFSMs representing producers and con-
+sumers, thus minimising the problems of determining the
+delays in servicing the transfer of data. The majority of mid-dleware, e.g. ROS, Microsoft Robotics Studio, relies on con-
+currency, data queuing and the non-deterministic TCP/IP
+suite. Hence real-time performance is compromised. Deter-ministic scheduling has the following advantages over the
+non-deterministic multi-threaded approach. Full concur-
+rency, where switching between threads is operating systemdependent, is much more difficult to envision and correctlyapply by the robot control system designer, as it necessi-
+tates: thread synchronisation, vigilance of nondeterministic
+communication delays, managing critical sections, prob-lems with fairness as well as avoiding deadlocks, live-locks,
+and starvation. Moreover, CPU context switch overhead has
+to be taken into account. The sequential LLSFSM switchingprocedure enables fairly simple formal correctness veri-
+fication of models, as it avoids the usual combinatorial
+explosion of concurrent threads. The sequential switchingis time-triggered in contrast to the frequently used event-triggered approach, where due to peak-load situations it is
+often impossible to assure reliability. Specifications using
+LLFSMs constitute executable models that can be formallyverified. A more detailed treatment of this subject can be
+found in [ 29,32,33].
+Each iteration of an LLFSM operation starts with reading
+the relevant variables from the whiteboard and it ends withdepositing the results of computations in it. Each iteration
+is treated as atomic, thus no inconsistencies can arise. TheLLFSMs are executed in a round-robin fashion one iterationof each LLFSM at a time.
+To show how the scheduler works in conjunction with the
+LLFSMs, a simple example is presented here. It is assumedthat within the robotic system, only two subsystems v
+andhexist, where vandhare the specific names of the
+subsystems. The exemplary activities of each subsystemmay be represented by hierarchical FSMs:
+sFj,vandsFj,h,
+presented in Fig. 3.
+With each FSM state a behaviour is associated. It is
+represented as a subFSM based on behaviour template fromFig. 2. For simplicity it was assumed that the terminal
+Fig.3 The activities of two subsystems vandhofajcondition of each behaviour is always fulfilled, whilsterror condition is not. This implies that all behavioursare executed only once in each state of the FSM. The
+functioning of the scheduler is presented assuming that
+initially FSM
+sFj,vis in the state S1
+j,vand the FSMsFj,his
+in the state S1
+j,h. The scheduler activates one state of each
+FSM or subFSM at a time, switching between all FSMsand subFSMs. Obviously this causes the execution of the
+code associated with that state. In this case the scheduler
+starts with state S
+1
+j,vofsFj,vand then switches to S1
+j,hof
+sFj,h.B e i n gi n S1
+j,vsFj,vtransits to S1
+j,v,1of the subFSM
+executing the behavioursBj,v,1, so this will be the next state
+activated by the scheduler. The fourth state activated will beS
+1
+j,h,1of the subFSMsFj,h,1. The full switching sequence
+for both FSMssFj,vandsFj,hand their subFSMs executing
+behaviours is presented in Fig. 4.
+Whiteboard communication in conjunction with this
+way of switching the LLFSMs by the scheduler avoidsdeadlocks, because only one FSM accesses the whiteboardat a time. Moreover, because the variables contained in thewhiteboard are located in cyclic buffers, always there is
+available data that can be accessed, alas not always the most
+current.
+5.5CommunicationOrganisation
+As in many cases, the example that follows requires onlyintra-system communication between subsystems. Whilst
+the utilised whiteboard is capable of providing inter-system
+communication [61], this is not our focus here. It shouldbe noted that the whiteboard intra-system communication
+gives real-time guaranties (when the underlying operating
+system is real-time), whereas the inter-system one woulddepend on the network protocol.
+The whiteboard is a table with slots. Each slot creates a
+separate communication channel containing a cyclic buffer.Hence, buffered communication based on a cyclic buffer oflimited size is realised. The whiteboard as a whole supports
+concurrent many-to-many communication, but a message
+slot (buffer) with multiple producers requires locking andis therefore not recommended. We therefore recommend
+one-to-one or one-to-many communication, which is
+Fig.4 Sequence of state activations of FSMssFj,vandsFj,hand their
+subFSMs executing particular behavioursJIntellRobotSyst(2019)93:787–805 795
+
+--- Page 10 ---
+lock-free with O(1) complexity for access operations. In
+the following example one-to-one communication will beutilised. The LLFSMs together with the whiteboard enable
+the implementation of both blocking and non-blocking
+communication modes both in the case of the producer andthe consumer. However, in the presented example both the
+producers and the consumers operate in the non-blocking
+mode. In the experiment, a single sequential scheduler isused, thus subsystem LLFSMs are executed sequentially.
+6ComparisonofWhiteboardandROS
+CommunicationMechanisms
+Initially, ROS was designed for large service robot control
+software, which was meant for implementation on severalcomputers connected via Ethernet [ 78], thus ROS was
+in fact designed for communication between computers.However later it was mainly used for communicationwithin a single computer. Hence below we introduce ROScommunication mechanisms provided for a single computer
+and compare them with the whiteboard approach.
+ROS uses: topics, services, nodelets, and a parameter
+server. Those communication concepts may be utilisedonly for certain types of communication (based on the
+localisation of the communicating nodes), i.e. inter-processand intra-process. The inter-process communication occurs
+between ROS nodes (implemented as processes) utilising
+TCP/IP server socket [80] and peer-to-peer topology,which requires some sort of lookup mechanism to allowprocesses to find each other at runtime. This mechanism
+is implemented as the ROS master [78]. ROS nodes may
+communicate with each other utilising topics, services andparameter service.
+A ROS topic is a named bus implementing communi-
+cation between nodes. Communication between two nodesmay only occur if both nodes exist and are already regis-
+tered with the ROS master (utilising Remote Procedure Call
+(RPC)). Nodes communicate utilising TCP. Since a ROStopic uses a publish/subscribe mode of operation, thus itimplements the push paradigm, which forces the subscriber
+to act in an event-driven fashion. Events are deposited intothe middleware which relays them to call-backs from thesubscribers. It is assumed that there will be sufficient com-
+putational resources to enact all the threads generated and
+to execute the subscriber callbacks. An additional assump-tion is that events would occur with enough sparsity that
+the call-backs would be completed by the time they are exe-
+cuted again or alternatively require handling of concurrencyissues. This event-driven approach also results in couplingand has timing consequences. The push approach compels
+the subscriber to keep up with message reading in order
+not to lose any data, even if a specific update rate is notnecessarily convenient for the subscriber. In congested sys-tems using TCP, if the acknowledgments do not reach thepublisher on time, the packets will be retransmitted, thus the
+subscriber will eventually be flooded with repeated packets
+[77]. This means that the subscriber activity is tightly cou-pled with the publisher update rate. Additionally, the push
+approach assumes that the subscriber reacts to transmitted
+data immediately (otherwise data is queued), thus the data ispresumed to be fresh and as recent as possible, what might
+not be the case. This will result in reaction delays. The neg-
+ative influence of such delays on the performance of a droneare presented in [47]. Timeliness, sequencing and reliabil-ity of the data are taken for granted. Such scenario is very
+optimistic, which in fact, does not occur in reality often.
+Therefore, it requires that the producer must eventually beslowed down or complex handshaking protocols must be
+deployed, otherwise the data will be lost [ 30]. The push
+paradigm, used by topics, does not assure idempotent trans-
+fer of messages, thus an additional effort must be done to
+ensure that the data was received exactly once [30].
+The ROS service is a simple RPC, thus the client is
+blocked until it obtains the response from the server. This
+type of communication has three additional features. It
+uses only plain old data (POD) structures, collections of
+basic types, thus object oriented concepts using inheritanceand polymorphism can hardly be modelled [ 27], whilst the
+approach based on whiteboards implements object orientedapproach [30]. Additionally, ROS service forces client-server relationship between the two communicating nodes,
+possibly resulting in delays due to waiting for the server
+reply. Moreover, the ROS service again uses the TCP/IPcommunication protocol.
+Parameter server is the last of the inter-process ROS
+communication concepts for intra-system inter-processcommunication. It is a shared, multi-variate dictionarystored in the ROS master. It is accessible by nodes via
+network APIs. However, it was not designed to be high-
+performance, as it is to be used for static data such asconfiguration parameters [79].
+Nodelets are threads that use intra-process communication
+of ROS. Data is exchanged between nodlets executed withinthe same process by sharing memory. However, the develop-ers have to take care to avoid contention due to concurrent
+access to the data, e.g. by using mutexes or by allocat-
+ing new memory whenever new data is written. This againresults in a large performance penalty as shown in [27].
+There exist robotic systems that have special communi-
+cation requirements. In some of them, both the producer andthe consumer should be able to operate in a non-blocking
+fashion (i.e. the communicating nodes should be decou-
+pled), as blocking implies possible lack of reaction from thesystem, when such a reaction is necessary. The communi-cation should be capable of operating in the time-triggeredJIntellRobotSyst(2019)93:787–805 796
+
+--- Page 11 ---
+mode, because in this mode of operation the system can
+react both to the message and its lack (usually those reac-tions are different), i.e. lack of a message is also a message.
+It is required that the communication be low latency and low
+jitter in the case of intra-system transmission, as quick reac-tions to events occurring in the environment may influence
+the survival of the robot. Finally, communication should be
+implemented in the same way both for threads and pro-cesses, because the imposition of single process system
+structure (even with many threads) is not acceptable, i.e.
+multi-process implementation is treated as an advantage.
+None of the four ROS communication methods fulfils
+all of these requirements. The parameter server introduces
+high latency. ROS services use RPC, thus they block both
+the producer and the consumer. In the case of ROS topics,the consumer is activated by an event associated with
+the producer depositing a message in the communication
+channel, thus communication is event triggered, not timetriggered. However non-blocking operation of the consumer
+using ROS and C++ can be realised through a separate
+thread dealing with acquisition of the message and usingnodlets – rather a complex solution introducing significantcommunication delays. Unfortunately, nodelets can be used
+only for communicating threads, but not processes. As
+none of the ROS communication mechanisms satisfies theabove-mentioned requirements, the whiteboard was chosen
+(in fact, a ROS package for the whiteboard is available
+at [67]). This approach provides intra-system inter-processcommunication, which does not block neither the producer
+nor the consumer; as it operates on common memory it
+is very low-latency [31, 47]; by using the pull mode of
+operation it operates in time triggered mode; and moreoverit can be used both by threads and processes in the same
+fashion.
+If whiteboards could be used only for intra-system commu-
+nication the proposed approach would not be scalable. How-ever there exists a network implementation of the white-
+boards [61], but here the latency introduced both by themand ROS are similar. In general, network based implementa-
+tion of the concept of the whiteboard requires that each com-
+puter in the system instantiates its own whiteboards. Oneof those whiteboards contains variables for local communi-cation whilst the others reflect the variables in the remote
+whiteboards. The latter variables are updated periodically
+broadcasted to other computers in the network utilisingthe UDP Bridge module. The UDP Bridge module is used
+for all network connectivity and connects directly to the
+shared data structures of the whiteboard. The UDP Bridgecan either be run as an independent process (for debugging
+purposes) or can be started as a thread by an instance of
+the Remote Whiteboard class. The UDP Bridge has threemain components: Listener – listening for incoming pack-ets, Broadcaster – broadcasting packets when scheduled,and Manager – interacting with the whiteboards. Due to thefact that whiteboars contain cyclic buffers that are transmit-ted as a whole, even if (due to the use of UDP) a transmitted
+message is lost, in the next transmission period both the
+most recent data and previous data will be delivered.
+7Experiment
+The robot system design methodology described in, e.g.
+[92], utilising hierarchical FSMs [ 35], has been applied
+to the design of the control system of a mobile robot
+collecting table-tennis balls. The robot (inspired by [64])
+uses a suction mechanism to collect table-tennis balls and
+a camera to detect them, as well as a sonar to avoidobstacles. Based on the estimated ball position, the robotmoves in the direction of the closest ball and vacuums it
+into its container. This simple, yet useful, robot is used
+here for the purpose of exemplifying the proposed generalrobotic system specification method and the implementation
+of the resulting system. Both the system architecture and
+the behavioural approach used resemble the well knownsolutions presented in Section 4. As the purpose of the
+example is the presentation of the proposed specificationand implementation method, a well known architecturalsolution and control paradigm have been used, to enable thereader to focus only on the methodology.
+7.1Speciﬁcation
+The specification describes both the structure of the
+designed system and its activities. For the purpose of
+briefness, only relevant excerpts from the full systemspecification are presented here. Only a single behaviour of
+the control subsystem is specified formally here to provide
+an example – the others follow the same pattern.
+Structure It suffices to represent the structure of the ball
+collecting robot (bc) by a single embodied agent a
+bc(Fig. 5).
+This agent contains: the control subsystem cbcand four
+Fig. 5 Embodied agent representing the table-tennis ball collecting
+robotJIntellRobotSyst(2019)93:787–805 797
+
+--- Page 12 ---
+virtual subsystems: rbc,cam,rbc,sonar,ebc,body,ebc,vacuum
+and four corresponding real subsystems: Rbc,cam,Rbc,sonar,
+Ebc,body andEbc,vacuum . The real receptor Rbc,camdetects
+balls, whilst the real receptor Rbc,sonar detects obstacles. The
+real effector Ebc,bodycontrols four motors to which wheels
+are attached (a skid-steering mobile platform is used),
+whereas Ebc,vacuum controls the vacuum cleaner providing
+suction. Rbc,camacquires images of the environment and
+sends them to the virtual receptor rbc,cam, so that it can
+detect table-tennis balls and subsequently inform the control
+subsystem cbcwhether it detected at least one ball. If a ball
+is detected rbc,camsends to cbcan estimated position of the
+ball within the image space. Rbc,sonar provides to the virtual
+receptor rbc,sonar the measured time (i.e. interval between
+the emission of the ultrasonic signal and receiving its echo),based on which it calculates the distance to the obstacle.
+Next it sends the information to c
+bcwhether an obstacle
+was detected. The cbccommands both virtual effectors
+ebc,bodyandebc,vacuum using the information obtained from
+rbc,camandrbc,sonar. Finally ebc,bodycontrols Ebc,body, whilst
+ebc,vacuum controls Ebc,vacuum .
+Each subsystem has its own input, output and internal
+buffers. Below only those control subsystem cbcbuffer
+contents are introduced, which are relevant for this partial
+presentation of the specification.
+– Internal memoryccbc:
+rmin – minimum ball size triggering the vacuum
+cleaner (constant)
+– Output buffere
+ycbc,body:
+c m d–c o m m a n df o re bc,body,
+cmd∈{MOVE, LEFT, RIGHT, STOP},
+dx – X coordinate of the location of the centre of
+the ball with respect to the image centre (expressed
+in pixels)
+vel – velocity of the robot (range: 0–100)
+– Output buffere
+ycbc,vacuum:
+c m d–c o m m a n df o re bc,vacuum ,
+cmd∈{TURN ON, TURN OFF},
+– Input bufferr
+xcbc,sonar:
+obst det – signals whether an obstacle was detected
+or not;
+– Input bufferr
+xcbc,cam:
+balldet – ball was detected or not;
+x, y – X and Y coordinates of the detected ball
+centre (in pixels)w, h – image width and height (in pixels)r – detected ball radius (in pixels)Activities The behaviour of a
+bcis defined by the activities
+of its subsystems and the interactions between them. Theactivities of c
+bcare defined using a hierarchical FSM
+cFbcpresented in Fig. 6. Each state of the FSMcFbcis
+associated with the corresponding behaviour:cBbc,search
+(robot searches for the balls within the environment),
+cBbc,collect (robot collects balls) andcBbc,avoid (robot avoids
+obstacles). Each behaviour is modelled using the generalbehaviour template presented in Fig. 2, requiring the
+definition of a transition function, terminal condition, andthe determination of the communication model. Below,the definition of the behaviour
+cBbc,collect is presented,
+thus transition functioncfbc,collect and terminal condition
+cfτ
+bc,collectare presented. Other behaviours are defined in a
+similar way.
+Canonical decomposition of the transition function
+cfbc,collect , based on the components of the output buffer, is
+as follows:
+c,efbc,collect/defines⎧
+⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎩e
+yci+1
+bc,body[cmd]= MOVE
+e
+yci+1
+bc,body[dx]=rxci
+bc,cam[x]−rxci
+bc,cam[w]/2
+eyci+1
+bc,body[vel]= calculate vel(rxci
+bc,cam[r])
+e
+yci+1
+bc,vacuum[cmd]=TURN ON, forr
+xci
+bc,cam[r]/greaterorequalslantcci
+bc[rmin]
+e
+yci+1
+bc,vacuum[cmd]=TURN OFF, forr
+xci
+bc,cam[r]<cci
+bc[rmin]
+(1)
+The internal memory contains only constants, thus it does
+not require a transition function. The virtual receptors do not
+have input buffers fed by the control subsystem, thus those
+transition functions are not needed.
+The partial function (1) calculates the parameters of
+the control commands for ebc,body andebc,vacuum .I ne v e r y
+iteration of the behaviour,cBbc,collect a new desired velocity
+of the robot is calculated using the function calculate vel,
+which takes into account the size of the detected ball
+image. Using the X coordinate of the the centre of the
+ball with respect to the centre of the image, an offset is
+computed that is used to navigates the robot towards the ball.
+Fig.6 Activities of the control subsystem represented by an FSMcFbcJIntellRobotSyst(2019)93:787–805 798
+
+--- Page 13 ---
+The behaviour stops iterating when the terminal condition
+cfτ
+bc,collectis fulfilled:
+cfτ
+bc,collect/defines¬r
+xcbc,cam[ball det]∨rxcbc,sonar[obst det]
+Other two behaviours are specified similarly. Behaviour
+cBbc,search is responsible for moving the robot in search for
+the balls. It terminates when either a ball or an obstacle
+is detected. Whenever an obstacle is detected behaviour
+cBbc,avoid is invoked. It uses the bug algorithm [59]f o r
+obstacle avoidance.
+All other subsystems of abc, i.e. virtual receptors and
+virtual effectors, are governed by single state FSMs. Theassociated behaviours execute in their endless loops the
+subFSM template presented in Fig. 2(thus the terminal
+conditions of those behaviours are always false). The virtual
+receptor r
+bc,camexecutes the behaviourrBbc,cam, detect.T h e
+transition function of this behaviour uses the RGB imageloaded into the buffer
+R
+xrbc,cam connected to Rbc,cam,
+transforms this image into the HSV space, cheques whether
+pixels are in the appropriate colour range, erodes the image,
+dilates it, finds contours, cheques the shape of the detectedcontours, assuming that all circular contours represent balls,so the one with the largest circumscribed area is used to
+calculate the estimated ball position within the image space.
+Thus the transition function is defined as a composition ofthe above functions, as a result producing a pure function
+(no side effects are involved). This is an intrinsic property
+of all transition functions. Virtual receptor r
+bc,sonar executes
+rBbc,sonar,detect . Its transition function calculates the distance
+from the obstacle, based on the measured time of flightreceived from Rbc,sonar. The virtual effectors: ebc,body
+andebc,vacuum execute:eBbc,body,move andeBbc,vacuum, set,
+respectively.eBbc,body,move using its transition function
+transforms the commands received from cbcinto PWM
+values and sends them to Ebc,body.eBbc,vacuum ,settransforms
+the commands obtained from cbcto an appropriate PWM
+value and dispatches it to Ebc,vacuum . Only two states of the
+vacuum cleaner are considered: turned on or off, thus PWMis either of maximum value or zero.
+The intra-system communication between subsystems
+ofa
+bcis realised as one-to-one communication. The
+communication between cbcand its virtual subsystems uses
+cyclic buffers. Both producers and consumers use non-
+blocking mode of operation, thus subsystems must react
+appropriately to lack of new data.
+7.2Implementation
+The above defined subsystems are implemented using theMiCASE modelling tool [28]. It enables the high-level
+specification of the activities of the software-implemented
+subsystem (i.e. control subsystem and virtual subsystems)using hierarchical LLFSMs that constitute an executable
+model. To this end, a slight modification of the original
+FSM
+sFbcis required [35]. EachsFbcis implemented as
+sF/prime
+bc. The transformation ofcFbc, presented in Fig. 6,i n t o
+its implementation versioncF/prime
+bc, presented in Fig. 7,i s
+straightforward. Each state ofcFbc, denoted as Sω
+bc(ωis the
+designator of the behaviour associated with the consideredstate of
+cFbc), is implemented as a pair of consecutive states
+ofcF/prime
+bc: the original state org/primeSω
+bc(depicted as a rectangle
+Fig.7 Implementation ofcFbcFSM ascF/prime
+bcFSM modelling the activities of the control subsystemJIntellRobotSyst(2019)93:787–805 799
+
+--- Page 14 ---
+Fig.8 Table-tennis ball collecting robot
+with oval corners) and the supplementary statewait/primeSω
+bc
+(depicted as a small oval). With each state org/primeSω
+bcan action
+is associated, where a new submachine/primeFB
+bc,ωis executed
+by the restart at(SUBMACHINE) command. It models the
+behaviourcBbc,ω. The FSMcF/prime
+bcwaits in the current
+state org/primeSω
+bcuntil the submachine/primeFB
+bc,ωstarts executing
+(i.e. the Boolean expression is running at(SUBMACHINE )
+returns true). When the submachine/primeFB
+bc,ωstarts executing,
+the FSMcF/prime
+bcchanges its state to the statewait/primeSω
+bc.
+The FSMcF/prime
+bcbeing in the statewait/primeSω
+bcwaits for the
+termination of activities of the subFSM/primeFB
+bc,ωby testing
+the Boolean expression is suspended at(SUBMACHINE)
+(it returns true, if the submachine has finished its activities).
+The ball collecting robot system requires five FSMs,
+because it contains five software subsystems. Additionally,
+for each behaviour within each subsystem an additional
+subFSMs must be produced. Thus in total there are 12FSMs/subFSMs. Each of them is governed by the same,single sequential scheduler, switching their activities. The
+communication between subsystems is implemented using
+the whiteboard [30].7.3RobotHardware
+The table-tennis ball collecting robot (Fig. 8) has four
+motors actuating the four wheels, an obstacle detectingsonar HC-SR04 with a 2–400 cm range, a ball detectingcamera (Microsoft LifeCam Studio Webcam), a 12 V
+car vacuum cleaner producing suction, a ball container,
+a Raspberry Pi 3B on-board computer, Arduino Micromicrocontroller board and a Xaxxon MALG PCB motor
+controller. The Pi 3B executes the software of the
+control subsystem and all virtual subsystems, sendingcommands to the real effectors: E
+bc,body (to the motors
+through the Xaxxon MALG motor controller), vacuum
+cleaner Ebc,vacuum (Arduino Mirco DC motor velocity
+controller MCU-60127) and receives data from the real
+receptors: camera Rbc,cam (Microsoft LifeCam Studio
+Webcam camera), sonar Rbc,sonar (Arduino Micro and HC-
+SR04 sonar). The Raspberry Pi 3B is connected to both theArduino Micro and Xaxxon MALG PCB using USB serial
+port and to the camera by a SCCB interface (serial camera
+control bus).
+7.4PerformanceoftheCommunication
+withintheRobot
+If a real-time operating system is used, the execution
+times of particular behaviour steps are as presented
+in Table 1. The produced system requires both intra-
+system communication (i.e. between cbcand virtual
+subsystems) and access to the hardware (i.e. between virtual
+subsystems and the real subsystems). Communication with
+the hardware is organised as either: send operations of
+behaviourseBbc,body,move andeBbc,vacuum, set, or receive
+operations of behavioursrBbc,cam,detect andrBbc,sonar,detect .
+Hardware access uses standard driver interfaces whilst intra-system communication utilises the whiteboard. The formercommunication uses USB serial port which introduces
+significant delays, hence those send/receive operations may
+take even several milliseconds. In the latter case, the
+Table 1 Maximum measured time [μs] required by behaviour steps: calculation of transition functionsfj,v, sending and receiving data, where
+vac is vacuum and wb is the whiteboard
+Behavioursfj,v Receive Send
+cBbc,search 3w b→cbc 16 cbc→wb 18
+cBbc,collect 3w b→cbc 10 cbc→wb 29
+cBbc,avoid 9w b→cbc 21 cbc→wb 14
+rBbc,cam,detect 20345 Rbc,cam→rbc,cam 4720 rbc,cam→wb 21
+rBbc,sonar,detect 2 Rbc,sonar→rbc,sonar 1501 rbc,sonar→wb 9
+eBbc,body,move 2w b→ebc,body 10 ebc,body→Ebc,body 5093
+eBbc,vacuum ,set 3w b→ebc,wb 9e
+bc,vac→Ebc,wb 1384JIntellRobotSyst(2019)93:787–805 800
+
+--- Page 15 ---
+messages are transferred using shared memory, thus the time
+required for execution a single send/receive operation is atthe most 39μs( 1 0 μs+29μs).
+The hardware out of which the simple robot was built to
+present both the design method and the software used forthe implementation of the controller was inexpensive. The
+camera enables image acquisition at the rate of 30 Hz. Thus
+the virtual receptor r
+bc,camcollects data every 34 ms. The
+balls are detected by the camera at a maximum distance of
+2.5 m. The sonar enables the detection of obstacles in the
+range 2-400 cm, thus due to the velocity of sound in air,a data sample is obtained every 60 ms. As the maximumvelocity of the robot is 0.25
+m
+s, the robot is able to stop
+and change the direction of motion well ahead of possiblecollisions. The decisions as to the selection of the nearestball to collect are also made well in advance, so the robot
+does not have to veer overly rapidly. The balls scattered
+between obstacles were collected efficiently.
+8Conclusions
+This paper extends the robotic system design methodology
+(presented in e.g. [35, 92, 96]) by inter-subsystem
+communication model [ 31]. It assumes that the activities of
+each subsystem and each of their behaviours is represented
+by a LLFSMs. The communication between the subsystems
+takes place in specific states of the resulting hierarchic FSM,
+being the composition of the higher level FSM defining thetask of the subsystem and the lower level ones governing
+the execution of this subsystem’s particular behaviours. The
+subsystems in those states access the whiteboard, providingor acquiring the necessary data. As the scheduler switches
+the hierarchic FSMs sequentially no contentions arise. To
+refer the proposed communication model to the state of theart, a classification of communication methods from therobotics perspective has been introduced.
+The choice of LLFSMs and the whiteboard as an
+implementation means for the proposed specificationmethod was dictated by the fact that the specification
+method utilises the concept of FSM and transition
+function embedded in a behaviour, which organises thecommunication, i.e. the concepts into which it was easy
+to translate the specification. Importantly, the whiteboard
+ensures reliable access to data. The whiteboard givesprecise communication semantics in terms of boundedtiming as well as atomicity. Moreover always the latest
+readings are delivered and no buffer overflow occurs
+due to the use of a cyclic buffer. If only one scheduleris employed the LLFSMs ensure reliable sequential
+execution of the behaviours of the subsystems. Multi-
+scheduler implementation on a multi-processor system isalso possible, but then contention resolution has to be used.However for simple one-computer implementation of thesystem this is not necessary. The presented implementationapproach ensures that at a given time only a single
+subsystem is active so there is no contention regarding data
+access.
+An embodied agent is a set of subsystems communicat-
+ing with the control subsystem utilising the whiteboard as acommunication means. The constraint imposed on the inter-nal structure of an embodied agent, which requires that all
+virtual entities contact only the control subsystem, limits the
+internal number of communication links. Each subsystemof an embodied agent is implemented as a separate process.An additional agent added to the system linearly increases
+the number of utilised processes. The number of new con-
+nections required within the system is equal to the numberof the subsystems within the embodied agent and usually
+low number of interconnections of the added agent with the
+already existing agents, thus is scalable.
+Embodied agents can be implemented not only by using
+LLFSMs and the whiteboard, but also by utilising OROCOScomponents, however the transformation procedure is notthat straightforward. OROCOS is a component basedrobotics framework, where each component encapsulates
+an executable algorithm (primary code). Within the
+component there exists an Execution Engine, whichprocesses asynchronous operations, calls plug-in functions
+and executes the primary code, when the component is in
+a running state. The FSM is related to the states of thecomponent (pre-operational, stopped, running, exception
+etc.) not the states of the executed tasks. Thus, the FSM
+within the component is completely different from the FSMin the embodied agent. The former changes the state of thecomponent, and only the running state is of relevance to us,
+as only in that state the task is executed. In the latter case,
+the FSM is related to the states of the task execution. Withevery one of those states a transition function parameterised
+behaviour is associated. Thus, if a subsystem would have
+to be implemented as an OROCOS component both theFSM and the behaviours would have to be recreated within
+the primary code. Hence no benefit is obtained. Our multi-
+layer structure is being flattened within this code. The othermethod of using OROCOS is to associate a componentwith a behaviour. Then the primary code would represent
+a transition function. However then the subsystem FSM
+would have to be implemented by an extra componentmarshalling the other components (i.e. it would play the
+role of a scheduler). The activity of the agent would have to
+be produced by still another component executing the FSMof the control subsystem. However in such a system, not
+only the communication between subsystems would have
+to be organised, but also between behaviours (behavioursof subsystems of embodied agents have access to all theinput, output and internal data of that subsystem). Thus, dataJIntellRobotSyst(2019)93:787–805 801
+
+--- Page 16 ---
+transfers between behaviours would have to be arranged
+through ports, which was not the intention of the modelemployed by embodied agents.
+Both the utility of the design methodology and the
+employed communication method have been presented ona rudimentary robot searching for table-tennis balls. The
+system was implemented by using the MiCASE tool [ 28].
+It enables both modelling of the activities of the designed
+system and automatic code generation, resulting in an
+executable, high-level behaviour model. The resulting robot
+control system functions as specified.
+Acknowledgments This work was supported by the Erasmus Mundus
+Action 2 PANTHER (Pacific Atlantic Network for Technical Higher
+Education and Research) grant and by the National Science Centre,Poland (grant number 2017/25/N/ST7/00900).
+Open Access This article is distributed under the terms of the
+Creative Commons Attribution 4.0 International License ( http://
+creativecommons.org/licenses/by/4.0/), which permits unrestricted
+use, distribution, and reproduction in any medium, provided you give
+appropriate credit to the original author(s) and the source, provide a
+link to the Creative Commons license, and indicate if changes weremade.
+Publisher’s Note Springer Nature remains neutral with regard to
+jurisdictional claims in published maps and institutional affiliations.
+References
+1. Alami, R., Chatila, R., Fleury, S., Ghallab, M., Ingrand, F.: An
+architecture for autonomy. Int. J. Robot. Res. 17(4), 315–337
+(1998)
+2. Arbib, M.: Handbook of Physiology – The Nervous System II.
+Motor Control, chap. Perceptual structures and distributed motor
+control, pp. 1449–1480. Wiley Online Library (1981)
+3. Arkin, R.C.: Motor schema-based mobile robot navigation. Int. J.
+Robot. Res. 8, 92–112 (1989)
+4. Arkin, R.C.: Cooperation without communication: Multiagent schema-
+based robot navigation. J. Robot. Syst. 9(3), 351–364 (1992)
+5. Arkin, R.C.: Behavior-Based Robotics. MIT press, Cambdrige ( 1998)
+6. Armbrust, C., Kiekbusch, L., Ropertz, T., Berns, K.: Soft Robot
+Control with a Behaviour-Based Architecture. In: Soft Robotics,
+pp. 81–91. Springer (2015)
+7. Asama, H., Ozaki, K., Matsumoto, A., Endo, I.: Development
+of task assignment system using communication for multiple
+autonomous robots. J. Robot. Mechatron. 4(2), 122–127 (1992)
+8. Balch, T., Arkin, R.C.: Communication in reactive multiagent
+robotic systems. Auton. Robot. 1(1), 27–52 (1994)
+9. Beetz, M., M ¨osenlechner, L., Tenorth, M.: CRAM – a Cognitive
+Robot Abstract Machine for Everyday Manipulation in HumanEnvironments. In: IEEE/RSJ International Conference on Intel-
+ligent Robots and Systems, IROS, October 18–22, 2010, Taipei,
+Taiwan, pp. 1012–1017. IEEE (2010)
+10. Bensalem, S., de Silva, L., Ingrand, F.R.Y .: A verifiable and
+correct-by-construction controller for robot functional levels. J.Softw. Eng. Robot. 2(1), 1–19 (2011)
+11. Birman, K., Schiper, A., Stephenson, P.: Lightweight causal and
+atomic group multicast. ACM Trans. Comput. Syst. 9(3), 272–314
+(1991)12. Bonabeau, E., Dorigo, M., Theraulaz, G.: Swarm intelligence:
+From natural to artificial systems. Oxford university press, NewYork (1999)
+13. Brooks, R.A.: A robust layered control system for a mobile robot.
+IEEE J. Robot. Autom. 2(1), 14–23 (1986)
+14. Brooks, R.A.: Intelligence without reason. Artif. Intell. Crit.
+Concepts 3, 107–163 (1991)
+15. Brooks, R.A.: Intelligence without representation. Artif. Intell.
+47(1-3), 139–159 (1991)
+16. Brugali, D.: Software Engineering for Experimental Robotics.
+In: Brugali, D. (ed.): Stable Analysis Patterns for RobotMobility. Software Engineering for Experimental Robotics,pp. 9–30. Springer Berlin Heidelberg, Berlin (2007).https://doi.org/10.1007/978-3-540-68951-5
+2
+17. Brugali, D., Agah, A., MacDonald, B., Nesnas, I.A.D.,
+Smart, W.D.: Software Engineering for ExperimentalRobotics. In: Brugali, D. (ed.): Trends in robot softwaredomain engineering. Software Engineering for ExperimentalRobotics, pp. 3–8. Springer Berlin Heidelberg, Berlin (2007).https://doi.org/10.1007/978-3-540-68951-5
+1
+18. Cabrera-G ´amez, J., Dom ´ınguez-Brito, A.C., Hern ´andez-Sosa, D.:
+Sensor based intelligent robots. chap. CoolBOT: A Component-Oriented Programming Framework for Robotics, pp. 282–304.Springer Berlin / Heidelberg (2002)
+19. Chen, D., Hexel, R., Raja, F.: Engineering Real-Time Commu-
+nication through Time-Triggered Subsumption: Towards Flexibil-ity with Incus and Llfsms. In: Maciaszek, L., Filipe, J. (eds.)
+11th International Conference on Evaluation of Novel Software
+Approaches to Software Engineering, pp. 272 – 281, Rome(2016). https://doi.org/10.5220/0005915602720281
+20. Chen, J., Gauci, M., Li, W., Kolling, A., Groß, R.: Occlusion-
+based cooperative transport with a swarm of miniature mobilerobots. IEEE Trans. Robot. 31(2), 307–321 (2015). https://doi.org/
+10.1109/TRO.2015.2400731
+21. Cheriton, D.R., Skeen, D.: Understanding the limitations of
+causally and totally ordered communication. SIGOPS Oper. Syst.Rev. 27(5), 44–57 (1993). https://doi.org/10.1145/173668.168623
+22. Corkill, D.: Blackboard systems. AI Expert. 6(9), 40–47 (1991)
+23. Coste-Maniere, E., Simmons, R.: Architecture, the Backbone
+of Robotic Systems. In: 2000. Proceedings. ICRA ’00. IEEEInternational Conference On Robotics and Automation, vol. 1,pp. 67–72 (2000). https://doi.org/10.1109/ROBOT.2000.844041
+24. Dudek, G., Jenkin, M., Milios, E., Wilkes, D.: A taxonomy
+for swarm robots. In: IROS ’93. Proceedings of the 1993IEEE/RSJ International Conference on Intelligent Robots andSystems ’93, vol. 1, pp. 441–447 (1993). https://doi.org/10.1109/
+IROS.1993.583135
+25. Dudek, G., Jenkin, M., Milios, E., Wilkes, D.: Experiments
+in Sensing and Communication for Robot Convoy Naviga-tion. In: Proceedings. 1995 IEEE/RSJ International ConferenceOn Intelligent Robots and Systems 95. ’Human Robot Inter-action and Cooperative Robots, vol. 2, pp. 268–273 (1995).https://doi.org/10.1109/IROS.1995.526171
+26. Dudek, G., Jenkin, M.R.M., Milios, E., Wilkes, D.: A taxonomy
+for multi-agent robotics. Auton. Robot. 3(4), 375–397 (1996).
+https://doi.org/10.1007/BF00240651
+27. Einhorn, E., Langner, T., Stricker, R., Martin, C., Gross,
+H.M.: MIRA - Middleware for robotic applications. In: 2012IEEE/RSJ International Conference on Intelligent Robots andSystems, Vilamoura, pp. 2591–2598 (2012). https://doi.org/10.
+1109/IROS.2012.6385959. http://ieeexplore.ieee.org/stamp/stamp.
+jsp?tp=&arnumber=6385959&isnumber=6385431
+28. Estivill-Castro, V ., Hexel, R.: Arrangements of finite-state
+machines - semantics, simulation, and model checking.In: Proceedings of the 1st International Conference onJIntellRobotSyst(2019)93:787–805 802
+
+--- Page 17 ---
+Model-Driven Engineering and Software Development - V olume
+1: MODELSWARD, pp. 182–189 (2013). https://doi.org/10.5220/
+0004317101820189
+29. Estivill-Castro, V ., Hexel, R.: Correctness by Construction with
+Logic-Labeled Finite-State Machines – Comparison with Event-B. In: Zhu, L., Steel, J. (eds.) Proceedings of 23Rd AustralasianSoftware Engineering Conference (ASWEC), pp. 38–47. IEEEComputer Society Conference Publishing Services (CPS), Mil-sons Point (2014)
+30. Estivill-Castro, V ., Hexel, R.: Simple, Not Simplistic — the
+Middleware of Behaviour Models. In: Filipe, J., Maciaszek,L.A. (eds.) ENASE 10 International Conference on Evaluationof Novel Approaches to Software Engineering, pp. 189–196.
+INSTCC, SciTePress, Av. Dom Manuel i, 2910-592, Set ´ubal
+(2015)
+31. Estivill-Castro, V ., Hexel, R., Lusty, C.: High Performance
+Relaying of C++11 Objects across Processes and Logic-Labeled
+Finite-State Machines. In: Brugali, D., Broenink, J.F., Kroeger, T.,MacDonald, B.A. (eds.) Simulation, Modeling, and Programmingfor Autonomous Robots - 4th International Conference, SIMPAR2014, Lecture Notes in Computer Science, vol. 8810, pp. 182–194.Springer (2014)
+32. Estivill-Castro, V ., Hexel, R., Rosenblueth, D.A.Wang, P. (ed.):
+Efficient Model Checking and FMEA Analysis with DeterministicScheduling of Transition-Labeled Finite-State Machines. IEEEComputer Society Conference Publishing Services (CPS), Wuhan(2012)
+33. Estivill-Castro, V ., Hexel, R., Rosenblueth, D.A.: Efficient
+Modelling of Embedded Software Systems and Their FormalVerification. In: Leung, K.R., Muenchaisri, P. (eds.) The 19ThAsia-Pacific Software Engineering Conference (APSEC 2012),
+pp. 428–433. IEEE Computer Society, Conference Publishing
+Services, Hong Kong (2012)
+34. Farinelli, A., Iocchi, L., Nardi, D.: Multirobot systems: a classi-
+fication focused on coordination. IEEE Trans. Syst. Man Cybern.Part B (Cybern.) 34(5), 2015–2028 (2004). https://doi.org/
+10.1109/TSMCB.2004.832155
+35. Figat, M., Zieli ´nski, C., Hexel, R.: Fsm Based Specification of
+Robot Control System Activities. In: 2017 11Th InternationalWorkshop on Robot Motion and Control (Romoco), pp. 193–198.
+https://doi.org/10.1109/RoMoCo.2017.8003912 (2017)
+36. Fleury, S., Herrb, M., Chatila, R.: G
+enom: A tool for the
+specification and the implementation of operating modules in a
+distributed robot architecture. Proc. 1997 IEEE/RSJ Int. Conf.Intell. Robot. Syst. (IROS’97) 2, 842–849 (1997). https://doi.org/
+10.1109/IROS.1997.655108
+37. Fox, C., Evans, M., Pearson, M., Prescott, T.: Towards hier-
+archical blackboard mapping on a whiskered robot. Robot.Auton. Syst. 60(11), 1356–1366 (2012). https://doi.org/
+10.1016/j.robot.2012.03.005 . Towards Autonomous Robotic
+Systems 2011
+38. Gat, E.: On Three-Layer Architectures. In: Kortenkamp, D.,
+Bonnasso, R.P., Murphy, R. (eds.) Artificial Intelligence andMobile Robots, pp. 195–210. AAAI Press, Cambridge (1998)
+39. Giffin, S.d.: A taxonomy of Internet applications for project
+management communication. Proj. Manag. J. 33(4), 39–47 (2002)
+40. Group, O.M.: Data distribution service (dds). https://www.omg.
+org/spec/DDS/1.4
+41. Hayes-Roth, B.: A blackboard architecture for control. Artif.
+Intell. 26(3), 251–321 (1985)
+42. Hayes-Roth, B.: A blackboard architecture for control. In: Bond,
+A.H., Gasser, L. (eds.) Distributed Artificial Intelligence, pp. 505–540. Morgan Kaufmann Publishers Inc., San Francisco (1988).http://dl.acm.org/citation.cfm?id=60204.60241
+43. Hayes-Roth, B., Hayes-Roth, F.: A cognitive model of planning.
+Cogn. Sci. 3(4), 275–310 (1979)44. Haykin, S. Communication Systems, 5th edn. Wiley Publishing,
+Hoboken (2009)
+45. Huntsberger, T.L., Trebi-Ollennu, A., Aghazarian, H., Schenker,
+P.S., Pirjanian, P., Nayar, H.D.: Distributed control of multi-robot systems engaged in tightly coupled tasks. Auton.Robot. 17(1), 79–92 (2004). https://doi.org/10.1023/B:AURO.
+0000032939.08597.62
+46. Jennings, N.R., Sycara, K., Wooldridge, M.: A roadmap of agent
+research and development. Auton. Agents Multi-Agent Syst. 1(1),
+7–38 (1998). https://doi.org/10.1023/A:1010090405266
+47. Joukoff, D., Estivill-Castro, V ., Hexel, R., Lusty, C.: Fast MA V
+Control by Control/Status OO-Messages on Shared-MemoryMiddleware. In: Robot Intelligence Technology and Applications
+4 - Results from the 4Th International Conference on Robot
+Intelligence Technology and Applications, RiTA 2015, Advancesin Intelligent Systems and Computing, V ol. 345, pp. 195–211.Springer (2015)
+48. Jung, D., Zelinsky, A.: Grounded symbolic communication
+between heterogeneous cooperating robots. Auton. Robot. 8(3),
+269–292 (2000). https://doi.org/10.1023/A:1008929609573
+49. Kiekbusch, L., Armbrust, C., Berns, K.: Formal verification of
+behaviour networks including sensor failures. Robot. Auton. Syst.74, 331–339 (2015)
+50. Kiekbusch, L., Armbrust, C., Berns, K.: Formal Verification of
+Behaviour Networks including Hardware Failures. In: Intelligent
+Autonomous Systems 13, pp. 1571–1582. Springer (2016)
+51. Kopetz, H.: Should responsive systems be event-triggered or
+time-triggered? IEICE Trans. Inf. Syst. 76(11), 1325 (1993)
+52. Kopetz, H. Real-Time Systems - Design Principles for Distributed
+Embedded Applications, 2nd edn. Real-Time Systems Series.
+Springer, Berlin (2011)
+53. Kopetz, H., Bauer, G.: The time-triggered architecture. Proc. IEEE
+91(1), 112–126 (2003)
+54. Kornuta, T., Zieli ´nski, C.: Robot control system design exempli-
+fied by multi-camera visual servoing. J. Intell. Robotic Syst. 77(3–
+4), 499–524 (2013). https://doi.org/10.1007/s10846-013-9883-x
+55. Kortenkamp, D., Simmons, R.: Robotic Systems Architectures
+and Programming. In: Khatib, O., Siciliano, B. (eds.) SpringerHandbook of Robotics, pp. 187–206. Springer (2008)
+56. Kortenkamp, D., Simmons, R., Brugali, D.: Robotic Systems
+Architectures and Programming. In: Siciliano, B., Khatib,O. (eds.) Springer Handbook of Robotics. 2nd edn., pp. 283–306.Springer (2016)
+57. Lamport, L.: Using time instead of timeout for fault-tolerant
+distributed systems. ACM Trans. Progr. Lang. Syst. 6, 254–280
+(1984)
+58. Lee, C., Hwang, J., Lee, J., Ahn, C., Suh, B., Shin, D.H., Nah, Y .,
+Kim, D.H.: Self-Describing and Data Propagation Model for DataDistribution Service. In: Brinkschulte, U., Givargis, T., Russo,S. (eds.) Software Technologies for Embedded and UbiquitousSystems, pp. 102–113. Springer, Berlin (2008)
+59. Lumelsky, V .J., Stepanov, A.A.: Path-planning strategies for a
+point mobile automaton moving amidst obstacles of arbitraryshape. Algorithmica 2, 403–430 (1987)
+60. Lumia, R., Fiala, J., Wavering, A.: The nasrem robot control
+system standard. Robot. Comput.-Integr. Manuf. 6(4), 303 – 308
+(1989). https://doi.or g/10.1016/0736-5845(89)90120-8 . Special
+Issue Robots in Manufacturing
+61. Lusty, C.: Cooperative Time-Triggered Wireless Communica-
+tion in Mobile Robotics. Honours thesis, Griffith University(2012)
+62. Lyons, D.M.: Prerational intelligence, Studies in cognitive
+systems, vol. 2: Adaptive behavior and intelligent systemswithout symbols and logic, chap. A Schema-Theory Approach toSpecifying and Analysing the Behavior of Robotic Systems, pp.
+51–70 Kluwer Academic (2001)JIntellRobotSyst(2019)93:787–805 803
+
+--- Page 18 ---
+63. Lyons, D.M., Arbib, M.A.: A formal model of computation for
+sensory-based robotics. IEEE Trans. Robot. Autom. 5(3), 280–293
+(1989). https://doi.org/10.1109/70.34764
+64. Majcher, P.: Autonomous Mobile Robot for Collecting Table Tenis
+Balls (Polish). Master’s thesis, Warsaw University of Technology
+(2012)
+65. Matari ´c, M.J.: Issues and approaches in the design of collective
+autonomous agents. Robot. Auton. Syst. 16(2), 321 – 331 (1995).
+https://doi.org/10.1016/0921-8890(95)00053-4
+66. Matari ´c, M., Nilsson, M., Simsarian, K.: Cooperative Multi-Robot
+Box-Pushing. In: Proceedings of the IEEE/RSJ InternationalConference on Intelligent Robots and Systems, pp. 556–561(1995)
+67. MiPal: Downloads (checked: 23 March 2018). http://mipal.net.au/
+downloads.php
+68. Nesnas, I.A.D.: Software Engineering for Experimental Robotics.
+In: Brugali, D. (ed.): The CLARAty project: Coping withhardware and software heterogeneity, pp. 31–70. Springer BerlinHeidelberg, Berlin (2007). https://doi.org/10.1007/978-3-540-
+68951-5
+3
+69. Newell, A.: Some Problems of Basic Organization in Problem-
+Solving Programs. In: Yovitz, M., Jacobi, G., Goldstein, G. (eds.)
+Self-Organizing Systems, pp. 393–423. Spartan, Washington (1962)
+70. Nii, H.P.: Blackboard systems, part two: Blackboard application
+systems, blackboard systems from a knowledge engineering
+perspective. AI Mag. 7, 82–106 (1986)
+71. Nilsson, N.: Shakey the robot, technical note 323. Technical
+report, AI Center, SRI International, 333 Ravenswood Ave.,Menlo Park, CA, pp. 94025 (1984)
+72. Occello, M., Chaouiya, C., Thomas, M.C.: A Parallel Black-
+board Model for Mobile Robotics control, pp. 439–447.
+Springer Netherlands, Dordrecht (1992). https://doi.org/10.1007/
+978-94-011-2526-0
+51
+73. Pang, G.K., Shen, H.C.: Intelligent control of an autonomous
+mobile robot in a hazardous material spill accident — a blackboard
+structure approach. Robot. Auton. Syst. 6(4), 351–365 (1990)
+74. Parker, L.: ALLIANCE: An architecture for fault tolerant
+multirobot cooperation. IEEE Trans. Robot. Autom. 14(2), 220–
+240 (1998)
+75. Parker, L., Rus, D., Sukhatme, S.G.: Multiple Mobile Robot
+Systems. In: Khatib, O., Siciliano, B. (eds.) Springer Handbook ofRobotics, pp. 1335–1384. Springer (2016)
+76. Parker, L.E.: Alliance: an architecture for fault tolerant, coop-
+erative control of heterogeneous mobile robots. In: IROS ’94.Proceedings of the IEEE/RSJ/GI International Conference onIntelligent Robots and Systems ’94. Advanced Robotic Systemsand the Real World, vol. 2, pp. 776–783 (1994)
+77. Postel, J.: Transmission Control Protocol, RFC 793. Technical
+report, University of Southern California, Information Sciences
+Institute. https://tools.ietf.org/html/rfc793 (1981)
+78. Quigley, M., Gerkey, B., Conley, K., Faust, J., Foote, T., Leibs,
+J., Berger, E., Wheeler, R., Ng, A.: ROS: an open-source
+Robot Operating System. In: Proceedings of the Open-SourceSoftware workshop at the International Conference on Roboticsand Automation (ICRA) (2009)
+79. ROS: Parameter Server. http://wiki.ros.org/ParameterServer
+80. ROS: Technical Overview. http://wiki.ros.org/ROS/Technical
+Overview
+81. Rubenstein, M., Cornejo, A., Nagpal, R.: Programmable self-
+assembly in a thousand-robot swarm. Science 345(6198), 795–799
+(2014). https://doi.org/10.1126/science.1254295
+82. Schwartz, D.G.: Cooperating heterogeneous systems. Springer
+Science & Business Media, NO (1995)
+83. Shannon, C.E., Weaver, W.: A Mathematical Theory of Commu-
+nication. University of Illinois Press, Baltimore (1963)84. Sommerville, I. Software Engineering, 9th edn. Addison-Wesley
+Publishing Company, USA (2010)
+85. Song, D., Goldberg, K., Chong, N.Y .: Networked Robots. In:
+Khatib, O., Siciliano, B. (eds.) Springer Handbook of Robotics,pp. 1109–1131. Springer (2016)
+86. Tanenbaum, A.S., Woodhull, A.S. Operating Systems Design and
+Implementation, 3rd edn. Prentice-Hall, Inc., Upper Saddle River(2005)
+87. Trianni, V ., Nolfi, S., Dorigo, M.: Cooperative hole avoidance in a
+swarm-bot. Robot. Auton. Syst. 54(2), 97–103 (2006). Intelligent
+Autonomous Systems 8th Conference on Intelligent AutonomousSystems (IAS-8)
+88. Ueyama, T., Fukuda, T., Arai, F.: Configuration of communication
+structure for distributed intelligent robotic system. Proc. - IEEEInt. Conf. Robot. Autom. 1, 807–812 (1992)
+89. Yamada, S., Saito, J.: Adaptive action selection without explicit
+communication for multirobot box-pushing. IEEE Trans. Syst.Man Cybern. Part C 31(3), 398–404 (2001)
+90. Zieli ´nski, C.: Description of semantics of robot programming
+languages. Mechatronics 2(2), 171–198 (1992)
+91. Zieli ´nski, C.: A Quasi-Formal Approach to Structuring Multi-
+Robot System Controllers. In: Second International Workshop
+on Robot Motion and Control, Romoco’01, pp. 121–128
+(2001)
+92. Zieli ´nski, C., Figat, M.: Robot System Design Procedure Based
+on a Formal Specification. In: Recent Advances in Automation,
+Robotics and Measuring Techniques, Advances in Intelligent
+Systems and Computing (AISC), vol. 440, pp. 511–522. Springer
+(2016). https://doi.org/10.1007/978-3-319-29357-8
+45
+93. Zieli ´nski, C., Kornuta, T.: Diagnostic requirements in multi-robot
+systems. In: Intelligent Systems in Technical and Medical Diag-nostics, vol. 230, pp. 345–356. Springer (2014). https://doi.org/10.
+1007/978-3-642-39881-0
+29
+94. Zieli ´nski, C., Kornuta, T., Winiarski, T.: A Systematic Method
+of Designing Control Systems for Service and Field Robots. In:
+19-Th IEEE International Conference on Methods and Modelsin Automation and Robotics, MMAR, pp. 1–14. IEEE (2014).
+https://doi.org/10.1109/MMAR.2014.6957317
+95. Zieli ´nski, C., Trojanek, P.: Stigmergic cooperation of autonomous
+robots. J. Mech. Mach. Theory 44, 656–670 (2009)
+96. Zieli ´nski, C., Winiarski, T.: General specification of multi-robot
+control system structures. Bullet. Pol. Acad. Sci. – Techn. Sci.
+58(1), 15–28 (2010). https://doi.org/10.2478/v10175-010-0002-x
+97. Zieli ´nski, C., Winiarski, T.: Motion generation in the MRROC++
+robot programming framework. Int. J. Robot. Res. 29(4), 386–413
+(2010). https://doi.org/10.1177/0278364909348761
+98. Zieli ´nski, C., Winiarski, T., Kornuta, T.: Agent-based structures
+of robot systems. In: K. J., et al. (eds.) Trends in Advanced
+Intelligent Control, Optimization and Automation, Advances inIntelligent Systems and Computing, vol. 577, pp. 493–502 (2017).https://doi.org/10.1007/978-3-319-60699-6
+48
+Cezary Zieli ´nski M.Sc./Eng. (1982), Ph.D. (1988) and habilitation
+(1996) all in control and robotics, from Warsaw University ofTechnology (WUT), full professor of WUT. Specialises in robotics,heads the Robotics Group in Institute of Control and ComputationEngineering, working on the design of robot controllers andprogramming methods. His research interests focus on robotics ingeneral and especially include: robot programming methods, multi-robot system controllers, robot kinematics, robot force control, visualservo control, utilisation of sensors in robot control, design of digitalcircuits. Currently he is the vice-dean for General Affairs of the
+Faculty of Electronics and Information Technology of WUT.JIntellRobotSyst(2019)93:787–805 804
+
+--- Page 19 ---
+Maksym Figat M.Sc./Eng. (2013) in computer science (modelling
+CAD/CAM systems), from Warsaw University of Technology (WUT),
+Faculty of Mathematics and Information Science. Since 2013, he
+is Ph.D. student at the Warsaw University of Technology (WUT),
+Faculty of Electronics and Information Technology (FEIT), Instituteof Control and Computation Engineering (ICCE), Warsaw, Poland.He is a member of the Robotics Group in ICCE working on thedesign of robot controllers and programming methods. His mainscientific interests focus on automatic methods of robot control systemgeneration based on a formal specification. His research in roboticsis based on Model Driven Engineering, Domain Specific Language,Embodied Agent approach and the formal specification for roboticcontrol systems.Ren´e Hexel M.Sc./Eng. (1995), PhD (1999), has been a leading
+researcher in software engineering of safety-critical real-time systems.His achievements include methodologies for modelling, model-
+checking, evaluation, and validation of safety-critical real-time
+systems, including failure mode effects analysis (FMEA) throughfault injection. His research interests include Software Engineeringof Complex Distributed Systems and autonomous robots as well asrobust and reliable safety critical systems. Ren ´e Hexel is Deputy
+Head of School of ICT at Griffith University and Co-Director of theMachine Intelligence and Pattern Analysis Lab (MiPal) at Institute forIntegrated and Intelligent Systems (IIIS) in Brisbane, Australia.JIntellRobotSyst(2019)93:787–805 805

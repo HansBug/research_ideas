@@ -1,0 +1,1078 @@
+--- Page 1 ---
+Vol:.(1234567890)Real-Time Systems (2023) 59:636–661
+https://doi.org/10.1007/s11241-023-09401-5
+1 3
+A real‑time vital control module to increase capabilities 
+of railway control systems in highly automated train 
+operations
+Arturo Amendola1 · Mario Barbareschi2 · Salvatore De Simone1 · 
+Giovanni Mezzina3  · Alberto Moriconi1 · Cataldo Luciano Saragaglia3 · 
+Diana Serra1 · Daniela De Venuto3
+Accepted: 9 June 2023 / Published online: 6 July 2023 
+© The Author(s) 2023
+Abstract
+Recent advances in technology and railway have led to the introduction of systems 
+and infrastructures capable of driving trains automatically. The Automatic Train 
+Operation (ATO) system has been optimized for active human supervision. The next 
+challenge is to realize ATO systems capable of achieving unsupervised operations 
+on the mainlines. However, at this aim, additional safety functionalities should be 
+provided. In this paper, we propose a pioneer hardware/software Vital Control Mod-
+ule (VCM) architecture capable of expanding the control capabilities of the exist-
+ing train control system. The VCM includes a Printed Circuit Board (PCB), to be 
+integrated into the cabin equipment, managed by a reliable and safe hard Real-Time 
+Operating System (RTOS). Both hardware and software are developed to be compli-
+ant with related safety standards. The VCM integrates an application logic that acts 
+as an on-board equipment control core, assessing the overall operativity in real-time, 
+and promptly issuing emergency brakes if hazardous situations occur. The applica-
+tion logic has been developed with a model-based approach via Simulink/Stateflow 
+tool and implemented as a C-script on the Xilinx Ultrascale + core housed on the 
+PCB. We have used two testbeds to evaluate the VCM performance. Experimen-
+tal results showed that the Worst-Case Response Time (WCRT) by the application 
+logic is 13.6 times smaller than the most limiting specification-related deadline. The 
+achieved earliness (− 1.8 ms out of 2 ms of deadline) allows for the easy expansion 
+of VCM’s train protection capabilities in the future. Results from the second testbed 
+showed that the VCM can intervene to mitigate hazardous situations ~ 2 times faster 
+than the current automatic train protection systems according to the related standard.
+Keywords Automatic train operation · Vital control · Safety · Railway
+Extended author information available on the last page of the article
+
+--- Page 2 ---
+637
+1 3 Real-Time Systems (2023) 59:636–661 
+1 Introduction
+Recently, Automatic Train Operations (ATO) are gaining consideration in the 
+railway industry thanks to the possibility of realizing efficient and safe manage-
+ment of railway traffic. This research effort is making it possible to extend the use 
+of ATO, already consolidated in closed railway systems (e.g., urban metros), also 
+to infrastructures not intrinsically predisposed to high grades automation due to 
+heterogeneous traffic and multi-operator involvement, such as the railway main-
+lines (Yin, et al. 2017).
+ATO is a control system, both on-board and trackside, capable of autono-
+mously managing the movement of the train, respecting the journey constraints 
+and maximizing the efficiency of the driving procedures. The ATO is character -
+ized by the related grade of automation (GoA). The standard IEC 62290–1 defines 
+5 GoAs for ATO, from 0, i.e., absence of automation, to 4, i.e., fully unmanned 
+train control (Martinez and Martin 2020).
+Nowadays, all automatic train operations run under the supervision of Auto-
+matic Train Protection (ATP) systems. The European standard ATP system on 
+high-speed and high-capacity railway lines is the European Rail Traffic Manage-
+ment System / European Train Control System (ERTMS/ETCS). In its current 
+form, ETCS supervises the speed profile and position limits, as well as the inter -
+locking of trains on ERTMS-monitored line segments, with the ultimate goal of 
+achieving a fluid corridor between different national train systems (Yin, et  al. 
+2017). The joint operation of ATO and the ETCS defines the so-called ATO over 
+ETCS framework.
+However, current ETCS requirements do not support a high degree of automa-
+tion for ATO. In fact, to date, integrations between ATO and ETCS are limited to 
+the GoA 1 and GoA 2 prototypes (Yin, et al. 2017; Eschbach 2021). Furthermore, 
+the current ETCS standard [i.e., SUBSET-026 (2016)], still considers the pres-
+ence of the on-board human driver as mandatory during automatic train opera-
+tions. The presence is necessary because most of the safety interventions provided 
+by ETCS involve sending alerts to the driver through an on-board subsystem used 
+for control and supervision. At present, ETCS intervenes autonomously in the 
+three cases described by SUBSET-041 (2012): (i) when an emergency braking 
+message provided by a Balise (on-track transponder) is detected; (ii) when an 
+emergency message is received via GSM-R communication (trackside link); and 
+(iii) when the train crosses sections of the line labeled End of Authority/Limit of 
+Authority.
+Recently, the European project X2Rail4 is pushing for the development of 
+an ATO over ETCS framework implementing GoA 3 and GoA 4 operations 
+(XXXX). To this aim, it is necessary to update the ETCS specifications, by intro-
+ducing a novel safety submodule in the ATO over ETCS GoA 4 equipment that 
+supervises some vital and safety–critical functions not covered by the current 
+ERTMS/ETCS infrastructure. For instance, some useful operations, not covered 
+by ETCS, include the movements of an unmanned railway vehicle during main-
+tenance or diagnostics missions, shunting or in-depot operations and the remote 
+
+--- Page 3 ---
+638 Real-Time Systems (2023) 59:636–661
+1 3
+recovery of trains forced to a standstill position on the line due to signalling sys-
+tem malfunctions. In addition, since a low percentage of routes are equipped with 
+ERTMS/ETCS (e.g., only 3400 km out of 16,800 in Italy), an ATP system capa-
+ble of supervising the ATO is also needed on the national signalling system.
+To take a step toward the fully automated unattended train operation, we propose 
+a pioneering implementation of a compact ATP submodule, called Vital Control 
+Module (VCM). This module serves as an on-board vital control core, carrying out 
+the following functions:
+– Assessing the overall on-board ATO equipment operativity in real-time;
+– Providing safety supervision during remote operations of train recovery and 
+diagnostic missions;
+– Ensuring safety supervision of automatic train operations on infrastructures with-
+out ERTMS/ETCS system;
+– Extending the scenarios for automatic emergency braking due to the absence of 
+on-board staff;
+– Operating without interfering with pre-existing ETCS and on-board equipment.
+The VCM has been designed and developed as hardware/software architecture, to 
+be integrated into an unmanned railway vehicle within the ATO over ETCS GoA4 
+framework.
+The VCM has been designed to fulfill railway-related and safety–critical stand-
+ards, both for the hardware and software aspects. Concerning the hardware side, the 
+reference standards in the railway field are EN50155 (2022) and EN50124 (2020a; 
+2020b) for rolling stock equipment. While for software certifications, the standard is 
+EN50128 (2020) for railway control and protection applications.
+The VCM hardware has been implemented as a dedicated PCB, while the VCM 
+software has been designed and implemented using a dedicated, reliable, and safe 
+hard real-time operating system (RTOS). The VCM application logic has been 
+conceptualized, developed, and verified as a Finite State Machine (FSM) using the 
+Simulink/Stateflow tool and a model-based approach. Subsequently, the application 
+logic has been exported for implementation on the target system (i.e., Ultrazed EG 
+System on Module by Avnet). The target implementation was carried out by export-
+ing the FSM as scheduled RTOS tasks.
+This paper focuses on the characterization of the VCM application logic by ana-
+lyzing the Worst-Case Execution Time (WCET) and Worst-Case Response Time 
+(WCRT) of involved tasks. The analysis is carried out on timed execution traces 
+acquired via a commercial tracing tool. Moreover, a testbed for the hardware-in-the-
+loop (HIL) has been also implemented to reproduce some real-life scenarios to eval-
+uate the VCM intervention timing.
+The paper is organized as follows: Sect.  2 provides an overview of the overall 
+framework of ATO over ETCS GoA4. Sect. 2.4 outlines the here proposed architec-
+ture, deepening the used RTOS and the application logic. Sect. 4 presents WCET 
+and WCRT analysis for the schedulability verification, discussing the experi-
+mental results. Sect.  5 concludes the paper by proposing future perspectives and 
+achievements.
+
+--- Page 4 ---
+639
+1 3 Real-Time Systems (2023) 59:636–661 
+2  System overview
+2.1  The VCM‑empowered ATO over ETCS framework
+Figure  1 schematizes the ATO over ETCS GoA 4 framework (gray/blue boxes) 
+with the integration of the VCM architecture (red block). The current ATO over 
+ETCS GoA 4 on-board equipment only includes the four grey/blue main blocks 
+shown in Fig.  1: (i) the ATO computation core (ATO-OB); (ii) the ETCS sys-
+tem (ETCS-OB), (iii) the Supervision and Control System (SCS-OB) and (iv) the 
+Train Interface. The Train Interface includes the ETCS control, the Emergency 
+Brake (EB) and the traction/brake control systems. 
+The main block of the ATO over ETCS framework (on-board side) is the ATO-
+OB. ATO-OB controls and drives the train, elaborating the speed profiles and 
+braking curves, according to the train mission. For this purpose, it is provided 
+with direct access to the traction and service brake control system. ATO-OB 
+exploits the SCS-OB to receive possible alarms and manage the speed profile. 
+It also interfaces the ETCS-OB that communicating with its counterpart on the 
+trackside (ETCS-TS in Fig.  1) ensures the safety supervision of the train opera-
+tions considering the overall infrastructure.
+In this context, ATO-OB has its trackside counterpart, the ATO-TS, which 
+communicates with the infrastructure and the ETCS-TS for traffic management 
+and authorization for remote driving operations. The above-described architec-
+ture schematizes the current ATO over ETCS framework (Deutsch 2022).
+To achieve a high automation degree (GoA4) of the framework, the ATP 
+capabilities of ETCS must be improved. In this respect, Fig.  1 illustrates our 
+new design that includes the here-proposed module, i.e., the VCM architecture 
+block in Fig. 1 . The VCM architecture improves the on-board equipment features, 
+directly interfacing the EB and the ETCS control subsystems, and the ATO-OB.
+Fig. 1  General overview of 
+the ATO over ETCS GoA 4 
+proposal with integration of the 
+VCM architecture
+ ATO- OB
+ETCS -OB
+SCS-O B
+Train InterfaceTrac/g415o n/Brak e
+Control-Emergenc y
+Brake (EB)
+-ETCS Contro lVCM
+Arch.On-board
+ATO- TS
+ETCS -TS
+SCS-TSTrackside
+
+--- Page 5 ---
+640 Real-Time Systems (2023) 59:636–661
+1 3
+The interface with the EB control system permits the VCM architecture to drive 
+the solenoid valves connected to the pneumatic plates. The EB issuing consists of 
+a power cutoff of the solenoid valves that causes a sudden depressurization of the 
+pipes and, thus, the pneumatic plates closing. This process leads to the total locking 
+of the traction and the immediate deceleration of the train.
+The ETCS Control system consists of a driving interface for a radio relay that 
+is used to turn ON/OFF the ETCS-OB system. VCM architecture can turn ON the 
+ETCS-OB entrusting it with train supervision (i.e., insertion procedure). VCM 
+architecture can also turn OFF the ETCS-OB while maintaining the safety control of 
+the operations (i.e., isolation procedure).
+The communication channel between ATO-OB and the VCM must ensure:
+– Constant monitoring of the operational status and vitality of the ATO systems 
+(i.e., ATO-OB and ATO-TS);
+– A VCM intervention in safety-threatening situations when ETCS-OB is unable to 
+supervise operations (ETCS isolated or faulty);
+– A bridge for communication with the trackside counterpart of ATO-OB, i.e., 
+ATO-TS, to:
+– Verify the presence, in supervision, of a remote operator;
+– Provide the operator with the ability to formalize VCM-managed requests 
+(i.e., emergency braking and ETCS isolation/insertion requests).
+The VCM to ATO-OB connection is independent of the ETCS, then even in the 
+presence of un-supervising ETCS (e.g., isolated or faulty), communication between 
+the rail vehicle and the remote operator (ATO-TS) remains available via ATO-OB, 
+ensuring safety train operations.
+The VCM architecture block can be further divided into subsystems, as per the 
+simplified architecture in Fig.  2. According to Fig.  2, the core of the VCM archi-
+tecture consists of a pair of VCM boards, the VCM1 and VCM2. The boards are 
+organized in a 2-out-of-2 (2oo2) architecture based on a voting approach and 
+SPI
+VCM Ha rdwareVCM1 VCM22oo2ATO-OB
+CAN
+SPI SPI ETH
+ATO
+ODOBTM WD DataLo gETHDIG DIG
+Vital Cont rol Module (V CM) Arch.RTOS
+MiddlewareApplic a/g415on  Logi c
+Vital Cont rol Module  (VCM)EB Cont rolTrain Interface
+ETCS Cont rol
+Fig. 2  Simplified architecture of VCM block
+
+--- Page 6 ---
+641
+1 3 Real-Time Systems (2023) 59:636–661 
+communicate between them through the Inter Processor Communication (IPC) pro-
+tocol (Markovits and Rácz 2021; Fara, et al. 2021).
+The VCM hardware is the PCB proposed in our previous work (Mezzina et al. 
+2022) and that is shown in the green box at the bottom of Fig.  2. Briefly, the VCM 
+board consists of 10-layer PCB carrier cards holding a central computing core based 
+on the Ultrazed EG- SoM by Avnet. The VCM hardware includes several communi-
+cation buses typical of the railway context (e.g., digital I/O, CAN, Ethernet, SPI, and 
+so on), to favor the module inclusion in already existing on-board equipment.
+The VCM boards interface the odometry system (ATO-ODO in Fig.  2), the Bal-
+ise Transmission Module (BTM in Fig.  2), the DataLog board, and the watchdog 
+one (WD in Fig. 2).
+The ATO-ODO board periodically sends data from tachometric sensors to VCM. 
+Starting from these data, VCM can estimate the train speed and position via a dedi-
+cated algorithm.
+The BTM board is equipped with an antenna that is used to read the telegram 
+from the Balises distributed on the tracks. Next, the BTM transfers the telegram to 
+the VCM. The latter takes care of decoding the telegram and encapsulating it for 
+secure retransmission to ATO-OB.
+The datalog board has the purpose of saving navigation data, operating as a black 
+box. VCM exploits this link for saving all generated notifications.
+Finally, the WD system is used to supervise the functional integrity status of 
+VCM. If VCM fails to respond within a preset interval, the WD intervenes by turn-
+ing off the power supplies. This procedure results in emergency braking as explained 
+above.
+2.2  VCM general specifications
+As stated above, VCM interfaces on-board equipment to monitor their working and 
+intervenes in safety-threatening situations to ensure a proper ATP in a context of the 
+ATO GoA 4. The following numbered list summarizes some of the general specifi-
+cations of the VCM, focusing, for the sake of clarity, on those that are most signifi-
+cant and impact safety and the functional validation phase:
+ S 1. VCM queries, with a fixed period, ATO-OB by sending a request message. 
+Query message consists of six sections: {ATO Vitality, Operator Vigilance, EB 
+Release Confirmation, ETCS Insertion Confirmation, ETCS Isolation Confirma-
+tion, EB Rearm Confirmation}.
+ S1.1. ATO Vitality allows the system to cyclically check the computing and 
+communication capabilities of the ATO subsystems.
+ S1.2. Operator Vigilance permits the assessment of the remote operator vigi-
+lance (i.e., the active presence of the operator in the trackside control 
+room).
+ S.1.3. EB Release Confirmation gives the possibility of remotely activating the 
+emergency braking system (i.e., ATO-TS via ATO-OB).
+
+--- Page 7 ---
+642 Real-Time Systems (2023) 59:636–661
+1 3
+ S1.4. ETCS Insertion/Isolation Confirmation allows the remote operator (i.e., 
+ATO-TS via ATO-OB) to exploit VCM for powering off/on the ETCS 
+according to the specific mission.
+ S1.5. EB Rearm Confirmation queries the remote operator (i.e., ATO-TS via 
+ATO-OB) about the possibility of enabling procedures for safe recovery 
+operations.
+ S 2. The VCM to ATO-OB message structure is fixed and consists of two fields 
+per section: (i) sequence number, (ii) request flag. Whenever the request flag 
+changes from 0 to 1, the sequence number associated with it increments. Request 
+flags are set by different pre-conditions managed by the VCM application logic 
+(see Sec. 3.2).
+ S 3. The ATO-OB system responds to the VCM queries by processing the requests, 
+incrementing the sequence number associated with the request, and providing 
+a response to each enabled section.
+ S 4. ATO-OB must transmit with each response to VCM its operational status. VCM 
+must supervise the ATO-OB operational status. If the status is FAIL, VCM must 
+intervene in issuing the EB.
+ S 5. VCM analyzes the response received from ATO-OB to assess its validity. A 
+message is defined valid if the sequence numbers involved in the verification 
+have been correctly incremented by ATO-OB.
+ S 6. VCM receives data from tachometer sensors on the ATO-ODO board. VCM 
+processes the acquisitions by extracting the speed and position of the railway 
+vehicle.
+ S 6.1.  VCM must supervise the train speed with un-supervising ETCS-OB (iso-
+lated or faulty). If the train speed overcomes a pre-set limit (i.e., 30 km/h 
+in this application), VCM must intervene in issuing the EB.
+ S 6.2.  VCM can detect a failure of odometer sensors on ATO-ODO. In this case, 
+the VCM system will label ATO-ODO as not efficient. Otherwise, ATO-
+ODO is defined as efficient
+ S 7. VCM controls a radio relay that is used to turn ON (insert) or OFF (isolate) the 
+power supply of the ETCS-OB subsystem.
+ S 8. VCM controls the solenoid valves used to activate emergency braking by acting 
+on the pneumatic plates. The control of the VCM can be also used to pressur -
+ize the pipes to rearm the EB system. The rearming procedure is used to make 
+traction available after emergency braking.
+ S 9. VCM issues the EB (i.e., emergency braking) according to the pre-conditions 
+and conditions summarized in Table  1.
+ S 10.  VCM set the System Decay flag according to scenarios summarized in Table  1. 
+The system decay condition leads to the inability to recover the train safely. 
+Therefore, the train remains in a safe state (stopped train) until the on-board 
+subsystems are restarted.
+
+--- Page 8 ---
+643
+1 3 Real-Time Systems (2023) 59:636–661 
+Table 1  VCM Intervention scenarios
+*Safe Recovery: this flag represents the possibility of restarting with safe train operations after a mitigation intervention (emergency braking or system decay). For the ana-
+lyzed scenarios, this corresponds to the possibility of brake rearmingScenario ID Pre-conditions Conditions Mitigating action Safe 
+recov -
+ery*
+A ETCS-OB isolated/Inserted EB requested by operator (S 1.3) Emergency braking ✓
+B ATO Operational Status: FAIL (S 4) Emergency braking
+System decay✗
+C ATO response to EB Release Confirmation NOT VALID
+(S 1.3, S 5)Emergency braking
+Systemdecay✗
+D ATO response to ATO Vitality NOT VALID (S 1.1, S 5) Emergency braking
+System decay✗
+E ATO response to Operator Vigilance NOT VALID
+(S 1.2, S 5)Emergency braking
+System decay✗
+F ETCS-OB isolation/insertion request ETCS-OB Isolation/Insertion procedure failed (S 7) System decay ✗
+G EB Rearm Request EB Rearm procedure failed (S 8) System decay ✗
+H ETCS-OB isolated/Inserted
+AND
+Train in standstill positionATO response to EB Rearm Confirmation NOT VALID
+(S 1.5, S 5)System decay ✗
+I ETCS-OB Isolated/Inserted
+AND
+Train in standstill positionATO response to EB Rearm Confirmation NOT VALID
+(S 1.5, S 5)System decay ✗
+L ETCS-OB isolated Estimated train speed > 30 km/h (S 6.1) Emergency braking ✓
+M ATO-ODO not efficient (S 6.2) Emergency braking → ETCS-OB Inser -
+tion request → ETCS-OB Inserted✓
+N ETCS-OB isolated/inserted ATO response to ATO Vitality/Operator Vigilance not con-
+firmed within a time limit
+(S 1.1, S 1.2)Emergency braking
+System decay✗
+
+--- Page 9 ---
+644 Real-Time Systems (2023) 59:636–661
+1 3
+In this context, MW consists of applications embedding device drivers, which are 
+encapsulated by using a message-oriented approach. The application logic do not 
+directly call device driver functions and have no access to the hardware. Instead, a 
+static configuration file is used to define channels between railway logic and specific 
+applications, each of which can only access the memory addresses where a single 
+device is mapped. Interfacing with the hardware is therefore implemented with a 
+message-passing model, and defects in a device driver are confined to the single 
+application that is designated to use it.
+In the 2oo2 architecture described in Sect. 2.1, MW also provides configurable 
+communication channels, which implement replica synchronization, communication 
+and voting over SPI. As shown in Fig.  3, MW applications (i.e., device drivers) are 
+statically distributed (at the time of configuration) on the four available cores of the 
+hardware target (CPU 0…3 in Fig. 3).
+The here proposed application logic has been organized into three different 
+FSMs, which have been exported as dedicated tasks named A, B, and C. These tasks 
+execute on a single core (i.e., CPU 3 in Fig.  3) with different periods and priorities. 
+The tasks are organized into dedicated applications, ensuring that they do not utilize 
+shared resources. Instead, they employ non-blocking Inter-Process Communications 
+(IPCs) to exchange information. This approach is necessary to prevent blocking 
+situations associated with managing multiple accesses to shared memory, thereby 
+ensuring the functional continuity of the application logic.
+Application logic tasks have been designed to handle queues of empty messages, 
+intervening safely only if the functionality of the overall system is undermined.
+In terms of the role of each individual application logic task, Task A is designed 
+to dynamically query other on-board subsystems (e.g., ATO-OB, WD). At the pre-
+defined communication time, Task A assesses the status of the FSMs composing the 
+application logic by analyzing the dedicated status flags. Based on these parameters, 
+the message to be sent will include (or not) certain requests to the connected on-
+board devices.
+Fig. 3  Inner Architecture of the VCM software stack with focus on application logic tasks
+
+--- Page 10 ---
+645
+1 3 Real-Time Systems (2023) 59:636–661 
+Task B checks ATO-OB responses, on-board equipment working and elaborates 
+the speed and position estimations from odometer sensor data; Task C manages pro-
+cedures to control ETCS-OB and EB systems.
+2.3  The real‑time operating system
+The EN-50128 European standard for railway applications (CENELEC 2020) speci-
+fies procedures and technical requirements for the design and development of soft-
+ware and electronic systems used in railways. These critical applications have spe-
+cific requirements, such as fine timing management mechanisms and fault isolation 
+properties (Donnarumma et al. 2019). Those features can be addressed by employ -
+ing, and properly designing, a RTOS kernel. Specifically, timing constraints respect 
+must be strictly supported by the system (CENELEC 2020), thus, the RTOS ker -
+nel must provide specific mechanisms for handling tasks with explicit timing con-
+straints. Additionally, in safety–critical applications, proper interaction between 
+software and hardware is essential for the correct functioning of the system. In this 
+respect, a correct and robust management of the faults can be realized by providing 
+a proper level of isolation among kernel components. A good partitioning procedure 
+can ensure that a failure in a component does not propagate to others.
+Given the importance of EN-50128 safety requirements in the railway domain, 
+careful consideration must be given to selecting a suitable RTOS. The RTOS used 
+for VCM is based on architectural design principles outlined in Donnarumma et al. 
+(2019) and has been specifically designed to adhere to the EN-50128 European 
+standard for railway applications (CENELEC 2020).
+Specifically, the RTOS is based on a micro-kernel architecture with fixed prior -
+ity (Lehoczky 1990) partitioned scheduling, i.e., each task is statically associated to 
+a processor core at configuration time. Temporal isolation is guaranteed using the 
+sporadic-server algorithm (Sprunt et al. 1989), and deadlock avoidance is obtained 
+using the stack resource policy (Baker 1990), i.e., delaying the execution of the task 
+until all the needed resources to be accessed are available. Spatial isolation and fault 
+containment are guaranteed using a micro-kernel architecture, memory virtualiza-
+tion and a programming model based on the concept of applications and tasks.
+Concerning the programming model, tasks scheduled by the RTOS are organized 
+into specific applications, by using a static configuration file. Tasks belonging to 
+the same application can cooperate using shared-memory, while tasks from different 
+applications are restricted from accessing each other’s memory and instead rely on 
+the kernel’s message-passing interface. This approach ensures that faults occurring 
+in a task can only affect other tasks within the same application, thereby containing 
+the impact of the fault.
+This programming model is guaranteed by memory virtualization. It is imple-
+mented using Memory Management Unit (MMU) hardware and is guaranteed even 
+when using drivers that make use of Direct Memory Access (DMA) hardware by 
+leveraging the Input–Output Memory Management Unit (IOMMU) provided by 
+modern architectures.
+
+--- Page 11 ---
+646 Real-Time Systems (2023) 59:636–661
+1 3
+2.4  The application logic
+The here-presented application logic has been designed through a model-based 
+approach. Specifically, the application logic tasks are designed to operate as FSMs 
+and implemented via MATLAB® 2022b/Simulink Stateflow toolkit (2022).
+The VCM model was initially created as a single block integrating the func-
+tions identified by the preliminary technical specifications. Subsequently, the over -
+all model has been divided into three smaller blocks to minimize the finite state 
+machines computational load reducing the VCM intervention time in hazardous 
+situation. In addition, the coding standards for railway applications also played a key 
+role in this reduction because it sets limitations in terms of lines of code, input and 
+cyclomatic complexity. The resulting model consisted of three tasks, i.e., A, B and 
+C.
+The model has been assessed via the Simulink Model Advisor toolkit to be fully 
+compliant with MISRA C: 2012 (2012) and EN50128 (2020) standards.
+Then, the C scripts implementing the three tasks have been extracted via the 
+Embedded Coder application (2022) provided by Simulink. These scripts have been 
+validated for MISRA C: 2012 and EN50128 compliance via Simulink Code Advisor.
+The three C-language tasks, that were extracted and validated, have been inte-
+grated into the hard RTOS introduced in Sect. 3.1 as three separate applications. The 
+applications, along with the characteristics of the three tasks, were defined during 
+the static pre-configuration of the RTOS using a dedicated XML file.
+Specifically, the pre-configuration file involves the definition of the core respon-
+sible for task execution, tasks’ priority and the timing parameters defined in Table  5, 
+permission level (used to distinguish an application-type task from a driver-type 
+task) and communication queues to the MW.
+Task A is responsible, inter alia, for the composition and the periodic sending of 
+a request message to ATO-OB (see Sect. 2.2). The message includes the six request 
+sections described at S 1.1–S 1.6 of Sect. 2.2, the estimated speed and position of 
+the train, the header of the detected BTM telegram. The message also includes a set 
+of notifications to aware ATO-OB of different events and scenarios.
+As specified by the general requirement S 2 (Sect. 2.2), the request section struc-
+ture consists of two fields: (i) the sequence number and (ii) the request flag.
+To trigger the transmission of a specific request field, the related flag should be 
+set (by other tasks) within the Task A deadline. Each request flag set will cause the 
+relative sequence number to increase. The specific requests that compose the mes-
+sage are triggered for transmission by considering the timelines/conditions summa-
+rized in Table 2.
+The design of Task A and its real-time parameters were mainly based on techni-
+cal specifications related to the interconnections between the VCM and the ATO-
+OB module. It is important to note that the ATO-OB module is a hardware/soft-
+ware architecture developed by third parties, and as a result, detailed information 
+about its application logic is not available. The most significant specification that 
+influenced the task’s design was the communication protocol between the modules, 
+which defined the precise time interval for message exchange between the VCM and 
+ATO-OB.
+
+--- Page 12 ---
+647
+1 3 Real-Time Systems (2023) 59:636–661 
+According to this technical specification, the exact time span that must elapse 
+between two consecutive VCM-to/from-ATO-OB messages is 40  ms (+ 4  ms of 
+transmission delay tolerance). If no message is received or sent within this specified 
+limit, the communication channel is marked as non-functional, triggering an emer -
+gency situation. The design constraint is reported in Table  2 under the ATO Vitality 
+section.
+The communication between VCM and ATO-OB is based on Ethernet through 
+the encapsulation of the Lightweight TCP/IP stack by the MW.
+Task B manages the interface with several on board subsystems, inter alia, the 
+ATO-OB, the odometry board (i.e., ATO-ODO), the EB and the ETCS control 
+systems.
+In this respect, Task B receives messages from ATO-OB via Ethernet and moni-
+tors the EB and ETCS systems, by checking their power signals via dedicated digital 
+inputs. The digital inputs from the EB system return the availability of the braking 
+system by reading the status of the solenoid valves, while the digital signals from 
+the ETCS system come from the radio relay used to isolate/insert the ETCS system.
+In Table  3 summarizes the most representative functions of Task B, including the 
+involved external subsystem, a brief description and the trigger requirements of the 
+functions.
+Based on the data extracted from the computational functions in Table  3, Task B 
+is responsible for generating an emergency braking flag that will be sent by the non-
+blocking IPC mechanism to Task C.
+Emergency braking flag is set by Task B according to the following conditions:
+1. Emergency braking requested by the remote operator via ATO-OB. It represents 
+Scenario A in Table  1.
+2. ATO-OB operating status: FAIL (from function ATO-OB operating status check). 
+It represents Scenario B in Table  1.
+3. ATO-OB response sections NOT valid (from function ATO-OB response validity 
+check). They represent Scenarios C-E in Table  1.
+Table 2  VCM message to ATO-OB trigger conditions for sending requests
+Message Field Sending Request Trigger Condition
+ATO Vitality (S 1.1) Every 40 ms (+ 4 ms of transmission delay tolerance)
+Design Constraint Specifications of ATO-OB-SMO communi-
+cation
+Operator Vigilance (S 1.2) Every 10 s
+EB Release Confirmation (S 1.3) Every 80 ms
+ETCS Insertion Confirmation (S 1.4) If the Flag from Task C is read in the IPC message queue
+(Train in a standstill position AND ETCS-OB inserted)
+ETCS Isolation Confirmation (S 1.5) If the Flag from Task C is read in the IPC message queue
+(Train in a standstill position AND ETCS-OB isolated)
+Confirmation of EB Rearm (S 1.6) If the Flag from Task C is read in the IPC message queue
+(EB system not available AND Not System Decay)
+
+--- Page 13 ---
+648 Real-Time Systems (2023) 59:636–661
+1 3Table 3  Task B main functions compendium
+Interface Function Description Function Trigger Conditions
+ATO-OB ATO-OB response validity check Task B checks the validity of ATO-OB responses (S 5 – 
+Table 1): ATO Vitality, Operator Vigilance, EB Release 
+ConfirmationWhenever new messages are available from ATO-OB
+ATO-OB operating status check Task B checks the ATO-OB operating status from the 
+received response (S 4). This check is used to identify 
+the FAIL state of the ATO-OB systemWhenever new messages are available from ATO-OB
+ATO-OB response timeout check Task B checks if ATO Vitality, Operator Vigilance have 
+been confirmed within a preset time limit (timeout)Whenever new messages are available from ATO-OB
+ETCS-OB System Radio Relay monitoring Task B reads the Radio Relay status to check the ETCS-
+OB mode (isolated or inserted). (S 8 – Table 1)Every task execution cycle
+EB System EB solenoid valves monitoring Task B reads the EB solenoid valves status to check the 
+EB system availability. (S 9 – Table 1)Every task execution cycle
+ATO-ODO Speed and position estimation Task B receives from ATO-ODO the tachometric sensors 
+data and processes them to estimate the speed and posi-
+tion of the train. (S 6 – Table 1)Whenever new messages are available from ATO-ODO
+Standstill position flag extraction Task B processes the speed estimate to define a Standstill 
+position flag that indicates a stopped train on the routeWhenever new values of speed are computed
+ATO-ODO efficiency detection Task B receives data from ATO-ODO, extracting its 
+efficiency status. (S 7 – Table 1)Whenever new messages are available from ATO-ODO
+
+--- Page 14 ---
+649
+1 3 Real-Time Systems (2023) 59:636–661 
+4. ATO-OB response section concerning ATO-OB vitality and Operator Vigilance 
+not confirmed within preset timeouts (from function ATO-OB response timeout 
+check).
+5. ETCS-OB isolated AND ATO-ODO not efficient (from function ATO-ODO effi-
+ciency detection). It represents Scenario M in Table  1.
+6. ETCS-OB isolated (from function Radio Relay monitoring) AND train 
+speed > 30 km/h (from function Speed and position estimation). It represents 
+Scenario L.
+Task B also sets the System Decay flag in cases 2, 3, and 4 of the above-reported 
+list.
+Finally, Task B shares with Tasks C, via non-blocking IPCs, the: (i) emergency 
+braking flag (ii) standstill position flag; (iii) ATO-ODO efficiency status; (iv) Sys-
+tem Decay flag; (v) EB system status and (vi) ETCS system status.
+Task C is in charge of performing the control routines of ETCS-OB (i.e., iso-
+lation and insertion procedures) and EB system (i.e., emergency braking and EB 
+rearming).
+In Table  4 summarizes the most representative functions of Task C, with a sup-
+porting brief description of them and trigger requirements.
+2.5  Tasks parameters
+The tasks composing the applications logic have been realized to be periodic on a 
+single core with specific deadlines (Di) and periods of scheduling (Ti).
+The three tasks are released simultaneously at the end of the initialization phase 
+and therefore with the same phase (φ). The phase parameter is added to a fixed con-
+figuration time offset, which includes the time required by the RTOS (and the MW) 
+to initialize and test all peripheral devices. For simplicity, we will consider φ as t = 0 
+in the following.
+The scheduling periods and deadlines were firstly derived from the technical 
+requirements of the proposed systems and, specifically, from the ATO—VCM com-
+munication protocol specifications (as summarized in Sect. 2.2).
+The starting design constraint concerned the data exchange between ATO OB and 
+VCM. As mentioned earlier, the interval between consecutive VCM to/from ATO-
+OB messages is set to 40 ms (+ 4 ms to account for transmission delay). This time 
+interval serves several purposes: (i) ensuring the proper receipt of VCM’s request 
+message, (ii) verifying the message to ensure expected ATO-OB processing, (iii) 
+composing the response message, and (iv) transmitting it back to VCM.
+Based on the above conditions and in accordance with the trigger rules for 
+requests sending (as outlined in Table  2), this constraint determines the period of 
+Task A. Setting a period of 40 ms for Task A allows for convenient generation of all 
+requests as multiples of the task period, while maintaining a hard deadline of 2 ms.
+To configure Task B, the relevant functions summarized in Table  3 were con-
+sidered. Task B is responsible for various tasks, including controlling the safety 
+operations of the VCM, processing odometry data from ATO-ODO, supervising 
+
+--- Page 15 ---
+650 Real-Time Systems (2023) 59:636–661
+1 3Table 4  Task C main functions compendium
+Function Description Function Trigger Conditions
+ETCS-OB Isolation/Insertion request generation flag Task C reads from the message queue the Radio Relay 
+status and the standstill position flag updated by Task 
+B
+Task C triggers Task A generation of the following 
+requests:
+• if train is in a standstill position AND ETCS-OB is 
+inserted, triggers ETCS Insertion Confirmation
+• if train is in a standstill position AND ETCS-OB is 
+isolated, triggers ETCS Isolation ConfirmationEvery task execution cycle
+ETCS-OB status toggle command Task C checks the ATO-OB response section concern-
+ing ETCS-OB (S 1.4, 1.5)
+If the remote operator requests a status toggle of the 
+ETCS-OB via ATO-OB response, Task C drives the 
+radio relay control signal to actuate the commandWhenever new messages are available from ATO-OB
+ETCS-OB status toggle command verification Task C verifies that the radio relay command procedure 
+has been correctly executed by reading the updated 
+relay status value updated by Task BEvery task execution cycle (after the ETCS-OB status 
+toggle command)
+ETCS-OB command procedure failure check Task C checks that the command procedure is com-
+pleted within a preset limit, otherwise issues the 
+System Decay flag (Scenario F – Table 1)Every task execution cycle (after the ETCS-OB status 
+toggle command)
+Emergency braking flag check Task C reads from the message queue the emergency 
+braking flag updated by Task BEvery task execution cycle
+EB command Task C checks the status of the emergency braking flag
+If the flag is set, Task C issues the EB by driving the 
+solenoid valves. This procedure initiates emergency 
+braking, making the EB system unavailableEvery task execution cycle
+
+--- Page 16 ---
+651
+1 3 Real-Time Systems (2023) 59:636–661 Table 4  (continued)
+Function Description Function Trigger Conditions
+EB Rearming request generation flag Task C reads from the message queue the EB solenoid 
+valves status and the standstill position flag updated 
+by Task B, as well as the presence of the System 
+Decay flag
+Task C triggers Task A generation of the Confirmation 
+of EB Rearm if:
+ATO-ODO efficient:
+EB system is not available AND (NOT System Decay) 
+AND train in a standstill position
+ATO-ODO not efficient:
+EB system is not available AND (NOT System Decay) 
+AND braking for a preset maximum duration*Every task execution cycle (after emergency braking 
+completion)
+EB Rearming command Task C checks the ATO-OB response section concern-
+ing EB Rearm Confirmation (S 1.6)
+If the remote operator requests an EB rearming via 
+ATO-OB, Task C drives the solenoid valves to rearm 
+the EBWhenever new messages are available from ATO-OB
+EB command procedure failure check Task C checks that the command procedure is com-
+pleted within a preset limit, otherwise issues the 
+System Decay flag (Scenario G – Table 1)Every task execution cycle (after EB Rearming com-
+mand)
+*The maximum braking time is identified as the maximum time interval that must elapse from the braking command to be sure that the train is stationary. This takes into 
+account the typical braking curve, the mass of the train and the maximum slope of the route
+
+--- Page 17 ---
+652 Real-Time Systems (2023) 59:636–661
+1 3
+the on-board equipment, and verifying the responses received from the ATO-OB. 
+Upon receiving the ATO-OB message, the FSM realizing the Task B requires 16 
+task execution cycles (worst case scenario—longest functional path) to complete all 
+the verification states. Additionally, an extra execution cycle is needed to prepare the 
+FSM, upon which Task B relies, for receiving and processing new messages from 
+the ATO-OB.
+To avoid functional interference between Task B and Task A (e.g., new message 
+from the ATO-OB to be analyzed before completion of the evaluation of the previ-
+ous one) and considering the technical requirements of the ATO-OB system, the 
+period of Task B was defined at a ratio of 1:20 to the period of Task A. Furthermore, 
+Task B may receive delayed ATO-OB messages. To ensure that Task B functional-
+ity check can be completed within the required 17 execution cycles and to prevent 
+interruptions from Task A, Task B has been assigned a higher priority than Task A.
+Task C is responsible for activating the emergency brake system (EB) control and 
+ETCS-OB isolation and insertion procedures. Task C also deals with handling the 
+activation of specific requests from Task A. Since the commands to be transmitted 
+to the solenoid valves come from Task B checks, as well as the re-reading of ETCS-
+OB and EB systems status following the command, Task C was designed to operate 
+“sequentially” to Task B.
+This sequencing condition is necessary because Task C relies on the output of 
+Task B in a non-blocking mode. Task C needs to be able to act independently and 
+promptly when emergency braking is required. Task C closely follows Task B to 
+ensure timely action in case Task B activates the braking flag during its checks.
+Moreover, for the proper verification of command actuation (radio relay and sole-
+noid valves status re-reading), the period and the deadline of Task C must be the 
+same as that of Task B, i.e., 2 ms. Since the activation of some requests by Task 
+A depends on the handling of Task C, to minimize the generation time of specific 
+requests, Task C must have a higher priority than Task A, but lower than Task B.
+In Table  5 summarizes the main timing parameters of the three tasks, configured 
+via the dedicated tool of the RTOS: the relative hard deadlines  (Di) equal to the 
+period  Ti, and the task priorities  (Pi).
+The WCET and the WCRT analyses reported in Sect. 4.1 and 4.2, respectively, 
+show that the selected value for the deadline (i.e., 2 ms) is largely sufficient to exe-
+cute the described tasks. Nevertheless, since the specifications of the vital control 
+module are constantly evolving, it was preferred to keep the timing more relaxed 
+to allocate new task functionality, without prejudicing the specifications concerning 
+the communication intervals.
+3  Experimental results
+3.1  Worst‑case execution time extraction
+In safety–critical real-time applications, the deadlines are imposed by the knowl-
+edge of the application domain of the system. These constraints typically concern 
+
+--- Page 18 ---
+653
+1 3 Real-Time Systems (2023) 59:636–661 
+the communication times between platforms, or the physical phenomena with which 
+the system must interact (e.g., EB braking times for check).
+Sect.  3.3 analyzed the functional deadline extraction for the specific real-time 
+application. This section analyzes the longest observed execution time of each task 
+composing the application logic of VCM, to permit the verification of schedulability 
+of the proposed application logic. For the sake of simplicity, in the following we will 
+refer to the longest observed execution time as a safe approximation of the WCET.
+In this context, it should be specified that WCET estimation is hard to be evalu-
+ated because it requires a detailed knowledge of the paths that could be taken in the 
+code, especially when complex conditions are used and bounds on loop execution 
+counts are not known (Gustafsson and Ermedahl 2007).
+To obtain sufficiently accurate estimates of the tasks’ WCETs, an analysis was 
+performed based on 36 scenarios described in the system specifications. These sce-
+narios were designed and identified during the definition phase of the validation 
+plan for the VCM system, aiming to cover all the functional paths outlined by the 
+application logic. The scenarios, identified as part of requirements-based testing, 
+allowed for verifying 100% functional coverage of the system, as confirmed by tests 
+conducted using the dedicated toolkit Simulink Coverage (Coverage and for MAT -
+LAB® 2022b, Simulink. 2022b).
+In general, these scenarios are representative of the paths that are executed both 
+in the normal system operation and in presence of safety-threatening situations trig-
+gering the VCM intervention (see Sect. 3.2).
+The WCET has been determined by analyzing timed execution traces of the tasks. 
+These traces were collected using the commercial tracing tool Lauterbach Power -
+Trace, which was connected to the Trace Port Interface Unit via the Mictor 38 con-
+nector on the VCM board. The test patterns, extracted by the Simulink Test Har -
+ness (Mezzina et al. 2022), were injected into the system to capture the execution 
+behavior.
+Figure  4 shows a histogram representation of the gathered tasks execution times 
+in terms of occurrence distribution. From the histograms it is possible to infer that 
+Task A assumes a WCET of 20 μs in 5 cases out of 58,212 executions. Task B pre-
+sents 2 executions out of 1.164.240 in which the WCET stands at 24 μs. Task C has 
+2/1.164.240 executions that return a WCET of 31 μs.
+Since we do not have access to the kernel source and, thus, we are unable to 
+make assumptions on the execution paths of other tasks or interrupt routines exe-
+cuting on the same core, we extracted the worst-case execution time between two Table 5  Application Logic 
+Tasks Parameters
+* The reported priority value must be considered relative to the appli-
+cation logic section. A more general priority-based scheduling also 
+involves middleware and sporadic tasksParameter\Task A B C
+Ti (ms) 40 2 2
+Di (ms) 2 2 2
+Pi* 1 (lowest) 3 (highest) 2
+
+--- Page 19 ---
+654 Real-Time Systems (2023) 59:636–661
+1 3
+subsequent application logic tasks across 2.328.480 executions by comparing 
+the delays between the end of a task and the beginning of the next-to-be-executed 
+already released task. This time span will be defined ΔKer&MW in the following. A 
+single execution of ΔKer&MW out of 2.328.480 returned a WCET of 36 μs, while, on 
+average, ΔKer&MW execution required 11.24 μs ± 3.31 μs (with a minimum of 8 μs). It 
+should be specified that ΔKer&MW includes operating system context switching, MW 
+tasks execution time, among others related to IPC message passing, with a higher 
+priority than Task A and C.
+Table  6 summarizes the WCET for the three tasks involved in the application 
+logic and the ΔKer&MW.
+3.2  Schedulability verification
+Starting from the WCETs extracted for Task A, B, C and the ΔKer&MW as described 
+in Sect. 4.2, it is possible to estimate the WCRT for all tasks.
+Considering that all the tasks are released at the beginning of the period (with the 
+same phase as indicated in Table  5) and taking into account that Task A is sched-
+uled with a period that is a multiple of Tasks B and C, we will evaluate the Worst 
+Case Response Time (WCRT) as the time interval from the task’s release to its 
+completion.
+Fig. 4  Worst Case Execution Time Extraction. Histogram representation of WCET occurrence distribu-
+tion for Task A, B and C. Y-axes of histograms are in log scale to emphasize the low number of WCET
+Table 6  WCET, WCRT 
+and timing parameters of 
+Application Logic TasksParameter\Task A B C ΔKer&MW
+Ti (μs) 40,000 2000 2000 n.a
+Di (μs) 2000 2000 2000 n.a
+WCET (μs) 20 24 31 36
+WCRT (μs) 147 24 91 n.a
+Lateness (μs) − 1853 − 1976 − 1909 n.a
+
+--- Page 20 ---
+655
+1 3 Real-Time Systems (2023) 59:636–661 
+Figure  5 illustrates the WCRT based on the collected experimental data. Figure  5 
+shows that at every k*Task A period (k*40 ms with k = 1, 2, …), the three tasks real-
+izing the application logic are released simultaneously with the same phase. Follow -
+ing their assigned priorities, the tasks are executed in the order of B, C and A, with 
+a time gap of ΔKer&MW between each task. After a time interval equal to the period 
+of Task B (i.e., 2 ms), only Task B and C are executed. This pattern repeats 20 times 
+before Task A is scheduled again.
+Table  6 reports the WCET and the WCRT per each analyzed task, considering 
+that there is no pre-emption among tasks. Table  6 also reports the lateness parameter 
+defined as the difference between the finishing time (the time at which the task fin-
+ishes its execution) and the task deadline.
+It is important to note that, while all computations needed for the functionality of 
+the proposed system are executed in Tasks A, B, and C, there is still the need for an 
+additional communication task that receives data to be processed and sends results 
+to a host PC.
+In the practice, however, the effects of this task on the analysis are negligible as: 
+(i) it is scheduled on a separate CPU core, (ii) does not share critical sections with 
+the computation tasks (A, B, and C), and (iii) the only communication with the com-
+putation tasks happen via non-blocking IPCs. In fact, if for some reason no data is 
+available on one iteration, the additional task will simply be skipped, and an error 
+counter will be updated to keep track of a possible anomalous working condition.
+4  Use case
+4.1  HIL testbed
+To test VCM in the real-life scenarios introduced in Table  1, the VCM board has 
+been included in a dedicated testbed for HIL. The here-proposed HIL testbed 
+includes different modules that emulate the behavior of the ATO-OB (and ATO-TS), 
+Fig. 5  Demonstrative representation of WCRT considering the experimentally extracted WCETs
+
+--- Page 21 ---
+656 Real-Time Systems (2023) 59:636–661
+1 3
+ATO-ODO, and Train Interface (ETCS, EB relays). Figure  6a shows a snapshot of 
+the experimental testbench.
+According to Fig.  6, the VCM is connected to a backplane via SPI, CAN, digital 
+I/O (DI/O) and Gigabit Ethernet. The backplane is used to distribute signals to the 
+target emulators. Specifically, the Gigabit Ethernet realizes the connection between 
+VCM and a Host PC emulating the ATO subsystem (ATO-OB and ATO-TS). SPI 
+and CAN interfaces are connected to a MiniZed by Avnet. The MiniZed is used 
+to emulate the BTM, and the odometer board (ATO-ODO) functions, i.e., sending 
+Balise Telegram and tachometer sensors data, respectively to VCM. The VCM inter -
+faces, through DI/O an ESP-based board (the red one), which embeds two relays. 
+These relays are used to emulate the reaction time of EB (solenoid valves) and 
+ETCS (radio relay) systems.
+This EB/ETCS board is connected to the MiniZed to manage the consequences 
+of braking operations that lead to a reduction of specific parameters generated by the 
+dedicated odometer function (tachometric sensors data evolving to follow the brak -
+ing curve).
+To properly reproduce the 36 scenarios for the functional coverage, and specifi-
+cally, the most representative scenarios selected in Table  1 for the VCM intervention 
+timing assessment, the test defined via Test Harness in MATLAB® 2022b/Simulink 
+are handled by a Python script on the host PC. The Host PC acts as ATO-OB by 
+communicating with VCM and synchronizes (via USB connection) the operations of 
+the MiniZed.
+The testbench includes the connection between VCM and the commercial trac-
+ing tool Lauterbach PowerTrace through the Trace Port Interface. Similar to the 
+WCET assessment, the extraction of VCM intervention timing also utilizes traced 
+data. However, in this case, a runtime assessment of specific flags is performed in 
+response to test patterns injected by the Hardware-in-the-Loop (HIL) testbench.
+Fig. 6  HIL Testbed for VCM a 
+Testbench implementation; b 
+Architecture representation
+
+
+--- Page 22 ---
+657
+1 3 Real-Time Systems (2023) 59:636–661 
+4.2  VCM intervention timing
+To provide a complete overview of the vital control capabilities provided by the 
+VCM architecture, a timing assessment of the scenarios presented in Sect.  2.2 
+will be analyzed in this paragraph.
+Before proceeding, it should be noted that according to the SUBSET—041 by 
+UNISIG (2012), which defines the ERTMS/ETCS performance requirements for 
+interoperability, the ETCS system is required to intervene by issuing the emer -
+gency brake within a time limit of 1  s (most stringent requirement) or higher, 
+when specific hazardous situations are detected. This stringent requirement for 
+the ETCS system (i.e., intervention time of 1 s) constitutes the upper limit for the 
+VCM intervention timing requirements.
+In addition, the intervention time should also include the time required to 
+depressurize the pipe and initiate braking action. In this respect, a standard pneu-
+matic plates system for emergency braking depressurizes the pipe at a maximum 
+of 450 ms.
+Consequently, the VCM application logic has 550 ms (at maximum) to com-
+mand and verify the braking. The proposed architecture must intervene in a 
+period shorter than this limit to be compliant with the specifications provided by 
+the related subset.
+Figure  7 shows the architecture intervention times in the analyzed scenarios, 
+highlighting three kinds of mitigation actions: EB intervention (blue bars), Sys-
+tem Decay with the train already in a standstill position that does not require an 
+EB intervention (orange bars), and EB intervention with System Decay status 
+(green bars).
+Results show that the longest intervention time of the VCM belongs to Sce-
+nario E and consists of 12 ms (worst case). Scenario E considers the detection of 
+a NOT VALID answer, concerning the vigilance of the remotely connected oper -
+ator. Another scenario that requires a long intervention time (i.e., 10 ms) is the 
+EB activation, due to the explicit request of the remote operator (i.e., Scenario A). 
+The scenarios with the fastest EB intervention time (i.e., 2 ms) are the detection 
+of the failure mode of ATO (Scenario B) and the expiration of the ATO vital-
+ity and operator vigilance timeouts (Scenario N). Concerning the System Decay 
+notification (with no EB activation), the fastest reactions (i.e., 2 ms) are provided 
+Fig. 7  VCM Intervention Tim-
+ing versus hazardous scenarios
+
+
+--- Page 23 ---
+658 Real-Time Systems (2023) 59:636–661
+1 3
+by the failure in the application of the EB rearm signal (Scenario G) or the ETCS 
+Isolation/Insertion commands (Scenario F).
+The timing of Scenarios L and M (red star) depends on the speed and position 
+estimation elaborated by VCM by the periodic reception of tachometric data coming 
+from ATO-ODO. The inter-transmission interval for odometer data is 80 ms.
+Considering the analysis above and results in Fig.  7, we can infer that, in the 
+worst case, the proposed architecture can issue an emergency braking in 536  ms. 
+This intervention time is derived by the cumulative sum of 450 ms to depressurize 
+the pipe, 80 ms of inter-transmission interval for odometer sensors data and the 6 ms 
+required by VCM to analyze and elaborate data from ATO- ODO (Scenarios L and 
+M in Fig. 7).
+In the worst analyzed case, the intervention time is still below the expected speci-
+fication [i.e., 1 s as per SUBSET-041(2012)] of ~ 464 ms.
+5  Conclusions
+New research trends in the railway field are pushing toward control of the train 
+infrastructure increasingly automated. Current solutions exploit supervision control 
+systems based on existing automatic train protection modules, such as the ERTMS/
+ETCS. However, to create ATO frameworks able to work with GoA3/4, additional 
+train protection functionalities should be provided. To bridge this gap, a pioneer 
+VCM architecture capable of expanding the automatic train protection capabilities 
+of ETCS in a highly automated context has been proposed.
+The proposed VCM consists of a hardware/software architecture that includes 
+a PCB on which runs a reliable and safe hard RTOS, integrating an application 
+logic for the vital control operations. The application logic layer, developed as a 
+model with Simulink/Stateflow tool and implemented as a C-script on the Xilinx 
+Ultrascale + core, has been tested through different dedicated testbeds.
+In this paper, we have presented the first study to characterize the system WCET 
+and WCRT. The characterization has been carried out by analyzing timed execution 
+traces provided by the Lauterbach PowerTrace tool included in the HIL testbench.
+Experimental results have shown that the WCETs reached by the tasks on the 
+various analyzed scenarios, lead to a WCRT 13.6 times smaller than the deadline 
+(i.e., 2 ms). In the context of constantly evolving specifications for AoE GoA4, this 
+earliness (~ − 1.8 ms of lateness) would allow the inclusion of new vital controls, 
+broadening the VCM perspectives of use.
+Finally, a HIL testbed to evaluate the VCM intervention timing in response to 
+real-life scenarios has been realized. Considering the worst analyzed scenario, 
+experimental results showed that the proposed architecture can issue the emergency 
+brakes in 536 ms solving hazardous situations, resulting to be 1.87 times faster than 
+the current ATP system, i.e. ETCS.
+In light of the above-reported experimental results, the use of the pioneering 
+VCM module has multiple advantages. A breakthrough point is the possibility of 
+using the VCM as an ATP system on track sections not served by the ERTMS/ETCS 
+infrastructure. Another important advantage lies in the possible use of this system 
+for the remote recovery of trains stopped on tracks due to ETCS system failures. 
+
+--- Page 24 ---
+659
+1 3 Real-Time Systems (2023) 59:636–661 
+Moreover, the proposed compact solution strongly reduces the impact on the pre-
+existing cabin equipment permitting a rapid integration of the VCM.
+Funding Open access funding provided by Politecnico di Bari within the CRUI-CARE Agreement.
+Data availability No data ara available for the proposed application logic.
+Open Access  This article is licensed under a Creative Commons Attribution 4.0 International License, 
+which permits use, sharing, adaptation, distribution and reproduction in any medium or format, as long as 
+you give appropriate credit to the original author(s) and the source, provide a link to the Creative Com-
+mons licence, and indicate if changes were made. The images or other third party material in this article 
+are included in the article’s Creative Commons licence, unless indicated otherwise in a credit line to the 
+material. If material is not included in the article’s Creative Commons licence and your intended use is 
+not permitted by statutory regulation or exceeds the permitted use, you will need to obtain permission 
+directly from the copyright holder. To view a copy of this licence, visit http:// creat iveco mmons. org/ licen 
+ses/ by/4. 0/.
+References
+T. P. Baker, (1990) A stack-based resource allocation policy for realtime processes. In [1990] Proceedings 
+11th Real-Time Systems Symposium, 1990: 191–200.
+BSI - BS EN 50124-1 – TC - Tracked Changes (Redline) - Railway applications - Insulation coordina-
+tion Part 1: Basic requirements - Clearances and creepage distances for all electrical and electronic 
+equipment. February 2020a
+BSI - BS EN 50124-2 – TC - Tracked Changes (Redline) - Railway applications - Insulation coordination 
+Part 2: Overvoltages and related protection. February 2020b
+CENELEC - EN 50128 Railway applications - Communication, signalling and processing systems - Soft-
+ware for railway control and protection systems. June 2020
+Deutsch P (2022) Overview ERTMS/ETCS Baseline 3 and Beyond. Operating Rules and Interoperability 
+in Trans-National High-Speed Rail. Springer, Cham, pp 29–94
+C. Donnarumma, P. Fara, G. Serra, S. Di Leonardi and M. Marinoni (2019) EN-50128 Certification-
+Oriented Design of a Safety-Critical Hard Real-Time Kernel. 2019 IEEE International Symposium 
+on Software Reliability Engineering Workshops (ISSREW), Berlin, Germany, pp. 314–317, https:// 
+doi. org/ 10. 1109/ ISSREW. 2019. 00090
+Embedded Coder for MATLAB® 2022b/ Simulink. Mathworks. https:// it. mathw  orks. com/ help/ pdf_ doc/ 
+ecoder/ ecoder_ ref. pdf. Accessed 1 Mar 2023
+EN 50155 (2022) Railway applications - Rolling stock - Electronic equipment. June 2022
+ERA, UNISIG, EEIG, ERTMS USERS GROUP - Subset-026 (2016) ERTMS/ETCS System Require-
+ments Specifications. Issue 3.6.0. May 2016
+Eschbach R (2021) Formalizing and Analyzing System Requirements of Automatic Train Operation over 
+ETCS Using Event-B. In: Raschke A, Méry D (eds) International Conference on Rigorous State-
+Based Methods. Springer, Cham, pp 137–142
+Fara P et  al. (2021) Scheduling Replica Voting in Fixed-Priority Real-Time Systems." 33rd Euromi-
+cro Conference on Real-Time Systems (ECRTS 2021). Schloss Dagstuhl-Leibniz-Zentrum für 
+Informatik.
+Gustafsson, Jan, and Andreas Ermedahl. (2007) Experiences from applying WCET analysis in industrial 
+settings. 10th IEEE International Symposium on Object and Component-Oriented Real-Time Dis-
+tributed Computing (ISORC’07). IEEE.
+Lehoczky, John P. (1990) Fixed priority scheduling of periodic task sets with arbitrary deadlines. [1990] 
+Proceedings 11th Real-Time Systems Symposium. IEEE.
+Markovits, Tibor Gergely, and György Rácz. (2021) Safety principles for designing a generic product for 
+railway signalling systems. 2021 Fifth World Conference on Smart Trends in Systems Security and 
+Sustainability (WorldS4). IEEE.
+
+--- Page 25 ---
+660 Real-Time Systems (2023) 59:636–661
+1 3
+Martinez L, Martin U (2020) Terminology, differences, and challenges of communications-based train 
+control and european train control systems. Comput Railways XVII: Railway Eng Design and Oper -
+ation 199:15
+Mezzina G, Barbareschi M, De Simone S, Di Benedetto A, Narracci G, Saragaglia CL, Serra D, De 
+Venuto D (2022) Smart On-Board Surveillance Module for Safe Autonomous Train Operations. In: 
+Saponara S, De Gloria A (eds) Applications in Electronics Pervading Industry, Environment and 
+Society ApplePies 2021 Lecture Notes in Electrical Engineering, l 866. Springer, Cham
+MISRA C:2012 Compliance Considerations. MISRA C:2012 compliance, including modeling style, 
+block usage, and configuration settings. Mathworks. https:// it. mathw  orks. com/ help/ simul ink/ misra- 
+c2012- compl iance- consi derat ions. html. Accessed 1 Mar 2023
+Project Shift2Rail. Online available: https:// proje cts. shift 2rail. org/ s2r_ ip_ TD_r. aspx? ip= 2& td= b4738 
+8a9- b1f8- 4ed8- 9872- bb770 8f7c0 8d. Accessed 1 Mar 2023
+Simulink Coverage for MATLAB® 2022b/ Simulink. Mathworks. https:// it. mathw  orks. com/ produ cts/ 
+simul ink- cover  age. html. Accessed 1 Mar 2023
+Sprunt B, Sha L, Lehoczky J (1989) Aperiodic task scheduling for hardreal-time systems. Real-Time Syst 
+1(1):27
+Stateflow for  MATLAB® 2022b/ Simulink. Mathworks. https:// it. mathw  orks. com/ produ cts/ state flow. 
+html. Accessed 1 Mar 2023
+SUBSET 041 (2012) ERTMS/ETCS - RAMS Requirements Specification - Chapter  2 – RAM. Issue 
+3.1.0. March 2012
+Yin J et al (2017) Research and development of automatic train operation for railway transportation sys-
+tems: a survey. Transport Res Part C: Emerg Technol 85:548–572
+Publisher’s Note Springer Nature remains neutral with regard to jurisdictional claims in published maps 
+and institutional affiliations.
+Arturo Amendola is a consultant of the System Development Department inside the R&D Division of 
+Rete Ferroviaria Italiana (RFI) (Ferrovie dello Stato Group), in the field of design and prototyping of 
+innovative signaling way-side and on-board systems. Previously he led the RAMS and V&V Depart-
+ment of Ansaldo STS for about 15 years, managing the earliest applications of the European Norms for 
+the safety certification of Interlocking System of Roma Termini Station (1999), Copenhagen Automated 
+Metro System (2002), the Italian High Speed Lines Roma-Napoli, Milano-Bologna, Torino-Milano. 
+Director of Product Devolpment in AsnaldoSTS from 200 until 2014, designed the Rio Tinto Driverless 
+System, a Mine Rilway line of 300 Km. Since 2016 until 2020 director of SyStem Development in Rete 
+Ferroviaria Italiana.
+Mario Barbareschi is a Tenured Assistant Professor of Computer Systems at the Department of Electri-
+cal Engineering and Information Technologies of the University of Naples Federico II. He received the 
+Ph.D. in Computer and Automation Engineering in 2015 from the University of Naples Federico II. His 
+research interests include Hardware Security and Trust, Approximate Computing, emerging technologies, 
+and embedded systems. He has authored more than 70 peer-reviewed papers published in leading journals 
+and international conferences.
+Salvatore De Simone received a master’s degree in computer engineering from the University of Naples 
+Federico II, Italy, in 2017. Since 2017, he has been working at RFI Rete Ferroviaria Italiana S.p.a. (Italian 
+Rail Network) in R&D division, where he is involved in the specification and implementation of railway 
+systems. His expertise extends to various aspects of railway systems, including both ground and onboard 
+subsystems. Salvatore De Simone works to ensure that the systems are optimally designed, integrating the 
+latest technologies and considering factors such as operational efficiency, safety, and reliability.
+Giovanni Mezzina is a Research Fellow at the Department of Electrical and Information Engineering of 
+the Politecnico di Bari, italy. He received the Ph.D. in Electronics in 2021 from the Politecnico di Bari. 
+His research interests include Printed Circuit Board design, microcontrollers and FPGA - based system 
+prototyping, machine learning at-the-edge and brain computer interface. He is author of more than 50 
+peer-reviewed papers published in leading journals and international conferences.
+
+--- Page 26 ---
+661
+1 3 Real-Time Systems (2023) 59:636–661 
+Alberto Moriconi received the master’s degree in computer engineering cum laude from the University 
+of Naples Federico II, Italy, in 2019, where he is currently working toward the PhD degree. His research 
+interests include approximate computing, safety critical systems, railway systems, and embedded systems 
+based on the FPGA technology.
+Cataldo Luciano Saragaglia received his M.Sc. degree cum laude in electronic engineering in 2020. He 
+is currently Research Assistant of Design of Electronic Integrated System Laboratory (DEISLab) of the 
+Electrical and Information Engineering Department, Politecnico di Bari, Italy. His research interests 
+include model-based design architecture for railway applications, FPGA prototyping, and printed circuit 
+board design and test.
+Diana Serra received the Ph.D. degree in information technology and electrical engineering from the 
+University of Naples Federico II, Italy, in 2017. Since 2017, she has employed in Rete Ferroviaria Italiana 
+in R&D division, where she is involved in the specification and implementation of an unmanned rail-
+way vehicle equipped with an ATO over ETCS. Her main research interests include passivity-based and 
+optimal control theory applied to mobile and service robotics, autonomous driving functions and formal 
+modeling in safety critical domain.
+Daniela De Venuto is full Professor of Electronics at Politecnico di Bari Italy and the Scientific Director 
+of the Design of Electronic Integrated System Laboratory (DEISLab). Received the Ph.D. degree in 1993 
+and held the Postdoctoral Position in 1994-95 at the Politecnico di Bari, Italy. She has been involved in 
+research activities in several international University and Companies (i.e.: EPFL, Switzerland, IMEC, 
+Belgium, University of Lancaster, UK, NXPs Belgium and HTC Eindhoven NL). From the 2015 she 
+is Visiting Professor at the EECS Department of the University of California at Berkeley (US). She is 
+a member of the Directive Committee of the Embedded Systems and Smart Manufacturing Laboratory 
+(CINI Laboratory). She is the author of more than 200 articles published in international journals and 
+conferences. Her main research interests include analog and mixed signal CMOS IC design, smart sen-
+sors and biosensor focusing on their readout circuit, cyberphysical systems and brain machine interface.
+Authors and Affiliations
+Arturo Amendola1 · Mario Barbareschi2 · Salvatore De Simone1 · 
+Giovanni Mezzina3  · Alberto Moriconi1 · Cataldo Luciano Saragaglia3 · 
+Diana Serra1 · Daniela De Venuto3
+ * Giovanni Mezzina 
+ giovanni.mezzina@poliba.it
+1 Rete Ferroviaria Italiana SpA, 80021 Afragola, NA, Italy
+2 Dipartimento di Ingegneria Elettrica E delle Tecnologie Dell’Informazione, Università Degli 
+Studi di Napoli Federico II, 80125 Naples, Italy
+3 Dipartimento di Ingegneria Elettrica e dell’Informazione, Politecnico di Bari, 70125 Bari, Italy

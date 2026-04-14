@@ -1,0 +1,1804 @@
+--- Page 1 ---
+1
+Data-Driven Phase-Based Control of a Powered Knee-Ankle
+Prosthesis for Variable-Incline Stair Ascent and Descent
+Ross J. Cortino, T. Kevin Best, and Robert D. Gregg
+Abstract —Powered knee-ankle prostheses can offer benefits
+over conventional passive devices during stair locomotion by
+providing biomimetic net-positive work and active control of
+joint angles. However, many modern control approaches for stair
+ascent and descent are often limited by time-consuming hand-
+tuning of user/task-specific parameters, predefined trajectories
+that remove user volition, or heuristic approaches that cannot be
+applied to both stair ascent and descent. This work presents a
+phase-based hybrid kinematic and impedance controller (HKIC)
+that allows for semi-volitional, biomimetic stair ascent and
+descent at a variety of step heights. We define a unified phase
+variable for both stair ascent and descent that utilizes lower-
+limb geometry to adjust to different users and step heights.
+We extend our prior data-driven impedance model for variable-
+incline walking, modifying the cost function and constraints
+to create a continuously-varying impedance parameter model
+for stair ascent and descent over a continuum of step heights.
+Experiments with above-knee amputee participants (N=2) val-
+idate that our HKIC controller produces biomimetic ascent
+and descent joint kinematics, kinetics, and work across four
+step height configurations. We also show improved kinematic
+performance with our HKIC controller in comparison to a
+passive microprocessor-controlled device during stair locomotion.
+I. I NTRODUCTION
+Conventional passive knee-ankle prostheses are unable to
+provide the net-positive work at the joints needed for nor-
+mative stair ascent and other activities of daily living [1].
+Despite this lack of energy input, people with above-knee
+amputation (AKA) can still perform these activities but must
+rely on compensatory behaviors such as hip hiking [2]. Most
+prosthesis users are limited to performing step-to stair ascent,
+which halves the rate at which users can progress up a
+staircase. Step-to ascent is characterized by a person climbing
+only one stairstep per gait cycle, instead of two stairsteps as
+seen in step-over stair ascent. These compensatory behaviors,
+along with the lack of net-positive work from the passive
+device, often put extra strain on individual’s sound leg and
+upper body [3]–[5] and can lead to secondary conditions such
+as chronic back pain and arthritis in the sound leg [6]–[8].
+Able-bodied (AB) stair descent is characterized by a
+toestrike and the dissipation of energy by the ankle at the
+beginning of the gait cycle [1]. Passive devices are unable
+to reach this configuration, due to a lack of controlled plan-
+tarflexion at the ankle [9], resulting in a heelstrike (HS) at
+This work was supported by the National Institute of Child Health &
+Human Development of the NIH under Award Number R01HD094772 and
+by the National Science Foundation under Award Number 2024237 and DGE
+1841052. The content is solely the responsibility of the authors and does not
+necessarily represent the official views of the NIH or NSF.
+R. J. Cortino, T. K. Best, and R. D. Gregg are with the Department
+of Robotics, University of Michigan, Ann Arbor, MI 48109. Contact:
+{cortinrj tkbest, rdgregg}@umich.eduthe beginning of the stance phase. To compensate for this
+behavior, amputee users must HS at the edge of the step,
+using that edge as a pivot for the foot to achieve the necessary
+flexion at the knee [9]. This inability to actively control joint
+angles affects both ascent and descent, leading to potential
+toe-stubbing during swing and loss of balance.
+Emerging powered prosthetic devices [10]–[16] can address
+these challenges by contributing net-positive work during
+stair ascent, controlled negative work during stair descent,
+and active control of foot placement during both activities.
+Studies have also shown that powered devices can reduce
+joint power and strain on the contralateral side and limit hip
+compensation during stair locomotion [17], [18]. Despite the
+potential benefits of using powered devices, designing control
+approaches that can accommodate the various activities and
+environments of day-to-day life is still a challenge.
+Traditionally, powered prostheses have been controlled to
+emulate human joint impedances at discrete phases of gait with
+a finite-state machine (FSM) [19]. These simple-to-implement
+impedance controllers have demonstrated promising results for
+level-ground walking, ramp ascent and descent, and stair as-
+cent and descent [17], [18], [20]–[24]. The standard impedance
+controller parameterizes torque, τ, as a function of joint angle
+θand velocity ˙θin the form of
+τ=−K(θ−θeq)−B˙θ, (1)
+where K,B, and θeqare impedance parameters defining a
+joint’s stiffness, damping, and equilibrium angle, respectively.
+Typically, the gait cycle is divided into 3-4 phases, each with
+a unique set of constant impedance parameters.
+A major drawback of traditional FSM impedance control
+is that researchers must experimentally tune the impedance
+parameters for each discrete phase within the gait cycle.
+Similarly, thresholds based on sensor readings (foot contact
+(FC), joint kinematics, elapsed time, etc.) that control the
+switching between FSM phases must also be tuned. These
+tuneable parameters are often user/task-specific [21]. For ex-
+ample, Lawson et. al. proposed an FSM impedance controller
+for stair locomotion that had a combination of approximately
+40 tuneable parameters and state switching criteria [20].
+Moreover, staircases can vary greatly in incline or step height
+(even ADA-regulated staircases), and able-bodied studies have
+shown corresponding variations in normative joint kinetics
+and kinematics [1], [18], [25]–[27]. Therefore, the necessary
+impedance parameters and switching criteria also need to
+vary as a function of stair configuration, but the resulting
+tuning sessions would be infeasible in duration. Failure to
+adapt to variations in step height/inclination would likely result
+in improper biomechanics and issues with foot placement,
+compromising the performance of powered devices.
+
+--- Page 2 ---
+2
+Rather than using heuristic strategies to reduce the number
+of tuned impedance parameters [21] or automating the tuning
+process for a limited set of parameters [28]–[30], our research
+group previously aimed to avoid parameter tuning altogether
+by using data-driven models based on pre-recorded AB kine-
+matics [31]–[35]. In our recent stair ascent controller [35],
+AB joint kinematics parameterized by a thigh-based phase
+variable gave the user indirect-volitional control over the gait
+cycle progression and produced appropriate kinematics at the
+knee and ankle joints. However, this kinematic control method
+proved to be problematic when applied to stair descent (in
+preliminary work) due to this activity’s small hip range of
+motion (ROM). In particular, small changes in thigh angle
+map to large changes in the phase variable and therefore in
+the desired knee and ankle angles. This sensitivity between the
+user’s hip input and the resulting prosthesis joint patterns can
+cause swing phase oscillations or overly-aggressive gait pro-
+gression. Therefore, an alternative approach for stair descent
+is needed.
+To remedy the issues with purely kinematic control, Best
+et al. proposed a hybrid kinematic impedance controller
+(HKIC) for variable-speed/incline walking [36]. While the
+swing period was largely unchanged from previous kinematic
+methods, the controller continuously varied stance-phase joint
+impedance based on phase and task variables to produce
+biomimetic joint kinetics and work trends as task varied. These
+joint impedance models were generated through optimization
+with able-bodied kinematic/kinetic data. Another study applied
+this impedance control framework to sitting and standing and
+demonstrated similarly promising results [37].
+Therefore, this work extends the HKIC approach by creating
+a continuously-varying impedance model for use in the stance
+phase of stair ascent and descent. Because impedance control
+regulates the relationship between joint angle and torque rather
+than controlling the joint angle directly, this HKIC approach
+remedies the aforementioned problems with a purely kine-
+matic approach. This work’s novel contributions include an
+adaptation of the impedance optimization problem originally
+outlined in [36] to calculate stair ascent/descent impedance
+parameters over a continuum of step heights. The cost function
+and constraints were modified to emphasize late-stance knee
+damping in stair descent, allowing the use of a thigh-based
+phase variable with a small thigh ROM. We also define a
+common phase variable for both stair ascent and descent that
+uses leg geometry to automate the user/task-specific parameter
+tuning needed to obtain linear phase estimates. Finally, we
+show that the HKIC controller produces biologically similar
+ascent/descent joint kinematics, kinetics, and work across four
+step height configurations during experiments with two AKA
+participants.
+II. R ELATED STAIR CONTROLLERS
+Many researchers have suggested approaches to remedy the
+tuning burden, focusing on parameter reduction, automated
+parameter tuning, or both. Groups have applied fuzzy logic or
+reinforcement learning (RL) to automatically tune impedance
+parameters, offline or online, at the knee joint while userswalk [29], [30], but these approaches have not been applied to
+dual joints nor stair ascent/descent. Simon et al. reduced the
+number of tuneable parameters in a multi-activity controller
+from 140 to 20 by constructing mathematical relationships
+between parameters [21]. However, many of the parameters for
+stair locomotion were still hand-tuned, contributing to lengthy
+tuning sessions of about 5 hours for multiple activities. Other
+groups reduced the number of tuneable parameters by utilizing
+time-based, predefined joint torque trajectories during certain
+states within the stair ascent and descent gait cycles [22].
+However, time-based trajectories can become desynchronized
+with the user, particularly during non-steady motions. Hybrid
+control approaches serve as another parameter reduction tech-
+nique. One previous hybrid control approach for stair descent
+utilized traditional impedance control with constant sub-state
+parameters during stance and kinematic control during swing
+[11]. By utilizing kinematic control in swing, the number of
+tuneable impedance parameters was reduced by half. These
+hybrid approaches to control are similar to that proposed in this
+work but, to the authors’ knowledge, no previous work with
+this architecture has utilized continuous, phase-based control
+for stair ascent and descent.
+Other stair control methods give users indirect volitional
+control over the device by adapting joint kinematics and/or
+kinetics to user movement or intent. Hoover et al. utilized a
+traditional FSM fixed-impedance controller but modulated the
+provided knee torque during stance and terminal swing based
+on electromyography signals from the residual limb [38]. This
+approach to volitional control was limited to stair ascent and
+struggled during swing to achieve proper foot placement on
+the following stair step. Hood et al. presented a tuned-heuristic
+approach that, during swing, modulates the prosthetic joint
+angles based on the user’s thigh angle, and during stance,
+modulates the knee joint torque–angle relationship based on
+the prosthesis knee position at FC [39]. While this approach
+allowed for adaptive stair ascent over two ADA-compliant stair
+configurations [40], the resulting kinetic and kinematic profiles
+were not evaluated for biomimicry, and the heuristic method
+was not applicable to stair descent.
+III. C ONTROL ARCHITECTURE FOR STAIR LOCOMOTION
+Our proposed HKIC controller for variable-height stair
+ascent and descent builds upon our previous work on a purely
+kinematic controller for stair ascent [35], as well as our
+previous HKIC controller for variable-speed/incline walking
+[36]. During stance, the controller utilizes a joint impedance
+model that modulates stiffness, damping, and equilibrium
+angle as continuous functions of stance phase and step height
+(between 102 and 178 mm). In swing, the controller utilizes
+a kinematic controller that likewise modulates joint angles as
+functions of swing phase and step height, similar to [34], [35].
+We also propose a modified phase variable that accounts for
+a user’s specific leg geometry and better parameterizes the
+stance and swing phases.
+A. Common Phase Estimate for Stair Ascent/Descent
+We extend our previous phase estimation technique [35]
+through 1) independent calculation of stance phase variable
+
+--- Page 3 ---
+3
+sstand swing phase variable ssw, and 2) the addition of a
+leg geometry-based optimization of phase variable parameters.
+These additions allow for a common phase-variable definition
+for all stair locomotion tasks and provide an automated way
+to individualize the phase variable for a user.
+In our previous work [35], we proposed a phase variable
+defining the gait cycle between maximum hip flexion (MHF)
+events, instead of the traditional gait cycle defined by HS.
+However, MHF detection was unreliable and depended on
+participant-specific tuning of detection thresholds. To alleviate
+this issue, as well as bring the stairs phase variable into
+parity with other activities [36], [37], we propose a phase
+variable for both ascent and descent that defines the gait
+cycle by foot-strike (FS). We choose to use the term FS
+instead of the traditional HS due to initial FC in descent being
+characterized by a toestrike instead of the HS experienced
+in ascent. Further, we improve on previous phase variable
+definitions by decoupling the stance and swing portions of the
+gait cycle, defining them by a stance phase variable sstand
+swing phase variable ssw. This removes the interdependence
+of the kinematic and impedance control frameworks on each
+other, allowing for modifications of phase parameters for one
+sub-controller to have little to no effect on the behavior of the
+other. Our gait cycle phase variable sis thus defined as
+s=sst·ˆsTO+ssw·(1−ˆsTO), (2)
+where ˆsTOis the average able-bodied value of normalized time
+at which TO occurs for each stair locomotion task.
+An FSM governs changes between phase variable defini-
+tions at biologically-inspired thresholds, such as maximum
+hip extension (MHE) or toe-off (TO). Fig. S1 shows the state
+transition criteria, with states S1 through S3 corresponding
+to stance and states S4 and S5 corresponding to swing. The
+redundant state in stance, S2, acts as a threshold to prevent
+premature MHE detection (as described later). The feed-
+forward state S5 is a notable addition to our state machine
+from our previous stair ascent controller [35].
+1) Stance Phase Variable Definition: Our FSM begins in
+S1 after FS is detected. During S1, we define our stance phase
+estimate ˆsstwith the descending phase definition
+ˆsst=θFS
+th−θth
+θFS
+th−θMHE
+th·sMHE
+st for S1 & S2, (3)
+where parameters θFS
+th,θMHE
+th, and sMHE
+st denote the estimated
+thigh angle at FS, thigh angle at MHE, and stance phase at
+MHE, respectively. This phase definition is valid until MHE,
+but we use this phase definition over two states S1 and S2 to
+prevent premature MHE detection that can occur with slow
+strides during thigh extension in S1. The FSM stays in S1 as
+thigh angle θthdecreases until a threshold s1→2= 0.85·sMHE
+st
+is reached, corresponding to the stance phase at which we
+expect the thigh velocity to begin slowing. MHE detection is
+only done in S2, where we employ a fast (10 ms) and slow
+(40 ms) simple moving average minima detection algorithm
+on the measured thigh angle inspired by financial stock trend
+analysis techniques [41]. This approach filters out noise in
+the thigh angle measurement as the user approaches MHE to
+prevent premature detection.After MHE occurs, the FSM transitions to S3 for the
+remainder of stance. During S3, we define our stance phase
+estimate with the ascending phase definition
+ˆsst= 1 +θth−θTO
+th
+θFS
+th−θm
+th·(1−sstm)for S3, (4)
+where parameters θTO
+th,θm
+th, and sm
+stdenote the estimated thigh
+angle at TO, measured thigh angle at MHE, and measured
+stance phase at MHE, respectively. After the loss of FC, the
+stance phase estimate is saturated at ˆsst= 1for the remainder
+of the gait cycle (during S4 and S5).
+2) Swing Phase Variable Definition: Following TO, the
+FSM transitions from S3 to S4, where the ascending θth
+trajectory gives rise to our estimated swing phase variable
+ˆssw=θth−˜θTO
+th
+˜θMHF
+th−˜θTO
+th·sMHF
+sw for S4, (5)
+where ˜θTO
+this the measured thigh angle at TO and sMHF
+sw is the
+anticipated swing phase at which MHF occurs. We estimate
+θthat MFH as ˜θMHF
+th= max( ˜θTO
+th, θTO
+th)−θTO
+th+θMHF
+th, which
+enforces the minimum angular separation between ˜θTO
+thand
+˜θMHF
+th shown in the training dataset for the given task. The
+FSM transitions from S4 to S5 at thigh velocity of ˙θth≤
+0.75rad/s and θthgreater than or equal to θ4→5
+th. The thigh
+angle threshold θ4→5
+th =1
+4˜θTO
+th+3
+4˜θMHF
+th corresponds to the
+end of the linear portion of thigh flexion. The thigh velocity
+threshold is chosen to prevent an early switch to S5 if the user
+has not yet left the linear portion of thigh flexion.
+After transitioning from S4 to S5, a feed-forward phase
+definition based on the average swing phase rate in S4, ˙s4
+sw,
+is used similarly to [36]:
+ˆssw= ˆs45
+sw+Z∆t
+0˙s4
+swdτ for S5, (6)
+where ˆs45
+swis the estimated swing phase when the FSM
+transitions from S4 to S5. This implementation of a feed-
+forward phase rate prevents premature saturation of the phase
+variable, due to θMHF
+th> θFS
+thfor all stair locomotion tasks.
+Excessive phase saturation before MHF is undesirable because
+a phase variable with a non-unity slope will temporally scale
+the joint trajectories at the knee and ankle, desynchronizing
+the user and device. This can lead to tripping and loss of
+balance. If the user is ascending or descending consistently
+and thigh features are estimated correctly, ˆssw= 1 will occur
+simultaneously with FS, returning the FSM to S1. However,
+we allow saturation of ˆsswin S5 after MHF so the knee
+reaches the necessary flexion (ascent) or extension (descent)
+angles early enough that the user has confidence it is ready to
+accept their weight upon FS. In pilot testing, users noted their
+preference for this behavior to resemble their experience with
+conventional prostheses. At FS, the state machine transitions
+from S5 to S1 and the process repeats for the next stair stride.
+During the stance portion of the gait cycle, S1-S3, our swing
+phase estimate is fixed at ˆssw= 0.
+3) Geometry-Based Thigh Feature Estimation: In order to
+calculate an accurate phase variable, correct estimation of
+the user’s thigh trajectory features (θFS
+th,θMHE
+th,θTO
+th,θMHF
+th) is
+
+--- Page 4 ---
+4
+θth
+θkPLlth
+lshyx
+Fig. 1. A two-link planar model of a human leg, with the center of rotation of
+the hip as the origin. The global thigh angle is denoted as θthand the relative
+knee angle is denoted as θk.lthdenotes thigh segment length from the hip
+center of rotation at the origin to the center of rotation of the knee. Similarly,
+lshdenotes the shank segment length from the knee center of rotation to that
+of the ankle. The green vector starting at the center of rotation of the hip and
+ending at the ankle is denoted as ⃗PL. This model forms the basis of the thigh
+feature estimation outlined in (8).
+important. In the past, we have assumed that features extracted
+directly from AB averages of task-specific thigh trajectories
+will suffice for our control purposes, with either hand-tuning
+of feature parameters [31], [32], [35] or online updates of
+these features over multiple steady-state strides [34]. Hand
+tuning, however, increases acclimation and training time with
+each new task added to the controller. Online moving-average
+feature predictions require multiple steady-state strides prior
+to convergence, which is feasible during treadmill or level
+ground walking but is prohibitively slow on a short staircase.
+We, therefore, propose a thigh trajectory feature estimator that
+generates participant-specific features for each step height that
+are individualized based on lower limb geometry.
+To define a relationship between participant limb geometry
+and the thigh trajectory features, we model the leg as a floating,
+planar, serial-link system with two links corresponding to the
+thigh and shank. We then define ⃗PLas the vector between the
+hip and the ankle, shown in Fig. 1. ⃗PLcan be written as
+⃗PL=px
+L
+py
+L
+=lthsin(θth) +lshsin(θth−θk)
+−lthcos(θth)−lshcos(θth−θk)
+,(7)
+where lthandlshare the thigh and shank lengths, respectively.
+We simplify our model by making the assumption that the
+vertical component of our vector, py
+L, varies with changes to
+the thigh and shank length, while the horizontal component,
+px
+L, is constrained to be the same for a given step height,
+regardless of leg geometry. This is because px
+Lat FS is
+somewhat constrained by the stair geometry. For each step
+height, γ, we construct an optimization problem to determine
+the expected thigh trajectory θth,γ, based on the user’s thigh
+and shank length. The optimization minimizes the difference
+between the average AB ¯px
+Land our estimated horizontal
+component ˆpx
+L=lthsin(θth,γ) +lshsin(θth,γ−θAB
+k,γ)given
+normative biological knee angles θAB
+k,γ:
+θ∗
+th,γ=argmin
+θth∥¯px
+L−ˆpx
+L∥2
+2
+subject to −π
+4≤θth≤π
+2.(8)
+The constraint ensures the solution is within the expected
+ROM of the global thigh angle calculated from AB data.This nonlinear program was implemented in MATLAB and
+solved using fmincon. The phase variable parameters are
+then calculated from the expected thigh trajectory.
+B. Stance Impedance and Swing Kinematic Controllers
+We calculate the joint torque during stance τstwith an
+impedance controller where the impedance parameters vary
+throughout the gait cycle and across step heights. We input
+the calculated stance phase estimate ˆsstfrom Section III-A1
+and a known step height, γ, into an impedance model to
+determine the joint stiffness K, equilibrium angle θeq, and
+damping component Bfor the impedance torque control law
+τst=m
+K(sst, γ)(θeq(sst, γ)−θ)−B(sst, γ)˙θ
+,(9)
+which is scaled by user mass m. The derivation of the
+impedance model is presented in Section IV.
+During swing, we utilize a proportional derivative (PD)
+controller to enforce desired, time-invariant joint kinematics
+known as virtual constraints [31]. For each step height γ,
+a Fourier series is used to model the average AB knee and
+ankle kinematics θd
+kandθd
+aas functions of gait phase sas
+in [35]. Before calculating the Fourier series we interpolate
+the desired joint kinematics from [26] as functions of the
+average phase variable, based on the average thigh kinematics
+for the associated step height γin the reference AB dataset.
+This approach accounts for non-linearities in the average phase
+trajectory, improving the phase synchronization (and thus the
+fit) of the estimated joint kinematics to the reference AB
+trajectory on average [35]. The commanded joint torques at
+the knee, τk
+sw, and ankle, τa
+sw, are functions of their respective
+desired joint positions:
+τi
+sw=ki
+p(θd
+i(ssw, γ)−θi)−ki
+d˙θi, (10)
+where ki
+pandki
+dare constant proportional and derivative gains
+for each joint. We utilized viscous damping in order to limit
+vibrations that naturally arose from a derivative tracking term
+due to the actuators’ minimal inherent viscous losses. Time-
+based interpolation between τstandτswis performed at each
+FS and TO to ensure a smooth transition as in [36].
+IV. S TANCE IMPEDANCE MODEL FOR STAIRS
+A. Model Definition
+Following the framework presented in [36], we build a
+polynomial-based piecewise-linear impedance model for both
+the knee and ankle during stair ascent and descent. The model
+is parameterized by the user’s completion fraction of the stance
+phase sstand the stairstep height γ, where γis defined over
+the range ±(102≤γ≤178) mm. A negative step height
+represents stair descent. The model is defined by
+
+K(sst, γ)
+B(sst, γ)
+θeq(sst, γ)
+=
+cK(γ)⊤
+cB(γ)⊤
+cθ(γ)⊤
+
+s0
+st
+...
+sd
+st
+, (11)
+where each task function ci(γ)∈Rd+1×1is the product
+of a matrix of constant coefficients Xi∈Rd+1×8and an
+
+--- Page 5 ---
+5
+interpolation vector w(γ)∈R8×1,||w(γ)||= 1. For example,
+cK(γ)is defined as
+cK(γ) =
+k0,−178 . . . k 0,178
+.........
+kd,−178 . . . k d,178
+
+| {z }
+XKw(γ), (12)
+where, for example, w(−178) =1 0 . . . 0⊤and
+w(178) =0. . . 0 1⊤.The task functions for damping
+and equilibrium angle are defined similarly. The model is fully
+defined when the three parameter matrices XK, XB,andXθ
+are chosen. Model polynomial orders d= 9 andd= 4 were
+chosen for the knee and ankle, respectively, to balance model
+flexibility with overfitting risk.
+B. Model Fitting
+To fit our model, we use an optimization-based approach
+leveraging a dataset of AB steady-state stair ascent and descent
+[26]. The dataset contains kinematic and kinetic joint informa-
+tion from 24 participants ascending and descending stairs at
+four step heights ±(102≤γ≤178) . First, we calculate the
+inter-participant average kinematics and kinetics for each joint
+at each step height. For this average, we combine right and left
+leg joint data assuming symmetry and utilize only the second,
+full stair stride where a force-plate was available to detect FS
+and TO. We also calculate the inter-participant average stance
+phase variable trajectory at each step height.
+In principle, our goal in model fitting is to identify the
+optimal impedance parameter coefficient matrices X∗
+K, X∗
+B,
+andX∗
+θthat best reproduce the average mass-normalized joint
+torque trajectories τin the dataset given the dataset kinematics.
+Because each column of the parameter matrices only affects
+the impedance for a single step height, each column can be
+solved independently and re-assembled for the final model.
+1) Optimization Cost Function: Letx∗
+k,i, x∗
+B,i,andx∗
+θ,ibe
+theith columns of X∗
+K, X∗
+B, and X∗
+θ, respectively. Similarly,
+letτi,θi, and ˙θi, be vectors of length nof the average dataset
+torques, joint angles, and joint velocities for the respective
+step height. Let sibe a vector containing the average stance
+phase variable trajectory based on the dataset thigh kinematics
+and the definitions given in Sec. III-A. This parameterization
+allows the optimization to account for a potentially nonlinear
+relationship between our phase variable and normalized time
+in real-time use. Given these data, we wish to solve the
+following optimization problem for each step height γibased
+on a modified squared error metric:
+{x∗
+K,i, x∗
+B,i, x∗
+θ,i}=argmin∥τi−ˆτ∥2
+2+J∥Yiˆτs∥2
+2,(13)
+where
+ˆτs=K(si, γi)(θeq(si, γi)−θi),
+ˆτ= ˆτs−B(si, γi)˙θi,
+J= 1 for knee, J = 0 for ankle.
+Here, Yi∈Rn×nis a constant diagonal weighting matrix
+that penalizes the spring torque ˆτsin late stance during stairdescent. This matrix Yi=diag(yi)is defined by a piecewise-
+linear-in-phase weight vector yi∈Rn×1. For stair ascent, yi=
+0n×1.For stair descent, we define yifor each data point jas
+yi[j] = max
+0,1−n−j
+n−jmid
+, (14)
+where jmiddenotes the data point at the midpoint between
+when MHE and peak knee torque occur during descent.
+We added this spring torque penalty to the cost function
+to encourage the optimization to select solutions where late
+stance torque is mostly provided through damping. We desire
+this behavior because, in late stance, the thigh angular velocity
+is small compared to larger angular velocities at the knee and
+ankle. Due to our thigh-based phase variable, low thigh veloc-
+ity results in slowly changing impedance parameters, which
+may inhibit the desired joint progression rates if dominated
+by spring-like behavior. This cost function modification is
+also inspired by the damping behavior exhibited by passive
+prosthetic knees, which have been shown to emulate AB knee
+kinematics and kinetics during stair descent [17], [18].
+However, the optimization problem (13) is non-convex,
+meaning that globally optimal solutions cannot be guaranteed
+or solved for efficiently. Our past work [36] showed that by
+making the substitution
+K(sst, γ)θeq(sst, γ) =δ(sst, γ) =w(γ)⊤X⊤
+δ
+s0
+st
+...
+s2d
+st
+(15)
+and treating the Xδ∈R2d+1×8coefficients as new, indepen-
+dent parameters similar to [42], the problem can be reduced
+to a convex quadratic program [36]. Specifically, if we define
+a decision vector x∈R4d+3×1=x⊤
+K,i, x⊤
+B,i, x⊤
+δ,i⊤, where
+xδ,iare the columns of Xδ, the cost function defined in (13)
+becomes linear in the unknown parameters. Let the jth column
+inα∈R4d+3×nbe defined as
+α[j] =−[θijs0
+ij, . . . , θ ijsd
+ij,˙θijs0
+ij, . . . ,
+˙θijsd
+ij,−s0
+ij, . . . ,−s2d
+ij]⊤,(16)
+where subscript jdenotes the jth component in each vector
+of length n. Let the jth column in β∈R4d+3×nbe defined
+as
+β[j] =
+−θijs0
+ij, . . . ,−θijsd
+ij,01×d, s0
+ij, . . . , s2d
+ij⊤.(17)
+Then, the cost function L(x)can be written as the quadratic
+function
+L(x) =τ⊤
+iτi−f⊤x+x⊤Hx, (18)
+where
+H=αα⊤+βYiYiβ⊤, f= 2ατi. (19)
+2) Optimization Constraints: To prevent overfitting we
+added a diagonal regularization matrix Λ∈R4d+3×4d+3
+to penalize the L2norm of x. The diagonal entries in Λ
+corresponding to the regularization weights on xk,iandxb,i
+were 1e−4for ascent and 1e−5for descent. For weights on
+xδ,i, the diagonal entries were 1e−10for ascent and 1e−7for
+descent. These hyperparameters were chosen during model
+fitting to produce a smooth model to capture general behavior
+
+--- Page 6 ---
+6
+Fig. 2. Plots of the calculated stair ascent impedance functions for stiffness K(sst, γ), damping B(sst, γ), and equilibrium angle θeq(sst, γ)for the knee and
+ankle over the range of step height configurations from ±(102 to 178) mm.
+without overfitting to the training data. Regularization also
+limited undesirable solutions such as an excessively large
+spring torque balanced by an excessively large damping torque
+in the opposite direction.
+We added constraints on xsuch that Ax≤bwhere
+A∈Rn×4d+3andb∈Rn×1to ensure that stiffness K(sst, γ)
+and damping B(sst, γ)remained within ranges that were
+both physiologically realistic and feasible for the prosthesis
+to perform. The details of the construction of Aare omitted
+for brevity, but are available in [36]. Due to differences in
+the desired joint behavior for the ankle and knee over both
+ascent and descent, a different set of constraints was used for
+each activity and joint combination (Table SI). A minimum
+FS stiffness was chosen for each joint based on pilot trial
+feedback, as participants were accustomed to the stiff behavior
+of their take-home device at the start of the gait cycle. Across
+both ascent and descent, torque from damping was constrained
+to a maximum of 0.14 Nms/rad/kg due to limitations of
+velocity filtering methods utilized in the powered prosthesis.
+3) Quadratic Program: Minimizing the cost function L(x)
+along with the regularization penalty x⊤Λxsubject to the
+inequality constraints yields the final quadratic program (QP):
+minimizexx⊤(H+ Λ)x−f⊤x,
+subject to Ax≤b.(20)
+The positive offset τ⊤
+iτioriginally in (18) is neglected with-
+out loss of generality. We solved this QP for each step
+height and joint using the MATLAB Optimization Toolbox
+(R2022b). To recover the original model’s equilibrium angle
+function θeq(sst, γ)in (11), we performed a least-squares fit
+ofδ(χp, sst)/K(χp, sst)to a d-th order polynomial at each
+incline. The polynomial order was sufficiently high enough to
+prevent significant approximation error. The impedance mod-
+els from the training step heights γ=±{102,127,152,178}
+mm are shown in Fig. 2 for ascent and Fig. S2 for descent.C. Model Evaluation
+To quantify the impedance parameter model’s reconstruction
+error, we calculated ˆτfor the knee and ankle over the inter-
+participant average kinematic data for each training step height
+in the AB dataset using the fit impedance model. We then
+calculated the root mean squared error (RMSE) in joint torque
+for each step height. Note that the RMSE is distinct from the
+cost function minima. Across all tasks, the average RMSEs
+were ek= 0.11±0.1Nm/kg and ea= 0.06±0.03Nm/kg.
+V. A MPUTEE EXPERIMENTS
+A. Methods
+The biomimicry of the HKIC framework for stair ascent
+and descent was experimentally assessed with two amputee
+participants (see Table SII for participant details). The afore-
+mentioned continuously varying impedance model, generated
+a-priori, was utilized across all experiments. The experimental
+protocol was approved by the University of Michigan Review
+Board (HUM00166976). The proposed control method was
+implemented on a backdrivable, powered knee-ankle prosthe-
+sis shown in Fig. 3 and designed in [13]. This prosthesis
+features a quasi-direct drive, low inertia actuation design
+that allows for open-loop joint impedance control and high-
+bandwidth position control. A licensed prosthetist fit the
+robotic prosthesis to the participants, ensured proper align-
+ment, and supervised the experiment for participant safety.
+Participants also wore a ceiling-mounted safety harness.
+The participants each completed the experimental protocol
+once with the robotic prosthesis. For comparison, participant
+two (P2) also completed the same experimental protocol on a
+separate testing day with his passive device (Ottobock Genium
+X3) due to his unique ability to perform step-over-step stair
+ascent. Photos of the experiment are shown in Fig. 3 and
+videos are available in the supplementary materials.
+
+--- Page 7 ---
+7
+(a) P1: Stair Ascent
+ (b) P2: Stair Descent
+Fig. 3. Photos of above-knee amputee (AKA) participants P1 and P2
+performing stair ascent and descent. (a) shows P1 in the stair ascent FS
+configuration and (b) shows P2 in the stair descent FS configuration.
+The experimental protocol investigated the performance of
+the HKIC controller and passive device during stair ascent and
+descent at four step heights on an adjustable staircase. Step
+heights of 102 mm (4 in.), 127 mm (5 in.), 152 mm (6 in.),
+and 178 mm (7 in.) were chosen to comply with the Americans
+with Disabilities Act (ADA) [40]. Ten trials were performed
+at each step height, where each trial comprised one ascent and
+one descent of the staircase. A one-minute break was given
+between trials, and a 5-minute break was given after the fifth
+trial to mitigate any effects of fatigue. Joint kinematics and
+kinetics were recorded from the robotic prosthesis. An infrared
+motion capture system (Vicon Ltd. Oxford, UK) collected
+sound limb and passive device kinematics.
+Before the HKIC experiment day, each participant attended
+an acclimation session during which they were given an
+overview of the high-level functionality of the controller and
+given time to acclimate to stair ascent and descent at a
+moderate step height of 152 mm (the nominal ADA-compliant
+step height [18]). On the day of the experiment, we gave the
+participant time to acclimate to the controller at each step
+height before performing a set of trials. Participants were
+encouraged to limit body weight support on the handrails to
+maximize the load on the device and to ascend and descend
+the stairs at a consistent, comfortable pace. Note that no hand-
+tuning of controller parameters was done for either participant.
+P1 completed all step height configurations with the pow-
+ered leg, whereas P2 was unable to do the 178 mm configura-
+tion. The participant noted discomfort at the largest step height
+due to the mass of the powered leg and had trouble lifting it
+into the starting configuration for stair ascent (see Fig. 3 for
+the example configuration). We suspect that the discomfort
+was exacerbated by the participant’s shorter residual thigh,
+with the large distal mass of the device creating a significant
+bending moment on the socket-limb interface. Due to this
+issue, we present only data from the lower three step height
+configurations for P2 using the powered leg.
+A similar experimental protocol was followed on a different
+day for P2’s passive device trials. Since the participant was
+familiar with the prosthesis’ stair ambulation behavior from
+daily use, there was no session dedicated to acclimation
+prior to the experiment. The participant used a specific hip
+motion to activate and maintain stair ascent behavior with their
+take-home device. However, the device occasionally failed
+to trigger stair ascent mode causing the participant to kick
+the stair before having to re-attempt the motion. These trialswere discarded and additional trials were performed until ten
+successful trials were performed at each step height.
+Kinematic and kinetic data were compared between the
+robotic prosthesis running our novel controller (HKIC), the
+passive device (PAS), and the able-bodied (AB) reference. The
+AB reference represents the inter-subject average steady-state
+stride at each step height configuration from the open-source
+biomechanics dataset [26] used to train our impedance model.
+We designated the second full stair stride as the steady-state
+stride for both the HKIC and PAS trials. Biomechanics results
+that are noteworthy (e.g., within a standard deviation of the
+AB reference) are bolded. Additional results and figures are
+available in the supplementary materials.
+B. Stair Ascent Results
+1) Phase Variable: Fig. 4 shows the resulting phase vari-
+able for each participant, showing its ability to parameterize
+the gait cycle and the effectiveness of the geometry individu-
+alization. Both participants’ phase variables (Fig. 4a) showed
+monotonic behavior with little to no saturation for the majority
+of the gait cycle. However, phase saturation occurred for P1
+towards the end of the gait cycle (see Discussion). The mea-
+sured thigh angle features for both participants at foot-strike
+and MHF (Fig. 4b,4e) closely matched the predicted feature
+angles from the geometry individualization. The thigh angles
+at MHE and TO (Fig. 4c,4d) were smaller than the predicted
+values and showed larger variability for both participants.
+2) Kinematics: Fig. 5 shows the intra-participant kinematic
+trajectories over stance and swing for the HKIC and PAS
+kinematics compared to the AB reference. The kinematic
+trajectories at both the knee and ankle joint produced by the
+HKIC at steady-state resembled that of the inter-participant
+AB kinematics at each step height tested. The PAS kinematics
+at the knee resembled the AB reference in both shape and
+trend but reached levels of extension and flexion that are not
+seen in biological data. While this extreme knee ROM likely
+contributed to the larger amount of toe-clearance exhibited by
+the PAS device to prevent toe-stubs (see supplementary video),
+a non-biomimetic thigh motion was required to achieve this.
+Throughout the gait cycle, the PAS ankle had a limited range
+of motion and was unable to provide biomimetic plantarflexion
+and dorsiflexion.
+Table SIII shows the kinematic ROM of the HKIC, PAS,
+and AB joints across step heights. At the nominal step height
+of 152 mm, the HKIC achieved average peak knee flexion
+angles of 94.13 deg for P1 and 93.58 deg for P2, allowing step
+clearance during swing without toe stubbing. Unlike the PAS
+knee, which reached an excessive peak flexion angle of 122.39
+deg, both participants’ peak knee flexion with the HKIC were
+within one standard deviation of the AB peak of 96.31± 5.4
+deg. At FS, the HKIC produced average knee angles of
+69.42/69.21 deg for P1/P2 compared to the PAS knee angle of
+59.93 deg and AB knee angle of 68.86± 4.33 deg. At the ankle
+joint, the HKIC achieved dorsiflexion angles of 24.04/26.87
+deg during stance. The PAS, in contrast, showed a reduced
+ankle dorsiflexion angle of 11.57 deg compared to the AB
+dorsiflexion angle of 25.42± 4.01 deg. Ankle plantarflexion at
+
+--- Page 8 ---
+8
+0 20 40 60 80 100
+Gait Cycle (%)00.20.40.60.81Phase
+P1
+P2
+(a)
+Foot-Strike Thigh Angle (deg)
+0102030405060Estimated
+Actual (b)
+Minimum Thigh Angle (deg)
+-10-8-6-4-20 (c)
+Toe-Off Thigh Angle (deg)
+-8-6-4-202 (d)
+Maximum Thigh Angle (deg)
+0102030405060 (e)
+Fig. 4. Stair ascent plots of (a) phase variable trajectory averaged over step heights for both participants (shaded regions represent ±1 standard deviation), as
+well as comparisons between each participant’s estimated and experimental thigh features averaged over all four stair configurations at foot-strike (b), MHE
+(c), TO (d), and MHF (e). Error bars denote ±1 standard deviation on either side of the mean. P1 is denoted in blue and P2 is denoted in green. In plots
+(b-e), bars with hatch lines denote experimental results while bars without hatching denote the estimated thigh features utilized in the control of the device.
+The phase variables for both participants showcased monotonic behavior with little to no saturation at the end of the gait cycle.
+Ankle Angle (deg)                              Knee Angle (deg)
+0 50 100
+Stance (%)-157.530P1 HKIC
+0 50 100
+Swing (%)-157.530
+0 50 100
+Stance (%)042.585
+0 50 100
+Swing (%)065130
+0 50 100
+Stance (%)-157.530P2 HKIC
+0 50 100
+Swing (%)-157.530
+0 50 100
+Stance (%)042.585
+0 50 100
+Swing (%)065130
+0 50 100
+Stance (%)-157.530P2 PAS
+0 50 100
+Swing (%)-157.530
+0 50 100
+Stance (%)042.585
+0 50 100
+Swing (%)065130
+0 50 100
+Stance (%)-157.530AB
+0 50 100
+Swing (%)-157.530
+0 50 100
+Stance (%)042.585
+0 50 100
+Swing (%)065130
+102 mm 127 mm 152 mm 178 mm
+Fig. 5. Plots of stair ascent intra-participant average joint kinematics over
+stance and swing for HKIC and PAS vs. AB kinematics across step height
+configurations. The dashed line in these plots denotes 0 degrees on the y-
+axis. The HKIC controller produced kinematics that replicated the shape and
+behavior of the AB joint trajectories. While P2’s passive device kinematics
+at the knee resemble AB knee kinematics, the ankle is unable to replicate
+AB plantarflexion and dorsiflexion. Note that P1 was unable to perform PAS
+step-over stair ascent, so their PAS kinematics are not plotted.
+the end of stance, which is important for achieving push-off,
+was-7.6/-5.83 deg for the HKIC compared to the AB reference
+of -4.35± 7.12 deg. The PAS ankle was unable to plantarflex,
+remaining in a dorsiflexed configuration with a minimum ankle
+angle of 5.78 deg.
+3) Kinetics: Fig. 6 reports the intra-participant average
+and individual trial joint kinetic trajectories for the 102 mm
+and 152 mm step heights, representing shallow and steep
+staircase configurations. We focus on the stance period where
+the impedance controller torques determine the environmental
+interaction experienced by the user. The individual trials were
+included to showcase how the HKIC was able to accommodate
+changes in stride timing while providing joint torques that are
+0 50 100
+Stance (%)-1.6-0.80P1 HKICAnkle Moment (Nm/kg)
+0 50 100
+Stance (%)-1.6-0.60.4Knee Moment (Nm/kg)
+0 50 100
+Stance (%)-1.6-0.80P2 HKIC
+0 50 100
+Stance (%)-1.6-0.60.4(a) 102 mm Step Height
+0 50 100
+Stance (%)-1.6-0.80P1 HKICAnkle Moment (Nm/kg)
+0 50 100
+Stance (%)-1.6-0.60.4Knee Moment (Nm/kg)
+0 50 100
+Stance (%)-1.6-0.80P2 HKIC
+0 50 100
+Stance (%)-1.6-0.60.4
+(b) 152 mm Step Height
+Fig. 6. The participants’ individual trial and intra-participant average joint
+torques for stair ascent at the 102 (a) and 105 (b) mm step height configura-
+tions in comparison to the mean (±1 standard deviation) AB reference torque
+profiles, denoted in grey. The average torque for each joint is denoted with
+an opaque color while the individual trial or standard deviation curves are
+denoted with a lighter color. The dashed black line denotes 0 Nm/kg on the
+y-axis. The HKIC produced smooth kinetic trajectories at both step heights,
+increasing knee extension torque and ankle push-off torque as step height
+increased.
+similar in shape and magnitude to the AB reference. Pertinent
+features of the joint kinetics across all step heights are shown
+in Table SV.
+At the step height of 102 mm (see Fig. 6a), the mean
+HKIC knee kinetic trajectories of both participants resembled
+that of the AB references, achieving peak moments of -0.84/-
+0.81 Nm/kg for P1/P2. At the ankle, both participants match
+the AB reference in torque magnitude in early to mid-stance
+but applied less torque during push-off (-1.03/-0.72 Nm/kg
+
+--- Page 9 ---
+9
+for P1/P2). At the step height of 152 mm (see Fig. 6b), the
+mean HKIC knee torque trajectories of both participants are
+similar to that of the AB reference trajectory. The participants’
+average peak knee torques were within a standard deviation
+of the AB average with peaks of -1.22/-1.21 Nm/kg. Similar
+to the 102 mm step height, both participants’ ankle torque
+matched that of the AB reference throughout the majority of
+stance but fell short at pushoff. However, the pushoff torque
+at the ankle on the 152 mm configuration increased relative to
+the 102 mm configuration to help facilitate the larger stair
+rise with -0.96 Nm/kg for P2, while remaining consistent
+for P1 at approximately -1.02 Nm/kg. At both step height
+configurations, P2’s HKIC torque trajectories showed varying
+stance progression and peak torque timings, whereas P1’s
+results showed more consistent stance progression and peak
+torque timing across trials.
+The HKIC provided the net-positive work necessary for
+stair ascent (see Table SV in the supplementary material),
+producing biological trends similar to able-bodied data as
+step-height varied. The knee joint imitated biological work
+particularly well, producing an average of 0.61/0.58 J/kg at
+the knee for both participants at the 152 mm configuration,
+which is within one standard deviation of the AB reference
+value of 0.51± 0.18 J/kg. Similarly, at 102 mm, the knee
+provided 0.33/0.32 J/kg, again within a standard deviation of
+the AB reference of 0.34± 0.14. The ankle joint produced, on
+average, lower net-positive work than the AB reference for
+both participants, but P1’s ankle work was within a standard
+deviation of the AB reference for all step heights. Despite
+the lower average net-positive work, the ankle joint produced
+biological trends similar to the knee, increasing from 0.15/0.06
+J/kg at 102 mm to 0.24/0.14 J/kg at 152 mm.
+C. Stair Descent Results
+1) Phase Variable: Fig. 7 highlights phase and thigh feature
+prediction results over all stair descent trials. P1’s average
+phase variable exhibited monotonic behavior for the majority
+of the gait cycle but was saturated at the start and during
+the last tenth of the gait cycle. This saturation at the end of
+the stride is likely caused by the larger MHF angle reached by
+P1 in comparison to the predicted phase variable parameter, as
+shown in Fig. 7e. P2 similarly showed phase saturation for the
+first ten percent of the gait cycle but then exhibited monotonic
+behavior for the majority of the stride. At foot-strike (Fig. 7b)
+the predicted thigh angle parameter was within a standard
+deviation of P2’s foot-strike angle. P1’s average MHE angle
+similarly stayed within a standard deviation of predicted thigh
+angle. At TO, there was a large discrepancy between P2’s
+predicted thigh angle and the experimental results, implying
+early TO from the participant. While P1’s average TO thigh
+angle was within a standard deviation of the predicted value,
+the large standard deviation points to inconsistency in TO
+angle across trials and activities.
+2) Kinematics: Fig. 8 showcases the intra-participant kine-
+matic trajectories over stance and swing for the HKIC and
+PAS kinematics compared to the AB reference. Across the
+four step heights considered in this study, the stance kinematictrajectories produced by the HKIC at both the knee and ankle
+joints at steady-state resembled that of the inter-participant
+AB kinematics. While P2’s swing kinematics resembled the
+AB reference, P1’s swing kinematics followed AB trends but
+progress rapidly at the beginning of swing and then remained
+almost constant for the latter half of swing. This behavior
+was likely a result of the phase saturation at this point in the
+gait cycle, shown in Fig. 7a. Both participants exhibited knee
+kinematics with similar profiles to the AB reference for the
+majority of stance. However, the PAS ankle had a limited range
+of motion and was unable to provide biomimetic plantarflexion
+and dorsiflexion. To compensate for the minimal ankle ROM,
+the participant placed their foot at the end of the step, using
+the edge as a pivot point to achieve knee flexion.
+Table SIV showcases the kinematic ROM of the HKIC,
+passive, and AB joints over step heights. At the nominal 152
+mm step height, the HKIC achieved biomimetic levels of knee
+flexion during swing to avoid toe-stubbing with average peak
+knee flexion angles of 91.38± 3.00 deg for P1 and 88.40± 2.39
+deg for P2. At FS, the HKIC reached knee extension angles
+of20.38/17.06 deg for P1/P2, within one standard deviation
+of the AB reference of 19.96± 6.40 deg. The HKIC ankle
+reached dorsiflexion angles of 30.75/36.63 deg during stance
+and plantarflexion angles of -10.08/-7.48 deg at FS. Despite
+showing biological trends over step height for stair descent, the
+PAS knee showed higher kinematic errors at key points in the
+gait cycle compared to the HKIC (Table SIV). The PAS ankle
+similarly underperformed in comparison to both the HKIC and
+AB reference due to its limited ROM, forcing P2 to perform
+compensatory lunging and edge-of-step pivot behaviors that
+likely negatively impacted PAS knee performance.
+3) Kinetics: In stair descent, both participants’ HKIC ankle
+and knee joint kinetic profiles resembled that of the AB
+reference. Fig. 9 reports the intra-participant average and
+individual trial kinetic trajectories at both joints for the 102
+mm and 152 mm step heights. Kinetic performance across all
+step height configurations is shown in Table SVI.
+At the minimum step height of 102 mm, the HKIC reached
+biomimetic peak knee extension torques of -0.83± 0.06 Nm/kg
+for P1 and -0.77± 0.05 Nm/kg for P2. The HKIC also reached
+biomimetic peak torques at the ankle for both participants (-
+0.76/-0.81 Nm/kg). At the nominal step height, the peak torque
+was-1.05/-0.94 Nm/kg at the knee and -0.84/-1.06 Nm/kg at
+the ankle for P1/P2. Across these step height configurations,
+both participants’ peak joint torques were within a standard
+deviation of the AB references and generally increased in
+magnitude with step height following biological trends.
+During descent, the HKIC provided controlled negative
+work at the joints. The HKIC knee joint performed -0.56/-
+0.33 J/kg at the nominal 152 mm step height and -0.34/-0.15
+J/kg at the 102 mm step height, which were less than AB. The
+HKIC results for both participants followed biological trends
+of increasing magnitude of work with increased step height.
+On the other hand, the HKIC ankle provided biomimetic
+negative work of -0.3/-0.39 J/kg at 152 mm and -0.22/-0.27
+J/kg at 102 mm, which are within a standard deviation of the
+reference AB values -0.44± 0.15 J/kg and -0.26± 0.13 J/kg.
+
+--- Page 10 ---
+10
+0 20 40 60 80 100
+Gait Cycle (%)00.20.40.60.81Phase
+P1
+P2
+(a)
+Foot-Strike Thigh Angle (deg)
+051015202530Estimated
+Actual (b)
+Minimum Thigh Angle (deg)
+-10-8-6-4-20 (c)
+Toe-Off Thigh Angle (deg)
+-10-505101520 (d)
+Maximum Thigh Angle (deg)
+010203040 (e)
+Fig. 7. Stair descent plots of (a) inter-step height mean phase variable for both participants (shaded regions represent ±1 standard deviation), as well as
+comparisons between each participant’s average (±1 standard deviation) estimated and experimental thigh features over all four configurations at foot-strike
+(b), MHE (c), TO (d), and MHF (e), during stair descent. P1 is denoted in indigo and P2 is denoted in green. In plots (b-e), bars with hatch lines denote
+experimental results while bars without hatching denote the estimated thigh features utilized in the control of the device. The phase variables for both
+participants showcased monotonic behavior during the majority of the gait cycle with saturation at the start of the gait cycle.
+Ankle Angle (deg)                              Knee Angle (deg)
+0 50 100
+Stance (%)-1512.540P1 HKIC
+0 50 100
+Swing (%)-30-2.525
+0 50 100
+Stance (%)1055100
+0 50 100
+Swing (%)1060110
+0 50 100
+Stance (%)-1512.540P2 HKIC
+0 50 100
+Swing (%)-30-2.525
+0 50 100
+Stance (%)1055100
+0 50 100
+Swing (%)1060110
+0 50 100
+Stance (%)-1512.540P2 PAS
+0 50 100
+Swing (%)-30-2.525
+0 50 100
+Stance (%)1055100
+0 50 100
+Swing (%)1060110
+0 50 100
+Stance (%)-1512.540AB
+0 50 100
+Swing (%)-30-2.525
+0 50 100
+Stance (%)1055100
+0 50 100
+Swing (%)1060110
+102 mm 127 mm 152 mm 178 mm
+Fig. 8. Plots of intra-participant average stair descent joint kinematics over
+stance and swing for powered and passive devices vs. AB kinematics across
+step height configurations. The dashed line in these plots denotes 0 degrees
+on the y-axis. The HKIC controller produced kinematics that replicated the
+shape and behavior of the AB joint trajectories. While P2’s passive device
+stance kinematics at the knee resembles AB knee kinematics, the ankle is
+unable to replicate AB plantarflexion and dorsiflexion.
+VI. D ISCUSSION
+A. HKIC Performance
+The indirect-volitional HKIC was able to handle variations
+in stance progression and timing differences between different
+trials, step height configurations, and participants. The average
+phase progression during stair locomotion was monotonic
+throughout the majority of the gait cycle for ascent and
+descent (Figs. 4 & 7). This monotonic behavior, along with
+the similarity of many observed and estimated thigh features,
+points to the strength of the thigh feature estimation paradigm
+proposed in this work.
+However, P1 exhibited phase saturation over the last ten
+percent of the stair descent stride. Normally, saturation or
+0 50 100
+Stance (%)-1.5-0.70.1P1 HKICAnkle Moment (Nm/kg)
+0 50 100
+Stance (%)-1.5-0.6250.25Knee Moment (Nm/kg)
+0 50 100
+Stance (%)-1.5-0.70.1P2 HKIC
+0 50 100
+Stance (%)-1.5-0.6250.25(a) 102 mm Step Height
+0 50 100
+Stance (%)-1.5-0.70.1P1 HKICAnkle Moment (Nm/kg)
+0 50 100
+Stance (%)-1.5-0.6250.25Knee Moment (Nm/kg)
+0 50 100
+Stance (%)-1.5-0.70.1P2 HKIC
+0 50 100
+Stance (%)-1.5-0.6250.25
+(b) 152 mm Step Height
+Fig. 9. The participants’ individual trial and intra-participant average joint
+torques for stair descent at the 102 (a) and 152 mm (b) step height config-
+urations in comparison to the mean (±1 standard deviation) AB reference
+torque profiles, denoted in grey. The average torque for each joint is denoted
+with an opaque color while the individual trial or standard deviation curves
+are denoted with a lighter color. The dashed black line denotes 0 Nm/kg on
+the y-axis. The HKIC controller produced kinetic trajectories that resembled
+AB data at both step heights, increasing knee extension torque in mid-to-
+late stance and ankle torque for early-stance energy absorption as step height
+increased.
+pauses in phase can cause desynchronization and can lead
+to trips, falls, or oscillations. However, to promote user
+confidence at FS, we biased the phase variable definition to
+saturate early so the prosthetic joints would arrive at their
+FS configuration early as in [36]. During stair descent trials,
+P1 often waited at MHF for the feed-forward behavior of the
+phase variable to bring the knee to an extended position before
+proceeding with FS. P2 exhibited a similar waiting behavior
+
+--- Page 11 ---
+11
+at MHF but was more consistent in synchronizing the feed-
+forward phase completion with FS, resulting in little to no
+phase saturation. This could explain why an increased FS
+thigh angle was observed for P1 but not for P2 (Fig. 7b).
+The small pause in P1’s phase variable is the likely cause
+of their abnormal swing kinematic progression during stair
+descent (Fig. 8). While these kinematics may not exactly
+match the progression of the AB reference when plotted over
+normalized swing time due to saturation or non-linearities in
+phase, this behavior showcases the indirect-volitional benefits
+of our control approach by allowing user stride progression to
+dictate leg behavior, synchronizing the user and device.
+There were significant discrepancies and/or variations in
+measured vs. predicted thigh features at TO (Figs. 4d &
+7d). This may point to premature TO by the participants due
+to compensatory habits that they have developed from their
+passive devices. This early TO relative to the predicted angles
+resulted in limited torque provided at the ankle at push-off and
+subsequently below-nominal ankle work during stair ascent, as
+well as less knee flexion exhibited by P2 during stair descent.
+Another possible explanation for this discrepancy is that the
+average AB data used to estimate thigh features does not
+fully represent the individual behavior of the participants (see
+Section VI-C).
+For both ascent and descent, the HKIC followed biological
+trends seen in AB stair locomotion, producing knee extension
+and ankle plantarflexion torques during stance that increased
+with step height. In swing, both participants also achieved
+biomimetic levels of knee flexion with the HKIC that allowed
+for clearance of the following step without toe-stubbing or
+tripping. During stair ascent, the HKIC produced the necessary
+joint torques (Fig. 6) at the knee and net-positive work at
+both joints for multiple step height configurations (Table SV),
+following biological trends of increasing joint work and peak
+torque with increasing step height. The HKIC also produced
+kinematics (Fig. 5) that resembled the AB reference data. The
+HKIC provided biomimetic plantarflexion angles in tandem
+with push-off torques at the ankle, which was unachievable
+with the PAS due to its limited ROM (Table SIII).
+In stair descent, the HKIC enabled biologically-similar
+kinematics (Fig. 8) and kinetics (Fig. 9) at the ankle, producing
+peak plantarflexion torques within a standard deviation of the
+AB reference across step heights. At the nominal 152 mm step
+height, the HKIC provided biomimetic, controlled negative
+work at the ankle (Table SVI) and allowed biomimetic levels
+of ankle plantarflexion at FS, exhibiting toe-strike behavior
+and energy dissipation [1]. Across step height configurations,
+the HKIC showed biological trends of increasing magnitude of
+ankle work with step height. The PAS was unable to provide
+the same level of ankle plantarflexion, resulting in a heel-strike
+behavior at the beginning of stance that does not allow for the
+same absorption of energy [9], [18]. Instead, passive device
+users must compensate with their residual hip or contralateral
+limb [17]. The HKIC also reached biological peak knee
+torques for both participants, which allowed for controlled
+negative work and support that characterize AB stair descent
+during mid to late stance. However, the torque provided at
+the knee in early stance was constrained due to continuityrequirements in the optimization and hardware limitations
+(see Section VI-C). Despite this limitation, the peak knee
+torque and work provided by the HKIC generally followed
+biological trends of increasing torque and work magnitudes
+with increasing step heights.
+During our experimental sessions, we received positive
+qualitative feedback from both participants. P1 voiced a pref-
+erence for the ability of the HKIC to perform step-over stair
+ascent, an activity they are unable to perform with their PAS
+device. P2 voiced a preference for stair descent due to the
+support provided by the HKIC; note that P2 was already
+capable of a modified step-over ascent using their passive
+device. Both participants found it helpful that the HKIC did not
+require them to perform the compensatory lunging behavior
+they needed to use during passive device stair descent. We
+noted that P1 acclimated quickly to stair ascent but struggled
+more with stair descent due to 1) the tendency to perform
+their accustomed compensatory lunging behavior and 2) a
+hesitancy to trust the device to support them as they neared
+terminal stance. P2, on the other hand, acclimated quickly
+to stair descent but took more strides to acclimate to stair
+ascent. In particular, it took time for P2 to learn to avoid the
+compensatory hip whipping motion that they use to perform
+step-over stair ascent with their passive device.
+B. Comparison to the State of the Art
+The closest approach for indirect volitional knee-ankle
+prosthesis control over stairs is the method proposed by the
+Utah Bionic Engineering Lab (BEL) in [39], though for stair
+ascent only. Rather than using data-driven optimization, the
+BEL control approach uses hand-tuned heuristics to modulate
+stance kinetics and swing kinematics. Notable advantages of
+the BEL controller include the ability to 1) handle multiple gait
+patterns such as step-to, step-over, and two-step stair ascent,
+and 2) automatically adapt to user behavior over different step
+heights (specifically 102 mm and 178 mm) within the ADA-
+compliant range. On the other hand, our data-driven HKIC
+control approach was only designed for the traditional step-
+over gait pattern and cannot adapt to changes in step height
+or user gait without the use of a high-level classifier.
+However, our HKIC approach has several advantages over
+the BEL approach. In particular, our controller exhibited bio-
+logically similar results across stairstep heights, whereas the
+BEL approach was not compared to biological reference data
+or evaluated for biomimicry. Another limitation of the BEL
+approach is that it was only validated with one experienced
+participant. Both controllers show biological trends in stair
+ascent at the knee, with maximum flexion, peak torque, and
+work scaling with step height. However, the BEL approach
+was only validated at two of the four step heights validated
+in this work. Unlike the BEL approach, the HKIC approach
+does not rely on hand tuning of participant-specific controller
+parameters. The most notable difference between the BEL and
+HKIC control approaches is the HKIC extends to both stair
+ascent and descent, whereas the BEL heuristic approach is
+limited to just performing stair ascent.
+
+--- Page 12 ---
+12
+C. Limitations and Future Work
+Our study was limited to only two amputees participating
+in a single experiment session with a short acclimation period.
+Future work could incorporate more acclimation time, as our
+participants noted that they often felt more comfortable on
+the powered device at the end of the experimental session
+compared to the start. Further improvements can also be made
+to our acclimation training approach following the outlined
+training guidelines seen in [43].
+The impedance model may have also limited kinetic per-
+formance at the knee joint during stair descent. Due to
+the continuous nature of our model parameters, torque from
+stiffness must be sacrificed at the start of the gait cycle to
+achieve the necessary late-stance damping at the knee. A
+higher-order model could be used to reduce this limitation,
+but at the risk of introducing too many degrees of freedom in
+the optimization and overfitting. This limitation may explain
+why both participants achieved biomimetic peak knee torques
+during mid to late stance yet performed less total work (Figs. 9
+& Table SVI). It is also possible that using different basis
+functions for the knee could mitigate this issue. Further, the
+powered leg used in this study was limited in its ability to
+provide biomimetic damping torques at both joints during stair
+descent due to the implemented velocity filtering methods.
+The supplemental video shows that P2 often completed
+trials faster with his take-home device than with the powered
+one. We hypothesize that one factor in this speed discrepancy
+is the powered prosthetic leg used in the experiment, which
+is much heavier and relatively unfamiliar compared to the
+users’ passive devices. However, it is possible that the HKIC
+provides other clinical benefits whose value outweighs this
+decrease in speed, such as increased endurance [44]. We hope
+to understand these clinical trade-offs better in future work and
+to investigate the HKIC approach with lighter-weight powered
+prostheses capable of accurate impedance control that may be
+less detrimental to user agility.
+Thigh feature estimation based on participant geometry
+showed promise across both stair ascent and descent, though
+discrepancies at TO and MHF during stair descent demonstrate
+a need for improvement and further evaluation. This offline
+estimation method may also limit the controller’s performance
+because it does not adapt online to the participant’s behavior.
+These limitations could potentially be addressed by automated
+tuning of parameters for individual users, such as the meth-
+ods investigated in [45], and online feature adaptation over
+multiple strides as in [36].
+The presented modeling and feature estimation methods
+assume the inter-subject averages of the AB dataset adequately
+represent the behavior of our participants. However, individu-
+als’ kinetics and kinematics are known to vary from the mean
+[46]. Variation can also be seen by comparing the different
+datasets utilized across the field of powered-prosthetic control,
+whether due to participant individuality or the margin for error
+in data capture. For example, the raw dataset used in this work
+[26] exhibits a positive offset in ankle ascent kinematics and
+knee descent kinematics in comparison to other biomechanical
+studies [25], [27]. As a result, our impedance parameter modeland thigh feature estimation paradigm may be biased toward
+increased positive joint flexion. This could explain the early
+TO exhibited by P2 during stair descent (Fig 7d).
+Though our presented results are promising, there are multi-
+ple avenues for improving our control approach’s performance
+and overcoming the aforementioned limitations. Previous work
+has shown that joint kinematics can vary greatly between
+individuals when performing the same activity [27], [45],
+[46]. Our impedance model is built to replicate average joint
+kinetics given average joint kinematics, but the variance in
+observed stair-climbing patterns suggests that individualized
+models may be more appropriate. Initial clinically-viable in-
+dividualization methods have been proposed for data-driven
+models similar to our HKIC model [47], which may improve
+the controller’s performance. Possible modifications include
+increased push-off torque to help overcome the weight of
+the device or increased knee flexion to avoid potential toe-
+stubbing without the need for compensatory thigh motions.
+Future work must also be done to implement some form of
+real-time step height estimation to improve phase parameter
+and model estimations.
+Finally, there is compelling work to be done on the unifi-
+cation of our HKIC controller and phase variable definitions
+across activities of daily living. Future studies should focus on
+modeling impedance and kinematics for transitions between
+HKIC models (i.e., walk to stair ascent), as well as investigat-
+ing the clinical benefits of a unified HKIC-controlled paradigm
+compared to the performance of passive devices.
+VII. C ONCLUSION
+This work presented a data-driven stair ascent and descent
+controller designed to work across a variety of step heights.
+This controller involved improvements to the phase estima-
+tion method over previous work [35], [36], including thigh
+angle feature estimation based on the user’s limb segment
+lengths. Two AKA participants demonstrated the controller’s
+ability to provide biologically similar joint kinematics and
+kinetics across multiple step heights without impedance or
+phase variable parameter tuning. The HKIC showed im-
+provements over a participant’s passive device, particularly
+at the ankle due to the powered ankle’s ability to provide
+the necessary plantarflexion. The experiments also showcased
+the controller’s capacity to provide appropriate amounts of
+both positive/negative work during stair ascent/descent as step
+height varied. This control method can be integrated with other
+phase-based control methods in future work to enable more
+biomimetic amputee locomotion over the varying activities of
+daily life.
+ACKNOWLEDGEMENTS
+The authors thank Emily Keller, Shihao Cheng, Curt Laub-
+scher, Emma Reznick, Hannah Frame, and Albert Lee for help
+with experiments, data processing, or paper editing. We also
+thank our participants for their time and Leslie Wontorcik, CP,
+and Nicholas Wanczyk for providing clinical support.
+
+--- Page 13 ---
+13
+REFERENCES
+[1] B. Mcfadyen and D. Winter, “An integrated biomechanical analysis of
+normal stair ascent and descent,” J. Biomech., vol. 21, pp. 733–744,
+1988.
+[2] H. Hobara, Y . Kobayashi, T. Nakamura, N. Yamasaki, K. Nakazawa,
+M. Akai, and T. Ogata, “Lower extremity joint kinematics of stair ascent
+in transfemoral amputees,” Prosthetics and Orthotics International,
+vol. 35, no. 4, pp. 467–472, 2011.
+[3] T. S. Bae, K. Choi, D. Hong, and M. Mun, “Dynamic analysis of above-
+knee amputee gait,” Clin. Biomech., vol. 22, pp. 557–566, 2007.
+[4] R. Gailey, K. Allen, J. Castles, J. Kucharik, and M. Roeder, “Review
+of secondary physical conditions associated with lower-limb amputation
+and long-term prosthesis use,” J. Rehabilitation Research and Develop-
+ment, vol. 45, pp. 15–30, 2008.
+[5] D. J. Lura, M. W. Wernke, S. L. Carey, J. T. Kahle, R. M. Miro, and
+M. J. Highsmith, “Crossover study of amputee stair ascent and descent
+biomechanics using Genium and C-Leg prostheses with comparison to
+non-amputee control,” Gait and Posture, vol. 58, pp. 103–107, 2017.
+[6] D. M. Ehde, D. G. Smith, J. M. Czerniecki, K. M. Campbell, D. M.
+Malchow, and L. R. Robinson, “Back pain as a secondary disability
+in persons with lower limb amputations,” Arch. Phys. Med. Rehabil.,
+vol. 82, no. 6, pp. 731–734, 2001.
+[7] D. Norvell, J. Czerniecki, G. Reiber, C. Maynard, J. Pecoraro, and
+N. Weiss, “The prevalence of knee pain and symptomatic knee os-
+teoarthritis among veteran traumatic amputees and nonamputees,” Arch.
+Phys. Med. Rehabil., vol. 86, no. 3, pp. 487–493, 2005.
+[8] P. A. Struyf, C. M. van Heugten, M. W. Hitters, and R. J. Smeets,
+“The Prevalence of Osteoarthritis of the Intact Hip and Knee Among
+Traumatic Leg Amputees,” Arch. Phys. Med. Rehabil., vol. 90, no. 3,
+pp. 440–6, 2009.
+[9] T. Schmalz, S. Blumentritt, and B. Marx, “Biomechanical analysis of
+stair ambulation in lower limb amputees,” Gait and Posture, vol. 25, pp.
+267–278, 2 2007.
+[10] B. E. Lawson, J. Mitchell, D. Truex, A. Shultz, E. Ledoux, and M. Gold-
+farb, “A robotic leg prosthesis: Design, control, and implementation,”
+IEEE Robotics and Automation Magazine, vol. 21, pp. 70–81, 2014.
+[11] T. Lenzi, M. Cempini, L. Hargrove, and T. Kuiken, “Design, develop-
+ment, and testing of a lightweight hybrid robotic knee prosthesis,” Int.
+J. Robotics Research, vol. 37, pp. 953–976, 2018.
+[12] M. Tran, L. Gabert, M. Cempini, and T. Lenzi, “A Lightweight, Efficient
+Fully Powered Knee Prosthesis with Actively Variable Transmission,”
+IEEE Robot. Autom., vol. 4, no. 2, pp. 1186–1193, 2019.
+[13] T. Elery, S. Rezazadeh, C. Nesler, and R. D. Gregg, “Design and
+Validation of a Powered Knee-Ankle Prosthesis With High-Torque, Low-
+Impedance Actuators,” IEEE Trans. Robot., pp. 1–20, 2020.
+[14] A. F. Azocar, L. M. Mooney, J. F. Duval, A. M. Simon, L. J. Hargrove,
+and E. J. Rouse, “Design and clinical implementation of an open-source
+bionic leg,” Nat. Biomed. Eng., vol. 4, no. 10, pp. 941–953, 2020.
+[15] H. L. Bartlett, S. T. King, M. Goldfarb, and B. E. Lawson, “Design and
+assist-as-needed control of a lightly powered prosthetic knee,” IEEE
+Trans. Medical Robotics and Bionics, vol. 4, pp. 490–501, 2022.
+[16] M. Tran, L. Gabert, S. Hood, and T. Lenzi, “A lightweight robotic leg
+prosthesis replicating the biomechanics of the knee, ankle, and toe joint,”
+Science Robotics, vol. 7, no. 72, p. eabo3996, 2022.
+[17] E. J. Wolf, V . Q. Everding, A. L. Linberg, B. L. Schnall, J. M.
+Czerniecki, and J. M. Gambel, “Assessment of transfemoral amputees
+using C-Leg and Power Knee for ascending and descending inclines and
+steps,” J. Rehabil. Res. Dev., vol. 49, no. 6, p. 831, 2012.
+[18] J. Camargo, K. Bhakta, K. Herrin, and A. Young, “Biomechanical
+evaluation of stair ambulation using impedance control on an active
+prosthesis,” J. biomechanical engineering, vol. 145, 2 2023.
+[19] F. Sup, H. Varol, J. Mitchell, T. Withrow, and M. Goldfarb, “Self-
+contained powered knee and ankle prosthesis: Initial evaluation on a
+transfemoral amputee,” IEEE Int. Conf. Rehabil. Robot., pp. 638–644,
+2009.
+[20] B. E. Lawson, H. A. Varol, A. Huff, E. Erdemir, and M. Goldfarb,
+“Control of stair ascent and descent with a powered transfemoral
+prosthesis,” IEEE Trans. Neural Syst. Rehabilitation Eng., vol. 21, no. 3,
+pp. 466–473, 2013.
+[21] A. M. Simon, K. A. Ingraham, N. P. Fey, S. B. Finucane, R. D.
+Lipschutz, A. J. Young, and L. J. Hargrove, “Configuring a powered
+knee and ankle prosthesis for transfemoral amputees within five specific
+ambulation modes,” PLoS ONE, vol. 9, no. 6, 2014.
+[22] E. D. Ledoux and M. Goldfarb, “Control and evaluation of a powered
+transfemoral prosthesis for stair ascent,” IEEE Trans. Neural Syst.
+Rehabilitation Eng., vol. 25, no. 7, pp. 917–924, 2017.[23] S. Culver, H. Bartlett, A. Shultz, and M. Goldfarb, “A stair ascent and
+descent controller for a powered ankle prosthesis,” IEEE Trans. Neural
+Syst. Rehabilitation Eng., vol. 26, pp. 993–1002, 2018.
+[24] R. Gehlhar, M. Tucker, A. J. Young, and A. D. Ames, “A review
+of current state-of-the-art control methods for lower-limb powered
+prostheses,” Annual Reviews in Control, 2023.
+[25] R. Riener, M. Rabuffetti, and C. Frigo, “Stair ascent and descent at
+different inclinations,” Gait and Posture, vol. 15, pp. 32–44, 2002.
+[26] J. Camargo, A. Ramanathan, W. Flanagan, and A. Young, “A com-
+prehensive, open-source dataset of lower limb biomechanics in multiple
+conditions of stairs, ramps, and level-ground ambulation and transitions,”
+J. Biomech., vol. 119, p. 110320, 2021.
+[27] E. Reznick, K. Embry, R. Neuman, E. Bol ´ıvar-Nieto, N. Fey, and
+R. Gregg, “Human lower-limb kinematics and kinetics during contin-
+uously varying locomotion,” Scientific Data, pp. 1–15, 2021.
+[28] H. Huang, D. L. Crouch, M. Liu, G. S. Sawicki, and D. Wang, “A cyber
+expert system for auto-tuning powered prosthesis impedance control
+parameters,” Ann. Biomed. Eng., 2016.
+[29] M. Li, Y . Wen, X. Gao, J. Si, and H. Huang, “Toward expedited
+impedance tuning of a robotic prosthesis for personalized gait assistance
+by reinforcement learning control,” IEEE Trans. Robotics , vol. 38, no. 1,
+pp. 407–420, 2022.
+[30] R. Wu, M. Li, Z. Yao, W. Liu, J. Si, and H. Huang, “Reinforcement
+learning impedance control of a robotic prosthesis to coordinate with
+human intact knee motion,” IEEE Robot. Autom., vol. 7, no. 3, pp. 7014–
+7020, 2022.
+[31] D. Quintero, D. J. Villarreal, D. J. Lambert, S. Kapp, and R. D. Gregg,
+“Continuous-phase control of a powered knee-ankle prosthesis: Amputee
+experiments across speeds and inclines,” IEEE Trans. Robotics, vol. 34,
+no. 3, pp. 686–701, 2018.
+[32] S. Rezazadeh, D. Quintero, N. Divekar, E. Reznick, L. Gray, and R. D.
+Gregg, “A phase variable approach for improved rhythmic and non-
+rhythmic control of a powered knee-ankle prosthesis,” IEEE Access,
+vol. 7, pp. 109 840–109 855, 2019.
+[33] T. Elery, S. Rezazadeh, E. Reznick, L. Gray, and R. D. Gregg, “Effects
+of a Powered Knee-Ankle Prosthesis on Amputee Hip Compensations:
+A Case Series,” IEEE Trans. Neural Syst. Rehabil. Eng., vol. 28, no. 12,
+pp. 2944–2954, 2020.
+[34] T. K. Best, K. R. Embry, E. J. Rouse, and R. D. Gregg, “Phase-variable
+control of a powered knee-ankle prosthesis over continuously varying
+speeds and inclines,” in IEEE/RSJ Int. Conf. Intelligent Robots and
+Systems, 2021, pp. 6182–6189.
+[35] R. J. Cortino, E. Bolivar-Nieto, T. K. Best, and R. D. Gregg, “Stair
+ascent phase-variable control of a powered knee-ankle prosthesis,” in
+IEEE Int. Conf. Robotics and Automation, 2022, pp. 5673–5678.
+[36] T. K. Best, C. G. Welker, E. J. Rouse, and R. D. Gregg, “Data-driven
+variable impedance control of a powered knee–ankle prosthesis for
+adaptive speed and incline walking,” IEEE Trans. Robotics, pp. 1–19,
+2023.
+[37] C. G. Welker, T. K. Best, and R. D. Gregg, “Data-driven variable
+impedance control of a powered knee-ankle prosthesis for sit, stand, and
+walk with minimal tuning,” in IEEE/RSJ Int. Conf. Intelligent Robots
+and Systems, 2022, pp. 9660–9667.
+[38] C. D. Hoover, G. D. Fulk, and K. B. Fite, “Stair ascent with a powered
+transfemoral prosthesis under direct myoelectric control,” IEEE/ASME
+Trans. Mechatronics, vol. 18, no. 3, pp. 1191–1200, 2013.
+[39] S. Hood, L. Gabert, and T. Lenzi, “Powered knee and ankle prosthesis
+with adaptive control enables climbing stairs with different stair heights,
+cadences, and gait patterns,” IEEE Trans. Robotics, vol. 38, no. 3, pp.
+1430–1441, 2022.
+[40] “504 Stairways - ADA Compliance,” 2023. [Online]. Available:
+https://www.ada-compliance.com/ada-compliance/504-stairways
+[41] J. Fernando, “Moving average (ma): Purpose, uses, formula, and
+examples,” 2023. [Online]. Available: https://www.investopedia.com/
+terms/m/movingaverage.asp
+[42] N. Aghasadeghi, H. Zhao, L. J. Hargrove, A. D. Ames, E. J. Perreault,
+and T. Bretl, “Learning impedance controller parameters for lower-limb
+prostheses,” IEEE Int. Conf. Intelligent Robots and Systems, pp. 4268–
+4274, 2013.
+[43] S. B. Finucane, L. J. Hargrove, and A. M. Simon, “Functional mobility
+training with a powered knee and ankle prosthesis,” Frontiers in Reha-
+bilitation Sciences, vol. 3, 4 2022.
+[44] T. K. Best, C. A. Laubscher, R. J. Cortino, S. Cheng, and R. D. Gregg,
+“Improving amputee endurance over activities of daily living with a
+robotic knee-ankle prosthesis: A case study,” in IEEE/RSJ Int. Conf.
+Intelligent Robots and Systems, 2023.
+
+--- Page 14 ---
+14
+[45] E. Reznick, C. G. Welker, and R. D. Gregg, “Predicting individualized
+joint kinematics over continuous variations of walking, running, and stair
+climbing,” IEEE Open J. Eng. Med. Biol., vol. 3, pp. 211–217, 2022.
+[46] E. Reznick, K. Embry, and R. D. Gregg, “Predicting individualized joint
+kinematics over a continuous range of slopes and speeds,” in IEEE Int.
+Conf. Biomedical Robotics and Biomechatronics, 2020, pp. 666–672.
+[47] E. Reznick, “Understanding individuality in human locomotion for con-
+figuring powered prosthetic legs,” PhD thesis, University of Michigan,
+August 2023.
+
+--- Page 15 ---
+1
+Data-Drive Phase-Based Control of a Powered
+Knee-Ankle Prosthesis for Variable-Incline Stair
+Ascent and Descent: Supplementary Material
+Ross J. Cortino, T. Kevin Best, and Robert D. Gregg
+CONTENTS
+I Hybrid Kinematic-Impedance Controller (HKIC) Supplements 2
+I-A State Transition Criteria for Unified Phase Variable Definition . . . . . . . . . . . . . . . . . . . . . . . 2
+I-B Impedance Parameter Optimization Constraints . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+I-C Stair Descent Impedance Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+II Experiment Supplements 3
+II-A Participant Information . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+II-B Kinematic Comparison Tables Across Step Heights . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 3
+II-C Kinetic Comparison Tables Across Step Heights . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 5
+
+--- Page 16 ---
+2
+I. H YBRID KINEMATIC -IMPEDANCE CONTROLLER (HKIC) S UPPLEMENTS
+A. State Transition Criteria for Unified Phase Variable Definition
+S1 S2 S3
+S4 S5
+Fig. 1. A visual representation of the state machine that governs the unified phase variable for stair ascent and descent. The blue squares correspond to the
+stance phase variable definition, while the green squares correspond to the swing phase variable definition. Refer to the main text for parameter definitions.
+B. Impedance Parameter Optimization Constraints
+TABLE I
+IMPEDANCE PARAMETER OPTIMIZATION CONSTRAINTS
+Constraint Ascent Descent
+Ankle Knee Ankle Knee
+min FS StiffnessNm/kg
+rad3.5 1.5 3.0 1.0
+min StiffnessNm/kg
+rad3.5 1.0 1.0 0.5
+min DampingNms/kg
+rad0.01 0.01 0.01 0.01
+max DampingNms/kg
+rad0.14 0.14 0.14 0.14
+C. Stair Descent Impedance Model
+Fig. 2. Plots of the calculated stair descent impedance functions for stiffness K(sst, γ), damping B(sst, γ), and equilibrium angle θeq(sst, γ)for the knee
+and ankle over the range of step height configurations from ±(102 to 178) mm.
+
+--- Page 17 ---
+3
+II. E XPERIMENT SUPPLEMENTS
+A. Participant Information
+TABLE II
+PARTICIPANT ATTRIBUTES
+ID SexAge Mass Height Years sinceEtiology(yrs) (kg) (m) amputation
+P1 Male 26 116 1.9 26 Congenital
+P2 Male 18 76 1.8 18 Congenital
+B. Kinematic Comparison Tables Across Step Heights
+TABLE III
+ASCENT KINEMATIC COMPARISONS ACROSS STAIR CONFIGURATIONS1
+MetricStep
+Height
+(mm)AB P1 HKIC P2 HKIC P2 PAS
+Max
+Knee
+Angle
+(°)102 88.81±5.04 85.67±1.21 81.79±5.86 111.66±8.38
+127 91.45±4.91 87.86±1.34 83.85±3.05 117.82±4.57
+152 96.31±5.4 94.13±0.85 93.58±1.41 122.39±2.49
+178 100.34±6.28 99.52±2.91 - 125.57±1.01
+Min
+Knee
+Angle
+(°)102 15.14±4.42 19.21±1.05 11.67±1.62 2.74±0.42
+127 16.81±4.69 14.96±2.34 12.83±1.96 2.99±0.41
+152 17.85±5.74 18.43±1.42 12.50±2.09 3.53±0.38
+178 17.87±4.73 15.9±2.35 - 3.74±0.49
+Foot-
+Strike
+Knee
+Angle
+(°)102 56.72±3.95 56.98±1.04 56.83±4.78 53.58±2.60
+127 62.46±4.36 65.03±2.36 61.07±2.81 55.95±1.99
+152 68.86±4.33 69.42±1.81 69.21±4.01 59.93±3.77
+178 74.03±4.18 77.93±1.21 - 57.18±2.42
+Ankle
+Dorsi-
+flexion
+Angle
+(°)102 21.91±3.22 21.77±0.51 23.10±1.04 10.61±0.82
+127 23.71±3.21 23.91±0.42 24.19±1.58 10.69±0.90
+152 25.42±4.01 24.04±0.63 26.87±3.05 11.57±1.79
+178 26.70±5.34 27.19±0.63 - 8.22±1.08
+Ankle
+Plan-
+tarflex-
+ion
+Angle
+(°)102 1.94±5.13 -0.46±0.73 1.27±0.58 4.35±0.41
+127 -1.06±5.14 -3.07±0.24 -1.76±0.33 4.55±0.53
+152 -4.35±7.12 -7.6±0.97 -5.83±0.85 5.78±0.32
+178 -7.13±7.70 -10.49±1.05 - 3.93±0.32
+Foot-
+Strike
+Ankle
+Angle
+(°)102 18.53±3.44 19.37±0.6 19.81±3.01 6.68±0.36
+127 20.02±3.68 21.53±0.87 21.19±2.70 6.81±0.53
+152 21.81±5.11 23.35±0.55 25.57±4.22 7.74±0.61
+178 22.87±6.14 25.78±0.51 - 6.51±0.56
+1Bolded entries indicate results within a standard deviation of the AB reference.
+
+--- Page 18 ---
+4
+TABLE IV
+DESCENT KINEMATIC COMPARISONS ACROSS STAIR CONFIGURATIONS2
+MeasureStep
+Height
+(mm)AB P1 HKIC P2 HKIC P2 PAS
+Max
+Knee
+Angle
+(°)102 85.26±4.95 79.36±3.5 75.15±0.87 72.92±2.94
+127 90.15±7.11 85.22±3.77 82.32±2.01 78.87±2.49
+152 95.01±7.76 91.38±2.32 88.40±2.39 84.04±2.29
+178 100.43±5.28 95.13±2.68 - 88.98±3.01
+Min
+Knee
+Angle
+(°)102 18.44±5.13 15.63±1.84 15.88±0.81 11.48±0.39
+127 19.19±5.63 17.19±2.6 15.87±3.00 11.57±0.49
+152 19.62±5.99 16.56±3.43 15.97±3.37 12.29±0.44
+178 19.11±4.19 13.31±3.54 - 12.38±0.53
+Foot-
+Strike
+Knee
+Angle
+(°)102 19.41±4.94 20.36±0.47 16.69±1.35 11.94±0.54
+127 19.83±5.70 20.75±0.95 17.51±4.54 12.20±0.5
+152 19.96±6.40 20.38±0.66 17.06±3.69 13.01±0.37
+178 19.85±3.72 20.7±0.69 - 13.47±0.53
+Ankle
+Dorsi-
+flexion
+Angle
+(°)102 37.04±3.84 30.51±0.62 30.85±2.03 6.93±2.12
+127 37.38±6.57 31.82±0.75 33.92±0.69 7.84±1.72
+152 37.86±6.68 30.75±0.91 36.63±0.49 9.31±1.31
+178 38.73±5.53 32.64±2.09 - 8.19±1.61
+Ankle
+Plan-
+tarflex-
+ion
+Angle
+(°)102 -15.50±5.32 -15.9±0.72 -15.33±0.09 3.21±0.34
+127 -17.51±7.34 -17.57±0.58 -16.66±0.47 3.75±0.25
+152 -19.33±8.39 -20.17±0.76 -18.15±1.48 4.75±0.33
+178 -22.09±5.10 -23.25±0.68 - 3.72±0.23
+Foot-
+Strike
+Ankle
+Angle
+(°)102 -5.95±5.08 -5.28±0.88 -2.76±1.18 3.99±0.17
+127 -8.30±7.53 -8.37±0.58 -4.78±4.62 4.14±0.14
+152 -10.43±8.18 -10.08±0.57 -7.48±5.07 4.85±0.36
+178 -12.31±5.53 -11.84±0.67 - 3.88±0.13
+2Bolded entries indicate results within a standard deviation of the AB reference.
+
+--- Page 19 ---
+5
+C. Kinetic Comparison Tables Across Step Heights
+TABLE V
+ASCENT KNEE AND ANKLE KINETICS3
+MeasureStep
+Height
+(mm)AB P1 HKIC P2 HKIC
+Peak
+Knee
+Torque
+(Nm/kg)102 -0.74±0.30 -0.84±0.08 -0.81±0.08
+127 -0.88±0.29 -1.12±0.11 -0.95±0.06
+152 -1.04±0.31 -1.22±0.06 -1.21±0.07
+178 -1.13±0.34 -1.44±0.04 -
+Knee
+Work
+(J/kg)102 0.34±0.14 0.33±0.03 0.32±0.05
+127 0.38±0.14 0.52±0.07 0.47±0.03
+152 0.51±0.18 0.61±0.05 0.58±0.07
+178 0.59±0.21 0.82±0.06 -
+Peak
+Ankle
+Torque
+(Nm/kg)102 -1.34±0.24 -1.03±0.03 -0.72±0.14
+127 -1.36±0.26 -0.95±0.06 -0.86±0.06
+152 -1.41±0.26 -1.02±0.05 -0.96±0.08
+178 -1.39±0.26 -0.98±0.07 -
+Ankle
+Work
+(J/kg)102 0.22±0.1 0.15±0.01 0.06±0.02
+127 0.30±0.13 0.17±0.02 0.07±0.03
+152 0.37±0.14 0.24±0.02 0.14±0.06
+178 0.46±0.15 0.34±0.02 -
+3Bolded entries indicate results within a standard deviation of the AB reference or match and/or exceed AB Normative performance.
+
+--- Page 20 ---
+6
+TABLE VI
+DESCENT KNEE AND ANKLE KINETICS4
+MeasureStep
+Height
+(mm)AB P1 HKIC P2 HKIC
+Peak
+Knee
+Torque
+(Nm/kg)102 -0.98± 0.24 -0.83± 0.06 -0.77± 0.05
+127 -1.03± 0.24 -1.25± 0.21 -0.78± 0.07
+152 -1.12± 0.27 -1.05± 0.27 -0.94± 0.06
+178 -1.20± 0.28 -1.07± 0.14 -
+Knee
+Work
+(J/kg)102 -0.65± 0.15 -0.34± 0.07 -0.15± 0.04
+127 -0.8± 0.19 -0.53± 0.13 -0.25± 0.04
+152 -0.89± 0.18 -0.56± 0.15 -0.33± 0.03
+178 -1.04± 0.21 -0.59± 0.12 -
+Peak
+Ankle
+Torque
+(Nm/kg)102 -0.96± 0.24 -0.76± 0.04 -0.81± 0.08
+127 -1.01± 0.23 -0.98± 0.12 -0.99± 0.08
+152 -1.01± 0.36 -0.84± 0.11 -1.06± 0.05
+178 -1.07± 0.26 -0.92± 0.06 -
+Ankle
+Work
+(J/kg)102 -0.26± 0.13 -0.22± 0.01 -0.27± 0.03
+127 -0.35± 0.13 -0.35± 0.03 -0.37± 0.03
+152 -0.44± 0.15 -0.3± 0.06 -0.39± 0.06
+178 -0.51± 0.15 -0.27± 0.02 -
+4Bolded entries indicate results within a standard deviation of the AB reference.

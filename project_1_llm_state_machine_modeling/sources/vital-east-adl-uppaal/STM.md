@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟡 可整理
+- 文件级角色：🧰 需清洗样本
+- 代表状态机类型：Hybrid（混成状态机）
+- 代表时间级别：T2（强实时 / 显式时钟时间窗口）
+- 结构标签概况：显式时钟、连续耦合
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
-- 简要判断：可从运行语义和 BBW slip 约束重组成函数行为描述。
+- 简要判断：正文把周期触发、read-execute-write 节拍、BBW slip 公式与 brake-release 规则都摆了出来，但仍停在功能块级语义。
 
 ## 条目 1: EAST-ADL function execution with BBW ABS rule
 - 控制对象：ViTAL 中 EAST-ADL 功能块的执行语义与 BBW ABS 规则
+- 状态机类型：Hybrid（混成状态机）
+- 时间级别：T2（强实时 / 显式时钟时间窗口）
+- 结构标签：连续耦合、显式时钟
+- 原文细节充实度：🔴 D（摘要/背景级）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：🔁 强趋同（G3 BBW/ABS 基准控制链）
 
 ### 0. 条目识别与判定
 
@@ -71,15 +82,51 @@
 > applied:
 > A[ ](BTC:s > 0:2imply (ABS:brake = 0))
 
+#### 摘录 C
+- 出处：第 7-8 页，Section V / Brake-by-Wire functionality，行 501-544
+> The intended functionality of the BBW system is the
+> following: when the driver brakes, it uses the pedal, and
+> the brake actuators are applying a force that relates with
+> the angle of the pressed pedal.
+> The system is composed of a Brake Pedal Sensor that reads the pedal position
+> percentage used by the Brake Torque Calculator to
+> compute the desired Global Torque used by the Global
+> Brake Controller to calculate the torque required for
+> each wheel.
+> The ABS controls the wheel braking in order to prevent
+> locking the wheel, based on the slip value. The slip value is
+> calculated by the equation:
+> s = (v - w * r) / v,
+> where v is the vehicle speed, w the wheel speed, and r
+> the wheel radius.
+> The friction coefficient reaches the peak when s is around 0.2.
+> For this reason, if s is greater than 0.2 the brake actuator is released and no brake
+> is applied, else the requested brake torque is used.
+> The architecture is encapsulated in one FAA ft that contains six
+> interconnected fps modeled using the TA editor. Each TA(fp)
+> defines the actual functional and timing behavior of the fp.
+> The slip rate calculation is controlled by variable slipRate.
+> From location calculateSlipRate, based on the current vehicle
+> speed vSpeed, the wheel speed wSpeed, and the wheel
+> radius wRadius, the TorqueCmd controls the wheel
+> braking. Consequently, the ABS enters location BrakeTorque,
+> and jumps back to location Start, provided that slipRate is greater than
+> 0.2, the brake actuator is released and no brake is applied,
+> else the requested brake torque is used.
+
 ### 2. 基于原文整理后的自然语言描述
 
-In ViTAL, each function prototype is driven by periodic triggering information and obeys run-to-completion behavior, so inputs are accessed at the beginning of a trigger and outputs are written only at the end of the computation. The function’s internal behavior is captured by an automaton that reads its input flow ports, computes on the internal data, and then writes the resulting values to the output flow ports. For the Brake-by-Wire control system, one explicit functional rule is that whenever the slip rate exceeds 0.2, the brake actuator is released and no brake is applied.
+In ViTAL, each basic function prototype is annotated with an event function parameter T that generates a trigger every T time units, and the function obeys run-to-completion semantics: input flow ports may only be accessed at the beginning of a triggering, output flow ports are written only at the end of the computation, and TA(fp) augments the function behavior with an interface made of flow ports and trigger information. Each input flow port has an associated variable holding the current data flow, and the internal computation starts by reading all input flow ports and then uses those internal data together with other functional information before writing the output variables. In the Brake-by-Wire case, one FAA contains six interconnected function prototypes, where the brake pedal sensor and brake torque calculator determine the requested global torque, the global brake controller calculates the torque required for each wheel, and each wheel ABS uses vehicle speed, wheel speed, and wheel radius to compute the slip value s=(v-w*r)/v. Because the tire-road friction peaks when s is around 0.2 and then decreases, the ABS rule releases the brake actuator and applies no brake whenever s>0.2; otherwise it uses the requested brake torque. In the timed-automaton description of this function chain, the slip-based decision is organized around locations such as calculateSlipRate, BrakeTorque, and Start, and ViTAL verifies both the brake-reaction bound A[](BBW:reaction imply (BBW:clock < 200)) and the functional rule A[](BTC:s > 0.2 imply (ABS:brake = 0)).
 
 ### 3. 逐句溯源
 
-1. 句子 1：In ViTAL, each function prototype is driven by periodic triggering information and obeys run-to-completion behavior, so inputs are accessed at the beginning of a trigger and outputs are written only at the end of the computation.
+1. 句子 1：In ViTAL, each basic function prototype is annotated with an event function parameter T that generates a trigger every T time units, and the function obeys run-to-completion semantics: input flow ports may only be accessed at the beginning of a triggering, output flow ports are written only at the end of the computation, and TA(fp) augments the function behavior with an interface made of flow ports and trigger information.
    对应摘录：A
-2. 句子 2：The function’s internal behavior is captured by an automaton that reads its input flow ports, computes on the internal data, and then writes the resulting values to the output flow ports.
+2. 句子 2：Each input flow port has an associated variable holding the current data flow, and the internal computation starts by reading all input flow ports and then uses those internal data together with other functional information before writing the output variables.
    对应摘录：A
-3. 句子 3：For the Brake-by-Wire control system, one explicit functional rule is that whenever the slip rate exceeds 0.2, the brake actuator is released and no brake is applied.
-   对应摘录：B
+3. 句子 3：In the Brake-by-Wire case, one FAA contains six interconnected function prototypes, where the brake pedal sensor and brake torque calculator determine the requested global torque, the global brake controller calculates the torque required for each wheel, and each wheel ABS uses vehicle speed, wheel speed, and wheel radius to compute the slip value s=(v-w*r)/v.
+   对应摘录：C
+4. 句子 4：Because the tire-road friction peaks when s is around 0.2 and then decreases, the ABS rule releases the brake actuator and applies no brake whenever s>0.2; otherwise it uses the requested brake torque.
+   对应摘录：B, C
+5. 句子 5：In the timed-automaton description of this function chain, the slip-based decision is organized around locations such as calculateSlipRate, BrakeTorque, and Start, and ViTAL verifies both the brake-reaction bound A[](BBW:reaction imply (BBW:clock < 200)) and the functional rule A[](BTC:s > 0.2 imply (ABS:brake = 0)).
+   对应摘录：B, C

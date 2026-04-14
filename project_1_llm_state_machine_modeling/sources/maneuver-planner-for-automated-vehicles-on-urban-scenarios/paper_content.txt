@@ -1,0 +1,713 @@
+--- Page 1 ---
+Maneuver Planner for Automated Vehicles on Urban Scenarios
+Juan Felipe Medina-Lee1and V ´ıctor Jim ´enez1and Jorge Godoy1and Jorge Villagra1
+Abstract — This work presents a maneuver planner for au-
+tomated vehicles, seamlessly integrated with a motion planner,
+that is able to make tactical decisions to safely navigate in
+urban environments. The proposed maneuver planner is able
+to select the most suitable target lane for the ego-vehicle
+and to manage different regulatory signals like right of way,
+must stop or pedestrian crossings. The integration with the
+motion planner allows to select the current maneuver after
+exploring a reachable set of trajectories, which brings flexibility
+to the system in complex and dynamic driving scenarios. The
+architecture was validated on a real vehicle in two urban
+scenarios with other traffic agents: an intersection with a
+pedestrian crossing and an overtaking scenario on a two-way
+road.
+I. I NTRODUCTION
+Autonomous Driving Systems (ADS) must constantly
+make tactical decisions in order to be efficient, specially in
+urban scenarios. These decisions may include: changing to
+a more convenient lane given a global route, stopping on a
+yielding line on an intersection, waiting for a pedestrian to
+cross the road or taking the next exit ramp on a highway.
+To achieve these kind of complex tasks, a two-level hier-
+archical architecture formed by a maneuver planner and a
+motion planner has been widely deployed [1]. This modular
+architecture has different advantages, like higher flexibility
+when testing different algorithms, easier maintenance due
+to the independence of the modules, and better scalability
+[2]. The tactical or maneuver planning, according to [3],
+may be classified into three categories: (i) rule-based tactics,
+which consider speed limits, working zones, stop signs or
+intersection precedence handling; (ii) route-based tactics,
+which consist of choosing the lane in order to meet global
+routing requirements; and (iii) maneuver-based tactics, which
+decide when and how to yield, follow or overtake other
+agents.
+In this work it is proposed a maneuver planner that com-
+prises both route-based tactics and maneuver-based tactics.
+The maneuver planner is integrated with a motion planning
+system, which explores a set of reachable trajectories and
+the resulting trajectory set contributes on the decision mak-
+ing process. This architecture (depicted on Fig. 1) brings
+flexibility to the ADS and deals, as it is not limited by pre-
+designed maneuver-based tactical rules, and is therefore able
+to efficiently handle unforeseen situations [3].
+Most of the Decision Makers (DM) for autonomous
+driving described in the literature focus on one kind of
+1Autopia program, Centre for Automation and Robotics (CSIC-UPM),
+Ctra. M300 Campo Real, km 0.200, 28500, Arganda del Rey, Spain
+https://autopia.car.upm-csic.es/
+[juan.medina, victor.jimenez, jorge.godoy,
+jorge.villagra]@csic.esscenario, i.e. city intersections, lane-changing on a highway
+or overtaking maneuvers. In [4], the authors propose a rule-
+based DM to solve intersections by finding conflicting points
+between the Ego-Vehicle (EV) path and the Other Vehicles
+(OV) present in the scene, to define a drive/stop policy. In
+[5] a motion planner module generates speed profiles based
+on human drivers data, while the DM selects the maneuver
+that minimizes the risk of collision. On [6] the authors
+implemented a Finite State Machine (FSM) which varies the
+speed profile of the EV according to its current state in order
+to solve T-intersections. Finally, in [7], the proposed DM also
+manages T-intersections, only this time using a discrete event
+handler with limited visibility and no communications with
+other OVs.
+Alternatively, some DM handle only lane-changing ma-
+neuvers. For example, in [8] it is presented a DM based
+on an FSM to perform lane changes by taking into account
+the global route as well as the current driving environment.
+[9] propose to perform overtaking maneuvers on freeways
+using a two stage architecture, consisting on a lane-change
+decision trigger, based on a Radial Basis Function (RBF)
+neural network, and a hierarchical state machine to complete
+the maneuver. This kind of systems show good results in the
+environments for which they were designed, but may struggle
+to solve different urban scenarios.
+There are some works that implemented a DM using
+neural networks [10] [11] [12] [13], but this kind of systems
+rely strongly on the data quantity and quality and have a
+high training cost. In addition to that, their black box nature
+Perception
+systemGlobal
+router
+Maneuver
+Planner
+Trejactory
+generator
+Trajectory
+tracking controlADSDestination
+point
+Fig. 1. Complete ADS architecture.
+
+--- Page 2 ---
+makes their functional safety compatibility [4] and semantic
+interpretation [14] challenging.
+The maneuver planner proposed in this work selects the
+target lane and establishes a number of restrictions according
+to the regulatory signals present in the scene. A regulatory
+signal establishes a set of rules that must be followed by
+the traffic agents in the road; some examples are must-
+stop signals, pedestrian crossings or right-of-way signals on
+intersections. Then, the motion planner generates a set of
+reachable trajectories Γ, which is used by the maneuver
+planner to evaluate the feasibility of the proposed maneuver,
+and to change it if necessary. Also, different kind of ma-
+neuvers like merging or yielding into a roundabout may be
+executed depending on the reachable trajectories. A detailed
+description of the trajectory generator is provided in section
+II-D. The majority of decisions on city and highway driving
+scenarios can be covered using this approach, since (i) most
+of them can be decomposed on basic driving modes like lane
+changing or stopping on yielding lines [2]; (ii) the integration
+with the motion planner provides a necessary feedback in
+dynamic environments to determine whether the maneuver
+is feasible to the EV or not.
+The main contributions of this work are:
+•A hybrid decision making architecture that allows to
+perform tactical decisions using a seamlessly integrated
+maneuver planner and trajectory generator, which pre-
+vents conservative behaviors.
+•The proposed architecture is not designed to handle only
+a specific type of scenario but it can handle multiple
+types of urban scenarios by combining lane changes
+and regulatory signal handling on a tactical level.
+•The system was tested on a real vehicle on different
+urban scenarios with other traffic agents.
+The outline of the paper is as follows: section II describes
+the maneuver planner in detail, section III shows the results
+in real-life scenarios and section IV presents some conclud-
+ing remarks.
+II. M ANEUVER PLANNER
+Fig. 2 depicts the architecture of the maneuver planner
+and its integration with the trajectory generator. This system
+uses the perception information Ωand the global route φ
+to calculate a set of way-points ω, a traffic-regulation state
+Sand the identification number idof a potential regulatory
+signal. The trajectory generator computes the trajectory set
+Γ, and provides the number of trajectory candidates τ∈Γ
+considered valid for the current scene (Nvalid). A trajectory
+τis considered valid if it does not leave the road at any
+moment and it does not lead the EV to a collision with other
+traffic agents. If Nvalid< η, (being ηthe minimum number
+of valid candidates to consider a maneuver as feasible) during
+a lane change maneuver, the maneuver planner cancels the
+maneuver, updates the target corridor and re-calculates ω, in
+order to guarantee a feasible maneuver.
+Find Navigation
+corridors
+Nvalidw idSEvaluate utility
+and availability
+Select target
+corridot
+Get waypointsGet tra c
+restrictionsManeuver planner
+Trajectory generator'W
+GFig. 2. Maneuver planner scheme and its interaction with the trajectory
+generator.
+A. Navigation corridors
+The first task performed by the maneuver planner is to
+identify the set of available navigation corridors ζ. Each
+navigation corridor ζiis a reachable lane for the EV , given
+its location on the lanelet2 digital map [15]. This type
+of map provides two layers of information: physical and
+topological. The physical layer contains geographic infor-
+mation like borderlines, centerlines or location of elements,
+while the topological one contains the relation between road
+elements in a graph network. ζiis computed by finding the
+lanelet(s) where the ego-vehicle is located. Next, a graph
+search is performed in the topological layer of the map to
+obtain a lanelet sequence. Each corridor is described with
+three different types of information: routing, topological and
+traffic. Regarding the routing information, ζistores the id of
+the lanelets, the distance to the next exit, and the compliance
+with the global route (a boolean value that indicates if the
+corridor is contained in the global route or not). Concerning
+the topological information, ζicontains the centreline and
+the borderlines of the lane. The traffic information stored in
+ζiis composed of the speed and position of the closest lag
+and lead vehicles.
+B. Selection of the target corridor
+The target corridor ζtis selected using a lane-change
+model proposed in [16]. It proposes a utility function that
+evaluates mandatory and discretionary metrics for each cor-
+ridor, such as average speed, next-exit distance or relations
+with respect to the OVs. The utility value Uis calculated for
+each corridor ζiusing this expression:
+
+--- Page 3 ---
+Ui
+ζ=βi
+ζ−C1Di
+ζ+C2Si
+ζ+C3∆Xlead,i
+ζ+C4∆Slead,i
+ζ
+−C5δtgδcl,i
+ζ+C6δcl,i
+ζ−C7∆LCi
+ζ
++βpath,i
+ζ
+dexit−C8
+−C9δne∆Exiti
+ζ
+−αi
+ζυn−Copδop,i
+ζ(1)
+where the variables definition is as follows: βi
+ζis a constant
+depending on the right-to-left location of the corridor; Di
+ζ
+andSi
+ζare the density of vehicles and the average speed,
+respectively, ∆Xlead,i
+ζand∆Slead,i
+ζare the separation and
+relative speed with respect to the lead vehicle, respectively;
+δcl,i
+ζis a boolean variable that is non-null if ζiis the current
+lane of the EV , while δtailgateis activated if the EV has
+a tailgate vehicle; ∆LCi
+ζis the number of lane changes
+required to get to ζi;βpath,i
+ζis the plan impact coefficient,
+which increments with the number of lane changes required
+to reach the next exit on the global route, while dexitis the
+distance to that exit. δneis a boolean variable with value 1
+if the driver intends to take the next exit and 0 otherwise;
+∆Exiti
+ζis the number of lane changes required to go from
+ζito the exit lane; The term δop,i
+ζindicates if ζiis a two way
+lane and may be used by the EV to perform an overtaking
+maneuver. Notice that this term, and its coefficient Copwere
+not included on the original model and were included in this
+work to allow the ADS to perform overtaking maneuvers on
+two-way roads. The weighting coefficients Ci, i∈1...9of
+each variable is defined in [16].
+Once the utility of ζis computed, the probability of being
+selected as ζtis computed for each ζiusing the multinomial
+logit model:
+P(ζt=ζi) =exp(Ui
+ζ)
+P
+j∈|ζ|exp(Uj
+ζ))(2)
+The maneuver planner sets as ζtthe corridor with the
+largest probability that meets two requirements: (i) it has a
+valid gap acceptance and (ii) all its lanelets are included in
+the global route. The gap acceptance of an adjacent corridor
+depends on the lead gap ∆Xlead(space between the lead
+vehicle and the EV) and the lag gap ∆Xlag(space between
+the EV and the lag vehicle). Both values have to be greater
+than a corresponding critical gap to be valid. The models to
+obtain the gap acceptance of a corridor are detailed in [16].
+C. Regulatory signal handling
+The maneuver planner is able to handle three types of
+regulatory signals: Must Stop (MS), Right of Way (RW) and
+Pedestrian Crossing (PC). The MS signals are formed by a
+yielding lanelet and a Yielding Line (YL). In order to comply
+with this kind of signal, the EV must stop completely before
+reaching the YL. The RW signal is formed by a YL, one or
+more yielding lanelets and one ore more priority lanelets. For
+this type of signal, the vehicle that gets into the intersection
+from a yielding lanelet has to stop on the YL if there is
+another vehicle on the priority lanelet, unless it is able mergebefore that vehicle in a safely manner. This type of signals
+are commonly used on crossroads or roundabouts. The PC
+signal is formed by a crossing zone, one or more YL and one
+or more yielding lanelet. In this case, if there is a pedestrian
+on the crossing area, the vehicle must stop before the YL and
+it must remain stopped as long as there is a pedestrian on
+the road. A regulatory signal ψr∈Ψ∀r={0, ..., R−1},
+withΨbeing is the finite set of Rregulatory elements on the
+global route, contains different information like the unique
+id, the associated yielding lines, the lanelets of interest or
+the crossing area polygon; all of this data is embedded on
+the digital map. Fig. 3 depicts a driving scenario with two
+regulatory signals ψ1andψ2. On the one hand, the signal ψ1
+is a RW signal with one yielding lanelet, which is highlighted
+in red, two priority lanelets, which are plotted in green and
+a yielding line plotted in yellow. On the other hand, ψ2is a
+PC signal with two yielding lanelets, two yielding lines and
+a crossing zone for pedestrians. The crossing zone includes
+also the sidewalk and not only the road, so that the EV is
+forced to stop if there is a pedestrian waiting to cross.
+A finite state machine with four possible states S=
+{Go, Y ield, Try, Aware }is used to comply with the afore-
+mentioned regulatory signal behaviors. The current state Sk
+is updated taking into account if there is a regulatory signal
+ψtonζtand also the gap distances with the OVs of the traffic
+scene. Fig. 4 depicts the state diagram of the FSM proposed
+to handle regulatory signals. The initial state is S0=Go, and
+the future states are obtained according to the state-change
+conditions defined in Table I. When the state Skis updated
+from any other state to Sk+1=Go, the regulatory signal ψt
+is omitted and it is not taken into account again until it is
+completely crossed. This omitted signal will be referred to
+asψo. Each signal ψris described using three variables: tpr
+ψ
+defines the type of signal, idr
+ψis the unique id on the digital
+map, and gt
+ψis the distance from the EV to the yielding line.
+In case tpr
+ψ=PC two extra variables are used: tzft
+ψis the
+time the crossing zone has been free of pedestrians, being
+set to 0 when a pedestrian is detected on the crossing zone;
+andtrft
+ψ, which is the time the road has been free while the
+EV is stopped on a PC.
+dois a design parameter that defines the minimum separation
+between the EV and ψtbefore it can be omitted. dcis another
+design parameter that establishes the minimum acceptable
+0 1
+Yielding lines
+Yielding lanelets
+Priority lanelets
+Crossing zone
+Fig. 3. Regulatory signals components on an urban scenario.
+
+--- Page 4 ---
+TRY GO YIELD
+AWARECgt
+Ctg
+Cga Cag
+Cay
+CyaCgy
+CygFig. 4. Finite state machine for regulatory signal handling.
+TABLE I
+STATE TRANSITION CONDITIONS FOR THE REGULATORY SIGNAL FSM.
+Name Definition
+cgt tpt
+ψ=RW∧idt
+ψ̸=idψo
+ctg gt
+ψ< do∧∆Xlead,t
+ζ> dc
+cga tpt
+ψ=PC∧idt
+ψ̸=idψo
+cag gt
+ψ≤0
+cay tzft
+ψ= 0
+cya tpt
+ψ=PC∧tzft
+ψ≥to1∧gt
+ψ> do
+cgy tpt
+ψ=MS∧idt
+ψ̸=idψo
+cyg
+tpt
+ψ=MS∧gt
+ψ< do∧vego= 0∧∆Xt
+ζ> dc
+∨
+tpt
+ψ=PC∧gt
+ψ< do∧trft
+ψ≥to2
+gap with respect to the leader vehicle to cross a yield line.
+to1andto2are different times thresholds which are used to
+update Skwhen a PC signal is found.
+When the current traffic-regulation state is Sk=Go, if
+tpt
+ψ=RW, the new state is Sk+1=try. In this state, the
+trajectory generator tries to find a feasible speed profile that
+allows the EV to merge before a vehicle with higher priority,
+or to stop on the YL if it is not possible. If Sk=Goand
+tpt
+ψ=MS, then Sk+1=yield , leading the speed profile of
+each path candidate to always stop before reaching the YL.
+Lastly, if Sk=Goandtpt
+ψ=PC thenSk+1=aware ; in
+this state, the trajectory generator reduces the speed before
+crossing the signal. If sk=aware and there is a pedestrian
+detected on the crossing zone, then Sk+1=yield , and the
+EV will stop before the YL.
+D. Integration with the trajectory generation
+The trajectory generator creates Ntrajectory candidates
+and selects the best of them using a merit function (see [17]
+and [18] for more details). The paths are created using quintic
+B´ezier curves starting from the current EV trajectory and
+ending on different way-points ωjlocated on the centreline
+ofζt. The speed profile for the candidates is generated taking
+into account a set of comfort constraints, the position of the
+other traffic agents and the potential traffic regulations that
+may be imposed by ψt. A candidate is considered valid if
+it is collision free and it does not occupy any space outside
+the road.
+-50 -40 -30 -20 -10 0 10 20
+X position (m)-30-20-100102030Y position (m)Way-points (w)
+(a)
+0 10 20 30 40 50 60 70
+Distance on path (m)51015202530Speed (km/h)
+ (b)
+Fig. 5. Merging into a roundabout. (a) Set of way-points ωand path
+candidates. (b) Speed profiles for the candidates.
+Fig. 5a shows the way-points ωand the path candidates
+generated for a roundabout scenario where Sk=tryand
+gi
+ψ= 34 m. Fig. 5b depicts the speed profiles generated
+for each valid candidate. In this case, some speed profiles
+stop before reaching the yielding line and other speed
+profiles merge into the roundabout between the green and
+the magenta vehicles without stopping. The final maneuver
+is therefore chosen by the trajectory generator, following the
+candidate selection described in [18].
+The number of valid candidates created by the trajectory
+generator during a lane change maneuver is used as a
+feedback indicator by the maneuver planner, and, in case
+there is not at least ηvalid candidates, ζtis updated to cancel
+the lane change and to keep the current lane.
+III. E XPERIMENTAL RESULTS
+The complete ADS was implemented on a real vehicle in
+order to test the maneuver planner architecture on two sce-
+narios with real traffic agents. The instrumented vehicle is a
+fully automated Citr ¨oen DS3 with different on-board sensors
+(see a detailed explanation of the experimental platform in
+[19]).
+Two scenarios were selected to test the system. In the
+first one, the EV and two other vehicles ( OV1, OV 2) are
+approaching an intersection from different roads. The EV
+has to perform a left turn and there is a PC signal after the
+intersection, where a pedestrian (P) will cross when the EV
+approaches the signal. The setup of this scenario is depicted
+in Fig. 6a. Fig. 6b shows a capture of the real experiment
+on the testing track.
+In the second scenario the EV has to overtake another
+vehicle ( OV1), while on the opposite lane there is an
+oncoming vehicle ( OV2); hence, the EV has to wait until
+the opposite lane is free before performing the overtaking
+maneuver. Fig. 7a shows the setup of this scenario and Fig.
+7b shows the status of the vehicles at a specific moment
+during the experiment. Note that to increase the visibility of
+the EV and therefore be able to detect OV2well in advance, a
+collective perception architecture was implemented between
+the EV and OV1[20].
+The configuration parameters used in the experiments for
+the state transition conditions given in table I are shown in
+Table II.
+
+--- Page 5 ---
+(a)
+(b)
+Fig. 6. Intersection experimental scenario. (a) Experiment setup. (b) Traffic
+status during the real experiment.
+(a)
+(b)
+Fig. 7. Overtaking scenario. (a) Experiment setup. (b) Traffic status during
+the real experiment.
+TABLE II
+CONFIGURATION PARAMETERS FOR TESTING .
+Parameter Value Units
+do 9 m
+dc 7 m
+to1 3 s
+to2 1 sBy using these parameters, the EV will consider to discard
+a regulatory signal when it is closer than 9m from the
+corresponding yielding line. The distance with respect to
+a leader vehicle has to be greater than 7m to consider
+discarding a stop or a RW signal. Also, the EV will start
+to drive over a PC signal if the road has been free for over
+1 second.
+The complete video demonstrator for the
+intersection scenario can be accessed in
+www.youtube.com/watch?v=iOn0VP7fZ3A , while
+the one for the overtaking scenario is accessible in
+www.youtube.com/watch?v=0F4ov4ltFE4
+A. Intersection scenario
+In this scenario the EV has to drive over two different
+regulatory signals before reaching the destination. The first
+of them (ψ0)is a RW signal, where the EV is approaching
+from the yielding lane so that OV1has higher priority. The
+second signal (ψ1)is a PC signal with one person on the
+crossing area. Fig. 6a shows the yielding line of ψ0as a red
+line and the crossing zone of ψ1as a blue rectangle.
+The evolution of Skand the EV speed during the exper-
+iment are plotted in Fig. 8. To provide a higher context to
+the figure, three events were highlighted using vertical dotted
+lines: the crossing of the yielding line of ψ0, the moment
+where the road over the PC signal has been free for over t1
+seconds after the EV has stopped, and the crossing of the
+yielding line of ψ1.
+The EV detects the RW signal ψ0immediately after it
+starts (see Fig. 9a), leading to a state change from Sk=Go
+toSk+1=try. While in the latter state, the trajectory
+generator did not find a feasible trajectory to merge before
+OV1reached the intersection, so the EV stopped on the
+yield line during the interval t= [6.8s,13s](Fig. 9b). The
+condition ctgwas triggered at t= 13sbecause OV1did not
+intersect the EV trajectory any longer, hence ∆Xlead→ ∞ .
+At that moment Sk=Goandidψo=id0
+ψand, by doing
+this, this signal is omitted until its YL is completely crossed.
+Since ψ0is no longer taken into account, the next signal ψ1
+is detected (the PC signal), the state changes to Sk=Aware
+and then to Sk=yield because there is a pedestrian located
+in the crossing area. The EV starts to move and crosses the
+first yielding line of ψ0att= 17 .1s(Fig. 9c) and yields
+before the yielding line of ψ1. The EV maintains the yield
+0 5 10 15 20 25 30 35 40
+Time (s)YieldAwareTryGo
+024681012141618
+Speed (km/h)1          t          = crossed0          trf          1crossed1          
+Fig. 8. Traffic-regulation state Sand speed profile all along the intersection
+experiment.
+
+--- Page 6 ---
+-30 -20 -10 0 10 20 30-25-20-15-10-50510152025
+X position (m)Y position (m)
+(a)
+-30 -20 -10 0 10 20 30-25-20-15-10-50510152025
+X position (m)Y position (m)
+ (b)
+-30 -20 -10 0 10 20 30-25-20-15-10-505101520
+X position (m)Y position (m)
+(c)
+-30 -20 -10 0 10 20 30-25-20-15-10-505101520
+X position (m)Y position (m)
+ (d)
+Fig. 9. Time evolution of the intersection traffic scene. (a) traffic status at
+t= 1s. (b) traffic status at t= 13s(c) traffic status at t= 17.1s(a) traffic
+status at t= 27.1s.
+0 5 10 15 20 25 30 35
+Time (s)-50510152025Distance (m)Right of way
+Pedestrian crossing
+Fig. 10. Distance to the yielding lines of ψ0andψ1during the intersection
+scenario.
+decision until t= 27.1s, when the pedestrian exits the lane,
+so that trf1
+ψ≥t1, triggering the condition cyg(Fig. 9d).
+From that moment, and until the end of the experiment, the
+signal status is Sk=Go.
+The scenario was correctly handled and the behavior was
+appropriate in both signals, keeping at all times a safe driving
+profile. Fig. 10 shows the distance to the yielding lines of
+ψ0andψ1. It can be seen that the EV stopped at a distance
+of 5m in both cases.
+B. Overtaking scenario
+In this scenario, the EV has to safely overtake another
+vehicle. There are two possible corridors for the EV in this
+case. The first one is the right corridor (ζ0), which is also
+the initial corridor of the EV . The second one is the left
+corridor (ζ1), which is an opposite-way lane. Fig. 11 shows
+the probability assigned to each corridor during the trip,
+using a colour code to represent their status, as follows: blue
+indicates when ζi=ζt; green means ζiis available, but
+ζi̸=ζt; and grey is referred to the situation where the gaps
+of the corridor are not valid at the moment.
+At the beginning of the experiment, the right lane is
+selected as the target corridor since P(ζ0=ζt) = 0 .66.
+At this moment, the gap with respect to OV2is valid, but
+0 5 10 15 20 25 30 35 40
+Time (s)00.20.40.60.81Left corridor
+probabilityCorridor selected
+Corridor available but not selected
+Corridor not available
+0 5 10 15 20 25 30 35 40
+Time (s)00.20.40.60.81Right corridor
+probability
+Fig. 11. Probability of P(ζi=ζt)for the right and left corridors during
+the overtaking scenario.
+-180 -160 -140 -120 -100 -80
+X position (m)30405060708090100110120Y position (m)
+(a)
+-170 -160 -150 -140 -130 -120 -110 -100 -90 -8030405060708090
+X position (m)Y position (m)
+ (b)
+-130 -120 -110 -100 -90 -80 -70 -60 -5010203040506070
+X position (m)Y position (m)
+(c)
+-90 -80 -70 -60 -50 -40 -30 -20 -10-1001020304050
+X position (m)Y position (m)
+ (d)
+Fig. 12. Time evolution of the intersection traffic scene. (a) traffic status
+att= 8s. (b) traffic status at t= 19.5s(c) traffic status at t= 23.7s(d)
+traffic status at t= 30s.
+the value of P(ζ1=ζt)is low. At t= 8s(see Fig. 12a), the
+gap of ζ1is not considered valid anymore and this corridor
+becomes unreachable until t= 19.8s(Fig. 12b), when the
+target corridor changes also, as P(ζ1=ζt)> P(ζ0=ζt),
+triggering a lane-change maneuver. During the overtaking
+maneuver, the gap of ζ0is not valid due to the proximity
+between the EV and OV1(the status of the vehicles at this
+moment is depicted on Fig. 12c). When the EV overpasses
+OV1att= 25 .5s, the probability of the target corridor
+changes notably, and P(ζ1=ζt)< P(ζ0=ζt), but the
+gap acceptance model does not allow to select this corridor
+untilt= 30s(Fig 12d), where the ∆Xlag= 31.5m. At this
+moment, the EV starts the lane changing maneuver to the
+original lane, in order to complete the overtaking maneuver.
+The gaps between the EV and the vehicles OV1, OV 2
+during the experiment are plotted in Fig. 13. Every positive
+gap means that the OViis ahead the EV . For this experiment,
+OV1started 45m ahead the EV , and OV2started at 120m.
+Four time instants are highlighted on the figure using vertical
+dotted lines, which match the four frames plotted on Fig. 12.
+
+--- Page 7 ---
+0 5 10 15 20 25 30 35 40
+Time (s)-100-50050100150Gap distance (m)OV1
+OV2
+Fig. 13. Gaps with respect to OV1andOV2during the overtaking scenario.
+IV. C ONCLUDING REMARKS
+A maneuver planner for automated vehicles was designed
+and implemented within a hierarchical architecture to take
+tactical decisions about lane selection and regulatory signals
+handling. The lane-selection algorithm uses a utility model
+which considers both the current traffic status and the global
+route, while it ensures safety by applying a gap-acceptance
+model. The regulatory signal handling is performed using an
+FSM that can manage right of way, must stop and pedestrian
+crossing signals. The maneuver planner establishes a set
+of restrictions which are taken into account by a motion
+planner to generate a reachable trajectory set, and finally,
+a valid trajectory for the EV . The trajectory set is involved
+in the decision making process, providing flexibility and
+robustness to the system in complex driving scenarios. The
+complete ADS was implemented on a real vehicle and it was
+successfully validated on two real scenarios: an intersection
+with two other vehicles and a pedestrian; and a two way road
+where the EV had to perform an overtaking maneuver.
+Future work will be oriented towards the incorporation of
+other regulatory signals as traffic lights or reserved lanes.
+Also, the maneuver planner may include the integrity of
+the sensory data to propose different type of maneuvers
+accordingly i.e. if the quality of the lidar information is not
+reliable enough, lane changes are avoided.
+ACKNOWLEDGMENT
+This work has been partially funded by the Spanish
+Ministry of Science and Innovation with the National
+Project NEWCONTROL (PCI2019-103791), the Community
+of Madrid through SEGV AUTO 4.0-CM Programme (S2018-
+EMT-4362), and by the European Commission and EC-
+SEL Joint Undertaking through the Project NEWCONTROL
+(826653).
+REFERENCES
+[1] H. Li, G. Yu, B. Zhou, P. Chen, Y . Liao, and D. Li, “Semantic-level
+maneuver sampling and trajectory planning for on-road autonomous
+driving in dynamic scenarios,” IEEE Transactions on Vehicular Tech-
+nology , vol. 70, no. 2, pp. 1122–1134, 2021.
+[2] H. Ahn, K. Berntorp, P. Inani, A. J. Ram, and S. Di Cairano,
+“Reachability-based decision-making for autonomous driving: Theory
+and experiments,” IEEE Transactions on Control Systems Technology ,
+vol. 29, no. 5, pp. 1907–1921, 2021.[3] T. Gu, J. M. Dolan, and J.-W. Lee, “Automated tactical maneuver
+discovery, reasoning and trajectory planning for autonomous driving,”
+inProc.IEEE/RSJ Int. Conf. on Intell. Robots and Systems (IROS) ,
+2016, pp. 5474–5480.
+[4] A. Aksjonov and V . Kyrki, “Rule-based decision-making system for
+autonomous vehicles at intersections with mixed traffic environment,”
+inProc. IEEE Int. Intell. Transp. and Systems Conf. (ITSC) , 2021, pp.
+660–666.
+[5] P. de Beaucorps, T. Streubel, A. Verroust-Blondet, F. Nashashibi,
+B. Bradai, and P. Resende, “Decision-making for automated vehicles
+at intersections adapting human-like behavior,” in Proc. IEEE Intell.
+Veh. Symp. (IV) , 2017, pp. 212–217.
+[6] Y . Chen, J. Zha, and J. Wang, “An autonomous t-intersection driving
+strategy considering oncoming vehicles based on connected vehicle
+technology,” IEEE/ASME Transactions on Mechatronics , vol. 24,
+no. 6, pp. 2779–2790, 2019.
+[7] H. Weinreuter, B. Szigeti, N.-R. Strelau, B. Deml, and M. Heizmann,
+“Decision making at unsignalized inner city intersections using dis-
+crete events systems,” tm - Technisches Messen , vol. 89, no. 2, pp.
+134–146, 2022.
+[8] G. Xiong, Z. Kang, H. Li, W. Song, Y . Jin, and J. Gong, “Decision -
+making of lane change behavior based on rcs for automated vehicles
+in the real environment,” in Proc. IEEE Intell. Veh. Symp. (IV) , 2018,
+pp. 1400–1405.
+[9] J. Gong, Y . Xu, C. Lu, and G. Xiong, “Decision-making model of
+overtaking behavior for automated driving on freeways,” in Proc. IEEE
+Int. Conf. on Veh. Electronics and Safety (ICVES) , 2016, pp. 1–6.
+[10] U. Baumann, Y .-Y . Huang, C. Gl ¨aser, M. Herman, H. Banzhaf, and
+J. M. Z ¨ollner, “Classifying road intersections using transfer-learning on
+a deep neural network,” in Proc. Int. Conf. on Intell. Transp. Systems
+(ITSC) , 2018, pp. 683–690.
+[11] C. Vallon, Z. Ercan, A. Carvalho, and F. Borrelli, “A machine learning
+approach for personalized autonomous lane change initiation and
+control,” in Proc. IEEE Intell. Veh. Symp. (IV) , 2017, pp. 1590–1595.
+[12] P. Wang, C.-Y . Chan, and A. de La Fortelle, “A reinforcement learning
+based approach for automated lane change maneuvers,” in Proc. IEEE
+Intell. Veh. Symp. (IV) , 2018, pp. 1379–1384.
+[13] L. Chen, Y . He, Q. Wang, W. Pan, and Z. Ming, “Joint optimization
+of sensing, decision-making and motion-controlling for autonomous
+vehicles: A deep reinforcement learning approach,” IEEE Transactions
+on Vehicular Technology , vol. 71, no. 5, pp. 4642–4654, 2022.
+[14] L. Wei, Z. Li, J. Gong, C. Gong, and J. Li, “Autonomous driving
+strategies at intersections: Scenarios, state-of-the-art, and future out-
+looks,” in Proc. IEEE Int. Intell. Transp. Systems Conference (ITSC) ,
+2021, pp. 44–51.
+[15] F. Poggenhans, J.-H. Pauls, J. Janosovits, S. Orf, M. Naumann,
+F. Kuhnt, and M. Mayr, “Lanelet2: A high-definition map framework
+for the future of automated driving,” in Proc. IEEE 21st Int. Conf.
+Intell. Transp. Syst. (ITSC) , 2018, pp. 1672–1679.
+[16] T. Toledo, C. F. Choudhury, and M. E. Ben-Akiva, “Lane-changing
+model with explicit target lane choice,” Transportation Research
+Record , no. 1934, pp. 157–165, 2005.
+[17] J. F. Medina-Lee, A. Artu ˜nedo, J. Godoy, and J. Villagra, “Reachability
+estimation in dynamic driving scenes for autonomous vehicles,” in
+Proc. IEEE Intell. Veh. Symp. (IV) , 2020, pp. 2133–2139.
+[18] J. Medina-Lee, A. Artu ˜nedo, J. Godoy, and J. Villagra, “Merit-based
+motion planning for autonomous vehicles in urban scenarios,” Sensors ,
+vol. 21, p. 3755, May 2021.
+[19] A. Artu ˜nedo, J. Villagra, J. Godoy, and M. D. d. Castillo, “Motion
+planning approach considering localization uncertainty,” IEEE Trans-
+actions on Vehicular Technology , vol. 69, no. 6, pp. 5983–5994, 2020.
+[20] J. Godoy, V . Jim ´enez, A. Artu ˜nedo, and J. Villagra, “A grid-based
+framework for collective perception in autonomous vehicles,” Sensors ,
+vol. 21, no. 3, p. 744, 2021.

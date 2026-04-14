@@ -1,0 +1,360 @@
+--- Page 1 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014), pp. 303-3 10 
+http://dx.doi.org/10.14257/ijsh.2014.8.1.31 
+ 
+ 
+ISSN: 1975- 4094 IJSH 
+Copyright ⓒ 2014 SERSC The Controller Development of Multi-layer Parking Equipment  
+Based on STM32 
+ 
+ 
+Zhang Yongde1, Zhang Qinxiang1, Jiang Jingang1, b, Zhao Yanjiang1, Qian Qingwen1, 
+Tang Dedong1 and Tian Daifu2 
+1Intelligent Machine Institute, Harbin University of Science and Technology, China 
+2Shangzhi Tiandi Stereoscopic Parking Equipment Manufacturing Co. Ltd.,China 
+azhangyd@hrbust.edu.cn, bjiangjingang@hrbust.edu.cn  
+Abstract 
+To meet the needs of the general parking equipment with high integration, fully functional 
+control system, we design a controller based on STM32F103 series microprocessor used in 
+Multi-layer parking equipment, with SD card, NRF and other module interface. To ensure the 
+stability of the controller, all of the input interface, relay output interface and the power 
+supply part are isolated, smoothed and other necessary processing; The controller can be 
+performed RS485, CAN bus communication, also with voice alarm, LCD display. After the 
+necessary tests, combined with practical work of the three layers and six places parking 
+equipment, then verified the reliability and practicability of the controller. 
+ 
+Keywords: Multi-layer Parking Equipment, STM32, Controller 
+ 
+1. Introduction 
+Automotive and real estate industry are developing rapidly, making the city parking 
+problems become increasingly prominent. Multi-layer Parking Equipment for its safety, good 
+stability and high economic advantages, has been widely used, and its controller mostly uses 
+PLC[1]. However, PLC costs highly, more connected lines, relatively independent of each 
+unit, then can not be a wide range of applications, at the same time can not conducive to 
+management[2]. Therefore, we design a controller used in Multi-layer parking equipment 
+based on STM32F103 series microprocessor, with power supply module, relay module. 
+Support RS485, CAN bus communication, capable of voice prompts, with anti-jamming input 
+interface and rich peripheral interfaces, be able to facilitate future software upgrades and 
+equipment improvements. The controller not only can guarantee real-time control, stability 
+and accuracy, but also can reduce input costs, to meet the economic needs of customers. 
+ 
+2. Overall Design Scheme 
+The controller uses Context-M3 core STM32F103 series of 32-bit microprocessor, 
+which is widely used in industrial control, automotive electronics, medical equipment 
+and other industries. STM32 has a wealth of internal resources as well as external 
+expansion capabilities, the clock frequency can reach 72MHZ, so it has a faster 
+processing speed, can meet the requirements of high-speed communications[3]. 
+According to the specific requirements of parking equipment, controller through real -
+time detect the sensor signal, after a preset algorithm, the control signal is transmitted 
+to the relay, then relay control motors. In the master-slave control system, the 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 2 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+304   Copyright ⓒ 2014 SERSC  subordinative controller can exchange data though RS485 or CAN bus with the host 
+controller [4]. 
+The controller should have enough I/O ports to detect the sensor signals, STM32 has 
+as many as 112 multifunctional bidirectional I/O port[5], all the I/O port can be mapped 
+to the 16 interrupts, and almost all of the I/O are able to tolerate 5V signal, thus greatly 
+improve the practicability and anti-interference of the controller[6]. Figure 1 is the 
+three layers and six places parking equipment, it has six parking spaces, motors M1, 
+M2, M3 provide electrical power output, the upright can be moved back and forth on 
+the rail, and the mounter can move up and down along the uprights, also can rotate 90 °
+around the uprights, through sensors to restrict their movements. During operation, the 
+controller can carry real-time voice prompts, if an accident occurs, Such as overloading 
+of vehicles, equipment failure, and the vehicle exceed limited height, the corresponding 
+sensor can sent the abnormal condition to the controller promptly, the controller stop 
+the motors right now, and at the same time play voice prompts, to draw attention to 
+safety. 
+ 
+Mounter
+Tray
+Truss
+M1 M2 RailTrussUprightsM3 Rail
+ 
+Figure 1. Three Layers and Six Places Parking Equipment 
+3. Hardware Design  
+ 
+PVD
+I/O 
+USART1
+USART2
+USART3
+CAN
+JTAGI/O 
+FMSC
+SPI1
+SPI2
+I/O Power module
+Clock circuit
+Reset circuit
+Crystal circuit
+CH340G
+SP3232
+SP3485
+TJA1050
+JTAGAccess port
+RS232
+RS485
+CANSRAM
+NRF
+LCDDrive circuitSwitch
+value 
+input 
+and 
+output 
+interface 
+Input and 
+output signals
+Relay output Optocoupler STM32Sensor module
+SPI3 Voice module SDIO SD cardOptocoupler 
+ 
+Figure 2. Hardware Structure of the Controller 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 3 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+Copyright ⓒ 2014 SERSC    305 The hardware of the controller uses the modular design, which can not only guarantee the 
+independence of each module, and also can realize the connection of various parts of the 
+mutual [7]. Make full use of the STM32 on-chip rich peripherals, according to the required 
+control functional of the multi-layer parking equipment, to design of communication module, 
+power module, relay module and voice module, the hardware structure of the controller is 
+shown in Figure 2. 
+ 
+2.1. Power Module 
+The design of power module is directly determine the stability of the controller, during the 
+power module design should pay full consideration to the isolation, noise reduction, 
+protection and other aspects. According to the need of parking equipment, power module 
+must be able to provide the standard 3.3V, 5V, 12V voltage. So we use the LM2576-12 to 
+reduce the external switching power supply voltage of 24V down to 12V for relays. To ensure 
+the power supply stability and anti-jamming, we select DC-DC isolated power modules 
+B1205S-2W to reduce 12V to VDD(+5V) for the use of sensors and optocouplers, in addition 
+the voltage stabilizer of LM2576-5 can output standard +5V power for the use of 
+ADuM1201,CH340G and other chips which need +5V power. Then through the linear 
+regulator LM1117-3.3 buck to 3.3V supply to the STM32F103 and other chips which need 
++3.3V power like SP3485. At the same time the two trace +5V power use different GND, so 
+this can avoid the electromagnetic interference which the optocouplers and Holzer sensors 
+bring to the control system, the power module schematic diagram shown in Figure 3. 
+ 
+ 
+Figure 3. Power Module Schematic Diagram 
+F1 in Figure 2 is a fuse, it can avoid short circuit and overload damage to the controller; 
+Inductance L1, L2 are used to stop the AC interference signals through, to suppress the 
+electromagnetic interference, but also can filter the power; Capacitors used to bypass, 
+decoupling and filtering, D13 and D14 are TVS play the role of regulator. 
+ 
+2.2. CAN Bus Communication Interface 
+As STM32 integrated CAN2.0A / B controller, so just add a TJA1050 driver chips can be 
+realize communication, in CAN bus interface circuit[8], the application of high speed 
+optocoupler ADUM1201 to isolate the TJA1050 and STM32 chip, because if the bus speed is 
+higher than 62.5kpbs is considered to the high speed mode. As shown in Figure 4, there is a 
+22PF parallel connection capacitance between CANH and GND, as well as CANL, used to 
+filter out high frequency interference signals on the bus. In addition, between the two CAN 
+bus access terminal and earth respectively, reverse connect a protection diode, when the CAN 
+bus has a high negative voltage, by the diode circuit can play certain role of overvoltage 
+protection. 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 4 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+306   Copyright ⓒ 2014 SERSC  
+ 
+Figure 4. CAN Bus Communication Interface Circuit 
+2.3. Switch Value Input and Relay Output Interface Circuit 
+The sensors used in multi-layer parking equipment return signal most are the switching 
+value, so it can directly use the STM32 general purpose I/O interface circuit connected to the 
+sensor to get the test data. As shown in Figure 5, using TLP181 optocoupler to isolate. Pull-
+up resistor prevent interference and the diode prevent current flow backward, the point of 
+INT0 is used to detect whether there are data inputs in input port of INPUT0. 
+ 
+Figure 5. Switch Value Input Circuit 
+The multi-layer parking equipment output signals are generally relay output, as shown in 
+Figure 6, we use a high voltage output with open collector Hex Buffer/Driver SN74LS07. A 
+SN74LS07 has six outputs, each channel can provide maximum output voltage of 30V, fully 
+meet the relay coil control requirements. In addition, the relay coil with a parallel connection 
+transient reverse diode to release reverse discharge current, protection relays and pre-driver 
+chip, the point of INT0 is used to detect whether the relay is closed. 
+ 
+Figure 6. Relay Output Circuit 
+Switch value 
+input interface
+CAN bus output 
+interface
+RS485 output 
+interfaceUSB-USART
+JTAG 
+interface
+Relay output 
+interfaceGPIO
+Common USBPower interface
+STM32F103
+RS485 output 
+interface
+ 
+Figure 7. The Controller Circuit Board 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 5 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+Copyright ⓒ 2014 SERSC    307 Figure 7 is the controller circuit board. In order to facilitate the connection, the controller is 
+divided into two layers, in which the upper layer are STM32F103 minimum system and 
+peripheral circuit, oscillator circuit, reset circuit, USB serial port, The upper plate can also be 
+used as a simple controller; The lower is the peripheral interfaces, such as CAN bus 
+communication interface, input interface, relay output interface. 
+ 
+3. Software Architecture Design and Application Verification 
+Many parking equipments are over reliance on hardware and neglect the software design, 
+the software structure design based on good hardware resources can reflects the system's user-
+friendly [9]. Based on the control need of the three layers and six place parking equipment, 
+design the software control flow. Control mode is divided into automatic and manual 
+operation, and manual operation is apply to manual adjustment when the system can not run 
+automatically due to equipment malfunctions or other problems. The automatic mode is the 
+normal way of the multi-layer parking equipment, and can automatically park and withdraw 
+the vehicle according to the customer demand, Figure 8 shows the main program flow chart 
+of the parking system with three layers and six parking equipment. The controller makes a 
+judgment of parking or taking the car according to user input, then enter the corresponding 
+subroutine. 
+ 
+Start
+Device 
+initialization
+Meet the operational 
+requirements
+Acquisition vehicle 
+access informationEmergency braking
+Fault detect Voice alarm
+Manual adjustmentParking Withdraw
+Parking process Withdraw process
+EndYN
+Vehicle finishN
+Y
+ 
+Figure 8. Main Program Flow Chart 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 6 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+308   Copyright ⓒ 2014 SERSC  The parking process is basically the same as pick up. Here only introduce the parking 
+process, the control system based on the information of user input to determine the parking, 
+then find free place, according to predetermined algorithm processes to finish the parking 
+process, the parking process diagram as shown in Figure 9. 
+ 
+Start
+Gain parking 
+information
+Free parking 
+Spaces
+M3 startYN
+Mount limit reachedN
+YTray up
+M3 stop
+M1 start
+Rotate limit reachedMounter rotate
+YN
+M1 stopM2 start
+Uprights back
+Back to slow down
+ limit reachedN
+Y
+M2 slow down
+Back to stop
+ limit reached
+YN
+M2 stop
+M3 start
+Tray down
+Tray limit reached
+YN
+M3 stopM2 start
+Uprights forward
+Forward to stop
+ limit reached
+M2 stop
+M3 start
+Mounter down
+Mounter limit reached
+M3 stopN
+EndN
+Y
+N
+Y
+YM2 slow downForward to slow down
+ limit reached
+ 
+Figure 9. Parking Process Diagram 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 7 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+Copyright ⓒ 2014 SERSC    309 4. Conclusion 
+Multi-layer parking equipment can make full use of the space resource, and the 
+controller is the most important. The controller we design based on STM32 can increase 
+integration, at the same time can reduce the control volume, decrease costs and easy 
+maintenance. During the hardware design, we considered the isolation, filtering and 
+other factors. After the schematic and PCB drawing, we proce ed some necessary 
+simulation, at the same time with high processing speed and the communication rate, 
+stable power supply, can satisfy the control demand. Finally, we use the controller to 
+control the three layers and six parking equipment, in combination with the equipment 
+working process, we write the control software, over all aspects of the test, the 
+controller's input and output is very stable, faster communication speed, each module 
+can run better, can fully meet the requirements of the parking equipment control. 
+ 
+Acknowledgements 
+This research was supported by Heilongjiang Province Research and Development of 
+Applied Technology Project (Grant No.GC13A410). 
+ 
+References  
+[1] Y. Li, J. Huang and J. Huang, “Research on Intelligent basket type parking equipment control system ”, vol. 
+50, no. 572 , (2012), pp. 34-36. 
+[2] E. Fang, X. Chen and J. Zhou, “Control Part Design of Up-Down and Loft-Right ”, vol. 19, no. 2 , (2006), pp. 
+13-14. 
+[3] T. Pan, X. Ye, N. Zhang and J. Fan, “Design and Application of CAN Bus Repeater Based on STM32 ”, vol. 
+1, (2011), pp. 46-48. 
+[4] ST Company.ST A013 ST A013B STA013T mpeg2. 5 layer III audio decoder, (2004). 
+[5] F. Yang, H. Ge and J. Zhang , “Design and implementation of embedded experimental system based on 
+STM32 processor ”, vol. 42, no. 3 , (2013) , pp. 57-61. 
+[6] B. Deng, “Design and implementation of elevator caller controller based on STM32 ”, University of 
+Electronic Science and Technology of China, (2011) . 
+[7] L. Zhu, Y. Guo and Q. Li, “Research and implementation of universal industrial controller based on STM32 ”, 
+vol. 2, no. 39, (2011), pp. 224-227. 
+[8] T. Chanhun Park, D. IL Park, J.-H. Kyung, K. Park and D. Kim, “Design of Dual Arm Robot Manipulator 
+Using Modular Actuators with CAN Communication Networks”,  COEX, Seoul, Korea , (2008) October 14-
+17. 
+[9] S. Cheng, “Design and implementation of vehicle access controller based on STM32 ”, vol. 4 , (2012) , pp. 20-
+24. 
+Online Version Only. 
+Book made by this file is ILLEGAL.
+
+--- Page 8 ---
+International Journal of Smart Home 
+Vol.8, No.1 (2014) 
+ 
+ 
+310   Copyright ⓒ 2014 SERSC   
+Online Version Only. 
+Book made by this file is ILLEGAL.

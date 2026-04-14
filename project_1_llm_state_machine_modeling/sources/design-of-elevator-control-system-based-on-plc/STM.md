@@ -2,12 +2,23 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：HSM（层次状态机）
+- 代表时间级别：T1（工程定时 / 局部定时）
+- 结构标签概况：层次
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：1
 - 简要判断：论文用工作流形式描述了电梯的初始楼层、呼叫响应、开门/关门、行程开关反馈、自动/手动切换与异常呼叫，足以形成完整的上层模式控制描述。
 
 ## 条目 1: PLC elevator workflow with automatic and manual operation
 - 控制对象：PLC 电梯系统的工作流与模式控制
+- 状态机类型：HSM（层次状态机）
+- 时间级别：T1（工程定时 / 局部定时）
+- 结构标签：层次
+- 原文细节充实度：🟡 B（细节较充实）
+- 描述细节充实度：🟡 B（细节较充实）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -44,15 +55,17 @@
 
 ### 2. 基于原文整理后的自然语言描述
 
-When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information. If the elevator stops at a floor, the call buttons on that floor can trigger door-opening information, and the controller inserts a delay to keep the operation safe before continuing with movement. As the car travels, the corresponding call light is turned on and then cleared after the requested operation is completed, and a travel-controller switch at each floor confirms that the car has reached the commanded area. The system supports automatic execution of button-call commands together with a manual operation function for safety, keeps the door self-locking function unavailable during car movement, displays the current floor during operation, and provides an emergency call button for abnormal situations.
+When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information from the control system. If the elevator stops at a floor, the upper and lower call buttons on that floor can send door-opening information, and the controller inserts a delay operation to keep the door and movement sequence safe. During operation, the corresponding call light is turned on after the instruction is received and turned off after the requested operation is completed, and the travel controller at each floor confirms that the car has reached the commanded area. The system can receive another operation while one operation is already being executed, repeating the programmed instruction structure accordingly. It also provides automatic control together with a manual operation function for safety, keeps the door self-locking function unavailable during elevator motion, displays the current floor during travel, and provides an emergency call button with communication capability for abnormal situations.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information.
+1. 句子 1：When the PLC elevator controller is initialized, the car starts from the first floor and waits for call-button information from the control system.
    对应摘录：A
-2. 句子 2：If the elevator stops at a floor, the call buttons on that floor can trigger door-opening information, and the controller inserts a delay to keep the operation safe before continuing with movement.
+2. 句子 2：If the elevator stops at a floor, the upper and lower call buttons on that floor can send door-opening information, and the controller inserts a delay operation to keep the door and movement sequence safe.
    对应摘录：A
-3. 句子 3：As the car travels, the corresponding call light is turned on and then cleared after the requested operation is completed, and a travel-controller switch at each floor confirms that the car has reached the commanded area.
+3. 句子 3：During operation, the corresponding call light is turned on after the instruction is received and turned off after the requested operation is completed, and the travel controller at each floor confirms that the car has reached the commanded area.
    对应摘录：A
-4. 句子 4：The system supports automatic execution of button-call commands together with a manual operation function for safety, keeps the door self-locking function unavailable during car movement, displays the current floor during operation, and provides an emergency call button for abnormal situations.
+4. 句子 4：The system can receive another operation while one operation is already being executed, repeating the programmed instruction structure accordingly.
+   对应摘录：A
+5. 句子 5：It also provides automatic control together with a manual operation function for safety, keeps the door self-locking function unavailable during elevator motion, displays the current floor during travel, and provides an emergency call button with communication capability for abnormal situations.
    对应摘录：A

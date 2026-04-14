@@ -1,0 +1,2582 @@
+--- Page 1 ---
+Optimization and Control of an Energy
+Management System for Microgrids
+
+--- Page 2 ---
+OPTIMIZATION AND CONTROL OF AN ENERGY
+MANAGEMENT SYSTEM FOR MICROGRIDS
+BY
+XIANG YU, B.Eng.
+a thesis
+submitted to the department of electrical & computer engineering
+and the school of graduate studies
+of mcmaster university
+in partial fulfilment of the requirements
+for the degree of
+Master of Applied Science
+cCopyright by Xiang Yu, Feburary 2014
+All Rights Reserved
+
+--- Page 3 ---
+Master of Applied Science (2014) McMaster University
+(Electrical & Computer Engineering) Hamilton, Ontario, Canada
+TITLE: Optimization and Control of an Energy Management
+System for Microgrids
+AUTHOR: Xiang Yu
+B.Eng., (Electrical Engineering)
+McMaster University, Hamilton, Canada
+SUPERVISORS: Dr. S. Sirouspour, Dr. A. Emadi
+NUMBER OF PAGES: xvi, 117
+ii
+
+--- Page 4 ---
+To my wife Anqi, daughter Fandi, parents, parents in-law and my grandparents.
+
+--- Page 5 ---
+Abstract
+An increasing concern over environmental impacts of fossil fuels and sustainability
+of energy resources is leading to signicant changes in the electric power systems.
+Decentralized power generation, in particular, is emerging as one of the most eective
+and promising tools in addressing these concerns.
+Microgrids are small-scale electricity grids with elements of load, generation and
+storage. Microgrids have emerged as an essential building block of a future smart grid,
+and an enabling technology for distributed power generation and control. This thesis
+presents an optimization-based approach for the design and control of energy man-
+agement systems (EMS) for electric microgrids. A linear programming formulation of
+power/energy management is proposed to minimize energy cost for a microgrid with
+energy storage and renewable energy generation, by taking advantage of time-of-use
+(TOU) pricing. The thesis also addresses the issue of sizing of the battery storage
+and solar power generation capacity by formulating and solving a mixed integer lin-
+ear programming (MILP) problem. The aim of the optimization is to minimize the
+combined capital and electricity usage cost subject to applicable physical constraints.
+Several case scenarios are analyzed for grid-connected microgrids in residential, com-
+mercial and industrial settings, as well as a case of an islanded microgrid intended for
+a remote community.
+iv
+
+--- Page 6 ---
+Finally, the thesis investigates circuit level control of a microgrid with EMS. A
+nite state machine based control logic is proposed that enables outage ride through
+and smooth transition between islanded and grid connected operation. Simulation
+results are provided to demonstrate the eectiveness of the proposed controller under
+various possible scenarios.
+v
+
+--- Page 7 ---
+Acknowledgements
+Many thanks and appreciation to my supervisors, Dr. Shahin Sirouspour and Dr. Ali
+Emadi, for their guidance, support and encouragement.
+Special thanks to my family for their endless love and support since they have
+made it possible for me to accomplish my graduate study.
+Sincere gratitude to my fellow colleagues, Pawel Malysz, Yanbo Xue, Berker Bilgin,
+Hao Ge, Haizhong Ye, Jin Ye, Weisheng Jiang, Yinye Yang, Aochi Yang, Parampreet
+Toor, Adihithya Ravichandran and Guotao Lin for their help in my research.
+vi
+
+--- Page 8 ---
+Notation and Abbreviations
+Notations and abbreviations
+AEMS - Adaptive Energy Management System
+CHP - Combined Heat and Power
+CSI - Current Source Inverter
+DERs - Distributed energy Resources
+DGs - Distributed Generations
+EOB - Ontario Energy Board
+EV - Electric Vehicle
+HVAC - Heat Ventilation and Air Conditioning
+kVA - kilovolt-amperes
+kW - kilowatts
+kWh - kilowatts-hours
+MILP - Mixed Integer Linear Program
+MPC - Model Predictive Control
+MPPT - Maximum power point tracing
+LP - Linear Program
+ICE - Internal Combustion Engine
+OEB - Ontario Energy Board
+vii
+
+--- Page 9 ---
+PDF - Probability Density Function
+PV - Photovoltaic
+RES - Renewable Energy Sources
+SOC - State-of-Charge
+TOU - Time-of-Use
+V2G - Vehicle to Grid
+VSI - Voltage Source Inverter
+viii
+
+--- Page 10 ---
+Contents
+Abstract iv
+Acknowledgements vi
+Notation and Abbreviations vii
+1 Introduction 1
+1.1 Motivation . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.2 Problem Statement and Thesis Contributions . . . . . . . . . . . . . 7
+1.3 Thesis Organization . . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+1.4 Related Publications . . . . . . . . . . . . . . . . . . . . . . . . . . . 9
+2 Literature Review 10
+2.1 Electricity grid, Microgrid, and Distributed Generation . . . . . . . . 10
+2.2 Microgrid Modelling . . . . . . . . . . . . . . . . . . . . . . . . . . . 12
+2.3 Microgrid Control . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 13
+2.4 Optimization-based Control Strategies for Microgrids . . . . . . . . . 15
+2.5 Existing Energy Management Systems . . . . . . . . . . . . . . . . . 17
+ix
+
+--- Page 11 ---
+3 Residential EMS System Level Study 19
+3.1 Pricing Regime and Power Prole . . . . . . . . . . . . . . . . . . . . 20
+3.2 Residential House Power Prole . . . . . . . . . . . . . . . . . . . . . 23
+3.3 System Level Study of Home Energy Management System . . . . . . 27
+3.3.1 Optimization Problem Formulation for Controlling Storage Ac-
+tivities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 27
+3.3.2 Case Study - Residential Home . . . . . . . . . . . . . . . . . 29
+3.4 Components Sizing Optimization . . . . . . . . . . . . . . . . . . . . 32
+3.4.1 Case 1 - Current TOU Pricing with Micro-Fit . . . . . . . . . 32
+3.4.2 Case 2 - Future TOU Price . . . . . . . . . . . . . . . . . . . 38
+3.4.3 Case 3 - Future TOU Price Buy-in Only . . . . . . . . . . . . 43
+3.4.4 Islanding Operation for Remote Homes . . . . . . . . . . . . . 46
+4 Commercial and Industrial EMS System Level Analysis 50
+4.1 Commercial Building Power Prole . . . . . . . . . . . . . . . . . . . 51
+4.2 Industrial Building Power Prole . . . . . . . . . . . . . . . . . . . . 53
+4.3 Power Usage Optimization for Commercial and Industrial Setting . . 55
+4.3.1 Optimization Formulation . . . . . . . . . . . . . . . . . . . . 56
+4.3.2 Case Study - Commercial Building . . . . . . . . . . . . . . . 57
+4.3.3 Case Study - Industrial Site . . . . . . . . . . . . . . . . . . . 59
+4.4 Components Sizing Optimization . . . . . . . . . . . . . . . . . . . . 61
+4.4.1 Current TOU price and Micro-t with Demand Charge . . . . 61
+4.4.2 Future TOU Price with Demand Charge . . . . . . . . . . . . 65
+4.4.3 Future TOU Price Buy-in Only with Demand Charge . . . . . 70
+x
+
+--- Page 12 ---
+5 Circuit Level Modelling and Control 76
+5.1 Solar Panel . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 76
+5.2 Lead Acid Battery . . . . . . . . . . . . . . . . . . . . . . . . . . . . 80
+5.3 Energy Storage Control with Bi-directional DC-AC Inverter . . . . . 84
+5.4 Two Stage DC-AC inverter with MPPT . . . . . . . . . . . . . . . . 88
+5.5 Central Control Unit . . . . . . . . . . . . . . . . . . . . . . . . . . . 90
+5.5.1 Controller Implementation . . . . . . . . . . . . . . . . . . . . 90
+5.6 Simulation of Microgrid Operation . . . . . . . . . . . . . . . . . . . 95
+5.6.1 Simulation Setup . . . . . . . . . . . . . . . . . . . . . . . . . 95
+5.6.2 Grid Connected Operation . . . . . . . . . . . . . . . . . . . . 97
+5.6.3 Grid Failure . . . . . . . . . . . . . . . . . . . . . . . . . . . . 99
+5.6.4 EMS Oine . . . . . . . . . . . . . . . . . . . . . . . . . . . . 101
+5.6.5 Black Start - Battery First . . . . . . . . . . . . . . . . . . . . 103
+5.6.6 Black Start - Grid First . . . . . . . . . . . . . . . . . . . . . 105
+6 Conclusions and Future Work 107
+6.1 Conclusions . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 107
+6.2 Future Study . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 109
+xi
+
+--- Page 13 ---
+List of Figures
+1.1 US primary energy consumption by sector in the year 2010 (USEIA,
+2012). . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 2
+1.2 Ontario hourly energy usage, 2011 (IESO, 2013b) . . . . . . . . . . . 4
+1.3 Residential microgrid with EMS . . . . . . . . . . . . . . . . . . . . . 6
+3.1 Ontario electricity TOU pricing, OEB (2013) . . . . . . . . . . . . . . 20
+3.2 Electricity rate calculation for urban high density residential house-
+hold, HydroOne (2013a,b) . . . . . . . . . . . . . . . . . . . . . . . . 21
+3.3 Hourly power usage for a week in summer and winter . . . . . . . . . 24
+3.4 PDF plot of hourly power usage of a year for a residential house located
+in Ancaster, Ontario, Canada . . . . . . . . . . . . . . . . . . . . . . 25
+3.5 A residencial microgrid . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+3.6 Linear programming based electricity usage optimization for residential
+house by controlling battery activities: (a) power demand prole of
+the house, without EMS, (b) grid power prole using EMS, (c) battery
+energy prole, (d) battery power prole; P0 means discharge of
+battery . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 30
+xii
+
+--- Page 14 ---
+3.7 A 24-hour period plot of Figure 3.6 : (a) power demand prole of
+the house, without EMS. (b) grid power prole using EMS.(c) battery
+energy prole, (d) battery power prole; P0 means discharge of
+battery . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 31
+3.8 MILP-based component sizing optimization to maximize revenue -
+component sizing with Micro-t pricing a) Load power prole and solar
+array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole . . . . . . . . . . . . . . . . . 36
+3.9 MILP-based component sizing optimization to maximize revenue - with
+future pricing(1). a) Load power prole and solar array power prole
+b) Grid power prole after optimization c) Battery power prole d)
+Battery energy prole . . . . . . . . . . . . . . . . . . . . . . . . . . . 40
+3.10 MILP-based component sizing optimization to maximize revenue - with
+future pricing(2). a) Load power prole and solar array power prole
+b) Grid power prole after optimization c) Battery power prole d)
+Battery energy prole . . . . . . . . . . . . . . . . . . . . . . . . . . . 42
+3.11 MILP-based component sizing optimization to maximize revenue - with
+future pricing buy-in only. a) Load power prole and solar array power
+prole b) Grid power prole after optimization c) Battery power prole
+d) Battery energy prole . . . . . . . . . . . . . . . . . . . . . . . . . 45
+3.12 An islanded microgrid for a remote community. a) Load, solar and
+wind power prole b) energy storage power prole c) energy storage
+energy prole . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 48
+xiii
+
+--- Page 15 ---
+4.1 Commercial building hourly power usage for a month in summer and
+winter . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+4.2 Probability density function of annual energy usage for a commercial
+building . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 53
+4.3 Industrial building hourly power usage for a month . . . . . . . . . . 54
+4.4 Industrial building probability density function of annual power usage 55
+4.5 Commercial TOU with demand charge optimization, (a) power net
+demand power prole, (b) grid power prole with EMS, (c) battery
+power prole, (d) battery energy prole . . . . . . . . . . . . . . . . . 58
+4.6 Industrial TOU with demand charge optimization, (a) power net de-
+mand power prole, (b) grid power prole with EMS, (c) battery power
+prole, (d) battery energy prole . . . . . . . . . . . . . . . . . . . . 60
+4.7 Commercial building optimization Micro-t, a) Load power prole and
+solar array power prole b) Grid power prole after optimization c)
+Battery power prole d) Battery energy prole . . . . . . . . . . . . . 64
+4.8 MILP-based component sizing optimization to maximize revenue for
+commercial setting with future pricing. a) Load power prole and
+solar array power prole b) Grid power prole after optimization c)
+Battery power prole d) Battery energy prole . . . . . . . . . . . . . 67
+4.9 MILP-based component sizing optimization to maximize revenue for
+industrial setting with future pricing. a) Load power prole and solar
+array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole . . . . . . . . . . . . . . . . . 69
+xiv
+
+--- Page 16 ---
+4.10 MILP-based component sizing optimization to maximize revenue for
+commercial setting with buy-in only. a) Load power prole and solar
+array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole . . . . . . . . . . . . . . . . . 73
+4.11 MILP-based component sizing optimization to maximize revenue for
+industrial setting with buy-in only price. a) Load power prole and
+solar array power prole b) Grid power prole after optimization c)
+Battery power prole d) Battery energy prole . . . . . . . . . . . . . 75
+5.1 Solar cell . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 77
+5.2 Circuit model of an ideal solar panel . . . . . . . . . . . . . . . . . . 78
+5.3 (a) Typical lead acid battery discharge curve, (b) Hysteresis phenomenon
+at exponential zone for lead-acid battery (Olivier Tremblay, 2009) . . 81
+5.4 Discharge battery model(Olivier Tremblay, 2009) . . . . . . . . . . . 82
+5.5 H-bridge DC-AC bidirectional converter . . . . . . . . . . . . . . . . 84
+5.6 Bi-directional DC-AC converter control logic . . . . . . . . . . . . . . 86
+5.7 P/Q droop control function . . . . . . . . . . . . . . . . . . . . . . . 87
+5.8 PV array electrical characteristics as a function of solar irradiance . . 88
+5.9 Architecture of PV grid-tie inverter . . . . . . . . . . . . . . . . . . . 89
+5.10 Grid-tie converter control architecture . . . . . . . . . . . . . . . . . 90
+5.11 Circuit level control schematics . . . . . . . . . . . . . . . . . . . . . 91
+5.12 Central control unit . . . . . . . . . . . . . . . . . . . . . . . . . . . . 94
+5.13 System in simulation . . . . . . . . . . . . . . . . . . . . . . . . . . . 96
+xv
+
+--- Page 17 ---
+5.14 Circuit level simulation - grid connected operation, a) current of grid,
+EMS converter and solar system, b) voltage, current and RMS voltage
+of the EMS converter, c) voltage, current and voltage RMS value of
+the grid power prole, d) voltage and current of the solar output power. 98
+5.15 Circuit level simulation - grid failure, a) the current of grid, EMS
+converter and solar system, b) voltage, current and RMS voltage value
+of the EMS converter. c) voltage, current and RMS voltage value of
+the grid power prole. d) voltage and current of the solar output power.100
+5.16 Circuit level simulation - EMS oine,a) the current of grid, EMS con-
+verter and solar system, b) voltage, current and RMS voltage of the
+EMS converter, c) voltage, current and voltage RMS value of the grid
+power prole, d) voltage and current of the solar output power. . . . 102
+5.17 Circuit level simulation - EMS black start battery rst, a) the current
+of grid, EMS converter and solar system, b) voltage, current and RMS
+voltage of the EMS converter, c) voltage, current and voltage RMS
+value of the grid power prole, d) voltage and current of the solar
+output power. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 104
+5.18 Circuit level simulation - EMS black start grid rst, a) the current of
+grid, EMS converter and solar system, b) voltage, current and RMS
+voltage of the EMS converter, c) voltage, current and voltage RMS
+value of the grid power prole, d) voltage and current of the solar
+output power. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 106
+xvi
+
+--- Page 18 ---
+Chapter 1
+Introduction
+1.1 Motivation
+Energy and sustainability are arguably the dening issues of the 21st Century (Unit-
+edNation, 2013). As illustrated in Figure 1.1, in the United States, the electric power
+sector account for 40% of the total energy consumption in the year 2010 (USEIA,
+2012). In 2010, the carbon dioxide emissions by electricity power sector were 2271
+million metric tons (USEIA, 2012).
+The current electricity grid has been operating in essentially the same way for a
+century now. It is based on centralized power generation produced mostly from fossil
+fuels and nuclear energy that is transmitted over a long distribution network to reach
+consumers. Short supply of fossil fuel, increasing emissions of greenhouse gases (Arm-
+strong, 2007), and more frequent power outages have lead to renewed eorts in de-
+veloping new concepts of electric power system to facilitate a more sustainable and
+greener operation. Researchers and government regulators have recognized that grid
+decentralization is among the most eective means of tackling the problem of energy
+1
+
+--- Page 19 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 1.1: US primary energy consumption by sector in the year 2010 (USEIA,
+2012).
+scarcity. This can lead to transformational changes in the way we produce and con-
+sume energy helping to improve their sustainability, eciency, security, reliability and
+scalability.
+Generation Decentralization
+Given that the eciency of the current power system is around 30% (Lasseter,
+2011), it is abundantly clearly that any eort in tackling our energy challenges
+must involve improvement of the eciency of the electric power system. One
+way of tackling this problem is to reduce the distance between generation and
+demand through integration of distributed renewable energy sources such as
+solar and wind. This would not only lower reliance on dirty sources of energy,
+2
+
+--- Page 20 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+but could also signicantly reduce the transmission loss. Moreover, power out-
+ages cost the economy billions of dollars a year (LaCommare and Eto, 2006).
+Distributed renewable generation will help improve reliability of the power grid
+and reduce pollution and carbon emissions.
+Demand-Side Control
+Figure 1.2 shows the hourly energy usage in the province of Ontario, Canada
+in the year 2011. It is evident from the data in this gure that the electricity
+demand is highly time dependent. The peak load can be as much as twice of
+the o-peak load. The unbalanced nature of the load dramatically increases the
+generation cost of the system. The relatively inexpensive base-load generation
+cannot react fast enough to respond to rapid changes in the load during the
+peak time. Therefore, more expensive peak load generation and spin reserve
+are required for such purposes. The unbalanced load also creates problems in
+the transmission and distribution system, e.g. distribution transformers may
+over-heat during very hot summer days. Therefore it is necessary to have some
+degree of demand-side control in order to reduce variation between on-peak and
+o-peak demand, and hence lower the amount of peak power generation and
+spin reserve.
+EV Integration
+Figure 1.1 shows that the transportation sector accounts for 29% of total energy
+consumption in the U.S. Transportation electrication would be an essential
+element in any comprehensive solution to the problem of carbon emissions and
+climate change. However, deeper EV penetration can pose great challenges to
+3
+
+--- Page 21 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 1.2: Ontario hourly energy usage, 2011 (IESO, 2013b)
+the current generation and distribution system, specially to local distribution
+networks. Electric vehicles represent signicant loads1. Charging EVs during
+the peak time can easily overload the local distribution networks, which were not
+designed to accommodate this extra demand. Given that it would be very costly
+to upgrade the existing generation capacity and distribution network, there is
+need for new technologies that could utilize distributed renewable energy sources
+reliably and add more controllability to the load.
+Renewable Energy Integration
+Massive integration of renewable energy generation is a must-taken step in our
+1To charge a typical pure electrical vehicle with 24 kWh battery using Level 2 charger, it takes
+around 4 hours at 7 kVA. A typical Ontario utility distribution transformer's capacity is 50 kVA,
+which would supply 10-15 households.
+4
+
+--- Page 22 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+eorts to reduce our carbon footprint. However, renewable sources of energy
+such as solar and wind are intermittent and cannot continuously provide a
+reliable supply of power. In fact lack of reliability is one of the main arguments
+of the critics of solar and wind energy. Addition of energy storage capacity to the
+electric grid can help alleviate some of these concerns by providing a mechanism
+for storing energy when is produced, and delivering it to the consumers, when
+is needed.
+Electric microgrids with an energy management system (EMS) can help address
+many of the issues discussed above. Microgrids integrate distributed generations
+(DGs), distributed energy resources (DERs), energy storages and loads by their phys-
+ical proximity for ease of control, power sharing and management. They provide
+electricity and other forms of energy for the benet of the consumer. For ease of
+control, microgrid is treated as a single entry in the power grid and is transparent to
+the consumer (R. Lasseter and Stephens, 2002).
+EMS is the central control unit for a microgrid, which would control the power
+ow among the elements of the microgrid and in relation to the external grid. At
+the circuit level protection and control, it ensures stable and safe operation of the
+microgrid, and its protection from unexpected power outages and potential faults. A
+residential microgrid with EMS system is shown in Figure 1.3. The system consists
+of a high level optimization controller which optimizes power ow to reduce energy
+cost, and a circuit level controller to enforce power control commands of the EMS
+and handle transitions and faults.
+5
+
+--- Page 23 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 1.3: Residential microgrid with EMS
+6
+
+--- Page 24 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+1.2 Problem Statement and Thesis Contributions
+This thesis is concerned with the design, optimization, and control of electric micro-
+grids. It studies optimal energy management, optimal component sizing, and circuit
+level power control in microgrid. The thesis addresses the following specic problems
+in electric microgrids.
+Problem 1: Optimal Energy Management
+With increasing adoption of renewable energy sources by individual home owners and
+commercial business owners, the produced energy is usually injected into the utility
+grid without considering demand. Most renewable energy sources, e.g. solar and
+wind, are not controllable sources. A microgrid with energy storage, with or without
+renewable energy, provides a degree of control to maximize the benet of electricity
+consumer by lowering the overall cost of energy.
+A simple optimization-based energy management system is proposed in this thesis
+for controlling the charge and discharge of a energy storage device, i.e. a battery in
+order to minimize the cost of electricity for the consumer. This is achieved by taking
+advantage of time-of-use pricing, to buy and store energy during o-peak period and
+to sell it back during the peak time. The EMS in commercial and industrial settings
+enables peak shaving, that in some cases could signicantly reduce the peak demand
+charge for those types of customers.
+Problem 2: Component Optimization for Microgrid with EMS
+The prevalence of renewable energy generation and distributed energy storages is
+expected to increase in the power system to reduce reliance on polluting fossil fuels.
+7
+
+--- Page 25 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Residential, commercial, and industrial customers will gradually adopt renewable gen-
+erations and distributed energy storages. However, the diversity of component type,
+building type and pricing regime complicates the design of EMS for such microgrids.
+In the thesis, a systematic method is proposed to select component sizes, i.e. the
+number of battery modules and solar panels, in a microgrid with EMS. The approach
+is based on formulating and solving a mixed integer linear program (MILP) opti-
+mization for energy management and component selection. The proposed component
+sizing optimization is implemented for residential, commercial and industrial settings
+with consideration of dierent pricing schemes, e.g. Micro-FIT, net-metering, demand
+cost, etc. For given solar panel and battery modules with their respective capital cost
+and rating parameters, the component sizing optimization algorithm would calculate
+the optimal number of modules to maximize the customer's return on investment
+based on the property's actual power demand proble and the local electricity pricing
+regime.
+Problem 3: Circuit Level Protection and Control
+The microgrid with EMS requires a circuit level controller to enforce the power ow
+decisions, handle transitions among modes of operation, and protect against faults.
+Power ow control and sharing between power electronics based energy sources are
+implemented using the well-known droop control method. Power outage and grid
+instability are of great concern to customers who require a reliable uninterrupted
+supply of power. The low-level microgrid controller with EMS proposed in this thesis
+would provide a ride through capability for the microgrid. The microgrid would
+switch to an islanded mode when grid power is not available and use local generation
+8
+
+--- Page 26 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+and energy storages to continue the supply of power. After grid power recovers, the
+microgrid with EMS would detect that event and re-synchronize with the grid before
+the reconnection. The whole process is autonomous and transparent to the customer.
+1.3 Thesis Organization
+The rest of the thesis is organized as follows. Chapter 2 reviews the literature on
+microgrids and their control strategies. This is followed by a system level optimiza-
+tion study for residential micrograms in Chapter 3. Chapter 4 explores system level
+optimization for commercial and industrial micro grids. Circuit level modelling and
+control of a microgrid with EMS are investigated in Chapter 5. The thesis is concluded
+in Chapter 6 where some possible directions for future work are also discussed.
+1.4 Related Publications
+Yu, X. E., Xue, Y., Sirouspour, S., and Emadi, A. (2012, June). Microgrid
+and transportation electrication: A review. In Transportation Electrication
+Conference and Expo (ITEC), 2012 IEEE (pp. 1-6).
+Yu, X. E., Sirouspour, S., and Emadi, A. (2014, June). Optimization-based
+Components Sizing for Microgrid. In Transportation Electrication Conference
+and Expo (ITEC), 2014 IEEE(submitted).
+9
+
+--- Page 27 ---
+Chapter 2
+Literature Review
+This chapter is divided into ve sections. The rst section introduces the electricity
+grid and microgrid concept. The second and third section deal with microgrid control
+and optimization-based control strategies for microgrids. The fourth section intro-
+duces microgrid and its components modelling. The nal section focuses on existing
+energy management that are currently commercialized.
+2.1 Electricity grid, Microgrid, and Distributed
+Generation
+The concept of microgrid is not new. In fact back in the 18th century, Thomas Edi-
+son's rst utility system was an isolated grid powered by a generator close to the load,
+what we may call today a microgrid. Over time electricity overtook steam and major
+hydro and fossil fuel energy sources were harvested, resulting in massive expansion
+of electric power grids covering large territories. In the 1920s, electric grids started
+10
+
+--- Page 28 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+to be connected in an eort to achieve better performance and reliability by peak
+load sharing and power backup (Borbely and Kreider, 2001). The electric grids of
+the 20th century distribute massive amount of electricity generated by large power
+generation stations mostly from fossil fuels to remotely located load centers. The
+energy is delivered by one-way transmission and distribution systems to the end con-
+sumers without knowledge of energy cost and on-peak/o-peak information (Arnold,
+2011). This system is neither sustainable nor is reliable. The fuel-to-end consumer
+eciency is only around 30% (Lasseter, 2011). A 2006 study shows that the total cost
+of power outage throughout the US for the entire year was over 100 billion dollars in
+2006 (LaCommare and Eto, 2006). Security issues, nite supply of fossil fuels, the
+increasing diculty of extracting, and unstable fuel prices have caused international
+concerns threatening the world economy. Decentralization of electricity generation
+using alternative energy sources can address of some of these challenges. Wind tur-
+bine, photovoltaic (PV), and combined heat and power (CHP), are typical sources
+of DG. In the DG model, local generation and local consumption completely elim-
+inate the loss due to long distance transmission and distribution. In addition, the
+by-product heat can be used for heating. Higher eciency can be achieved by using
+multi-generation to co-generate heating, cooling etc. (Chicco and Mancarea, 2009).
+However, the control of a large number of DGs can become quite challenging. To
+address this problem, the Consortium for Electrical reliability Solutions (CETRS)
+introduced the concept of modern microgrid in the US in late 1990s (Lasseter, 2001).
+Several control schemes for microgrids are briey discussed below.
+11
+
+--- Page 29 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+2.2 Microgrid Modelling
+(Armstrong et al. , 2009) introduce a method to model electrical load for typical
+Canadian household, which does not include Heat Ventilation and Air Conditioning
+(HVAC). They classify a typical Canadian household into three clusters, low usage,
+medium usage and high usage. For each cluster, a 5 minute interval model is derived.
+The probabilistic load prole is generated from lighting, and typical household appli-
+ance with the consideration of seasonal factor and each load heuristic usage factor.
+Although no conclusion can be made by looking at each single usage prole, after
+averaging a large number of such usage proles, the resulting curve is quite smooth.
+They use this model and compare its predictions with actual data from 7 Quebec
+homes. The result shows similarity in the aspect of typical peaks and total yearly
+consumption. Modelling and analysis of power electronics based microgrid under au-
+tonomous operation is proposed by (Pogaku et al. , 2007). The model is detailed to
+converter control loop level; high frequency switching is not modelled. A sensitiv-
+ity analysis is also presented to improve overall system stability. Distributed energy
+sources, e.g. solar panel, wind turbine, fuel cell and microturbine are modelled with
+their corresponding power electronics interface to microgrid by (Kariniotakis et al. ,
+2005). Both steady state and dynamic behaviour are studied in the paper.
+A simple circuit based battery model is presented by (Olivier Tremblay, 2009).
+This model is suitable for modelling the charging and discharging behaviour of dif-
+ferent type of batteries, i.e. lithium-ion, lead-acid, etc. The author of (Villalva et al. ,
+2009) present a model of solar panel and a method to determine key parameters from
+manufacture provided data sheet. It could model the output characteristics of so-
+lar panel under dierent temperature and solar irradiance. Some main distributed
+12
+
+--- Page 30 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+energy sources, e.g. wind turbine, diesel generation and batteries packs, are mod-
+elled with their power electronics interface under microgrid environment by (Yubing
+et al. , 2008). Matlab/simulink based simulation is also provided with steady state
+and dynamic characteristics.
+2.3 Microgrid Control
+Supply and Demand Control
+Generation in a microgrid could be classied either as dispatchable or non-dispatchable.
+Typical dispatchable or controllable energy generators are internal combustion en-
+gine(ICE) generator, battery, super capacitor and ywheel. Most of renewable sources
+like wind and PV are non-dispatchable due to the uncontrollability of sun and wind.
+The power electronics inverters acting as the interface between DG and microgrid
+play an important role in controlling the generation to meet the power demand of the
+load. Loads in the microgrid should be prioritized by their importance and sensitivity.
+In case of blackout and scheduled islanding operation of microgrid, when supply is
+not sucient for all the loads, load shedding or a scheduled time-shift is necessary for
+the operation of non-critical loads in order to balance the supply/demand (Katiraei
+et al. , 2008; Zamora and Srivastava, 2010).
+Droop Control
+A microgrid often contains multiple DGs. Frequency droop control and voltage droop
+control allow for power sharing and voltage regulation of the microgrid without the
+need for a complicated communication scheme among its elements (Lasseter, 2002;
+13
+
+--- Page 31 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Katiraei and Iravani, 2006). Droop control strategies are well studied in system
+balancing and the control of real and reactive power in microgrid in grid connected
+and islanded mode (Barklund et al. , 2008; Mohamed and El-Saadany, 2008; Sao and
+Lehn, 2008; Majumder et al. , 2009). A microgrid containing PV, wind turbine, CHP
+and electronically connected synchronous generators is an inertia-less system. In bulk
+energy systems, the transitional power due to newly added load is generated by the
+inertia of the system. In microgrids, energy storage elements such as batteries, super-
+capacitors, and y-wheels are required to create the needed inertia in the system. A
+microgrid control strategy based on droop control with UPS is discussed in (Guerrero
+et al. , 2009). In (Li and Kao, 2009), Li et al. propose an accurate power control
+strategy for microgrids to cover an uncontrollable scenario of the droop controller.
+Decentralized Control
+Decentralized control tends to provide the autonomy to the DGs and controllable
+load in the microgrid in order to supply the demand without compromising the per-
+formance of the microgrid (Zamora and Srivastava, 2010; Katiraei et al. , 2008). The
+authors of (Dimeas and Hatziargyriou, 2005) propose a multiagent system to control
+the power exchange between DG, microgrid and utility grid; their approach allows
+the microgrid to operate in the market and make local decisions with minimum in-
+formation about the environment. An adaptive decentralized controller is proposed
+by (Mohamed and El-Saadany, 2008) to implement power sharing between parallel
+converter based energy sources. A microgrid control scheme is studied by (Wang
+et al. , 2008), in which, both load power sharing and active/reactive power sharing
+among the energy sources are covered.
+14
+
+--- Page 32 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Centralized Control
+Centralized control is a top down control strategy for microgrid operation (Tsikalakis
+and Hatziargyriou, 2008). The microgrid central controller maintains the optimal
+operation of local production based on the pricing information. It focuses on the grid
+connected mode to optimize power exchange with the grid (Katiraei et al. , 2008). The
+authors of (Hatziargyriou et al. , 2005) discuss the centralized microgrid control system
+to maximize economic benet in exchange of power between microgrid and utility
+grid by controlling the activity of distributed generators in microgrid. A centralized
+optimization and dispatch model is developed by (DING et al. , 2009) for a group of
+microgrid to minimize the cost of grid operation.
+2.4 Optimization-based Control Strategies for Mi-
+crogrids
+(Chakraborty et al. , 2007) proposed a novel microgrid system called Distributed In-
+telligent EMS(DIEMS), which could learn the energy production pattern and predict
+and optimize the economic cost. Hourly predictions are implemented by a neural-
+network which utilizes the climate information such as solar radiation, temperature,
+pressure and relative humidity to predict the energy production and consumption.
+The optimization algorithm consists of a linear program (LP). Both running and idle
+cost of solar system and wind system are considered. Energy storage device optimiza-
+tion is based on a heuristic charging and discharging decision, with 90% charging and
+discharging eciency. This heuristic method would decide the end of day energy level
+and power rating with the consideration of maximize battery life. The end of day
+15
+
+--- Page 33 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+energy level and power rating of energy storage device are then passed on to the LP
+optimization. (Mohamed and Koivo, 2007) proposed a control strategy for a isolated
+microgrid, consisting of solar panels, wind turbine, battery storage, micro turbine,
+diesel generator and fuel cell. They employed a nonlinear multi-objective optimiza-
+tion algorithm to minimize economic cost and emissions (eg. NO X,SO2andCO 2).
+The authors also provided a model to calculate wind and solar power output from
+solar irradiance and wind speed.
+(Morais et al. , 2010) proposed an optimized control dispatch system for micro-
+grid based MILP optimization. Their microgrid is comprised of solar PV panels,
+wind turbine, fuel cell, battery pack and controllable load. The optimization algo-
+rithm uses a set of linear objectives. Storage energy and power limit are used in
+dening constrains for the optimization. (Youli et al. , 2009) perform simulations to
+study the reliability, economic and environmental impact of a microgrid in Japan.
+Their study consists of 186 households with micro hydro power (up to 160 kW), solar
+PV system (up to 30kW), wind power (up to 660 kW) and a large central battery
+storage system (1800 kWh). They obtain the power demand prole from historical
+data, and predict production for each generating unit. Their storage control strategy
+is to charge the battery when there is energy surplus, and discharge it when short on
+generation. (Parisio and Glielmo, 2011) propose a Model Predictive Control (MPC)
+in combination with Mixed Integer Linear Programming (MILP) optimization based
+control approach for microgrids. Their energy storage model includes charging and
+discharging eciencies and charge degradation model. They also consider time-varing
+buying and selling prices and quadratic cost for fuel based generators. They consider
+critical and controllable loads; controllable load is treated as a penalty cost during
+16
+
+--- Page 34 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+the optimization. (Pawel Malysz, 2013) propose a MILP based rolling horizon opti-
+mization and control method for microgrids. The power saving is achieved by solving
+a MILP based optimization problem over a rolling horizon. This algorithm also con-
+siders the economic benets, battery usage cost, and grid power prole. Performance
+is optimized by utilizing a battery incremental red-zone power rates method that the
+algorithm can run in real time.
+2.5 Existing Energy Management Systems
+Kyocera Corporation (Kyocera, 2013) has developed an EMS system by controlling
+the power of roof top solar PV and lithium-ion battery. The EMS regulates the
+energy ow between energy sources, load and utility grid. At on-peak period, the
+EMS would use the battery stored power rst before buying power from the grid.
+DENSO Corporation (LaRose, 2013) has developed a home energy management sys-
+tem (HEMS) with optional battery pack. Energy usage is more visible with a home
+energy monitor and smartphone application, and the user could remotely turn on/o
+a particular appliance. EV charging can be scheduled by HEMS to utilize cheaper
+electricity during nighttime. If optional energy pack is installed, peak shifting is en-
+abled during on-peak period. SMA Solar technology AG (SMA, 2013) has introduced
+a backup power system which can work as add-on to existing PV plants. It could
+switch to islanded stand-alone power supply when there is a grid failure. Due to the
+existence of PV plants, a relatively smaller battery could be used. On-site auxiliary
+generation is also supported by this system. Nokia Siemens (NSN, 2013) has proposed
+a stand-alone emission free mobile broadcast station. The energy sources in this sys-
+tem are solar PV and wind turbine with deep cycle battery pack and fuel cell in case
+17
+
+--- Page 35 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+neither solar and wind are available . The controller has a built-in control strategy
+for decentralized control; it also has the connection to a central data management
+system.
+18
+
+--- Page 36 ---
+Chapter 3
+Residential EMS System Level
+Study
+In this chapter, energy management system conguration for a residential property
+is studied. The rst section of this chapter reviews the electricity pricing policy
+for residential houses in the province of Ontario, Canada. The second section looks
+at the power prole for a typical residential house. The third section presents a
+sample formulation of the optimization problem for home energy management along
+with an example of its application. The last section discusses the formulation of
+an optimization problem for selection of the size of components in a home energy
+management system. Four scenarios of components sizing under dierent Time-of-
+Use (TOU) pricing schemes are presented in this chapter.
+19
+
+--- Page 37 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.1 Pricing Regime and Power Prole
+In Ontario, there are two major pricing regimes. One is for residential and small
+business users, and the other is for medium to large commercial and industrial users.
+1. Residential and small business users are subject to a TOU pricing scheme, shown
+in Figure 3.1. In this system, the consumers are charged based on the day of the
+week and hour of the day for their electricity usage. The Ontario Energy Board
+has set the current electricity rates at 12.9 C/kWh for on-peak, 10.9 C/hWh
+for mid-peak,and 7.2 C/kWh for o-peak. Weekends are considered o-peak.
+The time of use charge is obtained from OEB (2013).
+Figure 3.1: Ontario electricity TOU pricing, OEB (2013)
+Other than the TOU price scheme, there are other cost components for the
+residential costumers, including delivery charges, regulatory charges, debt re-
+tirement charge and HST. Some charges are based on adjusted usage, with a
+20
+
+--- Page 38 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+TOU charge adjustd to metered usage
+TOU 
+(¢ / kWh)Adjustment 
+factorAdjusted T OU 
+(¢ / kWh))
+Electricity on-peak 12.900 1.078 13.906
+mid-peak 10.900 1.078 11.750
+off-peak 7.200 1.078 7.762
+Deliver y, regulatory and debt retirement charge adjusted to metered usage
+Usage charge 
+(¢ / kWh))Adjustment factorAdjusted Usage 
+charge (¢ / kWh)Fixed Charge 
+($ / month)
+Delivery
+Distribution service charge
+($ / month)16.500
+Distribution volume charge(metered usage - ¢ / kWh)2.528 1.000 2.528
+Transmission charge
+(adjusted usage - ¢ / kWh)1.196 1.078 1.289
+Smart metering entity charge($ / month)0.790
+Regulatory charge
+Standard supply service administration charge ($/month)0.250
+Rural rate protection charge (adjusted usage - ¢/kWh)0.120 1.078 0.129
+Wholesale market service rate (adjusted usage - ¢/kWh)0.440 1.078 0.474
+Debt retirement charge (metered usage - ¢/kWh)0.700 1.000 0.700
+Total 5.121 17.540
+Total usage and ﬁx electricity charge
+Adjusted T OUDelivery , 
+Regulatory and 
+retirementHST Total
+Usage charge (¢ / kWh) on-peak 13.906 5.121 2.474 21.501
+mid-peak 11.750 5.121 2.193 19.064
+off-peak 7.762 5.121 1.675 14.557
+Fixed Charge ($ / month) 17.540 2.280 19.820
+Figure 3.2: Electricity rate calculation for urban high density residential house-
+hold, HydroOne (2013a,b)
+21
+
+--- Page 39 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+adjustment factor 1.078 (HydroOne, 2013a,b). The rate calculation for an ur-
+ban high density residential house based on metered usage is presented in Figure
+3.2. These numbers will be used in the rest of the thesis in various example
+scenarios..
+2. Medium and large business are those with power demand of more then 50 kW
+(or approximately $2,000 per month electricity usage) IESO (2013a). Their
+electricity bill is mainly based on two factors: the energy consumed and peak
+demand. Energy consumption is the accrual power supplied and used by the
+consumer, measured in kilowatts-hours (kWh). If the business has a inter-
+val meter, they would pay the Ontario hourly energy price, same as theTOU
+price. Based on the total consumption, the customer also pays for line loss,
+and global adjustments. Peak demand charges are based on the highest electric
+demand reading during the billing period, which is measured in kilowatts(kW)
+or kilovolt-amperes(kVA). For example, if the peak demand charge rate is $6
+per kW, and the peak power demand of a business is 50kW, the charge would be
+50kW x $6 = $300. This charge also includes the transmission and distribution
+cost of electricity.
+22
+
+--- Page 40 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.2 Residential House Power Prole
+A residential house located in Ancaster, Ontario is chosen for study in this chapter.
+This is a 2500 ft2single detached house, with unnished basement, living room and
+kitchen on the rst oor and 4 bed rooms on the second oor. The heating and range
+use natural gas. A list of the electrical loads is given in Table 3.1.
+Device Power Quantity Total power
+(kW) (kW)
+Dryer 2.88 1 2.88
+Washer 0.84 1 0.84
+Dishwasher 1.044 1 1.044
+Fridge 0.78 1 0.78
+Microwave 1.5 1 1.5
+Toaster 0.85 1 0.85
+Electric Range 2.5 4 10
+Furnace 1.44 1 1.44
+Air condition 4.4 1 4.4
+Lighting 0.06 33 1.98
+TV 0.3 2 0.6
+Computer 0.3 3 0.9
+Table 3.1: A Typical household electrical load in Ontario
+To study the energy usage prole of this particular house, the hourly electricity
+usage prole for 12 month period from June 1, 2012 to June 1 2013 was obtained.
+Figure 3.3 shows the energy usage for one week (Sunday-Saturday), July 2 to July 8,
+in hot summer plotted in red line and one week, Feb 20 - Feb 27, in cold winter plotted
+blue line. The data in the gure shows a single peak in late afternoon in summer
+days and two peaks in winter days in the power demand prole. The electricity load
+in weekends is signicantly higher than that in weekdays for this family. This can
+be attributed to the fact that the residents spend most of their time at home during
+23
+
+--- Page 41 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.3: Hourly power usage for a week in summer and winter
+weekends. Laundry, dishwashing and entertainment devices would be all in use. This
+could also explain the power spikes in Sunday afternoon.
+Figure 3.4 shows the Probability Density Function (PDF) of hourly electricity
+energy usage obtained from the whole year data. The mean hourly consumption is
+0.7471 kWh.
+A number of energy related components could be added to this house to create a
+residential microgrid. The concept is demonstrated in Figure 3.5, where solar panels
+are installed on top of the roof, and a grid tie converter and battery pack are installed
+beside the electric meter. An EV with Level 21charging station is also considered.
+Other possible components include wind turbines, fuel cells or ultra-capacitors.
+1Typical Level 2 charging station need installation of 208/240V with maximum current 80A.
+24
+
+--- Page 42 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.4: PDF plot of hourly power usage of a year for a residential house located
+in Ancaster, Ontario, Canada
+25
+
+--- Page 43 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.5: A residencial microgrid
+26
+
+--- Page 44 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.3 System Level Study of Home Energy Manage-
+ment System
+An EMS enables residential home owner to lower their electricity cost by reduc-
+ing their demand from the grid during the peak period through the use of storage.
+It can also help integrate renewable sources of energy into the grid in an eective
+way. This section presents a linear programming based method for making optimal
+charge/discharge decisions for the battery storage in a residential microgrid.
+3.3.1 Optimization Problem Formulation for Controlling Stor-
+age Activities
+The battery storage charge/discharge activities are the solution to the following linear
+programming problem
+minx(CT
+TOUPS) (3.1)
+x= [PS; E0]T
+subject to
+Pmax
+SPSiPmax
+S i2[1; Nh] (3.2)
+0kX
+i=1PSi+E0Ebatk2[1; Nh] (3.3)
+Pmax
+G1NhPG=PD+PSPmax
+G1Nh (3.4)
+1TPS=0 (3.5)
+where
+27
+
+--- Page 45 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Nh2<: number of hours in the time horizon.
+CTOU2<Nh: vector of TOU cost in $ =kW .
+PS2<Nh: battery storage input or output power.
+E02<: initial energy level of the battery.
+PD2<Nh: power demand of the household.
+PG2<Nh: power at the point of common coupling to the grid.
+Pmax
+G2<: maximum power allowed at the common point of coupling.
+Pmax
+S2<: maximum power rating of the battery.
+Ebat2<: capacity of battery.
+Note that, assuming the buying/selling price of electricity from/to the grid is the
+same, the actuarial electricity cost is
+CT
+TOUPG (3.6)
+Since the grid power PGis given by
+PG=PD+PS (3.7)
+andPDis independent of the decision variables, the cost objective used in the opti-
+mization is chosen as in Eq 3.1 as opposed to the actual cost of the electricity. Note
+that in the above formulation, a positive PSmeans charging and negative PSdenotes
+discharging of the battery. There are limits on charge and discharge power rates of
+the battery, as in Eq 3.2. The battery also has minimum and maximum allowable
+energy levels as shown in Eq 3.3. Buying and selling power from/to the grid is limited
+by the line capacity constrains as in Eq 3.4. The equality constrain in Eq 3.5 ensures
+28
+
+--- Page 46 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+the battery would return to the same energy level after a 24 hour period of usage.
+3.3.2 Case Study - Residential Home
+The residential house used in this case study is the one mentioned in Section 3.1.3.
+The hourly energy consumption data for this house was obtained from Hydro One.
+The case study here focused on the second week of July in 2011. It is assumed that a
+battery, Ebat= 15kWh , is used with a maximum output power rating, Pmax
+S= 3kW.
+The battery charge/discharge activities were determined by solving the optimization
+problem in Eq 3.1 - 3.5. The optimization was run at one hour time step for the
+whole week. The maximum power rating for a typical residential house is 100A, with
+a safety factor of 80% to the maximum power rating, Pmax
+g= 9:6kW. The simulation
+results are illustrated in Figure 3.6. From this graph, it can be clearly seen that the
+some of the peak load is shifted to o-peak period, and the demand curve is smoothed
+as the result by utilizing the energy storage element. The electricity costs with and
+without EMS are given in Table 3.2. The data in this table includes all applicable
+charges in Figure 3.2. In this case, the EMS with energy storage yields a saving of
+21.5%, compared to the case where the house is directly connected to the grid. The
+optimization was solved in Matlab 2012 using MILP solver LPSolve 5.5.
+From Figure 3.7, it could be seen that there are some unnecessary battery ac-
+tivities. Penalizing charge/discharge activities as in (Pawel Malysz, 2013), would
+smoothen the battery power prole.
+29
+
+--- Page 47 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.6: Linear programming based electricity usage optimization for residential
+house by controlling battery activities: (a) power demand prole of the house, without
+EMS, (b) grid power prole using EMS, (c) battery energy prole, (d) battery power
+prole; P0 means discharge of battery
+30
+
+--- Page 48 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.7: A 24-hour period plot of Figure 3.6 : (a) power demand prole of the
+house, without EMS. (b) grid power prole using EMS.(c) battery energy prole, (d)
+battery power prole; P0 means discharge of battery
+31
+
+--- Page 49 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Electricity Cost without EMS($) 55.693
+Electricity Cost with EMS ($) 48.448
+Cost saving ($) 7.245
+Percentage saving (%) 14.9%
+Table 3.2: Linear programming based electricity usage optimization result for resi-
+dential house
+3.4 Components Sizing Optimization
+An important question that a home owner would face before upgrading to a green
+smart home concerns sizing of the system components to maximize economic benet.
+In this section, an optimization problem is formulated to help determine an opti-
+mal system conguration in terms of component sizes. Several pricing scenarios are
+considered in sizing the components.
+3.4.1 Case 1 - Current TOU Pricing with Micro-Fit
+Micro-Fit is an Ontario energy program designed for individuals who want to sell
+clean power to the grid with a guaranteed price and fair return on their investment.
+Clean power includes sun, wind, hydro and bioenergy which is 10 kW or less (OPA,
+2013). In this case, the power pricing regime is assumed to be net metering with
+current TOU price for battery and household load. The power generated by solar
+array is fed directly to the grid with the Micro-t program pricing, which is currently
+at 39.6 cents/kWh (OPA, 2013).
+The task of determining components size could be formulated as a mixed integer
+linear programming (MILP).
+minx(Csolnsol+Csns+CT
+TOUPs+ (CT
+Micro FITPsol)nsol) (3.8)
+32
+
+--- Page 50 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+x= [nsolnsE0
+sPs]T(3.9)
+subject to
+nsPsmaxPsknsPsmax; k2[1; Nh] (3.10)
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (3.11)
+0kX
+j=1Psj+E0
+snsEmax
+s ; k2[1; Nh] (3.12)
+1TPs=0 (3.13)
+0nsolnmax
+sol (3.14)
+where
+E0
+s2<: initial energy level of the battery.
+Psol2<Nh: solar panel power prole.
+Emax
+s2<: capacity of battery.
+nsol2<: number of solar panel.
+nmax
+sol2<: maximum number of solar panel allowed by physical condition.
+ns2<: number of battery unit.
+Csol2<: capital cost of solar panel.
+Cs2<: capital cost of each battery pack.
+CMicro FIT2<Nh: Micro-FIT pricing in $ =kW .
+The rest of the variables have been dened earlier.
+Note that the number of solar panels is limited by the space available for their
+installation, as shown in Eq. 3.14. Table 3.3 shows the calculation of the capital cost
+of installing and operating a solar array system. The numbers were obtained from a
+experienced contractor.
+33
+
+--- Page 51 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Solar panel cost($/W) 2
+Inverter cost ($/W) 0.65
+Labor and installation cost ($/W) 1.5
+Total capital cost ($/W) 4.15
+Life of solar system (years) 20
+Annual interest rate (%) 3%
+Monthly capital cost ($/W) 0.023
+Table 3.3: solar capital cost calculation
+The capital cost of batteries can be calculated as follows. The cost of a Trojan
+IND17-6V, 6.54kWh battery is about $1400 CAD. The rated life at 50% depth of
+discharge(DOD) is 2800 cycles, and at 80% DOD is 1500 cycles. Assuming that the
+battery is cycled at 80% DOD once per day, the estimated capital cost of each battery
+unit is 1400/1500 x 30 = 28 $/month.
+The case study here focuses on the month of July in 2011. It is assumed that
+Trojan IND17-6V, 6.54kWh battery modules with a maximum output power rating
+of 1.1kW and Conergy 235P-60 solar panel modules with a maximum output power
+rating of 235W panel are selected. The solar panel power prole was obtained from
+Burlington Hydro for the same period of time as the residential usage data. It is also
+assumed a maximum of 27 solar panels can be installed at this particular location.
+The monthly cost of each solar panel in this optimization is assumed to be $3.5, and
+the monthly cost for each battery module is assumed to be $112. The optimization
+was run for the whole month. The results are given in Table 3.4
+The cost saving of battery backed solar panel system with EMS is listed in Table
+3.5. With the components selected for this house, the monthly cost is $35.5 instead
+2The current cost of the battery is $32 per month based on its retail price. In order to demonstrate
+this optimization algorithm with a non-zero result for the number of battery modules, it is assumed
+that there is $21 subsidy from utilities or government.
+34
+
+--- Page 52 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 27 6.12 N/A
+Battery Trojan IND17-6V 5 5.5 32.7
+Table 3.4: Optimal system conguration- component sizing with Micro-t pricing
+of $58 cost. The monthly devices capital cost is calculated as 27 x 3.5 + 5 x 11 =
+$149.5.
+Electricity cost, pure load ($) 58
+Solar Array revenue ($) -116
+Battery with EMS revenue ($) -56
+Total monthly solar capital cost ($) 94.5
+Total monthly battery capital cost ($) 55
+Total monthly cost ($) 35.5
+Table 3.5: Monthly cost/revenue for optimal conguration - component sizing with
+Micro-t pricing
+The optimized power/energy proles with optimally selected component sizes are
+illustrated in Figure 3.8. From this graph, it can be clearly seen that the maximum
+power rating at the point of common coupling to the grid is eectively utilized to buy
+power at o-peak period and sell power during on-peak period.
+35
+
+--- Page 53 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.8: MILP-based component sizing optimization to maximize revenue - component sizing with Micro-t
+pricing a) Load power prole and solar array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole
+36
+
+--- Page 54 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The battery backed solar array system with EMS would not only benet the
+individual home owner by reducing their monthly electricity bill, but it also adds
+another dimension for utility companies to perform demand-side control. Therefore,
+it would make sense for the utilities to subsidize the capital cost of installing such
+system.
+37
+
+--- Page 55 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.4.2 Case 2 - Future TOU Price
+Since the capital cost of solar panels and batteries is trending down and the TOU
+prices are expected to increase, a second case study was considered that assumes net
+metering with TOU price increased by a factor of three; Micro-Fit program was not
+utilized in this case. The other assumptions made in the previous case are also valid
+here.
+With these assumptions, the components sizes can be determined by solving the
+following MILP optimization
+minx(Csolnsol+Csns+CTOUTPs+ (CTOUTPsol)nsol) (3.15)
+x= [nsolnsE0
+sPs]T(3.16)
+subject to
+nsPmax
+sPsknsPmax
+s; k2[1; Nh] (3.17)
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (3.18)
+0kX
+j=1PSj+E0
+snsEmax
+s ; k2[1; Nh] (3.19)
+1TPs= 0 (3.20)
+0nsolnmax
+sol (3.21)
+All variables have been dened earlier.
+The rst scenario assumes a monthly cost of $3.5 per solar panel and $32 per
+battery module. The energy consumption data is exactly the same as that in the
+previous case.
+38
+
+--- Page 56 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The optimization was run for the whole month. The results are presented in Table
+3.6.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 27 6.21 N/A
+Battery Trojan IND17-6V 7 7.7 45.78
+Table 3.6: Optimal system conguration - component sizing with future pricing(1)
+The cost saving of battery backed solar panel system with EMS is listed in Table
+3.7. With the components selected for this house, the monthly cost has been reduced
+to $153.5 from $174 cost.
+Electricity cost, pure load ($) 174
+Solar Array revenue ($) -106
+Battery with EMS revenue ($) -233
+Total monthly solar capital cost ($) 94.5
+Total monthly battery capital cost ($) 224
+Total monthly cost ($) 153.5
+Table 3.7: Monthly cost/revenue for optimal conguration - component sizing with
+future pricing(1)
+The optimized power or energy proles for each component are illustrated in
+Figure 3.9. From this graph, it can be clearly seen that the maximum power rating
+at the point of common coupling to the grid is eectively utilized to buy power at
+o-peak period and sell power during on-peak period.
+39
+
+--- Page 57 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.9: MILP-based component sizing optimization to maximize revenue - with future pricing(1). a) Load
+power prole and solar array power prole b) Grid power prole after optimization c) Battery power prole d)
+Battery energy prole
+40
+
+--- Page 58 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+In the next scenario, the monthly capital cost of battery unit is reduced to $25
+per battery module at sometime in the future.
+The optimization was run for the whole month. The results of optimization are
+given in Table 4.10.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 16 3.68 N/A
+Battery Trojan IND17-6V 10 11 65.4
+Table 3.8: Optimal system conguration- component sizing with future pricing(2)
+The cost saving of battery backed solar panel system with EMS is listed in Table
+4.11. With the components selected for this house, the monthly cost is $93 instead
+of $174 cost.
+Electricity cost, pure load ($) 174
+Solar Array revenue ($) -63
+Battery with EMS revenue ($) -324
+Total monthly solar capital cost ($) 56
+Total monthly battery capital cost ($) 250
+Total monthly cost ($) 93
+Table 3.9: Monthly cost/revenue for optimal conguration - component sizing with
+future pricing(2)
+The optimized power or energy proles for each component are illustrated in Fig-
+ure 4.10. The result shows that the grid power prole is optimized to take advantage
+of the TOU price to maximize savings.
+41
+
+--- Page 59 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.10: MILP-based component sizing optimization to maximize revenue - with future pricing(2). a) Load
+power prole and solar array power prole b) Grid power prole after optimization c) Battery power prole d)
+Battery energy prole
+42
+
+--- Page 60 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.4.3 Case 3 - Future TOU Price Buy-in Only
+The cases assumes that the user would not be able to sell power back to the grid.
+The other assumptions made in the previous case are still valid here.
+With the above assumption, the number of component modules can be determined
+as the solution to the following linear programming problem
+minx((CTOUTPsol+Csol)nsol+Csns+CTOUTP+
+g) (3.22)
+x= [nsolnsPsE0
+sP+
+g]T(3.23)
+subject to
+nsmax
+sPsknsPmax
+s; k2[1; Nh] (3.24)
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (3.25)
+0kX
+j=1Psj+E0
+snsEmax
+s ; k2[1; Nh] (3.26)
+1TPs= 0 (3.27)
+Ps+nsolPsol+PdP+
+g (3.28)
+0nsolnmax
+sol (3.29)
+where
+P+
+g2<Nh: inbound grid power ow in $ =kW .
+The rest of variables have been dened earlier.
+The positive grid power P+
+ghas its upper bound and lower bound
+0NhP+
+gPmax
+g1Nh
+43
+
+--- Page 61 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The capital cost of solar panel and battery is the same as the previous case. The
+optimization was run for the whole month. The results are given in Table 3.10.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 27 6.21 N/A
+Battery Trojan IND17-6V 1 1.1 6.54
+Table 3.10: Optimal system conguration with future pricing and buy-in only
+The cost saving of battery backed solar panel system with EMS is listed in Table
+3.11. With the components selected for this house, the monthly cost is reduced to
+$171.5 from $174.
+Electricity cost, pure load ($) 174
+Solar Array revenue ($) -106
+Battery with EMS revenue ($) -16
+Total monthly solar capital cost ($) 94.5
+Total monthly battery capital cost ($) 25
+Total monthly cost ($) 171.5
+Table 3.11: Cost saving for optimal conguration with future pricing and buy-in only
+The optimized power or energy proles for each component are illustrated in
+Figure 3.11. From this graph, it can be clearly seen that the grid power prole is
+optimized in a way that both consuming/feedback power from/to the grid are being
+minimized.
+44
+
+--- Page 62 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 3.11: MILP-based component sizing optimization to maximize revenue - with future pricing buy-in only. a)
+Load power prole and solar array power prole b) Grid power prole after optimization c) Battery power prole
+d) Battery energy prole
+45
+
+--- Page 63 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+3.4.4 Islanding Operation for Remote Homes
+This case considers a scenario in which the microgrid is isolated from the grid, i.e.
+islanded mode operation. This would be typical of remote communities which would
+not have access to the grid and have to rely on on-site generation for their electricity
+needs. Renewable energy sources like solar and wind alone may not meet the actual
+demand all the time, given the variability in weather conditions. An energy storage
+device such as a battery will help provide a reliable supply of power to an islanded
+microgrid with solar and wind energy.
+Optimization Formulation
+The optimal number for each energy sources and storages are obtained by solving the
+following mixed integer linear programming problem
+minx(nsolCsol+nwindCwind+nsiCsi) i2[1; Ns] (3.30)
+x= [nsolnwind nsiE0
+sPsi]Ti2[1; Ns] (3.31)
+subject to
+nsiPmax
+siPsiknsiPmax
+si i2[1; Ns]; k2[1; Nh] (3.32)
+0kX
+j=1PSij+E0
+sinsiEmax
+si i2[1; Ns]; k2[1; Nh] (3.33)
+1TPsi= 0 i2[1; Ns] (3.34)
+nsolPsol+nwindPwind+iX
+j=1PSjPd i2[1; Ns] (3.35)
+nsol1TPsolnwind1TPwindmax (1TPsol;1TPwind) + 1TPd (3.36)
+46
+
+--- Page 64 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+where
+E0
+s2<: initial energy level of energy storage module.
+Ns2<: number of dierent kinds of energy storages.
+Psol2<Nh: solar panel power prole.
+Pwind2<Nh: wind turbine power prole.
+Emax
+s2<: capacity of energy storage module.
+nwind2<: number of wind turbines.
+ns2<: number of energy storage units.
+Csol2<: capital cost of each solar panel.
+Cwind2<: capital cost of each wind turbine.
+Cs2<: capital cost of each energy storage module.
+PsolandPwind are always negative, which means generation. The total power
+supplied by solar, wind and energy storage must exceed the demand as in Eq 3.35.
+Total electricity generation is bounded to prevent over generation as in Eq 3.36.
+The example considered is a remote community of 21 households, without grid
+connection. Wind and solar are energy sources of energy for this microgrid. Three
+types of energy storage device with the power and energy ratings in Table 3.12 are
+considered in this study.
+Device Unit power rating Unit energy rating Unit cost
+(kW) (kWh) $
+Solar Panels 0.25 N/A 550
+Wind turbine 0.8 N/A 2000
+Energy storage 1 1 5 850
+Energy storage 2 10 0.1 6000
+Energy storage 3 30 2.5 2000
+Table 3.12: Unit rated values and cost of equipments for remote village
+47
+
+--- Page 65 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+100 200 300 400 500 600 700-2002040Load,Solar and Wind Power Profile
+100 200 300 400 500 600 700-200-1000100200pbat
+0 100 200 300 400 500 600 7000200400600800EbatkW
+kW
+kWhHour
+Hour
+HourPwindPload
+Psol
+Figure 3.12: An islanded microgrid for a remote community. a) Load, solar and wind power prole b) energy
+storage power prole c) energy storage energy prole
+48
+
+--- Page 66 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The results are given in Table 3.13.
+Device Number of units Total Cost
+Solar Panels 130 65,000
+Wind turbines 40 80,000
+Energy storage 1 167 143,650
+Energy storage 2 0 0
+Energy storage 3 0 0
+Total 288,650
+Table 3.13: Number of units after optimization
+The optimization result suggests the minimum number of each device to power
+up this community. The system cost for each house is 288,650 / 21 = 13,745. There
+are three types of energy storages available. Only the rst one is chosen by the
+optimization, since the capital cost and energy rating of the other two energy storages
+are not suitable for this community. Also note from the above gure that there are
+a lot of energy storages are added to this system. Compared to the maximum power
+rating, the actuarial power usage level of the energy storage is much lower. From the
+storage energy prole graph, it can be seen that energy is shifting from the beginning
+to the end of the month. The reason causing this result is that there is no energy sink
+for excessive energy generated nor a dispatchable generator, e.g. a diesel generator.
+49
+
+--- Page 67 ---
+Chapter 4
+Commercial and Industrial EMS
+System Level Analysis
+In this chapter, energy management for commercial and industrial settings is studied.
+Power prole for a typical commercial building is presented in the rst section. The
+second section presents the power prole for a typical industrial site. The third sec-
+tion introduces a sample formulation of the optimization problem for commercial and
+industrial energy management system along with an example of each commercial and
+industrial application. The last section discusses the formulation of an optimization
+problem for sizing of components in commercial and industrial energy management
+systems. Five scenarios of component sizing with dierent pricing regimes are pre-
+sented in this chapter.
+50
+
+--- Page 68 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+4.1 Commercial Building Power Prole
+Examples of commercial buildings are oce buildings, warehouses and retail stores.
+The electricity usage patterns of commercial buildings have been analyzed by the US
+department of energy. The major usages of energy in a commercial building are listed
+in Table 4.1.
+Purpose Usage Percentage
+(Quadrillion Btu) (%)
+Lighting 3.69 26.4
+Space Heating 0.88 6.3
+Space Colling 2.60 18.6
+Ventilation 1.66 11.9
+Refrigeration 1.21 8.6
+Water Heating 0.28 2.0
+Electronics 0.81 5.8
+Computers 0.66 4.7
+Cooking 0.07 0.5
+Other 2.13 15.2
+Total 13.99 100
+Table 4.1: 2010 Commercial energy usage split (DOE, 2012)
+For this study, the hourly energy usage prole of a commercial building in Burling-
+ton, Ontario, for the period January 1 to December 31, 2012 was obtained from
+Burlington Hydro. Figure 4.1 shows the energy usage for a month, July 2 to August
+1, plotted in red and Feb 20 - March 19, plotted in blue. Both monthly data plots
+start on Sunday and end on Saturday. The gure shows a single peak appears late
+afternoon in summer days and two peaks in winter days. The electricity load in week-
+days is signicantly higher than that in weekends for this commercial building. This
+can be attributed to the fact that the people spend most of their time in the oce
+during working hours in weekdays. Note that, from Table 4.1, lighting, space cooling
+51
+
+--- Page 69 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+and ventilation account for more than 50% of the electricity load.
+Figure 4.1: Commercial building hourly power usage for a month in summer and
+winter
+Figure 4.2 shows the Probability Density Function (PDF) of hourly electricity
+energy usage obtained from the whole year data. The mean hourly consumption
+is 13.98 kWh, with peak demand 50kW. As mentioned in Chapter 3, medium and
+large electricity consumers are also charged for peak demand. Peak demand charge
+used in this chapter is $6 per kW. As shown in the gure, there are not many hours
+with energy usage higher than 35kWh. Therefore, it is ideal for energy management
+system to reduce the peak and smoothen the grid power prole in order to reduce total
+electricity cost. Compared to residential power usage prole, a commercial building's
+power prole has a more consistent pattern with seasonal and weekly cycles.
+52
+
+--- Page 70 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.2: Probability density function of annual energy usage for a commercial
+building
+4.2 Industrial Building Power Prole
+The electricity usage in an industrial building is mainly for industrial production,
+e.g. motor drive, lighting and other industrial load. The hourly electric energy usage
+prole of an industrial building in Burlington, Ontario, for the period January 1, 2012
+to December 31 2013 was obtained from Burlington Hydro. A weekly usage cycle can
+be clearly identied from this data. For weekdays, there are electrical loads which
+run 24 hours a day, and peak load only appears during working hours. For weekends,
+the load drops signicantly, with some peaks occurring during the day. There is no
+signicant load variation between summer and winter for this industrial plant, since
+53
+
+--- Page 71 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+HVAC and lighting only accounts for a small portion of the total load.
+Figure 4.3: Industrial building hourly power usage for a month
+The probability density function of the hourly energy demand for this building
+is shown in Figure 4.4. The mean usage is 335 kWh and the maximum demand is
+630kWh.
+54
+
+--- Page 72 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.4: Industrial building probability density function of annual power usage
+4.3 Power Usage Optimization for Commercial and
+Industrial Setting
+In this section, an EMS system with energy storage for commercial and industrial
+settings is studied. In addition to the TOU price, a peak demand charge needs to
+also be considered in this case.
+55
+
+--- Page 73 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+4.3.1 Optimization Formulation
+The battery storage charge/discharge activities are solution to the following linear
+programming problem
+minx(CTOUTPs+CdemPmax
+g) (4.1)
+x= [Ps; E0]T
+subject to
+Pmax
+sPsPmax
+s (4.2)
+0Ps+E0Ebatk2[1; Nh] (4.3)
+Pmax
+g1NhPg=Pd+PsPmax
+g1Nh (4.4)
+1TPs= 0 (4.5)
+where
+Nh2<: number of hours in the time horizon under study.
+CTOU2<Nh: TOU cost in $ =kW .
+Cdem2<: peak demand charge.
+Ps2<Nh: battery storage input or output power.
+E0
+s2<: initial energy level of the battery.
+Pd2<Nh: net demand of the electricity load.
+Pmax
+g2<: maximum power allowed at the common point of coupling.
+Pmax
+s2<: maximum power rating of the battery.
+Ebat2<: capacity of battery.
+Note that in the above formulation, a positive Psmeans charging and negative Ps
+56
+
+--- Page 74 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+denotes discharging of the battery. There are limits on charge and discharge power
+rates of the battery, as in Eq 4.2. The battery also has minimum and maximum
+allowable energy levels as shown in Eq 4.3. Buying and selling power from/to the
+grid is limited by the constraints in Eq 4.4. The constraint in Eq 4.4 ensures the
+battery would return to the same energy level after a 24 hour period of usage. The
+optimization problem was solved in Matlab 2012b using MILP solver LPSolve 5.5.
+4.3.2 Case Study - Commercial Building
+Current TOU net metering pricing with demand charge is used in this case. No
+solar system is presented in this case. The electricity usage data is obtained from
+Burlington Hydro (Burlington, Ontario). 30 days hourly realtime data is used in
+the simulation,i.e. see Figure 4.5 (a). It is assumed that a 70 kWh battery unit is
+used with a maximum output power rating of 10kW. Maximum allowed grid power
+isPmax
+g= 100 kW. The capital cost of equipments is not considered in this example.
+The optimization was run for the whole month. The simulation results are given
+in Figure 4.5. From this graph, it can be clearly seen that the some of the peak load
+is shifted to o-peak period, and the demand curve is smoothed as a result of utilizing
+the energy storage element. The peak demand is reduced from 30kW to 20kW.
+The electricity costs with and without EMS are given in Table 4.2. In this case,
+EMS with energy storage yields a saving of 14.5%, compared to the case where the
+building is directly connected to the grid.
+57
+
+--- Page 75 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.5: Commercial TOU with demand charge optimization, (a) power net de-
+mand power prole, (b) grid power prole with EMS, (c) battery power prole, (d)
+battery energy prole
+58
+
+--- Page 76 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Electricity Cost without EMS($) 1171.96
+Electricity Cost with EMS ($) 1000.4
+Demand charge saving ($) 60
+TOU charge saving ($) 111.56
+Total saving ($) 171.56
+Percentage saving (%) 14.5%
+Table 4.2: Electricity saving with EMS for commercial building
+4.3.3 Case Study - Industrial Site
+Other then specied conditions, the simulation is the same as the previous case.
+The industrial building electricity usage data was obtained from Burlington Hydro
+(Burlington, Ontario). 30 days hourly data in Figure 4.6 (a) was used in the opti-
+mization. The microgrid is assumed to be equipped with a 600 kWh battery used
+with a maximum output power rating of 100kW. The power rating to the grid is
+Pmax
+g= 1000 kW.
+The results of the optimization are presented in Figure 4.6. It can be seen from this
+data that on-peak power consumption is reduced and the demand curve is smoothed
+as a result of utilizing the energy storage element in an optimal way. Peak demand
+is reduced from 510kW to 465kW.
+The electricity costs with and without EMS are given in Table 4.2. In this case,
+the EMS with energy storage yields a saving of 5.71%, compared to the case where
+the building is directly connected to the grid.
+59
+
+--- Page 77 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.6: Industrial TOU with demand charge optimization, (a) power net demand
+power prole, (b) grid power prole with EMS, (c) battery power prole, (d) battery
+energy prole
+60
+
+--- Page 78 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Electricity Cost without EMS($) 26282
+Electricity Cost with EMS ($) 24781
+Demand charge saving ($) 587
+TOU charge saving ($) 914
+Total saving ($) 1501
+Percentage saving (%) 5.71%
+Table 4.3: Electricity saving with EMS for industrial setting
+4.4 Components Sizing Optimization
+In this section, an optimization problem is formulated to help determine an opti-
+mal system conguration in terms of component sizing. Several pricing regimes are
+considered in sizing components.
+4.4.1 Current TOU price and Micro-t with Demand Charge
+The power pricing regime is assumed to be net metering with current TOU price for
+household load and micro-t price for solar power in this optimization. For most
+of the commercial and industrial building, demand charge would apply to their bill.
+Therefore, The task of determining components size could be formulated as a mixed
+integer linear program optimization.
+minx(Csolnsol+Csns+CTOUTPs+ (CT
+Micro FITPsol)nsol+CdemPpeak
+g) (4.6)
+x= [nsolnsE0
+sPsPpeak
+g]T(4.7)
+subject to
+nsPmax
+sPsknsPmax
+s; k2[1; Nh] (4.8)
+61
+
+--- Page 79 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (4.9)
+0kX
+j=1PSj+E0
+snsEmax
+s ; k2[1; Nh] (4.10)
+1TPs= 0 (4.11)
+nsolnmax
+sol (4.12)
+where
+Emax
+s2<: capacity of battery.
+nsol2<: number of solar panel.
+nmax
+sol2<: maximum number of solar panel allowed by physical condition.
+ns2<: number of battery unit.
+Ppeak
+g2<: peak power demand.
+Csol2<: capital cost of solar panel.
+CMicro FIT2<Nh: Micro-FIT pricing in $ =kW .
+The rest of the variables have been dened earlier in the thesis.
+The commercial building used in this case study is the one mentioned in Section
+4.3.2. It is assumed that Trojan IND17-6V, 6.54kWh battery module with a maxi-
+mum output power rating of 1.1kW and Conergy 235P-60 solar panel module with a
+maximum output power rating of 235W are used here and in the rest of the thesis.
+Solar panel power prole was obtained from Burlington Hydro for the same period of
+time as the electricity usage data. Monthly cost of each solar panel in this optimiza-
+tion is assumed to be $3.5, and the monthly cost for each battery module is assumed
+to be $25. Moreover, Pmax
+g= 100 kW.nmax
+sol= 200
+The cost saving of installing EMS is listed in Table 4.5. With the components
+62
+
+--- Page 80 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 200 39.95 N/A
+Battery Trojan IND17-6V 18 19.8 117.72
+Table 4.4: Optimal number of component modules for a commercial building with
+Micro-t
+selected for this building, the monthly electricity cost is reduced to $1168 from $1180.
+Electricity cost, pure load ($) 1180
+Solar Array revenue ($) -724
+Battery with EMS TOU revenue ($) -312
+Demand charge revenue ($) -126
+Total monthly solar capital cost ($) 700
+Total monthly battery capital cost ($) 450
+Total monthly cost ($) 1168
+Table 4.5: Monthly electricity cost and revenue for commercial building with Micro-t
+The optimized power and energy proles for each components are illustrated in
+Figure 4.7. The data shows that the peak power demand at the point of common
+coupling to the grid is signicantly reduced and the on-peak power consumption is
+minimized.
+63
+
+--- Page 81 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.7: Commercial building optimization Micro-t, a) Load power prole and solar array power prole b)
+Grid power prole after optimization c) Battery power prole d) Battery energy prole
+64
+
+--- Page 82 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+4.4.2 Future TOU Price with Demand Charge
+A dierent TOU price and demand charge are used in this case, by increasing the
+current prices by a factor of three. The pricing regime is assumed to be net metering
+only.
+minx(Csolnsol+Csns+CTOUTPs+ (CT
+TOUPsol)nsol+CdemPpeak
+g) (4.13)
+x= [nsolnsE0
+sPsPpeak
+g]T(4.14)
+subject to
+nsPmax
+sPsknsPmax
+s; k2[1; Nh] (4.15)
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (4.16)
+0kX
+j=1PSj+E0
+snsEmax
+s ; k2[1; Nh] (4.17)
+1TPs= 0 (4.18)
+nsolnmax
+sol (4.19)
+where all variables has been previously dened in the thesis.
+Example - Commercial Setting
+Monthly cost of each solar panel in this optimization is assumed to be $3.5, and the
+monthly cost for each battery module is assumed to be $25. The optimization was
+run for 30 days with 1 hour time step. The results are given in Table 4.10.
+The cost saving of installing EMS is listed in Table 4.11. With the components
+65
+
+--- Page 83 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 200 47 N/A
+Battery Trojan IND17-6V 20 22 130.8
+Table 4.6: Optimal number of component modules for a commercial building micro-
+grid with future pricing
+selected for this building, the monthly electricity cost is $3217 instead of $3541 cost.
+These cost saving is pure electrical and no capital cost is include in these numbers.
+Electricity cost, pure load ($) 3541
+Solar Array revenue ($) -786
+Battery with EMS revenue ($) -549
+Demand charge revenue ($) -189
+Total monthly solar capital cost ($) 700
+Total monthly battery capital cost ($) 500
+Total monthly cost ($) 3217
+Table 4.7: Cost saving for optimal conguration for commercial building with future
+pricing
+66
+
+--- Page 84 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.8: MILP-based component sizing optimization to maximize revenue for commercial setting with future
+pricing. a) Load power prole and solar array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole
+67
+
+--- Page 85 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Example - Industrial Setting
+As in the previous example, monthly cost of each solar panel is assumed to be $3.5,
+and the monthly cost for each battery module is assumed to be $25. The maximum
+number of solar panel is 2000 and Pmax
+g= 1000 kW.
+The optimization was run for the whole month. The results are given in Table
+4.8.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 2000 47 N/A
+Battery Trojan IND17-6V 134 18.7 111.18
+Table 4.8: Optimal number of component modules for an industrial microgrid with
+future pricing
+The cost saving of installing EMS is listed in Table 4.9. With the components
+selected for this building, the monthly electricity cost is reduced to $57,201 from
+$76,166. The optimized power or energy proles for each component are illustrated
+Electricity cost, pure load ($) 76,166
+Solar Array revenue ($) -13,328
+Battery with EMS revenue ($) -7,279
+Demand charge revenue ($) -1,358
+Total monthly solar capital cost ($) 7,000
+Total monthly battery capital cost ($) 3,350
+Total monthly cost ($) 64,551
+Table 4.9: Cost saving for optimal conguration for industrial setting with future
+pricing
+in Figure 4.9. It is evident from this graph that peak power demand at the point
+of common coupling to the grid is signicantly reduced and the on-peak power con-
+sumption is minimized.
+68
+
+--- Page 86 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.9: MILP-based component sizing optimization to maximize revenue for industrial setting with future
+pricing. a) Load power prole and solar array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole
+69
+
+--- Page 87 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+4.4.3 Future TOU Price Buy-in Only with Demand Charge
+Taking a step further from the previous case, the assumption in this case is that
+selling power back to the grid is not rewarded.
+With the above assumption, the following MILP optimization can provide the
+optimal solution for the number of component modules.
+minx((CTOUTPsol+Csol)nsol+Csns+CdemPpeak
+g+CTOUTP+
+g) (4.20)
+x= [nsolnsE0
+sPsPpeak
+g P+
+g]T(4.21)
+subject to
+nsmax
+sPsknsPmax
+s; k2[1; Nh] (4.22)
+Pmax
+gPsk+nsolPsolk+PdkPmax
+g; k2[1; Nh] (4.23)
+0kX
+j=1Psj+E0
+snsEmax
+s ; k2[1; Nh] (4.24)
+1TPs= 0 (4.25)
+Ps+nsolPsol+PdP+
+g (4.26)
+nsolnmax
+sol (4.27)
+where
+Cs2<: capital cost of each battery pack.
+P+
+g2<Nh: inbound grid power ow in $ =kW .
+70
+
+--- Page 88 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The positive grid power P+
+ghas its upper bound and lower bound
+0NhP+
+gPmax
+g1Nh
+Example - Commercial Setting
+One month is chosen as the optimization horizon with 1 hour time step. The simula-
+tion results are given in Table 4.10.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 200 47 N/A
+Battery Trojan IND17-6V 11 12.1 71.94
+Table 4.10: Optimal list of components for commercial setting with buy-in only
+The cost saving of installing EMS is listed in Table 4.11. With the components
+selected for this building, the monthly electricity cost is reduced to $3256 from $3541.
+Electricity cost, pure load ($) 3541
+Solar Array revenue ($) -786
+Battery with EMS revenue ($) -248
+Demand charge revenue ($) -226
+Total monthly solar capital cost ($) 700
+Total monthly battery capital cost ($) 275
+Total monthly cost ($) 3,256
+Table 4.11: Cost saving for optimal conguration for commercial setting with buy-in
+only
+The optimized power or energy proles for each component are illustrated in
+Figure 4.10. From this graph, it can be clearly seen that the grid power prole is
+optimized in a way that both consume/feed power from/to the grid are being limited
+to a range between 0 and the optimized maximum peak demand(kW). The battery
+71
+
+--- Page 89 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+activity is optimized to store any excessive energy and discharge it to supply peak
+load, when needed.
+72
+
+--- Page 90 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.10: MILP-based component sizing optimization to maximize revenue for commercial setting with buy-in
+only. a) Load power prole and solar array power prole b) Grid power prole after optimization c) Battery power
+prole d) Battery energy prole
+73
+
+--- Page 91 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Example - Industrial Setting
+The optimization was run for the whole month. The results are given in Table 4.12.
+Device Part number Quantity Total power Total Energy
+(kW) (kWh)
+Solar Panels Conergy 235P-60 2000 470 N/A
+Battery Trojan IND17-6V 63 69.3 412.02
+Table 4.12: Optimal list of components for industrial microgrid with buy-in only price
+The cost saving of installing EMS is listed in Table 4.13. With the components
+selected for this building, the monthly electricity cost is reduced to $70,613 from
+$76,166.
+Electricity cost, pure load ($) 76,166
+Solar Array revenue ($) -10,662
+Battery with EMS revenue ($) -1,589
+Demand charge revenue ($) -1,877
+Total monthly solar capital cost ($) 7,000
+Total monthly battery capital cost ($) 1,575
+Total monthly cost ($) 70,613
+Table 4.13: Cost saving for optimal conguration for industrial microgrid with buy-in
+only price
+The optimized power or energy proles for each component are illustrated in
+Figure 4.11. From the grid power prole, the optimization tends to limit the grid
+power between 0 and the optimized peak demand (kW).
+74
+
+--- Page 92 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 4.11: MILP-based component sizing optimization to maximize revenue for industrial setting with buy-in
+only price. a) Load power prole and solar array power prole b) Grid power prole after optimization c) Battery
+power prole d) Battery energy prole
+75
+
+--- Page 93 ---
+Chapter 5
+Circuit Level Modelling and
+Control
+In this chapter, circuit-level modelling and control of the energy management system
+for an AC microgrid is studied. The rst section looks at modelling of solar panel.
+The second section presents a model of lead acid battery. The third section presents
+a converter model and its control module in EMS for battery control. The fourth
+section discusses the modelling of grid-tie inverter and its control scheme for solar
+panels. The fth section introduces the central control unit for the EMS system. The
+last section presents several scenarios of the circuit level operation of a microgrid with
+EMS.
+5.1 Solar Panel
+Solar panel is the device that converts sunlight to electric current. The basic unit of
+a solar array is solar cell, as shown in Figure 5.1.
+76
+
+--- Page 94 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.1: Solar cell
+It is common to connect solar cells in parallel and series to form a solar array or
+panel. A commonly used model for an ideal solar panel, e.g. see (Villalva et al. ,
+2009), is given by
+The voltage-current characteristic of an ideal single solar cell is given by
+I=IPV;cellI0;cell
+expqV
+akT
+1
+|{z}
+Id(5.1)
+where
+I: Output current of the solar cell
+V: Terminal voltage of the solar cell
+IPV;cell : Current generated by incident light, which is directly proportional to sun
+irradiation
+Id: Shockley diode equation
+I0;cell: Reverse saturation or leakage current of diode
+q: Electro charge (1 :602176461019C)
+k: Boltzmann constant (1 :35065031023J=K)
+T: Temperature of p-n junction in Kelvin
+77
+
+--- Page 95 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+a: Diode ideality constant
+Figure 5.2: Circuit model of an ideal solar panel
+Based on the single diode model in Eq. 5.1, one could derive a mathematical
+model for a solar panel or solar array, as shown in Figure 5.2, comprising of NScells
+in series and NPseries in parallel as
+I=IPVI0
+expV+RsI
+Vta
+1
+V+RsI
+Rp(5.2)
+Vt=NSkT=q (5.3)
+I0=I0;cellNP (5.4)
+78
+
+--- Page 96 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+IPV=IPV;cell NP (5.5)
+where
+IPV: PV current of solar panel
+I0: Saturation current of solar panel
+RS: Equivalent series resistant
+RP: Equivalent parallel resistant
+VT: Thermal voltage of the solar array
+NS: Number of solar cells connected in series
+NP: Number of solar cells connected in series
+Generally, the value of RSis very small. One could reasonably simplify the equa-
+tion by assuming RS= 0. RPis normally very large and can be assumed innity for
+practical purposes.
+Therefore, equation 5.2 could be simplied as:
+I=IPVI0
+expV
+Vta
+1
+(5.6)
+Usually, IPVis not provided by solar panel manufactures. But since the parallel
+resistant is generally high and the series resistant is low, the following approximation
+can be made for practical purposes
+IPVISC (5.7)
+where
+Isc: Short-circuit current of the solar array
+79
+
+--- Page 97 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+IPVat all dierent temperature and irradiation levels can be determined from
+IPV= (IPV;n+KIT)G
+Gn(5.8)
+where
+IPV;n: PV current generated at nominal condition
+KI: Sensitivity of the PV current to the changes in the temperature
+T: Deviation from nominal temperature in Kelvin
+G: Actual solar irradiation
+Gn: Nominal solar irradiation
+In (Villalva et al. , 2009), the diode saturation current of solar array is approxi-
+mated by
+I0=Isc;n+KIT
+exp(( Voc;n+KVT)=aVt)1(5.9)
+Isc;n: Nominal short-circuit current of the solar array
+KV: Sensitivity coecient of of open-circuit voltage with respect to temperature
+Voc;n: Nominal open-circuit voltage of the solar array
+The above parameters are generally available from solar array manufacturer data
+sheets.
+5.2 Lead Acid Battery
+Battery models can be mainly divided in to three types, namely experimental, elec-
+trochemical and electric circuit models. In this thesis, a circuit based model from
+(Olivier Tremblay, 2009) is adopted to represent the battery. This model considers
+state of charge and has been veried experimentally.
+80
+
+--- Page 98 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.3: (a) Typical lead acid battery discharge curve, (b) Hysteresis phenomenon
+at exponential zone for lead-acid battery (Olivier Tremblay, 2009)
+A typical discharge curve of a lead acid battery is shown in Figure 5.3. The
+horizontal axis represents the capacity or SOC of the battery, and the vertical axis
+represents the terminal voltage. Moreover, Vfullis the fully charged voltage; Vexpis
+the voltage at the end of exponential zone; Vnomis the voltage at the end of nominal
+zone. Note that charge Q would actually decrease when moving along the horizontal
+axis. The exponential zone for charging and discharging shown in Figure 5.3 (a) has
+a hysteresis behaviour for lead-acid battery as shown in Figure 5.3 (b).
+The charging and discharging model of the lead-acid battery could be summarized
+as follows (see Figure 5.4).
+Discharge:
+Vbatt=E0RiKQ
+Qit(it+i) +VExp(t) (5.10)
+81
+
+--- Page 99 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.4: Discharge battery model(Olivier Tremblay, 2009)
+Charge:
+Vbatt=E0RiKQ
+it0:1Qi
+|{z}
+PolarizationResistanceKQ
+Qitit
+|{z}
+PolarizationV oltage+VExp(t) (5.11)
+
+VExp(t) =Bji(t)j(VExp(t) +Au(t))
+where
+Vbatt: Battery Voltage ( V)
+E0: Battery Constant Voltage ( V)
+K: Polarisation Constant( V=(Ah)) or Polarization Resistance (
+)
+Q: Battery Capacity ( Ah)
+it:Ridt, Actual Battery Charge ( Ah)
+82
+
+--- Page 100 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+i: Battery Current ( A)
+i: Filtered Current ( A)
+A: Exponential zon amplitude ( V)
+B: Exponential zon time constant inverse ( Ah1)
+VExp(t): Exponential zone voltage ( V)
+Note that for exponential zone voltage, u(t) = 1 represents charge and u(t) =
+0 represents discharge. Experimental data shows that there exists a voltage slow
+dynamic behaviour for a current step response. In (Olivier Tremblay, 2009), the
+author proposed a low-pass ltered current to ow through polarization resistance to
+solve the algebraic loop problem in Matlab Simulink.
+The voltage of a lead-acid battery increases exponentially when battery is almost
+fully charged. This characteristic could be modelled by the polarization resistance as
+PolarizationResistance =KQ
+it0:1Q
+In charging mode, the polarization resistance term mimics the behaviour of a rapidly
+increasing voltage until the battery is almost fully charged, it= 0. However experi-
+mental data shows that the polarization resistance does not go to innity and there
+is a 10% shift in the battery capacity..
+83
+
+--- Page 101 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.3 Energy Storage Control with Bi-directional DC-
+AC Inverter
+The bi-directional DC-AC converter in the simulation is modeled as a single stage H-
+bridge converter as shown in Figure 5.5. The left hand side is the DC side, connected
+to the battery pack. The right hand side is the AC side, connected to the microgrid
+bus.
+Figure 5.5: H-bridge DC-AC bidirectional converter
+Figure 5.6 shows a typical H bridge inverter with a capacitor at the DC side and
+an inductor at the AC side. This converter is controlled to operate in all three modes
+(see section 5.5) of the microgrid. Most of the time, the converter is operated in grid
+connected mode, in which case, the microgrid voltage and frequency are set by the
+grid. The inputs of the control logic are the desired active power Pand reactive power
+Qwhich are provided by he system-level energy management optimization algorithm.
+84
+
+--- Page 102 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The role of the DC/AC converter is to ensure that battery packs supply the required
+power to the microgrid. The converter operated in this mode is controlled to be a
+voltage source converter (VSC), which includes an inner current loop and an outer
+voltage loop.
+85
+
+--- Page 103 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.6: Bi-directional DC-AC converter control logic
+86
+
+--- Page 104 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The control signal PandQare converted to Eand!by P/Q droop controller
+(De Brabandere et al. , 2007) as
+E=EGQ(s)(QQ) (5.12)
+!=!GP(s)(PP) (5.13)
+As shown in Figure 5.7, Eand!are the output voltage amplitude and frequency,
+respectively and Eand!are corresponding reference values. P,Q,P, and Q
+are active and reactive power and their references. GP(s) and GQ(s) are the droop
+control transfer functions. The purpose of using this droop method is to mimic the
+behaviour of a synchronous machine. When the system frequency drops, all generators
+connected to this system increase active power.
+Figure 5.7: P/Q droop control function
+When the converter operates in islanding mode, there is no external voltage ref-
+erence and the internal voltage reference E0sin(!0t) will be used. In islanding mode,
+the function of this converter is to maintain the voltage amplitude and frequency of
+the microgrid.
+At the moment when the grid power recovers, the amplitude and frequency of
+87
+
+--- Page 105 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+the microgrid voltage may not be synchronized with the utility grid. Therefore,
+a synchronization loop is required to ensure a proper transition to grid connected
+mode. The synchronization loop consists of a phase-lock loop and a PI controller. It
+adjusts the microgrid's voltage amplitude and frequency by the maximum allowable
+deviation. The two voltage wave forms are compared over a rolling window. When
+the error is smaller then a threshold value, the converter is ready to switch to grid-
+connected mode.
+5.4 Two Stage DC-AC inverter with MPPT
+Maximum power point tracking (MPPT) is a method widely used for extraction of
+the maximum power out of solar arrays, e.g. see (Esram and Chapman, 2007). A
+typical solar panel power-voltage characteristics is shown in Figure 5.8. There is one
+maximum power output point for each curve. The curve is changing according to solar
+irradiance and temperature, etc. Therefore the MPPT would have to continuously
+search for the maximum power point. The so-called perturbation & observation
+method is used in the thesis simulations for MPPT (Femia et al. , 2005).
+Figure 5.8: PV array electrical characteristics as a function of solar irradiance
+88
+
+--- Page 106 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+The MPPT algorithm is built into the two stage DC-AC grid-tie inverter as shown
+in Figure 5.9. The left hand side is the solar array, followed by the a boost DC-DC
+converter. The two stages are linked by a DC link capacitor Clink. The output stage
+is a H-bridge inverter with LCL lter.
+Figure 5.9: Architecture of PV grid-tie inverter
+The control strategy of the converter is shown in Figure 5.10. The voltage and
+current of the solar array are measured and passed to the MPPT module. The
+perturbation & observation method is used to nd Iref. The current loop compares
+IrefandIPV, and passes the error to a PI controller to generate the reference for
+PWM. Generally speaking, the boost stage is responsible for nding the maximum
+power point and drawing the current from the solar array accordingly.
+The H-bridge DC-AC stage consists of an outer voltage loop and an inner current
+loop. Ulink refis the desired DC link voltage, shown as U0in Figure 5.9. The function
+of this stage is to control the DC side voltage so it would track its reference Ulink ref.
+On the AC side, the output voltage is governed by the grid voltage. The output
+current is proportional to the power of the solar array.
+89
+
+--- Page 107 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.10: Grid-tie converter control architecture
+5.5 Central Control Unit
+5.5.1 Controller Implementation
+In this thesis, the operation of a grid-connected microgrid with EMS is classied into
+ve main operating modes, described below. Circuit level control schematics is shown
+in Figure 5.11.
+1. Grid-connected mode : This is the normal mode of operation and most of the
+time, the microgrid operates in grid connected mode. In this mode, the micro-
+grid bus voltage is determined by the utility grid. The solar grid-tie inverter
+is a current source inverter(CSI), which injects current to the microgrid. The
+battery pack is also controlled as CSI. The high-level controller of EMS would
+90
+
+--- Page 108 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+PowerRelayCircuit 
+Breaker
+Command
+SensingDCAC
+DCACR R RR
+120V ACCircuit level
+control unit
+R
+Figure 5.11: Circuit level control schematics
+command the low-level EMS inverter to either charge or discharge the battery
+to achieve the desired charge/discharge power.
+2. Grid-only mode : In case the battery or EMS inverter has a malfunction or is
+under service, the controller would open the breaker connecting the EMS to
+the microgrid, and enters a Grid-only operation mode. The rest of the devices
+should operate under the same condition as the grid connected mode.
+3. Islanding mode : This mode could also be called battery-only mode. When
+the utility grid is down or suering voltage instability, EMS could detect the
+91
+
+--- Page 109 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+incident and open the grid transfer switch. The microgrid is isolated from the
+utility grid and operates in islanding mode. In this mode, the EMS inverter
+is operated as voltage source inverter (VSI) instead of CSI, which means the
+microgrid bus voltage is governed by the EMS inverter. The main function
+of EMS in this mode is to maintain the microgrid voltage and frequency, and
+power balance between generation and consumption.
+4. Synchronization mode : This is a transition from the islanding to grid con-
+nected mode. When the microgrid operates in the islanding mode, its voltage
+and frequency are determined by an internal reference. Before switching to grid
+connected mode, EMS would ensure that the magnitude, frequency and phase
+of the microgrid and grid are the same.
+5. Outage mode : This system enters this mode when both utility grid and EMS
+battery packs are out of power. In this mode, the EMS control unit is still
+active and monitors the system with reserved power, preparing for switching to
+the correct mode when power comes back on either from the battery or utility
+grid.
+To implement the above functionality, a nite state machine controller is designed
+as shown in Figure 5.13. The state variables are the state of utility grid transfer
+switch, EMS breaker and grid power indicator.
+Utility grid transfer switch has three states, Closed(C), Fault opening(F), and
+Manual opening(M). The transfer switch has build-in relay which senses utility grid
+current and voltage. In case of grid power outage and voltage instability, the transfer
+switch would trip from C to F. The M state represents the case where a maintenance
+92
+
+--- Page 110 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+sta opens the switch manually. The EMS could direct the transfer switch to reclose
+from F to C when a fault is cleared, but not from M to C.
+The EMS breaker has the same three states. Grid power indicator has two values:
+Grid has power and stable(Y), grid is power o or unstable(N).
+Each blue box in Figure 5.13 represents a state of the microgrid. The three letters
+represent the state of EMS breaker, grid transfer switch and grid power indicators
+respectively. For example, CFN means EMS breaker is closed, grid transfer switch is
+at fault condition and grid has no power.
+The red circles represent the modes of the system, which include groups of states
+with similar meaning.
+93
+
+--- Page 111 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.12: Central control unit
+94
+
+--- Page 112 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6 Simulation of Microgrid Operation
+In this section, simulations are performed under a variety of fault conditions to demon-
+strate the dierent features of the EMS circuit level controller.
+5.6.1 Simulation Setup
+Matlab R2012b with Simulink is ued to set up a microgrid for simulation. An iMac
+with 2.5 GHz Intel Core i5 and 4GB ram is used for simulation. This microgrid is a
+typical setting for residential use, as shown in Figure 5.13. Ebat= 5kWh ,Nh= 0:3s,
+sampling period is 1 E6s. Number of solar panels is 10.
+The microgrid is connected to the utility grid through a transfer switch. Solar
+array with grid tie inverter are connected to the microgrid bus. Battery packs are
+connected to the inverter of the EMS system. The electrical panel for household load
+is connected to the microgrid bus. This simulation is able to test the microgrid at
+circuit level.
+95
+
+--- Page 113 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.13: System in simulation
+96
+
+--- Page 114 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6.2 Grid Connected Operation
+Grid connected operation is the most common operating mode for the EMS system.
+Assuming xed battery voltage, power control commands are converted to current
+control commands. In this mode the current of the EMS is controlled by system
+level optimization loop. The current control signal in this simulation is 10A(charge),
+15A(charge), 15A(discharge), 10A(discharge), 15A(discharge).
+As shown in Figure 5.14, the EMS converter can correctly respond to the system
+level optimization command. It successfully controls the power ow between the
+utility grid and local microgrid.
+97
+
+--- Page 115 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Figure 5.14: Circuit level simulation - grid connected operation, a) current of grid,
+EMS converter and solar system, b) voltage, current and RMS voltage of the EMS
+converter, c) voltage, current and voltage RMS value of the grid power prole, d)
+voltage and current of the solar output power.
+98
+
+--- Page 116 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6.3 Grid Failure
+The ability to ride through grid failure or blackout is a key feature of the EMS
+system. In this simulation, a grid failure occurs which drops its voltage to about 10%
+of nominal voltage.
+As shown in Figure 5.15, the outage happens at time 0.06s, which is detected by
+the EMS grid relay instantaneously and tripping the transfer switch to isolate the
+grid o the microgrid. At the same time, the controller of the EMS converter is
+switched to islanding mode. From the RMS value of the microgrid voltage, this event
+is invisible to the load and solar array system.
+After an undened length of outage (in this simulation it is 4 cycles), the grid
+power recovers at 0.13s. During the outage, magnitude and phase dierence between
+the grid voltage and the microgrid voltage may develop. When EMS detects the
+recovery of utility grid, it starts to synchronize the microgrid voltage to that of the
+utility grid. At time 0.275s, the microgrid is reconnected to the grid. No current
+surge is observed at the moment of reconnection, as can be seen in Figure 5.15.
+99
+
+--- Page 117 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Grid oﬄine Grid recovery Grid reconnect
+Figure 5.15: Circuit level simulation - grid failure, a) the current of grid, EMS con-
+verter and solar system, b) voltage, current and RMS voltage value of the EMS
+converter. c) voltage, current and RMS voltage value of the grid power prole. d)
+voltage and current of the solar output power.
+100
+
+--- Page 118 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6.4 EMS Oine
+The next scenario considered is the case that EMS goes o-line either because of a
+equipment failure or scheduled maintenance. The EMS oine event occurs at time
+0.07s(see Figure 5.16 ), which is instantaneously detected by the EMS grid relay and
+trips the circuit breaker to isolate the EMS converter o the microgrid. The microgrid
+runs in the grid only mode.
+After 0.08s of outage, the EMS converter and battery return to service. The
+EMS converter is designed in a way that when grid is available, it would start the
+the synchronization process, making sure the voltage amplitude, frequency and phase
+stay synchronized with the utility grid. As shown in Figure 5.16 c), at the moment
+of reconnection, the EMS converter is perfectly synchronized with the grid and there
+is no current surge.
+101
+
+--- Page 119 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Battery recovery Battery oﬄine
+Figure 5.16: Circuit level simulation - EMS oine,a) the current of grid, EMS con-
+verter and solar system, b) voltage, current and RMS voltage of the EMS converter,
+c) voltage, current and voltage RMS value of the grid power prole, d) voltage and
+current of the solar output power.
+102
+
+--- Page 120 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6.5 Black Start - Battery First
+Black start is the process after a total loss of power in the microgrid. It happens
+either after a long blackout or scheduled event.
+During a total power loss, the solar system would not be running along, because
+there is no voltage reference. In the test case shown in Figure 5.17, the battery system
+recovers and comes online rst. The grid power recovers only after the microgird is
+running on battery alone. Since the microgrid is already energized, its bus voltage has
+to be synchronized with the grid before reconnecting to it. The reclosure occurs at
+time 0.3s in the testing scenario. Due this synchronization, there is no surge current
+at the time of reclosure.
+103
+
+--- Page 121 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Battery recovery
+Grid recovery Grid reconnect
+Figure 5.17: Circuit level simulation - EMS black start battery rst, a) the current
+of grid, EMS converter and solar system, b) voltage, current and RMS voltage of the
+EMS converter, c) voltage, current and voltage RMS value of the grid power prole,
+d) voltage and current of the solar output power.
+104
+
+--- Page 122 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+5.6.6 Black Start - Grid First
+The next scenario of black start assumes that the utility grid recovers before the
+EMS (see Figure 5.18). The EMS with battery recovers after the system is up and
+connected to the grid. Since the EMS converter uses the grid voltage as reference, no
+surge current occurs at the time of reclosure.
+105
+
+--- Page 123 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Battery recovery
+Grid recovery
+Figure 5.18: Circuit level simulation - EMS black start grid rst, a) the current of
+grid, EMS converter and solar system, b) voltage, current and RMS voltage of the
+EMS converter, c) voltage, current and voltage RMS value of the grid power prole,
+d) voltage and current of the solar output power.
+106
+
+--- Page 124 ---
+Chapter 6
+Conclusions and Future Work
+6.1 Conclusions
+The electric power systems must undergo signicant transformation to achieve envi-
+ronmental and energy sustainability. Microgrids will be at the core of this transfor-
+mation. This thesis was concerned with the control and component sizing for energy
+management in microgrids with energy storage and renewable energy in residential,
+commercial and industrial applications.
+A hierarchical control approach was proposed for a microgrid with EMS involving
+an optimization-based high-level power ow controller and a circuit level controller.
+A complete theoretical presentation of the system level controller, including design,
+optimization and control of EMS was included. The proposed component sizing
+optimization is a complete solution of the problem that have not been considered in
+the literature before. A nite stage machine based controller was presented as one
+possible option for circuit level control.
+A simple system level power ow strategy was proposed in this thesis. The cost
+107
+
+--- Page 125 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+of electricity was minimized by controlling the charge and discharge of an energy
+storage device such as a battery. Three cases were studied to show the validity of
+such controller under dierent building setting, pricing regime and components. Peak
+demand charge for commercial and industrial customers was reduced by the proposed
+EMS.
+The component sizing optimization for residential, commercial and industrial set-
+tings was studied. The proposed approach utilizes the available information such as
+pricing regime, component rating, capital cost, and power usage prole to determine
+an optimal size for each component. Theoretical formulation of each optimization
+problem was presented in the thesis. To verify the proposed component selection
+algorithm, eight cases were studied for residential, industrial and industrial settings.
+One case of component sizing optimization for islanded remote community was also
+considered.
+The result of component sizing optimization showed small nancial incentive for
+individual users to install battery backed EMS system with the current pricing regime
+and using retail price for capital cost of the system components. However, it is not
+unrealistic to assume that the capital cost of such systems would dramatically come
+down if in large volumes with increased adoption of such technologies. Also since
+the utility electricity price is expected to rise, in a some cases very signicantly in
+most jurisdictions in future. A case in point is the province of Ontario which has
+recently announced an average increase of 33% over the next 3 years (MOE, 2013).
+The reason for such increases in price is the much needed investments to upgrade
+an aging power grid and reduce reliance on polluting sources of power such as coal.
+Integration of microgrids with EMS into the utility grid could enable many new ways
+108
+
+--- Page 126 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+of control, e.g. demand-side control and peak load shaving. This approach could
+increase the eciency and improve the reliability of the grid. Although, the benets
+are not quantied in this thesis, it is reasonable for utilities to subsidize such system
+to accelerate deployment of such system. Considering all the above factors, a number
+of scenarios were studied by assuming future electricity and component pricing to
+demonstrate potential economic benets of microgrid with EMS to the consumers.
+A microgrid EMS circuit level controller was proposed and simulated in this thesis
+by employing a nite state machine. This approach ensured a very reliable control
+algorithm with fast response time. The faults could be detected and cleared in a
+fraction of a cycle, such the transition between islanded and grid connected operation
+would be imperceptible to the loads in the microgrid.
+6.2 Future Study
+There are a number of interesting possible directions for future work based on the
+research in thesis, as discussed below.
+The EMS optimization algorithm could be further improved by adding a term
+that represent the cost of each charge and discharge of battery to prevent ex-
+cessive activities that could shorten the battery life.
+Algorithms can be developed to predict power usage and generation in the
+microgrid , by for example considering weather forecast information. Such al-
+gorithms can be integrated with optimization-based power ow control method
+for real time energy management in the microgrid.
+Grid level aggregator for microgrid could be studied in the future, in order to
+109
+
+--- Page 127 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+provide services such as power regulation, peak demand generation and spin
+reserve, to the grid.
+110
+
+--- Page 128 ---
+Bibliography
+Armstrong, M. M., Swinton, M. C., Ribberink, H., Beausoleil-Morrison, I., and Mil-
+lette, J. (2009). Synthetically derived proles for representing occupant-driven
+electric loads in canadian housing. Journal of Building Performance Simulation ,
+2(1), 15{30.
+Armstrong, R. C. (2007). Addressing the global energy challenge.
+Arnold, G. (2011). Challenges and opportunities in smart grid: A position article.
+Proceedings of the IEEE ,99(6), 922{927.
+Barklund, E., Pogaku, N., Prodanovic, M., Hernandez-Aramburo, C., and Green, T.
+(2008). Energy management in autonomous microgrid using stability-constrained
+droop control of inverters. Power Electronics, IEEE Transactions on ,23(5), 2346{
+2352.
+Borbely, A.-M. and Kreider, J. F. (2001). Distributed generation: the power paradigm
+for the niew millennuim . CRC Press, Boca Raton, FL.
+Chakraborty, S., Weiss, M., and Simoes, M. (2007). Distributed intelligent energy
+management system for a single-phase high-frequency ac microgrid. Industrial
+Electronics, IEEE Transactions on ,54(1), 97{109.
+111
+
+--- Page 129 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Chicco, G. and Mancarea, P. (2009). Distributed multi-generation: A comprehensive
+view. RENEWABLE & SUSTAINABLE ENERGY REVIEWS ,13(3), 535{551.
+De Brabandere, K., Bolsens, B., Van den Keybus, J., Woyte, A., Driesen, J., and
+Belmans, R. (2007). A voltage and frequency droop control method for parallel
+inverters. Power Electronics, IEEE Transactions on ,22(4), 1107{1115.
+Dimeas, A. and Hatziargyriou, N. (2005). Operation of a multiagent system for
+microgrid control. Power Systems, IEEE Transactions on ,20(3), 1447{1455.
+DING, M., ZHANG, Y., MAO, M., YANG, W., and LIU, X. (2009). Steady model
+and operation optimization for microgrids under centralized control. Automation
+of Electric Power Systems ,33(24), 78{82.
+DOE (2012). 2010 Commercial Energy End-Use Splits by Fuel Type . Department
+of Energy, US, http://buildingsdatabook.eren.doe.gov/docs/xlspdf/3.1.4.
+pdf.
+Esram, T. and Chapman, P. L. (2007). Comparison of photovoltaic array maximum
+power point tracking techniques. Energy conversion, IEEE transactions on ,22(2),
+439{449.
+Femia, N., Petrone, G., Spagnuolo, G., and Vitelli, M. (2005). Optimization of
+perturb and observe maximum power point tracking method. Power Electronics,
+IEEE Transactions on ,20(4), 963{973.
+Guerrero, J., Vasquez, J., Matas, J., Castilla, M., and de Vicuna, L. (2009). Con-
+trol strategy for exible microgrid based on parallel line-interactive ups systems.
+Industrial Electronics, IEEE Transactions on ,56(3), 726{736.
+112
+
+--- Page 130 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Hatziargyriou, N., Dimeas, A., Tsikalakis, A., Lopes, J., Karniotakis, G., and Oyarza-
+bal, J. (2005). Management of microgrids in market environment. In Future Power
+Systems, 2005 International Conference on , pages 7 pp.{7.
+HydroOne (2013a). BUILDING YOUR BILL: PRICES & RATES . Hydro
+One Inc., http://www.hydroone.com/RegulatoryAffairs/RatesPrices/Pages/
+Default.aspx .
+HydroOne (2013b). RESIDENTIAL DELIVERY RATES . Hydro One
+Inc., http://www.hydroone.com/RegulatoryAffairs/RatesPrices/Pages/
+ResidentialDeliveryRates.aspx .
+IESO (2013a). A GUIDE TO ELECTRICITY CHARGES FOR BUSINESS .
+IESO, https://www.ieso.ca/imoweb/siteShared/electricity_charges.asp?
+sid=bi .
+IESO (2013b). IESO market data .http://www.ieso.ca/imoweb/marketData/
+marketData.asp .
+Kariniotakis, G., Soultanis, N., Tsouchnikas, A. I., Papathanasiou, S., and Hatziar-
+gyriou, N. (2005). Dynamic modeling of microgrids. In Future Power Systems,
+2005 International Conference on , pages 7 pp.{7.
+Katiraei, F. and Iravani, M. (2006). Power management strategies for a microgrid
+with multiple distributed generation units. Power Systems, IEEE Transactions on ,
+21(4), 1821{1831.
+Katiraei, F., Iravani, R., Hatziargyriou, N., and Dimeas, A. (2008). Microgrids man-
+agement. Power and Energy Magazine, IEEE ,6(3), 54{65.
+113
+
+--- Page 131 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+Kyocera (2013). KYOCERA to Start Exclusive Sales in Japan of New Residential-
+Use Energy Management System Combining Solar Power with Li-ion Battery Stor-
+age Unit . Kyocera Corporation, http://global.kyocera.com/news/2012/0102_
+qpaq.html .
+LaCommare, K. H. and Eto, J. H. (2006). Cost of power interruptions to electricity
+consumers in the United States (US). ENERGY ,31(12), 1845{1855.
+LaRose, B. (2013). DENSO Develops Vehicle-to-Home Power Supply System for Elec-
+tric Vehicles . DENSO Corporation, http://www.densocorp-na.com/newsroom/
+show/id/433 .
+Lasseter, B. (2001). Microgrids [distributed power generation]. In Power Engineering
+Society Winter Meeting, 2001. IEEE , volume 1, pages 146{149 vol.1.
+Lasseter, R. (2002). Microgrids. In Power Engineering Society Winter Meeting, 2002.
+IEEE , volume 1, pages 305{308 vol.1.
+Lasseter, R. (2011). Smart distribution: Coupled microgrids. Proceedings of the
+IEEE ,99(6), 1074{1082.
+Li, Y. W. and Kao, C.-N. (2009). An accurate power control strategy for power-
+electronics-interfaced distributed generation units operating in a low-voltage multi-
+bus microgrid. Power Electronics, IEEE Transactions on ,24(12), 2977{2988.
+Majumder, R., Ghosh, A., Ledwich, G., and Zare, F. (2009). Load sharing and
+power quality enhanced operation of a distributed microgrid. Renewable Power
+Generation, IET ,3(2), 109{119.
+114
+
+--- Page 132 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+MOE (2013). Ontario's Long-Term Energy Plan . Ontario Ministry of Energy, http:
+//www.energy.gov.on.ca/docs/LTEP_2013_English_WEB.pdf .
+Mohamed, F. and Koivo, H. (2007). Online management of microgrid with bat-
+tery storage using multiobjective optimization. In Power Engineering, Energy and
+Electrical Drives, 2007. POWERENG 2007. International Conference on , pages
+231{236.
+Mohamed, Y. A. R. I. and El-Saadany, E. (2008). Adaptive decentralized droop
+controller to preserve power sharing stability of paralleled inverters in distributed
+generation microgrids. Power Electronics, IEEE Transactions on ,23(6), 2806{
+2816.
+Morais, H., K ad ar, P., Faria, P., Vale, Z. A., and Khodr, H. (2010). Optimal schedul-
+ing of a renewable micro-grid in an isolated load area using mixed-integer linear
+programming. Renewable Energy ,35(1), 151{156.
+NSN (2013). Zero CO2 o-grid site solution for E-Plus . Nokia Solutions
+and Networks, http://nsn.com/system/files/document/en_zero_co2_site_
+solution_for_e-plus_-_whitepaper_versmold_1.3.pdf.
+OEB (2013). Electricity Prices, Time-of-use (TOU) Prices . Ontario Energy
+Board, http://www.ontarioenergyboard.ca/OEB/Consumers/Electricity/
+Electricity+Prices .
+Olivier Tremblay, L.-A. D. (2009). Experimental validation of a battery dynamic
+model for ev applications. World Electric Vehicle Journal ,3.
+115
+
+--- Page 133 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+OPA (2013). About microFIT . Ontario Power Authority, http://microfit.
+powerauthority.on.ca/about-microfit .
+Parisio, A. and Glielmo, L. (2011). Energy ecient microgrid management using
+model predictive control. In Decision and Control and European Control Conference
+(CDC-ECC), 2011 50th IEEE Conference on , pages 5449{5454.
+Pawel Malysz, Shahin Sirouspour, A. E. (2013). MILP-based Rolling horizon Control
+for Microgrids with Battery Storage . McMaster University.
+Pogaku, N., Prodanovic, M., and Green, T. C. (2007). Modeling, analysis and testing
+of autonomous operation of an inverter-based microgrid. Power Electronics, IEEE
+Transactions on ,22(2), 613{625.
+R. Lasseter, A. Akhil, C. M. and Stephens, J. (2002). White paper on integra-
+tion of distributed energy resources the CERTS microgrid concept . Available:
+certs.lbl.gov/pdf/50829-app.pdf.
+Sao, C. and Lehn, P. (2008). Control and power management of converter fed micro-
+grids. Power Systems, IEEE Transactions on ,23(3), 1088{1098.
+SMA (2013). Sunny Backup . SMA Solar technology AG, http://files.sma.de/dl/
+8016/SBUPSYS-DEN102020.pdf .
+Tsikalakis, A. and Hatziargyriou, N. (2008). Centralized control for optimizing mi-
+crogrids operation. Energy Conversion, IEEE Transactions on ,23(1), 241{248.
+UnitedNation (2013). Sustainable Energy for All Initiative . United Nation, http://
+www.un.org/wcm/content/site/sustainableenergyforall/home/Initiative .
+116
+
+--- Page 134 ---
+M.A.Sc. Thesis - Xiang Yu McMaster - Electrical Engineering
+USEIA (2012). Primary energy consumption by source and sector, 2010. Technical
+report, U. S. Energy Information Administration.
+Villalva, M., Gazoli, J., and Filho, E. (2009). Comprehensive approach to modeling
+and simulation of photovoltaic arrays. Power Electronics, IEEE Transactions on ,
+24(5), 1198{1208.
+Wang, C., Xiao, Z., and Wang, S. (2008). Synthetical control and analysis of micro-
+grid. Automation of Electric Power Systems ,7, 024.
+Youli, S., Litifu, Z., and Nagasaka, K. (2009). Eciency of micro grid with storage
+battery in reliability, economy and environment assessments. International Journal
+of Electrical and Power Engineering ,3(3), 154{162.
+Yubing, D., Yulei, G., Qingmin, L., and Hui, W. (2008). Modelling and simulation
+of the microsources within a microgrid. In Electrical Machines and Systems, 2008.
+ICEMS 2008. International Conference on , pages 2667{2671.
+Zamora, R. and Srivastava, A. K. (2010). Controls for microgrids with storage: Re-
+view, challenges, and research needs. Renewable and Sustainable Energy Reviews ,
+14(7), 2009{2018.
+117

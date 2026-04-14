@@ -1,0 +1,539 @@
+--- Page 1 ---
+Verifying the accuracy of interlocking tables for railway signalling
+systems using abstract state machines
+Basri Tugcan Celebi1•Ozgur Turay Kaymakci1
+Received: 31 May 2016 / Revised: 28 September 2016 / Accepted: 30 September 2016 / Published online: 27 October 2016
+/C211The Author(s) 2016. This article is published with open access at Springerlink.com
+Abstract Railway transportation system is a critical sector
+where design methods and techniques are deﬁned by inter-
+national standards in order to reduce possible risks to an
+acceptable minimum level. CENELEC 50128 strongly rec-
+ommends the utilization of ﬁnite state machines during system
+modelling stage and formal proof methods during the veriﬁ-
+cation and testing stages of control algorithms. Due to the high
+importance of interlocking table at the design state of a sig-
+nalization system, the modelling and veriﬁcation of inter-
+locking tables are examined in this work. For this purpose,
+abstract state machines are used as a modelling tool. The
+developed models have been performed in a generalized
+structure such that the model control can be done automati-
+cally for the interlocking systems. In this study, NuSMV is
+used at the veriﬁcation state. Also, the consistency of the
+developed models has been supervised through fault injection.
+The developed models and software components are applied
+on a real railway station operated by Metro Istanbul Co.
+Keywords Model checking /C1Abstract state machines /C1
+Interlocking
+1 Introduction
+The importance of railway transportation is increasing day
+by day as the world becomes more populated. European
+Rail Infrastructure Masterplan (ERIM) Final Report statesthat the trafﬁc growth forecast for the period of 2006–2020
+is 34 % for the passenger trafﬁc and 57 % for the freight
+trafﬁc. It is also reported that the tackling all infrastructure
+issues would require about 200 billion euros for the entire
+ERIM network and about 60 billion euros for the six
+ERTMS corridors [ 1]. Such an increasing level of trafﬁc
+congestion and need for infrastructure reveal many new
+topics of research in this area.
+The interlocking is a subsystem that avoids conﬂicting
+movements of vehicles by adjusting the routes. The safety
+critical software of the interlocking system is generally
+composed of two different parts: generic application and
+speciﬁc application. The generic application part is usually
+designed with the general structure. On the other hand, the
+speciﬁc application part is obtained based on the site
+topology using this developed general application compo-
+nents. Certiﬁcation stage of a railway signalization project
+generally includes this speciﬁc application part because
+general application part has been already certiﬁed for one
+time only. At this point, interlocking tables are taken as a
+reference in order to obtain speciﬁc application from gen-
+eral one.
+In general, an interlocking table is a list which includes
+all possible routes at the signalization system, and it deﬁnes
+the situations of the signalling components in order to open
+the routes safely. Sometimes the design of the interlocking
+table is a difﬁcult process for complicated ﬁeld topologies.
+A very slight failure means that a route will be opened in a
+different condition than it should be. This could lead to
+many possible different dangerous situations including
+derailment or accident. For all these reasons, the inter-
+locking table have to be veriﬁed. CENELEC EN 50128
+strongly recommends the use of formal methods for SIL4
+safety level in Table A-4 such that model checking is listed
+among those formal methods.&Ozgur Turay Kaymakci
+kaymakci@yildiz.edu.tr
+1Department of Control and Automation Engineering, Faculty
+of Electrical and Electronics Engineering, Yildiz Technical
+University, Esenler, Istanbul, Turkey
+123J. Mod. Transport. (2016) 24(4):277–283
+DOI 10.1007/s40534-016-0119-1
+
+--- Page 2 ---
+The advantage of model checking is to detect the fail-
+ures during the design stage. This positive aspect makes it
+possible to identify and correct these failures which would
+be very hard or even impossible to rectify during the designstage. On the other hand, Simulation methods could also be
+considered as another option for the veriﬁcation. However,
+some studies have revealed that there is a residue risk ofnot being able to detect all the probable failures through
+simulation [ 2].
+Many studies can be found in the literature regarding the
+design of railway signalling and interlocking systems
+through the use of formal methods. Winter designed amodel through CSP (Communicating Sequential Processes)
+formal modelling language and performed the model
+checking through FDR (Failures-Divergences Reﬁnement)[3,4]. Similarly, Simpson presented some models for
+British Railway Systems in accordance with GDL (Geo-
+graphic Data Language) notation as CSP, and utilized FDRas the model checking software [ 5]. In a further study,
+Winter formed a model through ASM (Abstract State
+Machine) notation which is a similar language to Robinsonand state-transition diagrams. She performed the model
+check through NuSMV [ 6]. It has been maintained that
+ASM notation has a more comprehensible expression thanmodels performed through CSP regarding the system
+structure and performing state transitions with dynamic
+properties through the same notation [ 7,8]. In another
+study, the model was formed through GCL (Guarded
+Command Language) notation and modelled through CSP
+for the correspondence of the processes [ 9]. CPN
+(Coloured Petrinet) was used in the modelling of the
+interlocking system formed in Anunchai State Railway of
+Thailand format, and Panthong station was used as theexemplary system [ 10]. CPN models are distinct from Petri
+Net models as the tokens have speciﬁc properties [ 11].
+Distinct from the other studies carried out, a general
+modelling structure concerning the general properties of
+station topology and interlocking table has been formed in
+this study. A generalized software base design has alsobeen performed to be able to automatically check this
+model through NuSMV software. A general structure of the
+interlocking system has been analysed, and a general ASMmodel structure has been obtained. At the same time,
+conversion systematic has been revealed so that the ASM
+model of the interlocking table can be used with NuSMVsoftware. In this way, it has become possible to establish an
+infrastructure that can enable the testing of interlocking
+table automatically.
+The study consists of four sections. Section 2deﬁnes the
+basic deﬁnitions of model checking, and Sect. 3mentions
+the model checking of the interlocking table on the basis ofrailway station operated by Metro Istanbul Co. Finally, the
+paper is concluded in Sect. 4.2 Model checking modelling
+Recently, model checking was put forth as a result of
+studies carried out by Edmund M. Clarke and Allen
+Emerson as well as through J.P Quielle and J.Sifakisindependently [ 12,13]. As a formula, with Ma Kripke
+structure and fa temporal logic, model checking is deﬁned
+as the study of all sstates that are s:=finMstructure [ 14].
+It is possible to express the behaviour of a system with a
+modelling technique such as petri nets, state-transition
+diagrams or abstract state machines (ASM). As complextopologies are not applicable in practice due to the problem
+of state explosion, modelling the system behaviour as
+unsophisticated as possible is very important [ 15]. Differ-
+ent solutions for the state explosion problem have been
+offered in literature [ 16,17]. On the other hand, forming
+the models in a simplest way as possible is always a bigadvantage in industrial applications. Hence, the possible
+solutions can be achieved easily and system requirements
+can be identiﬁed accurately.
+States are the set of values which are the result of
+functions. Functions are split into distinct groups based on
+their interrelations and assessments. ‘‘Static function’’ has
+an assessment is for static functions, ‘‘dynamic function’’
+has an assessment that could vary based on the model and‘‘external function’’ has an assessment that may change as
+a result of external factors independent from the model.
+Transitions deﬁne how dynamic functions will vary
+while going from one state to another. Such operations can
+be conditioned through transition rules in ASM. In addi-
+tion, transitions are realized in a synchronized way con-currently based on the transition rules.
+Updating Rule Enables the ( f, (v
+1,…,vn)) state to be
+updated according to the vvalue.
+Conditioning Rule If‘‘cond’’ condition, deﬁned as logic,
+is true, Rtis applied, if it is not true, then Reis valid
+Ifcond then Rtelse Reendif
+Forall Rule If the logic ‘‘cond’’ condition is true for any
+v2D,Ris veriﬁed for vvalues
+Forall vinDwith cond doR
+After forming the model of the system, the requirements
+to be ensured and the propositions to be used for super-
+vising the possible system failures are represented throughtemporal logic formulae [ 18].
+Computational tree logic (CTL) is a form of temporal
+logic to express temporal logic formulae which can bechecked by model checking software. CTL formula
+involves temporal expressions, with uandWbeing atomic
+propositions, Xu(next u),uUW(uatomic proposition is
+valid until W),Gu(uis always globally valid) and Fu(u278 B. T. Celebi, O. T. Kaymakci
+123 J. Mod. Transport. (2016) 24(4):277–283
+
+--- Page 3 ---
+is valid in the future). Boolean logic operators like :,^,_,
+which means, respectively, ‘‘not’’, ‘‘and’’, ‘‘or’’, ‘‘if’’, ‘‘if
+and only if’’ are included. In addition to these, path
+quantifying operators are also deﬁned, which are ‘‘A’’ (forall probable paths) and ‘‘E’’ (for some probable paths). For
+further details regarding CTL formulization, it is recom-
+mended that the reader goes through referred studies [ 19].
+3 Model checking of an urban railway
+interlocking system
+Interlocking system is the core subsystem of railway sig-
+nalling systems such that it deﬁnes the exact conditions of
+the ﬁeld equipment in order to manage the vehicle move-ments safely. For detailed information about railway sig-
+nalization systems refer to [ 20]. In this work, the
+considered system is an urban interlocking system that isoperated under double-track operation such that each track
+is operated exclusively in one direction. In this context, the
+safety rules that cover the predetermined conditions of theblocks, points and signals within the system are examined.
+The examined set of conditions are directly linked with the
+elements contained by the desired route, system topologyand states of the routes previously opened. It is obvious that
+interlocking system structures may vary depending on
+countries, operating companies, topology and differentpurposes of use but the basic safety rules remain the same
+everywhere. This study concentrates on these basic safety
+rules such that it aims to introduce a new model checkingstrategy by introducing a core model using the most
+existing elements in any urban interlocking system.
+Three distinct elements have been taken into consider-
+ation in the modelling phase. These elements are topology,
+interlocking table and train motion. While the topology
+model includes the states and positions of the blocks, pointsand signals, the interlocking table model comprises the
+basic requirements for opening all the possible routes. On
+the other hand, the train motion model represents the
+vehicle movement according to the signalization system.
+A railway station, operated by Metro Istanbul Co., is
+taken as a reference for this study. The layout of the station
+is given Fig. 1. The station topology includes blocks,
+points and antennae. Route inquiries are transmitted to the
+interlocking system through antennae by the conductors.
+Signals can be categorized into three, which are straight
+line, vertical line and side line. A straight line indicates that
+the train goes along the route straightly, while a verticalline shows that train transitions are not allowed. Finally, a
+side line informs that the route is formed in such a way that
+the train diverges over the point. The positions of the pointsvary depending on the route. The track circuits are posi-
+tioned following the signals in order to get the information
+if a vehicle occupies the corresponding block or not. Hereexpressing the interlocking table perfectly is of vital
+importance.
+Here the modelling is initiated by taking the static
+structure of the system as a reference. This structure is
+designed as static functions in ASM model in such a way
+that a subordinate space for all kind of elements is identi-ﬁed. It is also important to note that the interlocking table is
+identiﬁed when all the elements of the system are totally
+functional. Here the mechanical or electrical failure casesare ignored while forming the system model.
+Track: {Track x, Track1, Track11, Track2, Track21}
+– TrackName: {TC x, TC1, TC11, TC2, TC21}
+– Point:{Point x, Point1, Point 11, Point2, Point 21}
+– PointName:{P x, P1, P11, P2, P21}
+– PointPosition:{Normal, Inverse}
+The accepted case is that the positions of these points
+are concurrently diverging and concurrently normal.
+D
+A
+EC
+BES 2.1
+.
+Signal
+Track
+circuitPointAntennaES 1
+ES xTC 1TC 2.1
+P21 P2 TC2S2
+ES2
+S 2.1S 1.1
+ES 1.1
+TC 1.1P11 P1
+Px
+SxTCxS1
+Fig. 1 Layout of the railway station operated by Metro Istanbul Co.Verifying the accuracy of interlocking tables for railway signalling systems using abstract state … 279
+123 J. Mod. Transport. (2016) 24(4):277–283
+
+--- Page 4 ---
+Naming for the blocks is incorporated into the model as
+a static function, while occupation is handled as a dynamic
+function. As the states of the signals vary depending on the
+opened routes and the occupation of the rail blocks, theyare depicted as static functions.
+The starting positions of the trains have been set ran-
+domly and route requirements have also been chosen ran-domly, ensuring the scanning of all possible states. The
+names and directions of the trains are deﬁned as static
+functions, while the position of the train is identiﬁed as a
+dynamic function. External functions have been used for
+nondeterministic behaviours mentioned.
+static function TrackID: Track ?TrackName
+dynamic function Occ: Track ?Boolean
+dynamic function SigColour: Signal ?SignalColour
+external function TrainRequestID: Train ?AntennaName
+external function Train_InitSituation: Train ?
+AntennaName
+The base of the model is formed upon the completion of
+the functions. The structure that ensures the model to
+evolve (transitions between the states) can be made pos-sible through transition rules as mentioned earlier. Identi-
+ﬁcation of the transition rules has ensured signalling,
+checking the points and modelling the train motion,depending on the conditions of the interlocking system.
+One part of the interlocking table designed for railway
+station is provided in Table 1.
+Route column includes the route number, and it also
+refers to starting track circuit and the ending track circuit of
+that speciﬁc route. Blocks indicate which blocks areincluded in that route. Point and signal columns deﬁne the
+proper situation of the points and the signals for that
+speciﬁc route. As it is obviously seen in the ‘‘signals’’column, these conditions are not deterministic. Further-
+more, the counter routes column is to point out the routes
+which of them should be locked, while the route which istaken into account is assigned. Signals are redeﬁned as R
+(red), G (green) and Y (yellow) which replaces vertical,
+horizontal and side lines, respectively, to make thetable more understandable.
+Routes and points are not locked at the initial stage. All
+the signals are deﬁned as vertical line (red), not allowingany passage. Route requirements and starting states are
+identiﬁed randomly in the model.
+The system elements are assigned a value based on the
+interlocking table. For instance, if a train requires the route
+R1 and if the requirements for the opening of the route
+have been fulﬁlled, (which means the rail blocks areavailable and no counter route is locked), then that par-
+ticular route is locked. After having the route locked, points
+are arranged and locked. Afterwards, the signal statechanges according to the interlocking table. Also, themotion of the train is determined based on the signal and
+point states and the moving direction.
+if TrainFrontSituationID(Train1) = TC21
+then if TrainDirection(Train1) = Right
+then if (SigColour(Signal21) = Green or  
+SigColour(Signal21) = Yellow)
+then if (PointPosition(P2) = Normal and  
+PointPosition(P21) = Normal 
+then TrainFrontSituationID(Train1) := TC2
+One of the primary aims of this study is to establish
+relations between ASM and NuSMV notations. Static and
+dynamic functions deﬁned in ASM model can be expressed
+through variables deﬁned, respectively, as FROZENVARand VAR in NuSMV. Deﬁnition sets and value sets where
+functions are deﬁned can be identiﬁed as the subobjects of
+the parent objects which are named as MODULE inNuSMV. Parent objects serve as structures through which
+several elements can be deﬁned. Here transition rules are
+depicted as ‘‘next’’ and initial states are stated as ‘‘init’’.The relation between ASM and NuSMV is given over point
+model in Table 2.
+Requirements include propositions that are necessary for
+the system to provide. In order to deﬁne the requirements,
+CTL notation has been preferred in this study. The CTL
+formula given below has been used to check the collisionsof the trains.
+SPEC NAME Collision: =AG!(Train1. Situa-
+tionID =Train2. SituationID | Train1. NextSituationID =
+Train2. SituationID |Train1. SituationID =Train2. NextSi
+tuationID);
+Also, fault injection technique has been utilized, and a
+failure has been intentionally incorporated into the system
+in order to test the accuracy of the introduced model. For
+this purpose, the state without ‘‘Route1’’ from the counterroutes has been injected as a failure in the interlocking
+table for Route9. A counter example for this situation is
+presented below. The ASM and NuSMV code are pre-sented below.
+Speciﬁcation AG! ((Train1. SituationID =Train2. Sit-
+uationID | Train1. NextSituationID =Train2. SituationID)
+| Train1.SituationID =Train2.NextSituationID) is false.
+The corresponding NuSMV execution sequence is as
+follows.
+?State: 1.1 /
+Track x.TrackID =TCx
+Track1.TrackID =TC1
+Track11.TrackID =TC11
+Track2.TrackID =TC2
+Track21.TrackID =TC21
+Antennax.TrackID =ESx
+Antenna1.TrackID =ES1280 B. T. Celebi, O. T. Kaymakci
+123 J. Mod. Transport. (2016) 24(4):277–283
+
+--- Page 5 ---
+Antenna11.TrackID =ES11
+?State: 1.2 /
+Pointx.Position =Inverse
+Pointx.Locked =TRUE
+Point1.Locked =TRUE
+Point21.Locked =TRUE
+Point2.Locked =TRUE
+Point11.Locked =TRUE
+Route1.Locked =TRUE
+Route1.Free =FALSE
+?State: 1.3 /
+Point1.Position =InversePoint21.Position =Inverse
+Signal x.Colour =Yellow
+Train1.NextSituationID =TCx
+Route9.Locked =TRUE
+Route9.Free =FALSE
+Route10.Free =FALSE
+?State: 1.4 /
+Trackx.Occ =TRUE
+Antennax.Occ =FALSE
+Signal2.Colour =Yellow
+Train1.SituationID =TCx
+Train1.NextSituationID =TC2Table 1 Designed interlocking table
+Route Blocks Points Signals Counter routes
+R1: TC x?TC11 TC x, TC11 P x: Inverse
+P1: NormalP11: NormalSx:Y
+S1: RS21: {G,R}S2: {G,R}All/{R1, R6, R10}
+R2: TC x?TC2 TC x, TC2 P x: Inverse
+P1: InverseP2: NormalP21: InverseSx:Y
+S1: RS21: RAll
+R3: TC1 ?TC11 TC1, TC11 P x: Normal
+P1: NormalP11: NormalSx:R
+S1: GS21: {G,R}All/{R3, R6, R10}
+R4: TC1 ?TC2 TC1, TC2 P x: Normal
+P1: InverseP2: NormalP21: InverseSx:R
+S1: YS21: RAll
+R5: TC21 ?TC11 TC21, TC11 P11: Inverse
+P2: InverseP21: NormalS21: Y
+S2: RAll
+R6: TC21 ?TC2 TC21, TC2 P21: Normal
+P2: NormalS21: G All/{R6,R1,R3}
+R7: TC11 ?TC21 TC11, TC21 P21: Normal
+P2: InversePI1: InverseS11: Y
+S2: RAll
+R8: TC2 ?TCx TC2, TC x Px: Inverse
+P1: InverseP2: NormalP21: InverseS2: Y
+S21: RS1: RS11: RAll
+R9: TC2 ?TC1 TC2, TC1 P x: Normal
+P1: InverseP2: NormalP21: InverseS2: Y
+S21: RS1: RSx:RAll/{R1}
+R10: TC2 ?TC21 TC2, TC21 P21: Normal
+P2: NormalS2: G All/{R10, R1, R3}
+R11: TC11 ?TCx TC11, TC x Px: Inverse
+P1: NormalP11: NormalS11: G All/{R11, R6, R10}Verifying the accuracy of interlocking tables for railway signalling systems using abstract state … 281
+123 J. Mod. Transport. (2016) 24(4):277–283
+
+--- Page 6 ---
+Train2.NextSituationID =TC2
+?State: 1.5 /
+Track x.Occ =FALSE
+Track2.Occ =TRUE
+Antenna2.Occ =FALSE
+Signalx.Colour =Red
+Train1.SituationID =TC2
+Train2.SituationID =TC2
+Collision of trains simply means that two trains are on
+the same rail block at the same time. As can be seen from
+the above ASM or NuSMV code, although Route1 and
+Route9 are counter routes, and not deﬁned in the inter-locking system, it has been able to lock Route9, while
+Route1 is already locked. This error has resulted with the
+case that trains can be on the same rail block in State 1.5.
+Derailment is another condition that should be checked.
+If a route is opened for one of the trains but point positions
+are not correctly arranged, then a possible derailment canhappen. CTL formularization identiﬁed for the detection of
+such cases is as follows:
+SPEC NAME Derailment1: =AG! (Train1.Situa-
+tionID =TC1 & Train1.Direction =Right &
+Point x. Position =Inverse);
+SPEC NAME Derailment2: =AG! (Train1. Situa-
+tionID =TCx & Train1. Direction =Right &
+Point x. Position =Normal);
+The requirement Derailment2 states that when the train
+is on TC21 rail block with the direction toward right, point
+Pxhas been set normal as a failure or not is checked out.
+Probable failures have been incorporated into the systemthrough fault injection technique. It has also been checked
+if the model, developed structurally, is able to detect the
+failures or not. Thus, system reliability has been boosted.The speciﬁcation and its counter example in NuSMV
+structure are provided below.
+Speciﬁcation AG! ((Train1.SituationID =TCx&
+Train1.Direction =Right) & Point x. Position =Normal)
+is false?State: 1.1 /
+Track x.TrackID =TCx
+Track1.TrackID =TC1
+Track11.TrackID =TC11
+Track2.TrackID =TC2
+Track21.TrackID =TC21
+Antennax.TrackID =ESx
+Antenna1.TrackID =ES1
+?State: 1.2 /
+Pointx.Locked =TRUE
+Point1.Locked =TRUE
+Point21.Locked =TRUE
+Point2.Locked =TRUE
+Point11.Locked =TRUE
+Route1.Locked =TRUE
+Route1.Free =FALSE
+Route2.Free =FALSE
+Route8.Free =FALSE
+Route9.Free =FALSE
+InitTrack_1 =ES21
+Request_1 =ES2
+Request_2 =ES21
+?State: 1.3 /
+Point x.Position =Inverse
+Signal x.Colour =Yellow
+Train1.NextSituationID =TCx
+?State: 1.4 /
+Track x.Occ =TRUE
+Antenna x.Occ =FALSE
+Point x.Position =Normal
+Train1.SituationID =TCx
+Train1.NextSituationID =TC11
+As a result of counter example analysis, it can be seen
+that when the train is in TC xposition, point P xcomes to the
+normal position. This situation would lead to derailing of
+the train. In this situation, the train arrives TCc but couldnot proceed to the next state P xbecause of the position
+misalignment of point P x. This case clearly shows that the
+problem lies with Route1. Here the consistency of thegenerated model is inspected, and the adequacy of it is
+shown with a counter example and fault injection method.
+It is seen that the developed models can be easily used inveriﬁcation of interlocking tables.
+4 Conclusion
+This study reveals the modelling of interlocking systemand the physical structures of the urban railway system. It
+also presents how the safety requirements can be stated in
+temporal logic notation. The modelling has been performedthrough ASM notation, and CTL temporal logic expres-
+sions are used to express the system requirements. UnlikeTable 2 ASM and NUSMV relation over a point model
+ASM NuSMV
+Point:{Pointx, Point1,
+Point11, Point2, Point21}-PointName:{Px, P1,P11,
+P2, P21}-PointPosition:{Normal, Inverse}static function PointID : Point --> PointNamePointID(Pointx):=Px
+if cond then updMODULE Point
+FROZENVAR PointID: 
+{Px,P1,P11,P2,P21};
+VAR Position : 
+{Normal,Inverse};
+VAR Locked: boolean;
+MODULE main
+VAR Pointx: Point
+ASSIGN
+init(Pointx.PointID) := Px
+next( Data)  :=  case cond  :
+upd 
+TRUE  :  Data 
+esac282 B. T. Celebi, O. T. Kaymakci
+123 J. Mod. Transport. (2016) 24(4):277–283
+
+--- Page 7 ---
+other researches, random failures have been incorporated
+into the model through fault injection rationale, and it has
+been expected that model detecting element is to identify
+the relevant failures. Here the introduced models have beencarried out for a railway station operated by Metro Istanbul
+Co. The interlocking table has been created for the corre-
+sponding station, and the accuracy of it has been checked itout by the introduced models via NuSMV.
+Acknowledgment Funding was provided by Yildiz Teknik U ¨niver-
+sitesi (TR).
+Open Access This article is distributed under the terms of the
+Creative Commons Attribution 4.0 International License ( http://
+creativecommons.org/licenses/by/4.0/ ), which permits unrestricted
+use, distribution, and reproduction in any medium, provided you give
+appropriate credit to the original author(s) and the source, provide alink to the Creative Commons license, and indicate if changes were
+made.
+References
+1. International Union of Railways (2007) European rail infras-
+tructure masterplan ﬁnal report
+2. Verma S, Lee P, Harris I (2006) Error detection using model
+checking vs. simulation. In: Proceedings of IEEE internationalhigh-level design validation and test workshop. Napa Valley,
+USA. doi: 10.1109/HLDVT.2006.319964
+3. Hoare C (1985) Communicating sequential processes. Prentice-
+Hall, London
+4. Winter K (2002) Model checking railway interlocking systems.
+In: Proceedings of Australian computer science conference
+(ACSC 2002). doi: 10.1145/563857.563836
+5. Simpson A (1998) Model checking for interlocking safety. In:
+Proceeding of the second FMERail seminar
+6. Winter K, Neil J (2003) Modeling large interlocking systems and
+model checking small ones. In: Proceedings of 26th Australasiancomputer science conference (ACSC 2003), vol 16, pp 309–3167. Gurevich Y (1995) Evolving Algebras: 1993 Lipari Guide.
+Speciﬁcation and validation methods. Oxford Universtiy Press,
+Oxford
+8. Bo ¨rger E, Stark R (2003) Abstract State machines: a method for
+high-level system design and analysis. Springer, New York
+9. Cimatti A, Giunchiglia F, Mongardi G, Romano D, Torielli F,
+Traverso P (1998) Formal veriﬁcation of a railway interlockingsystem using model checking. Form Asp Comput. doi: 10.1007/
+s001650050022
+10. Anunchai S (2009) Veriﬁcation of railway interlocking
+tables using coloured Petri Nets. In: Proceedings of the 10thworkshop and tutorial on practical use of coloured Petri Nets and
+the cpn tools
+11. Jensen K (1987) Coloured Petri Nets. Petri Nets: central models
+and their properties. Lecture notes in computer science, vol. 254,pp 248–299
+12. Clarke E, Emerson E (2005) Design and synthesis of synchro-
+nization skeletons using branching time temporal logic. Logic ofPrograms, vol 131, pp 52–71
+13. Quielle J, Sifakis J (2005) Speciﬁcation and veriﬁcation of con-
+current systems in CESAR. Lecture notes in computer science,vol 137, pp 337–351
+14. Clarke E (2008). Birth of model checking. 25 years of model
+checking, vol 5000, pp 1–26
+15. Lichtenstein O, Pnueli A (1985) Checking that ﬁnite state con-
+current programs satisfy their linear speciﬁcation. In: Proceedingsof the 12th ACM SIGACT-SIGPLAN symposium on principles
+of programming languages. doi: 10.1145/318593.318622
+16. McMilllan K (1992) The SMV system, symbolic model check-
+ing—an approach. Technical report, CMU-CS-92-131. Carnegie
+Mellon University
+17. Tian C, Duan Z, Zhang N (2012) An efﬁcient approach for
+abstraction-reﬁnement in model checking. Theor Comput Sci.doi:10.1016/j.tcs.2011.12.014
+18. Emerson E (1995) Temporal and modal logic. Handbook of
+theoretical computer science. Elsevier, pp 885–1072
+19. Baier C, Katoen J (2008) Principles of model checking. MIT
+Press, Cambridge
+20. Pachl J (2009) Railway operation and control, 2nd edn. VTD Rail
+PublishingVerifying the accuracy of interlocking tables for railway signalling systems using abstract state … 283
+123 J. Mod. Transport. (2016) 24(4):277–283

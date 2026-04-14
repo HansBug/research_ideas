@@ -1,0 +1,266 @@
+--- Page 1 ---
+A Vision-Based System for a UGV to Handle a Road Intersection
+Javed Ahmed1,2, Mubarak Shah1, Andrew Miller1, Don Harper1, and M.N. Jafri2
+1Computer Vision Lab, University of Central Florida, Orlando, FL-32816, USA
+2Electrical (Telecom.) Eng. Dept., National University of Sciences and Technology, Rawalpindi-46000, Pakistan
+jahmed@cs.ucf.edu, shah@cs.ucf.edu, amiller@cs.ucf.edu, harper@cs.ucf.edu, mnjafri@mcs.edu.pk
+Abstract
+We propose a real-time computer vision system that enables
+a UGV to safely cross urban road-intersections. Speciﬁcally,
+when the UGV approaches the stop sign at a 4-way intersec-
+tion, it must be aware of the vehicles at the other three roadsand adhere to trafﬁc rules by waiting for its turn to proceed.
+The proposed solution consists of three main components: a
+vehicle detector, a tracker, and a ﬁnite-state-machine to modelthe trafﬁc. We use an OT-MACH ﬁlter to detect the leading
+vehicle in each of three camera-views of the corresponding
+roads. Then, we track the vehicles using an edge-enhanceddynamic correlation tracker, which estimates the current and
+next positions, velocities, and accelerations of the vehicles.
+Finally, the ﬁnite-state-machine describes the trafﬁc in eachroad with one of four possible states (i.e. No V ehicle Waiting ,
+Arriving ,Waiting , and Passing ), and signals an autopilot sys-
+tem when it is safe to pass the intersection. We provide theresults from an actual intersection with real trafﬁc to demon-
+strate that the UGV is able to automatically navigate the in-
+tersection using the proposed system.
+Introduction
+Unmanned vehicles are steadily growing in demand since
+they save humans from having to perform hazardous or te-dious tasks and the equipment is often cheaper than person-nel. It further reduces cost to have unmanned vehicles re-
+motely controlled by fewer remote operators by implement-ing autonomous robotics to partially assume the burden of
+control. Unmanned ground vehicles (UGVs) in particularhave been successfully used for reconnaissance, inspectionand fault detection, and active tasks like removal of danger-ous explosives. These deployments have usually requiredthe UGV to operate in relative isolation. However, future
+uses of UGVs will require them to be more aware of theirsurroundings. Deployment in an urban environment, for
+example, will require a UGV to behave within challengingconstraints in order to avoid endangering or interfering withhumans.
+To foster the growth of research in practical autonomous
+UGVs, the United States defense research agency DARPAis organizing the Urban Challenge 2007 event, in which theparticipating organizations develop roadworthy vehicles that
+Copyright c/circlecopyrt2007, Association for the Advancement of Artiﬁcial
+Intelligence (www.aaai.org). All rights reserved.can navigate a mock urban obstacle course under complete
+autonomy. The original DARPA Grand Challenge event in2005 required the UGVs to autonomously cross the Mojavedesert. The new event is more challenging since the UGV
+must deal with a number of more difﬁcult obstacles and con-
+straints, such as parking in a conﬁned space, following traf-ﬁc laws, and avoiding interference with other vehicles on thesame course.
+Computer vision approaches have been successfully used
+in several previous UGV applications. For example, vi-sion has been used to make the vehicle stay in its lanewhile driving on a road (Rasmussen 2002; Chun, Faukoner,& Munkeby 1995), to detect unexpected obstacles in theroad (Matthies et al. 1995; Zhang, Weiss, & Hanson 1994;
+Matthies 1992; Matthies & Brown 1996; Talukder et al.
+2002), to recognize road signs (Matthies & Brown 1996),and to avoid collisions with pedestrians (Shashua, Gdalyahu,& Hayun 2004). Some research that enables multiple agents(UGVs and UA Vs) to coordinate with each other to accom-
+plish a task has also been reported (Vidal et al. 2001).
+In this paper, we discuss a new problem that must be
+solved for a UGV to successfully travel the streets of a realcity. The UGV must be able to pass a street intersectionregulated by a stop sign where vehicles from up to four di-rections are expected to voluntarily take turns crossing theintersection according to the order of their arrivals. In the
+DARPA Grand Challenge 2005, we entered a UGV that wasequipped with sweeping laser range ﬁnders to detect andavoid obstacles. However, these sensors can only detect ob-
+jects along a single line in space, so they are ill-suited to therecovery of higher level information about the scene. Addi-tionally, if the UGV travels on uneven roads, the laser rangeﬁnders often point off-target. Cameras are preferable in this
+situation because they have a conical ﬁeld of view. Thus, wepropose a computer vision solution, which consists of threemain components: a vehicle detector, a tracker, and a ﬁnite-
+state-machine model of the trafﬁc that determines when itis safe to cross the intersection. We implemented this al-gorithm as a complete real-time system that is installed on-board the UGV .
+The rest of the paper is organized as follows. The next
+section deﬁnes the scope of the problem in detail. Our so-lution and implementation are summarized in the section,“Overview of the Proposed Solution”. Each of the three
+1077
+
+--- Page 2 ---
+Figure 1: The four way intersection scenario. All vehicles
+must come to a stop before entering the intersection. TheUGV must be aware of incoming vehicles in the right-handlane of each of the three roads ( left,front , and right ), in the
+regions indicated by the shaded boxes.
+components is described in further detail in separate sec-
+tions. We describe the experiments we performed to testour system in the “Results” section. Finally, we summarizeour research and suggest future work in the “Conclusion”section.
+Problem Description
+For this paper, we consider the scenario of a UGV approach-ing a four way intersection regulated by a stop sign. Trafﬁclaws require that each vehicle must come to a stop before en-tering the intersection and allow any other vehicles that ar-
+rive earlier to pass ﬁrst. The UGV must effectively wait for
+its turn and look for the leading vehicles at the other roadsthat want to pass the intersection. It is not sufﬁcient to sim-ply detect the presence of other vehicles at the intersection,since the UGV should have the right-of-way if other vehi-cles approach the intersection after it has already stopped.Thus, it will be necessary to determine the behavior of each
+other vehicle, i.e. whether it is just arriving at the intersec-
+tion, waiting for its turn to go, or already passing through.We assume that all intersections will have at most four in-coming roads oriented at perpendicular angles and that allvehicles will travel in the right-hand lanes only. Thus, oursystem must be aware of cars in three regions (see Figure 1)once the UGV has come to a stop.
+We have to make some further relaxations regarding traf-
+ﬁc ﬂow to simplify the problem. If another vehicle ap-proaches from the road straight ahead, beats the UGV to theintersection, and begins to make a right hand turn (a turn tothe UGV’s left), the UGV could safely make a right handturn without having to wait. For simplicity, we will decidenot to cross the intersection until the intersection is com-pletely clear of other vehicles. We also assume that we willonly encounter small vehicles with four or more wheels, butof any color or shape (e.g., a compact convertible or a pickuptruck, but not a motorcycle or a semi-truck).
+The DARPA Urban Challenge 2007 provides us with a
+Figure 2: Our experimental UGV is a Subaru Outback with
+an autopilot system and three cameras mounted to the roof.
+map of GPS paths along the lanes of the road, so it is unnec-
+essary to perform path planning. The map also includes thelocations of each regulated intersection and the possible di-rections of cross-trafﬁc, so we do not have to detect the num-ber of roads or the presence of a stop sign. Our experimen-tal UGV is a Subaru Outback station wagon that has beenused in previous autonomous vehicle projects. It is equippedwith a GPS receiver, several racks of off-the-shelf comput-ers, mechanical controls for the steering wheel, brakes, andaccelerator, and an autopilot system that autonomously fol-lows GPS waypoints. Thus, it is also unnecessary to con-sider low-level controls; it is instead sufﬁcient to inform theautopilot when it is the UGVs turn to proceed through in-tersection. Since the UGV will come to a complete stopbefore entering the intersection, we can also assume that wehave motionless cameras, further simplifying the scope ofthe computer vision system.
+Overview of the Proposed Solution
+We propose to mount three video cameras to the roof of theUGV , as shown in Figure 2. The cameras are pointed to-wards the three other roads leading to the intersection, i.e.to the right, to the left, and straight ahead. Each camera pro-vides RGB color frames with a resolution of 320 ×240 at a
+frame rate of 30 fps. Each camera is connected to a separateoff-the-shelf computer installed in the UGV . Each computerwill run our proposed software, which is written in C++. Thethree computers communicate with the autopilot through aUDP Ethernet connection.
+When the autopilot determines that the UGV has reached
+the intersection and has come to a stop, it will send a mes-sage to the three computers signaling them to begin look-ing for vehicles in their ﬁelds of view. Our proposed soft-
+ware consists of three main components: a vehicle detec-
+tor, a tracker, and a ﬁnite-state-machine model of the in-tersection, as shown in Figure 3. First, the vehicle detec-tor tries to detect a vehicle in each video frame by using anOT-MACH (Optimal Trade-off Maximum Average Correla-tion Height) ﬁlter (Refregier 1991; Mahalanobis et al. 1994;
+1078
+
+--- Page 3 ---
+Detector
+TrackerLeft
+Cam
+Detector
+TrackerDetector
+TrackerRight
+CamFront
+Cam
+Finite State Machine
+Autopilot
+OT-MACH Filter
+(Left-view)OT-MACH Filter
+(Front-view)OT-MACH Filter
+(Right-view)
+Figure 3: Block diagram of our proposed system. The Ve -
+hicle Detector and Tracker are run on the three cameras si-
+multaneously. Also shown are the actual OT-MACH ﬁltersused for each camera.
+Zhou & Chao 1999) constructed from training images of ve-
+hicles captured from each camera. Once a vehicle is detectedin a single frame, the detector hands off control to a trackerthat follows the vehicle in the subsequent frames, adapts tothe changing appearance of the vehicle, handles occlusions,and estimates the current and next position, velocity, andacceleration of the vehicle. The detection and tracking is
+performed simultaneously for all three cameras. Finally, we
+use a ﬁnite-state-machine model to determine the behaviorof each leading vehicle on the other three roads, and decidewhen it is safe for the autopilot to drive the UGV through theintersection. The three components of the proposed solutionare discussed in detail in the next three sections.
+Vehicle Detector
+The ﬁrst step of our proposed method is to detect a vehiclein a video frame by matching an appearance template thathas been prepared for each of the three views. The tem-plate is basically an OT-MACH (Optimal Trade-off Max-
+imum Average Correlation Height) ﬁlter, which combinesthe training images into a single composite template by op-
+timizing four performance metrics: the Average Correla-
+tion Height (ACH), the Average Correlation Energy (ACE),
+the Average Similarity Measure (ASM), and the Output
+Noise V ariance (ONV), as explained in (Refregier 1991;
+Mahalanobis et al. 1994; Zhou & Chao 1999). Since each
+incoming vehicle from a given road is oriented in approxi-mately the same pose, and since the UGV always sees each
+road in the intersection from roughly the same point of view,this method produces a template that expresses the general
+shape of a vehicle in each view. We achieve color invari-ance by using edge-enhanced images instead of the originalcolor frames as described in (Ahmed et al. 2007). The edge-
+enhanced OT-MACH ﬁlter generated for each of the threeviews is shown in Figure 3.
+Once we have prepared the OT-MACH ﬁlter, we can
+apply it to incoming video frames by performing cross-correlation in the frequency domain. In order to make the
+correlation result robust to varying lighting in the frame, wenormalize the correlation output very efﬁciently using theconcept of integral image (Porikli 1995; Lewis 1995).
+Cross-correlation between an edge-enhanced search win-
+dow with the template produces a surface in which the high-est peak corresponds to the most likely location of a vehiclein the frame. When a vehicle is visible in the scene, therewill be a sharp and distinct peak at that location in the frame.If there is no peak in the surface with a height greater than athreshold, then we determine that there is no vehicle in thescene.
+The most signiﬁcant change in the appearance of vehicles
+between different intersections comes from varying number
+and width of lanes. We propose a speciﬁc solution to thisuncertainty in distance in which we resize the training im-ages to an average size but perform detection with severalrescaled versions of the original template. The scales that
+we use are 80%, 100%, and 120% of the size of the originalOT-MACH ﬁlter. After computing the correlation at eachscale, we choose the scale that produces the maximum cor-
+relation peak.
+Tracker
+While the vehicle detector locates a vehicle in a singleframe, the tracker is intended to follow the vehicle in thesubsequent frames to determine its current and next position,velocity, and acceleration. The tracker is initialized usingthe image rectangle identiﬁed by the vehicle detector. Whilethe detector uses only the prior knowledge of the appearanceof a vehicle, the tracking stage ignores the prior knowledge
+and instead exploits the temporal and spatial consistency ofappearance from frame to frame. We use a modiﬁed ver-sion of the “real-time edge-enhanced dynamic correlationtracker” (Ahmed et al. 2007), which is based on cross-
+correlating an adaptive template within a dynamic search
+window around the vehicle’s predicted position. Since weintend to develop a system that can operate effectively in areal environment, we modify this tracking algorithm withseveral enhancements that speciﬁcally address the sourcesof noise and uncertainty that occur in a less constrained set-ting. We describe each of these problems and our solutionsin the following three subsections.
+Background Clutter
+Every intersection will have a different background appear-ance because of buildings, trees, or other unanticipated ob-jects. Since the appearance-based tracker primarily relies onedge information, background objects that have strong edges
+can dominate the measure of cross-correlation. The unde-
+sirable effect of this problem is very easy to identify; the
+1079
+
+--- Page 4 ---
+No
+Vehicle
+WaitingArriving Waiting Passing Start Stop
+Figure 4: Finite-state-machine intersection model.
+tracking window will ‘get stuck’ on the background when
+the vehicle passes by a location with strong edges.
+We propose the following solutions to this problem. First,
+we apply a Gaussian weighting window to the template be-fore computing the cross-correlation so that the pixels nearthe center of the template get more weight than the pixelsfar away from the center. This method is effective becausetracked objects are usually at the center of the template,while the background clutter usually occurs around the ob-
+ject. Second, we update the template pixels using an IIRlow pass ﬁlter to smoothen the transitions and to nullify the
+effects of the nearby clutter pixels which are short-lived ascompared to the object pixels which are long-lived. Moredetails are given in (Ahmed et al. 2007).
+Intermittent Occlusions
+As a vehicle moves through the scene, it can be brieﬂy oc-
+cluded by objects like a stop sign, pedestrians, or other ve-hicles passing the intersection. As with background clutter,this can cause the tracker to follow the occluding object in-stead of the vehicle. We compensate for this problem byapplying a Kalman ﬁlter to the trajectory of the vehicle, us-ing knowledge about the consistency of a vehicle’s motionto account for uncertainty in the correlation process. We usea “constant acceleration with random walk” model for thedynamic system in the Kalman ﬁlter, since this gives bet-ter accuracy than the “constant velocity with random walk”
+model. Also, we dynamically change the size of the corre-
+lation search window and the learning rate for updating thevehicle template, since a vehicle is more likely to change inappearance when it is moving quickly.
+Changing Scale
+When the vehicle moves perpendicularly to the image plane,it will appear to grow larger or smaller. The adaptive tem-plate updating can already correct for this, but slowly andineffectively. We propose addressing this uncertainty explic-
+itly by using the following two strategies.
+First, we correlate the search window with three rescaled
+versions of the template, at 90%, 100% and 110% of theoriginal size. We compare the highest peaks for each ofthese three correlations, and choose the scale that producesthe maximum value. This achieves a broad but coarse com-pensation for a rapid change in scale.Second, we split the template in nine non-overlapping
+rectangular sections and get their mean values. Then, wecompare the mean value of an outer section with those ofthe middle and the opposite sections. Finally, we performa weighted voting mechanism in which each section givesa weighted vote whether the corresponding side of the rect-angular template should be moved outward or inward. Thisway, the template expands or shrinks according to the sizeand shape of the object. The mechanism tries to get the ve-hicle at the center of the template, especially when the vehi-cle is smaller than the template, or when it is a little driftedfrom the center.
+While tracking a vehicle, we determine the ratio of the
+size of the updated template to the size of the previous tem-
+plate. Thus, we obtain a relative estimate of the vehicle’s
+distance from the camera, which is used to determine the be-havior of each vehicle by the ﬁnite-state-machine discussedin the next section.
+Finite-State-Machine Intersection Model
+The tracker provides us with kinematics information aboutthe detected vehicle in each view. The goal of the inter-section model is to use this information, along with priorknowledge about the geometry of the scenario, to determine
+which cars have the right of way and to signal the autopilot
+when it is the UGV’s turn to go.
+We describe the state of the trafﬁc in each view with a
+ﬁnite-state-machine consisting of four states: No V ehicle
+Waiting ,Arriving at the intersection, Waiting , and Passing
+the intersection. The relationships between these states areshown graphically in Figure 4. The state transitions are con-
+trolled by rules that operate on the dynamics information
+from the tracker.
+The state-machine transitions from No V ehicle Waiting to
+Arriving when a new vehicle is detected. After arriving at
+the intersection, the vehicle can be in two possible states:either Waiting orPassing . The model transitions from Ar-
+riving orPassing toWaiting when the vehicle stops moving,
+i.e. when the velocity and acceleration of the vehicle in the
+X and Y directions as well as the change in scale ratio drop
+below some threshold. As a guard against spurious statetransitions, the vehicle must be still for about 15 frames (halfa second) before it is considered Waiting . While in the Ar-
+riving state, the vehicle transitions directly into the Passing
+1080
+
+--- Page 5 ---
+Road
+Left Front RightTotal
+Visible 62 55 53 170%
+Detected 61 50 50 161 94.7
+Misdetected 1539 5 . 3
+False Alarm 0000 0
+Table 1: Detection results in uncontrolled trafﬁc.
+state if it crosses a spatial threshold, i.e. if the X coordinate
+crosses a threshold in the left and right views, or if eitherX or Y coordinates cross a threshold in the front view. Atransition from Passing toWaiting is permitted because the
+vehicle may unexpectedly have to wait due to some distur-bance, such as a pedestrian, while it is passing the intersec-tion. If the vehicle starts moving again, then it transitionsback into the Passing state. Once in the Passing state, the
+ﬁnite-state-machine transitions again to No V ehicle once the
+vehicle reaches the edge of the frame.
+Since the vision system is turned on by the autopilot once
+the UGV has stopped at the intersection, other vehicles mayalready be in the scene. If a vehicle is detected in the ﬁrstframe, we allow the state machine to begin with the Arriving
+orPassing state depending on the position of the vehicle in
+the frame. Similarly, the autopilot may turn off the visionsystem while the state machine is in any state.
+To decide when to cross the intersection, our system com-
+bines the trafﬁc information from all the three views. If theother vehicle is already Waiting when the UGV arrives at
+the intersection, then it has the right-of-way, and the UGV iscommanded to wait for it to leave the scene before proceed-ing. If at any time a vehicle is Passing the intersection, the
+UGV is commanded not to cross. Since a vehicle will reachthe edge of the frame before it has crossed the intersection,the UGV waits for two seconds after the ﬁnite-state-machinestops indicating that the vehicle is passing. Any vehicle that
+isArriving orWaiting after the UGV arrives does not have
+the right-of-way, so we assume they will let the UGV pass.
+Results
+We tested the low-level components of our system by park-ing our UGV at several real four-way intersections at whichone of the roads was a dead end so we did not interferewith the trafﬁc. It is easy to objectively evaluate the vehi-cle detector since the total number of visible vehicles is adiscrete and unambiguous value. Table 1 shows the num-ber of successfully detected vehicles, as well as the falsealarms and misdetections for each camera view. The trade-off between false alarms and misdetections is controlled bythe parameters and thresholds. We favored misdetectionsover false alarms, since if the tracker ‘got stuck’ on a patch
+of stationary background clutter, the UGV would wait in-deﬁnitely. Since these results were gathered from several
+intersections with uncontrolled trafﬁc, they demonstrate therobustness and generalization of the detection system.
+For testing the entire system as a whole, we staged eachRoad
+Left Front Right Total %
+Success 42 39 9 0
+Failure 10 01 1 0
+Table 2: Results of experiments under autonomous control.
+In each experiment, the driver of the other vehicle arrivedfrom one of the three roads.
+experiment as a coordinated event where the UGV and an-
+other vehicle (operated by a human driver) would approachthe intersection in an agreed-upon order. The results forthese experiments are shown in Table 2. If the safety driver(in the UGV) had to override the autopilot to avoid a col-lision, or if the UGV did not begin to move, then the ex-periment was marked as a failure. In most cases (90%), theUGV effectively waited for the other vehicle to pass whenthe other vehicle arrived ﬁrst, and then automatically pro-ceeded through the intersection.
+An annotated sequence of frames from one experiment
+is provided in Figure 5, which illustrates how our systemsuccessfully handles the intersection. Since there were novehicles on the front and right roads in this instance, weonly show frames from the left camera (processed by oursoftware) and from an extra camcorder that we mounted in-side the UGV to show the automatic motion of the steer-ing wheel and the path of the UGV . In each frame from theleft camera, the bounding box indicates the detected vehicle.The overlay in the bottom left corner shows either the OT-MACH ﬁlter (in detection mode), or the updated template(in tracking mode). The ﬁrst line of text indicates the maxi-mum correlation value and the coordinates of the centroid ofthe template. The second line of text indicates the scale ofthe OT-MACH ﬁlter that detected the vehicle. The third lineof text indicates the decision of the ﬁnite-state-machine.
+Conclusion
+UGVs will have to develop the capability to safely cross in-tersections with stop signs if they are going to be deployedin urban environments. In this paper, we provide some anal-ysis of this speciﬁc problem and propose a complete com-
+puter vision solution that combines a vehicle detection-and-
+tracking algorithm with a ﬁnite-state-machine model of thetrafﬁc near the intersection to automatically navigate theUGV through the intersection. The initial experiments ofour system suggest that a computer vision approach can bethe basis of an effective solution, but a truly robust systemwill need to better deal with subtle uncertainties in such ascenario. For example, we currently assume that the vehi-cle will take no more than two seconds to pass the inter-section, but it is possible that the vehicle will unexpectedlystop while it is outside the view of the camera. Our nextwork will be to address this problem by combining the out-put from the computer vision system with other systems, likea laser range ﬁnder, which can detect obstacles in the imme-diate path of the UGV .
+1081
+
+--- Page 6 ---
+(a) The UGV is arriving at the intersection, but another car is
+already waiting on the left road.
+(b) The UGV stops and turns on the computer vision system.The system detects that the car is at the intersection and com-mands the UGV to wait.
+(c) The car begins to pass the intersection.
+(d) The car has exited the view of the left camera, although it isstill visible in the video from the camcorder.
+(e) Two seconds later, the UGV begins to pass the intersection,and the computer vision system is turned off.
+Figure 5: Annotated sequence of video frames from an ex-
+periment under autonomous control of the UGV . The leftcolumn shows some frames from the left camera (processedby our system), and the right column shows the correspond-ing frames from an additional camcorder that was mountedinside the UGV .References
+Ahmed, J.; Jafri, M. N.; Shah, M.; and Akbar, M. 2007.Real-time Edge-enhanced Dynamic Correlation and Pre-dictive Open-loop Car-following Control for Robust Track-ing. Accepted in Machine Vision and Applications Journal,Manuscript submission ID MV A-May-06-0110.
+Chun, W.; Faukoner, J.; and Munkeby, S. 1995. UGV
+Demo II Reuse Technology for AHS. In Proc. IEEE Intel-
+ligent V ehicles Symposium .
+Lewis, J. P. 1995. Fast Normalized Cross-Correlation. In-
+dustrial Light and Magic.
+Mahalanobis, A.; Kumar, B. V . K. V .; Song, S.; Sims, S.;
+and Epperson, J. 1994. Unconstrained Correlation Filters.Applied Optics 33(17).
+Matthies, L., and Brown, E. 1996. Machine Vision for
+Obstacle Detection and Ordnance Recognition. In Proc.
+AUVSI .
+Matthies, L.; Kelly, A.; Litwin, T.; and Tharp, G. 1995.
+Obstacle Detection for Unmanned Ground Vehicles: AProgress Report. Robotics Research 7 Springer-V erlag .
+Matthies, L. 1992. Stereo Vision for Planetary Rovers:
+Stochastic Modeling to Near Real-Time Implementation.IJCV 8(1).
+Porikli, F. 1995. Integral Histogram: A Fast Way to Extract
+Histograms in Cartesian Spaces. In Proc. CVPR .
+Rasmussen, C. 2002. Combining Laser Range, Color, and
+Texture Cues for Autonomous Road Following. In Proc.
+ICRA .
+Refregier, P. 1991. Optimal Trade-off Filters for Noise
+Robustness, Sharpness of the Correlation Peak, and HornerEfﬁciency. Optics Letters 16(11).
+Shashua, A.; Gdalyahu, Y .; and Hayun, G. 2004. Pedes-
+trian Detection for Driving Assistance Systems: Single-frame Classiﬁcation and System Level Performance. InProc. IEEE Intelligent V ehicle Symposium .
+Talukder, A.; Manduchi, R.; Matthies, L.; and Rankin, A.
+2002. Fast and Reliable Obstacle Detection and Segmen-tation for cross country navigation. In IEEE Intelligent V e-
+hicle Symposium .
+Vidal, R.; Shakernia, O.; Kim, J.; Shim, H.; and Sastry,
+S. 2001. Multiple Agent Probabilistic Pursuit-EvasionGames with Unmanned Ground and Aerial Vehicles. InIEEE Trans. on Robotics and Automation .
+Zhang, Z.; Weiss, R.; and Hanson, A. R. 1994. Qualitative
+Obstacle Detection. In Proc. IEEE CVPR ’94 .
+Zhou, H., and Chao, T.-H. 1999. MACH Filter Syn-
+thesizing for Detected Targets in Cluttered Environmentsfor Gray-scale Optical Correlator. In Proc. SPIE , volume
+3715.
+1082

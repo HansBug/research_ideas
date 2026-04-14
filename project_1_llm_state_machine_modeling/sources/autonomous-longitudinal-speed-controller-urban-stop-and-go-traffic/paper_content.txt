@@ -1,0 +1,1990 @@
+--- Page 1 ---
+ 
+ LONGITUDINAL VEHICLE SPEED CONTROLLER FOR AUTONOMOU S 
+DRIVING IN URBAN STOPaANDaGO TRAFFIC SITUATIONS 
+ 
+A Thesis 
+Presented in Partial Fulfillment of the Requirement s for 
+the Degree Master of Science in the  
+Graduate School of The Ohio State University 
+By 
+Neil R. Sawant, B. E. 
+Graduate Program in Electrical and Computer Enginee ring 
+*  *  *  *  * 
+The Ohio State University 
+2010 
+Master’s Examination Committee 
+Prof. Umit A. Ozguner, Advisor 
+Prof. Kevin M. Passino 
+   
+
+--- Page 2 ---
+ 
+  
+ 
+ 
+    
+ 
+  
+© Copyright by 
+Neil R. Sawant 
+2010 
+
+--- Page 3 ---
+ii 
+ ABSTRACT  
+ 
+In this thesis, we have addressed the issue of road  congestion due to increased traffic in 
+urban and metropolitan areas and have designed an a utonomous longitudinal speed 
+controller as a solution to this problem. One of th e best ways to increase efficiency of the 
+available road infrastructure is to enable vehicles  to move in a platoon with very small 
+distance headway from the preceding vehicle. We hav e developed a Longitudinal Finite 
+State Machine which acts as a supervisory control t o help the following vehicle to merge 
+behind and follow the preceding vehicle. We have st udied the performance of two vehicle 
+following controllers, i.e. LQR based full-state fe edback controller and LQR based 
+sequential-state feedback controller, which are ena bled and take the control of the vehicle 
+velocity during the “follow” state of the vehicle’s  Longitudinal FSM. A comparison 
+analysis has been presented between the two control lers which help in reducing the 
+distance headway from the preceding vehicle as well  as maintaining string stability 
+within the platoon. 
+ 
+ 
+ 
+
+--- Page 4 ---
+iii 
+  
+ 
+ 
+ 
+ 
+ 
+This is dedicated to my parents, Ravi and Kamal Saw ant, the best parents anyone can 
+have in this world, my lovely and amazing sisters, Renu and Priya Tai and to all my 
+friends who have stood by me and encouraged me thro ughout my life. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 5 ---
+iv 
+  
+ 
+ 
+ACKNOWLEDGEMENTS 
+ 
+I am extremely grateful to God for giving me such a  kind, encouraging, intellectual and 
+supportive family. My parents have always been the ones showing me the right way and 
+guiding me through the most important part of my ch ildhood. It’s only because of them 
+that I have been able to reach this stage of my lif e and I believe that it could not have 
+been better than this. My sister, Renu tai, has bee n such a powerful source of inspiration 
+for me and I have not seen a women as strong, intel ligent and accomplished as her at her 
+age. I have grown older through my childhood with a  hope of being as meticulous, 
+thorough and hardworking as my oldest sister Priya tai. 
+This thesis would be incomplete without mentioning the selfless support I have received 
+from my best friend, my brother Saahil. He has been  with me through thick and thin and 
+has always helped me stand taller and stronger. I w ant to thank Nimish, JD and Siddharth 
+who are my closest friends for being a part of my l ife and I live each day with a hope of 
+being around them in future without which life woul d be black and white. If there was 
+anyone who helped me remain sane and supported me t hrough the first one year after 
+coming to US, it was Satty and I cannot thank him m ore. I am sure he will remember in 
+what ‘good’ shape I was and how he ‘rescued’ my lif e! I am thankful to my roommates 
+and friends Swanand ‘Swanan’ Phadke, Harshad ‘Harry ’ Paranjape, Nisheet ‘Betha’ 
+
+--- Page 6 ---
+v 
+ Singh, Vivek ‘Mohammed’ Venkatachallam, Manjunath ‘ Boobanath’ Reddy and all the 
+people who ‘came’ and ‘went’ in my life after comin g to US and have been a part of this 
+amazing journey. 
+I am highly thankful to my advisor, Professor Umit A. Ozguner for accepting me in his 
+research group and letting me do my thesis under hi s supervision. I feel highly obliged 
+and grateful to him for giving me time and attentio n throughout the time I was at OSU. 
+He has always made me think about a topic in depth and has encouraged me to work 
+hard. After working hard through the first year he was kind and fair to me by offering me 
+Research Assistantship and relieving the financial burden off my parents. Without his 
+guidance, motivation and support this work would no t have been possible. 
+Professor Vadim Utkin introduced me to modern contr ols and I feel extremely lucky to 
+have been his student. But it was Professor Kevin M . Passino who made learning Control 
+Systems so interesting and fun. He is one of the ve ry few professors who makes a student 
+to think on his own and develops an interest for th e topic. He was the most approachable 
+professor in OSU and I am extremely grateful to be associated with him. 
+I would also like to thank the Visiting Scholar, Dr . Naohisa Hashimoto, for his insights 
+and elaborate discussions on various aspects of my thesis. His suggestions and 
+encouragements have helped me a lot for writing my thesis. 
+This thesis was funded under the NSF Project, 093166 9, on “CPS: Autonomous Driving 
+in Mixed Traffic Urban Environments.” It was a very  exciting topic to work on and I feel 
+highly privileged to have been a part of it. 
+Finally, I thank God for his continued presence and  blessing in my life and for giving me 
+my inner strength.  
+
+--- Page 7 ---
+vi 
+  
+ 
+ 
+VITA  
+ 
+January 4 th  1986 ……………………………... Born - Mumbai, Maharashtra,India 
+June 2007 ……..………………………………  B.E Electronics 
+Sept 2009- Present  .…………………… …….. Graduate Research Associate,     
+Electrical and Computer Engineering 
+Department,                                          
+The Ohio State University  
+  
+June 2007 – Aug 2008 …………………… …..  Embedded Systems Engineer,                       
+Lele Group of Companies, Mumbai, India  
+ 
+June 2007 – May 2008 ……………………….. Visiting Faculty a nd Lab Instructor, 
+PVPP College of Engineering, Mumbai, 
+India. 
+ 
+ 
+FIELDS OF STUDY 
+Major Field: Electrical & Computer Engineering 
+  
+ 
+
+--- Page 8 ---
+vii 
+  
+ 
+TABLE OF CONTENTS 
+ 
+ABSTRACT .......................................... ................................................... ......................... II  
+ACKNOWLEDGEMENTS .................................. ................................................... ....... IV  
+VITA .............................................. ................................................... ................................ VI  
+LIST OF FIGURES ................................... ................................................... .................. IX  
+LIST OF TABLES .................................... ................................................... ................... XI  
+CHAPTER 1 INTRODUCTION ............................ ................................................... ...... 1  
+1.1.  Literature Overview and Car-Following Problem....... ................................................... ................ 2  
+1.2.  Autonomous Vehicle and GCDC ....................... ................................................... ......................... 4  
+1.3.  An Organizational Overview .......................... ................................................... ........................... 6  
+CHAPTER 2 LONGITUDINAL VEHICLE MODELS ............. ................................... 8  
+2.1.  Linear Longitudinal Vehicle Point-mass Model ...... ................................................... .................... 9  
+2.2.  Non-Linear Longitudinal Vehicle Fenton-Takasaki Mode l ................................................. .......... 10  
+2.3.  Complete Vehicle Dynamics Sommerville-Hatipoglu Mod el ................................................ ....... 12  
+2.4.  Simulation of the Three Longitudinal Models ........ ................................................... ................. 13  
+CHAPTER 3 LONGITUDINAL SPEED CONTROL USING A FINITE  STATE 
+MACHINE ........................................... ................................................... ......................... 16  
+3.1.  Cruise State ...................................... ................................................... ....................................... 21  
+3.2.  Approach State .................................... ................................................... ................................... 22  
+3.3.  Follow State ...................................... ................................................... ...................................... 24  
+
+--- Page 9 ---
+viii 
+ 3.4.  Emergency Brake State ............................. ................................................... .............................. 25  
+3.5.  Hard Braking State ................................ ................................................... .................................. 26  
+CHAPTER 4 GCDC SIMULATIONS ........................ .................................................. 29  
+4.1.  LQR-based Full-state Feedback Controller .......... ................................................... ..................... 30  
+4.2.  LQR-based Sequential State-feedback Controller .... ................................................... ................ 44  
+CHAPTER 5 CONCLUSIONS ............................. ................................................... ...... 58  
+5.1.  Summary of Work ................................... ................................................... ................................ 58  
+5.2.  Conclusion ........................................ ................................................... ...................................... 59  
+5.3.  Future Directions ................................. ................................................... ................................... 60  
+APPENDIX a COMPLETE LONGITUDINAL MODEL ............ ............................... 61  
+6.1.  Sommerville-Hatipoglu Longitudinal Model .......... ................................................... .................. 61  
+6.2.  Vehicle Dynamics Model ............................ ................................................... ............................. 63  
+6.2.1.  Engine Dynamics Model  .................................................. ................................................... .... 63  
+6.2.2.  Torque Converter Dynamics Model  .................................................. ..................................... 64  
+6.2.3.  Transmission Model  .................................................. ................................................... .......... 65  
+6.2.4.  Longitudinal Drive-train Dynamics Model  .................................................. ........................... 66  
+6.3.  Master Speed Controller ........................... ................................................... .............................. 68  
+6.4.  Simulation Results of Vehicle Dynamics of Longitudi nal Model ......................................... ........ 69  
+BIBLIOGRAPHY ...................................... ................................................... ................. 71  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 10 ---
+ix 
+  
+ 
+LIST OF FIGURES 
+ 
+Figure 1: Driving in Urban Environment using V2V Commun ication ........................................... .... 2 
+Figure 2 GCDC Urban Scenario ......................... ................................................... ............................. 5 
+Figure 3 GCDC Highway Scenario ...................... ................................................... ............................ 6 
+Figure 4 Point-mass Model .......................... ................................................... ................................. 9 
+Figure 5 Point-mass Model Transfer Function .......... ................................................... .................. 10 
+Figure 6 Fenton-Takasaki Model ..................... ................................................... ............................ 10 
+Figure 7 Empirically validated model of vehicle longi tudinal dynamics .................................. ...... 11 
+Figure 8 (a) k_p (V) and t_p (V),  (b) ξ(V), empirica lly developed functions associated with 
+derived dynamics ................................... ................................................... ..................................... 12 
+Figure 9 Sommerville-Hatipoglu’s Longitudinal Vehicle  Model ............................................ ......... 12 
+Figure 10 Simulation results of the three models exp lained above for a step rise of 45mph ....... 14 
+Figure 11 Acceleration of the vehicle models ........ ................................................... ..................... 15 
+Figure 12 Block Diagram of Longitudinal Speed Control ler ............................................... ............ 18 
+Figure 13 Block Diagram for Supervisory Controller ..... ................................................... .............. 19 
+Figure 14 Finite State Machine ..................... ................................................... .............................. 21 
+Figure 15 Cruise State .............................. ................................................... ................................... 21 
+Figure 16 Approach State ............................ ................................................... ................................ 23 
+Figure 17 Follow State ............................. ................................................... .................................... 24 
+Figure 18 Emergency Brakes State ..................... ................................................... ......................... 25 
+Figure 19 Hard Braking State ......................... ................................................... .............................. 26 
+Figure 20 FSM State Transition in a Approach and Follo w Maneuver ........................................ ... 27 
+Figure 21 Vehicles moving in a convoy .............. ................................................... ......................... 32 
+Figure 22 Velocities of vehicles ................... ................................................... ................................ 35 
+Figure 23 Relative Velocity between the vehicles.... ................................................... ................... 36 
+Figure 24 Relative Distance between vehicles ....... ................................................... ..................... 37 
+Figure 25 Velocities of vehicles ................... ................................................... ................................ 38 
+Figure 26 Relative Velocity between the vehicles.... ................................................... ................... 39 
+Figure 27 Relative Distance between vehicles ....... ................................................... ..................... 40 
+Figure 28 Velocities of vehicles ................... ................................................... ................................ 41 
+Figure 29 Relative Velocity between the vehicles.... ................................................... ................... 42 
+Figure 30 Relative Distance between vehicles ....... ................................................... ..................... 43 
+Figure 31 Vehicles moving in a convoy .............. ................................................... ......................... 46 
+Figure 32 Velocities of vehicles ................... ................................................... ................................ 48 
+Figure 33 Relative Velocity between the vehicles.... ................................................... ................... 49 
+
+--- Page 11 ---
+x 
+ Figure 34 Relative Distance between vehicles ....... ................................................... ..................... 50 
+Figure 35 Velocities of vehicles ................... ................................................... ................................ 51 
+Figure 36 Relative Velocity between the vehicles.... ................................................... ................... 52 
+Figure 37 Relative Distance between vehicles ....... ................................................... ..................... 53 
+Figure 38 Velocities of vehicles ................... ................................................... ................................ 54 
+Figure 39 Relative Velocity between the vehicles.... ................................................... ................... 55 
+Figure 40 Relative Distance between vehicles ....... ................................................... ..................... 56 
+Figure 41 Longitudinal vehicle model for cruise contro l (C.Hatipoğlu, Ü.Özgüner and 
+M.Sommerville, 1996) .............................. ................................................... ................................... 61 
+Figure 42 Simulation torque map...................... ................................................... .......................... 64 
+Figure 43 Gear shift pattern ....................... ................................................... ................................. 67 
+Figure 44 Flow chart indicating decision paths of mas ter speed controller ................................ .. 68 
+Figure 45 Results of internal vehicle dynamics ...... ................................................... ..................... 69 
+ 
+ 
+
+--- Page 12 ---
+xi 
+  
+LIST OF TABLES 
+ 
+Table 1 Maximum and Minimum Allowable Accelerations for the GCDC Competition………..... 17 
+Table 2 Transmission gear ratios…………………………………………………… ………………………………………… 65 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+  
+
+--- Page 13 ---
+1 
+  
+CHAPTER 1 INTRODUCTION 
+ 
+Many research groups are trying to solve the cooper ative driving challenge. With 
+increasing urban traffic and inadequacy in the infr astructure to support such large amount 
+of traffic, a need arises for a change in paradigm to solve this problem. Safety, increased 
+throughput, higher efficiency and decreased emissio ns are the main goals to be achieved 
+and steps are being taken to solve these problems. The only solution to this problem 
+seems to be the introduction of semi-automated vehi cles to which are able to perform 
+cooperate driving. Cooperative driving can be achie ved by means of Vehicle-to-Vehicle 
+(V2V) communication as shown in Figure 1. Existing infrastructure can be used in a more 
+efficient way to facilitate improved behavior of in dividual vehicles. 
+Of course, automated vehicles cannot be commerciali zed at once and this has to be done 
+in stages.  Initially there will be a mixture of au tomated and semi-automated or fully 
+manual operated vehicles. With public acceptance an d further research, the goal of 
+complete automated highway system may be achieved i n near future. 
+The past efforts from the government include the De mo’97 conducted by the National 
+Automated Highway System Consortium (NAHSC) which sa w the use of Adaptive 
+Cruise Control (ACC), Lane keeping and Obstacle/Col lision Avoidance. 
+
+--- Page 14 ---
+2 
+  
+Figure 1: Driving in Urban Environment using V2V Co mmunication 
+ 
+DARPA Grand Challenge was held in 2004 and 2005 and  the DARPA Urban Challenge 
+in 2007 in which the vehicles had to perform comple x maneuvers like lane changing, 
+passing and negotiating intersections.  
+1.1. Literature Overview and CaraFollowing Problem 
+For a completely automated highway and urban system , vehicles need to have 
+extremely robust longitudinal and lateral controlle rs. The vehicles need to have robust 
+sensing system which will be able to take high leve l control decisions for safe 
+autonomous driving. 
+Car-following can be explained by the help of a sim ple scenario. Whenever we drive 
+on a highway or a freeway, there is always a vehicl e preceding our vehicle. It is more 
+likely that the speed of the preceding vehicle is d ifferent than our speed. If we decide 
+to follow the preceding vehicle we first try and re duce the headway distance to the 
+desired time headway of 3 seconds. Then we try and match the speed of our vehicle 
+to the speed of the preceding vehicle and once it i s matched we continue to follow the 
+
+
+--- Page 15 ---
+3 
+ preceding vehicle with constant time headway. But a s a human driver, we have a 
+finite reaction time to sudden changes in the speed  of the preceding vehicle in case it 
+decides to suddenly accelerate or suddenly decelera te. This finite reaction time limits 
+the following time headway to as large as 3 seconds . Decreasing it below 3 seconds 
+would prove to be dangerous and may result in a col lision. A controller can be 
+developed which can allow smaller following time he adways and which avoids 
+collisions. 
+Also a phenomenon called stop waves or traffic shoc ks is prevalent in urban as well 
+as highway traffic. A stop wave travels downstream the traffic and produces sustained 
+oscillations which may result in collisions in a co nvoy of vehicles. So driver reaction 
+time plays an important role in car-following. The car-following controller should 
+also dampen the velocity oscillations produced by a ny car in the convoy maintaining 
+string-stability. To handle this problem, a lot of research has been going on for 
+developing robust car-following controllers.  
+The platooning or convoying problem has been one of  the main research topics of 
+many research groups. One of the earlier efforts by  Bender-Fenton-Olson [1] 
+produced results of longitudinal control of vehicle s through road–side as well as 
+vehicle-borne computers. Velocity control of the fo llower vehicle was done based on 
+decreasing the velocity difference between the lead er and follower vehicles using 
+proportional type control law. The work by [2], [3]  have made use of both lateral and 
+longitudinal controllers to study lane changing and  car-following problems. 
+Longitudinal control of platoon was also studied by  (Desoer, 1991) [4]. The control 
+law used is a linear combination of velocity and ac celeration perturbations over the 
+
+--- Page 16 ---
+4 
+ lead vehicle. Vehicle modeling and control as well as studies about platoon dynamics 
+were seen in [5] and [6]. Hedrick et. al. [6] made use of Sliding mode control for 
+controlling the follower vehicles in a platoon so a s to achieve string stability. 
+Simplified and computationally less expensive longi tudinal vehicle model was 
+developed my Martin Sommerville [7] as his master’s  thesis.  
+A number of developments were made using quadratic cost regulators. Levine et. al. 
+[9] introduced an optimal linear state feedback con troller to regulate the position and 
+velocity of vehicles in a densely packed string of high-speed vehicles. Ozguner et. al. 
+[10] modified the above theory to include sequentia l optimal linear state feedback 
+from all the preceding vehicles to each vehicle in the sting to achieve asymptotic 
+string stability. 
+1.2. Autonomous Vehicle and GCDC 
+In this thesis, an automated vehicle model is being  investigated. This model has been 
+in part taken from Martin Sommerville’s master’s th esis [7] in which he has modeled 
+a 1992 Honda Accord, where the model was originally  developed by Hatipoglu and 
+Sommerville [18]. A few changes have been made to t he controllers for better 
+actuator response. Finite State Machine has been ad ded to control the vehicle speed in 
+different urban and highway scenarios. Also, longit udinal control has been 
+implemented using two control techniques given in [ 9] and [10] in which LQR-based 
+complete state-feedback and Ozguner’s LQR-based seq uential optimal state feedback 
+control has been implemented to ensure asymptotic s tring stability in close car 
+following.  
+
+--- Page 17 ---
+5 
+ GCDC stands for Grand Cooperative Driving Challenge  and its aim is to facilitate the 
+development and deployment of cooperative driving i n urban as well as highway 
+scenarios. It is a competition to be held in March 2011 which includes an urban task 
+and a highway task to be completed by all participa nts.  
+ 
+ 
+Figure 2 GCDC Urban Scenario 
+ 
+As shown in Figure 2, case 1, the urban task includ es the convoy of vehicles (platoon 
+1) accelerating from rest as soon as a traffic sign al goes green and smoothly reach and 
+merge behind another convoy of vehicles (platoon 2)  which has started from another 
+traffic light preceding the first traffic light. Th e arrow shows the direction of motion. 
+A team is formed by a set of two platoons starting one behind the other but each 
+behind a traffic light. Two such teams of these pla toons run side-by-side on parallel 
+lanes. As shown in case 2, the green signal for pla toon 2 of each team is triggered as 
+soon as the first car of either of platoon 1 of the  two teams passes a trigger line. As 
+shown in case 3, the task for both the teams is to merge platoon 1 behind platoon 2 as 
+smoothly as possible, while maintaining platoon sta bility. The last vehicle of any 
+
+
+--- Page 18 ---
+6 
+ team which crosses a check-point first gets a point  for completing this task faster. 
+Also teams which demonstrated dangerous driving may  be penalized or disqualified.  
+ 
+Figure 3 GCDC Highway Scenario 
+ 
+The highway task starts from where the urban task e nds. A lead vehicle runs ahead of 
+both the teams, as shown in Figure 3. A disturbance is introduced by a lead vehicle 
+into both the convoys. The two teams/convoys should  demonstrate string stability 
+against external disturbance. Again the convoy whic h crosses the finish line first gets 
+a point. 
+1.3.An Organizational Overview 
+The objective of this thesis is to present a contro l system which can optimally control 
+a platoon of closely following vehicles for a stop- and-go type of traffic as illustrated 
+in the GCDC scenarios. The platoon needs to demonst rate string stability and should 
+be able to dampen any disturbance caused in any par t of the platoon. A following 
+distance of 4 meters or headway time of less than 1 sec should be maintained between 
+each vehicle in the platoon for stop-and-go situati on.  
+In Chapter 2, three types of car models have been e xplained i.e. a simple drivetrain 
+dynamics model also known as a point mass model, a non-linear vehicle dynamics 
+
+
+--- Page 19 ---
+7 
+ model from the work of Takasaki and Fenton [12] and  the complex vehicle model 
+from Martin Sommerville’s thesis, which includes En gine Dynamics, Torque 
+Convertor Dynamics, Transmission Dynamics as well a s Drivetrain Dynamics. 
+Simulation results for a step rise in reference vel ocity have also been provided. 
+In chapter 3, development of the FSM to control the  vehicle in different states of 
+approaching and following a vehicle has been explai ned. 
+In chapter 4, two types of car-following controller s i.e. LQR-based Complete State-
+feedback Controller and LQR-based Sequential State- feedback Controller have been 
+explained. These controllers have been used on 6 ve hicles and the simulation results 
+for the two GCDC scenarios explained in section 1.2 . have been provided. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 20 ---
+8 
+  
+ 
+CHAPTER 2 LONGITUDINAL VEHICLE MODELS 
+ 
+ 
+The longitudinal control problem has been divided i nto two aspects by D. F. Wilke [13] 
+i.e. logical and control aspect. The logical aspect  deals with deciding where the vehicle 
+should be in future time step, given the current co nditions, for best performance of the 
+system. The control aspect deals with how the vehic les can be controlled to attain and 
+maintain the desired position, while giving a comfo rtable and a safe ride as well as not 
+exceeding the vehicle capabilities. 
+In order to be able to address the logical and cont rol aspects of the longitudinal control 
+problem, we need to have vehicle models which repre sent closely an actual vehicle 
+behavior. In this chapter we are going to talk in b rief about three types of longitudinal car 
+models. A comparison study in form of simulations r esults for a step rise in reference 
+velocity is provided in the end. The logical and th e control aspects of the longitudinal 
+control problem will be addressed in chapter 4. The  three longitudinal car models are as 
+mentioned below: 
+- Point-mass Model 
+- Non − linear Fenton − Takasaki Model  
+- Complete Vehicle Dynamics Sommerville − Hatipoglu Mode l 1 
+                                                           
+1 In each case the authors have integrated sub-models  and concepts already known. Thus 
+originality is not challenged. 
+
+--- Page 21 ---
+9 
+ 2.1.Linear Longitudinal Vehicle Pointamass Model 
+ 
+Figure 4 Pointamass Model 
+ 
+The point-mass longitudinal model of the vehicle is  derived using Newton’s 2nd  law 
+of motion. The net force acting on a vehicle is the  algebraic sum of the drive force 
+acting on the vehicle due to its propulsion system and the aerodynamic and frictional 
+drag force which is a non-linear function the vehic le velocity. The model is as given 
+below: 
+/G738/G1236=1
+/G749/G123e−/G7d9/G738 +  /G751 /G123f 
+where /G749 =  mass of the vehicle 
+             /G738 = longitudinal speed of the vehicle 
+                   /G7d9 = linearized drag co-efficient acting upon the vehicl e assuming small 
+deviations from the desired speed. 
+                   /G751 = drive force acting upon the vehicle through the con trol system. 
+Thus the transfer function for the above model woul d be as shown in Figure 5. 
+
+
+--- Page 22 ---
+ Figure 
+ 
+Where /G738/G1232/G74f/G123b=  /G74f /G732/G1232/G74f
+traveled by it. 
+2.2.Nona Linear Longitudinal Vehicle Fenton 
+Figure 
+ 
+The point-mass model is inadequate to represent the true behavior of the car as it is 
+valid for small- signal conditions 
+neglect the non- linearities as well as the complexities of the prop ulsion/combustion 
+systems and of torque convertor dynamics if present .
+use a model which responds correctl
+stationary vehicle to accelerate to highways speeds  as well as to decelerate from 
+highway speeds to a complete halt, as required duri ng urban driving.
+Takasaki and Fenton [14]
+estimation of a non- linear model of the vehicle which can be used to 
+10  
+Figure 5 Pointamass Model Transfer Function 
+/G74f/G123b, the Laplace transforms of vehicle velocity and th e distance 
+Linear Longitudinal Vehicle Fenton aTakasaki Model 
+Figure 6 FentonaTakasaki Model [14] 
+model is inadequate to represent the true behavior of the car as it is 
+signal conditions around a certain operating point. Also, such models  
+linearities as well as the complexities of the prop ulsion/combustion 
+systems and of torque convertor dynamics if present . In practice, one would want to 
+use a model which responds correctl y to large-signal inputs which would make a 
+stationary vehicle to accelerate to highways speeds  as well as to decelerate from 
+highway speeds to a complete halt, as required duri ng urban driving.  
+[14] used a 1969 Plymouth sedan for the full- scale testing and 
+linear model of the vehicle which can be used to develop an 
+, the Laplace transforms of vehicle velocity and th e distance 
+ 
+model is inadequate to represent the true behavior of the car as it is 
+around a certain operating point. Also, such models  
+linearities as well as the complexities of the prop ulsion/combustion 
+In practice, one would want to 
+signal inputs which would make a 
+stationary vehicle to accelerate to highways speeds  as well as to decelerate from 
+ 
+scale testing and 
+develop an 
+
+
+--- Page 23 ---
+ automatic longitudinal control
+from field test data is valid for higher accelerati ons and is given as 
+/G738
+where  /G737 = voltage applied to an electrohydraulic actuator, which controls the 
+position of throttle valve 
+             /G738 = speed of the vehicle with respect to fixed refere nce frame 
+            /G747 /Gbe3/G1232/G738/G123b = velocity dependent model parameter associated wit h 
+and the propulsion systems 
+             /G750 /Gbe3/G1232/G738/G123b = velocity dependent model parameter associated wit h this system as 
+well as its interaction with the roadway interface 
+             /G7e6/G1232/G738/G123b = velocity dependent model parameter associated wit h the interaction of 
+the system with the roadway interface.
+                   /G74f = /G740/G200/G740/G750  
+Figure 7 Empirically validated model of vehicle longitudinal  dynamics 
+ 
+The model shown above has three 
+dynamics of electrohydraulic actuator/engine 
+block which contains a very slow pole corresponds t o the friction forces which 
+impede the longitud inal motion of the vehicle.
+effects of wheel slip. The terms 
+ve locity and are shown in 
+11 automatic longitudinal control  under non-braking conditions . The model developed 
+from field test data is valid for higher accelerati ons and is given as  
+/G738= /G1248/G747/Gbe3/G1232/G738/G123b
+/G750/Gbe3/G1232/G738/G123b/G74f + 1/G1249 /Gd641
+/G74f + /G372/G1e4/G372/G377 /Gd68 /G1248/G7e6/G1232/G738/G123b
+/G74f + /G7e6 /G1232/G738/G123b/G1249 /G737 
+= voltage applied to an electrohydraulic actuator, which controls the 
+position of throttle valve  
+= speed of the vehicle with respect to fixed refere nce frame  
+= velocity dependent model parameter associated wit h throttle actuator 
+and the propulsion systems  
+= velocity dependent model parameter associated wit h this system as 
+well as its interaction with the roadway interface  
+= velocity dependent model parameter associated wit h the interaction of 
+the system with the roadway interface.  
+Empirically validated model of vehicle longitudinal  dynamics 
+The model shown above has three blocks. The left- most block corresponds to the 
+dynamics of electrohydraulic actuator/engine -drivetrain combustion. The middle 
+block which contains a very slow pole corresponds t o the friction forces which 
+inal motion of the vehicle.  The right-most block accounts 
+effects of wheel slip. The terms /G747/Gbe3/G1232/G738/G123b/G1e1 /G750/Gbe3/G1232/G738/G123b and /G7e6/G1232/G738/G123b are non-linear functions of 
+locity and are shown in Figure 8 (a) and (b). . The model developed 
+= voltage applied to an electrohydraulic actuator, which controls the 
+ 
+throttle actuator 
+= velocity dependent model parameter associated wit h this system as 
+= velocity dependent model parameter associated wit h the interaction of 
+ 
+Empirically validated model of vehicle longitudinal  dynamics  
+most block corresponds to the 
+drivetrain combustion. The middle 
+block which contains a very slow pole corresponds t o the friction forces which 
+most block accounts  for the 
+linear functions of 
+
+--- Page 24 ---
+12 
+  
+Figure 8 (a) k_p (V) and t_p (V),  (b) ξ(V), empiri cally developed functions 
+associated with derived dynamics 
+ 
+2.3.Complete Vehicle Dynamics SommervilleaHatipoglu  Model 
+ 
+Figure 9 SommervilleaHatipoglu’s Longitudinal Vehic le Model 
+ 
+The vehicle model developed by Martin Sommerville a nd C. Hatipoglu [7], [18] has 
+been explained in brief in Appendix A. The vehicle drive-train dynamics model is as 
+given below. 
+/G738/G1236=/G74e
+/G72f/Gbe9/G1232/G729/Gb∶d/G736/Gbe7/G1232/G7f1/Gbd8/G1e1 /G7f1/Gbe7/G123b−  /G7db/G738/Gb36− /G736 /Gbe5/Gbe5 − /G736 /Gbd5/G123b 0 50 100 00.2 0.4 0.6 0.8 1
+Speed V [ft/s]
+(a) kp [ft/s 2/volt], tp [s]
+  
+kp
+tp
+0 50 100 0246810 12 
+Speed V [ft/s]
+(b) ξ [s -1]
+
+
+--- Page 25 ---
+13 
+ Please refer to Appendix A for explanation of the v ariables used. Here, Newton’s 2 nd  
+law of motion is applied to derive the above equati on. The first term in the right hand 
+side of the equation is the driving torque produced  by the engine as well as the torque 
+convertor, after the appropriate gear reduction, wh ich drives the vehicle, the second 
+term is the torque due to the aerodynamic drag acti ng on the vehicle due to its motion, 
+the thirds term is the torque due to the rolling re sistance produced by the road-tire 
+interface and the fourth term is the breaking torqu e acting on the vehicle in case of 
+deceleration.  
+The Fenton-Takasaki model did take care of the non- linear vehicle dynamics arising 
+due to the propulsion/combustion system, torque con vertor as well as the wheel slip. 
+Also, the model is valid only in non-braking condit ions. Sommerville-Hatipoglu 
+developed a model of a 1992 Honda Accord which acco unted for the engine 
+dynamics, torque convertor dynamics, transmission a nd the drive-train dynamics. He 
+also created the throttle and brake actuator models . This makes it possible for us to 
+use this model for a thorough study of logical as w ell as control aspect of longitudinal 
+vehicle following and control problem.  
+2.4. Simulation of the Three Longitudinal Models 
+The simulation results of the three models explaine d above, against a step rise in 
+reference velocity, have been provided in Figure 10 . The initial velocity for the vehicle 
+simulated for all the models is zero. From Figure 10 , we can see that point-mass model 
+as well as the Takasaki-Fenton model does not show any gear change and torque 
+convertor dynamics. The Sommerville-Hatipoglu model  goes through 4 gear changes 
+before it reaches 45mph. The steady state error of all three models is approximately 
+
+--- Page 26 ---
+14 
+ zero, same as the overshoot. From Figure 11 , we can see that there are spikes in 
+acceleration of the Sommerville-Hatipoglu model due  to gear changes which is as 
+expected. These spikes are produced due to the torq ue convertor at each gear change 
+as there is a difference in the turbine as well as the pump speed when the gear 
+changes. The spikes may be higher than that seen in  the actual vehicle due to the 
+modeling error of torque convertor.  
+ 
+Figure 10 Simulation results of the three models ex plained above for a step rise of 
+45mph 
+ 
+The acceleration profiles for the above simulations  are as shown in Figure 11 . 0 10 20 30 40 50 60 0510 15 20 25 30 35 40 45 50 
+Time [s]Longitudinal Speed [mph]Longitudinal Vehicle Dynamics 
+  
+Point-mass Model
+Takasaki-Fenton Model
+Sommerville Model
+
+--- Page 27 ---
+15 
+  
+Figure 11 Acceleration of the vehicle models 
+ 
+As the Sommerville-Hatipoglu car model is the best and the most accurate 
+representation of an actual Honda Accord vehicle, w e will be using his model for our 
+further simulation studies.  
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 10 20 30 40 50 60 -1 0123456
+Time [s]Acceleration [m/s 2]
+  
+Point-mass Model
+Takasaki-Fenton Model
+Sommerville Model
+
+--- Page 28 ---
+16 
+  
+CHAPTER 3 LONGITUDINAL SPEED CONTROL USING A FINITE  
+STATE MACHINE 
+ 
+The capacity of an Automated Highway System is calc ulated by the following formula: 
+/G725 =/G738
+/G732/Gbe5+ /G72e 
+where /G725 = is the capacity measured in number of vehicles cros sing a fixed point/unit 
+time 
+            /G738 = vehicle speed of flow 
+          /G732/Gbe5= inter-vehicular spacing 
+            /G72e = vehicle length. 
+The aim of a longitudinal vehicle speed controller is to maximize the capacity by 
+efficiently utilizing the available infrastructure [15]. Capacity is the maximum possible 
+flow-rate for a given speed  /G738, inter-vehicular spacing /G732/Gbe5 and vehicle length /G72e/G1e4 Due to the 
+unpredictable urban traffic conditions, the flow-ra te may exceed maximum allowable 
+capacity /G725 at certain instants of time by either exceeding ma ximum allowable vehicle 
+speed /G738 or minimum allowable inter-vehicular spacing /G732/Gbe5. The job of the speed 
+controller is to limit the number of these excursio ns of the flow rate to a minimum with 
+highest priority given to passenger safety. Also, t he speed controller should be robust 
+enough so that the flow-rate should converge to the  maximum capacity /G725 at steady-state. 
+
+--- Page 29 ---
+17 
+ In doing so, a supervisory speed controller needs t o work over the vehicle following 
+longitudinal speed controller to ensure that the ab ove constraints are satisfied. Also, 
+before the actual platooning stage, there are other  stages where the following vehicle 
+spots the leader and when it is within the sensing range it decides to merge behind it and 
+follow it. These stages need to be handled by the s upervisory control. This controller 
+should also handle the emergency braking situation where the inter-vehicular distance is 
+dangerously less than a threshold value. 
+The speed controller developed in [7] was not equip ped to handle stop-and-go type urban 
+traffic conditions. We want to develop a robust lon gitudinal controller which can limit the 
+acceleration and deceleration of the vehicles withi n the desired limit of the competition. 
+The desired limits of the competition are mentioned  in table1. 
+Characteristic Specification 
+Velocity [0 to 80] /G747/G749 /G200ℎ 
+Maximum Acceleration ( /G73d/Gbe0/Gbd4/Gbeb /G123b 2.0 /G749/G200/G74f/Gb36 
+Maximum Acceleration at least 1.5 /G749/G200/G74f/Gb36 
+Maximum Deceleration ( /G73d/Gbe0/Gbd∶/Gbe1 ) -4.5 /G749/G200/G74f/Gb36 
+Maximum Deceleration at least -4.0 /G749/G200/G74f/Gb36 
+ 
+Table 1. Maximum and Minimum Allowable Acceleration s for the GCDC 
+Competition. 
+Two approaches were used to develop controllers for  close car following or for the 
+distance headway following: 
+
+--- Page 30 ---
+18 
+ a. LQR-based Full State-feedback Longitudinal Control 
+b. LQR-based Sequential State-feedback Longitudinal Co ntrol 
+The complete longitudinal speed controller is as sh own in fig. 12. The vehicle speed, 
+inter-vehicular distance and inter-vehicular speed difference are the inputs to this 
+supervisory controller. The platoon reference speed  is received from the platoon leader. 
+The on-board sensors provide the relative distance and relative speed of the preceding 
+vehicle when it is in the sensing range and the V2V  communication is used to receive the 
+speeds as well as the positions of the other vehicl es in the platoon. The on-board sensors 
+can be used in combination with the V2V communicati on for sensor fusion for better 
+accuracy as well as in case of communication failur e as an emergency back-up. 
+ 
+Figure 12 Block Diagram of Longitudinal Speed Contr oller 
+ 
+For the implementation of the supervisory control, we have developed a longitudinal 
+FSM which controls the desired speed of the vehicle  in different states of a merging as 
+well as a platooning maneuver. An FSM is the best w ay to deal with the above 
+maneuvers as a follower vehicle goes through differ ent distinct states before it gets 
+locked into following the leader vehicle. Each of t hese states requires a different control 
+
+
+--- Page 31 ---
+19 
+ to be implemented on the follower vehicle for smoot hly merging and following the leader 
+vehicle. The FSM is as explained below. 
+Longitudinal FSM:  
+A longitudinal FSM is used to control the desired s peed of vehicles in a convoy in 
+different stages of a vehicle following maneuver. T he FSM switches from one state to the 
+other using a rule base which is pre-defined. The s upervisory controller has a “state select 
+logic” block which decides which state to enter dep ending upon the inputs to it. The 
+block diagram of the supervisory controller is as s hown in fig. 12. 
+ 
+Figure 13 Block Diagram for Supervisory Controller  
+The states used in the FSM developed are mentioned in fig. 13. Also, the list of symbols 
+used in the rest of chapter is mentioned below: 
+/G738 = speed of the subject vehicle also referred to as th e follower vehicle 
+
+
+--- Page 32 ---
+20 
+ /G738/Gbd7/Gbd8/Gbe6 = desired velocity of the subject vehicle 
+/G738/Gbe8/Gbe5/Gbd5/Gbd4/Gbe1 = speed limit within the urban limits 
+/G738/Gbdb/Gbd∶/Gbd2/Gbdb/Gbe2/Gbd4/Gbe∶ = speed limit on the highway 
+/G738/Gbdf/Gbd8/Gbd4/Gbd7/Gbd8/Gbe5 = speed of the preceding vehicle also referred to as  the leader 
+/G752/G73d/G748 /Gb35=  reduction of speed in Emergency Brakes State 
+/G752/G73d/G748 /Gb36= reduction of speed in Hard Braking State 
+/G72e/G741/G73d/G740/G741/G74e = distance between the subject vehicle and its preced ing vehicle 
+/G740/Gbe6/Gbd8/Gbe1/Gbe6/Gbe2/Gbe5 = the sensing range of the subject vehicle beyond whi ch the preceding vehicle 
+cannot be sensed 
+ 
+/G740/Gbd9/Gbe2/Gbdf/Gbdf/Gbe2/Gbe2 = the minimum distance required for the subject vehic le to start following the 
+preceding vehicle 
+ 
+/G740/Gbd7/Gbd8/Gbe6 = desired following distance between the subject vehi cle and its preceding vehicle 
+ 
+
+--- Page 33 ---
+21 
+  
+Figure 14 Finite State Machine 
+ 
+ 
+Each state is explained below 
+3.1.Cruise State 
+ 
+Figure 15 Cruise State  Following 
+Cruise Hard Braking 
+Approach Emergency Brakes 
+Follow leader beyond 
+following distance 
+1leader/obstacle 
+sighted suddenly 
+2
+default
+state leader 
+speeds up 
+1following distance 
+   below 1 meter 
+1leader within 
+approaching distance 2
+leader 
+speeds up 
+2approaching 
+   leader 1
+leader within 
+approaching distance 
+2
+following distance 
+  below 2 meters 3
+leader within 
+   following 
+   distance 2
+following distance 
+  below 2 meters 
+1
+
+
+--- Page 34 ---
+22 
+ This is the default state from which any vehicle st arts it motion. The flow chart 
+representation for this state is shown in fig.14. T he reference speed in this state is 
+decided by the location of the vehicle, i.e. urban or highway. The cruise speed used is 
+25 /G749/G74∶ℎ if the vehicle is within the urban limits. The cru ise speed is 45 /G749/G74∶ℎ if the 
+vehicle is beyond the urban limits and on a highway . Only two situations have been 
+considered here as is the requirement of the GCDC c ompetition. One important task 
+of the supervisory controller is to find out whethe r the vehicle is following another 
+vehicle or whether the vehicle is a leader itself a nd an appropriate reference velocity 
+should be assigned to it. This task is taken care b y the cruise state. 
+3.2.Approach State 
+A vehicle enters this state only if it cites a lead er within the approaching limits. The 
+approaching limit is set to /G740/Gbe6/Gbd8/Gbe1/Gbe6/Gbe2/Gbe5 = 90 /G749 as the maximum sensing distance of a 
+RADAR sensor is 106 /G749 whereas of a LIDAR is 80  /G749.  
+
+--- Page 35 ---
+23 
+  
+Figure 16 Approach State 
+ 
+In this state, the follower keeps its velocity slig htly higher than the leader so that it 
+can approach it smoothly. We have used the incremen t of 1  /G749/G200/G74f for our simulations. 
+In this case a velocity following maneuver is perfo rmed by Approach state keeping 
+the velocity of the vehicle slightly higher than it s leader velocity so that their relative 
+distance decreases with every time step. If the dis tance of the leader becomes less 
+than 1.5m, we enter the Emergency Brake state which  is explained in section 3.4. If 
+
+
+--- Page 36 ---
+24 
+ the preceding vehicle accelerates at a rate higher than the allowable limit of  2/G749/G200/G74f/Gb36 
+and goes beyond the sensing range of the subject ve hicle, the Cruise state is entered.  
+3.3.Follow State 
+ 
+Figure 17 Follow State 
+ 
+The follower vehicle enters this state when it is w ithin the following distance 
+/G740/Gbd9/Gbe2/Gbdf/Gbdf/Gbe2/Gbe2  of the preceding vehicle. This distance is chosen t o be 8.5  /G749 for our 
+simulations. The follower will try and further redu ce the gap between the leader and 
+itself till it reduces to a threshold value /G740/Gbd7/Gbd8/Gbe6 . This value is chosen to be 4  /G749 for our 
+simulations. In this state one of the two controlle rs, explained in chapter 4 will be 
+used. This state executes the distance headway foll owing maneuver. If the distance 
+from the leader reduces below 1.5m then Emergency B rake State is entered. In case 
+
+
+--- Page 37 ---
+ the leader accelerates and its distance increases 
+is entered. 
+3.4.E mergency Brake State 
+ 
+The follower vehicle enters this state if the follo wing distance becomes too low.
+threshold used in the simulations is 
+follower vehicle is set 
+by  /G752/G73d/G748 /Gb36 /G749/G200/G74f at with every simulation time step 
+simulations. This decelerates the follower and thus increases th e following distance to 
+25 the leader accelerates and its distance increases beyond  /G740/Gbe6/Gbd8/Gbe1/Gbe6/Gbe2/Gbe5 , then the cruise state 
+mergency Brake State  
+Figure 18 Emergency Brakes State 
+The follower vehicle enters this state if the follo wing distance becomes too low.
+threshold used in the simulations is 1.5  /G749. In this state, the desired velocity of the 
+follower vehicle is set /G752/G73d/G748 /Gb35 /G749/G200/G74f less than that of its leader and is set to reduce 
+at with every simulation time step . We have taken /G752/G73d/G748 /Gb35
+This decelerates the follower and thus increases th e following distance to 
+, then the cruise state 
+ 
+The follower vehicle enters this state if the follo wing distance becomes too low.  The 
+. In this state, the desired velocity of the 
+and is set to reduce 
+= 1 /G749/G200/G74f for our 
+This decelerates the follower and thus increases th e following distance to 
+
+
+--- Page 38 ---
+26 
+ a safe value. If the following distance decreases b elow 0.5m, then the Hard Braking 
+State is entered which is explained in the next sec tion.  
+3.5.Hard Braking State 
+In this state, the follower vehicle comes dangerous ly close to the leader vehicle. In 
+this case a hard deceleration is used to increase t he following distance to a safe value.  
+ 
+Figure 19 Hard Braking State 
+ 
+The threshold used for the simulations is 0.5  /G749. The desired velocity of the follower 
+is set /G752/G73d/G748 /Gb36 /G749/G200/G74f less than that of its leader and is set to reduce by  /G752/G73d/G748 /Gb36 /G749/G200/G74f at with 
+every simulation time step. We have taken /G752/G73d/G748 /Gb36= 2 /G749/G200/G74f for our simulations. During 
+
+
+--- Page 39 ---
+27 
+ deceleration of the vehicle, if the leader goes thr ough higher accelerations and goes 
+beyond the sensing distance  /G740/Gbe6/Gbd8/Gbe1/Gbe6/Gbe2/Gbe5 , the vehicle enters the Cruise State. If the 
+distance of the leader goes beyond the following di stance /G740/Gbd9/Gbe2/Gbdf/Gbdf/Gbe2/Gbe2  but is within the 
+sensing distance  /G740/Gbe6/Gbd8/Gbe1/Gbe6/Gbd8 , the vehicle enters the Approach State. 
+Now, let us see a 2-car “Approach and Match Speed – Fixed Headway” scenario and 
+track the change of states on the FSM as shown in F igure 20 . Here a follower vehicle 
+starts 465 m from behind leader vehicle, which is a t rest, and triggers the leader vehicle 
+once it crosses a trigger line which is 85 m behind  the leader.  
+ 
+ 
+ 
+Figure 20 FSM State Transition in a Approach and Fo llow Maneuver 0 20 40 60 80 100 120 010 20 30 velocity [mph]
+  
+car 1 
+car 2 
+0 20 40 60 80 100 120 0100 200 300 400 
+X: 106.5 
+Y: 8.499 
+time [sec]delp [m]
+Cruise to 
+Approach 
+State  Approach 
+to Follow 
+State  Cruise State  Approach 
+State  Follow 
+State  X: 38.55 
+Y: 89.96 
+120 X: 117.6 
+Y: 4.042 0 20 40 60 80 100 120 010 20 30 
+  
+car 1 
+car 2 
+
+--- Page 40 ---
+28 
+ From  
+Figure 20 , we can see that the follower vehicle transitions from the Cruise state into the 
+Approach state after the following distance is redu ces below 90 m. Another State 
+Transition occurs when the following distance reduc es below 8.5 m from Approach state 
+to Follow State. In the Follow state the following distance keeps reducing till it reaches 
+the desired following distance of 4 m.  
+With the understanding of the vehicle model and the  supervisory control, we can now 
+move to the development of the close-following or d istance-headway following controller 
+used in the Follow State in the next chapter. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 41 ---
+29 
+  
+ 
+ 
+CHAPTER 4 GCDC SIMULATIONS 
+ 
+In 1962, major initiative was taken to improve the existing ground transportation system 
+and an interest was generated for the introduction of high-speed ground transportation 
+system (HSGT) for the Northeast Corridor (i.e. the region between Boston, MA. and 
+Washinton, D.C.) [16]. These efforts were taken by the U.S. Department of Commerce 
+after a proposal from a inter-disciplinary group fr om Massachusetts Institute of 
+Technology. During this research program, the resea rch teams from M.I.T. started 
+developing research plans to take care of the basic  research problems of scheduling, 
+control, propulsion, vehicle and tube aerodynamics,  and guideway problems. As a result 
+of this research program, initial study on control of velocity and spacing of vehicles both 
+on a single line and in merging situations was unde rtaken by Levine and Athans [9]. A 
+few years later, more mature and practically feasib le approach to the same problem was 
+introduced by Ozguner and Perkins [10]. In this cha pter, we are going to use the 
+controllers developed in [9] and [10] on the comple x car model of a 1992 Honda Accord 
+developed in [7] which are going to work with the s upervisory controller which we have 
+developed in Chapter 3. The purpose of this thesis is to be able to study and compare the 
+
+--- Page 42 ---
+30 
+ results of the implementation of the above controll ers on the complex vehicle model and 
+to come up with an optimal control system that can be used in the GCDC competition.  
+Before we provide the simulation results for the tw o GCDC cases explained in Chapter 1, 
+let us one by one talk about the two control strate gies to be used for the close following 
+maneuver. 
+4.1.LQRabased Fullastate Feedback Controller 
+Consider a set of /G730 linear, time-invariant systems represented by the following set of 
+equations: 
+/G74f/Gbd∶∶  /G754/G1236 /Gbd∶= /G723 /Gbd∶/G754/Gbd∶+ /G724 /Gbd∶/G751/Gbd∶+ /G724 /Gbd∶/Gb3e/Gb35/G755/Gbd∶/Gb3e/Gb35 
+/G755/Gbd∶= /G725 /Gbd∶/G754/Gbd∶ 
+where /G745 = 1/G1e1 2/G1e1 … /G1e1 /G730 − 1  and /G754/Gbd∶ /G7f3 /G734/Gbe1 ,  /G751/Gbd∶ /G7f3 /G734/Gbe0,/G723/Gbd∶/G7f3/G734/Gbe1×/Gbe1 and /G724/Gbd∶/G7f3 /G734/Gbe1×/Gbe0/G1e4 
+/G74f/Gb∶7∶ /G754/G1236/Gb∶7= /G723 /Gb∶7/G754/Gb∶7+  /G724 /Gb∶7/G751/Gb∶7               
+   /G755 /Gb∶7= /G725 /Gb∶7/G754/Gb∶7 
+where  /G754/Gb∶7 /G7f3 /G734/Gbe1/Gb35 ,  /G751/Gb∶7 /G7f3 /G734/Gbe0/Gb35,/G723/Gb∶7/G7f3/G734/Gbe1/Gb35×/Gbe1/Gb35 and /G724/Gb∶7/G7f3 /G734/Gbe1/Gb35×/Gbe0/Gb35/G1e4 Here /G742 ≠ /G7421/G1e4 
+To formulate the optimization problem, the system e quations written above are 
+written in such a way as to interlace the states of  the systems as shown below: 
+/Gd66/G754/G1236/Gb35
+/G754/G1236/Gb36
+⋮
+/G754/G1236/Gb∶7/Gd62
+/G732/G1236=  /Gd66/G723/Gb35/G724/Gb36/G725/Gb36 /G372 /G372
+/G372 /G723 /Gb36 /G724/Gb37/G725/Gb37 /G372
+⋮ ⋮ ⋱ ⋮
+/G372 /G372 /G372 /G723 /Gb∶7/Gd62
+/G723/Gd66/G754/Gb35
+/G754/Gb36
+⋮
+/G754/Gb∶7/Gd62
+/G732+  /Gd66/G724/Gb35 /G372 /G372 /G372
+/G372 /G724 /Gb36/G372 /G372
+⋮ ⋮ ⋱ ⋮
+/G372 /G372 /G372 /G724 /Gb∶7/Gd62
+/G724/Gd66/G751/Gb35
+/G751/Gb36
+⋮
+/G751/Gb∶7/Gd62
+/G737 
+The above differential equation is of the form  
+/G732/G1236= /G723/G732 + /G724/G737  
+where components of vector /G732 = /G73f/G74b/G748 /G123e/G754/Gb35 /G754/Gb36… /G754 /Gb∶7/G123f  
+
+--- Page 43 ---
+31 
+ and that of vector  /G737 = /G73f/G74b/G748 /G123e/G751/Gb35 /G751/Gb36… /G751 /Gb∶7/G123f/G1e4 
+For the solution of the above system to be optimal,  the cost function to be minimized 
+is defined as given below: 
+/G72∶ =1
+2/Gdb1/G123∶/G732/G11f1/G733/G732 + /G737′/G734/G737 /G123d/G740/G750 /Gbb6
+/Gb34 
+where the prime denotes transposition and where /G733 and /G734 are constant diagonal 
+matrices defined as follows: 
+/G733 = /Gd66/G733/Gb35 /G372 /G372 /G372
+/G372 /G733 /Gb36/G372 /G372
+⋮ ⋮ ⋱ ⋮
+/G372 /G372 /G372 /G733 /Gb∶7/Gd62   /G73d/G742/G740  /G734 = /Gd66/G734/Gb35 /G372 /G372 /G372
+/G372 /G734 /Gb36/G372 /G372
+⋮ ⋮ ⋱ ⋮
+/G372 /G372 /G372 /G734 /Gb∶7/Gd62 
+where /G733/Gbd∶ /G7f3 /G734/Gbe1×/Gbe1 and  /G733/Gb∶7/G7f3 /G734/Gbe1/Gb35×/Gbe1/Gb35 are positive semi-definite matrices which are used  
+to penalize the deviation of states from zero and /G734/Gbd∶ /G7f3 /G734/Gbe0×/Gbe0 and /G734/Gb∶7 /G7f3 /G734/Gbe0/Gb35×/Gbe0/Gb35 are 
+positive definite matrices which are used to penali ze the control effort used to drive 
+the states of the systems to zero. 
+The control which minimizes /G72∶ for any set of initial conditions /G732/G1232/G372/G123b is given by  
+/G737 =  −/G734/Gb3f/Gb35/G724/G11f1/G72d/Gde1/G732 
+where /G72d/Gde1 is a real symmetric positive definite constant matr ix which satisfies the non-
+linear matrix algebraic equation 
+−/G72d/Gde1/G723 − /G723/G11f1/G72d/Gde1+  /G72d/Gde1/G724/G734/Gb3f/Gb35/G724/G11f1/G72d/Gde1−  /G733 = /G372 
+The controller developed above can be used to regul ate the velocity and distance 
+deviations between the follower and the leader and help in bringing down the time 
+and distance headway for very close following. 
+
+--- Page 44 ---
+32 
+ For using this controller for GCDC simulations, we have estimated a first order point-
+mass model of Sommerville-Hatipoglu’s complex car m odel. The model is as given 
+below: 
+/G738/G1236=  −/G372/G1e43729/G738 + /G372/G1e43719/G751  
+This model is used for calculation of the controlle r feedback gain parameters and then 
+the controller is implemented on the complex car mo del along with the FSM 
+developed in Chapter 3. Before that, let us formula te the optimization problem for the 
+case of GCDC competition.  
+Now, consider /G730 vehicles moving in a straight line as shown in fig . 19.  
+ 
+Figure 21 Vehicles moving in a convoy 
+ 
+where /G749/Gbd∶=  mass of the /G745th vehicle (assumed to be constant) 
+             /G738 /Gbd∶= velocity of the /G745th vehicle at time /G750 
+             /G754 /Gbd∶= position of the /G745th vehicle at time /G750 
+             /G751 /Gbd∶= force applied to the /G745th vehicle at time /G750 
+           /G7d∶/G756 /Gbd∶= variables used to denote deviation from the desired  position 
+             ∆ /Gbd∶ = desired deviation between the /G745th and /G1232/G745 + 1/G123bst vehicle. 
+
+
+--- Page 45 ---
+33 
+ Here we are going to deal with the perturbation sys tems around desired string 
+velocity /G738/Gbe5/Gbd8/Gbd9 , desired separation ∆/Gbd∶ and a constant force /G751/Gbd∶/Gb34 required to overcome the 
+drag force acting on the /G745th vehicle. The perturbation variables are as defin ed below: 
+/G7d∶/G738/Gbd∶= /G738 /Gbd∶−  /G738 /Gbe5/Gbd8/Gbd9 /G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730  
+/G7d∶/G756/Gbd∶= /G754 /Gbd∶−  /G754 /Gbd∶/Gb3e/Gb35−  ∆ /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730 − 1           
+/G7d∶/G751/Gbd∶= /G751 /Gbd∶−  /G751 /Gbd∶/G∶2∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730/G1e4  
+For details of the derivation of perturbation syste m given above refer [9].  
+From the point-mass model equation and the above pe rturbation equations, the overall 
+perturbation system of each vehicle is as given bel ow: 
+/G7d∶/G738/G1236/Gbd∶=  −/G372/G1e43729 /G7d∶/G738 /Gbd∶+  /G372/G1e43719 /G7d∶/G751 /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730  
+/G7d∶/G756/G1236/Gbd∶=  /G7d∶/G738 /Gbd∶− /G7d∶/G738 /Gbd∶/Gb3e/Gb35/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730 − 1/G1e4  
+Thus the state-space model of the above perturbatio n system is as given below: 
+/Gd64/G7d∶/G738/G1236/Gbd∶
+/G7d∶/G756/G1236/Gbd∶/Gd68 = /G1242−3/G1e4729 /G372
+1 /G372/G1243 /Gd64/G7d∶/G738/Gbd∶
+/G7d∶/G756/Gbd∶/Gd68 +  /G1242/G372/G1e43719 
+/G372/G1243 /G7d∶/G751 /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730 − 1  
+And                /G7d∶/G738/G1236/Gbd∶=  −/G372/G1e43729 /G7d∶/G738 /Gbd∶+  /G372/G1e43719 /G7d∶/G751 /Gbd∶/G1e1            /G742/G74b/G74e /G745 = /G730  
+Now, the GCDC scenarios have been simulated with a set of 6 vehicles. As explained 
+in chapter 1, there are going to be two convoys sta rting one behind each other but 
+each from behind a traffic light. Three vehicles ha ve been used in each convoy. 
+Vehicle 1, 2 and 3 are part of convoy 1 and vehicle s 4, 5 and 6 are part of convoy 2. 
+Convoy 1 is ahead of convoy 2. Same setup has been used here which is going to be 
+used in the competition. The urban scenario is foll owed by the highway scenario in 
+
+--- Page 46 ---
+34 
+ which the lead/ phantom vehicle introduces some dis turbances similar to the ones 
+found on actual highways.  
+Here, the two convoys are taken to be 465 /G749 apart initially. A trigger line is assumed 
+to be located at 400  /G749. So, as soon as vehicle 4 crosses 400  /G749 mark, convoy 1 is 
+triggered and set into motion with the lead/phantom  vehicle having a cruise speed of 
+25  /G749/G74∶ℎ for the urban scenario. After the two convoys merg e smoothly, they travel at 
+the lead cars speed till the last vehicle passes th e 1500  /G749 mark. As soon as the last 
+vehicle crosses the mark, the urban scenario ends a nd the highway scenario starts and 
+the convoy starts to move at 45 /G749/G74∶ℎ for the highway scenario. The lead/phantom 
+vehicle introduces a disturbance into the convoy. W e have added a sinusoidal 
+disturbance with amplitude of 2 /G749/G74∶ℎ and a frequency of 1 /G74e/G73d/G740/G200/G74f. The convoy needs 
+to exhibit string stability while maintaining least  possible following distance and the 
+least possible headway time.  
+The simulation results are provided for vehicles wi th different masses. Figures 22, 25 
+and 28 show the velocities of all the vehicles. Fig ures 23, 26 and 29 show the relative 
+velocities of the current vehicle and its follower.  Figures 24, 27 and 30 show the 
+inter-vehicular distance between the current vehicl e and its follower. 
+(i)  Case 1 – /G879/G2d2= /G879 /G2db= /G879 /G2d∶= /G879 /G2dd= /G879 /G2de= /G879 /G2df: 
+
+--- Page 47 ---
+35 
+  
+Figure 22 Velocities of vehicles  
+ 
+ 
+ 
+ 0 100 200 010 20 30 40 50 v1 [mph]
+0 100 200 010 20 30 40 50 v2 [mph]
+0 100 200 010 20 30 40 50 v3 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v4 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v5 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v6 [mph]
+
+--- Page 48 ---
+36 
+  
+Figure 23 Relative Velocity between the vehicles 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 -1.5 -1 -0.5 00.5 11.5 delv1 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 delv2 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 delv3 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv4 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv5 [m/s]
+
+--- Page 49 ---
+37 
+  
+Figure 24 Relative Distance between vehicles 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 45678910 delp1 [m]
+0 100 200 45678910 delp2 [m]
+0 100 200 45678910 delp3 [m]
+0 100 200 45678910 
+time [sec]delp4 [m]
+0 100 200 45678910 
+X: 14.13 
+Y: 3.7 
+time [sec]delp5 [m]
+
+--- Page 50 ---
+38 
+ (ii)  Case 2 a  /G879/G2d2> /G879 /G2db> /G879 /G2d∶> /G879 /G2dd> /G879 /G2de> /G879 /G2df: 
+ 
+Figure 25 Velocities of vehicles  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 010 20 30 40 50 v1 [mph]
+0 100 200 010 20 30 40 50 v2 [mph]
+0 100 200 010 20 30 40 50 v3 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v4 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v5 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v6 [mph]
+
+--- Page 51 ---
+39 
+  
+ 
+Figure 26 Relative Velocity between the vehicles  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 -1.5 -1 -0.5 00.5 11.5 delv1 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 delv2 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 delv3 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv4 [m/s]
+0 100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv5 [m/s]
+
+--- Page 52 ---
+40 
+  
+ 
+Figure 27 Relative Distance between vehicles  
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 246810 delp1 [m]
+0 100 200 246810 delp2 [m]
+0 100 200 246810 delp3 [m]
+0 100 200 246810 
+time [sec]delp4 [m]
+0 100 200 246810 
+time [sec]delp5 [m]
+
+--- Page 53 ---
+41 
+ (iii)  Case 3 a /G879/G2d2< /G879 /G2db< /G879 /G2d∶< /G879 /G2dd< /G879 /G2de< /G879 /G2df: 
+ 
+Figure 28 Velocities of vehicles  
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 010 20 30 40 50 v1 [mph]
+0 100 200 010 20 30 40 50 v2 [mph]
+0 100 200 010 20 30 40 50 v3 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v4 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v5 [mph]
+0 100 200 010 20 30 40 50 
+time [sec]v6 [mph]
+
+--- Page 54 ---
+42 
+  
+ 
+ 
+Figure 29 Relative Velocity between the vehicles  
+ 
+ 
+ 
+ 
+ 0100 200 -1.5 -1 -0.5 00.5 11.5 delv1 [m/s]
+0100 200 -1.5 -1 -0.5 00.5 11.5 delv2 [m/s]
+0100 200 -1.5 -1 -0.5 00.5 11.5 delv3 [m/s]
+0100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv4 [m/s]
+0100 200 -1.5 -1 -0.5 00.5 11.5 
+time [sec]delv5 [m/s]
+
+--- Page 55 ---
+43 
+  
+Figure 30 Relative Distance between vehicles  
+ 
+The vehicle masses for case 1 are all 130.578 slugs . For case 2, we have taken vehicle 
+6 to be 130.578 slugs and each preceding vehicle 20  slugs heavier than the following 
+vehicle. For case 3, we have taken vehicle 1 to be 130.578 slugs and each following 
+vehicle 20 slugs heavier than its leader. From figu res 22, 25 and 28 we can see that 
+convoy 2 merges smoothly behind convoy 1between 30 sec and 40 sec, where we see 
+a dip in the velocities of vehicles 4, 5 and 6. Als o, the entire convoy maintains string 
+stability as the velocity disturbance is not amplif ied by any of the vehicles after the 
+highway scenario starts. Comparing figures 23, 26 a nd 29 we see that the excursion of 
+the inter-vehicular velocities is almost zero for c ase 1 when all the vehicles have the 
+same mass which causes the inter-vehicular distance  to remain almost constant at 4 0 100 200 246810 delp1 [m]
+0 100 200 246810 delp2 [m]
+0 100 200 246810 delp3 [m]
+0 100 200 246810 
+time [sec]delp4 [m]
+0 100 200 246810 
+time [sec]delp5 [m]
+
+--- Page 56 ---
+44 
+ /G749. The excursion in inter-vehicular velocity slightl y increases in the negative 
+direction for case 2 where the masses of the vehicl es decrease successively leading to 
+a negative excursion in following distance. This is  obvious as lighter vehicles are 
+following the heavier ones and hence they respond t han their preceding vehicle when 
+there is a sudden increase in the reference velocit y. For case 3, the excursion in the 
+inter-vehicular velocities is slightly on the posit ive side as the heavier vehicles are 
+following the lighter ones and hence they respond s lightly sluggishly than the 
+preceding vehicle. Hence we see a small positive ex cursion in following distance. 
+4.2.LQRabased Sequential Stateafeedback Controller 
+Ozguner and Perkins 1977 [10] considered the proble m of optimum control of 
+multilevel composite systems and designed regulator s for linear multilevel composite 
+systems with local quadratic cost functions. A brie f introduction of the same is given 
+in this section. 
+Consider a multilevel large-scale composite (LSC) s ystem which is modeled as an 
+interconnection of subsystems /G74f/Gbd∶/G1e1 /G745 = 1/G1e1 … /G1e1 /G730  as shown below: 
+/G74f/Gb35∶  /G754/G1236 /Gb35= /G723 /Gb35/G754/Gb35+ /G724 /Gb35/G751/Gb35 
+/G755/Gb35= /G725 /Gb35/G754/Gb35 
+where                    /G754/Gb35 /G7f3 /G734/Gbe1/Gb35 ,  /G751/Gb35 /G7f3 /G734/Gbe0/Gb35,/G723/Gb35/G7f3/G734/Gbe1/Gb35×/Gbe1/Gb35 and /G724/Gb35/G7f3 /G734/Gbe1/Gb35×/Gbe0/Gb35/G1e4  
+/G74f/Gbd∶∶  /G754/G1236 /Gbd∶= /G723 /Gbd∶/G754/Gbd∶+ /Gd∶d /G724/Gbdd/Gbd∶/G751/Gbdd/Gbd∶/Gbd∶
+/Gbdd/Gb40/Gb35 
+/G755/Gbd∶= /G725 /Gbd∶/G754/Gbd∶/G1e1    /G745 = 2/G1e1 … /G1e1 /G730  
+where                                                   /G751/Gbdd/Gbd∶= ℎ /Gbdd/Gbd∶ /G755/Gbdd/G1e1 /G746 < /G745  
+and                      /G754 /Gbd∶ /G7f3 /G734/Gbe1 ,  /G751/Gbd∶ /G7f3 /G734/Gbe0,/G723/Gbd∶/G7f3/G734/Gbe1×/Gbe1 and /G724/Gbd∶/G7f3 /G734/Gbe1×/Gbe0/G1e4 Here /G742 ≠ /G7421/G1e4 
+
+--- Page 57 ---
+45 
+ Now, the cost function associated with each subsyst em is as given below: 
+/G72∶/Gbd∶=  /Gdb1 /G754/Gbd∶/Gb∶d/G733/Gbd∶/Gbd∶ /G754/Gbd∶+  /G751/Gbd∶/Gbd∶/Gb∶d /G734/Gbd∶/Gbd∶ /G751/Gbd∶/Gbd∶/G123b/G740/G750/G1e1     /G745 = 1/G1e1 … /G1e1 /G749 /Gbb6
+/Gb34 
+where  /G733/Gbd∶/Gbd∶ /Gb∶d= /G733 /Gbd∶/Gbd∶ ≥ /G372/G1e1 /G734/Gbd∶/Gbd∶ /Gb∶d= /G734 /Gbd∶/Gbd∶ > /G372/G1e4 
+Now, a solution to the sequential steady-state, sta te regulator problem for the 
+multilevel LSC system mentioned above with cost fun ction /G72∶/Gbd∶/G1e1 where each constituent 
+is locally stabilizable and the pairs /G1232/G726/Gbd∶/G1e1 /G723/Gbd∶/G123b are detectable (where  /G733/Gbd∶/Gbd∶ = /G726/Gbd∶/Gb∶d/G726/Gbd∶), exists, 
+is unique and is given by  
+/G751/Gbd∶/Gbd∶=  −/G734/Gbd∶/Gbd∶ /Gb3f/Gb35/G724/Gbd∶/Gbd∶/Gb∶d /G124∶/Gd∶d /G732 /Gbd∶/Gbdd /G754/Gbdd/Gbd∶
+/Gbdd/Gb40/Gb35/G124d 
+where /G732/Gbd∶/Gbd∶  is obtained as a solution of a local linear state regulator (LLSR) problem 
+whose solution is found from the algebraic Riccati equation  
+−/G732/Gbd∶/Gbd∶ /Gbd∶/G723/Gbd∶−  /G723/Gbd∶/Gb∶d/G732/Gbd∶/Gbd∶ /Gbd∶−  /G733 /Gbd∶/Gbd∶ +  /G732/Gbd∶/Gbd∶ /Gbd∶/G724/Gbd∶/Gbd∶/G734/Gbd∶/Gbd∶ /Gb3f/Gb35/G724/Gbd∶/Gbd∶/Gb∶d /G732/Gbd∶/Gbd∶ /Gbd∶= /G372 
+and /G732/Gbd∶/G1e1/Gbd∶/Gb3f/Gb35 from the linear matrix equation 
+/G732/Gbd∶/G1e1/Gbd∶/Gb3f/Gb35 /G723/Gbd∶/Gb3f/Gb35∗+ /G723/Gbd∶∗/Gb∶d/G732/Gbd∶/G1e1/Gbd∶/Gb3f/Gb35 =  −/G732 /Gbd∶/Gbd∶ /Gd6b/G724/Gbd∶/Gb3f/Gb35/Gbd∶ℎ/Gbd∶/G1e1/Gbd∶/Gb3e/Gb35 /G725/Gbd∶/Gb3f/Gb35/Gd6f 
+and /G732/Gbd∶/Gbdd  for /G746 < /G745 − 1/G1e1 for the linear matrix equations 
+/G732/Gbd∶/Gbdd /G723/Gbdd∗+  /G723/Gbd∶∗/Gb∶d/G732/Gbd∶/Gbdd =  − /G124e /Gd∶d /G732 /Gbd∶/Gbde /Gbd∶/Gb3f/Gb35
+/Gbde/Gb40/Gbdd/Gb3e/Gb35/Gd6b/G724/Gbdd/Gbdeℎ/Gbdd/Gbde /G725/Gbdd+  /G724/Gbde/Gbde/G72d/Gbdd/Gbde/Gd6f/G124f −  /G732 /Gbd∶/Gbd∶ /G724/Gbdd/Gbd∶/G725/Gbdd 
+The controller developed above again can be used to  regulate the velocity and 
+distance deviations between the follower and the le ader and help in bringing down the 
+time and distance headway for very close following.  
+The same first-order estimated model of the complex  car model given in section 4.1. 
+is used for the calculation of the feedback gains m entioned above and then the 
+
+--- Page 58 ---
+46 
+ controller is implemented on the complex car model along with the FSM developed 
+in Chapter 3. Before that, let us formulate the opt imization problem for the case of 
+GCDC competition.  
+Now, consider /G730 vehicles moving in a straight line as shown in Fig ure 31.  
+ 
+Figure 31 Vehicles moving in a convoy 
+ 
+The variable definitions remain the same as mention ed in section 4.1. 
+Here we are going to deal with the perturbation sys tems around desired string 
+velocity /G738/Gbe5/Gbd8/Gbd9 , desired separation ∆/Gbd∶ and a constant force /G751/Gbd∶/Gb34 required to overcome the 
+drag force acting on the /G745th vehicle. The perturbation variables are as defin ed below: 
+/G7d∶/G738/Gbd∶= /G738 /Gbd∶−  /G738 /Gbe5/Gbd8/Gbd9 /G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730  
+/G7d∶/G756/Gbd∶= /G754 /Gbd∶/Gb3f/Gb35−  /G754 /Gbd∶− ∆ /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 2/G1e1 … /G1e1 /G730           
+/G7d∶/G751/Gbd∶= /G751 /Gbd∶−  /G751 /Gbd∶/G∶2∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730/G1e4  
+For details of the derivation of the perturbation s ystem given above refer [10].  
+From the point-mass model equation and the above pe rturbation equations, the overall 
+perturbation system of each vehicle is as given bel ow: 
+/G7d∶/G738/G1236/Gbd∶=  −/G372/G1e43729 /G7d∶/G738 /Gbd∶+  /G372/G1e43719 /G7d∶/G751 /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 1/G1e12/G1e1 … /G1e1 /G730  
+
+
+--- Page 59 ---
+47 
+ /G7d∶/G756/G1236/Gbd∶=  /G7d∶/G738 /Gbd∶/Gb3f/Gb35− /G7d∶/G738 /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 2/G1e1 … /G1e1 /G730/G1e4  
+Thus the state-space model of the above perturbatio n system is as given below: 
+/G7d∶/G738/G1236/Gbd∶=  −/G372/G1e43729 /G7d∶/G738 /Gbd∶+  /G372/G1e43719 /G7d∶/G751 /Gbd∶/G1e1 /G742/G74b/G74e /G745 = 1  
+And                        /Gd64/G7d∶/G738/G1236/Gbd∶
+/G7d∶/G756/G1236/Gbd∶/Gd68 = /G1242−3/G1e4729 /G372
+−1 /G372/G1243 /Gd64/G7d∶/G738/Gbd∶
+/G7d∶/G756/Gbd∶/Gd68 +  /G1242/G372/G1e43719 
+/G372/G1243 /G7d∶/G751 /Gbd∶   /G742/G74b/G74e /G745 = 2/G1e1 … /G1e1 /G730/G1e4  
+The GCDC scenarios have been simulated with a set o f 6 vehicles for this controller. 
+In this case, the first state used for feedback is the velocity deviation of the vehicle 
+from the reference velocity and the second state is  its distance from the preceding 
+vehicle. This is slightly different from the contro ller used in previous section in a way 
+that the previous controller used the first state s ame as this controller but the second 
+state was the distance of the vehicle from its foll owing vehicle rather than its 
+preceding vehicle. Simulation results are provided for the same three cases as in 
+section 4.1. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 60 ---
+48 
+  
+ 
+ 
+(i)  Case 1 – /G879/G2d2= /G879 /G2db= /G879 /G2d∶= /G879 /G2dd= /G879 /G2de= /G879 /G2df: 
+ 
+Figure 32 Velocities of vehicles 0100 200 010 20 30 40 50 v1 [mph]
+0100 200 010 20 30 40 50 v2 [mph]
+0100 200 010 20 30 40 50 v3 [mph]
+0100 200 010 20 30 40 50 v4 [mph]
+time [sec]0100 200 010 20 30 40 50 v5 [mph]
+time [sec]0100 200 010 20 30 40 50 v6 [mph]
+time [sec]
+
+--- Page 61 ---
+49 
+  
+ 
+ 
+ 
+ 
+ 
+Figure 33 Relative Velocity between the vehicles 
+ 
+ 
+ 
+ 
+ 
+ 0 100 200 -2 -1 01delv2 [m/s]
+0 100 200 -2 -1 01delv3 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv4 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv5 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv6 [m/s]
+
+--- Page 62 ---
+50 
+  
+ 
+ 
+ 
+ 
+ 
+Figure 34 Relative Distance between vehicles 
+ 
+ 
+ 
+ 
+ 
+ 0100 200 246810 delp2 [m]
+0100 200 246810 delp3 [m]
+0100 200 246810 
+time [sec]delp4 [m]
+0100 200 246810 
+time [sec]delp5 [m]
+0100 200 246810 
+time [sec]delp6 [m]
+
+--- Page 63 ---
+51 
+  
+ 
+ 
+ 
+(ii)  Case 2 a  /G879/G2d2> /G879 /G2db> /G879 /G2d∶> /G879 /G2dd> /G879 /G2de> /G879 /G2df: 
+ 
+Figure 35 Velocities of vehicles 
+ 0 100 200 010 20 30 40 50 v1 [mph]
+0 100 200 010 20 30 40 50 v2 [mph]
+0 100 200 010 20 30 40 50 v3 [mph]
+0 100 200 010 20 30 40 50 v4 [mph]
+time [sec]0 100 200 010 20 30 40 50 v5 [mph]
+time [sec]0 100 200 010 20 30 40 50 v6 [mph]
+time [sec]
+
+--- Page 64 ---
+52 
+  
+ 
+ 
+ 
+ 
+ 
+Figure 36 Relative Velocity between the vehicles 
+ 
+ 
+ 
+ 
+ 
+ 0100 200 -2 -1 01delv2 [m/s]
+0100 200 -2 -1 01delv3 [m/s]
+0100 200 -2 -1 01
+time [sec]delv4 [m/s]
+0100 200 -2 -1 01
+time [sec]delv5 [m/s]
+0100 200 -2 -1 01
+time [sec]delv6 [m/s]
+
+--- Page 65 ---
+53 
+  
+ 
+ 
+ 
+ 
+ 
+Figure 37 Relative Distance between vehicles 
+ 
+ 
+ 
+ 
+ 
+ 
+ 0100 200 246810 delp2 [m]
+0100 200 246810 delp3 [m]
+0100 200 246810 
+time [sec]delp4 [m]
+0100 200 246810 
+time [sec]delp5 [m]
+0100 200 246810 
+time [sec]delp6 [m]
+
+--- Page 66 ---
+54 
+  
+ 
+ 
+ 
+ 
+(iii)  Case 3 a /G879/G2d2< /G879 /G2db< /G879 /G2d∶< /G879 /G2dd< /G879 /G2de< /G879 /G2df: 
+ 
+Figure 38 Velocities of vehicles  
+ 
+ 
+ 
+ 
+ 0 100 200 010 20 30 40 50 v1 [mph]
+0 100 200 010 20 30 40 50 v2 [mph]
+0 100 200 010 20 30 40 50 v3 [mph]
+0 100 200 010 20 30 40 50 v4 [mph]
+time [sec]0 100 200 010 20 30 40 50 v5 [mph]
+time [sec]0 100 200 010 20 30 40 50 v6 [mph]
+time [sec]
+
+--- Page 67 ---
+55 
+  
+ 
+ 
+ 
+ 
+ 
+Figure 39 Relative Velocity between the vehicles 0 100 200 -2 -1 01delv2 [m/s]
+0 100 200 -2 -1 01delv3 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv4 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv5 [m/s]
+0 100 200 -2 -1 01
+time [sec]delv6 [m/s]
+
+--- Page 68 ---
+56 
+  
+Figure 40 Relative Distance between vehicles 
+ 
+The vehicle masses used for case 1 and 2 are the sa me as the ones used for the 
+simulations in section 4.1. For case 3 we have used  increments of 10 slugs between each 
+vehicle and its follower as this controller produce s a positive excursion of 4 m for 
+vehicles being 20 slugs heavier than their precedin g vehicles. From figures 32, 35 and 38 
+we can see that convoy 2 merges relatively smoothly  behind convoy 1between 30 sec and 
+40 sec, where we see a dip in the velocities of veh icles 4, 5 and 6. Also, the entire convoy 
+maintains string stability as the velocity disturba nce is not amplified by any of the 
+vehicles after the highway scenario starts. Compari ng the simulation results for the two 
+controllers we find that the LQR based full-state f eedback produces better regulation of 
+the following vehicles than the LQR based sequentia l state feedback controller. This is 0 100 200 246810 delp2 [m]
+0 100 200 246810 delp3 [m]
+0 100 200 246810 
+time [sec]delp4 [m]
+0 100 200 246810 
+time [sec]delp5 [m]
+0 100 200 246810 
+time [sec]delp6 [m]
+
+--- Page 69 ---
+57 
+ because excursion of the states of any vehicle in t he convoy affect the control effort fed 
+back to each vehicle for the full-state feedback co ntroller, whereas for the sequential state 
+feedback controller assumes a priori that no useful  information can be supplied by the 
+following vehicles [10]. 
+ 
+ 
+
+--- Page 70 ---
+58 
+  
+CHAPTER 5 CONCLUSIONS 
+ 
+5.1.Summary of Work 
+The purpose of this thesis was to present the resul ts of a simulation study of using two 
+different types of car following controllers workin g along with a FSM on a complex 
+car model. The above Master Controller was develope d with a vision of 
+implementing it on a real car for the GCDC Competit ion which is going to be held 
+next year. 
+Chapter 2 provided an overview of different types o f car models that were used in 
+previous studies. We saw that the point-mass model was computationally simple and 
+less expensive but did not incorporate any non-line arities which are inherent in a 
+vehicle. Takaski-Fenton modeled a 1969 Plymoth Seda n which incorporated the 
+electrohydraulic actuator/engine-drivetrain combust ion, non-linear frictional forces 
+impeding the motion of the vehicle and wheel slip. This model was still not adequate 
+as the torque convertor dynamics were ignored as we ll as the vehicle did not account 
+for any braking. The model developed by Martin Some rville of a 1992 Honda Accord 
+took care of most of the system dynamics found in a  modern vehicle like the engine 
+dynamics, torque convertor dynamics, transmission d ynamics, vehicle dynamics, 
+throttle as well as the brake actuators making it t he only choice for such a simulation 
+study. 
+
+--- Page 71 ---
+59 
+ The Longitudinal FSM used on the car model for deal ing with different states during 
+a leader-follower approach and follow maneuver is d iscussed in chapter 3. A detailed 
+description of all the states of the FSM is provide d. The different states used for our 
+simulation study were – cruise, approach, follow, e mergency brakes and hard 
+braking.  
+In chapter 4, we have mentioned about two close fol lowing controllers and 
+implemented them on a first order vehicle model whi ch we have estimated from 
+Sommerville-Hatipoglu’s complex car model along wit h the Longitudinal FSM for 
+the two GCDC scenarios.  
+5.2.Conclusion 
+We have tested the two LQR based close following co ntrollers along with the 
+Longitudinal FSM on a complex car model. Both the c ontrollers give promising 
+results and hence can be implemented in future to r educe the vehicle following 
+distance as well as to increase the efficiency of t he current road infrastructure. A 
+comparison study showed that the LQR based full sta te-feedback gives better 
+regulation than the LQR based sequential state-feed back. But the latter is practically 
+feasible due to the following reasons: 
+(i) With single cost function for a system with N vehicl es /Gb35
+/Gb36/G123e/G12322/G749 + 1 /G123b/G12322/G749 + 2 /G123b/G123f 
+coupled equations have to be solved. 
+(ii) The total number of communication links required be tween all the vehicles in 
+the convoy reduces approximately by 50% as compared  to the LQR based full 
+state-feedback controller.  
+
+--- Page 72 ---
+60 
+ (iii) When a /G1232/G730 + 1 /G123b/Gbe6/Gbe7  vehicle augments the convoy, feedback gains for /G730 
+vehicles is not required to be calculated. Only the  feedback gains for the 
+/G1232/G730 + 1 /G123b/Gbe6/Gbe7  need to be calculated making the controller a “dis tributed 
+controller” rather than a “centralized controller” like the full state-feedback 
+controller. This makes it extremely practical. 
+5.3.Future Directions 
+We have implemented the longitudinal controllers on  a complex vehicle model. But 
+these controllers need to be tested on real cars an d in a convoy type situation.  
+We have assumed that we have a lossless and a delay  free medium of communication. 
+In most of the real life scenarios, this is not tru e. A study on which type of V-2-V 
+network to be used to minimize transmission as well  as transport delays should be 
+performed and a controller which deals with the del ay in receiving information either 
+from the sensors or sending information to the actu ators should be developed. The 
+Finite State Machine can be improved to include mor e states to avoid obstacles and 
+even to stop at a red light. Lateral controllers sh ould be developed and added to the 
+longitudinal model to make a complete autonomous ca r which is able to negotiate 
+lane change and turning maneuvers. 
+ 
+ 
+ 
+ 
+ 
+
+--- Page 73 ---
+61 
+  
+ 
+APPENDIX a COMPLETE LONGITUDINAL MODEL 
+ 
+Martin Sommerville and Cem Hatipoglu completely mod eled a 1992 Honda Accord [7]. 
+We have made a few changes to the model like, tunin g the gains of the controllers and 
+adding the integral wind-up’s for the PID controlle rs.  
+6.1.SommervilleaHatipoglu Longitudinal Model   
+This model is a simple longitudinal dynamics model of the vehicle which can be used 
+for cruise control type operations. The model is as  shown below: 
+ 
+Figure 41 Longitudinal vehicle model for cruise con trol (C.Hatipoğlu, Ü.Özgüner 
+and M.Sommerville, 1996) 
+The physical meaning of the variables is given in b elow: 
+/G738/Gbe5/Gbd8/Gbd9  = Reference speed or desired speed of the vehicle 
+    /G738  = Longitudinal velocity of the vehicle model 
+/G7f1/Gbd8  = Engine speed 
+
+
+--- Page 74 ---
+62 
+ /G7f1/Gbe7  = Turbine speed 
+/G736/Gbe6   = Torque from transmission after final gear redu ction 
+/G736/Gbe7   = Turbine torque (output of torque convertor) 
+/G736/Gbe3   = Pump torque (feedback from torque convertor pu mp) 
+/G736/Gbd5   = Braking torque 
+/G7d9    = Throttle angle 
+/G74e/Gbd5   = Desired braking force 
+Here the desired speed is fed to the speed controll er and it produces the exact throttle 
+or brake command required to regulate the speed of the vehicle and reduce the error 
+in desired speed and vehicle speed to zero. A brief  explanation of Sommerville-
+Hatipoglu’s model is given below. Refer to [7] for more details. 
+The desired speed is converted in to ft/sec as the entire model works with CGS units. 
+The model has detailed blocks of engine dynamics, t orque-convertor dynamics, 
+transmission model, drive-train dynamics, brake act uator model and brake control 
+unit, throttle actuator model and throttle control unit and gear select unit. This model 
+contains a master speed controller which switches t he control from the throttle 
+controller mode to the brake controller mode and vi ce-versa depending on the mode 
+of operation. The mode of operation is calculated b y a finite state machine which 
+takes the desired speed, estimated speed, the throt tle control output, brake control 
+output and the previous mode as an input. 
+
+--- Page 75 ---
+63 
+ Now let us talk one-by-one about different blocks i nside the vehicle model.  
+6.2.Vehicle Dynamics Model 
+The vehicle dynamics model consists of the Engine d ynamics model, Torque 
+Convertor model, Transmission model and the Drivetr ain dynamics model. These 
+blocks have been discribed below: 
+6.2.1.  Engine Dynamics Model 
+The differential equation discribing the engine is as shown below: 
+/G7f1 /G1236/Gbd8=1
+/G72∶/Gbd8/Gd5b/G736/Gbd6/Gd6b/G7d9 +  /G7d9 /Gbe2/Gbd9/Gbd9/Gbe6/Gbd8/Gbe7 /G1e1 /G7f1/Gbd8/Gd6f −  /G736 /Gbd4/G1232/G7f1/Gbd8/G123b−  /G736 /Gbe3/G1232/G7f1/Gbd8/G1e1 /G7f1/Gbe7/G123b/Gd5f 
+where   /G7d9 = throttle angle (deg) 
+            /G7f1/Gbd8= engine speed (rpm) 
+            /G7f1/Gbe7= torque convertor turbine speed (rpm) 
+            /G72∶/Gbd8 = engine inertia (ft.lbs.sec 2) 
+            /G736/Gbd6 = engine engine combustion torque (ft.lbs) 
+            /G736/Gbd4 = engine accessory and load torque (ft.lbs) 
+            /G736/Gbe3 = feedback from torque convertor pump (ft.lbs) 
+The accessory and load torque is approximated as 
+/G736/Gbd4= 1/G1e4/G372337 /G1232/G7f1/Gbd8/G123b/Gb34/G1e4/Gb36  /G742/G750/G1e4 /G748/G73e/G74f  
+The engine model basically consists of a look-up ta ble for the torque produced by 
+the engine combustion for certan combination of thr ottle  angle and engine speed. 
+The torque map has been shown in Figure 42 . 
+ 
+
+--- Page 76 ---
+64 
+  
+Figure 42 Simulation torque map 
+ 
+The torque map has been used to speed up the comput ations of engine torque. The 
+frictional and load torque as well as the torque du e to the pump (from torque 
+converter) act against the torque produced by the e ngine and the resultant torque 
+turns the crankshaft and the output is the engine s peed. 
+6.2.2.  Torque Converter Dynamics Model 
+The torque converter is modelled using sets of two quadratic equations. The 
+correct set of equations is selected depending on t he speed ratio which is given 
+by: 
+/G735/G734 =/G753/Gbe7
+/G753/Gbd8 020 40 60 80 100 
+02000 4000 6000 -50 050 100 150 200 
+←500 ←600 ←750 ←1000 ←1250 ←1500 ←2000 ←2500 
+Throttle Angle θ [deg]←3000 ←3500 ←4500 Simulation Torque Map 
+←5500 
+Engine Speed ωe [rpm]Engine Torque T c [ft-lbs]
+
+--- Page 77 ---
+65 
+ The torque converter produces an output torque call ed the “Turbine Torque” /G736/Gbe7 
+which is then passed through the gear selection and  reduction block inside the 
+transmission model block. 
+The feedback from the torque convertor is obtained as “Pump Torque” /G736/Gbe3 which 
+is feedback to the engine.  
+The sets of quadratic equations used to model the t orque convertor are given 
+below. 
+Convertor mode: ( /G87f/G87e < /G372/G1e4842 ) 
+/G736/Gbe3= /G372/G1e432/G372/G377 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/Gb36+ /G372/G1e4/G372196 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e423/G3779 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbe7/Gb36 
+/G736/Gbe7= /G372/G1e47313 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/Gb36− /G372/G1e46413 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e4/G372388 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbe7/Gb36 
+Coupling mode: ( /G2d9/G1e4 /G2e1/G2dd/G2db ≤ /G87f/G87e ≤ /G2d2/G123b  
+/G736/Gbe3= −/G372/G1e4/G372612 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbd8/Gb36+ /G372/G1e42612 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e42/G372/G3729 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbe7/Gb36 
+/G736/Gbe7= −/G372/G1e4/G372612 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbd8/Gb36+ /G372/G1e42612 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e42/G372/G3729 ∙ 1/G372 /Gb3f/Gb37/G7f1/Gbe7/Gb36 
+Overrun mode: ( /G87f/G87e > 1 ) 
+/G736/Gbe3= −/G372/G1e41791 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/Gb36− /G372/G1e4213/G377 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e4/G372344 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbe7/Gb36 
+/G736/Gbe7= −/G372/G1e41791 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/Gb36− /G372/G1e4213/G377 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbd8/G7f1/Gbe7− /G372/G1e4/G372344 ∙ 1/G372 /Gb3f/Gb38/G7f1/Gbe7/Gb36 
+ 
+6.2.3.  Transmission Model 
+The transmission block consists of a gear selection  block which desides which 
+gear is to be selected depending on the throttle an gle /G7e0 and transmission output 
+speed /G7f1/Gb∶d in rpm. The transmission output speed is measured before final gear 
+reduction. The individual gear ratios are listed in  table 2 below. 
+
+--- Page 78 ---
+66 
+ Gear Gear Ratio Gear Ration w/ Final Reduction 
+1st  2.705:1 11.590:1 
+2nd   1.482:1 6.350:1 
+3rd   1.057:1 4.529:1 
+4th   0.707:1 3.029:1 
+Rev 2.047:1 8.770:1 
+Final Reduction 4.285:1  
+Table 2. Transmission gear ratios 
+The logic to select the correct gear depends upon t he set of linear curves for gear 
+changes given in Figure 43 . 
+Depending on which gear the vehicle is, the corresp onding gear reduction is 
+applied to the turbine torque. 
+6.2.4.  Longitudinal Driveatrain Dynamics Model 
+The vehicle model gives us the output vehicle speed  /G7f1/Gbe9 in ft/sec. It accounts for 
+the rolling resistance, torque due to road inclinat ion, torque due to air resistance, 
+any other load disturbances and braking torque. 
+
+--- Page 79 ---
+67 
+  
+Figure 43 Gear shift pattern 
+The vehicle dynamics are modeled as shown below. 
+/G738/G1236=/G74e
+/G72f/Gbe9/G1232/G729/Gb∶d/G736/Gbe7/G1232/G7f1/Gbd8/G1e1 /G7f1/Gbe7/G123b−  /G7db/G738/Gb36− /G736 /Gbe5/Gbe5 − /G736 /Gbd5/G123b 
+where   /G738 = vehicle velocity (ft/sec) 
+              /G74e = radius of tire (ft) 
+            /G72f/Gbe9= vehicle mass (slugs) 
+            /G729/Gb∶d= overall transmission gear ratio 
+            /G736/Gbe7= torque from transmission (ft.lbs) 
+            /G7db = aerodynamic drag coefficient 
+           /G736/Gbe5/Gbe5 = rolling resistance (ft.lbs) 0246810 12 14 16 18 20 500 1000 1500 2000 2500 3000 3500 
+Throttle angle [theta]Vehicle speed [rpm]Gear Select Logic 
+  
+1 to 2 2 to 3 3 to 4 
+4 to 3 
+
+--- Page 80 ---
+68 
+            /G736/Gbd5= braking torque (ft.lbs) 
+The vehicle mass is taken to be 130.578 /G74f/G748/G751/G743/G74f, tire radius to be 1 /G742/G750 , aerodynamic 
+drag coefficient to be 0.0117 1/G200/G742/G750  and rolling resistance to be 59.2 /G742/G750/G1e4 /G748/G73e/G74f . 
+6.3.Master Speed Controller 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ Y N 
+Desired 
+pressure  
+= 0? In 
+throttle 
+control  
+mode?  
+Desired 
+throttle 
+angle = 0? N N 
+Change 
+in 
+error>0?  Error  
+>1? Change 
+in error 
+<-1? Error    
+<-2? Y Y 
+N N 
+Switch to 
+throttle control 
+mode Switch to      
+brake control 
+mode 
+Disable  
+brake Enable  
+brake 
+Enable      
+throttle angle 
+controller Disable      
+throttle angle 
+controller 
+End  N N 
+Y Y Y Y 
+Figure 44 Flow chart indicating decision paths of m aster speed controller  
+
+--- Page 81 ---
+69 
+ The master speed controller is used to select betwe en two modes of operation- 
+throttle control mode and brake control mode depend ing on the error between the 
+desired vehicle speed and the actual or estimated v ehicle speed. The flow chart for 
+used is shown below in Figure 44 . 
+6.4.Simulation Results of Vehicle Dynamics of Longi tudinal Model 
+The simulation results of the internal vehicle dyna mics is shown in Figure 45 . A 
+reference velocity of 45 mph is given to the vehicl e and plots for vehicle 
+measured speed, estimated speed, engine speed, thro ttle angle, brake pressure, 
+gear and speed ratio of torque convertor are given.  
+0 5 10 15 020 40 60 Velocity [mph]Speed Dynamics 
+  
+measured 
+estimated 
+desired 
+0 5 10 15 02000 4000 6000 Engine Speed [rpm]
+0 5 10 15 050 100 Throttle angle [%/100]
+0 5 10 15 0200 400 600 800 Pressure [psi]
+0 5 10 15 1234Gear 
+0 5 10 15 00.5 1SR 
+time [sec]
+Figure 45 Results of internal vehicle dynamics 
+
+--- Page 82 ---
+70 
+ In this appendix we have given a brief introduction  of the model we are going to use for 
+simulations on the two GCDC scenarios.  
+
+--- Page 83 ---
+71 
+  
+ 
+BIBLIOGRAPHY  
+[1] Bender J. G., Fenton R. E. and Olson K. W. (197 1). "An Experimental Study of 
+Vehicle Automatic Longitudinal Control." IEEE Transactions on Vehicle Technology , 
+VT-20, 114-123. 
+[2] "Studies in vehicle automatic longitudinal cont rol." Tech Rep. Report Es 267A - 7 
+prepared under Contract to the Ohio Department of H ighways and U. S. Bureau of Public 
+Roads, Dept. of Electrical Engineering, The Ohio St ate University 
+[3] R. L. Cosgriff, et. al., "An automated system f or longitudinal control of vehicles." 
+Highway Res. Rec.,no. 122, pp 7 - 18, 1966. 
+[4] Desoer, S. S.,  "Longitudinal control of a plat oon of vehicles with no communication 
+wth the lead vehicle information." Proceedings of the American Control Conference , pp. 
+3102-3106, 1991. 
+[5] D. H. McMohan, J. K. Hedrick, and S. E. Schlado ver, "Vehicle modeling and control 
+of automated highway systems." Proceedings of American Control Conference , pp 297-
+303, 1990. 
+[6] J. K. Hedrick, D. McMohan, V. Narendran, and D.  Swaroop, "Longitudinal vehicular 
+control design for IVHS systems." Proceedings of the American control Conference , pp 
+3107 - 3112, 1991. 
+
+--- Page 84 ---
+72 
+ [7] Martin Sommerville, " Implementation of a longi tudinal Controller for use on an 
+Automated Highway System." Master's Thesis, The Ohi o State University. Spring 1996. 
+[8] Umit Ozguner "Autonomy in Vehicles." Course Note s for 753.02 Spring quarter 
+2010. 
+[9] W. S. Levine and M. Athans, "On the optimal err or regulation of a string of moving 
+vehicles." IEEE Transaction on Automatic Control , Vol. AC-11, No. 3, pp 355 - 361, 
+July 1966. 
+[10] U. Ozguner and W. R. Perkins, "Optimal control  of multilevel large-scale systems." 
+Int. J. Control , Vol.28, No. 6, pp 967-980, 1978. 
+[11] Martin Sommerville, Cem Hatipoglu, Umit Ozgune r, "Switching control of a 
+pneumatic throttle controller." Control Systems Mag azine, IEEE,Vol. 18, No. 4, pp 81-
+87,Aug 1998. 
+[12] Robert E. Fenton and Robert J. Mayhen, "Automa ted Highway Studies at The Ohio 
+State University - An Overview." IEEE Transactions on Vehicle Technology , Vol. 40, 
+No. 1 pp. 100-113, Feb 1991. 
+[13] D. F. Wilke "A moving cell control scheme for automated transportation systems." 
+Transportation Sci., vol 4, pp 347 - 364, Nov 1970.  
+[14] Gerald M. Takasaki and Robert E. Fenton, "On t he identification of vehicle 
+dynamics."  IEEE Transaction on Automatic Control , Vol. AC-22, No. 4, pp 610 - 615, 
+Aug 1977.  
+
+--- Page 85 ---
+73 
+ [15] H. Raza and P. Ioannou, "Vehicle following con trol design for automated highway 
+systems." California PATH Research Report 1997, UCB -ITS-PRR-97-2. 
+[16] Robert J. Hansen "Planning for high-speed grou nd transportation." Proceeding of 
+IEEE, Vol 56, No. 4, April 1968 
+[17]P. A. Ioannou, F. Ahmed-Zaid, D. H. Wuh, "A tim e headway autonomous intelligent 
+cruise controller: Design and simulation." Californ ia PATH Working Paper 1997, UCB-
+ITS-PWP-94-07 
+[18] Cem Hatipoglu and Martin Sommerville, "Develop ment of Computationally 
+Efficient Time-Domain Engine Model." Control Resear ch Lab, The Ohio State 
+University, Report 96-02, February 1996. 
+ 
+ 
+ 

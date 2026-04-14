@@ -1,0 +1,1554 @@
+--- Page 1 ---
+An Autonomous Autopilot Control System Design for Small-Scale UAVs
+Corey Ippolito
+QSS Group, Inc.
+NASA Ames Research Center
+Table of Contents
+Introduction..................................................................................................................... 1
+Ground Station Monitoring and Control......................................................................... 2
+Autopilot System Overview............................................................................................ 3
+Commands in the Flight Management System............................................................... 4
+Command Types ............................................................................................................. 6
+Command: Direct To Waypoint.................................................................................. 6
+Command: TrackToWaypoint .................................................................................... 7
+Command: Jump......................................................................................................... 8
+Command: Circle........................................................................................................ 8
+Command: TakeOff .................................................................................................... 8
+Command: Landing .................................................................................................... 9
+Command: SetFMSMode ........................................................................................... 9
+Flight Management System Modes .............................................................................. 10
+Autopilot Controller...................................................................................................... 11
+Introduction
+This paper describes the design and implementation of a fully autonomous and
+programmable autopilot system for small scale autonomous unmanned aerial vehicle
+(UAV) aircraft.  This system was implemented in Reflection and has flown on the
+Exploration Aerial Vehicle (EAV) platform at NASA Ames Research Center, currently
+only as a safety backup for an experimental autopilot.  The EAV and ground station are
+built on a component-based architecture called the Reflection Architecture.  The
+Reflection Architecture is a prototype for a real-time embedded plug-and-play avionics
+system architecture which provides a transport layer for real-time communications
+between hardware and software components, allowing each component to focus solely on
+its implementation.  The autopilot module described here, although developed in
+Reflection, contains no design elements dependent on this architecture.
+
+--- Page 2 ---
+Ground Station Flight System900 MHz
+RF Modem
+Figure 1.  Components of the UAV Flight System
+The UAV system is composed of two main components: a ground station component
+which provides telemetry feedback for the operator and allows for control of the aircraft,
+and a flight system component onboard the vehicle.  The component details are shown in
+Table 1.
+Table 1.  System Hardware
+Ground Station Flight System
+Platform/Airframe Dell Mobile WorkstationHanger 9 Quarter Scale
+Cessna 172
+CPUDELL Precision M70
+Workstation, Pentium M 770,
+2.13GHz, 2GB RAMDigital Logic MSMP3SEV,
+Pentium-III, 700MHz, 256MB
+RAM
+Operating System Windows XP Professional Windows XP Embedded
+Real-Time Infrastructure Reflection Architecture Reflection Architecture
+CommunicationsMicrohard Spectra 910, 1W
+902-928MHz RF ModemMicrohard MHX-910, 1W 902-
+928MHz RF Modem
+AvionicsAthena Guidestar GS111m
+INS/GPS
+  Pontech SV203 Servo Controller
+  Custom Servo Switching Board
+Ground Station Monitoring and Control
+With the Reflection plug-and-play architecture, simulation and hardware can be mixed on
+the fly for in-situ simulation testing of hardware components at any level of granularity.
+When implementing the final ground station controller, several simulation components
+were reused to provide telemetry data back to the ground station.  A screenshot of the
+ground station is shown in Figure 2 below.
+
+--- Page 3 ---
+Figure 2.  Screenshot of Ground Station with 3D Visualization
+The bottom left window provides a graphical interface for configuring and manipulating
+waypoint commands.  Waypoints can be manipulated on a 2D representation of the
+terrain; waypoints are overlaid on GPS-localized 2D bitmap images.  Once a mission is
+programmed, the user can ‘upload’ the commands to the aircraft.  The ground station
+generates remote method invocations on the remote autopilot module, and passes these
+invocation requests to the Reflection distributed transport layer (RDTL).  The RDTL
+converts the invocation requests into Reflection Virtual Machine byte-code commands
+and sends the commands over to the autopilot component via the 900 MHz
+communications link.  On the flight computer, the RDTL receives and assembles the
+invocation requests, then executes the commands on the autopilot module.
+Autopilot System Overview
+The autopilot system is implemented as a stand alone plug-in component in the
+Reflection Architecture.  Data flow through the system conceptually follows the diagram
+shown in Figure 3.  Command objects generate FMS lateral and longitudinal mode
+instructions for the FMS.  The FMS in turn generates controller mode instructions, which
+are used by the controller to command the actuators of the vehicle.  The state information
+and the actuator commands are generated by external plug-and-play Reflection modules.
+
+--- Page 4 ---
+Figure 3.  Conceptual Data Flow and Components
+The top-most object in the control system is an instance of the AutopilotSystem  class, as
+shown in Figure 4.  The AutopilotSystem  class is responsible for communicating with the
+rest of the Reflection system and maintaining the two main objects in the system: the
+FMS  (flight management system) and the Controller .  The FMS is responsible for
+maintaining the list of commands which specify FMS mode instructions.  The mode
+instructions are used by the FMS to provide targets to the controller.  The controller is
+responsible for implementing the control loops which control the aircraft through the
+vehicle’s actuators.
+Figure 4.  Top-Level Classes in the Autopilot System
+Commands in the Flight Management System
+The flight management system class is a state machine that controls the continuous
+feedback control system in the controller object.  The FMS is responsible for maintaining
+a database of mission program, keeping track of the mission program execution, and
+setting the modes of the controller object’s feedback loops.
+The mission program is implemented Command  objects, which are stored in a
+programmable list in the FMS.  The command list is an ordered list of commands that can
+be programmed on the ground, or reprogrammed while the aircraft is in the air.  In
+implementation, the Command  class is a virtual interface class, from which specific types
+
+--- Page 5 ---
+of command classes inherit.  All commands implement the interfaces defined by the base
+class, which includes methods to initialize their internal state, update their internal state at
+each OnComponentUpdate() callback, and to notify the FMS when the command
+objectives have been met.
+Controller commands can be programmed through the ReflectionScript language, which
+interprets text-based commands into binary code which is passed to the Reflection Virtual
+Machine.  The following scripts are examples of programmed routes for the Reflection
+component.
+// Program the Autpoilot System.
+objAutopilot.ClearCommandList();
+objAutopilot.AddCommand_Takeoff (  4500, -2000, 500.0, 80.0, 1000.0,  -0.34907, 50.0 );
+objAutopilot.AddCommand_FlyToTrack ( 8070.9,  -6009.7, 500.0,  80.0,  1000.0 );
+// Following heading until specified altitude is reached.
+objAutopilot.AddCommnd_SetFMSMode ( HEADINGHOLD, 0.0, ALTCMD, 400.0, SPDCMD, 80,
+ALTITUDE, GT, 300 );
+cmd=objAutopilot.AddCommand_FlyToTrack ( 10107.0, -1390.7, 500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( 8904.5,  -902.8,  500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( 6919.8,  -5568.9, 500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( 3357.4,  1364.9,  500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( -3319.9, 4457.2,  500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( -5436.1, 3980.7,  500.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( -4371.0, 1696.2,  200.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( -741.1,  182.6,  50.0 ,  80.0,  1000.0 );
+objAutopilot.AddCommand_FlyToTrack ( 2522.8,  -1267.5, -10.0,  80.0,  1000.0 );
+objAutopilot.AddCommand_Jump ( cmd );
+Figure 5.  Sample Control Program.
+At the start of the mission, the controller activates the first command, which might be a
+Takeoff  command for an autonomous takeoff.  The update sequence, shown in Figure 6,
+is very simple sequence of steps; the FMS object is only responsible for maintaining the
+current state, transitioning between states at the appropriate time.  At each component
+update callback, the FMS calls the Update() method of the active command, which
+updates its internal state.  The FMS then checks the IsComplete() method of the
+command; when TRUE  is returned, the FMS transitions to the next command, and signals
+a Reflection event in case any other Reflection component is monitoring autopilot state
+transitions.
+Move to Next Command[active command
+is complete]
+Initialize CommandUpdate Command[active command
+not complete]
+Update Lateral Mode
+Update Longitudinal Mode
+
+--- Page 6 ---
+Figure 6.  FMS Updates
+The FMS internally maintains three different FMS control modes, an FMS lateral mode,
+FMS longitudinal mode, and FMS speed mode.  The active command object internally
+maintains a state machine which outputs FMS mode commands and targets appropriately
+to meet the objectives of each command.
+Command Types
+Command: Direct To Waypoint
+TheDirectToWaypoint  class controls the vehicle mostly through heading commands
+towards a specified 3D waypoint.  When initiated, the DirectToWaypoint stores the initial
+position of the aircraft and the position of the next waypoint (if there is one).  Depending
+on the transition mode, the command uses this information to determine the size of the
+waypoint radius based on current aircraft speed to allow a turn to the next waypoint
+without overshoot, and to determine if the aircraft has passed the waypoint based on a 2D
+axis perpendicular to the line from the initial position to the waypoint position, and
+passing through the waypoint.
+Figure 7.  DirectToWaypoint Diagram
+In implementation, the DirectToWaypoint  class inherits from the Command  base class,
+ass shown in Figure 8.
+Figure 8.  DirectToWaypoint Class
+TheDirectToWaypoint  command sets the lateral FMS mode to ‘FlyToWaypoint’, and
+outputs a heading command.  The longitudinal mode and speed mode are selected based
+on the waypoint command; the longitudinal controls or the speed controls can be used to
+
+--- Page 7 ---
+control either airspeed, altitude, or follow the vertical track between waypoints.  Having
+throttle control altitude is the default, for safety if the engine fails.
+Figure 9.  DirectToWaypoint Command FMS Modes
+Command: TrackToWaypoint
+The TrackToWaypoint command is similar to the DirectToWaypoint command, except
+that the aircraft is controlled to fly the track from the previous waypoint to the next
+waypoint, rather than heading straight to the waypoint.  Similar to the DirectToWaypoint
+command, the transition to the next waypoint can be triggered by penetration of the
+perpendicular axis or the transition radius, which can be calculated based on the current
+aircraft state and the performance characteristics of the aircraft (turning radius).
+Figure 10.  TrackToWaypoint Diagram
+The TrackToWaypoint commands the TrackToWaypoint lateral FMS mode.  The
+longitudinal mode is set to AltitudeCommand.
+
+--- Page 8 ---
+Figure 11.  TrackToWaypoint FMS Mode State Diagram
+The manner in which the altitude is captured can be set by the waypoint.  Immediate
+altitude capture is the default, where the aircraft is controlled within the safety limits of
+the controller to attain the altitude as soon as possible.  The glideslope mode will have the
+aircraft follow the slope between waypoints, and is used for instance in the final approach
+leg during a landing.
+Command: Jump
+The Jump command instigates an immediate transition to another command in the list.
+This control is used for instance to repeat a sequence of commands.  There are no FMS
+modes associated with the Jump command.
+Command: Circle
+The Circle command controls the aircraft to fly a circle pattern of a given radius about a
+waypoint.  The lateral PID mode is set to ‘Circle’, the longitudinal mode set to
+AltitudeCommand.
+Figure 12.  Circle Waypoint FMS Mode State Diagram
+Command: TakeOff
+The TakeOff command provides commands for an autonomous takeoff sequence.  The
+FMS modes are set to a dedicated ‘TakeOff’ mode, which provide full throttle to the
+aircraft while maintaining heading on the runway based on steering and rudder inputs, as
+rudder and steering inputs are ganged together on the same servo command line.  Once
+the rotation takeoff speed is reached, the aircraft performs a climb longitudinal maneuver
+while maintain lateral wings level, until a safe turning altitude is reached.
+
+--- Page 9 ---
+Figure 13.  Takeoff FMS Mode State Diagram
+Command: Landing
+The Landing command is used for automated landings.  The aircraft is commanded to
+maintain a track between waypoints and command a constant descent rate until the
+ground sonars pick up a reading from the ground, and the aircraft attains the specified
+distance to the ground.  Note that position information based on pressure and GPS may
+not be accurate enough to determine the flare maneuver, so the flare command will
+institute this command based on an ultrasonic altimeter located on the bottom of the
+aircraft.  When the flare mode is excuted, the elevators are used to command a nose up
+attitude of the aircraft while power is reduced, until the altitude notifies that the rear
+wheels are on the ground.  The power is cut while the elevator is used to drop the front
+wheel.
+Figure 14.  Land Command FMS Mode State Diagram
+Command: SetFMSMode
+The FMSModeTimed will command the specified FMS mode until a transition condition
+is realized.  This command’s class structure is shown in Figure 15.
+
+--- Page 10 ---
+Figure 15.  SetFMSMode Command Class Diagram
+Flight Management System Modes
+The FMS receives command modes and targets from the active command, and outputs
+command instructions to the autopilot.  The list of FMS modes currently implemented is
+shown in Table 2.
+Table 2.  List of FMS Modes
+Lateral Mode  Longitudinal Mode  Speed Mode
+DirectToWaypoint CmdSpeed CmdSpeed
+TrackToWaypoint CmdAltitude CmdAltitude
+Circle CmdVertTrack CmdVertTrack
+TaxiTrack AltitudeAttain AltitudeAttain
+CmdRoll AltitudeHold AltitudeHold
+CmdAileron CmdElevator CmdThrottle
+Disabled (PilotCmd) CmdPitch Disabled (PilotCmd)
+ Disabled (PilotCmd)
+Each mode is associated with one or more commands to the controller, and modes can be
+implemented as state machines.  For instance, the CmdAltitude mode for both the lateral
+and longitudinal modes contains an internal state machine shown in Figure 16.
+
+--- Page 11 ---
+CmdAltitude
+Altitude
+Different?AltitudeAttain
+Entry/ Set PID modes
+LONmode = airspeed cmd
+SPDMode = altitude cmd
+Update/ Set PID inputs
+loninput = airspeed from
+current waypoint
+spdinput = altitude from
+current waypoint[yes]
+AltitudeHold
+Entry/ Set PID modes
+LONmode = altitude cmd
+SPDMode = airspeed cmd
+Update/ Set PID inputs
+loninput = altitude from current
+waypoint
+spdinput = airspeed from
+current waypoint[no]Altitude has been reached
+Figure 16. CmdAltitude Mode State Diagram
+The two state machines implementing an FMS mode and a command object could be
+integrated into a single machine; for instance, the DirectToWaypoint command uses the
+CmdAltitude FMS state, but could implement the AltitudeAttain/AltitudeHold FMS
+states explicitly using the same state machine model.  The reason to have two state
+machines is to help avoid redundant code.  Since many different commands require the
+aircraft to attain then hold an altitude, this state machine was implemented as a common
+FMS control mode rather than duplicating the logic in several individual command
+machines.
+Autopilot Controller
+The controller object is responsible for implementing the feedback control loops that
+command the aircraft.  The FMS object commands the controller by first setting high
+level modes, the providing actual target data.  Similar to the FMS, there are three modes
+associated with the controller: lateral modes, longitudinal modes, and speed modes.
+Lateral modes control the ailerons and rudder, longitudinal modes control the elevator
+and also affect the rudder, and speed modes control the throttle. The controller modes are
+listed in Table 3.
+Table 3.  Controller Modes
+Lateral  Longitudinal  Speed
+Disengaged Disengaged Disengaged
+Roll Cmd Pitch Cmd Fixed Throttle
+Heading Cmd Altitude Cmd Airspeed Cmd
+
+--- Page 12 ---
+CrossTrack Airspeed Cmd Altitude Cmd
+Circle Vert Speed Cmd Glide Slope
+Takeoff
+The controller uses a cascaded control structure mainly composed of proportional-
+derivative-integral (PID) controller transforms.  Several different paths can lead from
+sensor inputs to actuator command outputs, as shown in Figure 17.  Specific paths are
+associated with enumerated controller modes.  Lateral modes control the ailerons and
+rudder, longitudinal modes control the elevator and also affect the rudder, and speed
+modes control the throttle.
+
+--- Page 13 ---
+HDG From
+CrossTrack
+Roll From HDG
+FixedAileron From
+RollFixed DesiredHdgDesiredRoll
+Pilot Lateral
+Stick InputAileron
+OuputDesiredAileronCalculated CrossTrack Error
+Pitch From
+Altitude
+Pitch From
+AirspeedFixedDesiredPitch
+Elevator from
+PitchDesiredElevator
+Pilot Long.
+Stick InputElevator
+Ouput
+Throttle from
+AirspeedDesiredThrottle
+Throttle
+OuputFixedRudder from
+YaccDesiredRudder
+Pilot Rudder
+InputRudder
+OutputFixed:
+Yacc=0
+Fixedcommands_heading_rad
+commands_roll_rad
+commands_pilotLatStick_m1p1
+commands_pilotRudder_m1p1
+commands_pilotLonStick_m1p1
+commands_pitch_radcommands_altitude_ftaglFixedFixed
+commands_speed_keasCalculated FlyTo Heading
+CurrentWP Alt
+commands_speed_keas
+CurrentWP SpeedPitch From
+Vertical SpeedFixed
+commands_vspeed_fps
+CurrentWP Speed
+Pilot Throttle
+Input
+commands_pilotThrottle_m1p1Throttle from
+Altitude Fixed
+commands_altitude_ftagl
+CurrentWP AltNote: RudderFromYacc is
+disengaged only when lateral
+mode is DISENGAGED.
+Rudder from HDG is engaged only
+during TAKEOFFRoll From
+Circle RadiusFixed
+Calculated distance to circle center
+Fixed
+Typically, full throttle (1.0)Rudder from
+HDGFixed
+Takeoff Heading
+commands_fixedThrottle_m1p1
+Throttle from
+GlideSlopeDevFixed: Glide Slope
+(error from FPA)
+Figure 17.  Cascading PID Control Structure in the Controller Class
+
+--- Page 14 ---
+ (ITIRHEFMPMX]%REP]WMW6IUYMVIQIRXW
+*SVER)PIGXVMG9RQERRIH%IVMEP:ILMGPI9%:
+
+
+'SVI]-TTSPMXS+ERIWL4EMERH)[IR(IRRI]
+2%7%%QIW6IWIEVGL'IRXIV
+
+_GSVI]MTTSPMXSKERIWLTEMI[IRHIRRI]a$REWEKSZ
+
+
+
+7YQQEV]
+8LMWHSGYQIRXWTIGMJMIWXLIHITIRHEFMPMX]EREP]WMWVIUYMVIQIRXWJSVXLI7[MJX9RQERRIH
+%MVGVEJX7]WXIQ9%77IGXMSRKMZIWEHIWGVMTXMSRSJXLIW]WXIQELMKLPIZIPGSRGITXSJ
+MRXIRHIHSTIVEXMSRWERHERSZIVZMI[SJXLIEYXSTMPSXWSJX[EVIXSFIHITPS]IHMRXLIEMVFSVRITEVX
+SJXLI9%77IGXMSRWTIGMJMIWXLIEREP]WMWXSFITIVJSVQIHERHXLII\TIGXIHSYXGSQI
+
+
+ 7]WXIQ(IWGVMTXMSR
+8LI7[MJX9%7
+8LI7[MJX9%7GSQTVMWIWEWMRKPIEMVFSVRIW]WXIQXLIIPIGXVMGEPP]TS[IVIH 7[MJXYRQERRIH
+EIVMEPZILMGPI9%:ETVMQEV]ERHWIGSRHEV]KVSYRHGSRXVSPWXEXMSR+'7ERHGSQQYRMGEXMSR
+PMROWJSVVIQSXIGSRXVSPERHXIPIQIXV]
+%TMPSXSRXLIKVSYRHGERGSRXVSPXLI9%:SVGERMXJP]EYXSRSQSYWP]F]JSPPS[MRKE
+RSQMREPJPMKLXTPER 8LITMPSXQMKLXXEOISJJPERHSVMRXIVGITXEXER]XMQIHYVMRKJPMKLX8LIVIMW
+ERSJJRSQMREPJPMKLXTPER [LMGLHIWGVMFIWXLIEGXMSRWSJE'SRXMRKIRG]1EREKIQIRX7]WXIQ
+'17MIXLIJEMPWEJIXVENIGXSV]XLITVSGIHYVIWXSFIJSPPS[IHSRXLIKVSYRHERHWSSR8LI
+'17MWVIUYMVIHMWXSOIITXLIEMVGVEJXSRVERKIWSXLEXMJER]GVEWLSGGYVWMXLETTIRWSRVERKI
+8LITVSXSGSPJSVXLI'17MW
+-JXLIVIMWEJEMPYVISJXLITVMQEV]TMPSXW]WXIQW[MXGLXSXLIVIHYRHERXWIGSRHEV]W]WXIQ
+SREHMJJIVIRXGLERRIP
+-JXLIWIGSRHEV]EPWSJEMPWIRKEKIXLISRFSEVHEYXSTMPSX
+-JXLIEYXSTMPSXJEMPWJSVGIEWTMVEPHIWGIRXXSMQTEGX
+(YVMRKWIQMEYXSRSQSYWJPMKLXXLIEMVGVEJXGERSTIVEXIMRXLITVMQEV]TMPSXMRGSRXVSP4-'SV
+WIGSRHEV]TMPSXMRGSRXVSP7-'QSHIWSVMRGSQTYXIVMRGSRXVSP'-'QSHIW8LI+'7MWYWIH
+XSYTPSEHGSQQERHWXSXLI9%:
+
+*MKYVIKMZIWETL]WMGEPFVIEOHS[RSJXLIGSQTPIXI7[MJX9%7-RXLMWFVIEOHS[R[IEVI
+MRXIVIWXIHMRXLIGSRXVMFYXMSRWSJXLI%ZMSRMGWWYFW]WXIQWLS[REWIRGPSWIHF]XLIHSXXIHFS\
+XS9%7LE^EVHW
+
+8LMW[MPPVIUYMVIVIEWSRMRKEFSYXLE^EVHWJVSQWIZIVEPTIVWTIGXMZIW-RTEVXMGYPEV
+
+--- Page 15 ---
+ *VSQEQMWWMSRTIVWTIGXMZIMIWTIGMJMGIRZMVSRQIRXEPGSRHMXMSRWHYVMRKEWTIGMJMG
+TLEWISJJPMKLXMR[LMGLXLIVIMWERMRGVIEWIHPMOIPMLSSHSJYREGGITXEFPIPSWWIK
+WYHHIRGVSWW[MRHHYVMRKXEOISJJPERHMRKSFWXEGPIWMRXLIJPMKLXTEXLIXG
+ *VSQXLITIVWTIGXMZISJXLIQEGLMRIXLI9%7IKWTIGMJMGQEGLMRIWXEXIWWYGLEW
+JEMPYVIWXEXIWMR[LMGLXLIVIMWERMRGVIEWIHPMOIPMLSSHSJYREGGITXEFPIPSWWERH
+*VSQXLITIVWTIGXMZISJWXEXIWSJXLIEZMSRMGWW]WXIQIKJPMKLXGSQTYXIVJEMPYVI[LMGL
+GERGSRXVMFYXIXSERMRGVIEWIHPMOIPMLSSHSJYREGGITXEFPIPSWW8LIWIGSYPHXEOIXLIJSVQ
+SJMRXIVEGXMSRW[MXLSXLIVWYFW]WXIQWSVYRGSZIVIHJEMPYVIWXEXIWSVMRXIVEGXMSRW[LMGL
+QE]SVQE]RSXFIPIKMXMQEXI[MXLIRZMVSRQIRXEPGSRHMXMSRWXLEXGSRXVMFYXIXSW]WXIQ
+LE^EVHW
+
+
+
+*MKYVI4L]WMGEPFVIEOHS[R[MXL%ZMSRMGWWYFW]WXIQLMKLPMKLXIH4% 'SQTPIXI7[MJX9%77]WXIQ
+4% *PMKLX:ILMGPI7]WXIQ*:7
+4% %ZMSRMGW7]WXIQ%:7
+4% *PMKLX'VMXMGEP'SRXVSP7]WXIQ*'7
+4% 'SRXVSPERH(EXE,ERHPMRK7]WXIQ'(,7
+4% '(,9'SRXVSPERH(EXE,ERHPMRK9RMX,EVH[EVI
+4% *17*PMKLX1EREKIQIRX7]WXIQ
+4% )77)QFIHHIH7SJX[EVI7]WXIQW
+4% %4%YXSTMPSX7]WXIQ
+4% 'SQQYRMGEXMSR7]WXIQW'31
+4% *PMKLX7IRWSVW7)27
+4% -27%(,67-19
+4% +47
+4% %MV(EXE7]WXIQ%-6(%8
+4% (+47
+4% 4E]PSEHERH1MWWMSR(EXE7]WXIQW4=0(
+4% 'SQQSR4E]PSEH(EXE7]WXIQ'4(7
+4% %GXYEXMSR7]WXIQ%'8
+4% 'SRXVSP7YVJEGI%GXYEXMSR'7
+4% 7XIIVMRKERH&VEOI%GXYEXMSR
+4% 4VSTYPWMSR7]WXIQ4604
+4% )PIGXVMG1SXSV4VSTYPWMSR7]WXIQ
+4% 7XVYGXYVIW
+4% *YWIPEKI7XVYGXYVI
+4% *YWIPEKI3YXIV1SPH0MRI
+4% 4VSTYPWMSR7YTTSVX
+4% %ZMSRMGW1SYRXMRK7XVYGXYVI
+4% ;MRK7XVYGXYVI
+4% 'SRXVSP7YVJEGIW
+4% )PIGXVMGEPERH4S[IV7]WXIQ)47
+4% 4VSTYPWMSR4S[IV
+4% %ZMSRMGW4S[IV
+4% %GXYEXMSR4S[IV
+4% 4:6IKIRIVEXMSR7]WXIQ
+4% 'SRXMRKIRG]1EREKIQIRX7]WXIQ'17
+4% +VSYRH'SRXVSP7]WXIQ+'7
+4% 4VMQEV]+VSYRH'SRXVSP7XEXMSR
+4% 7IGSRHEV]+VSYRH'SRXVSP7XEXMSR
+4% '4(74E]PSEH+VSYRH7XEXMSR4+7
+4% *PMKLX3TIVEXMSRERH4VSGIHYVIW347
+4% 6YR[E]
+4% %MVWTEGI
+
+--- Page 16 ---
+  9%:%ZMSRMGW
+8LIEZMSRMGWSRFSEVHXLI9%:MWXLIGSQTYXIVFEWIHGSRXVSPW]WXIQXLEXEGGITXWTMPSXMRTYXSV
+TVITVSKVEQQIHYTPSEHIHGSQQERHWTVSGIWWIWXLIMRTYXERHVIKYPEXIWXLIJPMKLXGSRXVSP
+WYVJEGIW*MKYVIWLS[WEGSRGITXYEPPE]SYXSJXLIEZMSRMGWW]WXIQMRXLIGSRXI\XSJXLI9%7
+
+*MKYVI%ZMSRMGWW]WXIQGSRGITXYEPPE]SYX
+
+
+'SRGITXSJ3TIVEXMSRW
+*MKYVIWLS[WSRISJXLIGSRGITXWSJSTIVEXMSRJSVXLI7[MJX9%7%WWIIRMRXLIJMKYVIXLIVI
+EVIWIZIRHMWXMRGXTLEWIWSJJPMKLX
+M8EOISJJ
+MM 'PMQF
+MMM'VYMWI
+MZ7YVZI]
+Z 6IXYVR'VYMWI
+ZM(IWGIRX
+ZMM0ERH
+;MVIPIWW
+'EQIVEW;MVIPIWW
+'EQIVEW;MVIPIWW
+'EQIVEW%RXIRREW
+(MZIVWMX]
++,>%RXIRREW
+(MZIVWMX]
++,>%RXIRREW
+(MZIVWMX]
++,>%MV(EXE4VSFI
+9RMXIH7IRWSVW
+-RG%RXIRRE
++47%RXIRRE
+2SZEXIP(+47%RXIRRE
+1,^3QRM
+6EHMS1SHIQ
+1MGVSLEVH1,<
+-19+47
+6SGO[IPP'SPPMRW
+%XLIREQ
+4SRXIGL
+1SXSV
+'SRXVSPPIV0IJX;MRKPIX%GXYEXSV
+6MKLX;MRKPIX%GXYEXSV0IJX)PIZSR%GXYEXSV
+6MKLX)PIZSR%GXYEXSV0IJX*PET%GXYEXSV
+6MKLX*PET%GXYEXSV*VSRX;LIIP7XIIVMRK
+%GXYEXSV
+&VEOI'SRXVSP0MRI
+*PMKLX'SQTYXIV
+%(04'0
+(YEP'SVI+,^
+1GEGLI
+4S[IV&SEVH
+8VM1,47'
+7)6
+'49
+&EXXIVMIW1SXSV
+'SRXSVSPPIVW1YPXMTPI\SV
+)RKMRIERH)RKMRI'SRXVSP
+-3&SEVH
+4EVZYW
+'31
+(+47
+2SZEXIP3)1+
+4MPSX6IGIMZIV
+.66
+%RXIRREW
+(MZIVWMX]
++,>
+%ZMSRMGW&S\)\XIVREPP]1SYRXIH
+'SRXMRKIRG]
+1EREKIQIRX
+7]WXIQ
+4;17IVZS
+'SQQERHW
+)RKMRI
+&EXXIVMIW
+1SXSV
+'SRXSVSPPIVW1YPXMTPI\SV
+%GXYEXSV
+&EXXIVMIW4MPSX6IGIMZIV
+.66
+%GXYEXSV
+&EXXIVMIW
+*PMKLX'VMXMGEP7]WXIQW*'7&S\%RXIRRE
+4EVEGLYXI4MPSX+VSYRH
+8VERWQMXXIV
+'SRXVSPPIV+VSYRH
+1SHIQ+VSYRH
+'SQTYXIV;MVIPIWW
+-RXIVRIX
+%GGIWW
+7PIH1SYRXMRK+VSYRH
+7IRWSV
+4E]PSEHW7IRWSV
+6IEHMRKW
+*PMKLX'VMXMGEP
+7]WXIQW&EXXIV]
+%GXYEXSV+VSYRH
+8VERWQMXXIV%RXIRRE
+2SR*PMKLX
+'VMXMGEP7]WXIQ
+
+--- Page 17 ---
+ *SVXLMWTEVXMGYPEVQMWWMSRXLIEMVGVEJXMWSTIVEXIHSYXSJPMRISJWMKLXMIMX[MPPRSXEP[E]WFI
+[MXLMRWMKLXSJXLITMPSXWSVXLI+'7STIVEXSV,S[IZIVXLIVIEVIWEJIX]SFWIVZIVWWXEXMSRIHEX
+TVIHIJMRIHPSGEXMSRWSRVERKIWSEWXSEWGIVXEMRXLIEMVGVEJXGSRXMRYIWXSFISRVERKIERHXS
+MHIRXMJ]WMXYEXMSRWMRXLIIRZMVSRQIRXXLEXEVITSXIRXMEPP]LE^EVHSYW
+*MKYVI'SRGITXSJSTIVEXMSRWWLS[MRKHMJJIVIRXQMWWMSRTLEWIW
+8LIHITIRHEFMPMX]EREP]WMWSJXLI7[MJX9%7[MPPRIIHXSXEOIMRXSEGGSYRXXLIRSXMSRXLEXHYVMRK
+XLIHMJJIVIRXTLEWIWSJJPMKLXRSXEPPLE^EVHWTSWIXLIWEQIPIZIPSJWEJIX]VMWOIKPSWWSJ
+TS[IVMWELE^EVHEXER]TSMRXHYVMRKJPMKLX[LIVIEWPSWWSJXLIEYXSTMPSXRIIHRSXFIELE^EVH
+HYVMRKPERHMRKFYXGSYPHFIELE^EVHHYVMRK GVYMWIWYVZI]VIXYVRGVYMWIIXG
+
+%YXSTMPSX7SJX[EVI
+
+7IIEXXEGLIHHSGYQIRX'SVI]-TTSPMXS©%R%YXSRSQSYW%YXSTMPSX'SRXVSP7]WXIQ(IWMKRJSV
+7QEPP7GEPI9%:Wª
+
+ (ITIRHEFMPMX]%REP]WMW6IUYMVIQIRXW
+
+8LMWWIGXMSRWTIGMJMIWXLIEREP]WIWTSXIRXMEPP]FIRIJMGMEPJSVWEJIX]EWWYVERGISJXLIW]WXIQ
+HIWGVMFIHMR7IGXMSR
+
+*EYPXXVIIEREP]WMWERHSV)ZIRXXVIIEREP]WMW
+E+IRIVEXMSRSJQMRMQEPGYXWIXW
+F4VSFEFMPMWXMGEREP]WMWSJJEMPYVITVSFEFMPMXMIWJSVLE^EVHSYWXSTIZIRXW
+G)ZIRXGLEMRWPIEHMRKXSW]WXIQJEMPYVISVERYRHIWMVEFPISYXGSQI
+H 4VSFEFMPMWXMG EREP]WMWS
+,E^EVHEREP]WMWYWMRKEGSQFMREXMSRSJJEYPXXVIIWERHIZIRXXVIIW
+4LEWIHQMWWMSREREP]WMW8EOISJJ'PMQF'VYMWI
+7YVZI]6IXYVR'VYMWI
+(IWGIRX
+1SFMPI+VSYRH
+7XEXMSR
+8EOISJJ
+0ERHMRK7MXI
+6ERKIYTXSOQ6*0370ERH
+6IXYVR
+0ERHMRK7MXI%PXMXYHIYTXS
+OQ170
+7EJIX]
+3FWVZ
+7EJIX]
+3FWVZ7EJIX]
+3FWVZ
+
+
+--- Page 18 ---
+1 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Overview of the NASA Swift UAS  
+Corey Ippolito1, Ganesh Pai2, Ewen Denney3 
+Intelligent Systems Division 
+NASA Ames Research Center 
+Moffett Field, CA 
+corey.a.ippolito@nasa.gov 
+1. Aerospace Scientist, NASA Ames Research Center 
+2. Research Scientist, Stinger Ghaffarian Technologies, Inc. 
+3. Senior Computer Scientist, Stinger Ghaffarian Technologies, Inc. 
+ Presentation to Professor Joanne Dugan 
+Dependable Computing Class 
+University of Virginia 
+April, 2012 
+
+--- Page 19 ---
+2 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Presentation Outline 
+•Swift UAS Program Summary 
+ 
+•Preliminary Design Summary 
+ 
+•Subsystems Overview 
+ 
+•Autopilot System Overview 
+ 
+•Analysis, Modeling and Simulation 
+ 
+ 
+
+--- Page 20 ---
+3 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Goal of the Swift UAS 
+•Develop a fully autonomous, fully electric, zero-
+emissions human flight capable research vehicle 
+platform using today’s technologies and 
+applicable for next generation aircraft research 
+ 
+•Build on existing Bright Star Gliders SWIFT 
+airframe, a high performance glider 
+ 
+•Utilizes GOTS/COTS control hardware, 
+algorithms, and infrastructure available at NASA 
+Ames Research Center. 
+ 
+
+--- Page 21 ---
+4 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Specifications 
+Geometry 
+ Wing Span:  12.8m (42ft) 
+ Length:  3.4m (~11ft) 
+ Wing area:  12.5 m² (136 ft²) 
+ Aspect ratio:  12.9 
+Speeds 
+ Speed, Cruise: 45 knots (23 m/s) 
+ Speed, Stall: 20 knots (10 m/s) 
+ Speed, VNE: 68 knots (35 m/s) 
+Weight and Payload 
+ Weight, Empty:  48 kg (106 lb) 
+ Weight, Max Take Off : 145 kg (320 lbs) 
+ Payload Capacity:  100kg (220lbs) 
+Performance 
+ Maximum glide ratio:  27:1 
+ Rate of sink:  36 m/min (118 ft/min) 
+ Powered Rate of Climb:  2.5 m/s 
+ Est Max Endurance:  ~7 hours  
+ Est Max Range:  ~500 km  
+ Takeoff Field Length:  50m 
+ Service Ceiling: >7.6km (>25,000 ft) 
+Control and Propulsion 
+ Engine:  Electric Motor, 
+Pusher Prop Config. 
+ Propulsion: Electraflyer 18hp/13.5kw  
+DC Motor, 5.6KW-hr Li- Po 
+ Propeller: 1.5m (60”) carbon-fiber 
+Materials 
+ All Composite Wing Structure (Aramid/Carbon) 
+ Steel/Aluminum Fuselage Frame 
+12.8m (42ft) 
+3.4m (11ft) 
+
+
+--- Page 22 ---
+5 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Flight Vehicle System : Modifications 
+Control Surfaces 
+• L/R Elevons 
+• L/R Flaps 
+• Engine Speed Control 
+• Steerable front wheel  
+ 
+Sensor Installation 
+•  GPS and DGPS Antenna Installation 
+•  Five-Hole Pitot Probe 
+•  Radio Antenna Pass Thru/Mounts Control Surface Modifications 
+1. Split control surfaces for redundancy 
+2. Design/Install actuators on all control surfaces and 
+controllable systems. 
+Installation of Wheel 
+Tiplets (kit) Propulsion System 
+1. Install engine system 
+2. Install batteries Avionics Installation 
+1. Design/Install Isolated Mounting Structures 
+Payloads 
+2. Design avionics 
+3. Install Flight Critical Control Systems 
+4. Install C&DH/Avionics System 
+Structural Modifications 
+• Tricycle landing gear structure 
+ 
+
+--- Page 23 ---
+6 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift’s Unique Characteristics  
+•Low cost reconfigurable platform with 
+characteristics of larger aircraft 
+•Large flexible wing (13m/42ft span)  
+•Wing structure is light-weight, 
+flexible, simple, all-composite 
+•Redundant actuation 
+•Large payload capacity (~200lbs limited 
+by COA) 
+•All-electric, zero emissions platform 
+•Slow cruise speeds ideal for long 
+duration test segments 
+•Capable high altitude flight 
+•Quiet airframe structure (noise, 
+emissions, EMI, etc.) 
+•Custom autopilot/navigation system 
+•Fully redundant and fully instrumented 
+for local or remote autonomy 
+•Immediate pilot preemption over 
+redundant links for safe/immediate 
+termination of experiments 
+ 
+12.8m (42ft) 
+3.4m (11ft) 
+
+
+--- Page 24 ---
+7 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Control Experiment Mission Concept  
+1. Takeoff2. Climb3. Flight Test Pattern
+(Racetrack, Circle, Figure-8, etc.)
+4. Experiment Segment5. Final
+Approach
+6. Descent
+Ground Control 
+Station and CrewExperiment Airfield (e.g., Moffett, Crow’s Landing)FAA COA 
+Operational 
+Boundary
+7. Land
+Always Within Direct 
+Pilot Control Range
+PilotRange 
+Safety
+
+
+--- Page 25 ---
+8 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Remote Survey Mission Concept  
+1. Takeoff2. Climb3. Cruise
+4. Survey5. Return Cruise
+6. Descent
+Mobile Ground 
+StationRoadway Takeoff / 
+Landing SiteFAA COA 
+Operational 
+Boundary
+Range up to 100 km RFLOS*7. Land
+Return / 
+Landing SiteAltitude up to 
+7.6 km MSL**
+Safety
+Obsrv.
+Safety
+Obsrv.Safety
+Obsrv....
+Remote 
+Scientists/Observers
+
+
+--- Page 26 ---
+9 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Systems Breakdown 
+PA.1.1  Flight Vehicle System 
+PA1.2 Ground Station 
+PA.1.0 Complete Sw ift UAS System
+PA.1.1     Flight Vehicle System (FVS)
+PA.1.1.1         Avionics System (AVS)
+PA.1.1.1.1             Flight Critical Control System (FCS)
+PA.1.1.1.2             Control and Data Handling System (CDHS)
+PA.1.1.1.2.1                 CDHU (Control and Data Handling Unit) Hardw are
+PA.1.1.1.2.2                 FMS (Flight Management System)
+PA.1.1.1.2.3                 ESS (Embedded Softw are Systems)
+PA.1.1.1.2.4                 AP (Autopilot System)
+PA.1.1.1.3             Communication Systems (COM)
+PA.1.1.1.4             Flight Sensors (SENS)
+PA.1.1.1.4.1                 INS (ADHRS, IMU)
+PA.1.1.1.4.2                 GPS
+PA.1.1.1.4.3                 Air Data System (AIRDAT)
+PA.1.1.1.4.4                 DGPS
+PA.1.1.2         Payload and Mission Data Systems (PYLD)
+PA.1.1.2.1             Common Payload Data System (CPDS)
+PA.1.1.3         Actuation System (ACT)
+PA.1.1.3.1             Control Surface Actuation (CS)
+PA.1.1.3.2             Steering and Brake Actuation
+PA.1.1.4         Propulsion System (PRLP)
+PA.1.1.4.1             Electric Motor Propulsion System
+PA.1.1.5         Structures
+PA.1.1.5.1             Fuselage Structure
+PA.1.1.5.2             Fuselage Outer Mold Line
+PA.1.1.5.3             Propulsion Support
+PA.1.1.5.4             Avionics Mounting Structure
+PA.1.1.5.5             Wing Structure
+PA.1.1.5.6             Control Surfaces
+PA.1.1.6         Electrical and Pow er System (EPS)
+PA.1.1.6.1             Propulsion Pow er
+PA.1.1.6.2             Avionics Pow er
+PA.1.1.6.3             Actuation Pow er
+PA.1.1.6.4             PV Regeneration System
+PA.1.1.7         Contingency Management System (CMS)
+PA.1.2     Ground Control System (GCS)
+PA.1.2.1         Primary Ground Control Station
+PA.1.2.2         Secondary Ground Control Station
+PA.1.2.3         CPDS Payload Ground Station (PGS)
+PA.1.3     Flight Operation and Procedures (OPS)
+PA.1.3.1         Runw ay
+PA.1.3.2         Airspace
+
+--- Page 27 ---
+10 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Conceptual Avionics Layout 
+Wireless 
+CamerasWireless 
+CamerasWireless 
+CamerasAntennas
+Diversity,
+2.4GHZAntennas
+Diversity,
+2.4GHZAntennas
+Diversity,
+2.4GHZAir Data Probe
+United Sensors, 
+Inc.Antenna
+GPSAntenna
+Novatel DGPSAntenna
+900MHz Omni
+Radio Modem
+Microhard MHX-
+910IMU/GPS
+RockwellCollins 
+Athena 111m
+Pontech 
+Motor 
+ControllerLeft Winglet Actuator
+Right Winglet ActuatorLeft Elevon Actuator
+Right Elevon ActuatorLeft Flap Actuator
+Right Flap ActuatorFront Wheel Steering 
+Actuator
+Brake Control Line
+Flight Computer
+ADL 945PC-L2400 - 
+DualCore 1.66GHz, 
+2M cache
+Power Board
+Tri-M HPSC104-
+SER
+CPU 
+BatteriesMotor 
+ContorollersMultiplexor
+Engine and Engine Control
+I/O Board
+Parvus
+COM-1274
+DGPS
+Novatel OEM4-G2
+Pilot Receiver
+JR R1221
+Antennas
+Diversity,
+2.4GHZ
+Avionics BoxExternally Mounted
+Contingency 
+Management 
+System
+PWM Servo 
+Commands
+Engine 
+Batteries
+Motor 
+ContorollersMultiplexor
+Actuator 
+BatteriesPilot Receiver
+JR R1221
+Actuator 
+Batteries
+Flight Critical Systems (FCS) BoxAntenna
+ParachutePilot Ground 
+Transmitter/
+ControllerGround 
+ModemGround 
+ComputerWireless 
+Internet 
+Access
+Sled MountingGround
+Sensor 
+PayloadsSensor 
+Readings
+Flight Critical 
+SystemsBattery
+ActuatorGround 
+TransmitterAntenna
+Non-Flight 
+Critical System
+Command and Data Handling System 
+
+--- Page 28 ---
+11 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Actuation System 
+
+
+--- Page 29 ---
+12 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Landing Gear System 
+
+
+--- Page 30 ---
+13 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Actuation: Control Surface Specification 
+
+--- Page 31 ---
+14 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Propulsion System 
+SW3
+SW2
+SW1
+AN2
+AN1
+GND
+LEDRLY
+PWM
+9-
++
+3Panel Fuse 
+5AM-B+
+B-+
+-Master Power
+Key SwitchPrecharge
+SwitchR=300WFuse
+300A
+4Pwr
+tps
+6gndrev0-5V throttle in
+Leave openSW3 returnSupply +5V/30mA
+Electric Motor
+Perm PMG-132 Permanent 
+Magnet Brushed DC MotorMotor Controller
+Kelly Controls KD72400
+18-90VDC,150mA+
+-B-B+5
+Motor Controller 
+Power SwitchTo FCS
+(Throttle Control Signal) To Battery Pack
+To Battery PackAuxilliary Motor Enclosure
+To CPUBattery Connectors
+SMH SY175
+175A/600VDC ratingThrottle Cmd ReturnThrottle Cmd, 0-5VDC
+Molex 2-Pin C-Grid 
+Connector1 2
+1
+12
+28
+7
+B+
+B-B+
+B-
+USB DAQ
+DataQ DI-155
+8 ADC, 4+4DIOAI1
+AI2
+AI3
+AI4
+USB1USB2
+USB3
+USB4
+Molex 4-Pin C-Grid 
+ConnectorWARNING 
+LABEL
+3
+
+--- Page 32 ---
+15 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Propulsion Power 
+Battery Enclosure Battery Packs 
+Installation Battery System 
+•144 cells (10 A-hr , 3.7 V)  
+•18S, 8P Pack = 66.6V, 80 A-hr  
+• Unit cell = 3S, 4P (11.1V, 40 A-hr ) 
+•80 lbs weight 
+
+--- Page 33 ---
+16 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Swift UAS Avionics 
+Fuselage Assembly 
+FCS CDHS/CDHU Payload / CPDS 
+Propulsion 
+Power Mng 
+
+--- Page 34 ---
+17 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+FCS (Flight Critical Systems) 
+
+
+--- Page 35 ---
+18 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Instrumentation: CDHU 
+Air Data Probe
+United Sensors, 
+Inc.Antenna
+GPSAntenna
+Novatel DGPSAntenna
+900MHz Omni
+Radio Modem
+Microhard MHX-
+910IMU/GPS
+RockwellCollins 
+Athena 111m
+FPGA Hardware Motor 
+Control Board
+12-Channels 
+(Aerotonomy/NASA )Flight Computer
+ADL 945PC-L2400 - 
+DualCore 1.66GHz, 
+2M cache
+Power Board
+Tri-M HPSC104-
+SER
+CPU 
+Batteries
+I/O Board
+Parvus
+COM-1274
+DGPS
+Novatel OEM4-G2
+Avionics BoxExternally 
+Mounted
+PWM Servo 
+Commands
+To SensorsTo Opto 
+Isolators / 
+Muxes
+Analog Sensor 
+SignalsTo Ground 
+StationControl
+Signals
+
+
+--- Page 36 ---
+19 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Instrumentation: Antennas and Probes 
+Air Data Probe
+United Sensors , 
+Inc.Antenna
+GPSAntenna
+Novatel DGPSAntenna
+900MHz Omni
+900MHZ 5dbi Rubber Duck Antenna 
+http://www.l-com.com 
+
+--- Page 37 ---
+20 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+CPU 
+• Laptop Control Station with Reflection 
+Architecture for UAS C&C through 
+avionics CPU. Wireless Communications: 
+• Microhard Spectra 910 Wireless Modem 
+    (1 Watt Transmitter) 
+Wireless Communications: 
+• 6dB 900Mhz Omnidirectional Antenna, 
+    5ft Fiberglass 
+Controllers 
+• USB Controller through avionics CPU 
+• JR DSX9 2.4GHz DSM2 (bypass CPU) Ground Control System (GCS) 
+Two completely separate, identical, and 
+redundant ground stations. Reusing a well-tested redundant ground station 
+configuration (EAV vehicle is shown). 
+
+--- Page 38 ---
+21 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Autopilot Controller Overview 
+Sensor Modules Autopilot Module Actuator 
+Modules
+CommandsFMS
+Lat/Lon
+Modes
+FMSController
+Modes and 
+Targets
+Controller VehicleActuator
+Commands
+SensorsState 
+Information
+Figure.  Conceptual Data Flow and Components 
+
+--- Page 39 ---
+22 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Sample Mission Script Commands 
+// Program the Autopilot System. 
+objAutopilot.ClearCommandList (); 
+objAutopilot.AddCommand_Takeoff (  4500, -2000, 500.0, 80.0, 1000.0,  -0.34907, 50.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( 8070.9,  -6009.7, 500.0,  80.0,  1000.0 ); 
+ 
+// Following heading until specified altitude is reached. 
+objAutopilot.AddCommnd_SetFMSMode ( HEADINGHOLD, 0.0, ALTCMD, 400.0, SPDCMD, 80, 
+ALTITUDE, GT, 300 ); 
+// Follow a preprogrammed path. 
+cmd=objAutopilot.AddCommand_FlyToTrack ( 10107.0, -1390.7, 500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( 8904.5,  -902.8,  500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( 6919.8,  -5568.9, 500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( 3357.4,  1364.9,  500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( -3319.9, 4457.2,  500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( -5436.1, 3980.7,  500.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( -4371.0, 1696.2,  200.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( -741.1,  182.6,  50.0 ,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_FlyToTrack ( 2522.8,  -1267.5, -10.0,  80.0,  1000.0 ); 
+objAutopilot.AddCommand_Jump ( cmd ); 
+
+--- Page 40 ---
+23 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
++OnComponentUpdate()
++OnComponentReset()
++OnComponentInit()
++OnComponentTerminate()-m_fms : FMS-m_controller : AP
+-m_vehicleState : AirplaneDataAutopilot
++Init()
++Update()
++IsComplete() : boolCommand
++Update()AP+Update()-m_commandList[] : Command
+-m_pActiveCommand : Command*
+-m_timeInCommand_sec : doubleFMS
+1
+0..*-m_position_enuft : double
+-m_speed_fps : double
+-m_radius_ft : double
+-m_initPosition_enuft : double-m_nextWaypointPos_enuft
+-m_isRadiusEnabled : bool
+-m_isPerpAxisEnabled : bool-m_isDynamicRadiusEnabledDirectToWaypoint
+-m_position_enuft[3]-m_orientationEuler_rad[3]
+-m_indicatedAirspeed_fps[1]
+-m_altitude_sonarFt[1]AirplaneData-m_fmsLatMode : eFMSLatMode
+-m_fmsLonMode : eFMSLonMode
+-m_fmsSpeedMode : eFMSSpeedMode
+-m_transitionVariable : eTrasitionVariable-m_transitionCondition : eTransitionCondition
+-m_transitionValue : double
+-m_latModeValue : double-m_lonModeValue : double
+-m_spdModeValue : doubleSetFMSMode
++FMSLATMODE_DISENGAGED
++FMSLATMODE_FLYTOWAYPOINT
++FMSLATMODE_TRACKTOWAYPOINT
++FMSLATMODE_CIRCLE+FMSLATMODE_TO_ACCEL2VROT
++FMSLATMODE_WINGSLEVEL«enumeration»
+eFMSLatMode
++FMSLONMODE_DISENGAGED
++FMSLONMODE_ALTITUDE_HOLD
++FMSLONMODE_TO_ACCEL2VROT
++FMSLONMODE_TO_FULLCLIMB+FMSLONMODE_GLIDE
++FMSLONMODE_FLARE«enumeration»
+eFMSLonMode
++FMSLONMODE_DISENGAGED
++FMSLONMODE_ALTITUDE_HOLD
++FMSLONMODE_TO_ACCEL2VROT
++FMSLONMODE_TO_FULLCLIMB+FMSLONMODE_GLIDE
++FMSLONMODE_FLARE«enumeration»
+eFMSSpeedMode+AIRSPEED
++ALTITUDE
++SONAR_ALTITUDE
++ROLL_ANGLE+PITCH_ANGLE
++COMMAND_TIME
++SYSTEM_TIME«enumeration»
+eTrasitionVariable+GT+EQ
++LT«enumeration»
+eTransitionConditionAutopilot Controller 
+Figure.  Top Level Classes 
+
+--- Page 41 ---
+24 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Autopilot Controller Architecture 
+HDG From 
+CrossTrack
+LATERAL AP Mode
+----------------------
+Disengaged
+Roll Cmd
+Heading Cmd
+CrossTrack
+Circle
+TakeoffRoll From HDG
+FixedAileron From 
+RollWPs/Pos
+LONGITUDINAL AP Mode
+----------------------
+Disengaged
+Pitch Cmd
+Altitude Cmd
+Airspeed Cmd
+Vert Speed CmdDesiredHdg
+DesiredRoll
+Pilot Lateral 
+Stick InputAileron
+OuputDesiredAileronCalculated
+CrossTrack
+Error
+Pitch From 
+Altitude
+Pitch From 
+AirspeedFixedDesiredPitch
+Elevator from 
+PitchDesiredElevator
+Pilot Long. 
+Stick InputElevator
+OuputRudder from 
+YaccDesiredRudder
+Pilot Rudder 
+InputRudder
+OutputFixed:
+Yacc=0
+Fixedcommands_heading_rad
+commands_roll_rad
+commands_pilotLatStick_m1p1
+commands_pilotRudder_m1p1
+commands_pilotLonStick_m1p1
+commands_pitch_radcommands_altitude_ftaglFixedstate_PIDLatMode
+state_PIDLonModeFixed
+Calculated FlyTo Heading
+CurrentWP Alt
+commands_speed_keas
+CurrentWP SpeedPitch From 
+Vertical SpeedFixed
+commands_vspeed_fpsNote: RudderFromYacc is 
+disengaged only when lateral 
+mode is DISENGAGED.
+Rudder from HDG is engaged only 
+during TAKEOFFRoll From Circle 
+RadiusFixed
+Calculated distance to circle center
+Rudder from 
+HDGFixed
+Takeoff HeadingXtrack 
+from Wps
+
+--- Page 42 ---
+25 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Autopilot Controller Architecture 
+Throttle from 
+AirspeedDesiredThrottle
+Throttle
+OuputFixedSPEED AP Mode
+----------------------
+0 = Disengaged
+1 = Fixed Throttle
+2 = Airspeed Cmd
+3 = Altitude Cmd
+4 = Glide Slopestate_PIDSpdMode
+commands_speed_ktas
+CurrentWP Speed
+Pilot Throttle 
+Input
+commands_pilotThrottle_m1p1Throttle from 
+Altitude Fixed
+commands_altitude_ftagl
+CurrentWP AltFixed
+Typically, full throttle (1.0)
+commands_fixedThrottle_m1p1
+Throttle from 
+GlideSlopeDevFixed: Glide Slope
+(error from FPA)
+
+--- Page 43 ---
+26 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Example FMS State Diagrams 
+Speed
+Direct To
+WaypointDirectToWaypoint
+Update/ calculate heading to 
+waypointCommand Lateral Longitudinal
+Transition CriteriaCmdSpeed
+Speed
+Track To
+WaypointTrackToWaypoint
+Update/ calculate cross-track errorCommand Lateral Longitudinal
+Transition CriteriaCmdAltitude
+CmdVertTrack[Lon Mode in Waypoint]
+CmdSpeed
+CmdAltitude
+CmdVertTrack[Spd Mode in Waypoint]
+CmdSpeed
+CmdAltitude
+CmdVertTrack[Lon Mode in Waypoint]
+CmdSpeed
+CmdAltitude
+CmdVertTrack[Spd Mode in Waypoint]
+
+--- Page 44 ---
+27 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Example FMS State Diagrams 
+
+
+--- Page 45 ---
+28 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Geometric Modeling 
+• Geometric modeling utilized to derive 
+computational fluid models, dynamics models 
+• Utilized robotic FaroArm for 3D geometric data 
+acquisition and model generation 
+• Error Analysis 
+•Position error maximum 
+ +/-9.00 mm  
+•Variation of the drag cross section: 
+-2.78% to 2.73% 
+•Variation of the lift cross section: 
+-0.56% to 0.57% 
+
+
+--- Page 46 ---
+29 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Dynamic Modeling and Simulation 
+•Simulation studies used for dynamics 
+and performance predictions, control 
+law development 
+•Dynamic models generated from STAR 
+Navier-Stokes analyses 
+•Time consuming process, provides 
+estimates for all major dynamic 
+coefficients 
+•Lower fidelity method for comparison 
+•X-Foil model using estimated properties  
+•Vehicle Sketchpad / Vorview models 
+•Simulation Models 
+•Linear model (Matlab) containing 
+stability derivatives, control law 
+development 
+•Non-linear model for simulation testing 
+•Model assumptions and estimates will 
+be continuously refined throughout 
+development 
+•Flight test data will be used for 
+parameter estimation 
+Simulation StudiesSketchPad /Vorview courtesy of J. Totah (NASA/ARC/TI) 
+X-Foil courtesy of  Z.Mahboubi (Stanford/AA) 
+
+
+--- Page 47 ---
+30 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+CFD Modeling 
+• CFD model and analysis performed by John 
+Melton (ARC-AUS) 
+• STAR N-S analysis derived from geometry 
+•Navier-Stokes drag coefficient estimates 
+derived for small number of conditions 
+•Assumed fully turbulent boundary layer 
+•Comparisons with lower order models 
+•Airfoil derivatives from X-Foil for 
+comparison 
+ 
+ 
+-2
+0
+2
+4
+6
+8
+10-25 -20 -15 -10 -5 0Planform
+Series2
+Series1
+Series3
+Series4
+00.010.020.030.040.050.060.070.080.09
+-6.0 -4.0 -2.0 0.0 2.0 4.0 6.0 8.0Drag Coefficient, CD
+Wing Attack Angle (degrees)CD versus Angle of Attack
+Numerical N -S CFD Results
+Helmbold, Wing only
+STAR Fully Turbulent
+-0.04-0.03-0.02-0.0100.010.020.030.040.05
+-6.0 -4.0 -2.0 0.0 2.0 4.0 6.0 8.0Pitching Moment Coefficient, CM
+Wing Attack Angle (degrees)CM versus Angle of Attack
+Numerical N -S CFD Results
+Helmbold, Wing only
+STAR Fully Turbulent
+00.20.40.60.811.21.4
+-5.0 0.0 5.0 10.0Lift Coefficient, CL
+Wing Attack Angle (degrees)CL versus Angle of Attack
+Numerical N -S CFD Results
+Helmbold, Wing only
+STAR Fully Turbulent
+-0.04-0.03-0.02-0.0100.010.020.030.040.05
+-6.0 -4.0 -2.0 0.0 2.0 4.0 6.0 8.0Pitching Moment Coefficient, CM
+Wing Attack Angle (degrees)CM versus Angle of Attack
+Numerical N -S CFD Results
+Helmbold, Wing only
+STAR Fully Turbulent
+
+--- Page 48 ---
+31 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+6-DOF Simulation Model 
+States: 
+P𝑒= 𝑋𝑒 𝑌𝑒 𝑍𝑒 𝑇 ; V𝑏= 𝑢  𝑣  𝑤 𝑇; q = 𝑞0 𝑞1 𝑞2 𝑞3 𝑇 ;ω𝑏= 𝑝  𝑞  𝑟 T 
+Kinematics: 
+P 𝑒= Ω𝐸𝑒P𝑒 + R𝑏2𝑒V𝑏 
+q =−0.5ω  bq 
+V 𝑏=− ω𝑏× v𝑏 − R𝑒2𝑏Ω𝐸𝑒2+ R𝑒2𝑏Ω𝐸𝑒R𝑏2𝑒ω𝑏 + R𝑒2𝑏g𝑒
++𝑚−1 F𝑃𝑅𝑏+ −𝐷𝑟𝑎𝑔  𝑌−𝐿𝑖𝑓𝑡 𝑅𝑤𝑖2𝑏  
+ω 𝑏=−Jb−1ω  𝑏Jb+ Jb−1 T𝑃𝑅𝑏+ 𝐿 𝑀 𝑁   
+Dynamics: 
+ 
+ 
+Lift = Q SClα α,δflp + Q∗Sht∗dCl
+dδeleδele+ QSc 
+2V dCl
+dα α + QSc 
+2V ∗dCl
+dqq 
+Drag =  QS CD0+QS∗CDα α,δflap  +QSCDδflap δflap + QS HT dCD
+dδele δele+QS dCD
+dβ  β 
+Y = QSCYβ β +QS dCY
+dδail δail+  QS dCY
+dδrdr δrdr+QS b
+2V  dCY
+dp p +  QS b
+2V  dCY
+dr r 
+L=QSCLβ β + QSb2
+2V dCL
+dr r+QS b2
+2V  dCL
+dp p+QSb dCL
+dδail δail+QSvtMA      vt dCL
+dδrdr δrdr 
+M=QSc  dCM
+dδα α+QSc CM0+ QSc CMflap+ QS c 
+2V dCM
+dqq+ QSc 2
+2V ∗α  ∗dCM
+dα + QShtMA     ht dCM
+δele δele 
+N=QSb CNββ+ QS b2
+2V dCN
+dpp + QS b2
+2V dCN
+drr+ QSb dCN
+δail δail+QSvtMA     vt dCN
+dδrdr δrdr 
+• Table driven 
+coefficients 
+• Data filled in from 
+NASA EAV model 
+
+--- Page 49 ---
+32 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Simulation 
+
+
+--- Page 50 ---
+33 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Development Status and Progress 
+•Preliminary Design 
+•Engine Integration 
+•Preliminary Flight Test 
+•Modeling and Simulation 
+•Airframe Modification 
+•Actuator installation, control surface splitting, landing 
+gear installation 
+•Avionics Integration 
+•Actuation System Integration  
+•CDHS/Autopilot Integration  
+•Propulsion System Integration (completed April-2012) 
+•Acceptance and Environmental Testing 
+•Flight Worthiness Statement / AFSRB 
+•Flight Testing and Autopilot Tuning 
+ 
+ 
+
+
+--- Page 51 ---
+34 NASA Ames Research Center  |  UAS Mission Directed Autonomy Research 
+NASA Code TI Aeronautics - UVA Technical Seminar, April 2012 
+Introduction to the Swift UAS 
+ 
+Presentation to Prof Joanne Dugan 
+Dependable Computing Class 
+University of Virginia 
+April 16, 2012 
+ 
+Corey Ippolito1, Ganesh Pai2, Ewen Denney3 
+Intelligent Systems Division 
+NASA Ames Research Center 
+Moffett Field, CA 
+corey.a.ippolito@nasa.gov 
+1. Aerospace Scientist, NASA Ames Research Center 
+2. Research Scientist, Stinger Ghaffarian Technologies, Inc. 
+3. Research Scientist, Stinger Ghaffarian Technologies, Inc. 
+ 

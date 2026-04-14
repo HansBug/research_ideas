@@ -1,0 +1,1210 @@
+--- Page 1 ---
+T o w ards Safe Autonomous Driving: Mo del
+Chec king a Beha vior Planner during Dev elopmen t
+Luk as K önig1 (B )
+, Christian Heinzemann1
+, Alb erto Griggio2
+,
+Mic haela Klauc k1
+, Alessandro Cimatti2
+, F ranzisk a Henze3
+,
+Stefano T onetta2
+, Stefan Küp erk o c h1
+, Dennis F assb ender3
+, and
+Mic hael Hanselmann1
+1Rob ert Bosc h Gm bH, 70465 Stuttgart, German y
+firstname.lastname@de.bosch.com
+2F ondazione Bruno Kessler, 38122 T ren to, Italy
+griggio,tonettas,cimatti@fbk.eu
+3CARIAD SE, 38440 W olfsburg, German y
+firstname.lastname@cariad.technology
+Abstract. Automated driving functions are among the most critical
+soft w are comp onen ts to dev elop. Before deplo ymen t in series v ehicles, it
+has to b e sho wn that the functions driv e safely and in compliance with
+trac rules. Despite the co v erage that can b e reac hed with v ery large
+amoun ts of test driv es, corner cases remain p ossible. F urthermore, the
+dev elopmen t is sub ject to time-to-deliv ery constrain ts due to the highly
+comp etitiv e mark et, and p oten tial logical errors m ust b e found as early
+as p ossible. W e describ e an approac h to impro v e the dev elopmen t of an
+actual industrial b eha vior planner for the A utomate d Driving A l lianc e
+b et w een Bosc h and Cariad. The original pro cess landscap e for v erica-
+tion and v alidation is extended with mo del c hec king tec hniques. The idea
+is to in tegrate automated extraction mec hanisms that, starting from the
+C++ co de of the planner, generate a higher-lev el mo del of the underlying
+logic. This mo del, comp osed in closed lo op with expressiv e en vironmen t
+descriptions, can b e exhaustiv ely analyzed with mo del c hec king. This re-
+sults, in case of violations, in traces that can b e re-executed in system
+sim ulators to guide the searc h for errors. The approac h w as exemplarily
+deplo y ed in series dev elopmen t, and successfully found relev an t issues in
+in termediate v ersions of the planner at dev elopmen t time.
+Keyw ords: Autonom. Driving · Mo del Chec king · Industry Application
+1 In tro duction
+A utomate d Driving (AD) is an ev er-gro wing researc h eld with the p oten tial
+to mak e trac safer and more ecien t. Recen tly , ISO 21448 on Road V ehi-
+cles  Safety of the Intende d F unctionality (SOTIF) sp ecied that the n um b er
+of unsafe, b oth kno wn and unkno wn, scenarios should b e minimized [30] and
+the p olitical goal Vision Zero aims to practically eliminate trac fatalities b y
+2050 [58]. This demonstrates that there is a high in terest in and pressure on
+researc h to mak e automated v ehicles (A V) safe. AD in the sense of a (future)
+pro duct has to comply with a v ast v ariet y of safet y requiremen ts originating from
+
+--- Page 2 ---
+2 L. K önig et al.
+domains as div erse as ph ysics, la w and ethics [4, 21, 37, 40, 58]. Impro ving safet y
+up to h uman driving lev el is already a c hallenging problem [51]. Ho w ev er, it is
+assumed that AD needs to v astly exceed the h uman safet y b enc hmark since
+ev en v ery few fatalities caused b y automated v ehicles are hardly acceptable to
+the public [2, 49, 61]. The de facto standard to da y is that tremendous amoun ts
+of test driv es are supp osed to accoun t for the safet y of A V s. Ho w ev er, statistical
+considerations sho w that deriving condence in the safet y of an A V solely via
+test driv es migh t indeed require ludicrous amoun ts of driving [34, 44, 62].
+In this pap er, w e describ e an approac h to impro v e the dev elopmen t of AD
+soft w are, adopted within the A utomate d Driving A l lianc e (A l lianc e)1b et w een
+Bosc h and Cariad. Sp ecically , w e consider a b ehavior planner (BP; also, tactic al
+BP) , that con trols the high-lev el actions of an A V (e. g., accelerating, braking,
+lane c hanges) based on the p erceiv ed state of the en vironmen t (e. g., o w of the
+surrounding trac). It is part of a system called Highway Pilot whic h realizes
+automated driving on high w a ys or high w a y-lik e roads. The BP is implemen ted
+in C++ , and is under activ e dev elopmen t, undergoing rep eated up dates, with the
+addition of new features and impro v emen ts. Due to time-to-deliv ery constrain ts,
+the veric ation and validation (V&V) activities are supp osed to pro ceed in par-
+allel to the dev elopmen t, preferably in an observ e only manner.
+W e enhance the V&V pro cess b y in tegrating automated formal v erication
+tec hniques, in particular mo del che cking (MC) of innite-state transition sys-
+tems [10], within the original dev elopmen t en vironmen t. The primary purp ose is
+not (y et) to pro vide argumen ts for absolute correctness, but to increase the co v er-
+age of kno wn unsafe scenarios, curren tly pro vided b y test driv es and sim ulation.
+By exhaustiv ely analyzing a h uge range of scenarios, MC is largely insusceptible
+to h uman bias and can disco v er corner cases that ma y b e o v erlo ok ed otherwise.
+W e face the c hallenge that MC m ust b ecome part of the c ontinuous inte-
+gr ation (CI) pro cess, hence it m ust b e directly connected to the consecutiv e
+v ersions of the BP . This means that man ual mo deling is to b e a v oided, in order
+to enable a seamless connection b et w een dev elopmen t and V&V. Therefore, w e
+in tegrate suitable mec hanisms for the extraction of the BP logic directly in to the
+dev elopmen t en vironmen t. Starting from the C++ co de of a BP , w e automatically
+deriv e a mo del of the underlying logic including the in terface to the surround-
+ing soft w are stac k. This mo del is con v erted in to K2, a lo w-lev el imp erativ e-st yle
+language of the Kratos2 soft w are mo del c hec k er [23], whic h is, in turn, con v erted
+in to SMV, the input language of the sym b olic mo del c hec k er n uXm v [8].
+The scenarios for v alidation are obtained b y comp osing the mo del of the BP
+in closed-lo op with an envir onment mo del (EM) . The EM con tains rules ab out
+the succession of a high w a y-lik e trac scene in terms of the p ossible b eha vior
+of a set of free cars whic h driv e in scop e of a distinguished BP-con trolled car
+( e go ), cf. Fig. 12. EM and BP are in tegrated suc h that the BP receiv es p erception
+1The Alliance has set out to [build] a state-of-the-art AD AS soft w are platform for
+use in all V olksw agen Group brand v ehicles  and therefore in one of the world's
+biggest vehicle e ets . More information on BOSCH and CARIAD w ebsites.
+2The graphic w as auto-generated b y our explainabilit y to olc hain, cf. Sec. 3.1.
+
+--- Page 3 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 3
+112
+8
+40m 120121112840m120
+121 112
+8
+|. . . |-60 |-40 |-20 |0 |20 |. . . distance to ego ( m )lane_b3lane_b2 & lane_b3 driving
+direction! lane_b2lane_b1 & lane_b2lane_b1 ego
+Figure 1: High w a y scene illustrating the base scenario. W e mo del three
+straigh t lanes unrestricted in longitudinal direction, non-ego p ositions are calcu-
+lated relativ e to ego. Laterally , cars are either on a single lane or b et w een t w o
+lanes (during a lane c hange). Blue n um b ers: car IDs, blac k n um b ers: v elo cities
+inm=s . Grey arro ws: mo v emen t from curren t to next EM iteration.
+inputs from the EM and returns an actuation output, whic h is translated in to the
+mo v emen t of the ego. The EM is also written in SMV and can b e parametrized to
+further sp ecify the scenario (e. g., n um b er of non-ego cars, ph ysical features of the
+cars, driving b eha vior). The comp osed mo del of EM/BP is exhaustiv ely analyzed
+with n uXm v, whic h results in a c ounter example (CEX) in case of the violation
+of a prop ert y , e. g., a collision. The CEX can b e re-executed in sim ulators to
+guide the searc h for errors. The approac h w as exemplarily deplo y ed in series
+dev elopmen t, resulting in a fully automatic to olc hain usable, e. g., in a CI system.
+The deplo ymen t w as v ery successful in that actually relev an t issues could b e
+found in in termediate v ersions of the BP at dev elopmen t time.
+Since the full BP co de is restricted from publication, w e use a mo c k BP in
+this publication to illustrate details ab out the pro cess. Nonetheless, all presen ted
+results ha v e b een originally obtained with the actual BP used in the Alliance b y
+trac king its dev elopmen t with CI tec hniques. Though b eing m uc h simpler, the
+mo c k BP is designed to resem ble the actual BP in some essen tial asp ects, suc h
+that t w o ma jor bugs found in the actual BP can b e repro duced with it. Run time
+and p erformance analyses are p erformed on data from the actual BP . Using the
+mo c k BP , w e pro vide p ossible xes to the found bugs in this simpler setup, and
+sho w that the mo del c hec k er then ecien tly supplies pro of for the no w correct
+functioning of the mo del of the mo c k BP , within the sim ulation b y the EM.
+Our con tributions are:
+1
+a self-consisten t to olc hain, in v olving automatic
+pro cessing of the C++ co de of a BP , in tegration with plausible ph ysics and sur-
+rounding trac b eha vior, MC with n uXm v, as w ell as, extracting trac scenes
+from CEXs for debugging;
+2
+presen tation and discussion of t w o safet y-relev an t
+issues found in an industrial BP;
+3
+b y means of re-sim ulation ensuring that
+the mo del soundly captures the real-w orld system;
+4
+analysis of the feasibilit y
+of the approac h for an actual industrial con text, including eciency .
+The remainder of the pap er is structured as follo ws. Sec. 2 pro vides the
+basic AD con text, as w ell as the theoretical bac kground required for MC. Sec. 3
+
+--- Page 4 ---
+4 L. K önig et al.
+describ es the metho dology underlying the exp erimen tal setup. Sec. 4 describ es
+and discusses the exp erimen tal results. Sec. 5 lists and assesses literature related
+to our approac h. Sec. 6 pro vides a conclusion and an outlo ok to future w ork.
+A dditionally , w e pro vide an app endix whic h is a v ailable in an extended v er-
+sion of the pap er published as supplemen tary material. It is in tended to facilitate
+repro ducibilit y , but is not required to follo w the presen ted results. The supple-
+men tary material also con tains the mo c k BP and t w o v ersions of the EM, as used
+for the exp erimen ts. In an artifact asso ciated to this pap er, w e pro vide the full
+functioning to olc hain, i. e., all co de and soft w are (except for the Alliance BP) in
+a state as used for the exp erimen ts.
+2 Bac kground
+The task of driving automatically can t ypically b e segmen ted according to the
+classic sense  plan  act paradigm [7, 38]. The sense part comprises p ercep-
+tion of the en vironmen t using sensors lik e camera, lidar or radar, and fusing
+their measuremen ts in to a mo del of the envir onment (e. g., [41]).This mo del con-
+tains all a v ailable information of the A V's surroundings, e. g., lanes to driv e
+on, the state of other trac participan ts (e. g., p osition, v elo cit y , acceleration)
+and predictions of their motion. This is the basis for planning the motion of
+the con trolled A V. The plan part can b e divided in to three steps [3]: First, a
+str ate gic planner decides ab out the global na vigation, i. e., the route to follo w.
+Then, the tactic al BP decides b et w een a v ailable maneuv ers, e. g., lane follo wing
+or lane c hange. Finally , the tr aje ctory planner calculates a desired tra jectory
+whic h ev en tually results in a sequence of desired accelerations and curv atures.
+In the act part, these signals are forw arded to the actuators, th us accomplishing
+the actual driving on the road. W e fo cus on the tactical BP whic h, for MC, is
+decoupled from the other soft w are mo dules in the sense  plan  act pip eline.
+Mo del Chec king of Innite-State Sym b olic T ransition Systems. The
+system under analysis is deriv ed in sev eral steps from the BP and the EM co de,
+cf. Sec. 3, and nally represen ted as a sym b olic transition system expressed using
+quan tier-free form ulæ in rst-order logic mo dulo theories (for further reading,
+refer to, e. g., [5]). W e w ork in the setting of man y-sorted rst-order logic, and
+w e assume the usual rst-order notions of in terpretation, satisabilit y , v alidit y ,
+logical consequence, and theory , as giv en, e.g., in [17]. Unless otherwise stated,
+when w e talk ab out a logical form ula '(X) , w e mean that ' is a quan tier-free
+rst-order form ula whose free v ariables are included in the set X , and using
+sym b ols from the theory of (linear) arithmetic (with their usual in terpretation).
+F or example, '(fx1;x2g):= (3x1>0)^(x2+x1<5) . A sym b olic transition
+systemS=hX;I;Ti is a tuple, where X is a set of (state) v ariables, I(X) is a
+form ula represen ting the initial states, and T(X;X0) is a form ula represen ting
+the transitions, where X0is the set of v ariables represen ting the next state of the
+system. A state s of a transition system S is an assignmen t to the state v ariables
+X ; a path (trace)  ofS is a p ossibly innite sequence := (s0;s1;:::;s i;:::)
+
+--- Page 5 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 5
+of statessi suc h thatI(X) is true under the assignmen t s0 , andT(X;X0) is
+true under the assignmen t si1;s0
+i for alli>0 in , wheres0is the assignmen t
+obtained b y replacing eac h x2X with the corresp onding x02X0. W e sa y that a
+states is reac hable in S if and only if there exists a path  ofS suc h thats2 .
+Giv en a form ula P(X) o v er the v ariables X , the in v arian t v erication problem
+forS andP is the problem of c hec king if all the reac hable states of S satisfy the
+form ulaP . In that case, w e sa y that S satisesP , written as Sj=P .
+T o ols. F or solving the core MC problem w e use n uXm v [8], a state-of-the-art
+sym b olic mo del c hec k er for b oth nite- and innite-state transition systems. It
+supp orts the v erication of in v arian t and L TL prop erties using a com bination
+of ecien t algorithms based on Bo olean satisabilit y (SA T) and Satisabilit y
+Mo dulo Theories (SMT) [11, 13, 24]. Eac h v erication engine can b e used un-
+b ounded or b ounded (in whic h case only dispro ving is p ossible). F or details see
+the do cumen tation [8]. The transition system for n uXm v is dened using an ex-
+tension of the standard SMV language for nite-state systems (simply SMV in
+the follo wing). An example of the syn tax is rep orted in Alg. 2 of the app endix.
+T o automatically deriv e a n uXm v transition system out of imp erativ e C++
+co de, Kratos2 can b e used as an in termediate step. Kratos2 [23] is a to ol for
+the automatic v erication of imp erativ e programs, using n uXm v as its main
+v erication engine. The nativ e language of Kratos2 is a v erication language
+called K2 (similar to Bo ogie and Wh y3 [43]) that pro vides a w ell-dened and
+unam biguous formal seman tics suitable for v erication. An example program
+in K2 is sho wn in Alg. 3 of the app endix. The resulting K2 program is then
+transformed b y Kratos2 in to SMV and v eried with n uXm v.
+P arsing C++ co de and creating the K2 mo del out of it is done b y a protot yp-
+ical soft w are called vfm whic h w as dev elop ed within the Alliance (cf. artifact).
+3 Metho dology
+This section describ es the prop osed w orko w and justies ho w the resp ectiv e
+comp onen ts w ere c hosen to establish an industry-ready setup.
+3.1 Ov erview
+Our to olc hain consists of sev eral comp onen ts cen tered around a BP under analy-
+sis, cf. Fig. 2. W e imp ose MC on top of a functioning soft w are and in scop e of
+an established dev elopmen t pro cess. Therefore, the BP's source co de, (1) in the
+gure, is considered largely immutable , meaning that w e cannot c hange it to our
+likings, but dev elop ers c an c hange it at an y time outside of our con trol.
+The BP cannot b e c hec k ed on its o wn, since its b eha vior within a tr ac sit-
+uation is of ma jor in terest. The en tit y resp onsible for pro viding an initial trac
+scene, and k eeping trac k of ho w it ev olv es according to the BP's actions, is the
+EM (3). It is giv en in SMV language, i. e., w e can directly iden tify it with a
+transition system SE:=hXE;IE;TEi . In a rst pro cessing step, the BP and
+
+--- Page 6 ---
+6 L. K önig et al.
+the EM are parsed separately to create an in termediate represen tation (4) whic h
+con tains an in ternal description of the BP logic including its in terface to w ards
+the EM. The resp ectiv e mapping b et w een EM and BP is pro vided b y the typ e
+abstr action layer (T AL) (2), whic h is em b edded in to the C++ co de of the BP via
+commen ts (see b elo w). The in termediate represen tation is translated in to a K2
+v ersion of the BP logic (6) whic h, in turn, is translated b y Kratos2 in to an SMV
+represen tation (7; cf. discussion in Sec. 4.3 ab out making this detour instead
+of directly translating from C++ to SMV); w e iden tify the SMV represen tation
+with the transition system SP:=hXP;IP;TPi ; additionally , the in terface infor-
+mation is used to generate the full in tegrated transition system, called SEtP . On
+SMV lev el, it is constructed to include and connect SE andSP as t w o separate
+mo dules within a main mo dule (5); it is also the place to add sp ecications to
+c hec k. This le is then handed to the n uXm v mo del c hec k er for the actual MC
+task. Dep ending on the result, w e either terminate the pro cess after MC, if the
+sp ecications are fullled (OK), or otherwise (FINDING) trigger the creation
+of a CEX (8), whic h is a witness of the sp ecication b eing violated. It pro vides
+a trace within the c hec k ed transition system SEtP in the course of whic h the
+sp ecication do es not hold. In our case, the sequence of v ariable v alues along
+this trace pro vides information ab out
+1
+the trac situation in whic h the vio-
+lation o ccurred and
+2
+the BP actions in this situation.
+1
+is used to generate
+visualizations of the trac scene in question, and to further pro cess the resulting
+scenarios of in terest, b y using the Op en Sc enario 2 (OSC2) format [1] as under-
+lying represen tation (9). Figs. 1, 4 and 5 w ere created using this functionalit y .
+2
+c ould , in principle, b e used for a deep analysis of the error, suc h as trac king
+bac k whic h lines in the original C++ co de are in v olv ed in the violation. This is
+planned to b e done in future, but is not p ossible y et.
+The retriev al of the transition system to c hec k needs to b e exible enough
+to adapt to future c hanges of the BP , whic h are exp ected to happ en frequen tly
+during dev elopmen t. Therefore, the EM should not b e customized to w ards a
+sp ecic BP , but rather pro vide a generic in terface whic h w orks with a v ariet y of
+BP instances. The to olc hain then runs fully automatically b y attac hing exibly
+to dieren t BPs, as long as the EM is suitable for them, i. e., all required data
+is a v ailable in the EM's generic in terface, agnostic of naming. F or example, the
+BP migh t require as input its o wn v elo cit y in a v ariable called agent.v whic h
+the EM pro vides as ego.v . The T AL connection can b e established b y adding an
+ aka  tag as commen t to the BP v ariable agent.v (for details cf. the app endix).
+Therefore, the remaining man ual eort consists of adding or adapting the
+T AL information when the BP c hanges. This is exp ected to b e mostly a one-
+time eort, since once the connection to EM v ariables is established, it only
+needs to b e c hanged if new data is added to the in terface ( not on mere re-usage
+or renaming). This happ ens o ccasionally , but is not v ery common in practice.
+Only if the EM b ecomes unsuitable for a dev elop ed BP , i. e., when a non-existen t
+signal is requested, this implicates the fairly high eort of adapting the EM.
+
+--- Page 7 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 7
+Environment Model (3)
+SMVBehavior Planner (1) 
++ Type Abstraction Layer (2)
+C++
+Intermediate representation
+enriched with mapping
+information (4)
+Integration file
+SMV (5)INPUT
+Model ofBP
+K2 (6)C++ parser
+K2 generator
+ SMV generator
+SMV datatype
+parser
+nuXmvModel ofBP
+SMV (7)Kratos 2
+OK
+CEX trace
+(8)FINDING
+OSC 2 file
+(9)Fix bugs
+OSC2 generator
+Replay and recompute 
+in simulation
+Image -based 
+explanationsOUTPUT
+Figure 2: Ov erview of the presen ted to olc hain. The BP to c hec k (1) is
+the main input. The EM is giv en as transition system in nativ e SMV language
+(3). n uXm v (cen ter) is run on an in tegration of BP/EM created in sev eral steps
+(3/5/7). Visualizations and sim ulations are deriv ed from CEXs (9).
+3.2 En vironmen t Mo del
+Since w e cannot mo del-c hec k the full soft w are stac k the BP is part of, with p er-
+ception on one side and actuation on the other, the BP needs to b e directly fed
+with mo c k data from a sim ulated en vironmen t, and its output needs to b e prop-
+agated bac k in to this en vironmen t in a closed-lo op manner. This is accomplished
+b y the EM, whic h creates an initial state of the en vironmen t, and then progresses
+b y supplying the curren t state as p erception input to the BP and deriving the
+next state based on its output. Therefore, the EM main tains ph ysical states of
+all agen ts, and applies la ws of ph ysics and p ossible driving b eha vior to them.
+W e assume a p erfe ct envir onment , i. e., p erfect kno wledge without an y sen-
+sor uncertain ties and p erfect b eha vior without actuatory imprecision. W e use a
+high w a y-lik e road mo del with 3 lanes, allo wing trac only in one direction, as
+illustrated in Fig. 1. W e supp ort an arbitrary n um b er of non-ego v ehicles3, eac h
+of whic h has ph ysical prop erties suc h as relativ e p osition to ego, v elo cit y and
+lane asso ciation. A v ehicle is asso ciated to either a single lane or, during a lane
+c hange, to b oth its source and its target lane (cf. veh[1] and veh[2] in Fig. 1).
+In eac h v erication step, corresp onding to 1 s, all non-ego v ehicles ma y c ho ose
+a new acceleration a2f 8;7;:::; 6gm=s2, whic h is used to up date the v elo c-
+it y and relativ e p osition sim ultaneously . In addition, eac h non-ego v ehicle ma y
+3A generator is used to create an EM with an adjustable n um b er of non-ego cars for
+eac h MC run (cf. artifact).
+
+--- Page 8 ---
+8 L. K önig et al.
+c ho ose to p erform a lane c hange. A lane c hange is executed in t w o stages. In
+the rst stage, the non-ego v ehicle signals the lane c hange via turn indicators
+but is still lo cated on its source lane. The second stage is the transition from
+source to target lane, i. e., it starts when the lane marking is initially touc hed
+un til the non-ego v ehicle is con tained en tirely in the target lane. During b oth
+stages, the non-ego v ehicle ma y non-deterministically decide to ab ort the lane
+c hange. If the decision to ab ort is made while b eing in the second stage, the
+non-ego v ehicle mo v es bac k to the source lane. The durations of b oth stages of
+the lane c hange and of the return to the source lane when ab orting are c hosen
+non-deterministically from in terv als of p ossible v alues (cf. section mark ed  Begin
+of lc parameterization  in the published v ersion of the EM). Thereb y , w e en-
+able to v erify a high v ariet y of lane c hanges in the MC pro cess, including m uc h
+tougher ones than exp ected to usually happ en on real roads, with the goal to
+o v er-estimate (rather than under-estimate) violations b y the planner in the sense
+discussed in Sec. 4.3. On the other hand, w e do prohibit excessiv ely malicious
+b eha vior b y ensuring that ego is able to prev en t a collision b y sta ying in its lane
+and reacting instan taneously with a deceleration of up to 8m=s2.
+The ego v ehicle trac ks ob jects in its pro ximit y via so-called gaps , dened b y
+a fron t and a rear v ehicle on its o wn and its neigh b oring lanes, cf. Fig. 3. This
+data needs to b e pro vided b y the EM, as w ell. Dep ending on lane a v ailabilit y ,
+there can b e up to three gaps, one is alw a ys in the ego lane, the other t w o can b e
+in the left or righ t lane next to ego, resp ectiv ely , if a v ailable. F or eac h car in the
+gaps, information suc h as relativ e distance to ego, v elo cit y and acceleration are
+stored whic h can b e used b y the BP for decision making. If one of the p ositions
+is not lled, e. g., if the next car is out of p erception range, this is indicated
+b y a sp ecial v alue. The full SMV co de of the EM, as w ell as a more in-depth
+description are published as supplemen tary material.
+8
+gaps[ActionDir::CENTER]gaps[ActionDir::LEFT]
+gaps[ActionDir::RIGHT]s_dist_front
+= rel_poss_dist_rear
+= -rel_pos
+rel_pos < 0 rel_pos = 0 rel_pos > 0ego
+Figure 3: Illustration of gaps trac k ed for ego. The gap data structur e pro-
+vides information ab out the free space whic h ego driv es in on its o wn lane or
+could div e in to when p erforming a lane c hange, in terms of the t w o cars limiting
+this space to the fron t and rear. A gap con tains the IDs, distances, v elo cities,
+accelerations etc. of the closest cars to the fron t and rear on the resp ectiv e lane.
+
+--- Page 9 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 9
+3.3 The Original and Mo c k BPs
+W e consider t w o BPs,
+1
+the actual BP curren tly under dev elopmen t for the
+Alliance pro ject, and
+2
+the mo c k BP whic h is a simplied v ersion of
+1
+. The
+co de considered for
+1
+is an excerpt of the pro ject BP con taining the logic for a
+lane change de cision towar ds the fast lane (LCfast) (left assumed; as opp osed
+to LCslow ). It consists of more than 1000 lines of C++ co de. The mo c k planner
+2
+is m uc h smaller (ab out 100 lines) and can b e insp ected in its en tiret y as
+supplemen tary material. It con tains a simple v ersion of the logic for LCfast,
+logic for LCslo w and a simple longitudinal con trol.
+The in terface to w ards the EM is equal for
+1
+and
+2
+regarding LCfast. It
+uses the gap structur e as input and returns as output the decision whether or not
+to initiate a lane c hange to w ards the fast lane. The mo c k BP requires additional
+data for the longitudinal con trol, as w ell as some signals used to x the found
+issues; w e mostly disregard these dierences in the follo wing, for simplicit y . The
+exact in terfaces are giv en in the app endix.
+4 Exp erimen ts
+Our goal is to demonstrate that the prop osed approac h can practically guide
+dev elopmen t pro cesses of a BP in industry . Therefore, w e need to sho w that
+1
+our setup deriv es v aluable insigh ts for
+a
+dev elopmen t and/or
+b
+release;
+2
+it do es this in acceptable run time,
+3
+it do es not o v erly disturb ev ery-da y
+dev elopmen t, and
+4
+its results are self-explanatory to dev elop ers and V&V
+exp erts. In Sec. 4.1 w e analyze t w o ma jor issues found early during dev elopmen t
+in the Alliance BP
+1a
+. W e also commen t on the implications of pro ofs of error-
+freeness on the mo del lev el, whic h ma y b e of high relev ance for p ossible future
+release argumen tation
+1b
+. Eciency of b ounded and un b ounded MC
+2
+is
+analyzed in Sec. 4.2. Sec. 4.3 discusses the results and elab orates qualitativ ely
+on the topics
+3
+and
+4
+.
+4.1 Dispro v en Sp ecications with Coun terexamples
+The t w o issues w e describ e w ere found b y c hec king for the in v arian t prop ert y
+!blamable_crash . It is true if ego's b ounding b o x nev er o v erlaps with the b ound-
+ing b o x of an y car in fron t of ego. n uXm v sho w ed in b oth cases that it do es not
+hold true, whic h led to the generation of CEXs. They rev eal violations of the BP
+in t ypical high w a y-trac, whic h w e named L e ad V ehicle Oc clusion and Double
+Mer ge4. The CEXs ha v e b een further pro cessed to sho w the succession of the
+trac scenes that lead to the violations (Figs. 4 and 5), and to conrm the issues
+in sim ulation b y using the full underlying soft w are stac k (cf. Sec. 4.3).
+4Note that these issues certainly could ha v e b een detected with regular V&V tec h-
+niques, as w ell, ho w ev er, with considerably greater eort.
+
+--- Page 10 ---
+10 L. K önig et al.
+19
+35
+0
+35
+1
+35
+2 
+35
+3 
+35
+4 
+35
+5
+35
+6
+21
+35
+0
+35
+1
+35
+2 
+35
+3 
+35
+4 
+35
+5
+35
+6
+23
+27
+0
+27
+1
+31
+2 
+27
+3 
+27
+4 
+41
+5
+31
+6
+25
+21
+0
+19
+1
+37
+2 
+27
+3
+26
+4 
+35
+5
+23
+6
+17
+17
+0
+18
+1
+40
+2 
+19
+3
+29
+4 
+32
+5
+16
+6
+9
+13
+111
+342
+113
+354
+32506
+8
+11
+19
+0
+13
+1
+26
+2 
+17
+3
+27
+4 
+29
+5
+0
+6
+driving
+direction!
+Figure 4: F ull CEX trace of crash caused b y ego o v erlo oking hard
+brak e ahead due to another car cutting out. The highligh ted p ortion of
+the second-to-last image sho ws ho w the car in the lead p osition (0) pulls a w a y
+(cuts out) while another car ahead (6) brak es hard, unnoticeable b y ego due to
+the w a y lead v ehicles are trac k ed. Instead of braking, ego ev en accelerates, since
+car0 also accelerates and departs.
+Lead V ehicle Occlusion. Since ego bases all decisions on the gap structur e ,
+it cannot see p ossible cars in fron t of the one it nds as fron t car in one of the
+gaps. On the other hand, the surrounding trac is allo w ed to b eha v e arbitrarily
+rudely , as long as ego has, up on immediate action, a c hance to a v oid a crash (cf.
+Sec. 3.2). Considering this, n uXm v rep orted the situation illustrated in Fig. 4 as
+a CEX5. The sev en snapshots corresp ond to the full path giv en in the CEX (i. e.,
+it tak es at least 7 steps from an initial to a violating state). The actual crash
+o ccurs in the last step, but the underlying wrong decision is made already in
+the sixth step. Here, car 0 is partially on ego's lane, and is, therefore, considered
+the lead car in the CENTER gap (indicated b y a green frame). On the other hand,
+car6 is farther ahead, and, at this p oin t in visible to ego (in a logical, not a
+p erception sense). The problem arises from car 6 p erforming a hard brak e, while
+car0 budges to w ards the middle lane (cuts out). Considering car 0 as lead car,
+whic h actually departs to the fron t, ego misin terprets the scene to clearing up,
+and accelerates rather than braking, whic h leads to the crash. The CEX p oin ts
+to a fundamen tal problem caused b y considering only a single lead v ehicle p er
+gap. (Indeed an y constan t n um b er n of lead v ehicles w on't x the underlying
+problem, assuming unrestricted v elo cities and/or restricted braking capabilities.
+Imagine a ro w of n+ 1 cars in fron t of ego, with the furthest one standing still
+while the other n cut out. In practice, safet y distance needs to b e adjusted suc h
+that braking in time is p ossible ev en in the w orst case scenarios.)
+Double Merge. This issue is caused b y ego observing only cars on neigh b oring
+lanes, whic h can lead to conicts if cars from t w o lanes apart c hange to w ards
+5The CEX can b e pro duced with an y n um b er of non-ego cars 2 . W e c ho ose to sho w
+non-minimal examples here to giv e in tuitiv e insigh t in to the functioning of the EM.
+
+--- Page 11 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 11
+a neigh b oring lane while ego itself is c hanging to w ards this lane. This issue is
+related to the gap structure, to o, but p oin ts to the lateral, rather than longitu-
+dinal limit of the structure. Fig. 5 sho ws ho w the violation unfolds in the course
+of6 steps. The actual problematic decision already o ccurs in step 2 where ego
+decides to c hange the lane to w ards the middle, as displa y ed b y the indicators
+turned on6. A t this p oin t, ego w aits for t w o steps b efore actually starting the
+lane c hange. During this whole p erio d, the middle lane app ears to b e free (al-
+though all three non-egos indicate at some p oin t to b e starting a lane c hange,
+whic h is actually p erformed b y cars 1 and2 , but ab orted b y car 0 ). When ego
+actually do es the lane c hange, car 1 happ ens to nish its o wn and ends up col-
+liding with ego. While it could b e argued that the other car could ha v e a v oided
+this situation, to o, ego is at least partially to blame for the crash.
+As opp osed to the Lead V ehicle Occlusion issue, whic h w as more fundamen tal
+in nature, this issue is strongly connected to the exact w a y the BP p erforms a
+lane c hange. Ha ving a more exible cancellation mec hanism, or including cars
+b etwe en a neigh b oring lane and the one next to that in to the gaps, could, for
+example, easily a v oid this t yp e of issues.
+0
+35
+0
+35
+1
+35
+2
+2
+35
+0
+35
+1
+35
+2
+4
+27
+0
+27
+1
+27
+2
+6
+19
+0
+20
+1
+20
+2
+8
+11
+0
+12
+1
+12
+2
+10
+17
+0
+4
+1 
+8
+2
+driving
+direction!
+Figure 5: F ull CEX trace of crash caused b y ego not noticing a car
+merging to w ards the middle lane while itself merges there. The issue
+is caused b y ego not lo oking further than one lane to the left when deciding to
+c hange a lane, and dela ying the actual lane c hange after the decision for 2 steps.
+Commen t on Sp ecications Pro v en to Hold. W e used un b ounded MC
+for v alidating the EM b y pro ving man y of its desired prop erties to hold; for
+example, ego is nev er 'forced' in to a collision b y a non-ego v ehicle, and the
+v ehicles in the gaps are alw a ys the ones closest to ego on the resp ectiv e lane.
+Also, when xing the t w o issues describ ed ab o v e, the mo c k BP can b e sho wn
+to fulll the !blamable_crash sp ecication, cf. the artifact published with this
+pap er. Ho w ev er, it is curren tly unclear what suc h pro ofs of absenc e of errors on
+the mo del lev el mean for the real system, see discussion in Sec. 4.3.
+6The actual Alliance BP , whose b eha vior is sho wn here, supp orts lane c hanges up on
+driv er request, while the mo c k planner p erforms lane c hanges to w ards the fast lane
+only to o v ertak e a slo w er v ehicle. Th us, the issue can, for the Alliance BP , b e pro-
+duced with at least one, for the mo c k BP with at least t w o non-ego v ehicles.
+
+--- Page 12 ---
+12 L. K önig et al.
+4.2 Run time Analysis
+F or the run time analysis w e are particularly in terested if the mo del c hec k er ter-
+minates within a time limit acceptable for t ypical asp ects of the V&V w orko w
+utilized in the Alliance (and probably similarly in other AD pro jects). W e agreed
+that for the follo wing standard situations the resp ectiv e appro ximate run times
+w ould b e acceptable. F or runs p erformed on eac h pul l r e quest (PR) , e. g., as
+gatek eep ers: /2 min. F or runs p erformed during eac h nightly job (NI) :/4 h.
+F or runs p erformed for a r ele ase (RE) :5 d and more, ma y b e acceptable.
+Assuming an ev er-c hanging dev elopmen t setting, it seems misguided to com-
+pare rigorously clo c k ed runs of sp ecic soft w are v ersions to nd the b est EM/BP
+setup. T o presen t a broader picture, w e rather list the a v erage run times of all
+runs made during a fairly mature phase of the study with somewhat c hanging
+BP and EM v ersions. This mature phase is dened as starting at the p oin t from
+whic h no ma jor xes to the EM o ccurred an ymore. W e do not analyze the dif-
+ferences in implemen tations, but delib erately pro vide b y this means a general
+impression of practicabilit y , in a setting close to ho w it is exp ected to emerge in
+real industrial con texts.
+W e fo cus on the c hec k ed prop ert y !blamable_crash , using the Alliance BP
+(i. e., the exp ected result is a CEX for all runs; its creation time is included in the
+listed times) and do not restrict the b eha vior in an y w a y . T ab. 1 summarizes the
+run times obtained for up to 10 non-ego v ehicles with b ounded or un b ounded MC.
+W e estimate man y of the n um b ers in the table for the sak e of a comprehensiv e,
+rather than o v erly exact, image, as they reect our exp erience v ery w ell. Note,
+ho w ev er, that the results only include runs that terminated at all (as opp osed to
+runs that needed to b e ab orted, usually due to excessiv ely long run time). This
+particularly distorts the ro ws with three and four non-ego cars and un b ounded
+MC, whic h  esp ecially with earlier v ersions of the EM  frequen tly ran for da ys
+and w eeks without nishing. Considering future c hanges to the BP , these ro ws
+need to b e tak en cautiously , although w e also exp ect further impro v emen ts to
+the EM, whic h, in the past, greatly reduced run time (cf. Sec. 4.3).
+The general tak ea w a y is that the o v erall setup is sucien tly ecien t to b e
+used in an industrial con text, largely ev en at PR lev el. F or future release ar-
+gumen tation, using un b ounded MC seems to b e p ossible with up to 4 non-ego
+cars. Note that adding non-ego cars b ey ond t w o did not gain an y new insigh t
+in to issues of the BP in all runs so far. Discussions are ongoing whic h n um b er
+of non-ego cars is sucien t to reect all relev an t situations on a straigh t 3 -lane
+high w a y , in terms of BP logic, with 4 5 b eing among the highest estimates.
+Considering further impro v emen ts, the setup seems to b e extendable to w ards
+more complex road top ologies. Ho w ev er, w e exp erienced the run times to b e fairly
+v olatile. It ma y w ell happ en that marginal c hanges to the BP and/or the EM
+yield a factor of 2 3 in run time (cf., e. g., the high v ariance for the 2-car
+un b ounded case). While this is still acceptable for our con text in man y regards,
+it needs to b e considered for eac h individual case, cf. also discussion in Sec. 4.3.
+
+--- Page 13 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 13
+T able 1: Run times for MC runs clustered along n um b er of non-ego
+cars and b ounded vs. un b ounded MC. The b ounded ro ws comprise runs
+that w ere not all trac k ed and analyzed exactly , but o v erall yield a fairly clear
+picture (run times estimated here; as w ell as for the 2 -car un b ounded ro w). The
+Suitable for ro w is a b est guess based on the giv en n um b ers.
+# Non-egos MC t yp e # Finished Runs A v erage run time Suitable for
+1 b ounded >50 /1 min PR/NI/RE
+2 b ounded >30 /1 min PR/NI/RE
+3 b ounded10 /2 min PR/NI/RE
+4 b ounded10 /2 min PR/NI/RE
+5 b ounded10 /5 min (PR)/NI/RE
+10 b ounded 2 19.6 min NI/RE
+1 un b ounded 6 30 s PR/NI/RE
+2 un b ounded >501 7 h (NI)/RE
+3 un b ounded 2 16:6 h RE
+4 un b ounded 1 5:7 d (RE)
+4.3 Discussion
+The presen ted results indicate that MC can b e used in a real industrial con text
+to guide the iterativ e dev elopmen t of a BP . The approac h is o v erall suitable to b e
+used on top of the regular dev elopmen t pro cesses for AD without considerably
+in terfering with them, and to guide this dev elopmen t b y detecting safet y-relev an t
+issues earlier than with plain testing, th us reducing futile testing time. It is im-
+p ortan t to recognize the complete lac k of h uman bias in this pro cess. P articularly ,
+the t yp e of scenario is not pro vided in an y w a y , but all scenarios pro ducible b y
+the resp ectiv e EM/BP com bination are insp ected. The to olc hain w orks mostly
+self-go v erned b y automatically extracting the BP logic from C++ , and creating
+self-explanatory visualizations and test cases out of CEXs.
+Curren t Limitations. R elevanc e for the r e al world: MC pro vides either
+1
+a pro of that the (extracted v ersion of the) BP logic complies with a giv en
+sp ecication (in relation to the EM), or
+2
+a pro of that this is not the case,
+whic h is complemen ted with a CEX. These pro ofs r elate to statemen ts ab out
+the correctness of the BP b eha vior, i. e., the BP is supp osed to b e correct
+1
+or incorrect
+2
+w. r. t. to the c hec k ed sp ecication when steering an actual car
+on the road. Ho w ev er, full condence in these statemen ts requires not only to
+pro v e that the EM itself as w ell as the extraction of the BP logic are correct,
+but also that the EM reects real-w orld trac, ph ysics and p erception/actuation
+adequately. Assuming an y deviation from the real b eha vior of the system means
+that the EM w ould need to o v er-estimate violations for
+1
+and under-estimate
+them for
+2
+. Therefore, it is not p ossible to pro vide an EM whic h simplies the
+actual system b eha vior in an y w a y , and eviden tly en tails only true statemen ts
+ab out b oth correctness and violations of the BP . It ma y b e p ossible, though,
+
+--- Page 14 ---
+14 L. K önig et al.
+to strengthen one direction up to a lev el where some notion of condence in
+its v alidit y can b e deriv ed. Then, it app ears reasonable to let the EM o v er-
+estimate, rather than under-estimate violations suc h that error-freeness
+1
+is
+reected accurately . This is due to the additional information pro vided b y CEXs
+for
+2
+. While the pro of of error-freeness is a somewhat nal statemen t, false
+p ositiv es of violations c an b e ruled out b y re-sim ulating the CEXs with the actual
+soft w are stac k. This additional c hec k w as p erformed for all the CEXs presen ted
+in this pap er. The EM is built with the intent to rather o v er-estimate than
+under-estimate violations, cf. Sec. 3.2. Ho w ev er, at presen t w e do not in v estigate
+more profoundly to what exten t this is actually accomplished and what exactly ,
+consequen tly , a pro of of correctness implies on BP lev el.
+Numb er of non-e go c ars: A ccording to the results presen ted in Sec. 4, a
+natural measure of p erformance of the approac h is the maxim um n um b er of non-
+ego cars that can b e pro cessed in a time acceptable for one of the presen ted use
+cases. F or un b ounded MC, this n um b er is curren tly limited to ab out 4 non-ego
+cars, if considering the release use case. Using b ounded MC, up to 10 non-ego
+cars can b e pro cessed quite ecien tly , i. e., easily suitable for a regular nigh tly
+job. These limitations are relativized b y
+1
+the p oten tial to further impro v e
+the EM, and
+2
+b y arguing that on a straigh t high w a y most critical trac
+situations in v olv e only few directly in v olv ed participan ts.
+R untime volatility: Another limitation is the high sensitivit y of n uXm v to
+c hanges in the c hec k ed transitions systems, cf. Sec. 4.2. Small dierences can
+result in a factor of 2 3 in run time. It needs to b e considered for eac h indi-
+vidual case if this is acceptable. A related issue, whic h can b e problematic in an
+industrial con text, is not kno wing the remaining time of a run (will it nish in
+a min ute or run for another t w o w eeks?). F or b ounded MC, this question in ten-
+sies to whether the run will nish at all, whic h it nev er can if the sp ecication
+is fullled. In pro ductiv e use, long-enduring runs probably need to b e ab orted
+after some time. There is curren tly no general solution for this problem.
+F or c e to x bugs right away: The c haracteristic of n uXm v, to alw a ys pro duce
+essen tially the same CEX as long as an issue is not xed, is somewhat problematic
+for practical application. In theory , a disco v ered issue is supp osed to b e xed
+immediately , b efore going on disco v ering and xing others. In practice, ho w ev er,
+it ma y w ell happ en that an issue is not easily xable in a solid and pro cess-
+abiding w a y while dev elopmen t still m ust go on in other directions. An ignore
+option is desirable whic h lets users skip a CEX and trigger the generation of
+profoundly new ones. In fact, w e w ere able to presen t t w o diering CEXs with
+the same v ersion of the Alliance BP in Sec. 4.1 only due to the fact that in one
+case lane c hanges w ere prohibited for ego. These sort of tric ks can help to w ork
+around this issue.
+R ange of applic able BP typ es: T ec hnically , w e only assume that the BP is
+written in an imp erativ e language, i. e., C++ for no w. Our approac h is not lim-
+ited to deterministic BPs; the presen ted EM is already non-deterministic, e. g.,
+in mo deling the b eha vior of other cars. Ho w ev er, the presen ted to olc hain is not
+directly applicable to most AI-based approac hes. This is not a structural limita-
+
+--- Page 15 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 15
+tion (a C++ implemen tation of a deep neural net w ork could, in principle, b e fed
+in to our to olc hain), but seems infeasible, at to da y's state of researc h, due to w ell-
+kno wn issues regarding run time and n umerical instabilit y of these approac hes in
+com bination with non-probabilistic MC. An extension to probabilistic MC or
+probabilit y-based mo dels lik e POMDPs is conceiv able, but has so far not b een
+part of our in v estigations.
+Lessons Learned. A hybrid solution is r e quir e d: As p oin ted out b efore and
+in Sec. 5, out-of-the-b o x solutions (e. g., C mo del c hec k ers, as w ell as a pure
+com bination of Kratos2 + n uXm v) can deliv er some asp ects of the presen ted
+to olc hain. Ho w ev er, imp ortan t features lik e the closed-lo op in tegration of an EM,
+and the CEX explainabilit y functionalit y need to b e customized for the problem
+at hand. P articularly , this made it necessary to use a sp ecic C++ parser for the
+creation of the in terface b et w een EM and BP . In future, suc h a functionalit y
+could b ecome a nativ e feature of a mo del c hec k er.
+Detour over Kr atos2 and SMV is b enecial: As sho wn in Fig. 2 (page 7),
+the BP co de is rst translated from C++ in to K2, and from there in to SMV,
+where it is connected to an EM in SMV. Here, t w o shortcuts are think able,
+1
+the SMV represen tation of the BP could b e generated directly from C++ ,
+and
+2
+the explicit represen tation in SMV could b e o v erall omitted b y rather
+implemen ting the EM in C++ , as w ell. Ho w ev er, the presen ted path mak es full
+use of the imp erativ e MC functionalit y pro vided b y Kratos2 and the ric h syn tax
+of SMV. Both shortcuts ha v e b een tried out in the b eginning and abandoned
+later, since the curren t setup outp erformed them b y far.
+Explainability c an b e simple: W e exp erienced our metho d of extracting trac
+scenes from CEXs and further pro cessing them to w ards visualization and testing
+as highly eectiv e for
+1
+quic kly explaining bugs to b oth BP dev elop ers and,
+during early phases, EM designers,
+2
+for re-sim ulation of the results with
+the actual full soft w are stac k to conrm the MC results, and
+3
+for further
+pro cessing the scenes, for example, for test case generation. Generally , there are
+a n um b er of further explainabilit y metho ds to explore, suc h as translation to
+natural language [9, 3133], or, sp ecic to this use case, a further in v estigation
+of whic h co de lines of the BP lead to a violation.
+Gener al sc alability: The approac h scaled w ell across the dieren t v ersions of
+the Alliance BP , as w ell as the mo c k BP (i. e., run time dierences w ere insigni-
+can t). Ho w ev er, none of the BPs' logic so far con tained lo ops or recursion, whic h
+migh t signican tly increase complexit y .
+Gr anularity of abstr action is an op en question: All presen ted results w ere
+pro duced with a time scale rasterized to one iteration p er second in the EM. This
+sho ws that this gran ularit y of abstraction can pro duce useful ndings. Going
+to w ards an argumen tation of error-freeness, it needs to b e more profoundly
+insp ected what gran ularit y is actually required for whic h t yp es of statemen ts.
+Every-day development is not imp air e d: In practice, for t ypical ev ery-da y
+c hanges to the co de adapting the tags w as simple enough to b e correctly done
+
+--- Page 16 ---
+16 L. K önig et al.
+b y non-MC-exp erienced dev elop ers. More complex c hanges w ere done b y an MC
+exp ert, or split in to w ork pac k ages. The additional eort w as o v erall tolerable.
+5 Related W ork
+In this section, w e discuss related w ork on formal metho ds and ho w our w ork
+complemen ts them. In general, formal metho ds aim to pro v e safet y prop erties
+of algorithms theoretically . Redeld et al. giv e a go o d o v erview of the c hallenges
+within this eld [50]. F ormal metho ds include temp oral logic enco dings [63], mon-
+itoring [45, 47], theorem pro ving [46, 52] (see also o v erview in [48]) and MC [5]. In
+the follo wing, w e will fo cus on approac hes that could b e used for the safet y as-
+sessmen t of A V. Notably , only few w orks actually incorp orate suc h metho ds in to
+industrial pro duction or for the v erication of (parts of ) pro ducts [16, 18, 29]. A
+more extensiv e b o dy of researc h fo cuses on theoretically adopting formal meth-
+o ds to the problem landscap e giv en in the automotiv e industry , cf. o v erview
+in [59, 64].
+A t ypical practical issue, prev en ting broader adoption, is the in terface b e-
+t w een the problem to solv e and the theoretical to oling. The input languages for
+MC are often quite lo w-lev el and lac king a lot of features of mo dern program-
+ming languages lik e ob ject-orien ted features, dynamic data structures, etc. [6,
+8, 15, 27, 42]. Therefore, man y approac hes em b ed MC in to mo deling approac hes
+based on domain sp ecic languages and translate from suc h higher-lev el repre-
+sen tations to the mo del c hec k ers [14, 22, 26, 56]. In our setting, suc h approac hes
+cannot b e applied as the BP under v erication is only a v ailable in source co de.
+Other industrial MC applications in v olv e a man ual translation step of (part of )
+the co de under v erication in to mo del c hec k er language [20, 35]. Ho w ev er, dur-
+ing the dev elopmen t pro cess in a fast-c hanging en vironmen t this is not feasible.
+Esp ecially in early dev elopmen t stages, not only the co de under analysis, but
+also in terfaces and data structures c hange rapidly .
+F or handling cases where the system under v erication is only a v ailable as
+source co de, sev eral MC approac hes taking source co de as an input ha v e b een
+dev elop ed. Existing MC approac hes in this category mostly fo cus on (subsets) of
+C co de [12, 55, 60]. Similar to our strategy , most of these approac hes translate the
+mo del of the co de in to a suitable mathematical input language for the mo del
+c hec k ers [28, 36]. Chec king C++ co de requires more sophisticated approac hes,
+since ob ject-orien tation and other sp ecic C++ concepts in tro duce additional
+la y ers of complexit y . One MC metho d c hec king C++ co de is DIVINE, whic h also
+includes, e. g., exceptions [54]. It could b e used as an alternativ e bac k end for our
+approac h. The Bogor framew ork [53] pro vides means for creating soft w are mo del
+c hec k ers for ob ject-orien ted languages, but is only a v ailable for Ja v a.
+V erifying the decisions of the BP in dieren t trac situations requires to
+represen t these in the EM. While w e man ually implemen ted the EM in our
+approac h, there exist approac hes using on tologies for represen ting features of
+an EM [19]. They represen t abstract scenes of driving scenarios and use them
+
+--- Page 17 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 17
+in logic-based reasoning systems. Suc h approac hes could b e com bined with our
+approac h in future w orks for automatically conguring the EM.
+Another approac h is to directly include all safet y constrain ts in to the plan-
+ning itself [25]. A p opular example is to use reinforcemen t learning and in tegrate
+safet y constrain ts in to the learned p olicy [39, 57]. Ho w ev er, reinforcemen t learn-
+ing approac hes suer from a strong dep endency on the sp ecic en vironmen t the
+agen ts in teract with. Th us, one can nev er ensure safet y in all p ossible corner
+cases.
+6 Conclusion
+In this pap er w e describ ed the application of automated v erication to impro v e
+the dev elopmen t of an actual industrial b ehavior planner (BP) . Complemen ting
+the regular v alidation pro cess based on sim ulation and test driv es, w e dev elop ed
+a mec hanism to automatically extract from C++ co de the mo del of the underlying
+BP logic. This mo del can b e in tegrated with a mo del of the en vironmen t (features
+of the road and the other v ehicles), in a closed-lo op manner. This allo ws to
+deal in a seamless w a y with m ultiple v ersions of the BP , as they o ccur during
+dev elopmen t, and to exhaustiv ely analyze a h uge v ariet y of scenarios. In case of
+violations, the mo del c hec k er is able to pro duce traces that can b e re-executed in
+sim ulators of the original system to guide the searc h for errors. The approac h w as
+exemplarily deplo y ed in series dev elopmen t, and successfully detected m ultiple
+relev an t issues of in termediate v ersions of the BP at dev elopmen t time.
+There are sev eral directions for future activit y . First, w e will broaden the
+scop e of the en vironmen t mo deling to more general scenarios. Second, w e will
+in v estigate the gra y area b et w een the exhaustiv e exploration of a set of scenarios
+and a general guaran tee of correctness in the real w orld. Finally , w e aim at the
+application of the metho dology to other soft w are comp onen ts. In fact, it is often
+the case that the dev elopmen t and the v alidation teams pro ceed in parallel. In
+this resp ect, the con text of application of automated mo del extraction describ ed
+in this pap er can b e considered paradigmatic.
+A c kno wledgemen ts. A. Cimatti, A. Griggio and S. T onetta ac kno wledge the
+supp ort of the pro ject AI@TN funded b y the Autonomous Pro vince of T ren to
+and of the PNRR pro ject F AIR - F uture AI Researc h (PE00000013), under the
+NRRP MUR program funded b y the NextGenerationEU.
+References
+1. Amid, G.: ASAM Op enSCENARIO V2.0.0. T ec h. rep., Asso ciation for Standard-
+ization of Automation and Measuring Systems (2022)
+2. Aptiv, Audi, Baid, BMW, Con tinen tal, Daimler, F ca, Here, In-
+neon, In tel, V olsw agen: Safet y rst for automated driving. T ec h.
+rep. (2019), h ttps://www.aptiv.com/do cs/default- source/white- pap ers/
+safet y- rst- for- automated- driving- aptiv- white- pap er.p df , accessed: 25.09.2023
+
+--- Page 18 ---
+18 L. K önig et al.
+3. Artuñedo, A., Go do y , J., Villagra, J.: A decision-making arc hitecture for automated
+driving without detailed prior maps. In: 2019 IEEE In telligen t V ehicles Symp osium
+(IV). pp. 16451652. P aris, F rance (2019)
+4. Audi A G, Audi K omm unik ation: Audi So cAlt y Study (2022), h ttps:
+//www.audi.com/con ten t/dam/gbp2/compan y/researc h/audi- b ey ond/2021/
+A UDI_So cAIT y_Study_dgtl_1201_English_small.p df , accessed: 25.09.2023
+5. Baier, C., Kato en, J.P .: Principles of Mo del Chec king. MIT Press, Cam bridge, MA,
+USA (2008)
+6. Behrmann, G., Da vid, A., Larsen, K.G., P ettersson, P ., Yi, W., Hendriks, M.:
+Uppaal 4.0. In: Pro ceedings of the 3rd In ternational Conference on the Quan titativ e
+Ev aluation of Systems. pp. 125126. QEST 2006, IEEE Computer So ciet y , Los
+Alamitos, CA, USA (Sep 2006). h ttps://doi.org/10.1109/QEST.2006.59
+7. Bro oks, R.A.: A robust la y ered con trol system for a mobile rob ot. IEEE Journal
+on Rob otics and Automation 2 (1), 1423 (1986)
+8. Ca v ada, R., Cimatti, A., Dorigatti, M., Griggio, A., Mariotti, A., Mic heli, A.,
+Mo v er, S., Ro v eri, M., T onetta, S.: The n uXm v Sym b olic Mo del Chec k er. In: Com-
+puter Aided V erication. CA V 2014 (2014)
+9. Cherukuri, H., F errari, A., Sp oletini, P .: T o w ards Explainable F ormal Metho ds:
+F rom L TL to Natural Language with Neural Mac hine T ranslation. In: Gerv asi, V.,
+V ogelsang, A. (eds.) Requiremen ts Engineering: F oundation for Soft w are Qualit y .
+pp. 7986. Springer In ternational Publishing, Cham (2022)
+10. Cimatti, A., Griggio, A., Mo v er, S., Ro v eri, M., T onetta, S.: V erication mo d-
+ulo theories. F ormal Metho ds in System Design (2023). h ttps://doi.org/10.1007/
+s10703- 023- 00434- x
+11. Cimatti, A., Griggio, A., Mo v er, S., T onetta, S.: Innite-state in v arian t c hec king
+with IC3 and predicate abstraction. F ormal Metho ds in System Design 49 (3), 190
+218 (2016)
+12. Clark e, E., Kro ening, D., Lerda, F.: A T o ol for Chec king ANSI-C Programs. In:
+Jensen, K., P o delski, A. (eds.) T o ols and Algorithms for the Construction and
+Analysis of Systems. T A CAS 2004. Lecture Notes in Computer Science, v ol. 2988,
+pp. 168176. Springer, Berlin, Heidelb erg (2004)
+13. Daniel, J., Cimatti, A., Griggio, A., T onetta, S., Mo v er, S.: Innite-State Liv eness-
+to-Safet y via Implicit Abstraction and W ell-F ounded Relations. In: Chaudh uri,
+S., F arzan, A. (eds.) Computer Aided V erication. CA V 2016. Lecture Notes in
+Computer Science, v ol. 9779, pp. 271291. Springer In ternational Publishing, Cham
+(2016). h ttps://doi.org/10.1007/978- 3- 319- 41528- 4_15
+14. Da w, Z., Clea v eland, R., V etter, M.: In tegrating mo del c hec king and uml based
+mo del-driv en dev elopmen t for em b edded systems. In: Automated V erication of
+Critical Systems 2013. Electronic Comm unications of the EASST, v ol. 66 (2013).
+h ttps://doi.org/10.14279/tuj.eceasst.66.888
+15. Dehnert, C., Junges, S., Kato en, J.P ., V olk, M.: A storm is coming: A mo dern
+probabilistic mo del c hec k er. In: Ma jumdar, R., Kun£ak, V. (eds.) Computer Aided
+V erication. pp. 592600. Springer In ternational Publishing, Cham (2017)
+16. Eb erhart, C., Dubut, J., Ha ydon, J., Hasuo, I.: F ormal v erication of safet y ar-
+c hitectures for automated driving. In: 2023 IEEE In telligen t V ehicles Symp osium
+(IV). pp. 18 (2023). h ttps://doi.org/10.1109/IV55152.2023.10186763
+17. Enderton, H.B.: "A Mathematical In tro duction to Logic". A cademic Press, Boston,
+MA, USA, 2. edn. (2001)
+18. F arrell, M., Bradbury , M., Fisher, M., Dennis, L.A., Dixon, C., Y uan, H., Maple,
+C.: Using threat analysis tec hniques to guide formal v erication: A case study
+
+--- Page 19 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 19
+of co op erativ e a w areness messages. In: Ölv eczky , P .C., Salaün, G. (eds.) Soft w are
+Engineering and F ormal Metho ds. pp. 471490. Springer In ternational Publishing,
+Cham (2019)
+19. F uc hs, S., Rass, S., Lamprec h t, B., Ky amaky a, K.: A Mo del for On tology-Based
+Scene Description for Con text-A w are Driv er Assistance Systems. In: 1st In terna-
+tional ICST Conference on Am bien t Media and Systems. Pho enix, AZ, USA (2010).
+h ttps://doi.org/10.4108/ICST.AMBISYS2008.2869
+20. Gardner, R.W., Genin, D., McDo w ell, R., Rou, C., Saksena, A., Sc hmidt, A.:
+Probabilistic mo del c hec king of the next-generation airb orne collision a v oidance
+system. In: 2016 IEEE/AIAA 35th Digital A vionics Systems Conference (D ASC).
+pp. 110 (2016). h ttps://doi.org/10.1109/D ASC.2016.7777963
+21. Geisslinger, M., P oszler, F., Betz, J., Lütge, C., Lienk amp, M.: Autonomous Driv-
+ing Ethics: from T rolley Problem to Ethics of Risk. Philosoph y & T ec hnology 34 (4),
+10331055 (2021)
+22. Gerking, C., Dziw ok, S., Heinzemann, C., Sc häfer, W.: Domain-sp ecic mo del
+c hec king for cyb er-ph ysical systems. In: 12th W orkshop on Mo del-Driv en Engi-
+neering, V erication and V alidation. pp. 1827. MoDe VV a 2015, CEUR-WS.org
+V ol-1514, Otta w a (Sep 2015)
+23. Griggio, A., Joná², M.: Kratos2: an SMT-Based Mo del Chec k er for Imp erativ e
+Programs. In: Enea, C., Lal, A. (eds.) Computer Aided V erication. pp. 423436.
+Springer Nature Switzerland, Cham (2023)
+24. Griggio, A., Ro v eri, M.: Comparing Dieren t V arian ts of the IC3 Algorithm for
+Hardw are Mo del Chec king. IEEE T ransactions on Computer-Aided Design of In te-
+grated Circuits Systems 35 (6), 10261039 (2016). h ttps://doi.org/10.1109/TCAD.
+2015.2481869
+25. Halder, P ., Altho, M.: Minim um-Violation V elo cit y Planning with T emp oral
+Logic Constrain ts. In: 2022 IEEE 25th In ternational Conference on In telligen t
+T ransp ortation Systems (ITSC). p. 25202527. IEEE Press, Macau, China (2022).
+h ttps://doi.org/10.1109/ITSC55140.2022.9922114
+26. Heinzemann, C., Lange, R.: vTSL  a formally v eriable dsl for sp ecifying rob ot
+tasks. In: 2018 IEEE/RSJ In ternational Conference on In telligen t Rob ots and Sys-
+tems (IR OS). pp. 83088314. IR OS'18, IEEE Computer So ciet y , Madrid, Spain
+(2018). h ttps://doi.org/10.1109/IR OS.2018.8593559
+27. Holzmann, G.J.: The mo del c hec k er spin. Soft w are Engineering, IEEE T ransactions
+on 23 (5), 279 295 (ma y 1997). h ttps://doi.org/10.1109/32.588521
+28. Holzmann, G.J., H. Smith, M.: Soft w are mo del c hec king: extracting v erication
+mo dels from source co de  . Soft w are T esting, V erication and Reliabilit y 11 (2),
+6579 (2001). h ttps://doi.org/10.1002/stvr.228
+29. Ishigo ok a, T., Saissi, H., Pip er, T., Win ter, S., Suri, N.: Practical use of formal
+v erication for safet y critical cyb er-ph ysical systems: A case study . In: 2014 IEEE
+In ternational Conference on Cyb er-Ph ysical Systems, Net w orks, and Applications.
+pp. 712 (2014). h ttps://doi.org/10.1109/CPSNA.2014.20
+30. ISO/TC 22/SC 32 Electrical and electronic comp onen ts and general system as-
+p ects: ISO 21448:2022 Road v ehicles  Safet y of the in tended functionalit y (2022),
+h ttps://www.iso.org/standard/77490.h tml, accessed: 25.09.2023
+31. Kaleesw aran, A.P ., Nordmann, A., V ogel, T., Grunsk e, L.: A user-study pro-
+to col for ev aluation of formal v erication results and their explanation. arXiv
+abs/2108.06376 (2021)
+32. Kaleesw aran, A.P ., Nordmann, A., V ogel, T., Grunsk e, L.: A systematic literature
+review on coun terexample explanation. Information and Soft w are T ec hnology 145 ,
+120 (2022). h ttps://doi.org/10.1016/j.infsof.2021.106800
+
+--- Page 20 ---
+20 L. K önig et al.
+33. Kaleesw aran, A.P ., Nordmann, A., V ogel, T., Grunsk e, L.: A user study for ev alu-
+ation of formal v erication results and their explanation at b osc h. Empirical Soft-
+w are Engineering 28 (5) (2023)
+34. Kalra, N., P addo c k, S.M.: Driving to safet y: Ho w man y miles of driving w ould it
+tak e to demonstrate autonomous v ehicle reliabilit y? T ransp ortation Researc h P art
+A: P olicy and Practice 94 , 182193 (2016)
+35. Keating, D., McInnes, A., Ha y es, M.: An industrial application of mo del c hec king
+to a v essel con trol system. In: 2011 Sixth IEEE In ternational Symp osium on Elec-
+tronic Design, T est and Application. pp. 8388 (2011). h ttps://doi.org/10.1109/
+DEL T A.2011.24
+36. Keller, C.W., Saha, D., Basu, S., Smolk a, S.A.: F o cusChec k: A T o ol for Mo del
+Chec king and Debugging Sequen tial C Programs. In: Halb w ac hs, N., Zuc k,
+L.D. (eds.) T o ols and Algorithms for the Construction and Analysis of Sys-
+tems. pp. 563569. Springer, Berlin, Heidelb erg (2005). h ttps://doi.org/10.1007/
+978- 3- 540- 31980- 1_39
+37. Kerner, B.S.: Ph ysics of automated driving in framew ork of three-phase trac
+theory . Ph ysical Review E 97 (4) (2018). h ttps://doi.org/10.1103/Ph ysRevE.97.
+042303
+38. K ortenk amp, D., Simmons, R.: Rob otic Systems Arc hitectures and Programming.
+In: Siciliano, B., Khatib, O. (eds.) Springer Handb o ok of Rob otics. pp. 187206.
+Springer, Berlin, Heidelb erg (2008). h ttps://doi.org/10.1007/978- 3- 540- 30301- 5_9
+39. Kraso wski, H., Zhang, Y., Altho, M.: Safe Reinforcemen t Learning for Urban
+Driving using In v ariably Safe Braking Sets. In: 2022 IEEE 25th In ternational
+Conference on In telligen t T ransp ortation Systems (ITSC). pp. 24072414. Macau,
+China (2022)
+40. Kriebitz, A., Max, R., Lütge, C.: The German A ct on Autonomous Driving: Wh y
+Ethics Still Matters. Philosoph y & T ec hnology 35 (2), 29 (2022). h ttps://doi.org/
+10.1007/s13347- 022- 00526- 2
+41. Krämer, S., Stiller, C., Bouzouraa, M.E.: LiD AR-Based Ob ject T rac king and Shap e
+Estimation Using P olylines and F ree-Space Information. In: 2018 IEEE/RSJ In-
+ternational Conference on In telligen t Rob ots and Systems (IR OS). pp. 45154522.
+Madrid, Spanien (2018). h ttps://doi.org/10.1109/IR OS.2018.8593385
+42. K wiatk o wsk a, M., Norman, G., P ark er, D.: PRISM 4.0: V erication of probabilistic
+real-time systems. In: Gopalakrishnan, G., Qadeer, S. (eds.) Pro c. 23rd In terna-
+tional Conference on Computer Aided V erication (CA V'11). LNCS, v ol. 6806, pp.
+585591. Springer (2011)
+43. Leino, K., M., R.: Program Pro ving Using In termediate V erication Languages
+(IVLs) lik e Bo ogie and Wh y3. In: Pro ceedings of the 2012 A CM Conference on High
+In tegrit y Language T ec hnology . pp. 2526. Asso ciation for Computing Mac hinery
+(2012). h ttps://doi.org/10.1145/2402676.2402689
+44. Ma jzik, I., Semeráth, O., Ha jdu, C., Marussy , K., Szatmári, Z., Micsk ei, Z., Vörös,
+A., Babikian, A.A., V arró, D.: T o w ards System-Lev el T esting with Co v erage Guar-
+an tees for Autonomous V ehicles. In: Kessen tini, M., Y ue, T., Pretsc hner, A.,
+V oss, S., Burgueño, L. (eds.) 22nd A CM/IEEE In ternational Conference on Mo del
+Driv en Engineering Languages and Systems, MODELS 2019. pp. 8994. IEEE,
+Munic h, German y (2019). h ttps://doi.org/10.1109/MODELS.2019.00- 12
+45. Mehdip our, N., Altho, M., T ebb ens, R.D., Belta, C.: F ormal metho ds to comply
+with rules of the road in autonomous driving: State of the art and grand c hallenges.
+Automatica 152 (2023). h ttps://doi.org/10.1016/j.automatica.2022.110692
+
+--- Page 21 ---
+T o w ards Safe Autonomous Driving: Mo del Chec king a Beha vior Planner 21
+46. Mitsc h, S., Ghorbal, K., V ogelbac her, D., Platzer, A.: F ormal v erication of
+obstacle a v oidance and na vigation of ground rob ots. The In ternational Jour-
+nal of Rob otics Researc h 36 (12), 13121340 (2017). h ttps://doi.org/10.1177/
+0278364917733549
+47. Mitsc h, S., Platzer, A.: Mo delPlex: v eried run time v alidation of v eried cyb er-
+ph ysical system mo dels. F ormal Metho ds in System Design 49 , 3374 (2016). h ttps:
+//doi.org/10.1007/s10703- 016- 0241- z
+48. Na w az, M.S., Malik, M., Li, Y., Sun, M., Lali, M.I.U.: A surv ey on theorem pro v ers
+in formal metho ds (2019)
+49. Nees, M.A.: Safer than the a v erage h uman driv er (who is less safe than me)? exam-
+ining a p opular safet y b enc hmark for self-driving cars. Journal of Safet y Researc h
+69 , 6168 (2019)
+50. Redeld, S.A., Seto, M.L.: V erication c hallenges for autonomous systems. In:
+La wless, W., Mittu, R., Sofge, D., Russell, S. (eds.) Autonom y and Articial In-
+telligence: A Threat or Sa vior?, pp. 103127. Springer In ternational Publishing,
+Cham (2017). h ttps://doi.org/10.1007/978- 3- 319- 59719- 5_5
+51. Reid, T., Houts, S., Cammarata, R., Mills, G., Agarw al, S., V ora, A., P andey ,
+G.: Lo calization requiremen ts for autonomous v ehicles. SAE In ternational Journal
+of Computer Aided V erication 2 (3), 173190 (2019). h ttps://doi.org/10.4271/
+12- 02- 03- 0012
+52. Rizaldi, A., Keinholz, J., Hub er, M., F eldle, J., Immler, F., Altho, M., Hilgendorf,
+E., Nipk o w, T.: F ormalising and Monitoring T rac Rules for Autonomous V ehi-
+cles in Isab elle/HOL. In: P olik arp o v a, N., Sc hneider, S. (eds.) In tegrated F ormal
+Metho ds: 13th In ternational Conference, IFM 2017, T urin, Italy , pp. 5066. No.
+10510 in Lecture Notes in Computer Science, Springer In ternational Publishing,
+Cham (2017). h ttps://doi.org/10.1007/978- 3- 319- 66845- 1_4
+53. Robb y , Dwy er, M.B., Hatcli, J.: Bogor: A exible framew ork for creating soft w are
+mo del c hec k ers. In: Pro ceedings of T esting: A cademic and Industrial Conference
+- Practice And Researc h T ec hniques. pp. 3 22. T AIC P AR T 2006 (aug 2006).
+h ttps://doi.org/10.1109/taic- part.2006.5
+54. Ro£k ai, P ., Barnat, J., Brim, L.: Mo del c hec king C++ programs with exceptions.
+Science of Computer Programming 128 , 6885 (2016). h ttps://doi.org/10.1016/j.
+scico.2016.05.007
+55. Sc hlic h, B., K o w alewski, S.: Mo del c hec king c source co de for em b edded systems.
+In ternational Journal on Soft w are T o ols for T ec hnology T ransfer 11 (3), 187202
+(2009). h ttps://doi.org/10.1007/s10009- 009- 0106- 5
+56. Sc hmidt, Á., V arró, D.: Chec kvml: A to ol for mo del c hec king visual mo deling
+languages. In: Stev ens, P ., Whittle, J., Bo o c h, G. (eds.) UML 2003 - The Uni-
+ed Mo deling Language. Mo deling Languages and Applications, Lecture Notes in
+Computer Science, v ol. 2863, pp. 9295. Springer Berlin Heidelb erg (Oct 2003).
+h ttps://doi.org/10.1007/978- 3- 540- 45221- 8_8
+57. Sc hmidt, L.M., K on tes, G., Plinge, A., Mutsc hler, C.: Can Y ou T rust Y our Au-
+tonomous Car? In terpretable and V eriably Safe Reinforcemen t Learning. In: 2021
+IEEE In telligen t V ehicles Symp osium (IV). pp. 171178. Nago y a, Japan (2021).
+h ttps://doi.org/10.1109/IV48863.2021.9575328
+58. Sc hreurs, M., Steu w er, S.: Autonomous Driving - P olitical, Legal, So cial,
+and Sustainabilit y Dimensions. Autonomes F ahren: T ec hnisc he, rec h tlic he und
+gesellsc haftlic he Asp ekte pp. 151173 (2015)
+59. Selv ara j, Y., Ahrendt, W., F abian, M.: V erication of decision making soft w are
+in an autonomous v ehicle: An industrial case study . In: Larsen, K.G., Willemse,
+
+--- Page 22 ---
+22 L. K önig et al.
+T. (eds.) F ormal Metho ds for Industrial Critical Systems. pp. 143159. Springer
+In ternational Publishing, Cham (2019)
+60. Shank ar, S., P a jela, G.: A to ol in tegrating mo del c hec king in to a c v erication
+to olset. In: Bo²na£ ki, D., Wijs, A. (eds.) Mo del Chec king Soft w are, Lecture Notes
+in Computer Science, v ol. 9641, pp. 214224. Springer In ternational Publishing
+(2016). h ttps://doi.org/10.1007/978- 3- 319- 32582- 8_15
+61. Shari, A., Bonnefon, J.F., Rah w an, I.: Ho w safe is safe enough? Psyc hological
+mec hanisms underlying extreme safet y demands for self-driving cars. T ransp orta-
+tion Researc h P art C: Emerging T ec hnologies 126 , 112 (2021). h ttps://doi.org/
+10.1016/j.trc.2021.103069
+62. W ac henfeld, W., Winner, H.: The Release of Autonomous V ehicles, pp. 425450.
+Springer, Berlin, Heidelb erg (2016). h ttps://doi.org/10.1007/978- 3- 662- 48847- 8_
+21
+63. Zhao, T., Y urtsev er, E., P aulson, J.A., Rizzoni, G.: F ormal Certication Meth-
+o ds for Automated V ehicle Safet y Assessmen t. IEEE T ransactions on In telligen t
+V ehicles 8 (1), 232249 (2022). h ttps://doi.org/10.1109/TIV.2022.3170517
+64. Zhao, T., Y urtsev er, E., P aulson, J.A., Rizzoni, G.: F ormal certication metho ds
+for automated v ehicle safet y assessmen t. IEEE T ransactions on In telligen t V ehicles
+8 (1), 232249 (2023). h ttps://doi.org/10.1109/TIV.2022.3170517

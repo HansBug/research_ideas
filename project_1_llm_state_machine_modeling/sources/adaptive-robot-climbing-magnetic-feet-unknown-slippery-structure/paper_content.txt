@@ -1,0 +1,1351 @@
+--- Page 1 ---
+Adaptive robot climbing with
+magnetic feet in unknownslippery structure
+Jee-eun Lee1*, Tirthankar Bandyopadhyay2and Luis Sentis1
+1Human Centered Robotics Lab, Department of Aerospace Engineering and Engineering Mechanics,
+The University of Texas at Austin, Austin, TX, United States,2The Robotics and Autonomous Systems
+Group, DATA61, CSIRO, Brisbane, QLD, Australia
+Firm foot contact is the top priority of climbing robots to avoid catastrophic events,
+especially when working at height. This study proposes a robust planning and control
+framework for climbing robots that provides robustness to slippage in unknownenvironments. The framework includes 1) a center of mass (CoM) trajectory
+optimization under the estimated contact condition, 2) Kalman ﬁlter–like
+approach for uncertain environment parameter estimation and subsequent CoMtrajectory re-planing, and 3) an online we ight adaptation approach for whole-body
+control (WBC) framework that can adjust the g round reaction force (GRF) distribution
+in real time. Though the friction and adhesio nc h a r a c t e r i s t i c sa r eo f t e na s s u m e dt ob e
+known, the presence of several factors that lead to a reduction in adhesion may
+cause critical problems for climbing robots. To address this issue safely and
+effectively, this study suggests estimat ing unknown contact parameters in real
+time and using the evaluated contact inf ormation to optimize climbing motion.
+Since slippage is a crucial behavior and requires instant recovery, the computation
+time for motion re-planning is also critical. The proposed CoM trajectoryoptimization algorithm achieve d state-of-art fast computation viatrajectory
+parameterization with several reasonable assumptions and linear algebra tricks.
+Last, an online weight adap tation approach is presented in the study to stabilize
+slippery motions within the WBC framework. This can help a robot to manage the
+slippage at the very last control step by redistributing the desired GRF. In order to
+verify the effectiveness of our method, we have tested our algorithm and providedbenchmarks in simulation using a magnetic-legged climbing robot Manegto.
+KEYWORDS
+trajectory optimization, climbing robots, whole-body control, legged robots,
+optimization, parameterization, adaptation
+1 Introduction
+Climbing robots can keep humans away from dangerous tasks such as inspection of
+vertical structures. Various types of climbing robots are developed with different adhesion
+modalities: suction Tummala et al. (2002) , biologically inspired adhesion, for example,
+micro-splines Spenko et al. (2008) ;Parness et al. (2017) and micro- ﬁbrillar Kim et al.
+(2007) . Magnetic adhesion is predominant in industry Jose et al. (2018) , for maintenance
+and inspection purposes of ferromagnetic surfaces. Robots with wheels Tavakoli et al.OPEN ACCESS
+EDITED BY
+Chengxu Zhou,
+University of Leeds, United Kingdom
+REVIEWED BY
+Carlo Tiseo,University of Sussex, United KingdomEric Sihite,
+Northeastern University, United States
+*CORRESPONDENCE
+Jee-eun Lee,
+jelee@utexas.edu
+SPECIALTY SECTION
+This article was submitted to FieldRobotics,a section of the journalFrontiers in Robotics and AI
+RECEIVED 21 May 2022
+ACCEPTED 01 July 2022
+PUBLISHED 29 August 2022
+CITATION
+Lee J-e, Bandyopadhyay T and Sentis L(2022), Adaptive robot climbing with
+magnetic feet in unknown
+slippery structure.Front. Robot. AI 9:949460.
+doi: 10.3389/frobt.2022.949460
+COPYRIGHT
+© 2022 Lee, Bandyopadhyay and Sentis.This is an open-access articledistributed under the terms of theCreative Commons Attribution License
+(CC BY) . The use, distribution or
+reproduction in other forums ispermitted, provided the originalauthor(s) and the copyright owner(s) arecredited and that the originalpublication in this journal is cited, inaccordance with accepted academic
+practice. No use, distribution or
+reproduction is permitted which doesnot comply with these terms.
+Frontiers in Robotics and AI frontiersin.org 01TYPE Methods
+PUBLISHED 29 August 2022
+DOI10.3389/frobt.2022.949460
+
+--- Page 2 ---
+(2013) ;Eich and Vögele (2011) and continuous tracks
+Kermorgant (2018) are often used with magnetic adhesion but
+these robots have dif ﬁculties in traversing complex 3D structure.
+Legged platforms, on the other hand, offer greater mobility giventheir ability to execute discontinuous contact transition
+Bandyopadhyay et al. (2018) . However, these bene ﬁts are
+achieved at the cost of increased complexity requiring greatintelligence to control a robot over the unstructured ground.
+1.1 What do we need to concern about for
+climbing behaviors?
+Most current studies on climbing robots focused on their
+design and mechanism and only a few studies have been
+conducted on dynamic robot climbing behavior. Severalstudies propose to utilize biologically inspired templates to
+generate climbing motions Brown et al. (2018) ,Lynch et al.
+(2012) , but their implementations are limited to certain behavior
+and do not consider any constraint regarding safe holdings that
+should be guaranteed for stable climbing. Motion planning and
+control have also been studied for free-climbing Bretl (2006) ;
+Miller and Rock (2008) and vertical wall climbing Lin et al.
+(2019) ;Lin et al. (2018) . However, most works are also limited
+since the problems are formulated quasi-static to avoid
+computational complexity.
+Apparently, the climbing and walking behavior of legged
+robots share a common mechanism: multi-contact transition to
+relocate their footholds to the proper position. It is more
+challenging for climbing robots as they need to hold onto aninclined surface while lifting their entire mass. Besides, given that
+most climbing robots are developed to inspect in an unknown
+environment, assumed adhesion and friction quality can often bedifferent from the real values. Therefore, the need for a method to
+avoid falling and deal with unexpected slippage cannot be
+overemphasized especially for climbing robots.
+1.2 How can we deal with slippage using
+robot control?
+A combination of walking pattern parameter adaptation
+(long-term strategy) and force control (short-term strategy) to
+compensate for slippages is effective for robots walking on a
+slippery ground Takemura et al. (2005) . However, prede ﬁned
+walking pattern adaptation can recover only from the limited
+amount of slippage. Instead, the idea to handle slip force as
+disturbance acting on a robot is suggested by Kaneko et al.
+(2005) . A humanoid can avoid falling by estimating slip force via
+observer and compensating for the reactive motion caused by slip
+force. Focchi et al. (2018) ;Jenelten et al. (2019) proposed slip
+detection and recovery mechanism for quadruped robots
+developed to be employed in a WBC framework. However,both methods can still fail to recover from traction loss
+without proper centroidal motion re-planning to generate
+required GRFs to keep contact ﬁrm.
+1.2.1 Centroidal trajectory optimization
+This study proposes to re-plan CoM motion viatrajectory
+optimization to address the above limitations. Generating theproper CoM motion plays a critical role in vertical climbing
+Brown et al. (2018) , though most studies achieve it via
+biologically inspired motion pattern. Trajectory optimizationwith centroidal dynamics is becoming popular in locomotion
+community Orin et al. (2013) ;Kim et al. (2019) ;Carpentier and
+Mansard (2018) ;Dai et al. (2014) due to its availability to handle
+friction condition simpler than solving full-body dynamics.
+Given the estimated adhesion force and friction coef ﬁcient, we
+can help a robot remain ﬁrm in contact by generating proper
+CoM motion. For example, by decelerating CoM in the gravity
+direction or normal to surface direction, we can relatively
+increase the normal contact force and reduce the tangentialfriction force at poor contact.
+One well-known strategy to simplify centroidal dynamics
+optimization is the convexi ﬁcation of the system Ponton et al.
+(2018) . By approximating non-conve x quadratic constraint in a
+discrete-time system, it can obtain optimal CoM trajectory givenmulti-contact scenarios in 1 s fo r around 100 time steps. Another
+effective way to achieve fast computation is parameterization.
+Winkler et al. (2018) ;Ahn et al. (2021) leveraged phase-based
+parameterization to simplify traj ectory description. Then, they
+formulate the problem to automatically determine the gait
+sequence, step timings, footholds, and swing-leg motions bysolving nonlinear optimization in a discrete-time system. Though
+they provide the more generic f orm, the problem remains non-
+convex, and thus it takes about 4 s to be solved. Fernbach et al. (2020)
+utilized both parameterization and convexi ﬁcation viaBezier curves.
+However, since the whole trajector y over the multi-contact sequence
+is determined by one 3d vector dec ision variable, the generated
+motion could be limited. Also, the double description (DD) method
+is known to be unstable means to compute the linear constraints,
+which can be critical in robotics.
+The proposed centroidal trajectory optimization leverages
+phase-based parameterization and several assumptions are
+applied to convexify the problem. Also, we showed thatinequality constraints hold over the entire time horizon if it
+holds at the boundary of the function. Reduced dimension of
+constraints compared to that of the discrete-time domainprovides faster computation. As a result, the proposed CoM
+trajectory optimization algorithm achieves a state-of-the-art fast
+computation simultaneously with an online contact parameterestimation algorithm to update the CoM trajectory immediately.
+1.2.2 QP-based whole-body control framework
+Whole-body control (WBC) is a generic task-oriented
+control method that is particularly useful in controlling
+Frontiers in Robotics and AI frontiersin.org 02Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 3 ---
+redundant robots like legged robots Khatib et al. (2004) .A
+multilevel hierarchical control structure can be established via
+torque-based whole-body control, which allows humanoid
+robots to interact with the environment Sentis et al. (2010)
+compliantly. Optimization-based approaches have been
+popular for its ability to incorporate inequality constraints
+addressed within full-body dynamics Escande et al. (2014) ;
+Feng et al. (2015) ;Kim et al. (2020) . Task hierarchy can be
+formulated as hierarchical least-square quadratic problems
+Escande et al. (2014) ;Bellicoso et al. (2016) , but also can be
+considered viaweighted cost terms in a single quadratic program
+Feng et al. (2015) ;Wiedebach et al. (2016) . Even though weighted
+QP formulation can reduce the number of optimizationproblems to be solved, heuristically determined weights can
+violate the priority.
+Whole-body locomotion controller (WBLC) leveraged a
+projection-based approach to consider equality task hierarchy
+and a QP formulation to ﬁnd the command satisfying inequality
+constraints and full-body dynamics Kim et al. (2020) . WBLC has
+successfully demonstrated dynamic locomotion of passive ankled
+robots. However, heuristic weights in QP formulation can violate
+the task hierarchy considered in task-priority projection-based
+inverse kinematics, especially when external disturbances or
+uncertainties exist in the environment. Lee et al. (2021)
+proposes a feedback gain adaptation method to stabilize
+external disturbances in WBLC based on the stability analysis.
+In this study, we suggest online weight adaption in QPformulation to address uncertainties, especially those that
+cause slippage. By regulating weights regarding reaction force
+depending on the slip level, we can enforce QP to ﬁnd the
+command robust to the slippage.
+1.3 Contribution
+We summarize the contributions of this study as follows:
+We devise a state-of-the-art fast CoM trajectory
+optimization, which can be solved in 50 μs for one-step
+climbing motion. By using phase-based parameterization
+and several assumptions to convexify the centroidal
+dynamics, the problem to determine CoM trajectorywhile satisfying the friction and adhesion condition
+during the swing phase can be solved about two orders
+of magnitude faster than other existing methods.
+We propose a Kalman ﬁlter–like approach for estimating
+unknown friction coef ﬁcient and (magnetic) adhesion
+force at slippery contact. Based on the contact forcemeasurement, we linearize the observation model and
+formulate the system propagating itself to apply Kalman
+ﬁlter algorithm. This can be used in combination with our
+state-of-the-art fast algorithm to re-plan CoM trajectory to
+generate an instant slip recovery motion.We provide an online weight adaptation approach to be
+used in a QP-based WBC framework to stabilize the
+slippage instantly. We increase the normal contact force
+and decrease the tangential force by regulating the weightsfor ground reaction force with respect to the slippage rate.
+Altogether, our main contribution is an integrated
+framework that provides planning and control strategies for
+robot climbing robust to the unknown environment. The
+proposed CoM trajectory optimization can be solved in realtime allowing instant and effective slippage recovery. In
+combination with an online weight adaptation, the framework
+yields the best results in dealing with unknown slipperycondition.
+1.4 Organization of the article
+This article is structured as follows:
+Problem de ﬁnition ( Section 2 ): This section introduces the
+robot climbing problem. An overview of our problem
+solving is also described in this section with the
+summary of WBLC as preliminary studies for theproposed framework.
+Multi-contact CoM trajectory generation for climbing
+(Section 3 ): This section describes the proposed CoM
+trajectory optimization method. Details are addressed
+from parameterization to approximations and applied
+linear algebra tricks step by step.
+Contact parameter estimation and CoM re-planning
+(Section 4 ): This section develops a slip re ﬂex strategy
+when the slippage occurs. The overall procedure can bedescribed as follows: 1) Friction coef ﬁcient and adhesion
+force in slippery contacts are estimated viaeither solving
+the least-square problem or the Kalman ﬁlter–like
+approach. 2) Given the re-evaluated friction coef ﬁcient
+and adhesion force, CoM re-planning is performed
+through the revised CoM trajectory optimizationdescribed in Section 3 to satisfy the new constraints.
+Online weight adaptation to stabilize slippery motions
+(Section 5 ): This section provides an online weight
+adaptation method that can be used in QP-based WBC.
+Deﬁning the slippage rate that determines how the slip is
+severe, the weights can be adjusted to reduce slip behaviors.
+Experimental validation ( Section 6 ): This section shows the
+performance of the proposed method viasimulation
+experiment using a magnetic legged climbing robotManegto. We have tested our algorithm and provided
+benchmarks. Several multi-contact scenarios including
+the different shapes of the climbing structure andvarious settings of the contact environment were used
+for the test.
+Frontiers in Robotics and AI frontiersin.org 03Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 4 ---
+2 Problem de ﬁnition
+In this study, we are aiming to solve a one-step climbing problem
+that can be described as follows: given the initial con ﬁguration of a
+robot in static equilibrium and given the next foot placement, the
+desired CoM position can be calculated —we chose the position close
+to the initial con ﬁguration and far from singularity —and we want to
+generate optimal trajectories for climbing and design the control laws
+robust to the environment uncertainties, especially the slipphenomenon.
+2.1 Overview
+Figure 1 shows an overview of the proposed control architecture.
+This framework is developed based on a whole-body locomotion
+controller (WBLC) Kim et al. (2020) , which takes prioritized tasks as
+an input and outputs torque command with desired joint positionand velocity commands at the instant time horizon. Usually, tasks
+prioritized in the following order are widely used in a legged robot: 1)
+maintaining rigid contact, 2) tracki ng CoM (centroidal) trajectory, 3)
+tracking swing foot trajectory, and 4) staying close to the initial
+conﬁguration. Both CoM trajectory and swing foot trajectory are
+simply described as a straight line or parabola in most WBC works.However, since CoM trajectory can play an important role in
+generating required GRF in climbing motion, we propose to
+generate CoM motion viatrajectory optimization. In addition, to
+deal with the slippage caused by the unknown environment, the
+estimation of adhesion force and friction coef ﬁcient is applied to the
+slipping contact. The re-evaluated parameters are updated in WBCthat computes torque commands that satis ﬁes friction constraints
+associated with the estimated friction coef ﬁcient and full-bodydynamics affected by estimated magnetic adhesion. CoM re-
+planning could be also needed to generate the GRF that lies in
+the associated friction cone. Fi nally, a slip-aware online weight
+adaptation approach is integrated to the work with quadratic
+programming (QP) formulatio ni nW B Ct os t a b i l i z es l i p p e r y
+motion instantly.
+2.2 Whole-body locomotion controller
+extended to climbing
+In this section, we ﬁrst review WBLC with an extended
+formulation for climbing robots, especially those that use
+magnetism for adhesion, for example, Magneto
+Bandyopadhyay et al. (2018) . WBLC proposed in Kim et al.
+(2020) solves the WBC problem by two sequential blocks: a
+Kinematic-level WBC that considers task hierarchy in inverse
+kinematics viaprojection-based method and a Dynamic-level
+WBC to compute torque command that satis ﬁes all the dynamics
+constraints by solving quadratic programming (QP).
+2.2.1 Magnetic climbing dynamics
+Magneto is developed to climb the wall using a switchable
+electromagnet attached to each foot. Each leg of Magneto consistsof actuated joints for actuators and passive joints for gimbals.
+Given a con ﬁguration space Q∈R
+nand an input space U∈Rna,
+the dynamics of a robot can be formulated as follows:
+Mq/parenleftbig/parenrightbig €q+bq,_q/parenleftbig/parenrightbig /equalsSaτa+Jcq/parenleftbig/parenrightbiguFc+Jmq/parenleftbig/parenrightbiguFm, (1)
+where q∈Q,M(q)∈Sn
+++,b(q,_q)∈Rn, and τa∈Udenote the
+joint vector, mass/inertia matrix, sum of Coriolis/centrifugal
+FIGURE 1
+Control architecture.
+Frontiers in Robotics and AI frontiersin.org 04Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 5 ---
+force and gravitational forces, and actuator command,
+respectively. Sa∈Rn×nadenotes the selection matrix indicating
+the index set of actuated joints, which maps τainto the
+generalized forces. Fc∈R6ncis a vertically concatenated
+contact wrench vector, where ncis the number of contacts
+and the corresponding contact Jacobian is represented as
+Jc(q)∈R6nc×n. Similarly, magnetic force applied to the
+climbing robot for adhesion can be represented as a stacked
+wrench vector Fm∈R6nmand the corresponding Jacobian matrix
+Jm(q)∈R6nm×n, where nmis the number of activated magnetic
+mechanisms. In this study, we have assumed that both the
+contact forces and magnetic forces are applied at the center of
+each foot if and only if contact is made; thus, we have nc=nmand
+Jc(q)=Jm(q). Then the ground reaction force wrench can be
+represented as Fr=Fc+Fm; the sum of forces are applied to the
+contacts.
+2.2.2 Kinematic level WBC
+A kinematic level WBC computes the desired joint command
+qd∈Rngiven the tasks de ﬁned in hierarchy. Let Jk(q) and xdes
+k
+denote kth prioritized task Jacobian and the desired position.
+Then Δqk, the change of joint con ﬁguration related to the kth task
+iteration, can be obtained by the propagation below:
+Jk|k−1q/parenleftbig/parenrightbig/equalsJkq/parenleftbig/parenrightbigNk−1q/parenleftbig/parenrightbig,
+Δqk/equalsJ†
+k|k−1xdes
+k−xk−Jkq/parenleftbig/parenrightbigΔqk−1 /parenleftBig/parenrightBig ,
+Nkq/parenleftbig/parenrightbig/equalsNk−1q/parenleftbig/parenrightbig−Jk|k−1q/parenleftbig/parenrightbig†Jk|k−1q/parenleftbig/parenrightbig,
+N0q/parenleftbig/parenrightbig/equalsIn×n,(2)
+where Nk(q) and Jk|k−1represent kth task null-space projection
+and prioritized Jacobians. Then the desired joint position can be
+obtained by qd/equalsq+/summationtextN
+k/equals1Δqkin consideration of task priority.
+Similarly, _qd/equals/summationtextN
+k/equals1_qd
+kand €qd/equals/summationtextN
+k/equals1€qd
+kcan be obtained from
+the following propagation:_qd
+0/equals0, €qd
+0/equals0,
+_qd
+k/equalsJ†
+k|k−1_xd
+k−Jkq/parenleftbig/parenrightbig _qd
+k−1 /parenleftBig/parenrightBig ,
+€qd
+k/equalsJ†
+k|k−1€xd
+k−_Jkq,_q/parenleftbig/parenrightbig _q−Jkq/parenleftbig/parenrightbig €qd
+k−1 /parenleftBig/parenrightBig .(3)
+2.2.3 Dynamic level WBC
+A dynamic level WBC calculates the desired torque
+command and modi ﬁed joint command that satis ﬁes dynamic
+constraints based on the optimization framework. This can beachieved by solving QP formulated as follows:
+min
+δ€q,Fr,€xc,δ€q⊤W €qδ€q+F⊤
+rWfFr+€x⊤
+cWc€xc,
+subject to M q /parenleftbig/parenrightbig €q+bq,_q/parenleftbig/parenrightbig /equalsSaτa+Jcq/parenleftbig/parenrightbiguFc+Jmq/parenleftbig/parenrightbiguFm,
+€q/equals€qd+Kd_qd−_q/parenleftBig/parenrightBig +Kpqd−q/parenleftBig/parenrightBig +δ€q
+€xc/equalsJc€q+_Jc_q,
+Fr/equalsFc+Fm,
+Uμ/parenleftbig/parenrightbigFc≥0,
+τmin≤τ≤τmax,
+(4)
+where W €q/equalsdiag(w1
+€q,...,wn
+€q),Wf/equalsdiag(w1
+f,...,w6nc
+f),
+and Wc/equalsdiag(w1
+c,...,w6ncc) are weight matrices
+corresponding to the joint acceleration relation δ€q∈Rn,
+ground reaction force Fr∈R6nc, and contact acceleration
+€xc∈R6nc.Kp,Kd∈Sn
++are feedback gains corresponding to the
+desired joint commands qd,_qd,€qd∈Rnobtained by Kinematic
+Level WBC, and U(μ)∈R17nc×6ncrepresents diagonally stacked
+rectangular contact wrench cones ( Caron et al., 2015) with
+respect to the contacts where the friction coef ﬁcients are
+μ/equals[μ1,...,μnc]⊤. Note that all the force wrenches and
+corresponding Jacobians in the formulation are expressed
+from the local body frame. Finally, torque command limits
+are considered given the minimum and maximum torques ofthe actuators τ
+min,τmax. By solving the aforementioned QP, we
+FIGURE 2
+Free body diagram.
+Frontiers in Robotics and AI frontiersin.org 05Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 6 ---
+canﬁnally compute the low-level joint torque command that
+satisﬁes all the dynamics constraints given the prioritized task.
+2.2.4 Phase-based state machine
+Phase-based state machines are used together with WBLC to
+control a legged robot. We de ﬁned four state machines for one-
+step climbing control: full-support, pre-swing transition, swing,and post-swing transition. Each state machine represents a WBLC
+controller de ﬁned to consider different contact phases —e.g.,
+different contact dimensions and weight parameters —so that
+the multi-contact climbing motion can be controlled by using
+the proper controller. The details can be found in Kim et al. (2020) .
+3 Multi-contact CoM trajectory
+generation for climbing
+This planner can cooperate with the WBLC framework by
+providing the optimal CoM trajectory for climbing motion as the
+ﬁrst prioritized task. Given the current con ﬁguration and the next
+desired contact location, we want to ﬁnd a CoM trajectory for one
+step climbing motion, which satis ﬁes constraints established under
+the estimated adhesion forces and friction coef ﬁcients.
+3.1 Centroidal dynamics with magnetic
+force and friction cone constraints
+In this study, we formulated the problem with respect to the
+centroidal dynamics of a robot , which is commonly used in the
+legged robotics community as an effective way to simplify the robot
+dynamics while considering the contact constraints. By solving the
+Newton –E u l e re q u a t i o n so nt h ec e n t e ro fm a s s( C o M )o far o b o t ,a s
+described in free body diagram in Figure 2 we can formulate the
+centroidal dynamics as follows:
+mpG×€pG−g/parenleftbig/parenrightbig +_L
+m€pG−g/parenleftbig/parenrightbig/bracketleftBigg/bracketrightBigg /equals/summationdisplay
+i∈Contactpi×Rifc,i
+Rifc,i/bracketleftBigg/bracketrightBigg +/summationdisplay
+i∈Magnetpi×Rifm,i
+Rifi
+m/bracketleftBigg/bracketrightBigg ,
+/equalspc1×Rc1···
+Rc1···/bracketleftBigg/bracketrightBigg
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownrightPc
+Rcfc,c1
+...⎡⎣⎤⎦
+/bracehtipupleft/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/bracehtipupright
+fc+pm1×Rm1···
+Rm1···/bracketleftBigg/bracketrightBigg
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownrightPm
+Rmfm,m 1
+...⎡⎣⎤⎦
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/bracehtipupright
+fm
+/equalsPc
+Rc/bracketleftBigg/bracketrightBigg fc+Pm
+Rm/bracketleftBigg/bracketrightBigg fm, (5)
+where mis the mass of the robot, g= [0,0, −9.81]⊤is the gravity vector,
+pG∈R3is the robot CoM position, and _L∈R3is angular
+momentum. pi∈R3,Ri∈SO(3)are the position and orientation
+of the ith foot expressed in the world frame, which are used to map
+contact force fc,i∈R3, and magnetic force fm,i∈R3is expressed from
+the local foot frame. Finally, we de ﬁned
+Pc,Rc∈R3×3nc,Pm,Rm∈R3×3nm,fc∈R3nc,a n d fm∈R3nmto
+simply describe the equation using the stacked matrix and vector form.
+In order to describe the friction that resists relative lateral
+motion between two solid surfaces in contact, the linearized
+Coulomb friction model was used in this study. It approximatelyprovides a threshold value for friction force parallel to the surface
+as a function of the normal force. Based on the model, we can
+formulate the inequality constraints on contact forces as follows:
+Dfc≥0,
+where ,D/equalsdiag Ufμc1/parenleftBig/parenrightBig,//parenleftBig/parenrightBig ,
+Ufμ/parenleftbig/parenrightbig/equals00 1
+10 ~μ
+−10 ~μ
+01 ~μ
+0 −1 ~μ⎛⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎝⎞⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎠with ~μ/equalsμ/radicaltpext
+2√, (6)
+3.2 Phase-based CoM trajectory
+parameterization
+Legged motion is often represented as a sequence of contact
+phases. For instance, one step climbing motion for a quadrupedcan be described as the contact sequence of (1) full support/pre-
+swing ( n
+c=4 )→(2) swing ( nc=3 )→(3) full support/post-swing
+(nc= 4). In this study, we composed CoM trajectories for
+climbing considering the contact sequence using cubic
+Hermite spline, where each piece represents the pre-swing,
+swing, and post-swing phase sequentially, as shown inFigure 3 . Then CoM trajectory can be parameterized as three
+pieces of cubic Hermite polynomial de ﬁned by its duration( T),
+the initial and goal position of each node ( p
+i,pg), and the
+velocities ( vi,vg). This phase-based parameterization also
+matches with our WBLC (whole-body locomotion controller)
+framework well. Based on four state machines de ﬁned within
+WBLC (full support –transition –swing –transition), given that we
+FIGURE 3
+CoM trajectory represented by parameterized spline.
+Frontiers in Robotics and AI frontiersin.org 06Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 7 ---
+can consider the transition as a part of the adjacent full support
+phase, the parameterized trajectory can be used according to thecorresponding state machine.
+However, we still need several assumptions to remove the non-
+convexity of the problem caused by the cross product termp
+G×€pG.Del Prete et al. (2018) utilized the fact that the cross
+product of the parallel vectors is zero to solve the zero-step
+capturability problem. To be more speci ﬁc, they assumed that
+the best strategy to stop CoM is to decelerate it in the direction CoM
+moves. Inspired by the strategy, we applied a similar assumption to
+our spline formulation. During the swing phase and post-swingphase, CoM moves along the straight line but accelerates in the
+opposite direction: €p
+swing
+G(t)/equalsαd,€ppost swing
+G (t)/equalsβd,w h e r e α,βare
+constants with different signs and dis an unit vector indicating the
+direction of straight motion. Th en given the initial and goal CoM
+position paandpb, respectively, CoM trajectory parameterization
+for one step climbing can be summarized as Table 1 .
+3.3 Reformulation of centroidal dynamics
+based on spline parameterization
+Now, we can reformulate the centroidal dynamics by substituting
+the parameterized CoM trajectory pHS(t;T,pi,pg,vi,vg), summarized
+inTable 1 intoEqs 5 ,6. Given that slippage is most likely to happen
+during (2) swing and (3) post- swing phase, we assumed that
+parameterized CoM motion that satis ﬁes friction conditions
+during (2) swing and (3) post-swing phase will also satisfy frictionconditions during (1) pre-swing phase. Last, we assumed that both
+magnetic force f
+mand contact force fcare applied at the center of each
+foot frame for Magneto only if the foot is in contact, that is, Pc/equalsPm
+andRc/equalsRminEq. 5 .T h e nw eh a v et h ef o l l o w i n g :
+2) Swing:
+Ps−pb/bracketleftbig/bracketrightbig×Rs
+Rs/bracketleftBigg/bracketrightBigg fc/equals1
+2mg/bracketleftbig/bracketrightbig×T2−t ()2
+mI3⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦αd+1
+2mg/bracketleftbig/bracketrightbig×T3T3+2T2−t ()
+0⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦βd
++_L−P
+s−pb/bracketleftbig/bracketrightbig×Rs/parenleftbig/parenrightbig fm
+−mg−Rsfm/bracketleftBigg/bracketrightBigg ,
+5 Asfc/equalsBsat()αd+Bsbt()βd+cs,∀t∈0,T2 () ,
+(7)Dsfc≥0( 8 )
+wherePs,Rs∈R3×9represent the con ﬁguration matrices( Pc,Rcin
+Eq. 5 ) mapping the force vectors fc,fm∈R9during the swing phase.
+F i n a l l y ,w ed e n o t e dt h ec o e f ﬁcients of the obtained parameterized
+centroidal dynamics during the swing phase as As∈R6×9,
+Bsa(t),Bsb(t)∈R6×3,cs∈R6, and the corresponding friction
+cone matrix as Ds∈R15×9.
+3) Post swing:
+Pf−pb/bracketleftbig/bracketrightbig×Rf
+Rf/bracketleftBigg/bracketrightBigg fc/equals1
+2mg/bracketleftbig/bracketrightbig×T3−t ()2
+mI3⎡⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎦βd+_L−P
+f−pb/bracketleftbig/bracketrightbig×Rf/parenleftBig/parenrightBig fm
+−mg−Rffm/bracketleftBigg/bracketrightBigg ,
+5 Affc/equalsBft()βd+cf,∀t∈0,T3 () ,
+(9)
+Dffc≥0, (10)
+where Pf,Rf∈R3×12represent the con ﬁguration matrices
+mapping the force vectors fc,fm∈R12during the post swing
+phase. Af∈R6×12,Bf(t)∈R6×3,a n d cf∈R6are coef ﬁcients of
+the parameterized centroidal dyna mics during the post-swing phase
+andDf∈R20×12is the corresponding fr iction cone matrix.
+3.4 Problem solution for parameterized
+CoM trajectory generation
+By applying parameterized CoM spline to the centroidal
+dynamics, the problem of determining CoM trajectory during
+one step climbing can be simpli ﬁed as a problem to ﬁndα,β,d
+that satis ﬁesEqs 7 –10. However, the problem is still non-linear
+since we have multiplication of variables, αd,βdin equation.
+Also, the different dimension of contact force vector ( fc)i n( 7,8)
+and ( 9,10) makes a problem hard to be solved. Along with the
+assumptions we made in the CoM trajectory parameterization,
+we need several more tricks to solve the problem.
+3.4.1 Pre-determining the ratio of accelerations
+First, we pre-determine γ/equalsα
+β, the ratio of the accelerations
+during the swing phase and the post swing phase. This way, wecan linearize the problem by decoupling the constraint between
+αdandβd. We, speci ﬁcally, chose γthat minimizes the maximumTABLE 1 Summary of phase-based CoM trajectory parameterization for one-step climbing motion. Given knots values described in the table, CoM
+trajectory can be computed viacubic Hermite polynomial (p HS(t;T,pi,pg,vi,vg)). Detailed equations are described in Appendix .
+(1) Pre swing (2) Swing (3) Post swing
+T(duration) T1 T2 T3
+pi(init position) pa p1/equalspb+(1
+2βT2
+3+βT3T2+1
+2αT2
+2)d p2
+pg(goal position) p1 p2/equalspb+1
+2βT2
+3d pb
+vi(init velocity) 0v 1=(−βT3−αT2)dv 2
+vg(goal velocity) v1 v2=(−βT3)d0
+Note that vectors are denoted by boldface letters to avoid confusion with scalar variables. Given knots values described in the table.
+Frontiers in Robotics and AI frontiersin.org 07Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 8 ---
+distance between the CoM goal position and the trajectory over
+the swing phase. This limits the trajectory to have minimal
+movement.
+γp/equalsarg min
+γmax
+t|gγt()|,t∈0,T2 () /parenleftbigg/parenrightbigg ,
+where pst()−pb/equalsgγt()·βd,t∈0,T2 () ,
+gγt()/equals1
+2γT2−t ()2+T3T2−t () +1
+2T2
+3,
+Assuming γp≠0 and solving for γ<0, we get the following:
+γp/equals−T3T2+T3 () +T3/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext
+T2+T3 ()2+T2
+2/radicalBig
+T2
+2. (11 )
+3.4.2 Contact force determination in centroidal
+dynamics
+We took a simple solution for contact force in centroidal
+dynamics by mapping the weighted inverse of con ﬁguration
+matrix Asand Af. In the centroidal dynamics described in
+Eqs. 7 ,9, given the rank of the equation is six and fcis either
+nine or 12, there is an in ﬁnite number of possible fctracking
+the given CoM trajectory. One effective way to handle a set of
+inequalities and equates is using the double description
+method as Fernbach et al. (2020) reformulate the problem.
+This way, we can ﬁnd all feasible solutions based on the
+numerical conversion between the convex hull description
+m e t h o d ,b u ta tt h es a m et i m e ,i ti sk n o w nt ob es o m e t i m e scomputationally unstable, w hich can be problematic in
+robotics. Instead, we simply assumed that contact force
+can be easily obtained by mapping the weighted inversematrix A
+−1/equalsW−1A⊤(AW−1A⊤)−1to the dynamics. This
+method is quite reliable, and we can con ﬁgure it to ﬁnd
+the contact force as close to the center of the friction coneas possible by designing the weight matrix Wconsidering the
+shape of friction cone D, where we provided the details in
+Appendix .T h e nb yd e n o t i n g x=βdand substituting f
+c/equals
+A−1
+f(Bf(t)βd+cf)and fc/equalsA−1
+s((Bsa(t)γp+Bsb(t))βd+cs)
+into each inequality equation, we have two linear matrix
+inequalities (LMI) for each phase.
+DsA−1
+sBsat()γp+Bsbt() /parenleftbig/parenrightbig x+DsA−1
+scs≥0,∀t∈0,T2 () ,(12)
+DfA−1
+fBft()x+DfA−1
+fcf≥0,∀t∈0,T3 () . (13 )
+By splitting the inverse matrix A−1
+f,A−1
+sinto left and right column
+matrices and expressing Bf(t),Bsa(t), and Bsb(t) as a function of t,
+Eqs ( 12) and ( 13) can be rewritten as follows:
+1
+2mγpT2−t ()2+T3T3+2T2−t () /parenleftbig/parenrightbig/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright
+fst()DsA−1
+s1;3g/bracketleftbig/bracketrightbig×+mγpDsA−1
+s4;6⎛⎜⎜⎜⎜⎝⎞⎟⎟⎟⎟⎠x+DsA−1
+scs≥0,
+1
+2mT 3−t ()2
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/bracehtipupright
+fft()DfA−1
+f1;3g/bracketleftbig/bracketrightbig×+mDfA−1
+f4;6⎛⎜⎜⎜⎜⎜⎜⎝⎞⎟⎟⎟⎟⎟⎟⎠x+DfA−1
+fcf≥0.3.4.3 Applying necessary and suf ﬁcient
+condition to satisfy inequality over the given
+time horizon
+Proposition 1. Given an inequality (f(t)B1+B2)x+c≥0
+deﬁned over a bounded function fmin≤f(t)≤fmax,∀t∈(0,T), if
+an inequality holds at the boundary values (fminB1+B2)x+c≥0
+and (fmaxB1+B2)x+c≥0f o r x,
+then (f(t)B1+B2)x+c≥0,∀t∈(0,T)
+The detailed proof of Proposition 1 is provided in Appendix .
+Based on Proposition 1, the problem to ﬁndxthat satis ﬁes
+inequalities along tcan be reduced to the inequalities at the
+boundary of quadratic functions ff(t)/equals(T3−t)2,t∈(0,T3)
+and fs(t)/equalsγ*(T2−t)2+T3(T3+2T2−t),t∈(0,T2).T h e n
+by stacking inequalities for fminandfmax,w e ﬁnally obtained the
+condition for x=βd:
+1
+2mf s,minDsA−1
+s1;3g/bracketleftbig/bracketrightbig×+mγpDsA−1
+s4;6
+1
+2mf s,maxDsA−1
+s1;3g/bracketleftbig/bracketrightbig×+mγpDsA−1
+s4;6
+1
+2mf f,minDfA−1
+f1;3g/bracketleftbig/bracketrightbig×+mDfA−1
+f4;6
+1
+2mf f,maxDfA−1
+f1;3g/bracketleftbig/bracketrightbig×+mDfA−1
+f4;6⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright
+Dxx+DsA−1
+scs
+DsA−1
+scs
+DfA−1
+fcf
+DfA−1
+fcf⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦
+/bracehtipupleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipdownright/bracehtipdownleft/radicaltext/radicaltext/radicaltext/radicaltext/radicaltext/bracehtipupright
+dx≥0.
+(14)
+3.4.4 Parameterized CoM trajectory
+optimization
+Given the prede ﬁned sequence of contact for one step
+climbing motion, we parameterized the CoM trajectory with
+three polynomials correspondi ng to each contact phase and
+found the suf ﬁcient condition for the pa rameters that satisfy
+the centroidal dynamics and linearized friction cone
+inequalities as described in Inequality 14. Based onparameterization and all the assumptions and tricks we
+apply to simplify the problem, the problem to determine
+CoM trajectory can be reduced t o the quadratic programming
+forxas follows:
+min /bardblx/bardbl
+2,
+subject to Dxx+dx≥0,(15)
+where x/equalsβd∈R3,Dx∈R70×3, and dx∈R70.
+4 Contact parameter estimation and
+CoM re-planning
+4.1 Friction and magnetic adhesion force
+estimation
+If we have an F/T sensor on the feet so that we can measure
+the reaction force at each contact, we can estimate the friction
+and magnetic adhesion force. Once the slippage is detected, then
+the frictional force can be formulated at the sliding foot asfollows:
+Frontiers in Robotics and AI frontiersin.org 08Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 9 ---
+ft/equals/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext/radicaltpext
+f2
+x+f2
+y/radicalBig
+, (16)
+^ft/equals^μfz+^fm/parenleftBig/parenrightBig , (17)
+where [fx,fy,fz]⊤is the measured contact force represented in
+the local foot coordinate, ft∈Ris the measured friction force
+which is equivalent to the tangential contact force, and ^ft∈Ris
+the estimated friction force computed based on the normal
+contact force (fz∈R), the estimated friction coef ﬁcient ^μ∈R,
+and magnetic adhesion force (^fm∈R). Let us de ﬁne the
+parameter we want to estimate as θ/equals[^μ,^μ^fm]⊤and assume
+that we can access the T-period of time sampling data for theestimation. Then we can estimate the parameter by solving the
+least-square problem below:
+θ
+p/equalsarg min
+θ/summationdisplay
+t/equals1:T/bardblftt()−μfzt()+fm/parenleftbig/parenrightbig /bardbl2.1 8 )
+By solving the ﬁrst order necessary condition (FONC), we get
+/summationdisplayfzt()/summationdisplay1
+/summationdisplayfzt()2/summationdisplayfzt()⎡⎣ ⎤⎦^μ
+^μ^fm/bracketleftBigg/bracketrightBigg /equals/summationdisplayftt()
+/summationdisplayftt()fzt()⎡⎣ ⎤⎦. (19 )
+However, the least square estimation can be problematic if
+the contact is unstable. This can give inconsistent estimation
+value, which can be sometimes even unusable. In order to
+treat this issue, we propose the Kalman ﬁlter–like approach
+for estimating the friction coef ﬁcient and magnetic adhesion
+force. We ﬁrst assumed that the system is propagating itself
+and has a T-period of time sampling ground reaction forcedata as observation. Also, we assumed that the measurednormal force can be used as an ob servation model rather than
+observed data to simply linear ize the model. This way, we can
+estimate the environment parameters more robust to the
+noise.
+θ
+k+1/equalsθk+wk,wk~N0,Qk () ,
+zk/equalsHkθk+vk,vk~N0,Rk () ,
+where zk/equalsfttk−T+1 ()
+...
+fttk()⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦,Hk/equalsfztk−T+1 () 1
+......
+fztk−T+1 () 1⎡⎢⎢⎢⎢⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎥⎥⎥⎥⎦.
+(20)
+Though the formulated system is non-linear, given that the
+observation model Hkis not a constant but a function of the
+observed data, we just considered it as a time-varying observation
+model to apply the Kalman ﬁlter algorithm. Then we have the
+following:TABLE 2 Revised CoM parameterization for the swing phase re-
+planning.
+(2) Swing (3) Post swing
+T(duration) T2′/equalsT2−tnow T3
+pi(init position) pa p1
+pg(goal position) p1/equalspa+1
+2αT′2
+2d pb
+vi(init velocity) 0v 1
+vg(goal velocity) v1/equalsαT2′d 0
+FIGURE 4
+Multi-contact scenarios on (A)aﬂat slope at α=1rad and (B)a hexagonal structure. A robot is climbing up on each structure by moving its feet in
+the order of left bottom (1 →2), right top (2 →3), left top (3 →4), and right bottom (4 →5).
+Frontiers in Robotics and AI frontiersin.org 09Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 10 ---
+Kk/equalsPk−1+Qk () H⊤
+kHkPk−1+Qk () H⊤
+k+Rk /parenleftbig/parenrightbig−1
+Pk/equalsI−KkHk () Pk−1+Qk () ,
+^θk/equals^θk−1+Kkzk−Hk^θk−1/parenleftBig/parenrightBig .(21)
+4.2 CoM re-planning for slip re ﬂex
+When a robot climbs in an unknown environment, we can
+expect a robot to experience slip behavior when the uncertainty
+for a contact is high, for example, when the foot in contact was aswing foot in the previous step. If a slip is detected and the
+estimated friction coef ﬁcient and adhesion forces are
+signiﬁcantly inferior, then we will need to re-plan the CoM
+trajectory for generating the desirable contact forces to keep
+rigid contact. The slip is supposed to be detected during the pre-
+swing or swing phase when the uncertainty for a contact is high.If slip is detected during the pre-swing phase, then the CoM
+trajectory optimization for re-planning will have the same
+formulation as the one solved in Section 3 . The re-computed
+α,β,dfor re-evaluated ^μ,^F
+mcan be used to update CoM
+trajectory. The only difference is the initial position and
+velocity of the CoM set to zero in the previous problem willbe substituted into the current position and velocity of CoM.
+4.2.1 Revised CoM trajectory optimization
+algorithm for re-planning in the swing phase
+The CoM re-planing problem can be de ﬁned as follows: given
+the current and the desired con ﬁguration; given the current and
+desired CoM position pa,pb; and given the current and desired
+contacts con ﬁguration Ps,Pf,Rs,Rf,ﬁnd the CoM trajectory that
+satisﬁes the new friction condition. Let tnowb et h et i m ep a s ts i n c ea
+robot started the swing phase, then we can re-parameterize the CoM
+trajectory for the remaining climbing motion as Table 2 .Then the centroidal dynamics during the swing and post-
+swing phase can be rewritten as follows:
+2) Swing:
+Ps−pa/bracketleftbig/bracketrightbig×Rs
+Rs/bracketleftBigg/bracketrightBigg fc/equalspa/bracketleftbig/bracketrightbig×Rs−Ps/parenleftbig/parenrightbig fm+_L
+−mg−Rsfm/bracketleftBigg/bracketrightBigg
++m1
+2t2g/bracketleftbig/bracketrightbig×
+I⎡⎢⎢⎢⎢⎢⎢⎣⎤⎥⎥⎥⎥⎥⎥⎦αd. (22 )
+3) Post swing:
+Pf−p1/bracketleftbig/bracketrightbig×Rf
+Rf/bracketleftBigg/bracketrightBigg fc/equalspa/bracketleftbig/bracketrightbig×Rf−Pf /parenleftBig/parenrightBig fm+_L
+−mg−Rffm/bracketleftBigg/bracketrightBigg +mf1t()g/bracketleftbig/bracketrightbig×
+f2t()I/bracketleftBigg/bracketrightBigg αd,
+where f1t()/equals−1
+2T′2
+2−2t
+T3/parenleftBigg/parenrightBigg3
++3t
+T3/parenleftBigg/parenrightBigg2
+/parenleftBigg/parenrightBigg +T2′·T3t
+T3/parenleftBigg/parenrightBigg3
+−2t
+T3/parenleftBigg/parenrightBigg2
++t
+T3/parenleftBigg/parenrightBigg /parenleftBigg/parenrightBigg ,
+f2t()/equals−1
+2T2′
+T3/parenleftBigg/parenrightBigg2
+−12t
+T3+6/parenleftBigg/parenrightBigg +T2′
+T36t
+T3−4/parenleftBigg/parenrightBigg .
+(23)
+Then similar to the problem solving we described in Eq. 12
+~(15), we can reformulate the optimization problem for x=αd
+with Dx′anddx′deﬁned similar to DxanddxinEq. 14 as follows:
+min /bardblx/bardbl2,
+subject to Dx′x+dx′≥0. (24 )
+5 Online weight adaptation to
+stabilize slippery motions
+In this section, we present an onl ine weight adaptation approach
+to stabilize slippery motions by red istributing the contact force at
+each contact instantly. As discussed in the previous section, the ﬁnalTABLE 3 Computation time comparison benchmark of CoM trajectory optimization for two different climbing scenarios between the proposed
+algorithm and other existing methods. Computation time is averaged over 100 tries for each scenario.
+Computation time [ms] for ﬂat slope climbing scenario(motion horizon = 0.65 s)
+Swing foot Left bottom Right top Left top Right bottom
+Proposed method 5.22e-02 5.23e-02 5.45e-02 5.67e-02
+Method Ponton et al. (2018) ( ΔT= 10ms) 2,400 2,230 2,280 2,330
+Ponton et al. (2018) ( ΔT= 50ms) 313 295 303 314
+Fernbach et al. (2020) 7.51 7.32 7.81 7.35
+Computation time [ms] for hexagonal structure climbing scenario(motion horizon = 0.8s)
+Swing foot Left bottom Right top Left top Right bottomProposed method 5.29e-02 5.78e-02 5.33e-02 5.91e-02
+Method Ponton et al. (2018) ( ΔT= 50ms) 365 332 326 379
+Fernbach et al. (2020) 1.40 1.58 1.40 1.59
+Frontiers in Robotics and AI frontiersin.org 10Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 11 ---
+torque commands are computed by solving QP-based formulation in
+Dynamic level WBC block. Weights in QP formulation.
+5.1 Slippage rate for weight adaptation
+In order to update weight gains according to the slippage
+rate in contact, we need a way to measure the rate of slippage.
+In this study, we de ﬁned the slippage rate based on slip
+velocity at each contact as follows:
+αs/equals1i f /bardblvcontact foot /bardbl≤vthreshold
+/bardblvcontact foot /bardbl
+vthresholdotherwise⎧⎪⎪⎨
+⎪⎪⎩
+v
+contact foot /equalsLOW PASS FILTER Jcq/parenleftbig/parenrightbig _q/parenleftbig/parenrightbig .
+By de ﬁning the rate with the threshold, we can provide weight
+adaptation only if the slippage is large enough and the rate
+parameter itself is continuous as well.
+5.2 Weight adaptation to the slippage
+Based on the structure of WBLC, we formulated an extension
+version of WBLC for climbing in Section 2.2 . Recalling that the
+cost function is designed to minimize the ground reaction forceand tracking error:
+min
+δ€q,Fr,€xc,δ€q⊤W €qδ€q+F⊤
+rWfFr+€x⊤
+cWc€xc,
+Let us say we have contact foot 1, 2, ...,c. Then the
+corresponding slippage ratio and weight matrix can bedescribed as follows:
+α
+s/equalsαs1,...,αsc () ,
+Wf/equalsdiag wfx1,wfy1,wfz1,...,wfxc,wfyc,wfzc /parenleftBig/parenrightBig .
+Typically, we used prede ﬁned weight parameters in WBC and
+usually took wfxi,wfyi/equalswxyandwfzi/equalswz. Once we have foot
+in slippery contact, αsi>1, we can update the corresponding
+weight parameters based on the ratio online as follows:
+wfxi,wfyi/equalsαsiwxy,
+1
+αsiwxy,⎧⎪⎪⎨
+⎪⎪⎩and,w
+fzi/equals1
+αsiwz,ifαsi>1,
+αsiwz,otherwise.⎧⎪⎪⎨
+⎪⎪⎩
+(25)
+6 Experimental validation
+In this section, we focus on showing the performance of the
+proposed framework. In Section 6.1 , we present how the proposedalgorithm yields competitive performance against other CoM
+trajectory generation methods. Then, in Section 6.2 ,p a r a m e t e r
+estimation to identify unknown slippery condition is presented.
+Finally, in Section 6.4 , we have demonstrated robot climbing
+behavior in unknown slippery conditions with and without the
+proposed strategies to evaluate the performance of the algorithms.
+6.1 Comparison benchmarks of proposed
+CoM trajectory optimization
+In order to show the performance of our CoM trajectory
+optimization, we choose to compare the computation time of theproposed algorithm with a state-of-the-art convexi ﬁed formulation
+Ponton et al. (2018) and parameterized formulation (CROC)
+Fernbach et al. (2020) . Generated CoM trajectory and
+corresponding ground reaction force distribution are also analyzed
+for comparison. The codes used in our benchmark modi ﬁed for
+climbing is provided for CROC
+1and convexi ﬁed centroidal
+optimization2, and for the proposed method3.
+For these benchmarks, we have performed a climbing
+simulation in two different structures.
+Theﬁrst structure described in Figure 4A is aﬂat slope
+inclined at α= 1 rad, where all the contacts of a robot are
+always on the same planar. One of the contacts is set
+particularly poor, where the environment parameter of theleft bottom foot is set to μ
+s= 0.3 and fm= 30(N), while other
+feet are set to μs= 0.5 and fm= 70(N).
+The second structure described in Figure 4B is a hexagonal
+structure, which leads a robot to climb with a set of non-co-
+planar contacts. All the parameters that determine the contact
+quality are given the same for all feet as μs=0 . 5a n d fm=7 0 ( N ) .
+In each structure, a robot is climbing up on a wall by moving its
+feet in the order of left bottom, rig ht top, left top, and right bottom
+foot. All the benchmark simulati ons were run on Ubuntu 18.04.5 LTS
+with Processor Intel ®CoreTMi7-8700K CPU @ 3.70GHz × 12,
+Memory 16 GB. QuadProg++ ( Goldfarb and Idnani (1983) )w e r e
+used to solve the QP problem in our software.
+As described in Table 3 , the computation time of the proposed
+algorithm is about 4 ~5 orders of magnitude faster than theconvexi ﬁed centroidal dynamics optimization method and two
+orders of magnitude faster than CROC. This result is natural
+considering that the dimension of convexi ﬁed centroidal dynamics
+optimization is much larger because it solves the problem for the time
+discretization variables. On the o ther hand, parameterization can
+1https://github.com/jeeeunlee/ccroc_magneto
+2https://github.com/jeeeunlee/centroidal_sandbox_magneto
+3https://github.com/jeeeunlee/ros_pncbranch:mpc-devel-slip
+Frontiers in Robotics and AI frontiersin.org 11Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 12 ---
+reduce the dimension of the proble m effectively. Though CROC also
+uses parameterization, the double description (DD) method tohandle inequality conditions in CR OC takes a relatively long time.
+Instead, we utilized the weighted inverse matrices to determine
+contact forces in the centroidal dynamics equation, which helpsus to ﬁnd a reasonable solution two orders of magnitude faster.
+Furthermore, as the DD meth od is known to suffer from
+computational instability, which can cause a critical problem inrobotics, the proposed solving method can be bene ﬁcial in terms
+of computation stability as well.
+Not surprisingly, the trajectory o btained by different algorithms
+was different as shown in Figure 5 . It is natural, considering that there
+are always an in ﬁnite number of trajectories that satisfy constraints in
+many trajectory optimization problems. One of the advantages wecan take from parameterization is that we can expect a shape of thetrajectory planning. This is important in robotics since unexpected
+plans can often cause a critical problem. In addition, the morevariables the problem has, the more weight parameters we need to
+tune. In Ponton et al. (2018) , the obtained trajectories were sensitive
+to the choice of weights, resulting in another dif ﬁculty in weight
+tuning. Finally, as we obtain the contact force placed as close as
+possible to the center of the friction cone, we can see the desired
+contact forces obtained by the pr oposed method tend to have more
+margin in inequalities.
+6.2 Parameter estimation
+As described in Section 4 , unknown environment parameters
+μandFmcan be estimated based on the friction force model when
+FIGURE 5
+The comparison of centroidal climbing motion obtained by different algorithms. One-step climbing motions for the right top foot are
+compared on two structures [ (A)aﬂat slope at α=1r a da n d (B)a hexagonal structure]. The plots on the right show the corresponding desired GRF
+distribution on each foot with friction inequality constraints.
+Frontiers in Robotics and AI frontiersin.org 12Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 13 ---
+a slip occurs. Figure 6 shows the parameter estimation based on
+two different algorithms. Once the contact velocity exceeds the
+threshold, we prepare the parameter estimation, assuming that
+there is a slip. Though we assumed that we can detect the slippageby thresholding the contact velocity computed based on the
+ﬂoating base con ﬁguration, this cannot be achieved in the reallegged robot system. Instead, either comparing the velocity of the
+contact and the median of the velocity of all contacts Focchi et al.
+(2018) or a probabilistic state machine Jenelten et al. (2019) can
+be considered for slip detection in real robots.
+Once the slip detection is triggered, we store the contact force data
+during 15 time samples. Then, we can estimate the unknown
+FIGURE 6
+Estimation of unknown environment parameters /equals[μ,μFm]⊤during the slip condition. (A)shows the condition of the estimation activation.
+Once the contact velocity exceeds the threshold during the certain amount of time, we declare the slip detection so that the estimation can be
+executed. Yellow areas in the plots represent where the estimation is activated. (B)and(C)present the resulting estimation obtained by two different
+approaches, least-squares, and Kalman ﬁlter–like approach.
+FIGURE 7
+Slip phenomenon with and without an online weight adaptation. (A)shows the linear velocity and ground reaction force at the contact in
+slippery condition without any adaptation and (B)shows reduced slippage at the contact in the same condition with the proposed weight adaptation.
+Frontiers in Robotics and AI frontiersin.org 13Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 14 ---
+FIGURE 8
+Comparative analysis on the slippage of the foot in unknown slippery conditions for each controller: (A)WBLC without any adaptation, (B)WBLC
+with unknown parameter estimation and CoM replanning (described in Section 4 ),(C)WBLC with online weight adaptation (described in Section 5 ),
+and(D)WBLC with both methods [applied in (B)and(C)]. Slip velocities of the left bottom foot and snapshots of the simulation are represented. After
+theﬁrst climbing step where the left bottom foot is used for swing, the velocity is supposed to be zero. Blue dots in the last zoom-in shots
+represent the desired foot position.
+Frontiers in Robotics and AI frontiersin.org 14Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 15 ---
+parameters θ/equals[μ,μFm]⊤that tell how slippery the surface is via
+either least-square estimation or Kalman ﬁlter-like approach. As you
+can see from Figure 6B , parameter estimation through the least-square
+estimation was not desirable; The observation of contact forces is too
+noisy even in simulation, and obs ervation data captured during the
+traction loss doesn ’t match with the friction force model we used for
+estimation. On the other hand, Kalman ﬁlter–like approach worked
+well with a small value for model covariance Qk= diag([0.000004,
+0.01]), and a relatively large value for observation covariance Rk=0 . 2 5 .
+From the initial guess of parameters, you can see it converges in 30ms
+to the ground-truth value in Figure 6C .
+6.3 Slip-aware online weight adaption for
+QP based WBC
+InSection 5 , we present an online weight adaptation for QP-
+based WBC framework. Figure 7 shows a part of motion suffering
+from sliding. It describes how the proposed algorithm shapes the
+corresponding weights based on the slip velocity and how it affectsthe corresponding ground reaction forces. Once the slip velocity
+exceeds the threshold, it starts to change the weights, and this can
+help a robot to slightly redistribute contact forces to stop sliding.
+6.4 Climbing in unknown slippery
+condition
+InSection 4 andSection 5 , we proposed CoM trajectory re-
+planning based on re-evaluated parameters and an online weight
+adaptation to stabilize a slip. Lastly, in this section, to verify the
+performance of the proposed control framework in terms ofrobustness to the unknown slippage, we examine the slip velocity
+of the foot in unknown slippery conditions with respect to the
+following 4 controllers:
+WBLC without any adaptation,WBLC with parameter estimation and CoM re-planning,
+WBLC with an online weight adaptation,
+WBLC with both methods.
+In this simulation, the controller assumes the environment
+parameters for all feet to be μ= 0.5, F
+m=5 0 N, while the
+parameters of the left bottom foot are set to μ= 0.3, Fm=
+20N. The climbing scenario on a ﬂat slope described in Figure 4A
+was used for this veri ﬁcation test.
+InFigure 8 , the slip velocities of the left bottom foot for
+each controller are shown with snapshots of the simulation.
+As shown in Figure 8A , without any adaptation, the
+controller cannot compute th ea d e q u a t et r a j e c t o r ya n d
+control satisfying the real friction constraints, and that
+eventually results in contact loss at the left bottom foot
+after four climbing steps are made. You can also see that aslip tends to occur during the swing phase and post swing
+transition where one of the feet is used for making a step.
+Figures 8B,C shows both CoM replanning and an online
+weight adaptation for WBC are effective to stabilize the
+slippery motion. The difference shown in the results for
+the two methods is that the online weight adaptation
+method faces the second slip once the slippery is stabilized
+especially around the start of th e post-swing transition phase
+for each climbing step. That could be caused since the weights
+are initialized in every phase in our controller. Finally, as
+shown in Figure 8D , we validated that the slip can be
+prevented the most when both methods are applied.
+7 Conclusion
+In this study, we have presented se veral strategies to stabilize
+known and unknown slippery motion within a WBLC framework. In
+an effort to stabilize unknown slip, CoM re-planning based on
+unknown parameter estimation and online weight adaptation forWBC were presented. When the environment parameters are
+unknown and different from what we assume when we solve the
+problem, the obtained solution can suffer from unknown behaviors,f o re x a m p l e ,s l i p ,t r a c t i o nl o s s ,e t c .B a s e do nt h ef r i c t i o nf o r c em o d e l ,
+the friction coef ﬁcient and the friction force limit calculated from the
+adhesion force can be estimated when the contact is under the slipcondition. Then, CoM re-planning is performed based on the
+proposed CoM trajectory optimiz ation algorithm. The proposed
+CoM trajectory optimization achieved fast computation byleveraging a phase-based parameterization and we veri ﬁed it by
+providing comparison benchmarks with other state-of-art
+algorithms. Therefore, the prop osed CoM trajectory generation
+m e t h o da l l o w sf o rC o Mr e - p l a n n i n gi nr e a lt i m e ,a n dt h i sc a n
+reduce the slip by generating adequate contact forces to increase
+the normal force and decrease the tangential force at slippery contact.The proposed strategies are show nt ob ee f f e c t i v et or e d u c es l i p
+through the simulation experiment.FIGURE 9
+Linearized friction cone.
+Frontiers in Robotics and AI frontiersin.org 15Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 16 ---
+Although we have shown that the proposed methods are
+fast and effective to stabilize th e slippery motion, traction loss
+could be another issue that c an cause devastating result
+e s p e c i a l l yf o ro v e r h a n gc l i m b i n ga sy o uc a ns e ef r o mt h eprovided video. The proposed CoM optimization algorithm is
+expected to be extended to prevent a robot from those fetal
+movements. While working on this study, we also found thatthe wrong estimated parameter can make robot climbing
+more problematic, even though the estimation are sorely
+dependent on the noisy and uncertain observation. Inaddition, this study does not provide thorough theoretical
+analysis on the stability of the proposed method. In that in
+mind, instability resulting fro m the parameter estimation and
+stability analysis on weight adaptation should be addressed in
+our future research.
+Lastly, our approach has not been tested yet on a real robot,
+although there could be a lot more challenges arising from
+hardware experiment. For example, in a real robot setup, a
+robot can always be susceptible to kinematic singularities,discretization of dynamics and model error, etc. Though we
+didn ’t mention it in this study, we consider the singularity when
+we set the goal CoM position. We solve the optimization problem
+that is formulated to ﬁnd the goal con ﬁguration far from
+singularities given the next foot placement, and we are usingthe goal CoM position obtained from the con ﬁguration. As for
+the dynamics errors, augmented PD control can be used along
+with the WBC to compensate for errors from the dynamicsmodel. In addition, for legged robot system, it is hard to estimate
+the base con ﬁguration accurately as simulation, though we
+assumed that we can detect slip based on the ﬂoating based
+robot kinematics. However, we can use other measurement such
+as F/T sensor values or IMU values to de ﬁne slippage ratio and
+apply it for online weight adaptation. Overall, thus verifying thefeasibility to implement this work in real hardware setup is the
+next coming step, as well.
+Data availability statement
+The datasets presented in this study can be found in online
+repositories. The names of the repository/repositories and
+accession number(s) can be found at: https://github.com/
+jeeeunlee/ros-pnc/tree/devel-mpc-slip .Author contributions
+J-EL formulated the main idea of the planning and control
+strategy, implemented the controller, and set up the simulation.TB and LS provide advice on writing this manuscript.
+Funding
+This work has been partially supported by the Of ﬁce of Naval
+Research, ONR Grant N000141912311, and by DATA61, CSIRO.
+Acknowledgments
+The authors would like to thank the members of the Human
+Centered Robotics Laboratory at The University of Texas at
+Austin, especially Junhyeok Ahn and Jaemin Lee, for their great
+help and support.
+Conﬂict of interest
+The authors declare that the research was conducted in the
+absence of any commercial or ﬁnancial relationships that could
+be construed as a potential con ﬂict of interest.
+Publisher ’s note
+All claims expressed in this article are solely those of the
+authors and do not necessarily represent those of their af ﬁliated
+organizations, or those of the publisher, the editors, and thereviewers. Any product that may be evaluated in this article, or
+claim that may be made by its manufacturer, is not guaranteed or
+endorsed by the publisher.
+Supplementary material
+The Supplementary Material for this article can be found
+online at: https://www.frontiersin.org/articles/10.3389/frobt.2022.
+949460/full#supplementary-material
+References
+Ahn, J., Jorgensen, S. J., Bang, S. H., and Sentis, L. (2021). Versatile locomotion
+planning and control for humanoid robots. Front. Robot. AI 8, 712239. doi:10.3389/
+frobt.2021.712239
+Bandyopadhyay, T., Steindl, R., Talbot, F., Kottege, N., Dungavell, R., Wood, B.,
+et al. (2018). “Magneto: A versatile multi-limbed inspection robot, ”in 2018 IEEE/
+RSJ International Conference on Intelligent Robots and Systems (IROS) (IEEE),
+Madrid, Spain, 01-05 Oct. 2018, 2253 –2260.Bellicoso, C. D., Gehring, C., Hwangbo, J., Fankhauser, P., and Hutter, M. (2016).
+“Perception-less terrain adaptation through whole body control and hierarchical
+optimization, ”in 2016 IEEE-RAS 16th International Conference on Humanoid
+Robots (Humanoids) (IEEE), Cancun, Mexico, 15-17 Nov. 2016, 558 –564.
+Bretl, T. (2006). Motion planning of multi-limbed robots subject to equilibrium
+constraints: The free-climbing robot problem. Int. J. Robotics Res. 25, 317 –342.
+doi:10.1177/0278364906063979
+Frontiers in Robotics and AI frontiersin.org 16Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 17 ---
+Brown, J. M., Austin, M. P., Kanwar, B., Jonas, T. E., and Clark, J. E. (2018).
+“Maneuverability in dynamic vertical climbing, ”in 2018 IEEE/RSJ International
+Conference on Intelligent Robots and Systems (IROS) (IEEE), Madrid, Spain, 01-
+05 Oct. 2018, 4340 –4347.
+Caron, S., Pham, Q.-C., and Nakamura, Y. (2015). “Stability of surface contacts
+for humanoid robots: Closed-form formulae of the contact wrench cone forrectangular support areas, ”in 2015 IEEE International Conference on Robotics
+and Automation (ICRA) (IEEE), Seattle, WA, USA, 26-30 May 2015, 5107 –5112.
+Carpentier, J., and Mansard, N. (2018). Multicontact locomotion of legged robots.
+IEEE Trans. Robot. 34, 1441 –1460. doi:10.1109/tro.2018.2862902
+Dai, H., Valenzuela, A., and Tedrake, R. (2014). “Whole-body motion planning
+with centroidal dynamics and full kinematics, ”in 2014 IEEE-RAS International
+Conference on Humanoid Robots (IEEE), Madrid, Spain, 18-20 Nov. 2014, 295 –302.
+Del Prete, A., Tonneau, S., and Mansard, N. (2018). Zero step capturability for
+legged robots in multicontact. IEEE Trans. Robot. 34, 1021 –1034. doi:10.1109/tro.
+2018.2820687
+Eich, M., and Vögele, T. (2011). “Design and control of a lightweight magnetic
+climbing robot for vessel inspection, ”in 2011 19th Mediterranean Conference on
+Control & Automation (MED) (IEEE), Corfu, Greece, 20-23 June 2011, 1200 –1205.
+Escande, A., Mansard, N., and Wieber, P.-B. (2014). Hierarchical quadratic
+programming: Fast online humanoid-robot motion generation. Int. J. Robotics
+Res. 33, 1006 –1028. doi:10.1177/0278364914521306
+Feng, S., Whitman, E., Xinjilefu, X., and Atkeson, C. G. (2015). Optimization-
+based full body control for the darpa robotics challenge. J. Field Robot. 32, 293 –312.
+doi:10.1002/rob.21559
+Fernbach, P., Tonneau, S., Stasse, O., Ca rpentier, J., and Taïx, M. (2020). C-croc:
+Continuous and convex resolution of centroi dal dynamic trajectories for legged robots in
+multicontact scenarios. IEEE Trans. Robot. 36, 676 –691. doi:10.1109/tro.2020.2964787
+Focchi, M., Barasuol, V., Frigerio, M., Caldwell, D. G., and Semini, C. (2018). “Slip
+detection and recovery for quadruped robots, ”inRobotics research (Berlin/
+Heidelberg, Germany: Springer), 185 –199.
+Goldfarb, D., and Idnani, A. (1983). A numerically stable dual method for solving
+strictly convex quadratic programs. Math. Program. 27, 1 –33. doi:10.1007/
+bf02591962
+Jenelten, F., Hwangbo, J., Tresoldi, F., Bellicoso, C. D., and Hutter, M. (2019).
+Dynamic locomotion on slippery ground. IEEE Robot. Autom. Lett. 4, 4170 –4176.
+doi:10.1109/lra.2019.2931284
+Jose, J., Dinakaran, D., Ramya, M., and Harris, D. (2018). A survey on magnetic
+wall-climbing robots for inspection. Int. J. Mech. Prod. Eng. Res. Dev. 8, 59 –68.
+doi:10.24247/ijmperddec20186
+Kaneko, K., Kanehiro, F., Kajita, S., Morisawa, M., Fujiwara, K., Harada, K., et al.
+(2005). “Slip observer for walking on a low friction ﬂoor,”in 2005 IEEE/RSJ
+International Conference on Intelligent Robots and Systems (IEEE), Edmonton,AB, Canada, 02-06 Aug. 2005, 634 –640.
+Kermorgant, O. (2018). A magnetic climbing robot to perform autonomous
+welding in the shipbuilding industry. Robotics Computer-Integrated Manuf. 53,
+178–186. doi:10.1016/j.rcim.2018.04.008
+Khatib, O., Sentis, L., Park, J., and Warren, J. (2004). Whole-body dynamic
+behavior and control of human-like robots. Int. J. Hum. Robot. 1, 29 –43. doi:10.
+1142/s0219843604000058
+Kim, D., Di Carlo, J., Katz, B., Bledt, G., and Kim, S. (2019). Highly dynamic
+quadruped locomotion via whole-body impulse control and model predictive control.
+arXiv preprint arXiv:1909.06586. Available at: https://arxiv.org/pdf/1909.06586.pdf .
+Kim, D., Jorgensen, S. J., Lee, J., Ahn, J., Luo, J., Sentis, L., et al. (2020). Dynamic
+locomotion for passive-ankle biped robots and humanoids using whole-bodylocomotion control. Int. J. Robotics Res. 39, 936 –956. doi:10.1177/
+0278364920918014
+K i m ,S . ,S p e n k o ,M . ,T r u j i l l o ,S . ,H e y n e m a n ,B . ,M a t t o l i ,V . ,a n dC u t k o s k y ,M .R .( 2 0 0 7 ) .
+“Whole body adhesion: Hierarchical, directiona l and distributed control of adhesive forces
+for a climbing robot, ”in Proceedings 2007 IEEE International Conference on Robotics and
+Automation (IEEE), Rome, Italy, 10-14 Apr. 2007, 1268 –1273.
+Lee, J., Ahn, J., Kim, D., Bang, S. H., and Sentis, L. (2021). Online gain adaptation
+of whole-body control for legged robots with unknown disturbances. Front. Robot.
+AI8, 788902. doi:10.3389/frobt.2021.788902
+Lin, X., Krishnan, H., Su, Y., and Hong, D. W. (2018). “Multi-limbed robot
+vertical two wall climbing based on static indeterminacy modeling and feasibility
+region analysis, ”in 2018 IEEE/RSJ International Conference on Intelligent Robots
+and Systems (IROS) (IEEE), Madrid, Spain, 01-05 Oct. 2018, 4355 –4362.
+Lin, X., Zhang, J., Shen, J., Fernandez, G., and Hong, D. W. (2019). “Optimization
+based motion planning for multi-limbed vertical climbing robots, ”in 2019 IEEE/
+RSJ International Conference on Intelligent Robots and Systems (IROS) (IEEE),
+Macau, China, 03-08 Nov. 2019, 1918 –1925.
+Lynch, G. A., Clark, J. E., Lin, P.-C., and Koditschek, D. E. (2012). A bioinspired
+dynamical vertical climbing robot. Int. J. Robotics Res. 31, 974 –996. doi:10.1177/
+0278364912442096
+Miller, T. G., and Rock, S. (2008). Control of a climbing robot using real-time convex
+optimization. Mechatronics 18, 301 –313. doi:10.1016/j.mechatronics.2007.07.009
+O r i n ,D .E . ,G o s w a m i ,A . ,a n dL e e ,S . - H .( 2 0 1 3 ) .C e n t r o i d a ld y n a m i c so fa
+humanoid robot. Auton. Robots 35, 161 –176. doi:10.1007/s10514-013-
+9341-4
+Parness, A., Abcouwer, N., Fuller, C., Wiltsie, N., Nash, J., and Kennedy, B.
+(2017). “Lemur 3: A limbed climbing robot for extreme terrain mobility in space, ”in
+2017 IEEE international conference on robotics and automation (ICRA) (IEEE),
+Singapore, 29 May 2017-03 June 2017, 5467 –5473.
+Ponton, B., Herzog, A., Del Prete, A., Schaal, S., and Righetti, L. (2018). On time
+optimization of centroidal momentum dynamics. In 2018 IEEE International
+Conference on Robotics and Automation (ICRA) (IEEE), 21-25 May 2018,
+Brisbane, QLD, Australia, 5776 –5782.
+Sentis, L., Park, J., and Khatib, O. (2010). Compliant control of multicontact and
+center-of-mass behaviors in humanoid robots. IEEE Trans. Robot. 26, 483 –501.
+doi:10.1109/tro.2010.2043757
+Spenko, M. J., Haynes, G. C., Saunders, J., Cutkosky, M. R., Rizzi, A. A., Full, R. J.,
+et al. (2008). Biologically inspired climbing with a hexapedal robot. J. Field Robot.
+25, 223 –242. doi:10.1002/rob.20238
+Takemura, H., Deguchi, M., Ueda, J., Matsumoto, Y., and Ogasawara, T. (2005).
+Slip-adaptive walk of quadruped robot. Robotics Aut. Syst. 53, 124 –141. doi:10.1016/
+j.robot.2005.07.002
+T a v a k o l i ,M . ,V i e g a s ,C . ,M a r q u e s ,L . ,P i r e s ,J .N . ,a n dD eA l m e i d a ,A .T .( 2 0 1 3 ) .
+Omniclimbers: Omni-directional magnetic w heeled climbing robots for inspection of
+ferromagnetic structures. Robotics Aut. Syst. 61, 997 –1007. doi:10.1016/j.robot.2013.05.005
+Tummala, R. L., Mukherjee, R., Xi, N., Aslam, D., Dulimarta, H., Xiao, J., et al.
+(2002). Climbing the walls [robots]. IEEE Robot. Autom. Mag. 9, 10 –19. doi:10.
+1109/mra.2002.1160067
+Wiedebach, G., Bertrand, S., Wu, T., Fiorio, L., McCrory, S., Grif ﬁn, R., et al.
+(2016). “Walking on partial footholds including line contacts with the humanoid
+robot atlas, ”in 2016 IEEE-RAS 16th International Conference on Humanoid
+Robots (Humanoids) (IEEE), Cancun, Mexico, 15-17 Nov. 2016, 1312 –1319.
+Winkler, A. W., Bellicoso, C. D., Hutter, M., and Buchli, J. (2018). Gait and
+trajectory optimization for legged systems through phase-based end-effector
+parameterization. IEEE Robot. Autom. Lett. 3, 1560 –1567. doi:10.1109/lra.2018.
+2798285
+Frontiers in Robotics and AI frontiersin.org 17Lee et al. 10.3389/frobt.2022.949460
+
+--- Page 18 ---
+8 Appendix
+8.1 Cubic hermite spline
+pHSt;T,pi,pg,vi,vg /parenleftBig/parenrightBig /equalspi2(t
+T)3−3(t
+T)2+1 /parenleftbigg/parenrightbigg +viT(t
+T)3−2(t
+T)2+t
+T/parenleftbigg/parenrightbigg
++pg−2(t
+T)3+3(t
+T)2/parenleftbigg/parenrightbigg +vgT(t
+T)3−(t
+T)2/parenleftbigg/parenrightbigg ,
+vHSt;T,pi,pg,vi,vg /parenleftBig/parenrightBig /equalspi
+T6(t
+T)2−6t
+T/parenleftbigg/parenrightbigg +vi3(t
+T)2−4t
+T+1 /parenleftbigg/parenrightbigg
++pg
+T−6(t
+T)2+6t
+T/parenleftbigg/parenrightbigg +vg3(t
+T)2−2t
+T/parenleftbigg/parenrightbigg ,
+aHSt;T,pi,pg,vi,vg /parenleftBig/parenrightBig /equalspi
+T212t
+T−6/parenleftbigg/parenrightbigg +vi
+T6t
+T−4/parenleftbigg/parenrightbigg +pg
+T2−12t
+T+6/parenleftbigg/parenrightbigg +vg
+T6t
+T−2/parenleftbigg/parenrightbigg .
+8.2 Weight matrix design for friction cone
+Given the centroidal dynamics, the problem to ﬁnd contact
+force that satis ﬁes all the constraints can be formulated as follows:
+Find f cs.t.Afc/equalsb,
+Dfc≥0 where D/equalsdiag Ufμc1/parenleftbig/parenrightbig ,//parenleftBig/parenrightBig ,
+Ufμ/parenleftbig/parenrightbig/equals00 1
+10 ~μ
+−10 ~μ
+01 ~μ
+0 −1 ~μ⎛⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎜⎝⎞⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎟⎠with ~μ/equalsμ/radicaltpext
+2√.
+(26)Assuming the contact force fc/equals(fc1
+x,fc1
+y,fc1
+z,/)⊤lying in
+the friction cone, we would want to ﬁndfcthat is located as close
+to the center of the cone as possible as shown in Figure 9 . In this
+manner, we can formulate the problem:
+min/summationdisplay
+c∈C1
+2μc/parenleftbig/parenrightbig2fc
+x−~μcfc
+z/parenleftbig/parenrightbig2+fc
+x+~μcfc
+z/parenleftbig/parenrightbig2+fc
+y−~μcfc
+z/parenleftBig/parenrightBig2+fc
+y+~μcfc
+z/parenleftBig/parenrightBig2/parenleftbigg/parenrightbigg
+/equals/summationdisplay
+c∈Cfc
+x/parenleftbig/parenrightbig2+fc
+y/parenleftBig/parenrightBig2+2~μcfc
+z/parenleftbig/parenrightbig2
+μc/parenleftbig/parenrightbig2⎛⎝ ⎞⎠≜fcWf⊤
+c,where W/equalsdiag1
+μc1/parenleftbig/parenrightbig2,1
+μc1/parenleftbig/parenrightbig2,1,/ /parenleftBigg/parenrightBigg ,
+s.t.Afc/equalsb.
+Note that we used weighted sum to prioritize the slippery
+contact. Then solving constrained minimization problem, we get
+fc/equalsW−1A⊤(AW−1A⊤)−1b.
+8.3 Proof of proposition 1
+Given the bounded function fmin≤f(t)≤fmax,∀t∈(0,T) and
+∃s∈(0, 1) s.t. f(t)=sfmin+( 1−s)fmax,∀t∈(0,T). Then s,( 1−s)≥
+0 and
+ft()B1+B2/parenleftbig/parenrightbig x+c/equalssfmin+1−s () fmax /parenleftbig/parenrightbig B1+B2 /parenleftbig/parenrightbig x+c,
+/equalssf minB1+B2/parenleftbig/parenrightbig x+c /parenleftbig/parenrightbig +1−s () fmaxB1+B2/parenleftbig/parenrightbig x+c /parenleftbig/parenrightbig ,
+≥0.
+Frontiers in Robotics and AI frontiersin.org 18Lee et al. 10.3389/frobt.2022.949460

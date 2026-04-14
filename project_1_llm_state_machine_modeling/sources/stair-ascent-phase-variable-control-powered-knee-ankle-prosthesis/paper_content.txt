@@ -1,0 +1,642 @@
+--- Page 1 ---
+Stair Ascent Phase-Variable Control of a Powered Knee-Ankle
+Prosthesis
+Ross J. Cortino, Edgar Bol ´ıvar-Nieto, T. Kevin Best, and Robert D. Gregg
+Abstract — Passive prostheses cannot provide the net positive
+work required at the knee and ankle for step-over stair ascent.
+Powered prostheses can provide this net positive work, but user
+synchronization of joint motion and power input are critical
+to enabling natural stair ascent gaits. In this work, we build
+on previous phase variable-based control methods for walking
+and propose a stair ascent controller driven by the motion of
+the user’s residual thigh. We use reference kinematics from an
+able-bodied dataset to produce knee and ankle joint trajectories
+parameterized by gait phase. We redeﬁne the gait cycle to begin
+at the point of maximum hip ﬂexion instead of heel strike
+to improve the phase estimate. Able-bodied bypass adapter
+experiments demonstrate that the phase variable controller
+replicates normative able-bodied kinematic trajectories with a
+root mean squared error of 12:66° and 2:64° for the knee
+and ankle, respectively. The knee and ankle joints provided on
+average 0:39 J=kgand0:21 J=kgper stride, compared to the
+normative averages of 0:34 J=kgand0:21 J=kg, respectively.
+Thus, this controller allows powered knee-ankle prostheses to
+perform net positive mechanical work to assist stair ascent.
+I. I NTRODUCTION
+Many activities of daily living, including stair and ramp
+ascent, require net positive work from the lower-limb joints.
+During stair ascent, the knee and ankle produce 0:34 J=kg
+and0:21 J=kg, respectively, to raise the user’s center of
+mass to the next step [1]–[3]. Passive and semi-passive
+devices used by individuals with above-knee amputation
+cannot do net positive work, requiring the user to adopt
+compensatory behaviors [4]. In particular, the step-to ascent
+gait is characterized by a person climbing only one stair per
+gait cycle instead of two stairs as seen in standard step-over
+ascent. Step-to ascent puts more strain on the upper body
+and sound leg in order to clear the step and support body
+weight [5]. These behaviors can cause secondary conditions
+such as chronic back pain and arthritis in the sound leg [6],
+[7], making the step-to ascent strategy undesirable.
+Powered prosthetic devices may be able to produce stair
+ascent gaits that are more biomechanically similar to able-
+bodied gait [8]–[13]. However, many of these studies have
+utilized predetermined trajectories or set-points to accom-
+plish these tasks, obfuscating the user’s control over the
+prosthesis and relying on time-consuming manual tuning
+This work was supported by the National Institute of Child Health &
+Human Development of the NIH under Award Number R01HD094772 and
+by the National Science Foundation under Award Number 2024237. The
+content is solely the responsibility of the authors and does not necessarily
+represent the ofﬁcial views of the NIH or NSF.
+Ross J. Cortino, Edgar Bol ´ıvar-Nieto, T. Kevin Best, and Robert
+D. Gregg are with the Department of Electrical Engineering and
+Computer Science and the Robotics Institute, University of Michigan,
+Ann Arbor, MI 48109. Contact: fcortinrj, ebolivar, tkbest,
+rdgregg g@umich.eduof many control parameters for each participant. V olitional
+control methods, on the other hand, adapt joint trajectories
+to the user’s movements or intent. Previous work utilizing
+myoelectric control based on electromyogram readings from
+the residual thigh allowed for control of the prosthetic knee
+during stance, but struggled with control during swing to
+achieve proper foot placement on the following stair step
+[14]. Another volitional control scheme uses a heuristic
+approach with a stance controller based on the torque-angle
+relationship with the residual thigh and a swing controller
+based on residual thigh motion [13], allowing for adaptation
+between level-ground walking and stair ascent. However, the
+swing controller is dependent on thigh angle, velocity, and
+acceleration, which may be susceptible to noise and less
+predictable than dependence on thigh angle alone.
+Other indirect volitional controllers, such as those utilized
+in [15]–[17], use a phase variable to measure the user’s
+progression through the gait cycle. The controllers command
+desired knee and ankle kinematics by creating a time-
+invariant relationship with the monotonic phase-variable,
+mapping values of phase to ankle and knee joint positions.
+The phase variable in these studies was deﬁned by a global
+thigh angle. These works utilized this approach for both
+level-ground and incline walking, demonstrating intuitive
+control and reduction in the number of controller parameters
+and the resulting tuning time.
+This paper extends the phase-variable control method to
+stair ascent, providing the user direct control over stepping
+progression through their residual thigh angle. We introduce
+two innovations over prior phase-based controllers to enable
+stair climbing. First, our controller deﬁnes the gait cycle to
+start at maximum hip ﬂexion (MHF) instead of heel-strike
+(HS) in order to mitigate saturation of the phase variable.
+Phase saturation is caused by the previous assumption that
+both MHF and heelstrike occur simultaneously, which is not
+the case with stair ascent. Recent work by [18] has shown
+that similar saturation occurs during slow walking speeds and
+was dealt with by shifting phase to ﬁt a sinusoidal proﬁle
+matching the gait progression of the user. With stair ascent,
+saturation happens consistently at all speeds due to thigh
+kinematic behavior. The second innovation of this controller
+improves user synchronization by reparameterizing the de-
+sired joint patterns based on the average thigh trajectory,
+accounting for the nonlinearities observed during stair ascent.
+This controller is able to generate the net positive work at
+the knee and ankle required to achieve step-over stair ascent.
+
+--- Page 2 ---
+II. P HASE VARIABLE STAIR ASCENT CONTROLLER
+The stair ascent controller consists of three steps, shown
+in Fig. 1. First, the controller estimates the user’s progression
+(i.e., phase) within the gait cycle from the global angle of the
+residual thigh, th. Then, the controller calculates reference
+joint angles using a continuous representation of the knee and
+ankle kinematics parameterized by the gait phase, known as
+Virtual Constraints . Finally, low-level position controllers for
+each joint enforce the reference joint angles. The following
+sections discuss each step in detail.
+Fig. 1. A block diagram of the proposed control architecture. The phase
+estimate feeds into our virtual constraints outputting a desired knee and
+ankle angles, d
+kandd
+a. The position controller commands knee and ankle
+torques, kanda, which are utilized by scripts running on the prosthesis to
+produce knee and ankle kinematics. These changes in thigh and ankle angle
+allow the user to continue ascent resulting in changes in thigh trajectory,
+continuing the cycle.
+A. Phase Variable
+1) Background: Previous phase variable implementations
+for walking have represented the progression in the gait
+cycle as a monotonically increasing value between 0 and
+1, with the gait cycle beginning and ending at heel strike.
+This was possible due to the thigh angle for level ground
+and incline walking having two roughly monotonic sections:
+one descending from the start of the gait cycle to the point
+of maximum hip extension (MHE) and the second ascending
+until HS. MHF and HS occur almost simultaneously during
+level ground walking. In [16], the phase variable, s, for
+walking was deﬁned as
+s=8
+<
+:0
+thth
+0
+thmin
+thc forthdescending,
+1 +1sm
+0
+thm
+th(th0
+th)forthascending,(1)
+where0
+threpresents the initial thigh angle at HS, min
+th
+represents the ideal thigh angle at MHE, and crepresents the
+normalized time at which MHE occurs in a gait cycle [16],
+[17].m
+thandsmrespectively represent the thigh and phase
+variable values at the detected point of MHE. These terms
+maintain continuity in phase when transitioning between
+descending and ascending deﬁnitions in the phase variable, in
+the event of a stride where the thigh at MHE is not equivalent
+to the ideal min
+th. A ﬁnite state machine (FSM) was used to
+track if the user was on the ascending or descending portion
+of the thigh trajectory, detailed in [16].This deﬁnition allowed for a reasonably linear approxima-
+tion of phase in level-ground and incline walking because
+MHF occurs roughly at the end of the gait cycle. The thigh
+kinematics during stair ascent, however, do not exhibit this
+same behavior. Instead, MHF occurs earlier in the gait cycle
+followed by a third decreasing, roughly monotonic section
+until HS (see Fig. 2). This change in behavior compared to
+level ground and incline walking is a result of raising the
+leg over the next stair to clear the step in swing and then
+bringing it down for heel strike. Due to this difference in
+kinematics, 0
+that HS no longer approximates the maximum
+thigh position, resulting in saturation of the phase variable
+in stair ascent (Fig. 2).
+Phase saturation is undesirable because it leads to sections
+of the gait cycle where thigh angle no longer affects the
+positions of the knee and ankle, causing them to hold position
+for the remainder of the gait cycle. The effects of this
+saturation on the commanded joint trajectories can be seen
+in the right-most plot of Fig. 2.
+2) Stair Ascent: To accommodate the difference in thigh
+kinematics between stair ascent and level ground walking,
+we have modiﬁed our deﬁnition of the gait cycle to begin at
+MHF instead of HS. This change in the deﬁnition of the gait
+cycle effectively shifts the thigh angle trajectory such that it
+has only two roughly monotonic sections, descending until
+MHE and ascending until MHF. The phase variable, s, can
+then be calculated using a modiﬁed form of (1), where the
+thigh angle at MHF, MHF
+th, replaces0
+th:
+s=8
+<
+:MHF
+thth
+MHF
+thmin
+thc forthdescending;
+1 +1sm
+MHF
+thm
+th(thMHF
+th)forthascending:(2)
+In addition, modiﬁcations to the FSM controlling the tran-
+sitions between the ascending and descending equations were
+required. The updated state deﬁnitions and their transition
+criteria are shown in Fig. 3. States S1 and S2 of the FSM
+correspond to the descending deﬁnition of swhile S3 and S4
+correspond to the ascending deﬁnition. The latter part of S1
+and all of S2 and S3 are part of the stance phase of the gait
+cycle, while S4 and the beginning of S1 capture the swing
+phase. This is denoted within the FSM as FC = 1, with
+FC being a binary signal for foot contact. Successful MHF
+detection is denoted as MHF = 1, where real-time detection
+of MHF uses algorithms discussed in [19]. Our deﬁnition in
+(3) and the FSM reduce saturation of the phase variable.
+Fig. 2 illustrates our phase calculations and the resulting
+improvement in the predicted knee trajectory compared to
+[16]. Note that the non-linear phase trajectory results in phase
+shifting of the predicted knee trajectory with respect to the
+reference, which we will address in the next section.
+B. Virtual Constraints
+A Fourier series was used to represent the average able-
+bodied knee and ankle kinematics as functions of gait phase,
+termed the virtual constraints. Fourier series are useful for
+representing walking joint trajectories because they are pe-
+riodic by nature and the smoothness of the trajectory can be
+
+--- Page 3 ---
+0 50 100
+Gait Cycle (%)-200204060Thigh Position (o)
+0 50 100
+Gait Cycle (%)00.20.40.60.81PhasePrevious PV Definition
+Proposed PV Definition
+0 50 100
+Gait Cycle (%)020406080100Knee Position (o)Ref
+Est(Orig)
+Est(New)Fig. 2. Plots of average reference thigh angle for a stair incline of 30 degrees, comparison of current and proposed phase variable calculation trajectories,
+and resulting virtual constraint based knee joint kinematics. The proposed phase variable deﬁnition does not show the same saturation seen in the previous
+deﬁnition. This lack of saturation and monotonic behavior improves the estimated joint kinematics ﬁt to the reference data.
+Fig. 3. Stair ascent state machine. The yellow circles correspond to the
+descending phase variable deﬁnition, while the blue squares correspond
+to the descending deﬁnition. S1 begins in swing after MHF has occurred
+and continues into stance until the onset of push-off onset where it then
+transitions to S2. S2 continues from push-off onset to the point of MHE
+where the average thigh velocity over a 40 ms window becomes positive,
+transitioning to S3. The state machine stays in S3 until FC = 0, where it
+then transitions to S4. Phase cannot decrease in S3 or S4. S4 continues until
+MHF = 1 and then transitions back to S1.
+controlled through the order of the series [15]. Each desired
+joint angled
+i(s),i2fk;ag, was determined by
+d
+i(s) =1
+20+1
+2N
+2cos(Ns)
++N=21X
+j=1[jcos(
+js) jsin(
+js)];(3)
+wheresdenotes the phase variable, jand jare re-
+spectively the real and imaginary Fourier coefﬁcients of
+the averaged able-bodied joint trajectories, 
+j= 2j, and
+N= 14 is a ﬁnite number of samples with N=2being
+the order of the Fourier series (chosen as a compromise
+between smoothness and RMSE with respect to the reference
+trajectories). A discrete Fourier transform (DFT) was used
+to determine the Fourier coefﬁcients in a manner similar to
+[15] with an important modiﬁcation described below.
+The averaged able-bodied joint trajectories were calcu-
+lated using the stair ascent data in [1], which reports joint
+kinematics per stride using normalized time. We interpolated
+these kinematics as functions of the average phase variable,
+based on the average thigh kinematics from the dataset. This
+accounts for non-linearities in the average phase trajectory,
+improving the phase synchronization (and thus the ﬁt) of
+the estimated joint kinematics to the reference able-bodied
+0 50 100
+Gait Cycle (%)020406080100Knee Position (o)Ref
+Est(Orig)
+Est(VC Reparam)(a)
+0 50 100
+Gait Cycle (%)-1001020Ankle Position (o) (b)
+Fig. 4. Plots of (a) knee and (b) ankle virtual constraint kinematics show
+improved estimation of able-bodied reference kinematics (Ref) with re-
+parameterized virtual constraints (Est(VC Reparam)) over virtual constraints
+without re-parameterization (Est(Orig)).
+trajectory on average. Fig. 4a shows better estimation of the
+knee reference during early and middle swing which ensures
+clearing of the next step. Fig. 4b shows improved estimation
+of the ankle reference during maximum plantarﬂexion and
+early swing, which is important for powered push-off and
+step clearance. The interpolated reference knee and ankle
+trajectories were input to the DFT to calculate the coefﬁcients
+of the Fourier functions [15]. Fig. 4 shows the calculated
+virtual constraints as functions of normalized time with and
+without re-parameterization.
+C. Low-Level Position Control
+The commanded joint torques at the knee, k, and ankle,
+a, were functions of the respective joint desired position ( d
+k
+ord
+a) by
+i=ki
+p(d
+ii) +ki
+iZ
+d
+ii
+dtki
+d_i; (4)
+whereki
+p;ki
+i;andki
+dare proportional, integral, and derivative
+gains for the both knee and ankle joints. Terms for the desired
+joint velocities were neglected in order to limit vibrations
+that naturally arose due to the prosthesis’s minimal inherent
+viscous losses [20].
+III. E XPERIMENTAL RESULTS
+A. Methods
+The proposed control method was implemented on the
+powered knee-ankle prosthesis designed in [20], shown in
+Fig. 5. This prosthesis features high torque, low impedance
+actuators (ILM 85 26 motor kit, RoboDrive, Seefeld,
+
+--- Page 4 ---
+(a)
+ (b)
+Fig. 5. Photo of the able-bodied participant using the prosthesis for stair
+ascent during the experiments. The participant and conﬁguration of the
+prosthesis are shown at (a) the beginning of stance and (b) at push-off. A
+shoe lift was worn on the contralateral foot in order to equalize leg lengths.
+Germany) with custom 22:1 single-stage stepped-planet com-
+pound planetary gear transmissions. The motors are driven
+by G-SOLO Twitter R80A/80VDC drives (Elmo Motion
+Control, Petah Tikva, Israel). A prosthetic foot (Ottobock Lo
+Rider, 1E57) is mounted below a 6-axis load cell (Sunrise
+Instruments, Nanning, China), which mounts to the distal end
+of the ankle joint. The control and signal processing code
+is implemented on a myRIO 1900 (National Instruments,
+Austin, TX) mounted on the front of the prosthesis. All
+control code is executed at 500 Hz. Four on-board LiPo
+batteries (TP870-3SR70, Thunder Power, Las Vegas, NV)
+connected in series power the prosthesis. The global ori-
+entation of the residual thigh is measured using a 3DM-
+CX5-25 IMU (LORD Microstrain, Williston, VT) afﬁxed to
+the proximal end of the knee actuator. Motor positions are
+measured by E5, 3600 cpr optical quadrature encoders (US
+Digital, Vancouver, WA). Joint velocities are estimated using
+second-order Savitzky-Golay differentiation.
+This prosthesis was used because it has sufﬁciently pow-
+erful actuators to enable accurate position tracking during
+power intensive tasks, such as stair ascent. To demonstrate
+the merit of the control strategy, an experienced able-bodied
+user was ﬁt with the prosthesis using a leg bypass adapter.
+The study was approved by the University of Michigan
+Review Board (HUM00166976) and the participant wore
+a safety harness at all times. In each trial, the participant
+walked up a dual handrail staircase with ﬁve steps inclined
+at 30 degrees (see Fig. 5). The speciﬁc stair inclination was
+chosen based on OSHA and other work place standards for
+stair inclination [21]. Before data collection, the position
+gains,MHF
+th,min
+th, and phase variable constant c were tuned
+while the participant ascended the staircase. To avoid fatigue
+during data collection, trials were performed over 3 separate
+testing periods, with 10 trials per period. This resulted in
+30 full steady-state strides with the prosthesis (taking the
+middle stride of each trial as steady state). Kinetic and
+kinematic data were recorded from the prosthesis. A video of
+an example trial is available in the supplementary material.
+B. Results
+The joint kinematics and phase variable from the 30 trials
+were averaged and plotted against normative able-bodiedtrajectories in Fig. 6. Fig. 7 shows the average joint power
+and moments. Both ﬁgures use our gait cycle deﬁnition in
+Sec. II-A.2, i.e., the gait cycle begins and ends at MHF.
+The normative able-bodied joint kinematics and kinetics
+correspond to [1] and [2], respectively.
+The average phase trajectory (Fig. 6a) was monotonic and
+approximately reached one at the end of the gait cycle.
+It was relatively linear with no observed saturation of the
+phase variable at the end of the gait cycle. The average knee
+trajectory matched the reference able-bodied knee trajectory
+in Fig. 6b with a root mean squared error (RMSE) of
+12:66°. The difference between them was greatest in early
+swing. Similarly, this segment of the gait cycle had a large
+standard deviation of actual knee position, which matched the
+variability in the phase variable. The average ankle trajectory
+matched the able-bodied reference trajectory in Fig. 6c with
+an RMSE of 2.64°. For the majority of the gait cycle, the
+mean ankle joint position was within a standard deviation
+of the reference. The largest standard deviations in position
+were found in the same region of the gait cycle as with
+the knee kinematics and phase variable. The largest standard
+deviation of the able-bodied data appeared in early swing.
+The average knee torque (Fig. 7a) matched the able-
+bodied knee torque for the majority of the gait cycle (RMSE:
+20.60 Nm). The peak torque of the measured data was
+greater than the able-bodied reference. Larger torques were
+applied over a longer period of time when compared to
+the reference, which may be an artifact of the additional
+limb mass and leg length from the bypass adapter. The
+average commanded ankle torque, Fig. 7b, matched the able-
+bodied ankle torque during the ﬁrst half of the gait cycle
+(RMSE: 33.86 Nm). The peak ankle torque commanded
+during this period was greater than that of the able-bodied.
+Sec. IV-B discusses the differences between able-bodied and
+commanded torques.
+The average knee power in Fig. 7c exhibited a similar
+peak and general pattern to the able-bodied data (RMSE:
+34.14 W). However, the peak occurred slightly later and over
+a shorter interval in the gait cycle compared to the reference.
+The commanded power closely matched the reference during
+swing. The average ankle power in Fig. 7d followed the
+general trend of the able-bodied power data as well (RMSE:
+38.14 W). Ankle power was greater than able-bodied for the
+ﬁrst 50% of the gait cycle. The second half of the gait
+cycle exhibited ankle power that is characteristic of push-off,
+but was less than the able-bodied reference. See Sec. IV-B
+for the corresponding discussion. Despite these differences
+between the actual and reference joint power, we ﬁnd that
+the knee and ankle joints provided on average 0:39 J=kg
+and0:21 J=kgper stride, closely matching the normative
+averages of 0:34 J=kgand0:21 J=kg, respectively.
+IV. D ISCUSSION
+A. Advantages of the Control Strategy
+A problem noted in previous phase-variable control strate-
+gies [15], [16] was that saturation can occur when MHF
+th
+is greater than 0
+th. By utilizing real-time MHF detection
+
+--- Page 5 ---
+(a)
+ (b)
+ (c)
+Fig. 6. Plots of (a) phase variable (b) knee kinematics and (c) ankle kinematics averaged over all 30 experimental strides. The able-bodied reference
+trajectory for each joint is denoted as AB, while the commanded and true position of each joint are denoted as Desired and Actual, respectively The
+relative linearity of the phase variable combined with the well-ﬁtting virtual constraints produced joint kinematics resembling able-bodied stair ascent gait.
+The vertical black lines denote when toe-off occurs within the gait cycle, dashed representing able-bodied and solid representing when toe-off occurred
+for the participant. Positive knee and ankle angles denote knee ﬂexion and ankle dorsiﬂexion, respectively.
+(a)
+ (b)
+(c)
+ (d)
+Fig. 7. Plots of (a) knee torque, (b) ankle torque, (c) knee power, and (d)
+ankle power averaged over all 30 experimental strides. The joint kinetics
+resembling able-bodied stair ascent gait kinetics with the exception of a
+lack of push-off at the ankle. Positive knee and ankle torques denote knee
+ﬂexion and ankle dorsiﬂexion, respectively.
+and a shifted gait cycle deﬁnition, we were able to reduce
+saturation of the phase variable and produce an average phase
+variable that is mostly monotonic from start to end of the
+stride, as shown in Fig. 6. This result suggests that using a
+similar strategy for level-ground walking (as in [18]), ramp
+ascent/descent, and other activities may be beneﬁcial.
+Our virtual constraints, designed from normative joint
+trajectories for a stair inclination of 30°, allowed stair ascent
+for an able-bodied user of the powered knee-ankle prosthesis.
+During swing, we see the most similarity between actual and
+reference kinematics (Fig. 6), which is important for clearing
+the following step and achieving proper foot placement for
+the next stride. This allows for step-over stair ascent without
+tripping or toe-stubbing.
+B. Limitations of Control Strategy and Study
+While transitioning at MHF enables our phase variable
+approach, real-time MHF detection can be prone to falseor premature detection. Premature detection of MHF can
+be problematic, as it can cause discontinuous changes in
+the phase variable and the resulting virtual constraints. Joint
+angle thresholds for MHF detection that adapt with the user’s
+thigh position during ascent could be beneﬁcial to prevent
+false detection. The current thresholds for MHF detection are
+based on the reference kinematics of a 30° incline. Improving
+robustness of MHF detection would also allow for a more
+robust FSM that enables non-standard gait progressions such
+as adjusting foot placement after MHF.
+Further, the greatest deviations in the ankle and knee
+kinematic trajectories relative to the able-bodied references
+occured during toe-off and early swing. Fig. 6a shows the
+phase variable at this point in the gait cycle increased slower
+than the ideal linear phase. The supplemental video shows
+that, at this point, the participant’s thigh did not move
+forward as expected, instead moving slightly backwards after
+toe-off before forward movement begins to clear the next
+step. The participant noted this movement was involuntary
+and appeared to be related to balance after loss of foot
+contact. At this point in the gait cycle, phase is not allowed
+to decrease, resulting in the pausing behavior between 60-
+80% in Fig. 6a. Fig. 7 shows that push-off torque at the
+ankle occurred earlier in the gait cycle compared to the able-
+bodied reference. Similarly toe-off occurred earlier than the
+able-bodied reference. Push-off is important for propelling
+the user into swing, and may have an effect on user balance
+in terminal stance. Utilizing a feed-forward approach to
+calculating phase at this point in the gait cycle (as in [22])
+could be a potential solution to avoiding the phase variable
+pause associated with MHE. This would improve push-
+off and toe-off timing by ensuring the calculated virtual
+constraints match the able-bodied references.
+This study was also limited by the enrollment of an able-
+bodied participant using a bypass adapter. It is possible that
+the unexpected decrease of the thigh angle in early swing,
+as well as the premature toe-off, could be a result of the
+mechanics of bypass adapter walking. In particular, walking
+may be asymmetric because the knee joint centers are not
+the same between the sound leg (wearing a foot lift) and
+the prosthetic leg worn with a bypass. Further studies with
+
+--- Page 6 ---
+amputee participants are necessary to address this limitation.
+Finally, the FSM in the proposed controller only allowed
+sequential state progression, so phase could not decrease in
+terminal stance and swing. In future studies, we will develop
+a more versatile FSM that allows for switching between
+stance and swing without the need to progress through the
+entire gait cycle (as done in [16] for level-ground walking).
+This would be beneﬁcial if a user needs to adjust their foot
+placement after MHF or bring their leg back down to the
+stair after just pushing off.
+C. Extension of Control Strategy for Stair Descent
+Future work will apply a similar control strategy to stair
+descent. While the general premise will be the same as the
+ascent controller, special consideration needs to be given to
+the small thigh range of motion relative to the knee and ankle
+ranges of motion during descent. Because of this difference
+in range of motion, the effective gain applied by the virtual
+constraints when mapping thigh angle to the knee or ankle
+angles will be quite high. This is especially problematic at the
+knee, which can inﬂuence thigh motion and create unstable
+feedback interactions, particularly during swing.
+V. C ONCLUSION
+In this paper, we introduced a new indirect volitional
+control approach for stair ascent based on a phase variable.
+A novel phase variable was presented based on the user’s
+thigh angle where the gait cycle was deﬁned to start at MHF.
+Real-time detection of MHF and FC allowed a ﬁnite state
+machine to control the transitions between deﬁnitions of the
+phase variable within the gait cycle. The new phase variable
+deﬁnition, combined with virtual constraints derived from
+able-bodied stair kinematics, allowed the user to ascend stairs
+in a normative, step-over gait. Experiments with an able-
+bodied participant wearing a bypass adapter validated our
+control approach. The supplemental video showcases that
+the proposed controller allowed the able-bodied participant
+to accomplish stair-over ascent over multiple strides.
+Future work will include similar experiments with partic-
+ipants with an above-knee amputation. An extension of this
+control approach would allow for adaptation to stair height
+instead of assuming stair height matches an incline of 30°.
+A similar control scheme to the one proposed could also
+be employed for powered stair descent. Another extension
+of this controller would be its implementation with a higher
+level classiﬁer as shown in [19] in order to enable continuous
+locomotion between tasks. All of these future applications
+will prove important to better understanding this controller’s
+capabilities, beneﬁts, and shortcomings.
+REFERENCES
+[1] E. Reznick, K. Embry, R. Neuman, E. Bol ´ıvar-Nieto, N. Fey, and
+R. Gregg, “Human lower-limb kinematics and kinetics during contin-
+uously varying locomotion,” Scientiﬁc Data , pp. 1–15, 2021.
+[2] R. Riener, M. Rabuffetti, and C. Frigo, “Stair ascent and descent at
+different inclinations,” Gait Posture , vol. 15, pp. 32–44, 2002.
+[3] J. Camargo, A. Ramanathan, W. Flanagan, and A. Young, “A compre-
+hensive, open-source dataset of lower limb biomechanics in multiple
+conditions of stairs, ramps, and level-ground ambulation and transi-
+tions,” J. Biomechanics , vol. 119, p. 110320, 2021.[4] H. Hobara, Y . Kobayashi, T. Nakamura, N. Yamasaki, K. Nakazawa,
+M. Akai, and T. Ogata, “Lower extremity joint kinematics of stair
+ascent in transfemoral amputees,” Prosthetics and Orthotics Interna-
+tional , vol. 35, no. 4, pp. 467–472, 2011.
+[5] D. J. Lura, M. W. Wernke, S. L. Carey, J. T. Kahle, R. M. Miro, and
+M. J. Highsmith, “Crossover study of amputee stair ascent and descent
+biomechanics using Genium and C-Leg prostheses with comparison
+to non-amputee control,” Gait Posture , vol. 58, pp. 103–107, 2017.
+[6] D. M. Ehde, D. G. Smith, J. M. Czerniecki, K. M. Campbell, D. M.
+Malchow, and L. R. Robinson, “Back pain as a secondary disability
+in persons with lower limb amputations,” Arch. Phys. Med. Rehabil. ,
+vol. 82, no. 6, pp. 731–734, 2001.
+[7] D. C. Norvell, J. M. Czerniecki, G. E. Reiber, C. Maynard, J. A.
+Pecoraro, and N. S. Weiss, “The prevalence of knee pain and symp-
+tomatic knee osteoarthritis among veteran traumatic amputees and
+nonamputees,” Arch. Phys. Med. Rehabil. , vol. 86, no. 3, pp. 487–
+493, 2005.
+[8] M. Tran, L. Gabert, M. Cempini, and T. Lenzi, “A Lightweight,
+Efﬁcient Fully Powered Knee Prosthesis with Actively Variable Trans-
+mission,” IEEE Robotics and Automation Letters , vol. 4, no. 2, pp.
+1186–1193, 2019.
+[9] T. Lenzi, M. Cempini, L. Hargrove, and T. Kuiken, “Design, devel-
+opment, and testing of a lightweight hybrid robotic knee prosthesis,”
+Int. J. Robotics Research , vol. 37, no. 8, pp. 953–976, 2018.
+[10] S. Culver, H. Bartlett, A. Shultz, and M. Goldfarb, “A stair ascent
+and descent controller for a powered ankle prosthesis,” IEEE Trans.
+Neural Syst. Rehabilitation Eng. , vol. 26, no. 5, pp. 993–1002, 2018.
+[11] A. M. Simon, K. A. Ingraham, N. P. Fey, S. B. Finucane, R. D.
+Lipschutz, A. J. Young, and L. J. Hargrove, “Conﬁguring a powered
+knee and ankle prosthesis for transfemoral amputees within ﬁve
+speciﬁc ambulation modes,” PLoS ONE , vol. 9, no. 6, 2014.
+[12] E. D. Ledoux and M. Goldfarb, “Control and evaluation of a powered
+transfemoral prosthesis for stair ascent,” IEEE Trans. Neural Syst.
+Rehabilitation Eng. , vol. 25, no. 7, pp. 917–924, 2017.
+[13] S. Hood, L. Gabert, and T. Lenzi, “Powered knee and ankle prosthesis
+with adaptive control enables climbing stairs with different stair
+heights, cadences, and gait patterns,” TechRxiv , no. 1925343, pp. 1–11,
+2020.
+[14] C. D. Hoover, G. D. Fulk, and K. B. Fite, “Stair ascent with a powered
+transfemoral prosthesis under direct myoelectric control,” IEEE/ASME
+Trans. Mechatronics , vol. 18, no. 3, pp. 1191–1200, 2013.
+[15] D. Quintero, D. J. Villarreal, D. J. Lambert, S. Kapp, and R. D. Gregg,
+“Continuous-phase control of a powered knee-ankle prosthesis: Am-
+putee experiments across speeds and inclines,” IEEE Trans. Robotics ,
+vol. 34, no. 3, pp. 686–701, 2018.
+[16] S. Rezazadeh, D. Quintero, N. Divekar, E. Reznick, L. Gray, and R. D.
+Gregg, “A phase variable approach for improved rhythmic and non-
+rhythmic control of a powered knee-ankle prosthesis,” IEEE Access ,
+vol. 7, pp. 109 840–109 855, 2019.
+[17] T. K. Best, K. R. Embry, E. J. Rouse, and R. D. Gregg, “Phase-Variable
+Control of a Powered Knee-Ankle Prosthesis over Continuously Vary-
+ing Speeds and Inclines,” IEEE Int. Conf. Intell. Robots Syst. , 2021.
+[18] W. Hong, N. Anil Kumar, and P. Hur, “A phase-shifting based human
+gait phase estimation for powered transfemoral prostheses,” IEEE
+Robotics and Automation Letters , vol. 6, no. 3, pp. 5113–5120, 2021.
+[19] S. Cheng, E. Bolivar-Nieto, and R. D. Gregg, “Real-time activity
+recognition with instantaneous characteristic features of thigh kine-
+matics,” IEEE Trans. Neural Syst. Rehabilitation Eng. , pp. 1–1, 2021.
+[20] T. Elery, S. Rezazadeh, C. Nesler, and R. D. Gregg, “Design and
+Validation of a Powered Knee-Ankle Prosthesis With High-Torque,
+Low-Impedance Actuators,” IEEE Trans. Robot. , pp. 1–20, 2020.
+[21] Stairways , OSHA Standard 1910.25, 2019.
+[22] T. Best, C. Welker, E. Rouse, and R. Gregg, “Phase-based impedance
+control of a powered knee-ankle prosthesis for tuning-free locomotion
+over speeds and inclines,” TechRvix , 2022.
+[23] E. J. Wolf, V . Q. Everding, A. L. Linberg, B. L. Schnall, J. M.
+Czerniecki, and J. M. Gambel, “Assessment of transfemoral amputees
+using C-Leg and Power Knee for ascending and descending inclines
+and steps,” J. Rehabil. Res. Dev. , vol. 49, no. 6, p. 831, 2012.
+[24] B. E. Lawson, H. A. Varol, A. Huff, E. Erdemir, and M. Goldfarb,
+“Control of stair ascent and descent with a powered transfemoral
+prosthesis,” IEEE Trans. Neural Syst. Rehabilitation Eng. , vol. 21,
+no. 3, pp. 466–473, 2013.

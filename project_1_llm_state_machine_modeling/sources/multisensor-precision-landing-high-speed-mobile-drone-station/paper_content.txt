@@ -1,0 +1,796 @@
+--- Page 1 ---
+International Journal of Control, Automation, and Systems
+https://doi.org/10.1007/s12555-026-00020-x
+REGULAR PAPER
+Multi-Sensor-Based Long-Range Precision Landing on a High-Speed
+Mobile Drone Station
+Joohyuk Lee1·Hyeonjeong Heo1·Hojun Lee1·Kyuman Lee1,2
+Received: 12 June 2025 / Revised: 15 September 2025 / Accepted: 19 November 2025
+© The Author(s) 2026
+Abstract
+Battery-powered multicopter drones are constrained by limited range and endurance due to the low energy density of onboard
+batteries. To overcome these limitations, mobile drone stations capable of battery charging and replacement have been
+introduced. However, achieving precision landings on high-speed mobile stations–especially when they are initially beyondthe visual range of the drone’s onboard sensors–remains a signiﬁcant challenge. To address this, this paper proposes a precision
+landing approach that enables the drone to reliably land on a high-speed mobile drone station, even when the station initially
+lies beyond the visual range of the onboard camera. Speciﬁcally, we present a multi-sensor-based localization method thatleverages the complementary characteristics of the global positioning system, ultra-wideband, and camera vision’s sensory
+data to robustly estimate the relative position and orientation of the mobile station. We further introduce a dynamically feasible
+three-phase ﬂight guidance strategy that aligns the drone’s motion with the station’s velocity, ensuring smooth and accuratelandings. Building upon this, to support the proposed method, we design a dedicated hardware conﬁguration for both thedrone and the mobile station. We validate our approach through real-world ﬂight experiments, demonstrating consistent and
+successful landings on a mobile drone station traveling at speeds up to 25 km/h and starting from distances exceeding 20 m.
+Keywords Mobile drone station ·Multi-sensor-based localization ·Precision landing ·Ultra-wideband
+1 Introduction
+Drones are increasingly being deployed across a wide range
+of applications and mission scenarios. Among the various
+types of drones, battery-powered multi-copter drones are themost commonly used, owing to their low production cost,
+Recommended by Guest Editor Myun Joong Hwang under the
+direction of Senior Editor Han-Lim Choi.
+BKyuman Leeklee400@knu.ac.kr
+Joohyuk Lee
+joohyuk@knu.ac.kr
+Hyeonjeong Heo
+heo0422@knu.ac.kr
+Hojun Lee
+hojunlee66@knu.ac.kr
+1Department of Robot and Smart System Engineering,Kyungpook National University, 80, Daehak-ro, Buk-gu,
+Daegu 41566, Korea
+2School of Space Engineering Sciences, Kyungpook National
+University, Daegu, Koreasimple mechanical structure, and ease of control. However,
+limited battery capacity inherently constrains their opera-tional range and mission duration. One promising solution
+to address this limitation is the use of a mobile drone sta-
+tion. A mobile drone station is a modular system that housesa drone, provides a landing pad for safe takeoff and land-
+ing, and includes automated battery charging or replacement
+functionality [ 1]. By providing automated battery charging
+or replacement during the mission, the system mitigates the
+limitations imposed by the drone’s battery capacity.
+The mobile drone station is typically coupled with
+autonomous landing capabilities to fully leverage the advan-tage of automated battery charging. In particular, the capabil-
+ity for a drone to land on a high-speed station starting from a
+long distance substantially reduces mission downtime relatedto battery charging and replacement. The precision landing
+on the moving station requires technology that accurately
+estimates the relative position of the station with respectto the drone. GPS, primarily used in outdoor environments,
+exhibits errors of approximately 10 m, rendering it unsuitable
+for precision landing on the mobile drone station measuringaround 1 m in size. Therefore, achieving accurate localization
+123
+
+--- Page 2 ---
+J. Lee et al.
+of the mobile drone station requires the integration of addi-
+tional sensors with higher precision than GPS (e.g., UWB,Vision with ﬁducial markers). To address this, we propose
+a multi-sensor-based long-range precision landing method
+applicable to a high-speed mobile drone station.
+Our key contributions regarding the precision landing on
+the mobile drone station in motion are as follows.
+(1) We propose a multi-sensor-based station localization
+method that adapts to the relative distance between thedrone and the station.
+(2) We introduce a ﬂight path generation and following strat-
+egy that aligns the velocity of the drone with the station’smotion.
+(3) We develop a ﬂight guidance method that is model-free
+for both a drone and a station, enabling the drone to land
+on a high-speed station from a long range.
+(4) We design hardware conﬁgurations for both the drone
+and the mobile drone station to enable precision landing
+on the high-speed mobile drone station.
+(5) We validate the proposed system and method through
+real-world ﬂight experiments.
+The remainder of this paper is organized as follows:
+Sect. 2reviews related work on precision landing. Section 3
+describes multi-sensor-based localization methods for the
+station. Building on this, Sect. 4presents a ﬂight guidance
+approach that enables the drone to land on a high-speedstation based on the station localization. Section 5then
+presents real-world ﬂight experiments and analyzes the
+results. Finally, Sect. 6concludes the paper.
+2 Related Work
+Precision landing is a critical capability for achieving full
+autonomy in drone operations. Numerous studies have
+actively investigated this topic [ 2,3]. A notable milestone was
+2017 MBZIRC competition [ 4–9], which included a mission
+requiring a drone to autonomously land on a vehicle moving
+at 15 km/h. [ 4–7] employed MPC(Model Predictive Control),
+which requires a dynamic model of the drone. Speciﬁcally,[4,5] used a dynamic model of the vehicle as well, and they
+utilized RTK(Real-Time Kinematic)-GPS for drone local-
+ization. [ 8] also relied on a dynamic model for a nonlinear
+controller. In contrast, [ 9] employed a model-free visual ser-
+voing approach. Despite the diverse methods proposed, the
+competition was held in a constrained environment with vehi-
+cle speeds below 15 km/h and relied solely on visual detectionof a ﬁducial marker. This restricted the applicability of the
+approaches to more general or high-speed scenarios.
+Beyond competitions, [ 10–13] address autonomous drone
+landing on moving platforms in practical contexts. In [ 10],a drone lands on a ground vehicle equipped with a Stew-
+art platform, demonstrating capability beyond visual range.However, the system relies on RTK-GPS and has not been
+validated at speeds above 20 km/h. In [ 11], an indoor exper-
+iment combines UWB and vision-based localization, yet thespeed is low, and the test environment is spatially constrained.[12] presents a vision-based landing without RTK-GPS or
+drone dynamics, but it only works within visual range and is
+validated only at low speeds. [ 13] proposes an MPC-based
+high-speed landing at 12 m/s from long range, but is validated
+only in simulation.
+As summarized in Table 1, our approach offers several
+advantages over prior works. First and foremost, while prior
+works are constrained in speed, reliance on environments, our
+method enables precision landing from 20 m away at speedsover 20 km/h. Furthermore, our method operates robustlywithout requiring RTK-GPS. Although RTK-GPS provides
+high-precision positioning, its operational ﬂexibility is con-
+strained by high cost, the time required to acquire an initialﬁx, and reliance on a dedicated base station, which restricts
+the operational range. Additionally, we employ a model-free
+approach for both the drone and the station. We deﬁne model-free as an approach that does not require a dynamic model.
+The presence of signiﬁcant modeling challenges for both the
+station and the drone in our scenario necessitates this model-free approach. The station’s dynamics are unknown to thedrone because the mobile station can be mounted on any
+platform, causing the model to change with each deployment.
+Furthermore, even if a model is identiﬁed, the station is pas-sive and non-cooperative, making its motion fundamentally
+unpredictable. Although a drone’s dynamics can typically
+be modeled, our scenario involving high-speed, low-altitudeﬂight presents challenges in altitude estimation, which in
+turn leads to signiﬁcant modeling inaccuracies. A model-free
+approach is therefore well-suited to overcome these chal-lenges. Moreover, our approach is validated in real-worldexperiments.
+3 Multi-Sensor-Based Station Localization
+We use three types of sensors (i.e., Vision, UWB, and GPS) toestimate the position of the station. The vision sensor, whichis a monocular camera, detects a ﬁducial marker attached to
+the top of the station and estimates the full 6-DoF(Degree-of-
+Freedom) relative pose of the station, including both positionand orientation. The UWB sensor measures the distance
+between a tag and an anchor. Unlike indoor setups with mul-
+tiple anchors for 3-DoF localization [ 14,15], our outdoor
+scenario with a single station provides only 1D range. Lastly,
+the GPS provides the 3-DoF global position of the station.
+The available range of these sensors decreases in the order
+of GPS, UWB, and Vision, whereas the measurement accu-
+123
+
+--- Page 3 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+Table 1 Comparison of related work
+Long-range High-speed w/o RTK-GPS Real-world Not constrained space Drone model-free Station model-free
+[4,5] ✗✗✗ ✓ ✗✗ ✗
+[6,7] ✗✗ ✓✓ ✗✗ ✓
+[8] ✗✗ ✓✓ ✗✗ ✗
+[10] ✓ ✗✗ ✓✓ ✗ ✓
+[11] ✓ ✗ ✓✓ ✗ ✓ ✗
+[9,12] ✗✗ ✓✓ ✗ ✓✓
+[13] ✓✓✓ ✗ - ✗ ✓
+Ours ✓✓✓ ✓ ✓ ✓ ✓
+Fig. 1 Possible combinations of three sensors
+racy generally increases in the reverse order. As no single
+sensor consistently outperforms the others across all oper-
+ating conditions, a multi-sensor-based approach is essential.
+By combining three sensors, each sensor’s strengths offsetthe others’ limitations, enabling robust and accurate local-
+ization in dynamic environments.
+Combining the three sensors yields a total of 7 possible
+cases, as illustrated in Fig. 1. Among them, UWB alone does
+not provide 3-DoF position, and while both Vision and GPS
+individually offer position estimates, combining them pro-
+vides no additional beneﬁt due to the superior accuracy ofVision. Therefore, we focus on the meaningful cases–shown
+in green–which involve either single sensors or effective
+combinations. For each of these, we evaluate and comparethe accuracy of station localization.
+Figure 2illustrates our rationale for three sensor combi-
+nations (i.e., GPS+UWB, Vision+UWB, and Vision+GPS+UWB). Assuming that a station is located at a known height,such as on the top of a vehicle, and Gaussian estimates of
+Vision and GPS, UWB provides a precise range annulus.
+The annuli illustrated in Fig. 2represent the estimated sta-
+tion’s position area relative to the drone, assuming the station
+lies within the UWB coverage range (e.g., 20 m radius). For
+instance, given a distance of 10 m and a measurement error of±0.5 m, the estimated station’s position is constrained within
+a 1 m thick annulus deﬁned by an inner radius of 9.5 m and
+an outer radius of 10.5 m. Combining the annulus with thelarge GPS uncertainty circle (i.e., GPS+UWB) or the smaller
+Fig. 2 Station’s estimated area from 3 valid combinations
+Vision circle (i.e., Vision+UWB) theoretically reduces the
+estimate error. The Vision+GPS+UWB combination appears
+to offer little improvement over a Vision+UWB estimate.
+However, such an ideal analysis overlooks the complexitiesof real-world dynamic scenarios. For instance, UWB relia-bility degrades at close proximity, and vision is susceptible
+to motion blur and frame drops. The use of multiple sensors
+leverages redundancy to mitigate such failures and improverobustness. Therefore, the Vision+GPS+UWB combination
+remains valid. We proceed to experimentally validate the
+localization accuracy of these three combinations.
+3.1 Coordinate frames
+As illustrated in Fig. 3, we deﬁne ﬁve coordinate frames: the
+global inertial frame {G}, the drone body-ﬁxed frame {B},
+the onboard camera frame {C}, the station body-ﬁxed frame
+{S}, and the ﬁducial marker frame {M}. The ﬁducial marker is
+attached to the landing pad, while the GPS and UWB modules
+must be installed separately from the landing pad for safelanding. Therefore, the mobile drone station comprises {M},
+which is the origin of the ﬁducial marker, and {S}, which is
+the origin of both GPS and UWB. The orientation of {S}is
+measured by the GPS module’s compass, aligned with the
+123
+
+--- Page 4 ---
+J. Lee et al.
+Fig. 3 Coordinate frames for our approach in motion scenario
+vehicle’s heading and the y-axis of {M}. Moreover, {M}is
+located at a distance d0in the + ydirection of {S}.
+Precision landing requires accurate relative positioning
+between the drone and the station, necessitating a uni-
+ﬁed coordinate frame. Thus, all data from the four frames
+(i.e.,{B},{C},{S}, and{M}) are transformed into a global
+ENU(East-North-Up) frame {G}, whose origin is the drone’s
+initial GPS position. In the ﬁrst step, the marker frame {M},
+detected by the onboard camera, is transformed through thecamera frame {C}to the drone body-ﬁxed frame {B},a s
+shown in Eq. ( 1).
+Bp=BTCCTMMp, (1)
+whereBpandMpdenote points represented in frame {B}
+and{M}, respectively, andBTC,CTMare transformation
+matrices from {C}to{B}and from {M}to{C}, respectively.
+Following this, {B}is transformed into an ENU frame with
+its origin at {B}denoted as {B,ENU}in Eq. ( 2). Indepen-
+dently, as described in Eq. ( 3), the frame {S}, obtained from
+station’s raw GPS measurement is also transformed into anENU frame {B,ENU}.
+B,ENUp=B,ENUTBBp, (2)
+B,ENUpS=B,ENUTECEF fGPS→ECEF(GPSpS), (3)
+whereGPSpSis the frame {S}expressed in GPS coordinates,
+and f(·)GPS→ECEF is the transformation function from the
+GPS frame to the Earth-Centered, Earth-Fixed (ECEF) coor-dinate frame.
+After the transformation into the ENU frame, as described
+above, the position of the station is ﬁrst estimated in{B,ENU}, and then transformed into {G}. However, due
+to large errors in GPS altitude measurements, we exclude
+GPS altitude from both drone and station localization. Asan alternative, the height from the ground to {S}and{M}are assumed to be constant, and are given as known param-
+eters h
+S,0and hM,0, respectively (Fig. 3). This assumption
+implies that the vehicle moves over a ﬂat terrain without any
+elevation variation. On the other hand, the drone’s height is
+deﬁned relative to the ﬂat terrain and is estimated by fusingmeasurements from the onboard IMU (Inertial MeasurementUnit) and barometer using an EKF (Extended Kalman Filter)
+framework.
+3.2 GPS+UWB
+As previously discussed, while a UWB offers more accu-
+rate distance than GPS, UWB alone does not provide 3-DoFposition. To address this, we ﬁrst compute the position vec-
+tor of the station relative to the drone with Equation ( 3).
+The vector’s magnitude is then scaled by the ratio of theUWB distance d
+UWB to the GPS distance /bardblrGPS/bardbl, denoted
+asλ1. After adding the scaled vector to the drone’s position,
+GpB=(GxB,GyB,GzB)T,a ss h o w ni nE q .( 4), the esti-
+mated station’s position in {G}is obtained by replacing the
+z-component with hS,0.
+/parenleftBig
+GpS/parenrightBig
+1=GpB+λ1B,ENUpS, (4)
+where λ1=dUWB
+/bardblrGPS/bardbl, and the GPS distance is calculated
+using the magnitude of a vector rGPS=(B,ENUxS,B,ENUyS,
+−GzB+hS,0)T.
+3.3 Vision+UWB
+To combine vision and UWB data, the marker position vec-
+torB,ENUpMis scaled using the ratio of the UWB distance
+dUWB to the vision distance /bardblrVision/bardbl, similar to Sect. 3.2.
+According to Fig. 3, since the reference points for the two
+distances are different, the estimated marker origin is vir-tually shifted in order to align it with UWB origin at {S}.
+The shifted marker origin
+B,ENUpM/primeis calculated in frame
+{B,ENU}as shown in Eq. ( 5).
+B,ENUpM/prime=B,ENUpM
++(−d0sinαS,−d0cosαS,−hM,0+hS,0)T,
+(5)
+where αSdenotes the azimuth angle of frame {S}.I nt h eE N U
+frame, the azimuth angle is deﬁned as 0 at North and increases
+clockwise, satisfying 0 ≤αS<2π.U s i n gB,ENUpM/prime,t h e
+station’s position is estimated in {G}, as described in Eq. ( 6).
+/parenleftBig
+GpS/parenrightBig
+2=GpB+λ2B,ENUpM/prime, (6)
+123
+
+--- Page 5 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+where λ2=dUWB
+/bardblrVision/bardbl, and the vision distance is computed
+with rVision=/parenleftbigB,ENUxM/prime,B,ENUyM/prime,−GzB+hS,0/parenrightbigT.
+3.4 Vision+GPS+UWB
+To combine all three data,B,ENUpM/primeis applied here as well.
+We ﬁrst computeGpM/prime, the estimate obtained from vision, as
+described in Eq. ( 7), and then calculate the linear combination
+of the estimateGpM/prime, and/parenleftbigGpS/parenrightbig
+1, which combines GPS and
+UWB data, using the weights ω1andω2as shown in Eq. ( 8).
+GpM/prime=GpB+B,ENUpM/prime, (7)
+/parenleftBig
+GpS/parenrightBig
+3=ω1GpM/prime+ω2/parenleftBig
+GpS/parenrightBig
+1(8)
+The positions estimated in Eqs. ( 4), (6), and ( 8)a r ea l l
+expressed with respect to the origin of frame {S}, which
+serves as a common reference for combining data from mul-
+tiple sensors. However, the actual landing point for the droneis the center of the marker. Therefore, a coordinate transfor-
+mation is applied as shown in Eq. ( 9) to estimate the origin
+of{M}in the global frame {G}.
+GpM=GpS+(d0sinαS,d0cosαS,−hS,0+hM,0)T,(9)
+4 Flight Guidance for Precision Landing
+The precision landing procedure is divided into three primary
+phases: (1) Trajectory generation and following, (2) Decel-
+eration, and (3) Terminal descent with PID(Proportional–
+Integral–Derivative) control. The overall landing procedureis depicted in Fig. 4as a state machine. The landing procedure
+begins by ensuring that the drone is at an initial point. Once
+the drone reaches the initial point, the drone generates a tra-
+jectory toward a landing point above the station and followsthe trajectory. Since the station is moving, the drone must ﬂy
+at a higher speed to catch up and align with the station. To
+achieve this, the horizontal speed of the drone is consistentlyset to exceed that of the station by a ﬁxed margin v
+0.
+As the drone approaches the station, it continuously evalu-
+ates the horizontal distance to the station. When the distancefalls below a threshold, the drone stops trajectory generationand transitions to the deceleration phase. The objective of this
+phase is to reduce the relative horizontal velocity between the
+drone and the station to zero. Since the drone is initially fasterthan the station in this phase, a smooth and controlled decel-
+eration process is crucial. To achieve this, the target speed
+is discretized into a sequence of decremental values. Duringthe deceleration, the drone maintains a ﬁxed height. Also, the
+drone’s horizontal velocity always points toward the landing
+point, and its magnitude is limited by the current step in thetarget speed proﬁle used by the PID controller.
+Fig. 4 State machine for the precision landing
+Once the relative horizontal velocity approaches almost
+zero and the marker is detected, the system transitions to
+the terminal descent phase, which is governed by a PID
+controller. The horizontal velocity commands are generatedbased on the position error between the drone and the landing
+point. To ensure a safe and accurate descent, descent com-
+mands are only issued when two conditions are satisﬁed: (1)The horizontal distance between the drone and the marker
+falls below a threshold. (2) Condition (1) has been satisﬁed
+for/Delta1T
+2. When both conditions are satisﬁed, the drone begins
+descending at a ﬁxed vertical speed.
+4.1 Trajectory Generation and Following
+4.1.1 Minimum Snap Trajectory
+A minimum snap trajectory is a smooth, piecewise polyno-
+mial path optimized to minimize the integral of the square
+of the snap (i.e., the 4th derivative of position) while pass-ing through speciﬁed keyframes σ
+T(ti)in 3D space and yaw
+angles[ 16]. The minimum snap trajectory minimizes the fol-
+lowing cost function:
+min/integraldisplaytm
+t0μr/vextenddouble/vextenddouble/vextenddouble/vextenddoubled4rT
+dt4/vextenddouble/vextenddouble/vextenddouble/vextenddouble2
++μψ/parenleftbiggd2ψT
+dt2/parenrightbigg2
+dt, (10)
+123
+
+--- Page 6 ---
+J. Lee et al.
+s.t.σT(ti)=[ xi,yi,zi,ψ i]T,i=1,..., m, (11)
+continuity of rT,˙rT,¨rT,...rT,ψ T,˙ψTatti. (12)
+whered4rT
+dt4is the snap, andd2ψT
+dt2represents angular accel-
+eration. μrandμψare constants that make the integrand
+nondimensional. Here, t0and tmare the start and end times
+of the trajectory, respectively, and T=tm−t0.
+To safely land on a high-speed station, achieving zero rel-
+ative velocity is essential. The drone generates a minimum
+snap trajectory to guide it along a linear path aligned with thestation’s velocity. This trajectory generation process requirestwo inputs derived from the station’s GPS data, which is
+transmitted to the drone via a communication link. The ﬁrst
+is the station’s velocity, taken directly from the GPS data,and the second is the station’s position, estimated from the
+same data using the method described in Sect. 3. The trajec-
+tory is deﬁned by three keyframes: start, intermediate, andendpoint. The start point is the drone’s position for the initial
+path generation. Thereafter, to ensure a smooth connection,
+the start point is updated to the last target point the drone wasfollowing on the previously generated path. The end point,identical to the landing point, is located at a height h
+0above
+the station marker. To quickly align the drone with the path,
+the intermediate point is set on the 2D xy-plane of {G}by
+ﬁrst projecting the trajectory start point perpendicularly onto
+a line parallel to the station’s velocity through the end point.
+The intermediate point divides the segment from this foot tothe end point in a 1:2 ratio. Real-time generation and tracking
+of this trajectory enables the drone to achieve zero relative
+velocity, even when the station moves along a curved path.
+4.1.2 Pure Pursuit
+To follow the generated trajectory, we adopt the computa-
+tionally efﬁcient Pure Pursuit algorithm [ 17]. By using only
+the geometric properties of the minimum snap trajectory, this
+model-free method is robust to modeling errors and avoidsthe computational load of the controller. This allows the
+drone to dynamically adjust its speed to the station’s motion
+through a velocity control scheme. The horizontal velocityof the drone, which is managed by the PX4’s internal PIDcontroller, is directed toward a target point on the path and
+set to exceed the station’s speed by v
+0, while a PD controller
+independently adjusts vertical velocity and yaw to match thetarget point and heading. At each control loop, the horizon-
+tal distance to the target point is measured, and when it falls
+below a look-ahead distance, the target point is updated tothe next point. The look-ahead distance is set based on thedrone’s speed, with a minimum value to ensure both tracking
+accuracy and smoothness.
+4.2 Deceleration
+As the drone approaches the station, the drone follows thestation from behind, aligned with the station’s velocity. Con-
+sequently, the path becomes almost linear, making additional
+path generation unnecessary. Therefore, once the horizontaldistance between the drone and the station dfalls below a
+threshold l, the drone stops generating the path and switches
+the reference point to the landing point. The drone then ini-tiates deceleration to match the station’s speed, employing
+PID control and a discretized stepwise speed limiting strat-
+egy. The stepwise speed limits are determined by dividing thevelocity difference between the drone and the station into n
+discrete steps at the start of the deceleration phase, where
+each step is deﬁned according to the current horizontal dis-
+tance d, as follows:
+v
+limit=vdrone−/parenleftbiggvdrone−vstation
+n/parenrightbigg
+i, (13)
+i∈{1,..., n}such thatl
+n(i−1)≤d<l
+ni, (14)
+where vlimit is the drone’s speed limit, vdrone is the drone’s
+speed, and vstation is the station’s speed.
+4.3 Terminal descent with PID control
+During deceleration, if the drone detects the marker or
+reaches the landing point, the speed limit is lifted and thesystem transitions to terminal descent. If the marker is not
+detected due to errors in station localization, the drone initi-
+ates a search by ascending to a height h
+max. After reaching
+hmax, if the marker remains undetected for /Delta1T1, the landing
+is aborted and the drone hovers.
+Once the marker is detected, the drone maintains its height
+and aligns horizontally and in yaw with the marker using
+separate PID controllers. While the marker is detected, the
+system records the horizontal offset eVision between the GPS-
+and marker-based positions. The recorded eVision corrects the
+landing point when the marker is lost. After the marker is
+detected again, the horizontal distance error stays within a
+threshold for /Delta1T2, the drone begins descending at a con-
+stant vertical speed. If the marker becomes undetectable due
+to the limited onboard camera’s FOV(Field of view) near
+the marker, the drone continues descending at a horizontalvelocity matched to that of the station.
+123
+
+--- Page 7 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+Fig. 5 Conﬁguration of the mobile drone station: (a)design of the
+station, (b)experimental setup
+5 Experiments and Results
+5.1 Multi-Sensor-Based Station Localization
+We use a Holybro-F9P GPS module, a DWM1000 UWB
+module with a range of up to 20 m, and a camera with a0.3×0.3 m ArUco marker (id=200). The camera has a res-
+olution of 640 ×480, a 100
+◦FOV , and a framerate of 30 fps.
+The drone receives the station’s GPS data, including position
+and velocity, via a Wi-Fi link, actively measures its distanceto the station anchor using UWB, and passively detects the
+ArUco marker. Using the same three sensors, we conﬁgure
+both the station and the drone. The station setup includestwo UWB anchors, whose average measurement is used for
+robustness (Fig. 5-a). The drone conﬁguration includes a top-
+mounted UWB tag, a GPS module, and a camera mounted in adownward-facing orientation relative to the body-ﬁxed frame(Fig. 6-a). While an obliquely mounted camera allows for ear-
+lier marker detection during the approach phase, it inevitably
+loses sight of the marker during the terminal descent phase.In contrast, the downward-facing camera guarantees that the
+marker is consistently visible during the terminal descent
+phase of the landing. The drone also mounts four electro-magnets on its landing gears, as part of the system shown in
+Fig.6-b, to enable safe landing on a high-speed station. The
+drone’s onboard computer, NVIDIA Jetson Orin NX , controls
+the electromagnetic system, and we use the PX4 for the ﬂightcontroller.
+To evaluate the localization accuracy of the station using
+three sensors, we deploy the station in a stationary positionon the ground as illustrated in Fig. 5-b, where the y-axes
+of{S}and{M}are aligned with magnetic North for con-
+venience, and the origin of {S}is measured using RTK-GPS
+with d
+0=1 m. The drone’s initial position, which deﬁnes the
+origin of the ENU frame {G}, is also measured using RTK-
+GPS. We then conduct ﬂight experiments, during which thedrone maintains a height of 2 m and collects sensor data for
+Fig. 6 Conﬁguration of (a)the drone and (b)the electromagnetic sys-
+tem
+Fig. 7 Data collection points for station localization
+approximately 20 s at each of the four locations (i.e., A, B,
+C, and D) along the y-axis of {S}, and also at E(2,0) to sim-
+ulate marker loss as shown in the Fig. 7. The locations are
+selected based on the available range of the sensors. A repre-
+sents the area outside the UWB coverage range, B is the area
+within the UWB coverage range with the highest reliability,C is where UWB reliability decreases, and D represents the
+area where marker detection is possible. At each point, the
+origin of {M}is estimated based on the available sensors as
+described in Sect. 3.
+The reliability of UWB measurements is determined based
+on three exceptional conditions: (1) At least one of the twoanchor measurements is missing, (2) The UWB distance dif-fers by more than 3 m from the previous measurement, (3)
+the measurement falls outside the valid range (0≤d
+UWB≤
+20 m). Due to the characteristics of UWB, these exceptional
+cases occur more frequently when the tag is located very
+close to the anchors [ 18].
+The station localization results are presented in Table 2
+and Fig. 8. The Vision, UWB, and GPS operate at 30 Hz, 20
+Hz, and 10 Hz, respectively, and the frequency of the com-
+bined output is determined by the fastest sensor. That is, ourapproach continuously updates the station’s location using
+123
+
+--- Page 8 ---
+J. Lee et al.
+Table 2 Comparison of station localization accuracy
+Data collection
+points in {S}Sensor Average x-error
+[m]Average y-error [m] RMSE [m] Standard
+deviation [m]Frequency [Hz] UWB
+Reliability
+A GPS 1.35 −3.02 3.31 0.010 10 –
+BG P S 0.95 −3.11 3.25 0.013 10 –
+GPS+UWB 0.97 −0.77 1.24 0.466 20 0.90
+C GPS 1.09 −3.24 3.42 0.048 10 –
+GPS+UWB 1.08 −1.23 1.64 0.047 20 0.27
+GPS+ eUWB 1.11 −0.90 1.43 0.048 20 –
+D GPS 1.12 −3.19 3.38 0.020 10 –
+GPS+UWB 1.14 −1.20 1.65 0.062 20 0.15
+Vision+GPS+UWB 0.80 −0.89 1.19 0.032 30 0.15
+Vision+UWB 0.47 −0.61 0.78 0.070 30 0.15
+Kalman ﬁlter 0.45 −0.60 0.75 0.033 30 0.15
+Vision 0.46 −0.57 0.73 0.021 30 –
+E GPS 1.64 −3.22 3.62 0.019 10 –
+GPS+UWB 1.25 −1.43 1.90 0.240 20 0.73
+GPS+ eVision 0.90 −0.60 1.15 0.019 20 –
+Best results are given in bold
+the fastest sensor, while incorporating the most recent data
+from slower ones. This produces the smooth, high-frequencylocalization crucial for real-time, high-speed landing maneu-
+vers. At points B, C, D, and E, where UWB is available, the
+RMSE of GPS alone is 3.42 m, while GPS+UWB achievesan average RMSE of 1.62 m, corresponding to a 52.6%reduction in error. This demonstrates that GPS+UWB pro-
+vides signiﬁcantly improved accuracy over GPS alone. At
+point D, where the vision sensor is available, the use ofthe vision sensor consistently results in better accuracy than
+GPS+UWB. To evaluate the performance of our proposed
+model-free methods, we also conduct a comparative analy-sis against a model-based Kalman ﬁlter. The Kalman ﬁlter
+baseline assumes a 2D constant velocity model for the sta-
+tion’s dynamics. The ﬁlter fuses measurements from threedifferent sensors, updating asynchronously according to eachsensor’s frequency. The resulting state estimate is published
+at 30 Hz. Among the methods evaluated, the vision-only
+approach yields the best performance with an RMSE of 0.73m, which is superior to an equally weighted combination of
+all sensors, as formulated in Eq. 8. Furthermore, this method
+demonstrates superior performance compared to the Kalmanﬁlter, even in an ideal scenario where the station adheres to
+a constant velocity model. This result indicates that the best
+combination in Eq. 8is to set the weight ω
+1to 1 and ω2to 0.
+This vision alone error includes the drone’s GPS error.
+In Table 2, the UWB reliability is lower at points C, D, and
+E, compared to B. Notably, point D, where the ArUco marker
+is detected, shows the lowest reliability of 0.15. Althoughpoints C and E have the same distance, E shows approxi-
+Fig. 8 Station localization errors under distinct sensor suite-based
+methods
+mately 2.7 times higher reliability than C. This suggests that
+the reduced reliability at close range is not solely due to
+proximity, but also due to the Line-of-Sight blockage causedby the drone’s body. To address the issue of reduced UWB
+reliability at close distances, we record the average offset
+e
+UWB between the GPS-only and GPS+UWB estimates at B,
+which has the highest reliability. When the drone reaches C,this recorded offset e
+UWB is added to the GPS-only estimate,
+resulting in 58% reduction in localization error. Similarly, to
+assist recovery after the marker is lost, we record eVision at D.
+At point E, adding the recorded eVision to the GPS-only esti-
+mate results in a 68% error reduction, improving localization
+accuracy even in the absence of marker detection.
+Based on the accuracy evaluation of the station local-
+ization, we adopt the multi-sensor-based strategy described
+in Eq. ( 15). When UWB data is unavailable, the station’s
+position is estimated using GPS only. Once UWB becomes
+123
+
+--- Page 9 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+available, we use the GPS+UWB method. Furthermore, if the
+drone approaches within 4 m of the station, eUWB is added to
+the GPS-only estimate to improve accuracy. When the drone
+is close enough that the marker is detected, localization is
+performed using vision-only estimates. During this phase,e
+Vision is also recorded. If the marker is lost, the station’s
+position is estimated by adding the recorded offset eVision to
+the GPS-only estimate.
+Multi-sensor-based method =⎧
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎨
+⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎪⎩GPS if d>20 m,
+GPS+UWB if 4 m <d≤20 m,
+GPS+e
+UWB if 0<d≤4 m and
+Marker never detected ,
+Vision if 0 ≤d≤4 m and
+Marker is being detected ,
+GPS+eVision if 0≤d≤4 m and
+Marker was detected before ,(15)
+5.2 Precision Landing on a High-Speed Mobile
+Drone Station
+To validate the proposed precision landing approach, we con-
+duct ﬂight experiments with key parameters summarized inTable 3. Among the parameters, v
+0must be set according
+to the drone’s performance limits, while the optimal value
+for/Delta1T2should be found by starting at 5 s and gradually
+decreasing it until the phase transition occurs. Additionally,
+to ensure a smooth deceleration, the transition distance lis
+set to be proportional to the relative velocity v0, with more
+distance added at higher speeds. For the experiment, a car,manually operated by a human driver on public roads, serves
+as the mobile platform for carrying the mobile drone station.
+Moreover, our implementation of minimum snap trajectorygeneration is based on the open-source code provided in [ 19].
+The results at 20 km/h station speed are shown in Fig. 9
+and Fig. 10. The drone initiates the landing from a position
+where the horizontal distance to the station is 28.2 m. As
+seen in Fig. 9-a, the drone follows a minimum snap trajec-
+tory, which is generated at 1 Hz, using a pure pursuit thatoperates with a 20 Hz loop frequency in Phase 1. At thebeginning, the limited sensor range leads to GPS-only sta-
+tion estimates, causing oscillations (Fig. 9-b). However, once
+the drone enters the UWB coverage range, the position esti-mation of the station stabilizes. During the ﬁnal descent,
+the marker becomes undetectable due to the camera’s FOV
+limitation, causing the update of the station’s position esti-mate to halt. Following the last detection of the marker, the
+drone continues its descent and completely lands at a location
+approximately 6.3 m horizontally away from the last detectedmarker position.Table 3 The user-deﬁned parameters for experiments
+Symbol Description Value
+hM,0 Height of the frame {M} 1.5 m
+hS,0 Height of the frame {S} 1.0 m
+d0 y-offset between frames {M}and{S} 1.3 m
+h0 Height offset of landing point from hM,0 2.2 m
+hmax Max height from hM,0for search 3.0 m
+v0 Speed margin 2.0 m/s
+l Transition distance from Phase 1 to 2 3 v0+vdrone
+n # of discrete steps for deceleration 6
+/Delta1T2 Descent start duration 3 Sec
+Fig. 9 Trajectory of the drone and the station during the precision land-
+ing: axy-plane 2D plot, b3D plot
+Figure 10illustrates the drone velocity commands and the
+velocities of both the station and the drone during the landing
+procedure. Figure 10-a shows the generated horizontal veloc-
+ity commands to the drone, as well as the horizontal speedsof both the drone and the station until the ﬁnal touchdown.
+Additionally, it presents the horizontal distance between the
+drone and the station estimated according to Equation ( 15).
+During Phase 1, the horizontal velocity command to the drone
+is generated adaptively to exceed the station’s speed by a con-
+stant margin v
+0. Hence, the horizontal speed gap is ﬁxed at v0
+throughout Phase 1. When the horizontal distance between
+123
+
+--- Page 10 ---
+J. Lee et al.
+Fig. 10 Time-series comparison of drone velocity commands, response speed, station speed, and relative distance: ahorizontal bvertical
+Fig. 11 Landed points under varying station speeds
+the drone and the station reaches approximately 10 m, the sys-
+tem transitions to Phase 2, during which the drone begins to
+decelerate. From Phase 2, the horizontal velocity command
+is computed via PID control at 20Hz, with the stepwise speedlimit gradually reduced for smooth deceleration. As PID con-
+trol begins, the command exhibits oscillations. However, due
+to the imposed speed limit, the variations remain within aconstrained range, and as a result, the relative speed betweenthe drone and the station progressively diminishes, approach-
+ing zero at the landing point. In Phase 3, similar command
+oscillation is observed, but within acceptable limits, satis-fying descent conditions. As the descent progresses and the
+marker is intermittently lost, sharp changes in the estimated
+position result in increased ﬂuctuations in the velocity com-mand. After the ﬁnal marker detection, a smooth velocity
+command is generated using a weight of 1.1 relative to the
+station’s velocity to compensate for communication and con-trol delays.Table 4 Comparison of precision landing errors over ﬁve trials for each
+station speed intervals
+Station speedintervals[km/h]Average error
+of the bestthree landings[m]Success rate
+[%]
+1) 7≤vstation<15 0.137 100
+2) 15≤vstation<25 0.146 80
+3) 25≤vstation≤32 0.082 60
+Figure 10-b shows the generated vertical velocity com-
+mands to the drone. The commands are computed based onPD control using the vertical displacement of the target heightwith respect to the drone. This excludes the terminal constant
+descent command, which is issued after the descent condi-
+tion is satisﬁed in Phase 3. Throughout the entire process, thevertical velocity is limited to a maximum of 0.7 m/s. In Phase
+1, the command supports trajectory following. As the drone
+enters Phase 2 and reaches the height of the landing point, thevertical velocity command approaches zero to maintain this
+height. When the drone reaches the landing point, the system
+transitions to Phase 3. In Phase 3, due to the marker not beingdetected, an ascent command is issued for search. During thesearch, once the marker is detected, the drone ascends fur-
+ther to ensure stable marker detection and then aligns with
+the marker upon reaching the target height. If the descentconditions are satisﬁed thereafter, the drone descends with
+a constant vertical velocity command of −0.7 m/s until the
+landing is complete. When the drone completes landing, thedrone’s height estimation error results in a distance gap of
+approximately 0.5 m.
+As additional experiments, we conduct ﬁve repeated trials
+for each of the three station speed intervals to further vali-
+123
+
+--- Page 11 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+date the proposed precision landing method. The intervals are
+deﬁned based on threshold speeds of 15 km/h and 25 km/h,with the station speed ranging from a minimum of 7 km/h to
+a maximum of 32 km/h. These speeds represent the average
+speed of the station during Phase 3. The experimental resultsare summarized in Fig. 11and Table 4. Figure 11shows the
+best three landed points for each speed interval on a 1 ×1m
+landing pad, while Table 4presents the average errors of the
+three best trials and the success rate over ﬁve trials per speedinterval.
+In the trials, all landings succeed in the interval (1). In
+the interval (2), four out of ﬁve trials are successful, whilein the interval (3), three trials succeed. The failure in (2)
+is due to a timeout in marker detection caused by a station
+localization error, while the failure in the (3) results fromthe drone attempting to land at the front or rear edge of thelanding pad. Although the x-axis error from the marker is
+within the landing pad, landing at the front or rear edge is
+not due to localization error but because the speeds of thestation and the drone are not matched during the terminal
+descent. A comparison of the errors in Table 4shows that
+a lower station speed does not necessarily lead to a smallererror. This is because the landing error is primarily inﬂuenced
+by the relative velocity between the station and the drone
+at the moment of landing, rather than the station’s absolutespeed. Additionally, we analyze the result as a combinedeffect of the drone’s velocity control PID gain values and
+the parameters listed in Table 3. The overall average error is
+0.121 m, approximately half the width of the landing gear(0.25 m) of the drone used in the experiments, indicating an
+acceptable level of error.
+We conduct an additional validation to further evaluate the
+generalization performance of our proposed method, which
+is detailed in Sect. 3and Sect. 4. Using the Gazebo simula-
+tor, we conﬁrm that precision landing is possible even whenthe station moves along a curved path. The station movesalong the curved path, maintaining a speed of 14.4 km/h and
+rotating at 86 deg/s around the station’s body-ﬁxed vertical
+axis. As shown in Fig. 12-a, the drone progressively tracks the
+station along the station’s curved path. The drone achieves
+this tracking by updating its reference trajectory in real-
+time based on the station’s position, estimated by Equation(15), and its velocity, following the path generation method
+described in Sect. 4. In this experiment, the drone detects the
+marker before satisfying the landing point arrival condition,causing the drone to transition from Phase 2 to Phase 3 inaccordance with the state machine shown in Fig. 4. Conse-
+quently, in Phase 3 (as shown in Fig. 12-b), the drone does not
+ascend to search for the marker. Instead, the drone maintainsheight until the descent condition is satisﬁed, after which the
+drone completes the landing. This result conﬁrms that the
+proposed method enables precision landing using only the
+Fig. 12 Trajectory of the drone and the station during the precision
+landing with a curved station path in a simulation environment: (a)
+xy-plane 2D plot, (b)3D plot
+station’s information obtained via communication, without
+requiring a station model or motion prediction.
+6 Conclusion
+We propose a long-range precision landing on a high-speedmobile drone station by combining three sensors: Vision,UWB, and GPS. We ﬁrst conduct experiments to comparethe localization accuracy of the station under various com-
+binations of these sensors. The results of station localization
+show that combining UWB and GPS yields more accurateestimates than using GPS alone. Moreover, when the vision
+sensor detects a ﬁducial marker, using vision alone pro-
+vides the highest accuracy. Accordingly, the proposed systemselects the appropriate sensors for station localization based
+on the relative distance between the drone and the station.
+The precision landing, based on the results of multi-
+sensor-based estimation, consists of three phases. The ﬁrstphase guides the drone toward the station along a straight path
+aligned with the station’s velocity, using a minimum snap tra-
+jectory and pure pursuit-based following. The second phaseapplies PID control with stepwise speed limits to decelerate
+the drone. The third phase performs the terminal descent with
+PID control. Without requiring any dynamic model of boththe drone and the station, the proposed method adaptively
+generates velocity commands according to the changing sta-
+tion velocity. As a result, the proposed method achieveslong-range precision landing on the high-speed mobile drone
+123
+
+--- Page 12 ---
+J. Lee et al.
+station with an average landing error of 0.121 m at speeds up
+to 25 km/h.
+Author Contributions Joohyuk Lee: Multi-sensor-based station local-
+ization, ﬂight guidance, conﬁgurations, experiments, and manuscript.Hyeonjeong Heo: UWB+GPS method, UWB & ﬁducial marker con-ﬁguration, and experiments. Hojun Lee: UWB module setup andexperiments. Kyuman Lee: Supervision, manuscript review, and edit-ing.
+Funding Open Access funding enabled and organized by Kyungpook
+National University. This research was supported by the Regional Inno-vation System & Education(RISE) Glocal 30 program through theDaegu RISE center, funded by the Ministry of Education(MOE) andthe Daegu, Republic of Korea.(2025-RISE-03-001)
+Data Availability The source code developed in this study is available
+from the corresponding author upon reasonable request. The code isnot publicly available due to restrictions regarding intellectual propertyand ongoing patent applications.
+Declarations
+Conﬂict of interest All authors declare that there is no competing
+ﬁnancial interest or personal relationship that could have appeared toinﬂuence the work reported in this paper.
+Open Access This article is licensed under a Creative Commons
+Attribution-NonCommercial-NoDerivatives 4.0 International License,which permits any non-commercial use, sharing, distribution and repro-duction in any medium or format, as long as you give appropriate creditto the original author(s) and the source, provide a link to the CreativeCommons licence, and indicate if you modiﬁed the licensed mate-rial. You do not have permission under this licence to share adaptedmaterial derived from this article or parts of it. The images or other
+third party material in this article are included in the article’s Creative
+Commons licence, unless indicated otherwise in a credit line to thematerial. If material is not included in the article’s Creative Commonslicence and your intended use is not permitted by statutory regula-tion or exceeds the permitted use, you will need to obtain permissiondirectly from the copyright holder. To view a copy of this licence, visithttp://creativecommons.org/licenses/by-nc-nd/4.0/ .
+References
+1. Grlj, C.G., Krznar, N., Pranji´ c, M.: A decade of UA V docking
+stations: a brief overview of mobile and ﬁxed landing platforms.
+Drones 6(1), 17 (2022). https://doi.org/10.3390/drones6010017
+2. Huang, C.-M., Chiang, M.-L., Hung, T.-S.: Visual servoing of a
+micro quadrotor landing on a ground platform. Int. J. Cont. Autom.Syst. 15(6), 2810–2818 (2017). https://doi.org/10.1007/s12555-
+015-0478-0
+3. Koo, S., Kim, S., Suk, J., Kim, Y ., Shin, J.: Improvement of
+shipboard landing performance of ﬁxed-wing UA V using modelpredictive control. Int. J. Cont. Autom. Syst. 16(6), 2697–2708
+(2018). https://doi.org/10.1007/s12555-017-0690-1
+4. Baca, T., Stepan, P., Spurny, V ., Hert, D., Penicka, R., Saska, M.,
+Thomas, J., Loianno, G., Kumar, V .: Autonomous landing on amoving vehicle with an unmanned aerial vehicle. J. Field Robot.36(5), 874–891 (2019). https://doi.org/10.1002/rob.21858
+5. Bähnemann, R., Pantic, M., Popovi´ c, M., Schindler, D., Tranzatto,
+M., Kamel, M., Grimm, M., Widauer, J., Siegwart, R., Nieto, J.:The ETH-MA V team in the MBZ international robotics challenge.
+J. Field Robot. 36(1), 78–103 (2019). https://doi.org/10.1002/rob.
+21824
+6. Beul, M., Houben, S., Nieuwenhuisen, M., Behnke, S.: Fast
+autonomous landing on a moving target at MBZIRC, 2017 Euro-pean conference on mobile robots (ECMR), pp. 1-6 (2017). https://
+doi.org/10.1109/ECMR.2017.8098669
+7. Guo, K., Tang, P., Wang, H., Lin, D., Cui, X.: Autonomous
+landing of a quadrotor on a moving platform via model predic-tive control. Aerospace 9(1), 34 (2022). https://doi.org/10.3390/
+aerospace9010034
+8. Falanga, D., Zanchettin, A., Simovic, A., Delmerico, J., Scara-
+muzza, D.: Vision-based autonomous quadrotor landing on amoving platform, 2017 IEEE International Symposium on Safety,Security and Rescue Robotics (SSRR), pp. 200-207 (2017). https://
+doi.org/10.1109/SSRR.2017.8088164
+9. Keipour, A., Pereira, G.A.S., Bonatti, R., Garg, R., Dubey, G.,
+Scherer, S.: Visual servoing approach to autonomous UA V landingon a moving vehicle. Sensors 22(17), 6549 (2022). https://doi.org/
+10.3390/s22176549
+10. Si, J., Wang, L., Deng, C., Wang, J., Wang, S.: A UA V autonomous
+landing system integrating locating, tracking, and landing in the
+wild environment. J. Intell. Robot. Syst. 110(2), 51 (2024). https://
+doi.org/10.1007/s10846-023-02041-8
+11. Feng, Y ., Zhang, C., Baek, S., Rawashedh, S., Mohammadi, A.:
+Autonomous landing of a UA V on a moving platform using modelpredictive control. Drones 2(4), 34 (2018). https://doi.org/10.3390/
+drones2040034
+12. Liu, J., Yan, C.: An integrated UWB-Vision framework for
+autonomous approach and landing of UA Vs in GPS-Denied envi-ronments. Math. Found. Comput. 8(5), 710–724 (2025). https://
+doi.org/10.3934/mfc.2024022
+13. Wang, P., Wang, C., Wang, J., Meng, M.Q.-H.: Quadrotor
+autonomous landing on moving platform. Procedia Comput. Sci.209, 40–49 (2022). https://doi.org/10.1016/j.procs.2022.10.097
+14. Masiero, A., Fissore, F., Antonello, R., Cenedese, A., Vettore, A.:
+A comparison of UWB and motion capture UA V indoor position-ing. Int. Arch. Photogramm. Remote Sens. Spat. Inform. Sci. 42,
+1695–1699 (2019). https://doi.org/10.5194/isprs-archives-XLII-
+2-W13-1695-2019
+15. Ma, Z., Li, H., Gu, Y ., Li, Z., Li, Q.: Flight and hover control system
+design for a mini-quadrotor based on multi-sensors. Int. J. Cont.Autom. Syst. 17, 486–499 (2019). https://doi.org/10.1007/s12555-
+017-0308-7
+16. Mellinger, D., Kumar, V .: Minimum snap trajectory generation
+and control for quadrotors, 2011 IEEE International Conferenceon Robotics and Automation, pp. 2520-2525 (2011). https://doi.
+org/10.1109/ICRA.2011.5980409
+17. Coulter, R. C.: Implementation of the pure pursuit path tracking
+algorithm (1992)
+18. Smaoui, N., Gnawali, O., Kim, K.: Study and mitigation of
+platform related uwb ranging errors, 2020 International Confer-ence on Communication Systems & NETworkS (COMSNETS),pp. 346-353 (2020). https://doi.org/10.1109/COMSNETS48256.
+2020.9027356
+19. Faessler, M., Franchi, A., Scaramuzza, D.: Differential ﬂatness of
+quadrotor dynamics subject to rotor drag for accurate tracking ofhigh-speed trajectories. IEEE Robot. Autom. Lett. (RA-L) 3
+(2),
+620–626 (2018). https://doi.org/10.1109/LRA.2017.2776353
+Publisher’s Note Springer Nature remains neutral with regard to juris-
+dictional claims in published maps and institutional afﬁliations.
+123
+
+--- Page 13 ---
+Multi-Sensor-Based Long-Range Precision Landing…
+Joohyuk Lee received his B.S.
+degree in aerospace engineeringfrom Pusan National University,Korea, in 2021. He is currentlyenrolled in the integrated M.S.and Ph.D. program at KyungpookNational University, Korea. Hisresearch interests includevisual-inertial odometry, activeSLAM, and reinforcement learn-ing.
+Hyeonjeong Heo received her
+B.S. degree in mathematics edu-cation from Dongguk University,Korea, in 2019. She completed anM.S. degree in robot and smartsystem engineering at KyungpookNational University, Korea, in2025. Her research interestsinclude UAM emergency landingand optimization.
+Hojun Lee received his B.S. degree
+in computer engineering fromKeimyung University, Korea, in2019. He completed an M.S.degree in robot and smart sys-tem engineering at KyungpookNational University, Korea, in2024, where he is currentlye n r o l l e di naP h . D .p r o g r a m .H i sresearch interests include UA Vs,swarm, and counter UAS.
+Kyuman Lee received his B.S.
+degree in aerospace engineeringfrom KAIST (Korea AdvancedInstitute of Science and Technol-ogy), Korea, in 2007. He com-pleted M.S. degrees in bothaerospace engineering and math-ematics at Georgia Institute ofTechnology, U.S., in 2016, wherehe completed a Ph.D. degree inaerospace engineering in 2018. Heworked as a CTO (Chief Technol-ogy Ofﬁcer) at a startup based inSilicon Valley in the U.S., from2018 to 2020. Since 2020, he has
+been an Associate Professor in school of space engineering sciencesat Kyungpook National University in Korea. His research interestsinclude UA Vs, guidance and navigation, SLAM, and robot vision.
+123

@@ -1,0 +1,641 @@
+--- Page 1 ---
+SEVA3D: Autonomous VehiclesParking Simulator ina
+three-dimensional environment
+MILTONROBERTOHEINEN1
+FERNANDOSANTOSOS´ORIO2
+FARLEIJOS´EHEINEN2
+CHRISTIANKELBER3
+UNISINOS -Universidade doValedoRiodosSinos
+PIPCA -Computao Aplicada
+CEP 93022-000 SoLeopoldo (RS)
+1mheinen@turing.unisinos.br
+2(fosorio, farlei)@unisinos.br
+3kelber@eletrica.unisinos.br
+Abstract. This paper describes asimulation system proposed inorder tostudy andtoimplement intelli-
+gent autonomous vehicle control. Thedeveloped system canautomatically driveavehicle, implementing
+arobustcontrol system capable ofsimulating inarealistic wayautonomous parking inaparallel park-
+ingspace. The system controls thevehicles based onthereading ofsonar sensors andautomatically
+generates acceleration andsteering commands, parking itinaparallel parking space. The controller
+wasimplemented using arule-based nite state automaton, andtheresults obtained inoursimulations
+demonstrated thattheproposed controller isperfectly able tocorrectly park thevehicle indifferent situ-
+ations.
+Keywords: Mobile robots, autonomous robots, intelligent sensorial-motor control, autonomous drive
+andpark.
+(Recei vedAugust 7,2006 /Accepted October 27,2006)
+1Introduction
+Theautonomous vehicles androbots (Autonomous Mo-
+bile Robots -AMR) haveattracted theattention ofa
+great number ofresearchers, mainly duetothegreat
+challenge thatthisnewdomain ofresearch offers: to
+endo wthese systems with anintelligent reasoning ca-
+pability ,exploring their abilities tointeract with theen-
+vironment where theyareinserted [2].AMRs should
+percei vetheenvironment through their sensors (e.g. in-
+frared, sonar ,lasers, video cameras), andfrom them
+theycanbeable toplan andexecute their actions [3].
+Nowadays, mobile robots areused indifferent ar-
+eas, asforexample, todisarm bombs, toexplore hos-
+tileenvironments likevolcanos andother planets, and
+totransport materials, working as(semi) autonomous
+industrial robotic vehicles. Some well knownexamples
+ofsuccessful AMRs are: theALVINN andthenewer
+NavLab systems developed attheCMU' sNavLab [17,1]thatguided anautonomous vehicle across theAmer -
+ican highw ays;theNASA 'sroverrobots senttoexplore
+Mars [18];therobot Dante thatisable toexplore the
+interior ofvolcanos [13];thedifferent vehicles devel-
+oped toparticipate intheGrand DARPAChallenge of
+Autonomous Ground Vehicles; andthecontrol system
+ofanelectric vehicle developed atINRIA inFrance
+[16,12].Allthose systems possess thecapacity tore-
+ceivesensor inputs giving tothem information about
+theexternal environment, andthen theygenerate action
+commands inasemi orcompletely autonomous way.
+Theyareable tomoveacross theenvironment inasafe
+way,orinother words, notcolliding against obstacles
+orrisking their integrity ortheintegrity ofthedifferent
+elements present intheenvironment.
+Starting from thestudies andresearch workdevel-
+oped bytheArticial Intelligence Group (GIA)1)and
+1GIA-PIPCA http://www .inf.unisinos.br/gia-pipca.html
+
+--- Page 2 ---
+byAutonomous Vehicles Group (GPV A)2)atourinsti-
+tution, Unisinos, related tothedevelopment ofappli-
+cations inthearea ofmobile autonomous robots, the
+bases ofthisworkwere created. Westand outpartic-
+ularly theinitial development oftheSEVA2D system
+(Autonomous Vehicles Parking Simulator) [15]thatac-
+complished asimple simulation ofthetask ofparking
+anon-holonomic mobile robot (car like)inaparallel
+parking space. This simulator uses abidimensional en-
+vironment (2D) inwhich asimple virtual vehicle with
+sixinfrared sensors iscontrolled through anite state
+automaton (SEV A2D-A) orthrough anarticial neural
+netw ork(SEV A2D-N) called JordanCascade Corr ela-
+tionNet(J-CC) [15].
+One ofthemain limitations oftheinitial version of
+SEVAisduetothefactitwasadopted asimple bidi-
+mensional simulated environment, inwhich theobjects
+areat. Thesimulated model ofsensors wasverysim-
+plesince themeasured distance from objects can'tcon-
+sider their height ortridimensional shape. Inathree
+dimensional simulated environment (3D), asinthereal
+world, tasks such astolocalize thesidewalk'scurb are
+more difcult tobeexecuted. Inthisspecic case, curbs
+usually possess averysmall height, measuring 15cm on
+average. Other important limitation oftheprevious 2D
+model wastheabsence ofnoise indata read from the
+simulated infrared sensors. Thesensor simulation was
+verysimple, measuring precisely thedistance from sen-
+sorstowell dened obstacles. This model provedtobe
+toomuch simplied related tothereality .
+Due tothese limitations, itwasproposed thede-
+velopment ofanewsystem, theSEVA3D [9,8](Au-
+tonomous Vehicles Parking Simulator inathree-dimensional
+environment)3.The main goal wastodevelop anew
+system capable ofaccomplishing virtual andrealistic
+3Dsimulations ofvehicles. Thesame task ofcontrol-
+lingavehicle inorder toautonomously park inaparal-
+lelparking space should beaccomplished bythisnew
+system, butinstead ofusing asimple 2Dmodel, itwas
+adopted amore realistic three-dimensional environment
+model with a3Dsonar sensor model, which includes
+noise asinrealsonar data. Therefore SEVA3D ismuch
+closer tothereality ,andthesimulation results will be
+easily transposed toourrealworking system: anauto-
+mated Mini-Baja Buggy developed bytheGPVAGroup
+atUnisinos[ 10].
+The SEVA3D system uses theSimRob3D simula-
+tion library andcomponents [7].The control system
+implemented inSEVA3D accomplishes theparking of
+vehicles, controlling them inanautonomous wayusing
+2GPVAhttp://www .eletrica.unisinos.br/autonom/
+3http://inf.unisinos.br/osorio/se va3d/anite state automaton (FSA). Thesonar sensors were
+installed instrate gicpositions andorientations around
+thevehicle, making possible tocontrol thevehicle in
+theparking task. This paper aims todescribe themod-
+eling, development andimplementation ofSEVA3D. In
+thefollowing sections itwillbedescribed: theadopted
+simulation model, thevehicle controller based ona-
+nitestate automaton, theaccomplished experiments and
+obtained results. Wenish presenting some possible
+impro vements andfuture work.
+2Related Works andMain Concepts
+Studies relati vetoassisti vesystems and(semi) autono-
+mous parking ofvehicles havebeen done bysome re-
+search groups andcompanies (e.g. BMW ,Mercedes-
+Benz, Toyota, GMC) intheUS,Japan, UK, Italy,Ger-
+manyandFrance. Among them, oneoftherst out-
+standing studies wasaccomplished byINRIA research-
+ers[16,12,5],which implemented acontrol system
+used topark anadapted Ligier electric vehicle inan
+autonomous way.This vehicle wasequipped with 14
+sonar sensors anditused amanually customized setof
+rules toaccomplish thetask. The Figure 1showsthe
+INRIA adopted vehicle andtheparking model.
+Figur e1:INRIA 'svehicle parking model [12]
+Theabovementioned system adopted theAckerman
+kinematics model [3]todescribe thevehicle control
+path. Theparking task wasdivided inthree stages: to
+search foraparking space location; toadjust theve-
+hicle position toallowacorrect parking; tocontrol the
+parking manoeuvre execution. While thevehicle moves
+along theroad searching foravacant place, anenviron-
+ment map iselaborated considering thesensorial input
+data. When aparallel parking space with enough sizeis
+located, thesystem estimates thebeginning manoeuvre
+position andmovesthevehicle uptothisposition. Once
+thevehicle iscorrectly positioned, theparking manoeu-
+vrestarts. This taskisaccomplished through theuseof
+sinus based functions, asdescribed in[14]),dening a
+softpath, asshowed inFigure 2.
+
+--- Page 3 ---
+Figur e2:Parking path curve[12]
+During allparking manoeuvre execution, thevehi-
+cleiscontrolled inanautonomous wayusing anitera-
+tivealgorithm, andforeach iteration, thespeed andthe
+steering wheel angle areadjusted using thefollowing
+equations:
+(t)=maxkA(t);0tT (1)
+v(t)=vmaxkvB(t);0tT (2)
+where (t)istheangle ofthesteering wheel atthein-
+stantt,v(t)isthespeed ofthevehicle attheinstant t,
+Tisthemaximum duration oftheparking manoeuvre,
+max isthemaximum steering angle, andvmax isthe
+maximum speed during themanoeuvre. Thek=1
+indicates iftheparking space isontheleft( 1)oron
+theright(+1) side, andkv=1indicates thedirection
+ofthemovement, assuming thevalue+1tomovefor-
+wardand 1tomovebackw ard.Thevalues ofA(t)and
+B(t)areestimated through thefollowing equations:
+A(t)=8
+<
+:1; 0t<t0;
+cos(t t0)
+T;t0tT t0;
+ 1; T t0<tT;(3)
+B(t)=0:5(1 cos4t
+T);0tT; (4)
+t0=T T
+2;T<T; (5)
+where T(duration ofthemanoeuvre) andT(dura-
+tionofthecurvedpartofthemanoeuvre) areestimated
+based onthewidth (Di)anddepth (Dw)oftheparallel
+parking space.
+Inorder tobecome possible tomeasure inadvance
+theparking space depth, itwasnecessary toinstall a
+barrier ofmoderate height close tothecurb.The in-
+troduction ofthisarticial barrier turns possible tode-
+termine more precisely theparking space depth using
+theavailable sensors [16].One oftheadvantages of
+thisapproach wasthechoice ofsinus based functions
+tocontrol thevehicle, producing softer movements, in-
+stead ofusing anite state automaton based ondiscrete
+states, which cancause abrupt state transitions andac-
+tionchanges. Thedrawbacks ofthisapproach are: (i)therequirement ofcurb barrier installation, which re-
+stricts thepractical application ofthismethod oncon-
+ventional streets; (ii)thegreat number ofsonar sensors
+thatmust beinstalled around thevehicle (fourteen sen-
+sors); (iii)thelimited application ofthisalgorithm that
+works specically inparallel parking tasks andneeds
+tobemanually coded. Weaimtopropose anewsystem
+thatuses asmall number ofsensors, should beabletobe
+used inconventional parking spaces, andalso must al-
+lowasimple adaptation todifferent parking situations.
+The SEVA3D isthesystem wedeveloped andweare
+impro ving inorder toachie vethese goals.
+3SEVA3D Simulator
+TheSEVA3D Simulator possesses severalimpro vements
+related totheoriginal SEVA(2D), among which itcan
+beemphasized thefollowing main features:
+Uses a3Denvironment and3Dsimulated sensors
+obtaining more realistic simulations;
+Implements sonar sensors similar torealsensors,
+including thepresence ofnoise inthemodel;
+Accomplishes theautonomous vehicle control, park-
+inginaparallel parking space independently of
+thepresence orabsence ofother previously parked
+cars;
+Implements arobustcontrol system accepting dif-
+ferent starting positions, with adistance between
+thecarandthecurb ranging from 2to4meters;
+Accomplishes automatic adjustments ofthevehi-
+cleposition, ifthevehicle istooclose (ortoofar)
+from theparkedcars, doing thisbefore beginning
+theautomatic parking manoeuvre (considers too
+close when thesidebysidedistance issmaller than
+30cm);
+Allowsthevisualization oftheparking manoeuvre
+from virtually anywhere inthe3Dvirtual environ-
+ment;
+Accomplishes thereversal parking manoeuvre, ex-
+iting thevehicle from theparking space inanau-
+tomatic way.
+TheSEVA3D wasable tocorrectly control theve-
+hicles inparking manoeuvres, aspresented inexperi-
+mental results section. The Figure 3showsadiagram
+oftheSEVA3D modules. Themain components ofthe
+SEVA3D simulator are:
+Perception module: measures thedistance from ob-
+stacles based onasonar sensor simulation (see Sec-
+tion3.2);
+
+--- Page 4 ---
+Figur e3:SEVA3D modules
+Action module: sends action commands tovehicle ac-
+tuators, denes thedirection (forw ard, backw ard), the
+speed (gaspedal control) andthecarorientation (steer -
+ingwheel rotation) (seeSection 3.4);
+Kinematics module: uses theAckerman model toes-
+timate thevehicle trajectory (simulation), considering
+vehicle direction, speed andsteering wheel angle de-
+ned bytheVehicle Action Module (seeSection 3.3);
+FSA control module: recei vessensor datafrom theper-
+ception module andsends actions totheaction module,
+using aFinite State Automaton tocontrol theparking
+manoeuvre (see Section 3.5)andpull-out manoeuvre
+(seeSection 3.6).
+3.1 SimRob3D Simulation Tool
+The implementation ofSEVA3D uses theSimRob3D
+simulation tools [7],previously developed byourgroup.
+The SimRob3D tools main characteristics are: topro-
+vide 3Denvironment visualization tools used insimu-
+lations, andtoprovide customizable mobile robots sim-
+ulation tools. The3Denvironment objects canbemod-
+eled using different commercial orfree 3Dmodeling
+softw are,andallowtodetail thedifferent elements pre-
+sentintheenvironment (objects -vehicles, streets, build-
+ings; lights andtextures), resulting inahigh levelof
+realism inthesimulations. The SimRob3D tools also
+include different sensorial (infrared andsonar sensors)
+andkinematics models (Ack erman andDifferential mod-
+els), which canbeused tocustomize thesimulated robots.
+SimRob3D tools provide only asetofmethods used
+toread data from sensors andtosend commands toac-
+tuators, updating therobot position inthesimulated en-
+vironment. SimRob3D needs anexternal robot control
+module, since their main goal isonly toprovide facili-
+tiestomodel therobots (dening sensors andactuators)andtoprovide asimulated interf acebetween therobots
+andtheenvironment. Theexternal controller isasepa-
+rated module from SimRob3D, inourcase provided by
+SEVA3D. Theinterf acebetween these twosoftw aresis
+accomplished byDLL (dynamic linkedlibrary) calls.
+So,theSimRob3D API (Application Programming In-
+terface) supplies aninterf acethat separates world in-
+teraction from therobot control mechanisms. SEVA3D
+uses SimRob3D facilities todene theenvironment, ve-
+hicle, sensors andactuators, implementing itsownve-
+hicle control modules (FSA control module). Anin-
+teresting characteristic ofthiscoupled system isthat
+thecontroller does notpossesses direct access toany
+information from theenvironment, theonly available
+information istheoneprovided bythevehicle sensors
+through DLL calls.
+3.2 Sensor sModel
+Sonars areaninteresting type ofdistance sensor used
+inrobotic applications, because theycanestimate with
+areasonable precision thedistance from objects posi-
+tioned near tothem. Sonars canbeused topercei ve
+theenvironment objects andobstacles, andtheyoffera
+good precision/price raterelated toother distance mea-
+suring methods.
+The simulated sonar sensors [3]allowtoestimate
+thedistance between thevehicle andtheobstacles present
+intheenvironment: other carsandtheedge oftheside-
+walks. Thevesensors used were distrib uted instrate-
+gicpositions ofthevehicle, asshowed inFigure 4.
+Figur e4:Distrib ution ofthesonar sensors around thevehicle
+Inourexperiments sensors were putonly inone
+side ofthevehicle, because allexperiments were de-
+veloped inorder topark thevehicle inparallel parking
+spaces located ontheright side ofthecar,which isa
+typical situation intwo-waystreets. Sensors V[2] and
+V[3] were positioned with acertain inclination related
+totheground, soitwaspossible todetect thecurb.The
+SEVA3D allowstocongure other distrib utions ofthe
+sensors, butinthispaper thediscussion isfocused only
+
+--- Page 5 ---
+tothiskind ofvehicle conguration.
+The SimRob3D sonars aresimulated through the
+denition ofaconical section ofthevirtual space, where
+theobjects which remain inside thisvolume canbede-
+tected. Theintersection between objects andthesonar
+cone volume (perceptual space) isdetected using astoch-
+astic approach. Severalobject detection lines (rays) are
+generated from theposition ofthesensor directed ac-
+cording tothesonar spatial orientation, remaining in-
+side thesonar cone volume. ARayCast4[4]technique
+wasused togenerate rays, thatarerandomly distrib uted
+inthesonar cone volume. Ifanyofthem collide (inter -
+sect) with some object polygon, thedistance from the
+sensor until thecollision point isinformed.
+Due tothestochastic nature ofthemeasured dis-
+tances, atemporal windo wmethod [6]wasadopted to
+represent thedata obtained from sensors. Thedened
+temporal windo whasalength of10samples. This tech-
+nique isalso commonly used todeal with real sonar
+sensors data.
+Besides thesonar sensors, sometimes itwasalso
+necessary touseanodometer .Theodometer wasused
+only toverify iftheparking space isenough toallowthe
+correct parking ofthevehicle when there arenoother
+parkedcars available tobeused asreference points.
+This situation occurs only when there arelargeempty
+spaces.
+3.3 Kinematics Model
+The movement ofthevehicle respects theAckerman
+kinematics model [3],which wasalsothemodel adopted
+intheprecursor workdeveloped atINRIA [5].Inthis
+model asimulated vehicle isrepresented byarectan-
+gular volume supported byfour wheels divided intwo
+axes,where theback wheels areattached toaxedaxis
+andthefront wheels canbeturned, controlling them
+through thesteering wheel. TheFigure 5showstheel-
+ements ofthekinematics model.
+Thevehicle' slocation (position andorientation) rel-
+ativetosome reference coordinate system isdenoted as
+q=(x;y;)Twhere x=x(t)andy=y(t)arethe
+coordinates oftherear axle midpoint, =(t)isthe
+orientation ofthevehicle, andtistime. Themotion of
+thevehicle isdescribed bythefollowing equations [12]:
+8
+<
+:_x=vcoscos;
+_y=vcossin;
+_=v
+Lsin;(6)
+where =(t)isthesteering angle, v=v(t)isthe
+locomotion velocity ofthemidpoint ofthefront wheel
+4RayCast isacomputer graphic technique thatsimulates thephys-
+icaleffects associated with thepropag ation oflight rays [4]
+Figur e5:Kinematics model
+axle, andListhewheel base. Thesteering angle and
+locomotion velocity aretwocontrol commands (;v).
+Eqs. 6correspond toasystem with non-holonomic con-
+straints because theyinvolvethederivativesoftheco-
+ordinates ofthevehicle andarenon-inte grable [11].
+3.4 VehicleContr ol
+Thevehicle iscontrolled inSEVA3D bysimulated ac-
+tuators. These actuators control thevehicle speed (ac-
+celerate/break) andsteering wheel rotation. So,theve-
+hicle displacement isobtained inthesimulator sending
+commands toactuators which control thespeed (v)and
+rotation ofthesteering wheel ().
+Differently ofthemodel adopted inSEVA2D, whose
+parameters arenotdirectly related torealworld mea-
+sures (distance wasmeasured inpixels), theparameter
+values adopted inSEVA3D arequite realistic. Asfor
+example, during theparking manoeuvre inSEVA3D the
+speed canbesetwith values ranging from 0(stopped)
+to80(veryfast). When thevehicle needs tomoveback-
+wardthespeed issettoanegativevalue.
+Tochange thevehicle orientation, thesteering wheel
+angle ()canbesetwith values ranging from 0and35,
+thatcorresponds directly totherotation angle totheleft
+ofthesteering wheel. When thevehicle needs toturnto
+theright theangleissettoanegativevalue.
+3.5 FSA Contr ol-Parking
+InSEVA3D, thevehicle control inanautonomous park-
+ingtask isaccomplished byaFinite State Automaton
+(FSA). The Figure 6showsthediagram ofthenite
+state machine used tocontrol thevehicle. Thefollow-
+ingstates were dened:
+
+--- Page 6 ---
+Figur e6:Automaton states
+Stopped: automaton initial andnal state;
+Searc hing forparking space: rststate oftheparking
+manoeuvre, when thevehicle movesinastraight for-
+warddirection, searching forafreeparking space. Ifa
+possible parking space isfound theFSA state changes
+toPositioning outside ;
+Positioning outside: thevehicle movesforw ardinor-
+dertoreach acorrect position tostart entering inthe
+parking space, usually aligning side byside with the
+nextparkedcar(the odometer canbeused intheab-
+sence ofparkedcars). This state isalsoused toverify if
+theparking space isadequate. Ifthespace istoosmall,
+thestate returns toSearching forparking space .Ifthe
+space islargeenough, thestate changes toEntering ;
+Entering: thecarstarts tomovebackw ardandthesteer-
+ingwheel isturned totheright, sointhiswaytheve-
+hicle starts toenter intheparking space. Theandv
+values aresettoempirically predened values. When
+thesensor V[2] (Figure 4)detects thesidewalkcurb the
+state changes toPositioning inside ;
+Positioning inside: inthisstate, thevehicle continues to
+movebackw ard,butthesteering wheel isturned tothe
+left. When thesensor V[3] detects thesidewalkcurb or
+thesensor V[1] detects aclose obstacle (distance under
+30cm) thestate changes toAligning ;
+Aligning: inthisstate, thevehicle ismovedinorder to
+reach anadequate distance from thecars parkedahead
+andbehind it.After thealignment isdone, thestate
+changes toStopped andthemanoeuvre isterminated
+with success.
+3.6 FSA contr ol-pullout
+TheFigure 7showsthediagram ofthenite state ma-
+chine used topulloutthevehicle oftheparking space.
+Thefollowing states were dened:
+Figur e7:FSA control -pulloutPreparing pull out: thecarstarts tomoveinastraight
+backw arddirection, until theV[1] detects anear ob-
+stacle (another parkedcar)oruntil thefrontal space is
+sufcient togoing out;
+Pull out: thevehicle movesinaforw arddirection exe-
+cuting asshaped trajectory ,until thesensors indicate
+thecarisoutside oftheparking space;
+Returning: thecarisaligned inaparallel waytothe
+lane, thestate changes toStopped andthemaneuv eris
+terminated.
+4Implementation
+The SimRob3D simulation tools [7]were used tocre-
+atethevirtual environment andtointerf acethevehicle
+devices with theSEVA3D autonomous controller im-
+plementation. The virtual environment wasmodeled,
+creating 3Dmodels oftheroad andparkedcars, and
+alsothemodel ofourautonomous vehicle. TheFigure 8
+showsanimage ofthevirtual environment modeled.
+Figur e8:Virtual environment visualization
+The model ofthevehicle used toaccomplish the
+parking taskisareproduction ofarealMini-Baja Buggy
+available inourresearch laboratory .This vehicle was
+developed bytheGPVAResearch Group atourinsti-
+tution, Unisinos. The realvehicle wasautomated and
+nowitcanbecontrolled from remote devices, likecell
+phones (see available videos intheGPVAweb site).
+TheFigure 9showstheactual vehicle used asmodel of
+thevirtual autonomous vehicle. Atthepresent time we
+areworking ontherealvehicle instrumentation, adding
+sonar sensors, andarealworld testisplanned soon us-
+ingtheSEVA3D controller tocontrol therealvehicle.
+TheSEVA3D simulator implements adiscrete inte-
+gration ofthemodel described intheEqs. 6.TheFSA
+implementation, used tocontrol thesimulated vehicle
+movement, wasdeveloped inClanguage. Inorder to
+followtheprogress oftheparking manoeuvre, theuser
+canvisualize thesimulated environment using avirtual
+
+--- Page 7 ---
+(a)Real vehicle
+ (b)Simulated vehicle
+Figur e9:Automated Mini-Maja vehicle
+camera. Besides thatastatus windo wexhibits informa-
+tion about thesimulation, including: theFSA current
+state, thesensors data, thevehicle speed andsteering
+wheel angle, theabsolute vehicle position andorienta-
+tion, andtheodometer value. TheFigure 10showsthe
+windo wcontaining allthese information.
+TheSEVA3D implementation wasvalidated through
+severalpreliminary tests. Itwasalso veried thatthe
+simulated model behaviorwasquite similar tothereal-
+ity.Inthenextsection arepresented themain experi-
+mental results obtained with thissystem.
+Figur e10:Status information windo w
+5Experimental Results
+Inorder tovalidate theSEVA3D autonomous parking
+control system, severalexperiments were planned and
+realized. Toverify thesystem robustness, different sim-
+ulations were accomplished with success, changing the
+conguration ofthefollowing items ineach simulation:
+The initial position oftheautonomous vehicle in
+thestreet. Different initial positions were tested
+varying from fewcentimeters tomore than 3me-
+tersdistant from theparkedcars;
+Theparking manoeuvre wastested inthefollow-
+ingsituations: between twocars, inthepresenceofjustoneparkedcarandwithout anyother previ-
+ously parkedcarinthestreet;
+The parking manoeuvre wasalso tested close to
+corners andgarage entrances, where thecurb ref-
+erence point doesn' texistinfront of(orbehind)
+theparking space.
+Inanother series ofexperiments weevaluated the
+nal vehicle position asevidence ofasuccessful park-
+ingmanoeuvre execution. Due tothestochastic nature
+ofthesensorial data, 10experiments were achie vedus-
+ingdifferent random seeds ineach simulation. When
+thesimulations were nished theaverage wascalcu-
+lated andthestandard deviation ofthevehicle distance
+from thecurb.Inallthese experiments, SEVA3D was
+capable tocorrectly park thevehicle, with anaverage
+distance from thecurb of26.16cm andastandard de-
+viation of5.92cm. This demonstrates thattheimple-
+mented system issafe androbusttocontrol vehicles in
+parallel parking tasks execution. TheFigure 11shows
+anexample ofparking manoue vre5.
+Figur e11:Parking maneuv er
+6Conc lusions andPerspectives
+This workmain goal wastodevelop asimulator forau-
+tonomous control ofvehicles inparallel parking tasks.
+Theproposed system should beable tocreate arealis-
+ticmodel oftherealworld application, soitwasim-
+plemented asimulation tool situated ina3Denviron-
+ment, theSEVA3D. This system includes a3Dmodel
+ofthevehicles andobstacles, anditalso includes a3D
+model ofsonar sensors. The experimental results, ac-
+complished with SEVA3D, demonstrated thatthecon-
+trolsystem possesses thecapacity tocorrectly control
+thevehicle. The main objecti veofthecontrol system
+wasachie vedwith success: topark vehicles inanau-
+tonomous way,notcolliding against obstacles present
+intheenvironment. Inorder tovalidate theSEVA3D
+vehicle control module, several experiments were ac-
+complished with visual andnumerical evaluations. This
+5Some videos demonstrating theSEVA3D parking manoeuvre are
+available inhttp://www .inf.unisinos.br/osorio/se va3d/
+
+--- Page 8 ---
+experiments allowed toverify thatthevehicle wascor-
+rectly controlled indifferent situations, demonstrating
+thattheproposed method isstable, safeandrobust.
+Although theexperimental results were verygood,
+wearestillplanning toimpro veSEVA3D/SimRob3D
+simulation model. The implementation ofanewver-
+sion ofSEVA3D isbeing considered inorder toinclude
+amore realistic physical simulation tool. Wearecon-
+sidering toaddrigid body dynamics simulation exten-
+sions, allowing tosimulate force, torque, friction, grav-
+ity,terrain slopes, etc.Inthenear future weplan toim-
+plement SEVA3D inarealvehicle, anautomated mini-
+Baja Buggy available inourresearch laboratory .The
+SEVA3D willbeadapted tousethenewhardw are(real
+sonar sensors) andthesystem willbeevaluated inreal
+worldconditions.
+References
+[1]Batavia,P.,Pomerleau, D.,andThorpe, C.Apply-
+ingadvanced learning algorithms toalvinn. Tech-
+nical Report CMU-RI-TR-96-31, Carne gieMel-
+lonUniversity (CMU), Pittsb urgh,PA,1996.
+[2]Bekey,G.A.Autonomous Robots: FromBiolo g-
+ical Inspir ation toImplementation and Contr ol.
+TheMIT Press, Cambridge, MA, USA, 2005.
+[3]Dudek, G.andJenkin, M.Computational Prin-
+ciples ofMobile Robotics .Cambridge University
+Press, Cambridge, UK, 2000.
+[4]Foley,J.D.Introduction toComputer Graphics .
+Addison-W esley,xxviii, 1994.
+[5]Garnier ,P.,Fraichard, T.,Laugier ,C.,Paromtchik,
+I.,andScheuer ,A. Motion autonomy through
+sensor -guided manoeuvres. InProceedings of
+theIEEE/RSJ International Confer ence onIntelli-
+gentRobots andSystems (IROS),Kyongju, Korea,
+Sept. 1999, IEEE Press.
+[6]Haykin, S.Neur alNetworks: ACompr ehensive
+Foundation .Prentice-Hall, Upper Saddle River,
+NJ,USA, 2edition, 1999.
+[7]Heinen, F.J.andOs´orio, F.S.HyCAR -aro-
+busthybrid control architecture forautonomous
+robots. InProceedings ofHybrid Intellig entSys-
+tems (HIS) ,volume 87,pages 830840, Santiago,
+Chile, 2002. Soft Computing Systems, IOSPress.
+[8]Heinen, M.R.,Os´orio, F.S.,Heinen, F.J.,and
+Kelber ,C. Autonomous vehicle parking and
+pull outusing articial neural netw orks. InPro-
+ceedings oftheIWorkshop onComputationalIntellig ence (WCI) ,Ribeir aoPreto, SP,Brazil,
+Oct. 2006. International Joint Conference IB-
+ERAMIA/SBIA/SBRN 2006, IEEE Press.
+[9]Heinen, M.R.,Os´orio, F.S.,Heinen, F.J.,and
+Kelber ,C.SEVA3D: Using articial neural net-
+works toautonomous vehicle parking control. In
+Proceedings oftheIEEE International JointCon-
+ference onNeur alNetworks (IJCNN) ,Vancou-
+ver,Canada, July 2006. IEEE World Congress on
+Computational Intelligence (WCCI), IEEE Press.
+[10] Kelber ,C.,Jung, C.R.,Os´orio, F.S.,andHeinen,
+F.J.Electrical drivesinintelligent vehicles: Ba-
+sisforactivedriverassistance systems. InProc.
+ofIEEE International Symposium onIndustrial
+Electr onics (ISIE) ,volume 4,pages 16231628,
+Dubro vnik, Croatia, 2005. IEEE Press.
+[11] Latombe, J.C.Robot Motion Planning .Kluwer
+Academic Publishers, Boston, MA, USA, 1991.
+[12] Laugier ,C.,Fraichard, T.,Paromtchik, I.E.,and
+Garnier ,P.Sensor based control architecture fora
+car-likevehicle. InProc.ofIEEE/RSJ Int.Conf .
+onIntellig entRobots andSystems (IROS),pages
+165185, Victoria, Canada, Oct. 1998.
+[13] Lemonick, M.Dante tours theinferno. TimeMag-
+azine -TimeDomestic/Science ,144(7), 1994.
+[14] Murray ,R.andSastry ,S.Steering nonholonomic
+systems using sinusoids. InProc.of29th IEEE
+Int.Conf .onDecision andContr ol(CDC) ,pages
+20972101, NewYork,USA, Dec. 1990.
+[15] Os´orio, F.S.,Heinen, F.J.,andFortes, L.Au-
+tonomous vehicle parking using nite state au-
+tomata learned byJ-CC articial neural nets. In
+Proceedings oftheVIBrazilian Symposium on
+Neur alNetworks (SBRN) ,volume 1,Porto deGal-
+inhas, PE,Brazil, 2002. IEEE Press.
+[16] Paromtchik, I.E.andLaugier ,C.Autonomous
+parallel parking ofanonholonomic vehicle. In
+Proc.ofIEEE Int.Symposium onIntellig entVehi-
+cles(IV),pages 1318, Tokyo,Japan, Sept. 1996.
+[17] Pomerleau, D.A. Neural netw orkbased au-
+tonomous navigation. Vision andNavigation -The
+CMU Navlab ,1990.
+[18] Stone, H.W.Mars pathnder microro ver-asmall,
+low-cost, low-po werspacecraft. InProceedings of
+AIAA Forum onAdvanced Developments inSpace
+Robotics ,Madison, WI,Aug. 1996. American In-
+stitute ofAeronautics andAstronautics (AIAA).

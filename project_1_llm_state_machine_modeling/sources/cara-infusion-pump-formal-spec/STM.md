@@ -2,6 +2,10 @@
 
 ## 盘点结论
 - 评级：🟢 直接可用
+- 文件级角色：💎 含核心样本
+- 代表状态机类型：EFSM（扩展状态机）
+- 代表时间级别：T0（无关键时间语义） / T2（强实时 / 显式时钟时间窗口）
+- 结构标签概况：显式时钟
 - 是否计入 [SUMMARY.md](../SUMMARY.md) 盘点：是
 - 提取条目数：2
 - 简要判断：OCR 后可以把泵控制模式和 cuff auto control 要求链完整还原出来。
@@ -11,6 +15,13 @@
 
 ## 条目 1: Pump manual/autocontrol modes
 - 控制对象：CARA 输液泵控制系统中的泵控制方式
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T0（无关键时间语义）
+- 结构标签：-（无额外结构标签）
+- 原文细节充实度：🟠 C（只有主链）
+- 描述细节充实度：🟠 C（只有主链）
+- 数据集角色：🧰 清洗后保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -29,7 +40,7 @@
 > CARA, the software releases its control. We have tried to abstract the interface
 > so that it can specify what a replacement pump would have to satisfy in order
 > to be used instead of the M100.
-> 
+>
 > Blood Pressure Sensor. The Blood Pressure Sensor is the monitoring device
 > which is the source of physiological signals such as arterial blood pressure and
 > cuff blood pressure. It will be attached to the patient and communicate the
@@ -38,13 +49,13 @@
 > buffer that the software will have access to. This allows for a more modular
 > design which could enable greater flexibility in using a variety of monitoring
 > devices.
-> 
+>
 > Pump. The infusion pump is the device which moves fluid into the patient.
 > It has a variety of sensors and can trigger alarms if fault conditions occur.
 > The pump has two modes, manual and autocontrol. In manual mode, the
 > pump speed is set with a switch built into the pump. In autocontrol mode, the
 > pumping speed is set by a control voltage from an external source.
-> 
+>
 > Caregiver. The caregiver represents the person that will be in charge of the
 > infusion, usually a doctor, nurse, or medic. He or she can interact with the
 > actual pumping device via hardware buttons on the pump and with the CARA
@@ -53,27 +64,64 @@
 > flow rate directly on the pump for use by the pump when it is operating in
 > manual mode (not under the control of CARA). The caregiver also takes care
 > of potential faults and failures that may occur during infusion.
-> 
+>
 > Patient. The patient is the object in this system. He or she is connected to the
 > pump and the blood pressure sensor. Infusion is carried out depending on the
 > patient’s current state, with the aim to rapidly restore his or her intravenous
 > volume and blood pressure.
 
+#### 摘录 B
+- 出处：第 7 页，Algorithm / Caregiver Interface / back-to-manual 逻辑，行 370-384 与 536-539
+> The purpose of the Algorithm component is to control the infusion rate of
+> the pump and keep track of infusion related data in log files. A patient’s blood
+> pressure is used to compute the rate at which the pump will be infusing: the
+> higher the blood pressure, the lower the flow rate. The CARA algorithm controls
+> the flow rate as long as there are no complications in the pump’s operation. In
+> case of complications, control reverts to the manual operator or caregiver.
+>
+> The Caregiver Interface unit has two functions. First, it serves as means
+> of communication with a caregiver. It allows the caregiver to modify infusion
+> parameters such as the target blood pressure, and also initiate and terminate the
+> algorithm’s control of the pump.
+>
+> Algorithm EFSM, we see the statement “CA_backManual OR CB_backManual
+> OR CP_backManual OR CC-backManual — CA-mode = Manual”. This simply
+> means that any of four EFSMs can trigger the algorithm to switch the mode to
+> “Manual”.
+
+#### 摘录 C
+- 出处：第 19 页，Hermes 的 Mode_Control_Algorithm 模式，行 1303-1323
+> In this paper, we explain two example modes of the Hermes model: the
+> Mode_Control_Algorithm mode and the Polling_Algorithm mode. Figure 11
+> describes the Mode_Control_Algorithm mode. In the Mode_Control_Algorithm
+> mode, we specify the four states of CARA - wait, manual, autocontrol init, and
+> autocontrol — and the Ask_StartAC submode. While the transition labels are
+> not made visible in the Hermes display, they have been translated from the tran-
+> sition labels of EFSM. In the Ask_StartAC submode, the setpoint value can be
+> changed and AutocontrolInit may be entered by pushing the StartAC button.
+
 ### 2. 基于原文整理后的自然语言描述
 
-The infusion pump can be run locally or under CARA, with the local switch setting the flow in manual operation and an external control voltage setting the pumping speed in autocontrol. If a pump fault occurs while CARA is controlling the pump, alarm signals are activated, the caregiver removes the fault, and the software releases control. The caregiver also sets the desired blood pressure through the display and a default flow rate on the pump for use when the pump stays in manual mode.
+The pump can operate in manual mode or autocontrol mode: in manual mode the caregiver uses the pump’s built-in switch and the default flow rate set on the pump, whereas in autocontrol mode the pumping speed is driven by the external control voltage produced by CARA from the blood-pressure data and target blood pressure. At the control-logic level, the mode-control model distinguishes wait, manual, autocontrol init, and autocontrol, with an Ask_StartAC submode in which the setpoint can be changed and pressing StartAC enters AutocontrolInit. Whenever pump complications occur while CARA is controlling the pump, alarms are activated, the caregiver removes the fault, and the software releases control; more generally, CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual forces CA_mode back to Manual.
 
 ### 3. 逐句溯源
 
-1. 句子 1：The infusion pump can be run locally or under CARA, with the local switch setting the flow in manual operation and an external control voltage setting the pumping speed in autocontrol.
-   对应摘录：A
-2. 句子 2：If a pump fault occurs while CARA is controlling the pump, alarm signals are activated, the caregiver removes the fault, and the software releases control.
-   对应摘录：A
-3. 句子 3：The caregiver also sets the desired blood pressure through the display and a default flow rate on the pump for use when the pump stays in manual mode.
-   对应摘录：A
+1. 句子 1：The pump can operate in manual mode or autocontrol mode: in manual mode the caregiver uses the pump’s built-in switch and the default flow rate set on the pump, whereas in autocontrol mode the pumping speed is driven by the external control voltage produced by CARA from the blood-pressure data and target blood pressure.
+   对应摘录：A, B
+2. 句子 2：At the control-logic level, the mode-control model distinguishes wait, manual, autocontrol init, and autocontrol, with an Ask_StartAC submode in which the setpoint can be changed and pressing StartAC enters AutocontrolInit.
+   对应摘录：C
+3. 句子 3：Whenever pump complications occur while CARA is controlling the pump, alarms are activated, the caregiver removes the fault, and the software releases control; more generally, CA_backManual or any of CB_backManual, CP_backManual, or CC_backManual forces CA_mode back to Manual.
+   对应摘录：A, B
 
 ## 条目 2: Cuff Handler in Auto Control
 - 控制对象：CARA 中基于 cuff 血压源的自动控制要求
+- 状态机类型：EFSM（扩展状态机）
+- 时间级别：T2（强实时 / 显式时钟时间窗口）
+- 结构标签：显式时钟
+- 原文细节充实度：🟢 A（细节完备）
+- 描述细节充实度：🟢 A（细节完备）
+- 数据集角色：💎 核心保留
+- 趋同标签：✨ 未见强趋同
 
 ### 0. 条目识别与判定
 
@@ -194,13 +242,17 @@ The infusion pump can be run locally or under CARA, with the local switch settin
 
 ### 2. 基于原文整理后的自然语言描述
 
-When cuff pressure is being used for control, CARA uses it as one of the prioritized blood pressure sources and adjusts the cuff reading frequency so that lower pressures are checked more often. Specifically, cuff readings are taken once per minute at 60 or below, every 2 minutes for (60, 70], every 5 minutes for (70, 90], and every 10 minutes above 90. If CARA cannot obtain a valid blood pressure in 3 minutes, or if repeated cuff readings remain invalid while cuff pressure is being used for control, it issues the prescribed messages and alarms and reverts to manual mode.
+When cuff pressure is used for control, CARA treats cuff as the priority-3 blood-pressure source and only accepts control readings in the valid 40-150 mmHg range. While cuff remains the active control source, the cuff handler drives CB_cuffFrequency and CB_localTimer so that the next cuff request is issued after 60 seconds for mean BP at or below 60, 120 seconds for (60, 70], 300 seconds for (70, 90], and 600 seconds above 90, with lower pressures sampled more often. If the cuff is already inflating when the next reading is due, no additional cuff request is issued. If no valid blood pressure can be obtained within 3 minutes, CARA displays the required message, raises the level-2 alarm, records the event, and sets the back-to-manual action. When cuff is the only control source and an expected cuff reading is invalid, the handler first issues the message and level-1 alarm and immediately requests another cuff reading; if that retry is also invalid, it escalates to a level-2 alarm, records the failure, and returns the system to manual mode.
 
 ### 3. 逐句溯源
 
-1. 句子 1：When cuff pressure is being used for control, CARA uses it as one of the prioritized blood pressure sources and adjusts the cuff reading frequency so that lower pressures are checked more often.
-   对应摘录：A, B
-2. 句子 2：Specifically, cuff readings are taken once per minute at 60 or below, every 2 minutes for (60, 70], every 5 minutes for (70, 90], and every 10 minutes above 90.
-   对应摘录：A, B
-3. 句子 3：If CARA cannot obtain a valid blood pressure in 3 minutes, or if repeated cuff readings remain invalid while cuff pressure is being used for control, it issues the prescribed messages and alarms and reverts to manual mode.
+1. 句子 1：When cuff pressure is used for control, CARA treats it as the priority-3 blood-pressure source and only accepts control readings in the valid 40-150 mmHg range.
+   对应摘录：B, C
+2. 句子 2：While cuff remains the active control source, the cuff handler drives CB_cuffFrequency and CB_localTimer so that the next cuff request is issued after 60 seconds for mean BP at or below 60, 120 seconds for (60, 70], 300 seconds for (70, 90], and 600 seconds above 90, with lower pressures sampled more often.
    对应摘录：A, B, C
+3. 句子 3：If the cuff is already inflating when the next reading is due, no extra cuff request is issued.
+   对应摘录：B
+4. 句子 4：If no valid blood pressure can be obtained within 3 minutes, CARA displays the required message, raises the level-2 alarm, records the event, and sets the back-to-manual action.
+   对应摘录：B, C
+5. 句子 5：When cuff is the only control source and an expected cuff reading is invalid, the handler first issues the message and level-1 alarm and immediately requests another cuff reading; if that retry is also invalid, it escalates to a level-2 alarm, records the failure, and returns the system to manual mode.
+   对应摘录：B, C
