@@ -73,6 +73,8 @@
    - <https://www.ccf.org.cn/Academic_Evaluation/TCSE_SS_PDL/>
 3. 本仓库内整理后的名录文档：
    - [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md)
+4. `2026` 投稿日期与主页核查表：
+   - [CCF_SE_2026_DEADLINES.md](./CCF_SE_2026_DEADLINES.md)
 
 ### 3.2 `arXiv` 方向入口
 
@@ -144,6 +146,12 @@ python -m tools.ccf_se_index_builder --year 2024
 7. `2025` 年条目已经完成全量人工终判；若后续扩展到新年份，继续沿用“直接写回 `metadata/*.json` 终判字段并重跑分类器”的流程推进。
 
 ## 6. 更新日志
+
+- `2026-04-14 22:36:36`
+  - 新增 [CCF_SE_2026_DEADLINES.md](./CCF_SE_2026_DEADLINES.md)，把 [CCF_SE_A_B_C.md](./CCF_SE_A_B_C.md) 当前保留的 `57` 个 `A/B/C` 软工相关 venue 全部补成一份 `2026` 投稿日期 / 主页核查表。
+  - 执行口径明确收紧为“只认官方 `2026` 主页、`CFP`、important dates 或作者指南；官方没发就直接写 `未公布`；不按往年日期补空”。
+  - 对 `ICSE/FSE/MSR/REFSQ` 等 conference-year 是 `2026`、但投稿窗口落在 `2025` 的 venue，保留官方真实日期，不做人为跨年平移。
+  - 对期刊 venue，统一按“官方主页是否给出固定 `2026` 年度 `ddl`”回填；未见固定 `ddl` 的，只写“未见 `2026` 固定 `ddl`”，不伪造会务式时间线。
 
 - `2026-04-06 16:40:38`
   - 统一 `CCF` 年度索引中的 venue 级归一化口径：以后只使用 `软工归属级别` 与 `氛围 A 🔥 / B 🟢 / C 🟡` 两列，不再保留任何独立 `A/B/C/D` 跟踪等级。
