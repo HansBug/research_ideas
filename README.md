@@ -12,7 +12,7 @@
 
 这个仓库是我的：
 - **文献调研中心**：存放阅读的论文、基线方法分析
-- **研究笔记本**：记录研究想法、讨论摘要、技术方案
+- **研究笔记本**：记录研究想法、讨论摘要、技术方案，以及与导师/他人的讨论纪要
 - **开题材料库**：博士开题报告、文献综述等正式文档
 - **工具箱**：研究过程中开发的辅助工具
 
@@ -29,6 +29,7 @@
 ├── project_3_profile_based_verification/      # 研究内容三
 ├── project_4_iterative_model_repair/          # 研究内容四
 ├── open_explore/              # 探索型专题入口（暂未归属具体 project 的专题文库）
+├── talks/                     # 与导师/他人的讨论纪要工作区
 │
 ├── tools/                     # 研究辅助工具
 │   └── pdf_extractor.py              # PDF文本提取工具
@@ -62,7 +63,15 @@
 - 仓库结构说明
 - 常用工具使用方法
 - 文献管理规范
+- 讨论纪要工作区规范
 - 核心技术概念
+
+### [talks/README.md](./talks/README.md) 与 [talks/GUIDE.md](./talks/GUIDE.md)
+用于维护与导师、同门、合作者等人类对象的讨论纪要，强调：
+
+- 先在 `raw.md` 中保存原始记忆碎片
+- 再由 AI 扩写为 `minutes.md`
+- 经过多轮人工纠偏后形成稳定纪要
 
 ## 四大研究主题
 
@@ -96,6 +105,17 @@ mkdir -p project_1_llm_state_machine_modeling/related_work/论文关键词
 python -m tools.pdf_extractor -i "path/to/paper/论文.pdf" -o "path/to/paper/paper_content.txt" -m text
 
 # 4. 编写 desc.md（按照 CLAUDE.md 中的规范）
+```
+
+### 记录一次讨论纪要
+
+```bash
+# 1. 创建单次讨论目录
+mkdir -p talks/2026-04-14-10-30-导师-讨论主题
+
+# 2. 先写 raw.md，记录会后还能回忆起的原始片段
+
+# 3. 按 talks/GUIDE.md 的规则扩写 minutes.md
 ```
 
 ### 环境设置
